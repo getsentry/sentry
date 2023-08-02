@@ -46,6 +46,8 @@ export interface FlamegraphTheme {
     BAR_LABEL_FONT_COLOR: string;
     COLOR_BUCKET: (t: number) => ColorChannels;
     COLOR_MAPS: Record<FlamegraphColorCodings[number], ColorMapFn>;
+    CPU_CHART_COLORS: ColorChannels[];
+    CPU_CHART_LABEL_COLOR: string;
     CURSOR_CROSSHAIR: string;
     DIFFERENTIAL_DECREASE: ColorChannels;
     DIFFERENTIAL_INCREASE: ColorChannels;
@@ -90,6 +92,7 @@ export interface FlamegraphTheme {
     BAR_FONT_SIZE: number;
     BAR_HEIGHT: number;
     BAR_PADDING: number;
+    CHART_PX_PADDING: number;
     CPU_CHART_HEIGHT: number;
     FLAMEGRAPH_DEPTH_OFFSET: number;
     GRID_LINE_WIDTH: number;
@@ -163,6 +166,7 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   TOOLTIP_FONT_SIZE: 12,
   TIMELINE_LABEL_HEIGHT: 20,
   UI_FRAMES_HEIGHT: 60,
+  CHART_PX_PADDING: 30,
 };
 
 const FONTS: FlamegraphTheme['FONTS'] = {
@@ -185,6 +189,8 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
       'by frequency': makeColorMapByFrequency,
       'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
     },
+    CPU_CHART_COLORS: [[0.96, 0.69, 0.0, 0.5]],
+    CPU_CHART_LABEL_COLOR: 'rgba(31,35,58,.75)',
     CURSOR_CROSSHAIR: '#bbbbbb',
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
     DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
@@ -231,6 +237,8 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
       'by frequency': makeColorMapByFrequency,
       'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
     },
+    CPU_CHART_COLORS: [[0.96, 0.69, 0.0, 0.6]],
+    CPU_CHART_LABEL_COLOR: 'rgba(255, 255, 255, 0.5)',
     CURSOR_CROSSHAIR: '#828285',
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
     DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],

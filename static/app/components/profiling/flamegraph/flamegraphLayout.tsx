@@ -260,6 +260,7 @@ const FlamegraphLayoutContainer = styled('div')`
 const FlamegraphGrid = styled('div')<{
   layout?: FlamegraphPreferences['layout'];
 }>`
+  background-color: ${p => p.theme.background};
   display: grid;
   width: 100%;
   grid-template-rows: ${({layout}) =>

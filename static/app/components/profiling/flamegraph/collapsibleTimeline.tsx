@@ -20,6 +20,7 @@ function CollapsibleTimeline(props: CollapsibleTimelineProps) {
   return (
     <Fragment>
       <CollapsibleTimelineHeader
+        open={props.open}
         labelHeight={theme.SIZES.TIMELINE_LABEL_HEIGHT}
         border={theme.COLORS.GRID_LINE_COLOR}
       >
@@ -88,7 +89,11 @@ const CollapsibleTimelineLoadingIndicatorContainer = styled('div')`
   height: 100%;
 `;
 
-const CollapsibleTimelineHeader = styled('div')<{border: string; labelHeight: number}>`
+const CollapsibleTimelineHeader = styled('div')<{
+  border: string;
+  labelHeight: number;
+  open: boolean;
+}>`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -97,6 +102,7 @@ const CollapsibleTimelineHeader = styled('div')<{border: string; labelHeight: nu
   height: ${p => p.labelHeight}px;
   min-height: ${p => p.labelHeight}px;
   border-top: 1px solid ${p => p.border};
+  border-bottom: 1px solid ${p => (p.open ? p.border : 'transparent')};
   background-color: ${p => p.theme.backgroundSecondary};
 `;
 
@@ -114,7 +120,6 @@ export const CollapsibleTimelineMessage = styled('p')`
   width: 100%;
   position: absolute;
   color: ${p => p.theme.subText};
-  padding-bottom: ${space(4)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 export {CollapsibleTimeline};
