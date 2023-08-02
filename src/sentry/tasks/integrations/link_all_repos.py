@@ -8,8 +8,9 @@ from sentry.plugins.providers.integration_repository import (
 )
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.rpc import RpcSendException
 from sentry.shared_integrations.exceptions.base import ApiError
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ def get_repo_config(repo, integration_id):
 
 
 @instrumented_task(name="sentry.integrations.github.link_all_repos", queue="integrations")
+@retry(on=(RpcSendException,))
 def link_all_repos(
     integration_key: str,
     integration_id: int,
@@ -69,6 +71,8 @@ def link_all_repos(
         try:
             config = get_repo_config(repo, integration_id)
             integration_repo_provider.create_repository(repo_config=config, organization=rpc_org)
+        except RpcSendException as e:
+            raise e
         except KeyError:
             continue
         except RepoExistsError:

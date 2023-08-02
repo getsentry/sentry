@@ -15,6 +15,7 @@ import pydantic
 import requests
 import sentry_sdk
 from django.conf import settings
+from requests.exceptions import ConnectionError, Timeout
 
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel, stubbed
 from sentry.silo import SiloMode
@@ -519,7 +520,12 @@ def _fire_request(url: str, path: str, body: Any) -> requests.Response:
         "Content-Type": f"application/json; charset={_RPC_CONTENT_CHARSET}",
         "Authorization": f"Rpcsignature {signature}",
     }
-    return requests.post(url, headers=headers, data=data)
+    try:
+        return requests.post(url, headers=headers, data=data)
+    except ConnectionError as e:
+        raise RpcSendException.from_exception(e) from e
+    except Timeout as e:
+        raise RpcSendException.from_exception(e) from e
 
 
 def compare_signature(url: str, body: bytes, signature: str) -> bool:
