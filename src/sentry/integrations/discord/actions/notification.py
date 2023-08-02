@@ -47,7 +47,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             try:
                 client.send_message(channel_id, message)
             except ApiError as e:
-                self.logger.info(
+                self.logger.error(
                     "rule.fail.discord_post",
                     extra={
                         "error": str(e),
