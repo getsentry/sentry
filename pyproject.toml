@@ -101,7 +101,6 @@ module = [
     "django_zero_downtime_migrations.backends.postgres.schema.*",
     "docker.*",
     "email_reply_parser.*",
-    "fido2.*",
     "honcho.manager.*",
     "honcho.printer.*",
     "isodate.*",

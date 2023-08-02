@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from base64 import urlsafe_b64encode
 from time import time
 from urllib.parse import urlparse
@@ -7,11 +9,17 @@ from django.http.request import HttpRequest
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from fido2 import cbor
-from fido2.client import ClientData
-from fido2.ctap2 import AuthenticatorData, base
 from fido2.server import Fido2Server, U2FFido2Server
 from fido2.utils import websafe_decode
-from fido2.webauthn import PublicKeyCredentialRpEntity
+from fido2.webauthn import (
+    AttestationObject,
+    AttestedCredentialData,
+    AuthenticatorData,
+    CollectedClientData,
+    PublicKeyCredentialRpEntity,
+    PublicKeyCredentialUserEntity,
+    UserVerificationRequirement,
+)
 from rest_framework.request import Request
 from u2flib_server.model import DeviceRegistration
 
@@ -30,7 +38,7 @@ def decode_credential_id(device):
 
 
 def create_credential_object(registeredKey):
-    return base.AttestedCredentialData.from_ctap1(
+    return AttestedCredentialData.from_ctap1(
         websafe_decode(registeredKey["keyHandle"]),
         websafe_decode(registeredKey["publicKey"]),
     )
@@ -58,9 +66,7 @@ class U2fInterface(AuthenticatorInterface):
     def __init__(self, authenticator=None, status=EnrollmentStatus.EXISTING):
         super().__init__(authenticator, status)
 
-        self.webauthn_authentication_server = U2FFido2Server(
-            app_id=self.u2f_app_id, rp={"id": self.rp_id, "name": "Sentry"}
-        )
+        self.webauthn_authentication_server = U2FFido2Server(app_id=self.u2f_app_id, rp=self.rp)
 
     @classproperty
     def u2f_app_id(cls):
@@ -94,15 +100,15 @@ class U2fInterface(AuthenticatorInterface):
     def start_enrollment(self, user):
         credentials = self.credentials()
         registration_data, state = self.webauthn_registration_server.register_begin(
-            user={
-                "id": user.id.to_bytes(64, byteorder="big"),
-                "name": user.username,
-                "displayName": user.username,
-            },
+            user=PublicKeyCredentialUserEntity(
+                id=user.id.to_bytes(64, byteorder="big"),
+                name=user.username,
+                display_name=user.username,
+            ),
             credentials=credentials,
             # user_verification is where the authenticator verifies that the user is authorized
             # to use the authenticator, this isn't needed for our usecase so set a discouraged
-            user_verification="discouraged",
+            user_verification=UserVerificationRequirement.DISCOURAGED,
         )
         return cbor.encode(registration_data), state
 
@@ -174,10 +180,16 @@ class U2fInterface(AuthenticatorInterface):
         rv.sort(key=lambda x: x["name"])
         return rv
 
-    def try_enroll(self, enrollment_data, response_data, device_name=None, state=None):
+    def try_enroll(
+        self,
+        enrollment_data: str,
+        response_data: str,
+        device_name: str | None = None,
+        state: dict[str, str] | None = None,
+    ) -> None:
         data = json.loads(response_data)
-        client_data = ClientData(websafe_decode(data["response"]["clientDataJSON"]))
-        att_obj = base.AttestationObject(websafe_decode(data["response"]["attestationObject"]))
+        client_data = CollectedClientData(websafe_decode(data["response"]["clientDataJSON"]))
+        att_obj = AttestationObject(websafe_decode(data["response"]["attestationObject"]))
         binding = self.webauthn_registration_server.register_complete(state, client_data, att_obj)
         devices = self.config.setdefault("devices", [])
         devices.append(
@@ -200,7 +212,7 @@ class U2fInterface(AuthenticatorInterface):
                 state=request.session["webauthn_authentication_state"],
                 credentials=credentials,
                 credential_id=websafe_decode(response["keyHandle"]),
-                client_data=ClientData(websafe_decode(response["clientData"])),
+                client_data=CollectedClientData(websafe_decode(response["clientData"])),
                 auth_data=AuthenticatorData(websafe_decode(response["authenticatorData"])),
                 signature=websafe_decode(response["signatureData"]),
             )

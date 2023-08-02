@@ -1,5 +1,5 @@
 from django.db import router, transaction
-from fido2.ctap2 import AuthenticatorData
+from fido2.webauthn import AuthenticatorData
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response

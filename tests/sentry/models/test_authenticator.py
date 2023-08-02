@@ -1,5 +1,5 @@
-from fido2.ctap2 import AuthenticatorData
 from fido2.utils import sha256
+from fido2.webauthn import AuthenticatorData
 
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
@@ -58,7 +58,7 @@ def test_authenticator_config_compatibility():
                 "ts": 1512505334,
                 "binding": AuthenticatorData.create(
                     sha256(b"test"),
-                    0x41,
+                    AuthenticatorData.FLAG.AT | AuthenticatorData.FLAG.UP,
                     1,
                     create_credential_object(
                         {

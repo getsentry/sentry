@@ -8,7 +8,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
-from fido2.ctap2 import AuthenticatorData
+from fido2.webauthn import AuthenticatorData
 
 from sentry.auth.authenticators import (
     AUTHENTICATOR_CHOICES,

@@ -1,7 +1,9 @@
+from unittest import mock
+
+import pytest
 from fido2 import cbor
-from fido2.ctap2 import AuthenticatorData
 from fido2.server import Fido2Server
-from fido2.webauthn import PublicKeyCredentialRpEntity
+from fido2.webauthn import AuthenticatorData, PublicKeyCredentialRpEntity
 
 from sentry.auth.authenticators.base import ActivationChallengeResult
 from sentry.auth.authenticators.u2f import U2fInterface
@@ -18,14 +20,20 @@ class U2FInterfaceTest(TestCase):
     def setUp(self):
         self.u2f = U2fInterface()
         self.login_as(user=self.user)
+
+    @pytest.fixture(autouse=True)
+    def setup_auth(self):
         rp = PublicKeyCredentialRpEntity("richardmasentry.ngrok.io", "Sentry")
-        self.test_registration_server = Fido2Server(rp, verify_origin=verifiy_origin)
+        server = Fido2Server(rp, verify_origin=verifiy_origin)
+        with mock.patch.object(U2fInterface, "rp", rp):
+            with mock.patch.object(U2fInterface, "webauthn_registration_server", server):
+                yield
 
     def test_start_enrollment_webauthn(self):
-        self.u2f.webauthn_registration_server = self.test_registration_server
         encoded_challenge, state = self.u2f.start_enrollment(self.user)
 
         challenge = cbor.decode(encoded_challenge)
+        assert isinstance(challenge, dict)
         assert len(state) == 2
         assert state["user_verification"] == "discouraged"
         assert len(state["challenge"]) == 43
@@ -40,7 +48,6 @@ class U2FInterfaceTest(TestCase):
         assert len(challenge["publicKey"]["pubKeyCredParams"]) == 4
 
     def test_try_enroll_webauthn(self):
-        self.u2f.webauthn_registration_server = self.test_registration_server
         state = {
             "challenge": "FmKqEKsXOinMhOdNhcZbMCbGleTlDeFr0S1gSYGzPY0",
             "user_verification": "discouraged",
