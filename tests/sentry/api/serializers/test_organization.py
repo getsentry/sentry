@@ -87,7 +87,6 @@ class OrganizationSerializerTest(TestCase):
             "symbol-sources",
             "team-insights",
             "team-roles",
-            "pr-comment-bot",
             "performance-issues-search",
             "transaction-name-normalize",
             "transaction-name-mark-scrubbed-as-sanitized",
