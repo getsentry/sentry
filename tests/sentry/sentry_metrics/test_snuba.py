@@ -23,10 +23,12 @@ class SnubaMetricsInterfaceTest(MetricsInterfaceTestCase):
 
     def test_simple(self):
 
+        test_project = self.create_project()
+
         generic_metrics_backend.distribution(
             self.use_case_id,
             self.organization.id,
-            self.project.id,
+            test_project.id,
             self.metric_name,
             [100, 200, 300],
             {},
@@ -42,6 +44,7 @@ class SnubaMetricsInterfaceTest(MetricsInterfaceTestCase):
                     metric_mri=self.get_mri(self.metric_name, "d", self.use_case_id, self.unit),
                 ),
             ],
+            project_ids=[test_project.id],
             groupby=[],
             orderby=[],
             limit=Limit(limit=1),
@@ -50,7 +53,7 @@ class SnubaMetricsInterfaceTest(MetricsInterfaceTestCase):
         )
 
         data = get_series(
-            [self.project],
+            [test_project],
             metrics_query=metrics_query,
             include_meta=True,
             use_case_id=UseCaseID.TRANSACTIONS,
