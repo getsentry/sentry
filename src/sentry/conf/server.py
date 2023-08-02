@@ -1110,7 +1110,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "github_comment_reactions": {
         "task": "sentry.tasks.integrations.github_comment_reactions",
-        "schedule": crontab(hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
+        "schedule": crontab(minute=0, hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
     },
     "poll_recap_servers": {
         "task": "sentry.tasks.poll_recap_servers",
@@ -1500,6 +1500,8 @@ SENTRY_FEATURES = {
     "organizations:issue-details-most-helpful-event-ui": False,
     # Display if a release is using semver when resolving issues
     "organizations:issue-release-semver": False,
+    # Display a prompt to setup releases in the resolve options dropdown
+    "organizations:issue-resolve-release-setup": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
