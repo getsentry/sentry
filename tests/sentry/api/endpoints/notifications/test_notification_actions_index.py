@@ -434,6 +434,10 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         )
         self.login_as(user)
 
+        non_admin_project = self.create_project(
+            organization=self.organization, teams=[self.create_team()]
+        )
+
         class MockActionRegistration(ActionRegistration):
             validate_action = MagicMock()
 
@@ -446,16 +450,18 @@ class NotificationActionsIndexEndpointTest(APITestCase):
 
         data = {
             **self.base_data,
-            "projects": [p.slug for p in self.projects]
-            + [
-                self.create_project(organization=self.organization, teams=[self.create_team()]).slug
-            ],
+            "projects": [p.slug for p in self.projects] + [non_admin_project.slug],
         }
 
         assert not registration.validate_action.called
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug,
             status_code=status.HTTP_403_FORBIDDEN,
             method="POST",
             **data,
+        )
+
+        assert (
+            "You do not have permission to create notification actions for projects"
+            in response.data["detail"]
         )
