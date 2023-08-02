@@ -9,13 +9,13 @@ class GenericMetricsTestMixIn:
     use_case_id = UseCaseID.TRANSACTIONS
     org_id = 2
     project_id = 1
-    metric_name = "user"
+    metric_name = "measurements.speed"
     set_values = [5, 3]
     counter_value = 5
     dist_values = [5, 3]
     tags = {"a": "b"}
     retention_days = 90
-    unit = None
+    unit = "millisecond"
 
     def get_mri(
         self, metric_name: str, metric_type: str, use_case_id: UseCaseID, unit: Optional[str]

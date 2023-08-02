@@ -1,29 +1,16 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from typing import Any, List, Mapping, Optional, Sequence, Union
+from datetime import datetime
+from typing import Mapping, Optional, Sequence, Union
 
-import urllib3
-from arroyo.backends.kafka import KafkaPayload
-from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 from django.core.cache import cache
 
 from sentry import quotas
 from sentry.sentry_metrics.client.base import GenericMetricsBackend
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
-from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.utils import json, snuba
-
-_METRIC_TYPE_TO_ENTITY: Mapping[str, str] = {
-    "c": "generic_metrics_counters",
-    "s": "generic_metrics_sets",
-    "d": "generic_metrics_distributions",
-}
-
-
-_broker_timestamp = datetime.now() - timedelta(seconds=5)
+from sentry.testutils.cases import BaseMetricsTestCase as metrics_test_base
 
 
 def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optional[str]) -> str:
@@ -46,16 +33,10 @@ def get_retention_from_org_id(org_id: int) -> int:
         return retention
 
 
-# TODO: Use the Futures that are returned by the call to produce.
-# These can be returned to the user, or handled in some way internally.
-# Ensure all of the MetricsBackend implementations have the same
-# Future return type.
-
-
 class SnubaMetricsBackend(GenericMetricsBackend):
     def __init__(self) -> None:
         self._message_processor = MessageProcessor(
-            get_ingest_config(UseCaseKey.PERFORMANCE, IndexerStorage.MOCK)
+            get_ingest_config(UseCaseKey.PERFORMANCE, IndexerStorage.POSTGRES)
         )
 
     def counter(
@@ -76,19 +57,16 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         produced to the broker yet.
         """
 
-        # the message that the indexer receives
-        counter_metric = {
-            "org_id": org_id,
-            "project_id": project_id,
-            "name": build_mri(metric_name, "c", use_case_id, unit),
-            "value": value,
-            "timestamp": int(datetime.now().timestamp()),
-            "tags": tags,
-            "retention_days": get_retention_from_org_id(org_id),
-            "type": "c",
-        }
-
-        self.__build_and_send_request(counter_metric)
+        metrics_test_base.store_metric(
+            name=build_mri(metric_name, "c", use_case_id, unit),
+            tags=tags,
+            value=value,
+            org_id=org_id,
+            project_id=project_id,
+            type="counter",
+            timestamp=int(datetime.now().timestamp()),
+            use_case_id=use_case_id,
+        )
 
     def set(
         self,
@@ -108,18 +86,17 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         produced to the broker yet.
         """
 
-        set_metric = {
-            "org_id": org_id,
-            "project_id": project_id,
-            "name": build_mri(metric_name, "s", use_case_id, unit),
-            "value": value,
-            "timestamp": int(datetime.now().timestamp()),
-            "tags": tags,
-            "retention_days": get_retention_from_org_id(org_id),
-            "type": "s",
-        }
-
-        self.__build_and_send_request(set_metric)
+        for val in value:
+            metrics_test_base.store_metric(
+                name=build_mri(metric_name, "s", use_case_id, unit),
+                tags=tags,
+                value=val,
+                org_id=org_id,
+                project_id=project_id,
+                type="set",
+                timestamp=int(datetime.now().timestamp()),
+                use_case_id=use_case_id,
+            )
 
     def distribution(
         self,
@@ -138,79 +115,17 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         will return immediately even if the metric message has not been
         produced to the broker yet.
         """
-        dist_metric = {
-            "org_id": org_id,
-            "project_id": project_id,
-            "name": build_mri(metric_name, "d", use_case_id, unit),
-            "value": value,
-            "timestamp": int(datetime.now().timestamp()),
-            "tags": tags,
-            "retention_days": get_retention_from_org_id(org_id),
-            "type": "d",
-        }
-
-        self.__build_and_send_request(dist_metric)
-
-    def __build_payload(self, metric) -> Sequence[Any]:
-        # build message batch for the MessageProcessor
-        message_batch = [
-            Message(
-                BrokerValue(
-                    KafkaPayload(None, json.dumps(metric).encode("utf-8"), []),
-                    Partition(Topic("topic"), 0),
-                    0,
-                    _broker_timestamp,
-                )
-            ),
-        ]
-
-        last = message_batch[-1]
-        outer_message = Message(Value(message_batch, last.committable))
-
-        # index message via the MessageProcessor
-        new_batch = self._message_processor.process_messages(outer_message=outer_message)
-
-        decoded_payloads: List[str] = []
-        for message in new_batch:
-            payload = message.payload
-            if type(payload) == RoutingPayload:
-                payload = payload.routing_message
-            # decode bytes into json
-            assert type(payload) == KafkaPayload
-            decoded_payloads.append(payload.value.decode("utf-8"))
-
-        json_payloads: List[json.JSONData] = []
-        for str_payload in decoded_payloads:
-            json_p = json.loads(str_payload)
-            json_payloads.append(json_p)
-
-        return json_payloads
-
-    def __build_and_send_request(self, metric):
-        metric_type = metric["type"]
-        headers: Mapping[str, Any] = {}
-        entity = _METRIC_TYPE_TO_ENTITY[metric_type]
-
-        deserialized_payloads = self.__build_payload(metric)
-        payload = deserialized_payloads[0]
-        data = (2, "insert") + (payload,)
-
-        serialized_data = json.dumps(data)
-
-        try:
-            resp = snuba._snuba_pool.urlopen(
-                "POST",
-                f"/tests/{entity}/eventstream",
-                body=serialized_data,
-                headers={f"X-Sentry-{k}": v for k, v in headers.items()},
+        for val in value:
+            metrics_test_base.store_metric(
+                name=build_mri(metric_name, "d", use_case_id, unit),
+                tags=tags,
+                value=val,
+                org_id=org_id,
+                project_id=project_id,
+                type="distribution",
+                timestamp=int(datetime.now().timestamp()),
+                use_case_id=use_case_id,
             )
-            if resp.status != 200:
-                raise snuba.SnubaError(
-                    f"HTTP {resp.status} response from Snuba! {json.loads(resp.data)}"
-                )
-            return None
-        except urllib3.exceptions.HTTPError as err:
-            raise snuba.SnubaError(err)
 
     def close(self) -> None:
         """
