@@ -1,4 +1,4 @@
-import {mat3, vec2} from 'gl-matrix';
+import {mat3, vec2, vec3} from 'gl-matrix';
 
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
@@ -109,11 +109,11 @@ export class FlamegraphChartRenderer {
       this.context.lineTo(configView.left + 12 * window.devicePixelRatio, interval.y);
       this.context.stroke();
 
-      this.context.fillText(
-        intervals[i].toString(),
-        configView.left + 2 * window.devicePixelRatio,
-        interval.y
-      );
+      // this.context.fillText(
+      //   intervals[i].toString(),
+      //   configView.left + 2 * window.devicePixelRatio,
+      //   interval.y
+      // );
 
       this.context.textAlign = 'end';
       this.context.beginPath();
@@ -121,11 +121,11 @@ export class FlamegraphChartRenderer {
       this.context.lineTo(configView.right - 12 * window.devicePixelRatio, interval.y);
       this.context.stroke();
 
-      this.context.fillText(
-        intervals[i].toString(),
-        configView.right + window.devicePixelRatio + 4,
-        interval.y
-      );
+      // this.context.fillText(
+      //   intervals[i].toString(),
+      //   configView.right + window.devicePixelRatio + 4,
+      //   interval.y
+      // );
     }
 
     // @TODO draw series
@@ -137,19 +137,21 @@ export class FlamegraphChartRenderer {
       this.context.lineCap = 'round';
       const serie = this.chart.series[i];
 
-      const origin = new Rect(0, 0, 1, 1).transformRect(configViewToPhysicalSpace);
+      const origin = vec3.fromValues(0, 0, 1);
+      vec3.transformMat3(origin, origin, configViewToPhysicalSpace);
 
       for (let j = 0; j < serie.points.length; j++) {
         const point = serie.points[j];
-        const r = new Rect(point.x, point.y, 1, 1).transformRect(
-          configViewToPhysicalSpace
-        );
+
+        const r = vec3.fromValues(point.x, 100, 1);
+        vec3.transformMat3(r, r, configViewToPhysicalSpace);
+
         if (j === 0) {
-          this.context.lineTo(r.x, origin.y);
+          this.context.lineTo(r[0], origin[1]);
         }
-        this.context.lineTo(r.x, r.y);
+        this.context.lineTo(r[0], r[1]);
         if (j === serie.points.length - 1) {
-          this.context.lineTo(r.x, origin.y);
+          this.context.lineTo(r[0], origin[1]);
         }
       }
 
