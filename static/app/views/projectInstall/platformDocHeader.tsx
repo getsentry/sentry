@@ -28,17 +28,12 @@ export function PlatformDocHeader({platform, projectSlug}: Props) {
   const api = useApi();
   const router = useRouter();
 
-  const projectDeletionOnBackClick = !!organization?.features.includes(
-    'onboarding-project-deletion-on-back-click'
-  );
-
   const recentCreatedProject = useRecentCreatedProject({
     orgSlug: organization.slug,
     projectSlug,
   });
 
   const shallProjectBeDeleted =
-    projectDeletionOnBackClick &&
     recentCreatedProject &&
     // if the project has received a first error, we don't delete it
     recentCreatedProject.firstError === false &&

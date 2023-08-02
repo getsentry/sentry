@@ -165,9 +165,6 @@ describe('Onboarding', function () {
     };
 
     const {routerProps, routerContext, organization} = initializeOrg({
-      organization: {
-        features: ['onboarding-project-deletion-on-back-click'],
-      },
       router: {
         params: routeParams,
       },
@@ -258,9 +255,6 @@ describe('Onboarding', function () {
     };
 
     const {routerProps, routerContext, organization} = initializeOrg({
-      organization: {
-        features: ['onboarding-project-deletion-on-back-click'],
-      },
       router: {
         params: routeParams,
       },
