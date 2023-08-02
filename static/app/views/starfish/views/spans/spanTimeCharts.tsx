@@ -25,7 +25,7 @@ import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spa
 
 const {SPAN_SELF_TIME, SPAN_OP, SPAN_MODULE, SPAN_DESCRIPTION} = SpanMetricsFields;
 
-const CHART_HEIGHT = 100;
+const CHART_HEIGHT = 140;
 
 type Props = {
   appliedFilters: AppliedFilters;

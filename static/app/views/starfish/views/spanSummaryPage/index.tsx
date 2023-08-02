@@ -54,7 +54,7 @@ const DEFAULT_SORT: Sort = {
   field: 'time_spent_percentage(local)',
 };
 
-const CHART_HEIGHT = 140;
+const CHART_HEIGHT = 160;
 
 type Props = {
   location: Location;
