@@ -294,7 +294,6 @@ detailed_project = {
             "profile-file-io-main-thread-post-process-group",
             "performance-render-blocking-asset-span-ingest",
             "profile-json-decode-main-thread-post-process-group",
-            "onboarding-project-deletion-on-back-click",
             "invite-members-rate-limits",
             "transaction-name-normalize",
             "performance-file-io-main-thread-visible",
