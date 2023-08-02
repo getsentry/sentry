@@ -7,7 +7,7 @@ from sentry.utils import redis
 BUFFER_SIZE = 30  # 30 days
 KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
 
-IS_BROKEN_RANGE = 7  # 7 days
+BROKEN_RANGE_DAYS = 7  # 7 days
 
 VALID_KEYS = ["success", "error", "fatal"]
 
@@ -50,23 +50,26 @@ class IntegrationRequestBuffer:
         Integration is broken if we have 7 consecutive days of errors and no successes OR have a fatal error
 
         """
-        items = self._get_broken_range_from_buffer()
+        broken_day_range = self._get_broken_range_from_buffer()
 
-        data = [item for item in items if int(item.get("fatal_count", 0)) > 0]
-
-        if len(data) > 0:
-            return True
-
-        data = [
-            item
-            for item in items
-            if int(item.get("error_count", 0)) > 0 and int(item.get("success_count", 0)) == 0
+        days_fatal = [
+            day_count for day_count in broken_day_range if int(day_count.get("fatal_count", 0)) > 0
         ]
 
-        if not len(data):
+        if len(days_fatal) > 0:
+            return True
+
+        days_error = [
+            day_count
+            for day_count in broken_day_range
+            if int(day_count.get("error_count", 0)) > 0
+            and int(day_count.get("success_count", 0)) == 0
+        ]
+
+        if not len(days_error):
             return False
 
-        if len(data) < IS_BROKEN_RANGE:
+        if len(days_error) < BROKEN_RANGE_DAYS:
             return False
 
         return True
@@ -92,7 +95,7 @@ class IntegrationRequestBuffer:
         now = datetime.now()
         broken_range_keys = [
             f"{self.integration_key}:{(now - timedelta(days=i)).strftime('%Y-%m-%d')}"
-            for i in range(IS_BROKEN_RANGE)
+            for i in range(BROKEN_RANGE_DAYS)
         ]
 
         return self._get_range_buffers(broken_range_keys)
