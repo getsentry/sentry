@@ -84,7 +84,7 @@ function SummarySegment({
       {frames.map((frame, i) => (
         <li key={i}>
           <BreadcrumbItem
-            crumb={frame}
+            frame={frame}
             onClick={handleOnClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}

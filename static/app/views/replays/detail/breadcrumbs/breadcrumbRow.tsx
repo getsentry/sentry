@@ -61,7 +61,7 @@ function BreadcrumbRow({
     >
       <BreadcrumbItem
         index={index}
-        crumb={frame}
+        frame={frame}
         onClick={onClickTimestamp}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
