@@ -6,7 +6,7 @@ from unittest.mock import patch
 from django.conf import settings
 
 from sentry.models.file_part import FilePartModel
-from sentry.replays.usecases.reader import download_range, find_blob_range, find_blob_ranges
+from sentry.replays.usecases.reader import download_filepart, find_filepart, find_fileparts
 from sentry.utils.crypt_envelope import envelope_encrypt
 from sentry.utils.pytest.fixtures import django_db_all
 
@@ -21,11 +21,11 @@ def test_find_blob_ranges():
         end=10, filename="test.txt", key=f"{replay_id}{segment_id}", start=0, dek="dek"
     )
 
-    blob_ranges = find_blob_ranges(replay_id, 1, 0)
+    blob_ranges = find_fileparts(replay_id, 1, 0)
     assert len(blob_ranges) == 1
     assert blob_ranges[0].key == f"{replay_id}0"
 
-    blob_ranges = find_blob_ranges(replay_id, 1, 1)
+    blob_ranges = find_fileparts(replay_id, 1, 1)
     assert not blob_ranges
 
 
@@ -39,14 +39,14 @@ def test_find_blob_range():
         end=10, filename="test.txt", key=f"{replay_id}{segment_id}", start=0, dek="dek"
     )
 
-    blob_range = find_blob_range(replay_id, segment_id)
+    blob_range = find_filepart(replay_id, segment_id)
     assert blob_range.key == f"{replay_id}0"
 
 
 @django_db_all
 def test_find_blob_range_does_not_exist():
     """Test "find_blob_range" function when the row does not exist."""
-    blob_range = find_blob_range(uuid.uuid4().hex, 1)
+    blob_range = find_filepart(uuid.uuid4().hex, 1)
     assert blob_range is None
 
 
@@ -73,7 +73,7 @@ def test_download_range():
 
         # This does not assert range reading from the service driver works. It only asserts that
         # _if_ it works the function will operate normally.
-        result = download_range(blob_range)
+        result = download_filepart(blob_range)
         assert result == payload
 
 

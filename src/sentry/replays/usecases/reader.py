@@ -320,29 +320,29 @@ def decompress(buffer: bytes) -> bytes:
 # Read segment data from a byte range.
 
 
-def find_blob_ranges(replay_id: str, limit: int, offset: int) -> List[FilePartModel]:
-    """Return a list of blob range instances."""
+def find_fileparts(replay_id: str, limit: int, offset: int) -> List[FilePartModel]:
+    """Return a list of fileparts."""
     return FilePartModel.objects.filter(key__startswith=replay_id).all()[offset : limit + offset]
 
 
-def find_blob_range(replay_id: str, segment_id: int) -> Optional[FilePartModel]:
-    """Return a blob range instance if it can be found."""
+def find_filepart(replay_id: str, segment_id: int) -> Optional[FilePartModel]:
+    """Return a filepart instance if it can be found."""
     key = f"{replay_id}{segment_id}"
     return FilePartModel.objects.filter(key=key).first()
 
 
-def download_range(blob_range: FilePartModel) -> bytes:
-    """Return the bytes contained in a blob range."""
+def download_filepart(filepart: FilePartModel) -> bytes:
+    """Return all of the bytes contained within a filepart."""
     store = get_storage(storage._make_storage_options())
-    result = store.read_range(blob_range.filename, blob_range.start, blob_range.end)
+    result = store.read_range(filepart.filename, filepart.start, filepart.end)
 
     # The blob-range is not guaranteed to be encrypted. If the row contains a value in the DEK
     # column then we know we need to decrypt the file before returning it to the user.
-    if blob_range.dek:
+    if filepart.dek:
         # KEK is hard-coded for now as an environment variable. This could be managed by a key
         # management service.
         kek = settings.REPLAYS_KEK
-        dek = base64.b64decode(blob_range.dek)
+        dek = base64.b64decode(filepart.dek)
         return decompress(envelope_decrypt(kek, dek, result))
     else:
         return decompress(result)
