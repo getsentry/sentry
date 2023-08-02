@@ -43,7 +43,7 @@ const mockReplay = ReplayReader.factory({
     },
   }),
   errors: [],
-  attachments: TestStubs.ReplaySegmentInit({
+  attachments: TestStubs.Replay.RRWebInitFrameEvents({
     timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
   }),
 });

@@ -1,16 +1,14 @@
 import {EntryException, ReleaseMeta} from 'sentry/types';
 import type {
+  ReplayError,
   ReplayListRecord,
   ReplayRecord,
-  ReplaySpan,
 } from 'sentry/views/replays/types';
 
 import type {Replay} from './replay';
 import {MockRuleCondition} from './ruleConditions';
 
 type SimpleStub<T = any> = () => T;
-
-type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 type OverridableStub<Params = any, Result = Params> = (
   params?: Partial<Params>
@@ -129,25 +127,9 @@ type TestStubFixtures = {
   Release: (params?: any, healthParams?: any) => any;
   ReleaseMeta: OverridableStub<ReleaseMeta>;
   Replay: typeof Replay;
-  ReplayError: OverridableStub;
+  ReplayError: OverridableStub<ReplayError>;
   ReplayList: OverridableStubList<ReplayListRecord>;
-  ReplayRRWebDivHelloWorld: OverridableStub;
-  ReplayRRWebNode: OverridableStub;
   ReplayRecord: OverridableStub<ReplayRecord>;
-  ReplaySegmentBreadcrumb: OverridableStub;
-  ReplaySegmentConsole: OverridableStub;
-  ReplaySegmentFullsnapshot: OverridableStub;
-  ReplaySegmentInit: OverridableStub;
-  ReplaySegmentNavigation: OverridableStub;
-  ReplaySegmentSpan: OverridableStub;
-  ReplaySpanPayload: OverridableStub<
-    Overwrite<ReplaySpan, {endTimestamp: Date; startTimestamp: Date}>,
-    ReplaySpan
-  >;
-  ReplaySpanPayloadNavigate: OverridableStub<
-    Overwrite<ReplaySpan, {endTimestamp: Date; startTimestamp: Date}>,
-    ReplaySpan
-  >;
   Repository: OverridableStub;
   RepositoryProjectPathConfig: OverridableStub;
   Search: OverridableStub;

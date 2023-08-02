@@ -13,10 +13,11 @@ jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 jest.mock('sentry/utils/replays/hooks/useReplayReader');
 jest.mock('sentry/utils/useProjects');
 
+const now = new Date();
 const mockReplay = ReplayReader.factory({
-  replayRecord: TestStubs.ReplayRecord({}),
+  replayRecord: TestStubs.ReplayRecord({started_at: now}),
   errors: [],
-  attachments: TestStubs.ReplaySegmentInit({}),
+  attachments: TestStubs.Replay.RRWebInitFrameEvents({timestamp: now}),
 });
 
 jest.mocked(useReplayReader).mockImplementation(() => {
