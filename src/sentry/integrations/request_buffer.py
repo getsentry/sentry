@@ -4,7 +4,6 @@ from datetime import datetime
 from django.conf import settings
 from redis.exceptions import WatchError
 from requests import Response
-from requests.exceptions import ConnectionError, Timeout
 
 from sentry.utils import json, redis
 
@@ -12,12 +11,6 @@ BUFFER_SIZE = 30  # 30 days
 KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
 
 IS_BROKEN_RANGE = 7  # 7 days
-
-
-def is_timeout(e: Exception) -> bool:
-    if type(e) is Timeout or type(e) is ConnectionError:
-        return True
-    return False
 
 
 def is_response_error(resp: Response) -> bool:
@@ -190,5 +183,4 @@ class IntegrationRequestBuffer:
         self.add("fatal")
 
     def record_timeout(self, e: Exception):
-        if is_timeout(e):
-            self.add("timeout")
+        self.add("timeout")
