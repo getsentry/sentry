@@ -24,6 +24,7 @@ def get_repo_config(repo, integration_id):
 @instrumented_task(
     name="sentry.integrations.github.link_all_repos",
     queue="integrations",
+    max_retries=3,
 )
 @retry(
     exclude=(
