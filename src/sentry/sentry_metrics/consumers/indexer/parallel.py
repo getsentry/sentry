@@ -96,6 +96,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         output_block_size: int,
         ingest_profile: str,
         indexer_db: str,
+        group_instance_id: int,
     ):
         from sentry.sentry_metrics.configuration import (
             IndexerStorage,
@@ -196,6 +197,7 @@ def get_parallel_metrics_consumer(
     strict_offset_reset: bool,
     ingest_profile: str,
     indexer_db: str,
+    group_instance_id: Optional[str],
 ) -> StreamProcessor[KafkaPayload]:
     processing_factory = MetricsConsumerStrategyFactory(
         max_msg_batch_size=max_msg_batch_size,
@@ -207,6 +209,7 @@ def get_parallel_metrics_consumer(
         output_block_size=output_block_size,
         ingest_profile=ingest_profile,
         indexer_db=indexer_db,
+        group_instance_id=group_instance_id,
     )
 
     return StreamProcessor(
@@ -216,6 +219,7 @@ def get_parallel_metrics_consumer(
                 group_id,
                 auto_offset_reset=auto_offset_reset,
                 strict_offset_reset=strict_offset_reset,
+                group_instance_id=group_instance_id,
             )
         ),
         Topic(processing_factory.config.input_topic),
