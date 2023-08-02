@@ -77,8 +77,8 @@ def _get_metric_specs(alert_rules: Sequence[AlertRule]) -> List[MetricSpec]:
     metrics: Dict[str, MetricSpec] = {}
 
     for alert in alert_rules:
-        hashed_metric_specs = convert_query_to_metric(alert.snuba_query)
-        for hashed_metric_spec in hashed_metric_specs:
+        hashed_metric_spec = convert_query_to_metric(alert.snuba_query)
+        if hashed_metric_spec is not None:
             metrics[hashed_metric_spec.query_hash] = hashed_metric_spec.metric_spec
 
     return [spec for spec in metrics.values()]
@@ -89,31 +89,25 @@ class HashedMetricSpec(NamedTuple):
     query_hash: str
 
 
-def convert_query_to_metric(snuba_query: SnubaQuery) -> List[HashedMetricSpec]:
+def convert_query_to_metric(snuba_query: SnubaQuery) -> Optional[HashedMetricSpec]:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
     returns a MetricSpec for the query. Otherwise, returns None.
     """
     try:
         if not is_on_demand_snuba_query(snuba_query):
-            return []
+            return None
 
         builder = OndemandMetricSpecBuilder.default()
-        on_demand_specs = builder.build_specs(
+        on_demand_spec = builder.build_spec(
             field=snuba_query.aggregate,
             query=snuba_query.query,
             derived_metric_params=DerivedMetricParams({"t": 10}),
         )
 
-        hashed_metric_specs = []
-        for on_demand_spec in on_demand_specs:
-            metric_spec = on_demand_spec.to_metric_spec()
-            # TODO: avoid computing two times the same hash.
-            hashed_metric_specs.append(
-                HashedMetricSpec(metric_spec=metric_spec, query_hash=on_demand_spec.query_hash())
-            )
-
-        return hashed_metric_specs
+        return HashedMetricSpec(
+            metric_spec=on_demand_spec.to_metric_spec(), query_hash=on_demand_spec.query_hash()
+        )
     except Exception as e:
         logger.error(e, exc_info=True)
         return []

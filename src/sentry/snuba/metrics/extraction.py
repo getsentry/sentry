@@ -126,6 +126,9 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "p99": "d",
 }
 
+# Mapping to infer metric type from derived metric.
+_DERIVED_METRIC_TO_METRIC_TYPE = {"failure_rate": "c", "apdex": "c"}
+
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
 # will be converted to metric extraction conditions.
 _STANDARD_METRIC_FIELDS = [
@@ -317,10 +320,12 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
 
 
 class OndemandMetricSpecV2(NamedTuple):
-    op: MetricOperationType
+    op: Optional[MetricOperationType]
     metric_type: str
     field: Optional[str]
-    rule_condition: RuleCondition
+    condition: RuleCondition
+    tags_conditions: List[TagSpec]
+    is_derived_metric: bool
 
     @property
     def mri(self) -> str:
@@ -330,19 +335,24 @@ class OndemandMetricSpecV2(NamedTuple):
     def query_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
 
+        # TODO: reuse the old field + query combination for evaluating query hash.
+
         # We sort the entire rules dictionary in order to maximize the number of equal hashes.
-        sorted_rule_condition = _deep_sorted(self.rule_condition)
+        sorted_rule_condition = _deep_sorted(self.condition)
         str_to_hash = f"{self.field};{str(sorted_rule_condition)}"
 
         return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
 
     def to_metric_spec(self) -> MetricSpec:
+        extended_tags_conditions = self.tags_conditions.copy()
+        extended_tags_conditions.append({"key": QUERY_HASH_KEY, "value": self.query_hash()})
+
         return {
             "category": DataCategory.TRANSACTION.api_name(),
             "mri": self.mri,
             "field": self.field,
-            "condition": self.rule_condition,
-            "tags": [{"key": QUERY_HASH_KEY, "value": self.query_hash()}],
+            "condition": self.condition,
+            "tags": extended_tags_conditions,
         }
 
 
@@ -364,36 +374,9 @@ class DerivedMetricParams(NamedTuple):
 
 
 class DerivedMetricComponent(NamedTuple):
-    metric_type: str
-    field: Optional[str] = None
+    tag_key: str
+    tag_value: str
     conditions: Sequence[QueryToken] = []
-
-    def merge_conditions(
-        self, upstream_conditions: Sequence[QueryToken]
-    ) -> "DerivedMetricComponent":
-        # TODO: implement better merging that can optimize the tree structure.
-        return DerivedMetricComponent(
-            metric_type=self.metric_type,
-            field=self.field,
-            conditions=self._merge_conditions(upstream_conditions),
-        )
-
-    def _merge_conditions(self, upstream_conditions: Sequence[QueryToken]) -> Sequence[QueryToken]:
-        local_len = len(self.conditions)
-        upstream_len = len(upstream_conditions)
-
-        if local_len == 0 and upstream_len == 0:
-            return []
-        elif local_len == 0 and upstream_len > 0:
-            return upstream_conditions
-        elif local_len > 0 and upstream_len == 0:
-            return self.conditions
-        else:
-            return [
-                ParenExpression(children=self.conditions),
-                "AND",
-                ParenExpression(children=upstream_conditions),
-            ]
 
 
 class DerivedMetric(ABC):
@@ -414,20 +397,74 @@ class FailureRate(DerivedMetric):
     def get_derived_metric_name(self) -> str:
         return "failure_rate()"
 
+    # TODO: instead of having components as filters, just use a single json and map the conditions to a tag key and
+    #  tag value.
+    # E.g.:
+    #  failure: true -> conditions
+    #  failure: false -> conditions
+
+    """
+    def test_failure_rate():
+    alert = create_alert("transaction.duration:>=1000", "failure_rate()")
+    specs = extraction._get_metric_specs([alert])
+
+    assert specs[0] == {
+        "category": "transaction",
+        "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+        "field": None,
+        "mri": "c:transactions/on_demand@none",
+        "tags": [
+            {"key": "query_hash", "value": ANY},
+            {
+                "key": "failure",
+                "value": "true",
+                "condition": {
+                    "op": "not",
+                    "inner": {
+                        "op": "eq",
+                        "name": "event.status",
+                        "value": ["ok", "cancelled", "unknown"],
+                    },
+                },
+            },
+        ],
+    }
+    """
+
     def get_components(self) -> List[DerivedMetricComponent]:
         return [
             DerivedMetricComponent(
-                metric_type="c",
+                tag_key="failure",
+                tag_value="true",
                 conditions=[
+                    # TODO: add support for NOT IN.
+                    # SearchFilter(
+                    #     key=SearchKey(name="transaction.status"),
+                    #     operator="NOT IN",
+                    #     value=SearchValue(raw_value=["ok", "cancelled", "unknown"]),
+                    # ),
                     SearchFilter(
                         key=SearchKey(name="transaction.status"),
-                        operator="=",
-                        value=SearchValue(raw_value="aborted"),
-                    )
+                        operator="!=",
+                        value=SearchValue(raw_value=["ok"]),
+                    ),
+                    "AND",
+                    SearchFilter(
+                        key=SearchKey(name="transaction.status"),
+                        operator="!=",
+                        value=SearchValue(raw_value=["cancelled"]),
+                    ),
+                    "AND",
+                    SearchFilter(
+                        key=SearchKey(name="transaction.status"),
+                        operator="!=",
+                        value=SearchValue(raw_value=["unknown"]),
+                    ),
                 ],
             ),
             DerivedMetricComponent(
-                metric_type="c",
+                tag_key="failure",
+                tag_value="false",
             ),
         ]
 
@@ -443,8 +480,8 @@ class Apdex(DerivedMetric):
         return [
             # Satisfactory.
             DerivedMetricComponent(
-                metric_type="c",
-                field="transaction.duration",
+                tag_key="satisfaction",
+                tag_value="satisfactory",
                 conditions=[
                     SearchFilter(
                         key=SearchKey(name="transaction.duration"),
@@ -455,8 +492,8 @@ class Apdex(DerivedMetric):
             ),
             # Tolerable.
             DerivedMetricComponent(
-                metric_type="c",
-                field="transaction.duration",
+                tag_key="satisfaction",
+                tag_value="tolerable",
                 conditions=[
                     SearchFilter(
                         key=SearchKey(name="transaction.duration"),
@@ -473,8 +510,8 @@ class Apdex(DerivedMetric):
             ),
             # Frustrated.
             DerivedMetricComponent(
-                metric_type="c",
-                field="transaction.duration",
+                tag_key="satisfaction",
+                tag_value="frustrated",
                 conditions=[
                     SearchFilter(
                         key=SearchKey(name="transaction.duration"),
@@ -550,12 +587,15 @@ class OndemandMetricSpecBuilder:
     def default() -> "OndemandMetricSpecBuilder":
         return OndemandMetricSpecBuilder(field_parser=FieldParser(), query_parser=QueryParser())
 
-    def build_specs(
+    def build_spec(
         self,
         field: str,
         query: str,
         derived_metric_params: Optional[DerivedMetricParams] = None,
-    ) -> List[OndemandMetricSpecV2]:
+    ) -> OndemandMetricSpecV2:
+        # We need to clean up the query from unnecessary filters.
+        query = self._cleanup_query(query)
+
         if (derived_metric := _DERIVED_METRICS.get(field)) is not None:
             if derived_metric_params is None:
                 derived_metric_params = DerivedMetricParams.empty()
@@ -564,48 +604,60 @@ class OndemandMetricSpecBuilder:
         else:
             return self._handle_normal_metric(field, query)
 
-    def _handle_normal_metric(self, field: str, query: str) -> List[OndemandMetricSpecV2]:
-        # We need to clean up the query from unnecessary filters.
-        query = self._cleanup_query(query)
+    def _handle_derived_metric(
+        self,
+        field: str,
+        query: str,
+        derived_metric: DerivedMetric,
+        derived_metric_params: DerivedMetricParams,
+    ) -> OndemandMetricSpecV2:
+        op, metric_type, extracted_field = self._process_field(field=field, is_derived=True)
+        rule_condition = self._process_query(field=field, query=query)
+        tags_conditions = self._process_components(
+            derived_metric=derived_metric, derived_metric_params=derived_metric_params
+        )
 
-        op, metric_type, extracted_field = self._init_field(field)
-        rule_condition = self._init_query(field, query)
+        return OndemandMetricSpecV2(
+            op=op,
+            metric_type=metric_type,
+            field=extracted_field,
+            condition=rule_condition,
+            tags_conditions=tags_conditions,
+            is_derived_metric=True,
+        )
 
-        return [
-            OndemandMetricSpecV2(
-                op=op, metric_type=metric_type, field=extracted_field, rule_condition=rule_condition
-            )
-        ]
+    def _handle_normal_metric(self, field: str, query: str) -> OndemandMetricSpecV2:
+        op, metric_type, extracted_field = self._process_field(field=field, is_derived=False)
+        rule_condition = self._process_query(field=field, query=query)
 
-    @staticmethod
-    def _cleanup_query(query: str) -> str:
-        regexes = [r"event\.type:transaction\s*", r"project:[\w\"]+\s*"]
+        return OndemandMetricSpecV2(
+            op=op,
+            metric_type=metric_type,
+            field=extracted_field,
+            condition=rule_condition,
+            tags_conditions=[],
+            is_derived_metric=False,
+        )
 
-        new_query = query
-        for regex in regexes:
-            new_query = re.sub(regex, "", new_query)
-
-        return new_query
-
-    def _init_field(self, field: str) -> Tuple[MetricOperationType, str, Optional[str]]:
+    def _process_field(
+        self, field: str, is_derived: bool
+    ) -> Tuple[Optional[MetricOperationType], str, Optional[str]]:
         parsed_field = self._field_parser.parse(field)
         if parsed_field is None:
             raise Exception(f"Unable to parse the field {field}")
-        elif (
-            parsed_field.function not in _AGGREGATE_TO_METRIC_TYPE
-            and parsed_field.function not in _SEARCH_TO_METRIC_AGGREGATES
-        ):
-            raise Exception(f"Unsupported aggregate function {parsed_field.function}")
 
-        op = _SEARCH_TO_METRIC_AGGREGATES[parsed_field.function]
-        metric_type = _AGGREGATE_TO_METRIC_TYPE[parsed_field.function]
-        if metric_type != "c":
+        # TODO: we have to figure out how we want to map the operation in case of a derived metric.
+        op = None if is_derived else self.get_op(parsed_field.function)
+        metric_type = self._get_metric_type(parsed_field.function)
+
+        # We only support a field for sets and distributions metrics that are NOT derived.
+        if metric_type != "c" and not is_derived:
             assert len(parsed_field.arguments) == 1, "Only one parameter is supported"
             return op, metric_type, _map_field_name(parsed_field.arguments[0])
 
         return op, metric_type, None
 
-    def _init_query(self, field: str, query: str) -> RuleCondition:
+    def _process_query(self, field: str, query: str) -> RuleCondition:
         # TODO: find a way to avoid double parsing of the field.
         parsed_field = self._field_parser.parse(field)
         if parsed_field is None:
@@ -640,45 +692,56 @@ class OndemandMetricSpecBuilder:
         rule_condition["inner"].append(count_if_rule_condition)
         return rule_condition
 
-    def _handle_derived_metric(
-        self,
-        field: str,
-        query: str,
-        derived_metric: DerivedMetric,
-        derived_metric_params: DerivedMetricParams,
-    ) -> List[OndemandMetricSpecV2]:
-        # First step is to parse the query into our internal AST format.
-        parsed_query = self._query_parser.parse(query)
-        if parsed_query is None:
-            raise Exception(f"Unable to parse the query {query}")
-
-        # Second step is to get each component and perform the query merging operation.
-        upstream_conditions = parsed_query.conditions
-        merged_components = []
+    def _process_components(
+        self, derived_metric: DerivedMetric, derived_metric_params: DerivedMetricParams
+    ) -> List[TagSpec]:
+        tags_conditions = []
+        variables = derived_metric.get_variables(derived_metric_params)
         for component in derived_metric.get_components():
-            merged_components.append(component.merge_conditions(upstream_conditions))
+            tag_condition = None
+            if len(component.conditions) > 0:
+                tag_condition = SearchQueryConverter(
+                    component.conditions,
+                    variables,
+                ).convert()
 
-        # Third step is to compute the on demand specs given the merged components.
-        on_demand_specs = []
-        for component in merged_components:
-            rule_condition = SearchQueryConverter(
-                component.conditions,
-                derived_metric.get_variables(derived_metric_params=derived_metric_params),
-            ).convert()
+            tag: TagSpec = {"key": component.tag_key, "value": component.tag_value}
+            if tag_condition is not None:
+                tag["condition"] = tag_condition
 
-            # We use the derived metric field as operation for each component, however the right implementation would
-            # be to specify in the derived component what are the operations that we expect to do on the extracted
-            # metric but this can be done later on when we will find a proper usage for the `op` field in the spec.
-            on_demand_specs.append(
-                OndemandMetricSpecV2(
-                    op=field,
-                    metric_type=component.metric_type,
-                    field=component.field,
-                    rule_condition=rule_condition,
-                )
-            )
+            tags_conditions.append(tag)
 
-        return on_demand_specs
+        return tags_conditions
+
+    @staticmethod
+    def get_op(function: str) -> MetricOperationType:
+        op = _SEARCH_TO_METRIC_AGGREGATES.get(function)
+        if op is not None:
+            return op
+
+        raise Exception(f"Unsupported aggregate function {function}")
+
+    @staticmethod
+    def _get_metric_type(function: str) -> str:
+        metric_type = _AGGREGATE_TO_METRIC_TYPE.get(function)
+        if metric_type is not None:
+            return metric_type
+
+        metric_type = _DERIVED_METRIC_TO_METRIC_TYPE.get(function)
+        if metric_type is not None:
+            return metric_type
+
+        raise Exception(f"Unsupported aggregate function {function}")
+
+    @staticmethod
+    def _cleanup_query(query: str) -> str:
+        regexes = [r"event\.type:transaction\s*", r"project:[\w\"]+\s*"]
+
+        new_query = query
+        for regex in regexes:
+            new_query = re.sub(regex, "", new_query)
+
+        return new_query
 
 
 def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
@@ -813,6 +876,7 @@ class SearchQueryConverter:
             raise ValueError("Unexpected end of query")
 
     def _filter(self, token: SearchFilter) -> RuleCondition:
+        # TODO: add support for not in.
         operator = _SEARCH_TO_RELAY_OPERATORS.get(token.operator)
         if not operator:
             raise ValueError(f"Unsupported operator {token.operator}")

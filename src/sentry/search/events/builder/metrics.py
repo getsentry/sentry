@@ -84,14 +84,14 @@ class MetricsQueryBuilder(QueryBuilder):
         if granularity is not None:
             self._granularity = granularity
 
-        self._on_demand_specs = self._resolve_on_demand_specs(
+        self._on_demand_spec = self._resolve_on_demand_spec(
             dataset,
             kwargs.get("selected_columns", []),
             kwargs.get("query", ""),
             kwargs.get("on_demand_metrics_enabled", False),
         )
 
-        self.use_on_demand_metrics = len(self._on_demand_specs) > 0
+        self.use_on_demand_metrics = self._on_demand_spec is not None
 
         super().__init__(
             # TODO: defaulting to Metrics for now so I don't have to update incidents tests. Should be
@@ -108,36 +108,33 @@ class MetricsQueryBuilder(QueryBuilder):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
         self.organization_id: int = org_id
 
-    def _resolve_on_demand_specs(
+    def _resolve_on_demand_spec(
         self,
         dataset: Optional[Dataset],
         selected_cols: List[Optional[str]],
         query: str,
         on_demand_metrics_enabled: bool,
-    ) -> List[OndemandMetricSpecV2]:
+    ) -> Optional[OndemandMetricSpecV2]:
         if not on_demand_metrics_enabled:
-            return []
+            return None
 
         field = selected_cols[0] if selected_cols else None
         if not field:
-            return []
+            return None
 
         if not is_on_demand_query(dataset, field, query):
-            return []
+            return None
 
         try:
             builder = OndemandMetricSpecBuilder.default()
-            return builder.build_specs(field=field, query=query)
+            return builder.build_spec(field=field, query=query)
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            return []
+            return None
 
     def _get_on_demand_metrics_query(self, snuba_query: Query) -> Optional[MetricsQuery]:
-        specs = self._on_demand_specs
-        if len(specs) > 1:
-            raise InvalidSearchQuery("Derived on demand metrics are not currently supported")
+        spec = self._on_demand_spec
 
-        spec = specs[0]
         # TimeseriesQueryBuilder specific parameters
         if isinstance(self, TimeseriesMetricQueryBuilder):
             limit = Limit(1)
