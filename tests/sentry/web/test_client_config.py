@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import datetime
 import functools
 from typing import Callable, Optional, Tuple
 
@@ -104,24 +103,6 @@ def clear_env_request():
     env.request = None
 
 
-def _fudge_datetime_objects(obj):
-    # There is some inconsistency among our serializer objects, where some return
-    # structures with Python `datetime` objects in them and others return
-    # ISO-formatted timestamp strings. Django evidently handles those values
-    # consistently when we pass them up to the API front end, but it causes headaches
-    # when comparing them for equality in a test assertion.
-    #
-    # TODO: Un-kludge this
-
-    if isinstance(obj, datetime.datetime):
-        return obj.isoformat().replace("+00:00", "Z")
-    if isinstance(obj, dict):
-        return {k: _fudge_datetime_objects(v) for (k, v) in obj.items()}
-    if not isinstance(obj, str) and hasattr(obj, "__iter__"):
-        return [_fudge_datetime_objects(x) for x in obj]
-    return obj
-
-
 @pytest.mark.parametrize(
     "request_factory",
     [
@@ -139,7 +120,7 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
     if request is not None:
         request, _ = request
 
-    base_line = _fudge_datetime_objects(get_client_config(request))
+    base_line = get_client_config(request)
     cache.clear()
 
     with override_settings(SILO_MODE=SiloMode.REGION):
@@ -147,7 +128,7 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
         cache.clear()
 
     with override_settings(SILO_MODE=SiloMode.CONTROL):
-        assert _fudge_datetime_objects(get_client_config(request)) == base_line
+        assert get_client_config(request) == base_line
 
 
 @django_db_all(transaction=True)

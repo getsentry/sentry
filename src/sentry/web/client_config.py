@@ -17,7 +17,7 @@ from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key
 from sentry.services.hybrid_cloud.user import UserSerializeType
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.utils import auth
+from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.http import is_using_customer_domain
@@ -261,7 +261,7 @@ def get_client_config(request=None):
 
     if user and user.is_authenticated and user_details:
         context["isAuthenticated"] = True
-        context["user"] = user_details[0]
+        context["user"] = json.loads(json.dumps(user_details[0]))
 
         if request.user.is_superuser:
             # Note: This intentionally does not use the "active" superuser flag as
