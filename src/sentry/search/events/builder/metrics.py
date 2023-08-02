@@ -147,6 +147,10 @@ class MetricsQueryBuilder(QueryBuilder):
 
         granularity = snuba_query.granularity or self.resolve_granularity()
 
+        # TODO: implement query execution of derived metrics.
+        if spec.is_derived_metric:
+            pass
+
         return MetricsQuery(
             select=[MetricField(spec.op, spec.mri, alias=alias)],
             where=[

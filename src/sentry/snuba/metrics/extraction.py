@@ -327,6 +327,8 @@ class OndemandMetricSpecV2(NamedTuple):
     tags_conditions: List[TagSpec]
     is_derived_metric: bool
 
+    original_query: str
+
     @property
     def mri(self) -> str:
         """The unique identifier of the on-demand metric."""
@@ -335,12 +337,9 @@ class OndemandMetricSpecV2(NamedTuple):
     def query_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
 
-        # TODO: reuse the old field + query combination for evaluating query hash.
-
-        # We sort the entire rules dictionary in order to maximize the number of equal hashes.
-        sorted_rule_condition = _deep_sorted(self.condition)
-        str_to_hash = f"{self.field};{str(sorted_rule_condition)}"
-
+        # For simplicity, we use the field and the original query for computing the hash of a metric but the best way
+        # would be to compute it mixing the field and the sorted query AST.
+        str_to_hash = f"{self.field};{self.original_query}"
         return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
 
     def to_metric_spec(self) -> MetricSpec:
@@ -624,6 +623,7 @@ class OndemandMetricSpecBuilder:
             condition=rule_condition,
             tags_conditions=tags_conditions,
             is_derived_metric=True,
+            original_query=query,
         )
 
     def _handle_normal_metric(self, field: str, query: str) -> OndemandMetricSpecV2:
@@ -637,6 +637,7 @@ class OndemandMetricSpecBuilder:
             condition=rule_condition,
             tags_conditions=[],
             is_derived_metric=False,
+            original_query=query,
         )
 
     def _process_field(

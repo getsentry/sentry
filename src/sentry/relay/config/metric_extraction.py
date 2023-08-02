@@ -102,6 +102,7 @@ def convert_query_to_metric(snuba_query: SnubaQuery) -> Optional[HashedMetricSpe
         on_demand_spec = builder.build_spec(
             field=snuba_query.aggregate,
             query=snuba_query.query,
+            # TODO: use the actual parameter here, but only if the apdex is set.
             derived_metric_params=DerivedMetricParams({"t": 10}),
         )
 
@@ -110,7 +111,7 @@ def convert_query_to_metric(snuba_query: SnubaQuery) -> Optional[HashedMetricSpe
         )
     except Exception as e:
         logger.error(e, exc_info=True)
-        return []
+        return None
 
 
 # CONDITIONAL TAGGING
