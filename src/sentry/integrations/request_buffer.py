@@ -1,15 +1,15 @@
-import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.conf import settings
-from redis.exceptions import WatchError
 
-from sentry.utils import json, redis
+from sentry.utils import redis
 
 BUFFER_SIZE = 30  # 30 days
 KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
 
-IS_BROKEN_RANGE = 7  # 7 days
+BROKEN_RANGE_DAYS = 7  # 7 days
+
+VALID_KEYS = ["success", "error", "fatal"]
 
 
 class IntegrationRequestBuffer:
@@ -18,130 +18,96 @@ class IntegrationRequestBuffer:
     This should store the aggregate counts of each type for last 30 days for each integration
     """
 
-    def __init__(self, key):
-        self.integrationkey = key
-        logger = logging.getLogger(__name__)
+    def __init__(self, key, expiration_seconds=KEY_EXPIRY):
+        cluster_id = settings.SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER
+        self.client = redis.redis_clusters.get(cluster_id)
+        self.integration_key = key
+        self.key_expiration_seconds = expiration_seconds
 
-        try:
-            cluster_id = settings.SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER
-            self.client = redis.redis_clusters.get(cluster_id)
-        except KeyError as e:
-            logger.info("no_redis_cluster", extra={"error": e, "cluster_id": cluster_id})
+    def record_error(self):
+        self._add("error")
 
-    def _convert_obj_to_dict(self, redis_object):
-        """
-        Convert the request string stored in Redis to a python dict
-        """
+    def record_success(self):
+        self._add("success")
 
-        return json.loads(redis_object)
-
-    def _get_all_from_buffer(self, buffer_key):
-        """
-        Get the list at the buffer key.
-        """
-
-        return self.client.lrange(buffer_key, 0, BUFFER_SIZE - 1)
-
-    def _get_broken_range_from_buffer(self, buffer_key):
-        """
-        Get the list at the buffer key in the broken range.
-        """
-
-        return self.client.lrange(buffer_key, 0, IS_BROKEN_RANGE - 1)
-
-    def _get(self):
-        """
-        Returns the list of daily aggregate error counts.
-        """
-        return [
-            self._convert_obj_to_dict(obj)
-            for obj in self._get_broken_range_from_buffer(self.integrationkey)
-        ]
+    def record_fatal(self):
+        self._add("fatal")
 
     def is_integration_broken(self):
         """
         Integration is broken if we have 7 consecutive days of errors and no successes OR have a fatal error
 
         """
-        items = self._get()
+        broken_range_days_counts = self._get_broken_range_from_buffer()
 
-        data = [
-            datetime.strptime(item.get("date"), "%Y-%m-%d").date()
-            for item in items
-            if item.get("fatal_count", 0) > 0 and item.get("date")
-        ]
+        days_fatal = []
+        days_error = []
 
-        if len(data) > 0:
+        for day_count in broken_range_days_counts:
+            if int(day_count.get("fatal_count", 0)) > 0:
+                days_fatal.append(day_count)
+            elif (
+                int(day_count.get("error_count", 0)) > 0
+                and int(day_count.get("success_count", 0)) == 0
+            ):
+                days_error.append(day_count)
+
+        if len(days_fatal) > 0:
             return True
 
-        data = [
-            datetime.strptime(item.get("date"), "%Y-%m-%d").date()
-            for item in items
-            if item.get("error_count", 0) > 0
-            and item.get("success_count", 0) == 0
-            and item.get("date")
-        ]
-
-        if not len(data):
+        if not len(days_error):
             return False
 
-        if len(data) < IS_BROKEN_RANGE:
+        if len(days_error) < BROKEN_RANGE_DAYS:
             return False
 
         return True
 
-    def add(self, count: str):
-        VALID_KEYS = ["success", "error", "fatal"]
+    def _add(self, count: str):
         if count not in VALID_KEYS:
             raise Exception("Requires a valid key param.")
 
-        other_count1, other_count2 = list(set(VALID_KEYS).difference([count]))[0:2]
         now = datetime.now().strftime("%Y-%m-%d")
+        buffer_key = f"{self.integration_key}:{now}"
 
-        buffer_key = self.integrationkey
         pipe = self.client.pipeline()
+        pipe.hincrby(buffer_key, count + "_count", 1)
+        pipe.expire(buffer_key, self.key_expiration_seconds)
+        pipe.execute()
 
-        while True:
-            try:
-                pipe.watch(buffer_key)
-                recent_item_array = pipe.lrange(buffer_key, 0, 1)  # get first element from array
-                pipe.multi()
-                if len(recent_item_array):
-                    recent_item = self._convert_obj_to_dict(recent_item_array[0])
-                    if recent_item.get("date") == now:
-                        recent_item[f"{count}_count"] += 1
-                        pipe.lset(buffer_key, 0, json.dumps(recent_item))
-                    else:
-                        data = {
-                            "date": now,
-                            f"{count}_count": 1,
-                            f"{other_count1}_count": 0,
-                            f"{other_count2}_count": 0,
-                        }
-                        pipe.lpush(buffer_key, json.dumps(data))
+    def _get_all_from_buffer(self):
+        """
+        Get the list at the buffer key.
+        """
 
-                else:
-                    data = {
-                        "date": now,
-                        f"{count}_count": 1,
-                        f"{other_count1}_count": 0,
-                        f"{other_count2}_count": 0,
-                    }
-                    pipe.lpush(buffer_key, json.dumps(data))
-                pipe.ltrim(buffer_key, 0, BUFFER_SIZE - 1)
-                pipe.expire(buffer_key, KEY_EXPIRY)
-                pipe.execute()
-                break
-            except WatchError:
-                continue
-            finally:
-                pipe.reset()
+        now = datetime.now()
+        all_range = [
+            f"{self.integration_key}:{(now - timedelta(days=i)).strftime('%Y-%m-%d')}"
+            for i in range(BUFFER_SIZE)
+        ]
 
-    def record_error(self):
-        self.add("error")
+        return self._get_range_buffers(all_range)
 
-    def record_success(self):
-        self.add("success")
+    def _get_broken_range_from_buffer(self):
+        """
+        Get the list at the buffer key in the broken range.
+        """
 
-    def record_fatal(self):
-        self.add("fatal")
+        now = datetime.now()
+        broken_range_keys = [
+            f"{self.integration_key}:{(now - timedelta(days=i)).strftime('%Y-%m-%d')}"
+            for i in range(BROKEN_RANGE_DAYS)
+        ]
+
+        return self._get_range_buffers(broken_range_keys)
+
+    def _get_range_buffers(self, keys):
+        pipe = self.client.pipeline()
+        ret = []
+        for key in keys:
+            pipe.hgetall(key)
+        response = pipe.execute()
+        for item in response:
+            ret.append(item)
+
+        return ret

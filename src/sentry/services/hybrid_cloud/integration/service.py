@@ -87,6 +87,7 @@ class IntegrationService(RpcService):
         integration_id: Optional[int] = None,
         provider: Optional[str] = None,
         external_id: Optional[str] = None,
+        organization_id: Optional[int] = None,
         organization_integration_id: Optional[int] = None,
     ) -> Optional[RpcIntegration]:
         """
