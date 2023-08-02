@@ -1,13 +1,11 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -19,19 +17,15 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
+import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {
   ModuleName,
   SpanMetricsFields,
   StarfishFunctions,
 } from 'sentry/views/starfish/types';
-import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
-import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
-
-const formatter = new SQLishFormatter();
 
 type Row = {
   'avg(span.self_time)': number;
@@ -157,42 +151,16 @@ function renderBodyCell(
   organization: Organization,
   endpoint?: string,
   endpointMethod?: string
-): React.ReactNode {
+) {
   if (column.key === SPAN_DESCRIPTION) {
-    const queryString = {
-      ...location.query,
-      endpoint,
-      endpointMethod,
-    };
-    const sort: string | undefined = queryString?.[QueryParameterNames.SORT];
-
-    // the spans page uses time_spent_percentage(local), so to persist the sort upon navigation we need to replace
-    if (sort?.includes(`${TIME_SPENT_PERCENTAGE}()`)) {
-      queryString[QueryParameterNames.SORT] = sort.replace(
-        `${TIME_SPENT_PERCENTAGE}()`,
-        `${TIME_SPENT_PERCENTAGE}(local)`
-      );
-    }
-
-    const description =
-      moduleName === ModuleName.DB
-        ? formatter.toSimpleMarkup(row[SPAN_DESCRIPTION])
-        : row[SPAN_DESCRIPTION];
-
     return (
-      <OverflowEllipsisTextContainer>
-        {row[SPAN_GROUP] ? (
-          <Link
-            to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${row[SPAN_GROUP]}${
-              queryString ? `?${qs.stringify(queryString)}` : ''
-            }`}
-          >
-            {description || '<null>'}
-          </Link>
-        ) : (
-          description || '<null>'
-        )}
-      </OverflowEllipsisTextContainer>
+      <SpanDescriptionCell
+        moduleName={moduleName}
+        description={row[SPAN_DESCRIPTION]}
+        group={row[SPAN_GROUP]}
+        endpoint={endpoint}
+        endpointMethod={endpointMethod}
+      />
     );
   }
 
