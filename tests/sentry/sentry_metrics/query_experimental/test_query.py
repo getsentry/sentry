@@ -92,7 +92,8 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
         )
 
         result = get_series(query)
-        assert list(result.iter_groups()) == [{"transaction": "a"}, {"transaction": "b"}]
+        groups = sorted(result.iter_groups(), key=lambda g: g["transaction"])
+        assert groups == [{"transaction": "a"}, {"transaction": "b"}]
         assert list(result.iter_series(tags={"transaction": "b"})) == [
             (self.now + timedelta(hours=0), None),
             (self.now + timedelta(hours=1), None),
