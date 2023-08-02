@@ -3627,3 +3627,7 @@ SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
 
 # Feature flag to turn off role-swapping to help bridge getsentry transition.
 USE_ROLE_SWAPPING_IN_TESTS = True
+
+# This webhook url can be configured to log the changes made to runtime options as they
+# are changed by sentry configoptions.
+SLACK_WEBHOOK_URL = ""

@@ -2,6 +2,7 @@ from typing import List, Tuple
 
 import requests
 
+from sentry.conf.server import SLACK_WEBHOOK_URL
 from sentry.runner.commands.presenters.optionspresenter import OptionsPresenter
 from sentry.utils import json
 
@@ -56,13 +57,29 @@ class SlackPresenter(OptionsPresenter):
 
     def send_to_webhook(self, json_data: dict) -> None:
         headers = {"Content-Type": "application/json"}
-        # todo: change webhook url (pass in as k8s secret? eng pipes is public)
-        # send http post request to engpipes webhook
-        # figure out how to add env var k8s secrets?
-        # how to pass along which region (as part of secrets)
+
         if self.check_slack_webhook_config():
-            requests.post("url", data=json.dumps(json_data), headers=headers)
+            requests.post(SLACK_WEBHOOK_URL, data=json.dumps(json_data), headers=headers)
 
     def check_slack_webhook_config(self):
-        # todo: check if webhook url is being passed in.
-        return False
+        if SLACK_WEBHOOK_URL == "":
+            return False
+
+        try:
+            payload = {
+                "drifted_options": [],
+                "channel_updated_options": [],
+                "updated_options": [],
+                "set_options": [],
+                "unset_options": [],
+                "error_options": [],
+            }
+
+            response = requests.post(SLACK_WEBHOOK_URL, json=payload)
+            if response.status_code == 200:
+                return True
+
+            return False
+
+        except Exception:
+            return False
