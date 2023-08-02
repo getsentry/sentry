@@ -10,7 +10,10 @@ import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {EventsMetaType} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {
+  getFieldRenderer,
+  RenderFunctionBaggage,
+} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -59,10 +62,12 @@ const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP, SPAN_OP} =
   SpanMetricsFields;
 const {TIME_SPENT_PERCENTAGE, SPS, SPM, HTTP_ERROR_COUNT} = StarfishFunctions;
 
+const SPM_COLUMN_KEY = `${SPM}()`;
+
 const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
   `${SPS}()`,
-  `${SPM}()`,
+  SPM_COLUMN_KEY,
   `${TIME_SPENT_PERCENTAGE}()`,
   `${TIME_SPENT_PERCENTAGE}(local)`,
   `${HTTP_ERROR_COUNT}()`,
@@ -170,11 +175,17 @@ function renderBodyCell(
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
 
-  const rendered = renderer(row, {
+  const rendererBaggage: RenderFunctionBaggage = {
     location,
     organization,
     unit: meta.units?.[column.key],
-  });
+  };
+
+  if (column.key === SPM_COLUMN_KEY) {
+    rendererBaggage.precision = 3;
+  }
+
+  const rendered = renderer(row, rendererBaggage);
 
   return rendered;
 }

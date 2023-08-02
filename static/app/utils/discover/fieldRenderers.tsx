@@ -79,6 +79,8 @@ export type RenderFunctionBaggage = {
   location: Location;
   organization: Organization;
   eventView?: EventView;
+  // The number of significant digits to display for integer and float values.
+  precision?: number;
   projectSlug?: string;
   unit?: string;
 };
@@ -233,13 +235,13 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   rate: {
     isSortable: true,
     renderFunc: (field, data, baggage) => {
-      const {unit} = baggage ?? {};
-
-      return (
-        <NumberContainer>
-          {`${formatAbbreviatedNumber(data[field])}${unit ? RATE_UNIT_LABELS[unit] : ''}`}
-        </NumberContainer>
-      );
+      const {unit, precision} = baggage ?? {};
+      const renderedUnit = unit ? RATE_UNIT_LABELS[unit] : '';
+      const formattedNumber = `${formatAbbreviatedNumber(
+        data[field],
+        precision
+      )}${renderedUnit}`;
+      return <NumberContainer>{formattedNumber}</NumberContainer>;
     },
   },
   integer: {
