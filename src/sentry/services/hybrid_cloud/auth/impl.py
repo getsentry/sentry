@@ -35,7 +35,6 @@ from sentry.services.hybrid_cloud.auth import (
     RpcMemberSsoState,
     RpcOrganizationAuthConfig,
 )
-from sentry.services.hybrid_cloud.auth.model import RpcAuthProviderFlags
 from sentry.services.hybrid_cloud.auth.serial import serialize_auth_provider
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMemberSummary,
@@ -269,17 +268,15 @@ class DatabaseBackedAuthService(AuthService):
                 auth_provider.disable_scim()
             auth_provider.delete()
 
-    def update_provider(self, organization_id: int, provider: RpcAuthProvider) -> None:
+    def update_provider_config(
+        self, organization_id: int, auth_provider_id: int, config: Mapping[str, Any]
+    ) -> None:
         current_provider = AuthProvider.objects.filter(
-            organization_id=organization_id, id=provider.id
+            organization_id=organization_id, id=auth_provider_id
         ).first()
         if current_provider is None:
             return
-
-        current_provider.provider = provider.provider
-        current_provider.config = provider.config
-        for key in RpcAuthProviderFlags.__fields__.keys():
-            setattr(current_provider.flags, key, getattr(provider.flags, key))
+        current_provider.config = config
         current_provider.save()
 
 

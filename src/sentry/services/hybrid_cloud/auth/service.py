@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import List, Optional, cast
+from typing import Any, List, Mapping, Optional, cast
 
 from sentry.services.hybrid_cloud.auth import (
     AuthenticatedToken,
@@ -103,7 +103,9 @@ class AuthService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def update_provider(self, organization_id: int, provider: RpcAuthProvider) -> None:
+    def update_provider_config(
+        self, organization_id: int, auth_provider_id: int, config: Mapping[str, Any]
+    ) -> None:
         pass
 
 

@@ -30,7 +30,11 @@ class SAML2ConfigureView(ConfigureView):
             if saml_form.is_valid() and attr_mapping_form.is_valid():
                 provider.config["idp"] = saml_form.cleaned_data
                 provider.config["attribute_mapping"] = attr_mapping_form.cleaned_data
-                auth_service.update_provider(organization_id=organization.id, provider=provider)
+                auth_service.update_provider_config(
+                    organization_id=organization.id,
+                    auth_provider_id=provider.id,
+                    config=provider.config,
+                )
 
         return self.render(
             "sentry_auth_saml2/configure.html",
