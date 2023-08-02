@@ -334,12 +334,10 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
     return (
       <Fragment>
         <Feature organization={organization} features={['integrations-gh-invite']}>
-          {organization.access.includes('org:write') && (
-            <InviteBanner
-              missingMembers={githubMissingMembers}
-              onSendInvite={this.handleInviteMissingMember}
-            />
-          )}
+          <InviteBanner
+            missingMembers={githubMissingMembers}
+            onSendInvite={this.handleInviteMissingMember}
+          />
         </Feature>
         <ClassNames>
           {({css}) =>

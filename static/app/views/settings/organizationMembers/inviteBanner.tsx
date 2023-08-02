@@ -7,18 +7,24 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCommit, IconGithub, IconInfo, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MissingMember} from 'sentry/types';
+import {MissingMember, Organization} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   missingMembers: {integration: string; users: MissingMember[]};
   onSendInvite: (email: string) => void;
+  organization: Organization;
 };
 
-export function InviteBanner({missingMembers, onSendInvite}: Props) {
+export function InviteBanner({missingMembers, onSendInvite, organization}: Props) {
   // NOTE: this is currently used for Github only
   // TODO(cathy): include snoozing, docs link
 
-  if (!missingMembers?.users) {
+  if (
+    !organization.access.includes('org:write') ||
+    !missingMembers?.users ||
+    missingMembers?.users.length === 0
+  ) {
     return null;
   }
 
@@ -27,6 +33,7 @@ export function InviteBanner({missingMembers, onSendInvite}: Props) {
       <MemberCardContent>
         <MemberCardContentRow>
           <IconGithub size="sm" />
+          {/* TODO: create mapping from integration to lambda external link function */}
           <StyledExternalLink href={`http://github.com/${member.userId}`}>
             {tct('@[userId]', {userId: member.userId})}
           </StyledExternalLink>
@@ -52,11 +59,11 @@ export function InviteBanner({missingMembers, onSendInvite}: Props) {
     <MemberCard key="see-more" data-test-id="see-more-card">
       <MemberCardContent>
         <MemberCardContentRow>
-          <SeeMoreContainer>
+          <SeeMore>
             {tct('See all [missingMembersCount] missing members', {
               missingMembersCount: missingMembers?.users.length,
             })}
-          </SeeMoreContainer>
+          </SeeMore>
         </MemberCardContentRow>
         <Subtitle>
           {tct('Accounting for [totalCommits] recent commits', {
@@ -108,7 +115,7 @@ export function InviteBanner({missingMembers, onSendInvite}: Props) {
   );
 }
 
-export default InviteBanner;
+export default withOrganization(InviteBanner);
 
 const StyledCard = styled(Card)`
   padding: ${space(2)};
@@ -186,6 +193,6 @@ const StyledExternalLink = styled(ExternalLink)`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const SeeMoreContainer = styled('div')`
+const SeeMore = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
 `;
