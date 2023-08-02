@@ -438,6 +438,10 @@ class OndemandMetricSpecV2(NamedTuple):
 class DerivedMetricParams(NamedTuple):
     params: Dict[str, Any]
 
+    @staticmethod
+    def empty():
+        return DerivedMetricParams({})
+
     def get_param(self, consumer: str, param_name: str):
         param = self.params.get(param_name)
         if param is None:
@@ -627,18 +631,23 @@ class OndemandMetricSpecBuilder:
         self._query_parser = query_parser
 
     def build_specs(
-        self, field: str, query: str, derived_metric_params: DerivedMetricParams
+        self,
+        field: str,
+        query: str,
+        derived_metric_params: Optional[DerivedMetricParams] = None,
     ) -> List[OndemandMetricSpecV2]:
         if (derived_metric := _DERIVED_METRICS.get(field)) is not None:
+            if derived_metric_params is None:
+                derived_metric_params = DerivedMetricParams.empty()
+
             # Since the field is used for indexing purpose only, we don't need it when handling a derived metric.
             return self._handle_derived_metric(query, derived_metric, derived_metric_params)
         else:
             return self._handle_normal_metric(field, query)
 
     def _handle_normal_metric(self, field: str, query: str) -> List[OndemandMetricSpecV2]:
-        # On-demand metrics are implicitly transaction metrics. Remove the
-        # filter from the query since it can't be translated to a RuleCondition.
-        query = re.sub(r"event\.type:transaction\s*", "", query)
+        # We need to clean up the query from unnecessary filters.
+        query = self._cleanup_query(query)
 
         metric_type, extracted_field = self._init_field(field)
         rule_condition = self._init_query(field, query)
@@ -648,6 +657,15 @@ class OndemandMetricSpecBuilder:
                 metric_type=metric_type, field=extracted_field, rule_condition=rule_condition
             )
         ]
+
+    def _cleanup_query(self, query: str) -> str:
+        regexes = [r"event\.type:transaction\s*", r"project:[\w\"]+\s*"]
+
+        new_query = query
+        for regex in regexes:
+            new_query = re.sub(regex, "", new_query)
+
+        return new_query
 
     def _init_field(self, field: str) -> Tuple[str, Optional[str]]:
         parsed_field = self._field_parser.parse(field)

@@ -193,11 +193,17 @@ def test_spec_countif_with_query(on_demand_spec_builder):
     }
 
 
-def test_ignore_fields():
-    with_ignored_field = OndemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
-    without_ignored_field = OndemandMetricSpec("count()", "transaction.duration:>=1")
+def test_spec_ignore_fields(on_demand_spec_builder):
+    with_ignored_field_specs = on_demand_spec_builder.build_specs(
+        field="count()", query="transaction.duration:>=1 project:sentry"
+    )
+    without_ignored_field_specs = on_demand_spec_builder.build_specs(
+        field="count()", query="transaction.duration:>=1"
+    )
 
-    assert with_ignored_field.condition() == without_ignored_field.condition()
+    assert (
+        with_ignored_field_specs[0].rule_condition == without_ignored_field_specs[0].rule_condition
+    )
 
 
 def test_spec_failure_rate(on_demand_spec_builder):
