@@ -34,6 +34,7 @@ class UserDetailsGetTest(UserDetailsTest):
 
         assert resp.data["id"] == str(self.user.id)
         assert resp.data["options"]["theme"] == "light"
+        assert resp.data["options"]["eventNavDefault"] == "recommended"
         assert resp.data["options"]["timezone"] == "UTC"
         assert resp.data["options"]["language"] == "en"
         assert resp.data["options"]["stacktraceOrder"] == -1
@@ -77,6 +78,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
             name="hello world",
             options={
                 "theme": "system",
+                "eventNavDefault": "latest",
                 "timezone": "UTC",
                 "stacktraceOrder": "2",
                 "language": "fr",
@@ -93,6 +95,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert user.email == "a@example.com"
         assert user.username == "a@example.com"
         assert UserOption.objects.get_value(user=self.user, key="theme") == "system"
+        assert UserOption.objects.get_value(user=self.user, key="event_nav_default") == "latest"
         assert UserOption.objects.get_value(user=self.user, key="timezone") == "UTC"
         assert UserOption.objects.get_value(user=self.user, key="stacktrace_order") == "2"
         assert UserOption.objects.get_value(user=self.user, key="language") == "fr"
