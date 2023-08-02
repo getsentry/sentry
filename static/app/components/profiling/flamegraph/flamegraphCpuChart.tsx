@@ -63,9 +63,7 @@ export function FlamegraphCpuChart({
       );
 
       const offsetPhysicalSpace = cpuChartCanvas.physicalSpace
-        // move the chart down by the padding
-        // .withY(theme.SIZES.CHART_PX_PADDING)
-        // shrink the chart height by 2X the padding
+        // shrink the chart height by the padding to pad the top of chart
         .withHeight(cpuChartCanvas.physicalSpace.height - theme.SIZES.CHART_PX_PADDING);
 
       const physicalSpaceToOffsetPhysicalSpaceTransform = transformMatrixBetweenRect(
@@ -73,22 +71,15 @@ export function FlamegraphCpuChart({
         offsetPhysicalSpace
       );
 
-      // const fromConfigView = configViewToPhysicalSpaceTransform;
       const fromConfigView = mat3.create();
-
       mat3.multiply(
         fromConfigView,
-        configViewToPhysicalSpaceTransform,
-        physicalSpaceToOffsetPhysicalSpaceTransform
+        physicalSpaceToOffsetPhysicalSpaceTransform,
+        configViewToPhysicalSpaceTransform
       );
       mat3.multiply(
         fromConfigView,
-        mat3.fromValues(1, 0, 0, 0, 1, 0, 0, -cpuChartCanvas.physicalSpace.height, 1),
-        fromConfigView
-      );
-      mat3.multiply(
-        fromConfigView,
-        mat3.fromValues(1, 0, 0, 0, -1, 0, 0, 0, 1),
+        cpuChartCanvas.physicalSpace.invertYTransform(),
         fromConfigView
       );
 
