@@ -38,9 +38,9 @@ class IntegrationRequestBuffer:
         i = 0
         buffer_key = f"{self.integrationkey}:{now.strftime('%Y-%m-%d')}"
         while self.client.hgetall(buffer_key):
+            ret.append(self.client.hgetall(buffer_key))
             cur = (now - timedelta(days=i)).strftime("%Y-%m-%d")
             buffer_key = f"{self.integrationkey}:{cur}"
-            ret.append(self.client.hgetall(buffer_key))
             i += 1
 
         return ret

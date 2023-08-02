@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timedelta
 
 import pytest
@@ -204,4 +205,5 @@ class SlackClientDisable(TestCase):
                 buffer.record_error()
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
+        time.sleep(1)
         assert len(buffer._get_all_from_buffer()) == 30
