@@ -399,6 +399,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.eventstream",
     "sentry.auth.providers.google.apps.Config",
     "sentry.auth.providers.fly.apps.Config",
+    "sentry.auth.providers.saml2.generic.apps.Config",
     "django.contrib.staticfiles",
     "sentry.issues.apps.Config",
 )
