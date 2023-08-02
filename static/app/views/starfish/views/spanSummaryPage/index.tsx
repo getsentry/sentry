@@ -54,6 +54,8 @@ const DEFAULT_SORT: Sort = {
   field: 'time_spent_percentage(local)',
 };
 
+const CHART_HEIGHT = 160;
+
 type Props = {
   location: Location;
 } & RouteComponentProps<{groupId: string}, {transaction: string}>;
@@ -246,7 +248,7 @@ function SpanSummaryPage({params, location}: Props) {
                       title={getThroughputChartTitle(span?.[SpanMetricsFields.SPAN_OP])}
                     >
                       <Chart
-                        height={140}
+                        height={CHART_HEIGHT}
                         data={[spanMetricsThroughputSeries]}
                         loading={areSpanMetricsSeriesLoading}
                         utc={false}
@@ -266,7 +268,7 @@ function SpanSummaryPage({params, location}: Props) {
                   <Block>
                     <ChartPanel title={DataTitles.avg}>
                       <Chart
-                        height={140}
+                        height={CHART_HEIGHT}
                         data={[
                           spanMetricsSeriesData?.[
                             `avg(${SpanMetricsFields.SPAN_SELF_TIME})`
@@ -285,7 +287,7 @@ function SpanSummaryPage({params, location}: Props) {
                     <Block>
                       <ChartPanel title={DataTitles.errorCount}>
                         <Chart
-                          height={140}
+                          height={CHART_HEIGHT}
                           data={[spanMetricsSeriesData?.[`http_error_count()`]]}
                           loading={areSpanMetricsSeriesLoading}
                           utc={false}
