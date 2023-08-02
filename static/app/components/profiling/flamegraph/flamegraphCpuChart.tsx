@@ -91,7 +91,8 @@ export function FlamegraphCpuChart({
         cpuChartView.configView,
         cpuChartView.configSpace,
         cpuChartCanvas.physicalSpace,
-        fromConfigView
+        fromConfigView,
+        cpuChartView.toConfigView(cpuChartCanvas.logicalSpace)
       );
     };
 
