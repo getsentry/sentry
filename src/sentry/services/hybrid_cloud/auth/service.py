@@ -101,5 +101,10 @@ class AuthService(RpcService):
     ) -> None:
         pass
 
+    @rpc_method
+    @abc.abstractmethod
+    def update_provider(self, organization_id: int, provider: RpcAuthProvider) -> None:
+        pass
+
 
 auth_service: AuthService = cast(AuthService, AuthService.create_delegation())
