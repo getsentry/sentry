@@ -30,6 +30,10 @@ class OpsgenieSetupClient(ApiClient):
         headers = {"Authorization": "GenieKey " + self.api_key}
         return self.get(path="/account", headers=headers)
 
+    def get_teams(self):
+        headers = {"Authorization": "GenieKey " + self.api_key}
+        return self.get(path="/teams", headers=headers)
+
 
 class OpsgenieClient(IntegrationProxyClient):
     integration_name = "opsgenie"

@@ -4,6 +4,7 @@ import logging
 from typing import Any, Mapping, MutableMapping, Sequence
 
 from django import forms
+from django.forms.utils import ErrorList
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from requests.exceptions import MissingSchema
@@ -77,25 +78,68 @@ class InstallationForm(forms.Form):
     )
 
 
+class TeamSelectForm(forms.Form):
+    def __init__(
+        self,
+        team_list=None,
+        data=None,
+        files=None,
+        auto_id="id_%s",
+        prefix=None,
+        initial=None,
+        error_class=ErrorList,
+        label_suffix=None,
+        empty_permitted=False,
+        field_order=None,
+        use_required_attribute=None,
+        renderer=None,
+    ) -> None:
+        super().__init__(
+            data,
+            files,
+            auto_id,
+            prefix,
+            initial,
+            error_class,
+            label_suffix,
+            empty_permitted,
+            field_order,
+            use_required_attribute,
+            renderer,
+        )
+
+        self.fields["teams"] = forms.MultipleChoiceField(
+            required=False,
+            label=_("Select Teams"),
+            help_text=_("Trigger and acknowledge alerts on these Opsgenie teams."),
+            choices=team_list,
+            widget=forms.CheckboxSelectMultiple(attrs={"placeholder": "Select..."}),
+        )
+
+
 class InstallationConfigView(PipelineView):
     def dispatch(self, request: Request, pipeline) -> HttpResponse:  # type:ignore
         if "goback" in request.GET:
             pipeline.state.step_index = 0
             return pipeline.current_step()
         if request.method == "POST":
-            form = InstallationForm(request.POST)
-            if form.is_valid():
-                form_data = form.cleaned_data
+            form_1 = InstallationForm(request.POST)
+            if form_1.is_valid():
+                form_data = form_1.cleaned_data
 
                 pipeline.bind_state("installation_data", form_data)
 
+                print("STEPPING")
                 return pipeline.next_step()
         else:
-            form = InstallationForm()
+            form_1 = InstallationForm()
 
         return render_to_response(
             template="sentry/integrations/opsgenie-config.html",
-            context={"form": form},
+            context={
+                "next_url": f'{absolute_uri("/extensions/opsgenie/setup/")}?selectteams',
+                "form_1": form_1,
+            },
             request=request,
         )
 
@@ -118,6 +162,48 @@ class InstallationGuideView(PipelineView):
             },
             request=request,
         )
+
+
+class InstallationTeamSelectView(PipelineView):
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:  # type:ignore
+        print("HERE")
+        print("REQUEST DATA:", request.POST)
+        og_teams = self.get_og_teams(pipeline)
+        if request.method == "POST":
+            form_2 = TeamSelectForm(data=request.POST, team_list=og_teams)
+            if form_2.is_valid():
+                form_data = form_2.cleaned_data
+
+                pipeline.bind_state("team_data", form_data)
+
+                return pipeline.next_step()
+        else:
+            form_2 = TeamSelectForm(team_list=og_teams)
+
+        return render_to_response(
+            template="sentry/integrations/opsgenie-config.html",
+            context={"form_2": form_2},
+            request=request,
+        )
+
+    def get_og_teams(self, pipeline):
+        api_key = pipeline.state.data["installation_data"]["api_key"]
+        base_url = pipeline.state.data["installation_data"]["base_url"]
+        client = OpsgenieSetupClient(base_url=base_url, api_key=api_key)
+        try:
+            resp = client.get_teams()
+            teams = [(i, team["name"]) for i, team in enumerate(resp["data"])]
+            return teams
+        except ApiError as api_error:
+            logger.info(
+                "opsgenie.installation.get-teams-failure",
+                extra={
+                    "base_url": base_url,
+                    "error_message": str(api_error),
+                    "error_status": api_error.code,
+                },
+            )
+            raise IntegrationError("Could not authenticate with the provided integration key.")
 
 
 class OpsgenieIntegration(IntegrationInstallation):
@@ -200,7 +286,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
             raise IntegrationError("Invalid URL provided.")
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
-        return [InstallationGuideView(), InstallationConfigView()]
+        return [InstallationGuideView(), InstallationConfigView(), InstallationTeamSelectView()]
 
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         api_key = state["installation_data"]["api_key"]
