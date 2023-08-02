@@ -180,15 +180,17 @@ def patch(ctx) -> None:
                     dry_run,
                     bool(ctx.obj["hide_drift"]),
                 )
-            except Exception:
+            except Exception as e:
                 metrics.incr(
                     "options_automator.run",
                     tags={"status": "update_failed"},
                     sample_rate=1.0,
                 )
-                presenter_delegator.error(
-                    key, "Updated failed. Check db connection, option type, and option spelling."
-                )
+
+                # since _attempt_udpate already catch unknown options
+                # and invalid type setting, this is catching
+                # whatever else could happen.
+                presenter_delegator.error(key, str(e))
                 presenter_delegator.flush()
                 raise
 
@@ -243,12 +245,14 @@ def sync(ctx):
                         dry_run,
                         bool(ctx.obj["hide_drift"]),
                     )
-                except Exception:
+                except Exception as e:
                     metrics.incr(
                         "options_automator.run",
                         tags={"status": "update_failed"},
                         sample_rate=1.0,
                     )
+                    presenter_delegator.error(opt.name, str(e))
+                    presenter_delegator.flush()
                     raise
             else:
                 if options.isset(opt.name):
@@ -256,22 +260,19 @@ def sync(ctx):
                         if not dry_run:
                             try:
                                 options.delete(opt.name)
-                            except Exception:
+                            except Exception as e:
                                 metrics.incr(
                                     "options_automator.run",
                                     tags={"status": "update_failed"},
                                     sample_rate=1.0,
                                 )
-                                presenter_delegator.error(
-                                    opt.name,
-                                    "Updated failed. Check db connection, option type, and option spelling.",
-                                )
+                                presenter_delegator.error(opt.name, str(e))
                                 presenter_delegator.flush()
                                 raise
 
                         presenter_delegator.unset(opt.name)
                     else:
-                        presenter_delegator.drift(opt.name, None)
+                        presenter_delegator.drift(opt.name, "")
                         drift_found = True
 
     if invalid_options:
