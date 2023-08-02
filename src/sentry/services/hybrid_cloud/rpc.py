@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import contextlib
 import hashlib
 import hmac
 import inspect
@@ -584,7 +585,11 @@ class _RemoteSiloCall:
             else:
                 target_mode = SiloMode.CONTROL
 
-            with SiloMode.enter_single_process_silo_context(target_mode, self.region):
+            with contextlib.ExitStack() as stack:
+                if not SiloMode.single_process_silo_mode():
+                    stack.enter_context(
+                        SiloMode.enter_single_process_silo_context(target_mode, self.region)
+                    )
                 content_type = f"application/json; charset={_RPC_CONTENT_CHARSET}"
                 extra: Mapping[str, Any] = {
                     f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
