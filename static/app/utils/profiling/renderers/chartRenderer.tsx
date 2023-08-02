@@ -10,7 +10,7 @@ function findYIntervals(
   logicalSpaceToConfigView: mat3,
   getInterval: (mat: mat3, x: number) => number
 ): number[] {
-  const target = 30;
+  const target = 20;
   const targetInterval = Math.abs(
     getInterval(logicalSpaceToConfigView, target) - configView.bottom
   );
@@ -18,10 +18,8 @@ function findYIntervals(
   const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
   let interval = minInterval;
 
-  if (targetInterval / interval > 5) {
-    interval *= 3;
-  } else if (targetInterval / interval > 2) {
-    interval *= 2;
+  if (targetInterval / interval > 3) {
+    interval *= 5;
   }
 
   let x = Math.ceil(configView.top / interval) * interval;
@@ -75,14 +73,14 @@ export class FlamegraphChartRenderer {
       throw new Error('No canvas to draw on');
     }
 
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
     if (!this.chart.series.length) {
       return;
     }
 
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-    // Helper lines for dev
-    this.context.font = '18px sans-serif';
+    this.context.font = `bold 14px ${this.theme.FONTS.FRAME_FONT}`;
 
     this.context.beginPath();
     this.context.stroke();
@@ -94,43 +92,15 @@ export class FlamegraphChartRenderer {
     );
 
     this.context.textBaseline = 'bottom';
-    this.context.strokeStyle = this.theme.COLORS.LABEL_FONT_COLOR;
-    this.context.fillStyle = this.theme.COLORS.LABEL_FONT_COLOR;
-    this.context.lineWidth = 1 * window.devicePixelRatio;
+    this.context.lineWidth = 1;
+    const TICK_WIDTH = 14 * window.devicePixelRatio;
 
-    for (let i = 0; i < intervals.length; i++) {
-      const interval = new Rect(configView.left, intervals[i], 5, 1).transformRect(
-        configViewToPhysicalSpace
-      );
+    const {left, right} = configView.transformRect(configViewToPhysicalSpace);
+    const textOffsetLeft = 2 * window.devicePixelRatio;
 
-      this.context.textAlign = 'start';
-      this.context.beginPath();
-      this.context.moveTo(configView.left, interval.y);
-      this.context.lineTo(configView.left + 12 * window.devicePixelRatio, interval.y);
-      this.context.stroke();
-
-      // this.context.fillText(
-      //   intervals[i].toString(),
-      //   configView.left + 2 * window.devicePixelRatio,
-      //   interval.y
-      // );
-
-      this.context.textAlign = 'end';
-      this.context.beginPath();
-      this.context.moveTo(configView.right, interval.y);
-      this.context.lineTo(configView.right - 12 * window.devicePixelRatio, interval.y);
-      this.context.stroke();
-
-      // this.context.fillText(
-      //   intervals[i].toString(),
-      //   configView.right + window.devicePixelRatio + 4,
-      //   interval.y
-      // );
-    }
-
-    // @TODO draw series
+    // Draw series
     for (let i = 0; i < this.chart.series.length; i++) {
-      this.context.lineWidth = 1 * window.devicePixelRatio;
+      this.context.lineWidth = 1;
       this.context.fillStyle = this.chart.series[i].fillColor;
       this.context.strokeStyle = this.chart.series[i].lineColor;
       this.context.beginPath();
@@ -143,7 +113,7 @@ export class FlamegraphChartRenderer {
       for (let j = 0; j < serie.points.length; j++) {
         const point = serie.points[j];
 
-        const r = vec3.fromValues(point.x, 100, 1);
+        const r = vec3.fromValues(point.x, point.y, 1);
         vec3.transformMat3(r, r, configViewToPhysicalSpace);
 
         if (j === 0) {
@@ -160,6 +130,41 @@ export class FlamegraphChartRenderer {
       } else {
         this.context.fill();
       }
+    }
+
+    // Draw interval ticks
+    this.context.strokeStyle = this.theme.COLORS.CPU_CHART_LABEL_COLOR;
+    this.context.fillStyle = this.theme.COLORS.CPU_CHART_LABEL_COLOR;
+    for (let i = 0; i < intervals.length; i++) {
+      const interval = new Rect(configView.left, intervals[i], 5, 2).transformRect(
+        configViewToPhysicalSpace
+      );
+      const textOffset = interval.height;
+      const text = this.chart.formatter(intervals[i]);
+
+      if (i === 0) {
+        this.context.textAlign = 'left';
+        this.context.fillText(text, left + textOffsetLeft, interval.y - textOffset);
+        this.context.textAlign = 'end';
+        this.context.fillText(text, right - textOffsetLeft, interval.y - textOffset);
+        continue;
+      }
+
+      this.context.textAlign = 'left';
+      this.context.beginPath();
+      this.context.moveTo(left, interval.y);
+      this.context.lineTo(left + TICK_WIDTH, interval.y);
+      this.context.stroke();
+
+      this.context.fillText(text, left + textOffsetLeft, interval.y - textOffset);
+
+      this.context.textAlign = 'end';
+      this.context.beginPath();
+      this.context.moveTo(right, interval.y);
+      this.context.lineTo(right - TICK_WIDTH, interval.y);
+      this.context.stroke();
+
+      this.context.fillText(text, right - textOffsetLeft, interval.y - textOffset);
     }
   }
 }
