@@ -205,3 +205,36 @@ def test_spec_failure_rate(on_demand_spec_builder):
         "op": "and",
     }
     assert specs[1].rule_condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
+
+
+def test_spec_apdex(on_demand_spec_builder):
+    specs = on_demand_spec_builder.build_specs(field="apdex()", query="release:a")
+
+    assert len(specs) == 3
+    assert specs[0].rule_condition == {
+        "inner": [
+            {"name": "event.duration", "op": "lte", "value": 2},
+            {"name": "event.release", "op": "eq", "value": "a"},
+        ],
+        "op": "and",
+    }
+    assert specs[1].rule_condition == {
+        "inner": [
+            {
+                "inner": [
+                    {"name": "event.duration", "op": "gt", "value": 2},
+                    {"name": "event.duration", "op": "lte", "value": 8},
+                ],
+                "op": "and",
+            },
+            {"name": "event.release", "op": "eq", "value": "a"},
+        ],
+        "op": "and",
+    }
+    assert specs[2].rule_condition == {
+        "inner": [
+            {"name": "event.duration", "op": "gt", "value": 8},
+            {"name": "event.release", "op": "eq", "value": "a"},
+        ],
+        "op": "and",
+    }

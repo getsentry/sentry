@@ -306,19 +306,6 @@ def _is_standard_metrics_field(field: str) -> bool:
     return field in _STANDARD_METRIC_FIELDS
 
 
-class VariableSearchValue(SearchValue):
-    variable_name: str
-
-    # TODO: possibly add expression here.
-
-    def get_value(self, variables: Variables) -> Any:
-        value = variables.get(self.variable_name)
-        if value is None:
-            raise InvalidSearchQuery(f"The variable {self.variable_name} is not initialized")
-
-        return value
-
-
 class OndemandMetricSpec:
     """
     Contains the information required to query or extract an on-demand metric.
@@ -510,8 +497,67 @@ class FailureRate(DerivedMetric):
         return {}
 
 
+class Apdex(DerivedMetric):
+    def get_derived_metric_name(self) -> str:
+        return "apdex()"
+
+    def get_components(self) -> List[DerivedMetricComponent]:
+        return [
+            # Satisfactory.
+            DerivedMetricComponent(
+                metric_type="c",
+                field="transaction.duration",
+                conditions=[
+                    SearchFilter(
+                        key=SearchKey(name="transaction.duration"),
+                        operator="<=",
+                        value=SearchValue(variable_name="t1"),
+                    )
+                ],
+            ),
+            # Tolerable.
+            DerivedMetricComponent(
+                metric_type="c",
+                field="transaction.duration",
+                conditions=[
+                    SearchFilter(
+                        key=SearchKey(name="transaction.duration"),
+                        operator=">",
+                        value=SearchValue(variable_name="t1"),
+                    ),
+                    "AND",
+                    SearchFilter(
+                        key=SearchKey(name="transaction.duration"),
+                        operator="<=",
+                        value=SearchValue(variable_name="t2"),
+                    ),
+                ],
+            ),
+            # Frustrated.
+            DerivedMetricComponent(
+                metric_type="c",
+                field="transaction.duration",
+                conditions=[
+                    SearchFilter(
+                        key=SearchKey(name="transaction.duration"),
+                        operator=">",
+                        value=SearchValue(variable_name="t2"),
+                    )
+                ],
+            ),
+        ]
+
+    def get_variables(self) -> Variables:
+        t1 = 2
+        t2 = 4 * t1
+
+        return {"t1": t1, "t2": t2}
+
+
+# Dynamic mapping between derived metric field name and derived metric definition.
 _DERIVED_METRICS: Dict[str, DerivedMetric] = {
-    "failure_rate()": FailureRate(),
+    derived_metric.get_derived_metric_name(): derived_metric
+    for derived_metric in [FailureRate(), Apdex()]
 }
 
 
@@ -796,7 +842,8 @@ class SearchQueryConverter:
         if not operator:
             raise ValueError(f"Unsupported operator {token.operator}")
 
-        value: Any = self._eval_search_value(token.value)
+        # We propagate the filter in order to give as output a better error message with more context.
+        value: Any = self._eval_search_value(token, token.value)
         if operator == "eq" and token.value.is_wildcard():
             condition: RuleCondition = {
                 "op": "glob",
@@ -822,11 +869,16 @@ class SearchQueryConverter:
         return condition
 
     def _eval_search_value(
-        self, search_value: Union[SearchValue, VariableSearchValue]
+        self, search_filter: SearchFilter, search_value: SearchValue
     ) -> Optional[Any]:
-        if isinstance(search_value, SearchValue):
-            return search_value.raw_value
-        elif isinstance(search_value, VariableSearchValue):
-            return search_value.get_value(self._variables)
+        if search_value.variable_name is not None:
+            variable_name = search_value.variable_name
+            variable_value = self._variables.get(variable_name)
+            if variable_value is None:
+                raise Exception(
+                    f"Variable {variable_name} used in {search_filter} has no value set"
+                )
+
+            return variable_value
         else:
-            return None
+            return search_value.raw_value

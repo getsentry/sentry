@@ -2,7 +2,9 @@ import re
 from collections import namedtuple
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, List, Mapping, NamedTuple, Sequence, Set, Tuple, Union
+from typing import Any, List, Mapping, NamedTuple
+from typing import Optional as PythonOptional
+from typing import Sequence, Set, Tuple, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
@@ -343,7 +345,8 @@ class SearchKey(NamedTuple):
 
 
 class SearchValue(NamedTuple):
-    raw_value: Union[str, int, datetime, Sequence[int], Sequence[str]]
+    raw_value: Union[str, int, datetime, Sequence[int], Sequence[str]] = ""
+    variable_name: PythonOptional[str] = None
 
     @property
     def value(self):
