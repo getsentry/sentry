@@ -352,7 +352,8 @@ def safe_for_comment(
                 OPEN_PR_METRIC_BASE.format(key="api_error"),
                 tags={"type": "unknown_api_error", "code": e.code},
             )
-        raise e
+            logger.exception("github.open_pr_comment.unknown_api_error")
+        return False
 
     safe_to_comment = True
     if pullrequest_resp["changed_files"] > OPEN_PR_MAX_FILES_CHANGED:

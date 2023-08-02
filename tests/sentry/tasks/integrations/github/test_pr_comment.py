@@ -839,8 +839,7 @@ class TestSafeForComment(GithubCommentTestCase):
             responses.GET, self.gh_path.format(pull_number=self.pr.key), status=404, json={}
         )
 
-        with pytest.raises(ApiError):
-            safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
         self.mock_metrics.incr.assert_called_with(
             "github_open_pr_comment.api_error",
             tags={"type": "missing_gh_pull_request", "code": 404},
@@ -852,8 +851,7 @@ class TestSafeForComment(GithubCommentTestCase):
             responses.GET, self.gh_path.format(pull_number=self.pr.key), status=400, json={}
         )
 
-        with pytest.raises(ApiError):
-            safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
         self.mock_metrics.incr.assert_called_with(
             "github_open_pr_comment.api_error", tags={"type": "unknown_api_error", "code": 400}
         )
