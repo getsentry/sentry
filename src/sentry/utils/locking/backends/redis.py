@@ -13,6 +13,7 @@ class BaseRedisLockBackend(LockBackend):
             uuid = uuid4().hex
         self.prefix = prefix
         self.uuid = uuid
+        self.cluster = cluster
 
     def get_client(self, key, routing_key=None):
         raise NotImplementedError
@@ -37,11 +38,9 @@ class BaseRedisLockBackend(LockBackend):
 
 class RedisBlasterLockBackend(BaseRedisLockBackend):
     def __init__(self, cluster, prefix="l:", uuid=None):
-        super().__init__(cluster, prefix=prefix, uuid=uuid)
         if isinstance(cluster, str):
-            self.cluster = redis.clusters.get(cluster)
-        else:
-            self.cluster = cluster
+            cluster = redis.clusters.get(cluster)
+        super().__init__(cluster, prefix=prefix, uuid=uuid)
 
     def get_client(self, key, routing_key=None):
         # This is a bit of an abstraction leak, but if an integer is provided
@@ -68,11 +67,9 @@ class RedisBlasterLockBackend(BaseRedisLockBackend):
 
 class RedisClusterLockBackend(BaseRedisLockBackend):
     def __init__(self, cluster, prefix="l:", uuid=None):
-        super().__init__(cluster, prefix=prefix, uuid=uuid)
         if isinstance(cluster, str):
-            self.cluster = redis.redis_clusters.get(cluster)
-        else:
-            self.cluster = cluster
+            cluster = redis.redis_clusters.get(cluster)
+        super().__init__(cluster, prefix=prefix, uuid=uuid)
 
     def get_client(self, key, routing_key=None):
         return self.cluster

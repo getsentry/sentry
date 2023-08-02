@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from copy import deepcopy
+from typing import Any
 from unittest import TestCase
 
 from sentry.utils.meta import Meta
@@ -39,19 +42,19 @@ class MetaTests(TestCase):
         assert Meta({}).get_event_errors() == []
 
     def test_create_missing(self):
-        data = {}
+        data: dict[str, Any] = {}
         meta = Meta(data)
         assert meta.create() == {}
         assert data == {"": {}}
 
     def test_merge_missing(self):
-        data = {}
+        data: dict[str, Any] = {}
         meta = Meta(data)
         assert meta.merge(Meta(other_meta)) == other_meta[""]
         assert data == other_meta
 
     def test_add_error_missing(self):
-        data = {}
+        data: dict[str, Any] = {}
         meta = Meta(data)
         meta.add_error("additional", "changed")
         assert data == {"": {"err": ["additional"], "val": "changed"}}
@@ -87,19 +90,19 @@ class MetaTests(TestCase):
         assert Meta({"": {}}).get_event_errors() == []
 
     def test_create_empty(self):
-        data = {"": {}}
+        data: dict[str, Any] = {"": {}}
         meta = Meta(data)
         assert meta.create() == {}
         assert data == {"": {}}
 
     def test_merge_empty(self):
-        data = {"": {}}
+        data: dict[str, Any] = {"": {}}
         meta = Meta(data)
         assert meta.merge(Meta(other_meta)) == other_meta[""]
         assert data == other_meta
 
     def test_add_error_empty(self):
-        data = {"": {}}
+        data: dict[str, Any] = {"": {}}
         meta = Meta(data)
         meta.add_error("additional", "changed")
         assert data == {"": {"err": ["additional"], "val": "changed"}}
@@ -134,26 +137,26 @@ class MetaTests(TestCase):
         }
 
     def test_get_nested_missing(self):
-        data = {}
+        data: dict[str, Any] = {}
         assert Meta(data).enter("field").raw() == {}
         assert Meta(data).enter("field").get() == {}
         assert list(Meta(data).enter("field").iter_errors()) == []
         assert Meta(data).enter("field").get_event_errors() == []
 
     def test_create_nested_missing(self):
-        data = {}
+        data: dict[str, Any] = {}
         meta = Meta(data)
         assert meta.enter("field").create() == {}
         assert data == {"field": {"": {}}}
 
     def test_merge_nested_missing(self):
-        data = {}
+        data: dict[str, Any] = {}
         meta = Meta(data)
         assert meta.enter("field").merge(Meta(other_meta)) == other_meta[""]
         assert data == {"field": other_meta}
 
     def test_add_error_nested_missing(self):
-        data = {}
+        data: dict[str, Any] = {}
         meta = Meta(data)
         meta.enter("field").add_error("additional", "changed")
         assert meta.enter("field").get() == {"err": ["additional"], "val": "changed"}
@@ -199,7 +202,7 @@ class MetaTests(TestCase):
         assert list(Meta(data).enter(0).iter_errors()) == [["existing", {}]]
 
     def test_create_nested_index(self):
-        data = {}
+        data: dict[str, Any] = {}
         meta = Meta(data)
         assert meta.enter(0).create() == {}
         assert data == {"0": {"": {}}}

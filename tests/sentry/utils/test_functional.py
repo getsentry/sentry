@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from unittest import TestCase, mock
 
 from sentry.utils.functional import cached, compact
@@ -22,7 +24,7 @@ def test_cached_with_kwargs():
 
     foo = mock.Mock()
 
-    cache = {}
+    cache: dict[object, object] = {}
     cached(cache, foo, kw1=1, kw2=2)
     assert foo.call_count == 1
 

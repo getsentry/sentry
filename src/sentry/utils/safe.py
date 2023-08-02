@@ -11,7 +11,7 @@ from sentry.db.postgres.transactions import django_test_transaction_water_mark
 from sentry.utils import json
 from sentry.utils.strings import truncatechars
 
-PathSearchable = Union[Mapping[str, Any], Sequence[Any]]
+PathSearchable = Union[Mapping[str, Any], Sequence[Any], None]
 
 
 def safe_execute(func, *args, **kwargs):

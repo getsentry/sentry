@@ -49,7 +49,7 @@ def cocoa_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
     if not frame.get("package") or not frame.get("abs_path"):
         return False
 
-    rel_path = package_relative_path(str(frame.get("abs_path")), str(frame.get("package")))
+    rel_path = package_relative_path(frame.get("abs_path"), frame.get("package"))
     if rel_path:
         frame[key] = rel_path
         return True
@@ -79,7 +79,7 @@ def flutter_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
     return False
 
 
-def package_relative_path(abs_path: str, package: str) -> str | None:
+def package_relative_path(abs_path: str | None, package: str | None) -> str | None:
     """
     returns the left-biased shortened path relative to the package directory
     """
@@ -131,7 +131,9 @@ def munged_filename_and_frames(
     return (key, copy_frames) if frames_updated else None
 
 
-def get_crashing_thread(thread_frames: Sequence[Mapping[str, Any]]) -> Mapping[str, Any] | None:
+def get_crashing_thread(
+    thread_frames: Sequence[Mapping[str, Any]] | None
+) -> Mapping[str, Any] | None:
     if not thread_frames:
         return None
     if len(thread_frames) == 1:

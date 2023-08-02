@@ -1,5 +1,7 @@
 from collections.abc import Mapping
-from typing import List, Literal, Optional, TypedDict, Union
+from typing import List, Literal, TypedDict, Union
+
+from typing_extensions import NotRequired
 
 RemarkType = Literal["a", "x", "s", "m", "p", "e"]
 
@@ -8,9 +10,9 @@ class Remark(TypedDict):
     rule_id: str
     type: RemarkType
     # Range start is a byte offset
-    range_start: Optional[int]
+    range_start: NotRequired[int]
     # Range end is a byte offset
-    range_end: Optional[int]
+    range_end: NotRequired[int]
 
 
 class Meta:

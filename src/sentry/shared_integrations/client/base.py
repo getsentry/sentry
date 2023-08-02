@@ -48,6 +48,8 @@ class BaseApiClient(TrackResponseMixin):
 
     page_number_limit = 10
 
+    integration_name: str
+
     def __init__(
         self,
         integration_id: int | None = None,
