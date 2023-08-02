@@ -36,7 +36,7 @@ class ExpressionRegistry:
             expression = parse_expression(expression)
 
         parse_mri(mri)  # Validate and discard result
-        self._metrics[mri] = expression  # TODO: Validate expression?
+        self._metrics[mri] = expression
 
     def resolve(self, mri: str) -> Expression:
         expression = self.try_resolve(mri)

@@ -1,7 +1,8 @@
 import math
 from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import Sequence, Tuple
+from itertools import zip_longest
+from typing import Iterable, Sequence, Tuple
 
 from snuba_sdk import Granularity
 
@@ -10,6 +11,11 @@ from sentry.sentry_metrics.use_case_id_registry import get_query_config
 from .pipeline import QueryLayer
 from .types import MetricRange, SeriesQuery
 from .use_case import get_use_case
+
+# Maximum number of points to return in a query with inferred interval.
+# `normalize_timeframe` will choose a granularity that returns at most this
+# number of datapoints based on the chosen timeframe.
+MAX_POINTS = 360
 
 
 class TimeframeLayer(QueryLayer):
@@ -46,7 +52,6 @@ def normalize_timeframe(query: SeriesQuery) -> SeriesQuery:
     granularity = config.granularity(interval).granularity
 
     # Ensure the interval is a multiple of the granularity and align the timeframe
-    # TODO: Finer grained interval
     interval = round(interval / granularity) * granularity
     (start, end) = _align_timeframe(query.range.start, query.range.end, interval)
 
@@ -60,7 +65,35 @@ def _infer_interval(start: datetime, end: datetime, granularities: Sequence[int]
     """
 
     window = (end - start).total_seconds()
-    return min(g for g in granularities if window / g <= 360) or max(granularities)
+
+    last = granularities[0]
+    for interval in _iter_intervals(granularities):
+        if window / interval <= MAX_POINTS:
+            return interval
+        last = interval
+
+    return last
+
+
+def _iter_intervals(granularities: Sequence[int]) -> Iterable[int]:
+    """
+    Iterates over the available intervals for the given granularities. It starts
+    with the smallest granularity, then iterates over multiples of the
+    granularity, and then proceeds with the next granularity.
+
+    For example, given the granularities `[1m, 1h, 1d]`, this function will
+    yield the following intervals: `1m, 2m, 5m, 10m, 20m, 30m, 1h, ...`.
+    """
+    for granularity, next_granularity in zip_longest(granularities, granularities[1:]):
+        for factor in (1, 2, 5, 10, 20):
+            interval = granularity * factor
+            if next_granularity is None or interval < next_granularity / 2:
+                yield interval
+            else:
+                break
+
+        if next_granularity is not None:
+            yield int(next_granularity / 2)
 
 
 def _align_timeframe(start: datetime, end: datetime, interval: int) -> Tuple[datetime, datetime]:

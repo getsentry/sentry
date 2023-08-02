@@ -15,8 +15,6 @@ from sentry.sentry_metrics.query_experimental.types import (
 )
 from sentry.sentry_metrics.query_experimental.variables import VariableTransform
 
-# TODO: missing
-
 
 def test_expr_simple():
     expr = Variable("foo")
