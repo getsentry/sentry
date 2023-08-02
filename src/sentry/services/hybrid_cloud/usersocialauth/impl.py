@@ -1,4 +1,7 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud data models or service classes are
+# defined, because we want to reflect on type annotations and avoid forward references.
 
 from typing import Callable, List, Optional
 
@@ -22,11 +25,31 @@ class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
     def get_many(self, *, filter: UserSocialAuthFilterArgs) -> List[RpcUserSocialAuth]:
         return self._FQ.get_many(filter=filter)
 
-    def get_one_or_none(self, *, filter: UserSocialAuthFilterArgs) -> RpcUserSocialAuth | None:
+    def get_one_or_none(self, *, filter: UserSocialAuthFilterArgs) -> Optional[RpcUserSocialAuth]:
         auths = self.get_many(filter=filter)
         if len(auths) == 0:
             return None
         return auths[0]
+
+    def revoke_token(
+        self, *, filter: UserSocialAuthFilterArgs, drop_token: bool = True
+    ) -> List[RpcUserSocialAuth]:
+        """
+        Calls UserSocialAuth.revoke_token() on all matching results, returning the modified RpcUserSocialAuths.
+        """
+        db_auths = self._FQ._query_many(filter=filter)
+        for db_auth in db_auths:
+            db_auth.revoke_token(drop_token=drop_token)
+        return self.get_many(filter=filter)
+
+    def refresh_token(self, *, filter: UserSocialAuthFilterArgs) -> List[RpcUserSocialAuth]:
+        """
+        Calls UserSocialAuth.refresh_token() on all matching results, returning the modified RpcUserSocialAuths.
+        """
+        db_auths = self._FQ._query_many(filter=filter)
+        for db_auth in db_auths:
+            db_auth.refresh_token()
+        return self.get_many(filter=filter)
 
     def link_auth(self, *, usa: RpcUserSocialAuth, organization: RpcOrganization) -> bool:
         try:
@@ -42,7 +65,9 @@ class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
     class _UserSocialAuthFilterQuery(
         FilterQueryDatabaseImpl[UserSocialAuth, UserSocialAuthFilterArgs, RpcUserSocialAuth, None]
     ):
-        def apply_filters(self, query: QuerySet, filters: UserSocialAuthFilterArgs) -> QuerySet:
+        def apply_filters(
+            self, query: QuerySet[UserSocialAuth], filters: UserSocialAuthFilterArgs
+        ) -> QuerySet[UserSocialAuth]:
             if "id" in filters:
                 query = query.filter(id=filters["id"])
             if "user_id" in filters:
@@ -53,7 +78,7 @@ class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
                 query = query.filter(uid=filters["uid"])
             return query
 
-        def base_query(self, ids_only: bool = False) -> QuerySet:
+        def base_query(self, ids_only: bool = False) -> QuerySet[UserSocialAuth]:
             return UserSocialAuth.objects.filter()
 
         def filter_arg_validator(self) -> Callable[[UserSocialAuthFilterArgs], Optional[str]]:

@@ -217,6 +217,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         self.run_test(conditions=conditions, actions=actions)
 
     @override_settings(MAX_SLOW_CONDITION_ISSUE_ALERTS=1)
+    @override_settings(MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS=2)
     def test_exceed_limit_slow_conditions(self):
         conditions = [
             {
@@ -248,6 +249,9 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         # Make sure pending deletions don't affect the process
         Rule.objects.filter(project=self.project).update(status=ObjectStatus.PENDING_DELETION)
         self.run_test(conditions=conditions, actions=actions)
+
+        with self.feature("organizations:more-slow-alerts"):
+            self.run_test(conditions=conditions, actions=actions)
 
     def test_owner_perms(self):
         other_user = self.create_user()
