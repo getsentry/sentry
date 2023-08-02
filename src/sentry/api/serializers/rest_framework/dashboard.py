@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from django.db.models import Max
 from rest_framework import serializers
 
+from sentry import features
 from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer, ListField
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
@@ -20,6 +21,7 @@ from sentry.models import (
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.fields import is_function
 from sentry.snuba.dataset import Dataset
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.dates import parse_stats_period
 
 AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
@@ -376,6 +378,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
         self.update_dashboard_filters(self.instance, validated_data)
 
+        schedule_update_project_configs(self.instance)
+
         return self.instance
 
     def update(self, instance, validated_data):
@@ -397,6 +401,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             self.update_widgets(instance, validated_data["widgets"])
 
         self.update_dashboard_filters(instance, validated_data)
+
+        schedule_update_project_configs(self.instance)
 
         return instance
 
@@ -525,3 +531,21 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
 class DashboardSerializer(DashboardDetailsSerializer):
     title = serializers.CharField(required=True, max_length=255)
+
+
+def schedule_update_project_configs(dashboard: Dashboard):
+    org = dashboard.organization
+    projects = org.project_set.all()
+
+    on_demand_metrics = features.has("organizations:on-demand-metrics-extraction", org)
+    experimental_on_demand_metrics = features.has(
+        "organizations:on-demand-metrics-extraction-experimental", org
+    )
+
+    if not projects or not on_demand_metrics or not experimental_on_demand_metrics:
+        return
+
+    for project in projects:
+        schedule_invalidate_project_config(
+            trigger="dashboards:create-on-demand-metric", project_id=project.id
+        )
