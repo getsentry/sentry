@@ -9,6 +9,7 @@ from typing import Final, Literal
 from uuid import uuid4
 
 import click
+from django.conf import settings
 from django.utils import timezone
 from typing_extensions import TypeAlias
 
@@ -151,6 +152,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
         configure()
 
+        from django.apps import apps
         from django.db import router as db_router
 
         from sentry import models, nodestore
@@ -180,6 +182,12 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
         # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
         # (model, datetime_field, order_by)
+        additional_bulk_query_deletes = []
+        for entry in settings.ADDITIONAL_BULK_QUERY_DELETES:
+            app_name, model_name = entry[0].split(".")
+            model = apps.get_model(app_name, model_name)
+            additional_bulk_query_deletes.append((model, entry[1], entry[2]))
+
         BULK_QUERY_DELETES = [
             (models.UserReport, "date_added", None),
             (models.GroupEmailThread, "date", None),
@@ -188,7 +196,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             (monitor_models.MonitorCheckIn, "date_added", None),
             (metrics_indexer_models.StringIndexer, "last_seen", None),
             (metrics_indexer_models.PerfStringIndexer, "last_seen", None),
-        ]
+        ] + additional_bulk_query_deletes
 
         # Deletions that use the `deletions` code path (which handles their child relations)
         # (model, datetime_field, order_by)
