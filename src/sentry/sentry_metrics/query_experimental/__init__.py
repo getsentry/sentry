@@ -1,3 +1,4 @@
+from .builder import E, Q
 from .expansion import ExpansionLayer
 from .indexes import IndexLayer
 from .metadata import ValidationLayer
@@ -8,9 +9,11 @@ from .timeframe import TimeframeLayer
 from .types import SeriesQuery, SeriesResult
 
 __all__ = (
+    "E",
     "get_series",
     "SeriesQuery",
     "SeriesResult",
+    "Q",
 )
 
 
