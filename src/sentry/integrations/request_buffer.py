@@ -4,7 +4,7 @@ from django.conf import settings
 
 from sentry.utils import redis
 
-BUFFER_SIZE = 32  # 30 days
+BUFFER_SIZE = 30  # 30 days
 KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
 
 BROKEN_RANGE_DAYS = 7  # 7 days
