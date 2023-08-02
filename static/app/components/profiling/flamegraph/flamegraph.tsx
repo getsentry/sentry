@@ -619,6 +619,7 @@ function Flamegraph(): ReactElement {
           cpuChartView.setConfigView(rect);
         }
       }
+
       canvasPoolManager.draw();
     };
 
@@ -628,7 +629,8 @@ function Flamegraph(): ReactElement {
     ) => {
       if (
         sourceTransformConfigView === flamegraphView ||
-        sourceTransformConfigView === uiFramesView
+        sourceTransformConfigView === uiFramesView ||
+        sourceTransformConfigView === cpuChartView
       ) {
         flamegraphView.transformConfigView(mat);
         if (spansView) {
