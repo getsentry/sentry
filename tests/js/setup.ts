@@ -297,7 +297,3 @@ Object.defineProperty(window, 'getComputedStyle', {
   configurable: true,
   writable: true,
 });
-
-afterEach(() => {
-  MockApiClient.clearMockResponses();
-});

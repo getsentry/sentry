@@ -77,6 +77,9 @@ afterEach(() => {
     }
     Client.errors = {};
   }
+
+  // All mocks are reset between tests
+  MockApiClient.clearMockResponses();
 });
 
 class Client implements ApiNamespace.Client {
