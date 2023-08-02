@@ -1,5 +1,4 @@
 import logging
-import secrets
 from typing import Optional
 
 from django.http import HttpRequest, HttpResponse
@@ -10,6 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 from rest_framework.request import Request
 
+from sentry import options
 from sentry.mediators import GrantTypes
 from sentry.models import ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken
 from sentry.utils import json, metrics
@@ -117,17 +117,14 @@ class OAuthTokenView(View):
             return {"error": "invalid_grant", "reason": "invalid redirect URI"}
 
         token_data = {"token": ApiToken.from_grant(grant=grant)}
-        id_token = None
-        if grant.has_scope("openid"):
-            id_token = OpenIDToken(
+        if grant.has_scope("openid") and options.get("codecov.signing_secret"):
+            open_id_token = OpenIDToken(
                 request.POST.get("client_id"),
                 grant.user_id,
-                # Encrypt with a random secret until we implement secure shared secrets in prod
-                secrets.token_urlsafe(),
+                options.get("codecov.signing_secret"),
                 nonce=request.POST.get("nonce"),
             )
-            token_data["id_token"] = id_token.get_encrypted_id_token(grant=grant)
-
+            token_data["id_token"] = open_id_token.get_signed_id_token(grant=grant)
         return token_data
 
     def get_refresh_token(self, request: Request, application: ApiApplication) -> dict:

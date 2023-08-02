@@ -1418,3 +1418,13 @@ register("crons.organization.disable-check-in", type=Sequence, default=[])
 
 # Turns on and off the running for dynamic sampling collect_orgs.
 register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)
+
+# Sets the timeout for webhooks
+register(
+    "sentry-apps.webhook.timeout.sec",
+    default=5.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# The flag activates whether to send group attributes messages to kafka
+register("issues.group_attributes.send_kafka", default=False, flags=FLAG_MODIFIABLE_BOOL)

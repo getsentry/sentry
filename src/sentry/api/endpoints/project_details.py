@@ -465,12 +465,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         """
 
         old_data = serialize(project, request.user, DetailedProjectSerializer())
-        has_project_write = request.access and (
+        has_elevated_scopes = request.access and (
             request.access.has_scope("project:write")
-            or request.access.has_project_scope(project, "project:write")
+            or request.access.has_scope("project:admin")
+            or request.access.has_any_project_scope(project, ["project:write", "project:admin"])
         )
 
-        if has_project_write:
+        if has_elevated_scopes:
             serializer_cls = ProjectAdminSerializer
         else:
             serializer_cls = ProjectMemberSerializer
@@ -486,18 +487,18 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             features.has("organizations:dynamic-sampling", project.organization)
         ):
             return Response(
-                {"detail": ["dynamicSamplingBiases is not a valid field"]},
+                {"detail": "dynamicSamplingBiases is not a valid field"},
                 status=403,
             )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        if not has_project_write:
+        if not has_elevated_scopes:
             # options isn't part of the serializer, but should not be editable by members
             for key in chain(ProjectAdminSerializer().fields.keys(), ["options"]):
                 if request.data.get(key) and not result.get(key):
                     return Response(
-                        {"detail": ["You do not have permission to perform this action."]},
+                        {"detail": "You do not have permission to perform this action."},
                         status=403,
                     )
 
@@ -674,7 +675,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "dynamicSamplingBiases"
                 ]
         # TODO(dcramer): rewrite options to use standard API config
-        if has_project_write:
+        if has_elevated_scopes:
             options = request.data.get("options", {})
             if "sentry:origins" in options:
                 project.update_option(
@@ -767,9 +768,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                         clean_newline_inputs(options[f"filters:{FilterTypes.RELEASES}"]),
                     )
                 else:
-                    return Response(
-                        {"detail": ["You do not have that feature enabled"]}, status=400
-                    )
+                    return Response({"detail": "You do not have that feature enabled"}, status=400)
             if f"filters:{FilterTypes.ERROR_MESSAGES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
                     project.update_option(
@@ -780,12 +779,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                         ),
                     )
                 else:
-                    return Response(
-                        {"detail": ["You do not have that feature enabled"]}, status=400
-                    )
+                    return Response({"detail": "You do not have that feature enabled"}, status=400)
             if "copy_from_project" in result:
                 if not project.copy_settings_from(result["copy_from_project"]):
-                    return Response({"detail": ["Copy project settings failed."]}, status=409)
+                    return Response({"detail": "Copy project settings failed."}, status=409)
 
             if "sentry:dynamic_sampling_biases" in changed_proj_settings:
                 self.dynamic_sampling_biases_audit_log(

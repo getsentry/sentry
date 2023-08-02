@@ -13,8 +13,8 @@ from sentry.constants import ObjectStatus
 from sentry.models import Project
 from sentry.models.relay import Relay
 from sentry.testutils.helpers import Feature
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json, safe
-from sentry.utils.pytest.fixtures import django_db_all
 
 _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 
@@ -353,7 +353,7 @@ def test_relay_disabled_project(
     assert projectconfig_cache_set == [{str(wrong_id): http_cfg}]
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_health_check_filters(call_endpoint, add_org_key, relay, default_project):
     """
     Test health check filter (aka ignoreTransactions)

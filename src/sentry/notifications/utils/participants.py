@@ -26,13 +26,13 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    ProjectOwnership,
     Release,
     Rule,
     Team,
     User,
 )
 from sentry.models.commit import Commit
+from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.helpers import (
     get_settings_by_provider,
@@ -183,7 +183,7 @@ def get_participants_for_release(
     projects: Iterable[Project], organization: Organization, commited_user_ids: set[int]
 ) -> ParticipantMap:
     # Collect all users with verified emails on a team in the related projects.
-    user_ids = (
+    user_ids = list(
         OrganizationMember.objects.filter(
             teams__projectteam__project__in=projects,
             user_is_active=True,
@@ -256,7 +256,7 @@ def get_owners(
     elif owners == ProjectOwnership.Everyone:
         outcome = "everyone"
         users = user_service.get_many(
-            filter=dict(user_ids=project.member_set.values_list("user_id", flat=True))
+            filter=dict(user_ids=list(project.member_set.values_list("user_id", flat=True)))
         )
         recipients = RpcActor.many_from_object(users)
 

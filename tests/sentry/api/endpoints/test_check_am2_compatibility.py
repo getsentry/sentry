@@ -4,7 +4,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.tasks.check_am2_compatibility import CheckStatus, set_check_results, set_check_status
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import no_silo_test
 
 

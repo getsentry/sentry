@@ -140,7 +140,8 @@ def check_timeout(current_datetime=None):
                 monitor_environment.mark_failed(
                     reason=MonitorFailure.DURATION,
                     occurrence_context={
-                        "duration": (checkin.monitor.config or {}).get("max_runtime") or TIMEOUT
+                        "duration": (checkin.monitor.config or {}).get("max_runtime") or TIMEOUT,
+                        "trace_id": checkin.trace_id,
                     },
                 )
         except Exception:

@@ -11,10 +11,11 @@ export interface NetworkSelectOption extends SelectOption<string> {
   qs: 'f_n_method' | 'f_n_status' | 'f_n_type';
 }
 
-const DEFAULT_FILTERS = {f_n_method: [], f_n_status: [], f_n_type: []} as Record<
-  NetworkSelectOption['qs'],
-  string[]
->;
+const DEFAULT_FILTERS = {
+  f_n_method: [],
+  f_n_status: [],
+  f_n_type: [],
+} as Record<NetworkSelectOption['qs'], string[]>;
 
 export type FilterFields = {
   f_n_method: string[];

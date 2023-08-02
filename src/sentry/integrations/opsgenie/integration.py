@@ -121,9 +121,13 @@ class InstallationGuideView(PipelineView):
 
 
 class OpsgenieIntegration(IntegrationInstallation):
-    def get_client(self) -> Any:
+    def get_client(self, integration_key: str) -> Any:  # type: ignore
         org_integration_id = self.org_integration.id if self.org_integration else None
-        return OpsgenieClient(integration=self.model, org_integration_id=org_integration_id)
+        return OpsgenieClient(
+            integration=self.model,
+            integration_key=integration_key,
+            org_integration_id=org_integration_id,
+        )
 
     def get_organization_config(self) -> Sequence[Any]:
         fields = [
@@ -133,7 +137,7 @@ class OpsgenieIntegration(IntegrationInstallation):
                 "label": "Opsgenie teams with the Sentry integration enabled",
                 "help": "If teams need to be updated, deleted, or added manually please do so here. Alert rules will need to be individually updated for any additions or deletions of teams.",
                 "addButtonText": "",
-                "columnLabels": {"team": "Team", "integration_key": "Integration Key"},
+                "columnLabels": {"team": "Opsgenie Team", "integration_key": "Integration Key"},
                 "columnKeys": ["team", "integration_key"],
                 "confirmDeleteMessage": "Any alert rules associated with this team will stop working. The rules will still exist but will show a `removed` team.",
             }
@@ -142,15 +146,13 @@ class OpsgenieIntegration(IntegrationInstallation):
         return fields
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
-        client = self.get_client()
         # get the team ID/test the API key for a newly added row
         teams = data["team_table"]
         unsaved_teams = [team for team in teams if team["id"] == ""]
         for team in unsaved_teams:
             try:
-                resp = client.get_team_id(
-                    integration_key=team["integration_key"], team_name=team["team"]
-                )
+                client = self.get_client(integration_key=team["integration_key"])
+                resp = client.get_team_id(team_name=team["team"])
                 team["id"] = resp["data"]["id"]
             except ApiError:
                 raise ValidationError(

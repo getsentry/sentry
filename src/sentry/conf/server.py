@@ -112,6 +112,7 @@ SENTRY_RULE_TASK_REDIS_CLUSTER = "default"
 SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER = "default"
 SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
 SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
+SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER = "default"
 SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
@@ -364,7 +365,7 @@ SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "REGION": ["sentry.RegionOutbox"],
 }
 
-INSTALLED_APPS = (
+INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.messages",
@@ -632,7 +633,7 @@ USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
 
 # List of the available regions, or a JSON string
 # that is parsed.
-SENTRY_REGION_CONFIG: Any = tuple()
+SENTRY_REGION_CONFIG: Any = ()
 
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET = None
@@ -1340,6 +1341,8 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
+    # Allow disabling integrations when broken is detected
+    "organizations:slack-disable-on-broken": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1416,6 +1419,8 @@ SENTRY_FEATURES = {
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
+    # Enables higher limit for alert rules
+    "organizations:more-slow-alerts": False,
     # Extract on demand metrics
     "organizations:on-demand-metrics-extraction": False,
     # Extract on demand metrics (experimental features)
@@ -1476,9 +1481,11 @@ SENTRY_FEATURES = {
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enables inviting new members based on GitHub commit activity.
-    "organizations:gh-invite": False,
+    "organizations:integrations-gh-invite": False,
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": False,
+    # Enable comments of related issues on open PRs
+    "organizations:integrations-open-pr-comment": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
@@ -1666,7 +1673,7 @@ SENTRY_FEATURES = {
     # Enable detecting SDK crashes during event processing
     "organizations:sdk-crash-detection": False,
     # Enables commenting on PRs from the Sentry comment bot.
-    "organizations:pr-comment-bot": False,
+    "organizations:pr-comment-bot": True,
     # Enables slack channel lookup via schedule message
     "organizations:slack-use-new-lookup": False,
     # Enable functionality for recap server polling.
@@ -1732,7 +1739,7 @@ SENTRY_PROJECT_KEY = None
 
 # Default organization to represent the Internal Sentry project.
 # Used as a default when in SINGLE_ORGANIZATION mode.
-SENTRY_ORGANIZATION = None
+SENTRY_ORGANIZATION: int | None = None
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT: int | None = None
@@ -1876,7 +1883,7 @@ SENTRY_BUFFER_OPTIONS: dict[str, str] = {}
 # Cache backend
 # XXX: We explicitly require the cache to be configured as its not optional
 # and causes serious confusion with the default django cache
-SENTRY_CACHE = None
+SENTRY_CACHE: str | None = None
 SENTRY_CACHE_OPTIONS = {"is_default_cache": True}
 
 # Attachment blob cache backend
@@ -2406,6 +2413,9 @@ SENTRY_USE_PROFILING = False
 # This flag activates consuming issue platform occurrence data in the development environment
 SENTRY_USE_ISSUE_OCCURRENCE = False
 
+# This flag activates consuming GroupAttribute messages in the development environment
+SENTRY_USE_GROUP_ATTRIBUTES = False
+
 # This flag activates code paths that are specific for customer domains
 SENTRY_USE_CUSTOMER_DOMAINS = False
 
@@ -2595,6 +2605,9 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 if settings.SENTRY_USE_ISSUE_OCCURRENCE
                 else "",
                 "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1",
+                "ENABLE_GROUP_ATTRIBUTES_CONSUMER": "1"
+                if settings.SENTRY_USE_GROUP_ATTRIBUTES
+                else "",
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
@@ -3082,6 +3095,7 @@ KAFKA_INGEST_OCCURRENCES = "ingest-occurrences"
 KAFKA_INGEST_MONITORS = "ingest-monitors"
 KAFKA_EVENTSTREAM_GENERIC = "generic-events"
 KAFKA_GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
+KAFKA_GROUP_ATTRIBUTES = "group-attributes"
 
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
@@ -3127,6 +3141,7 @@ KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     KAFKA_INGEST_MONITORS: {"cluster": "default"},
     KAFKA_EVENTSTREAM_GENERIC: {"cluster": "default"},
     KAFKA_GENERIC_EVENTS_COMMIT_LOG: {"cluster": "default"},
+    KAFKA_GROUP_ATTRIBUTES: {"cluster": "default"},
 }
 
 
@@ -3429,6 +3444,7 @@ DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
 ENABLE_ANALYTICS = False
 
 MAX_SLOW_CONDITION_ISSUE_ALERTS = 100
+MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 200
 MAX_FAST_CONDITION_ISSUE_ALERTS = 200
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 
@@ -3469,6 +3485,8 @@ DISALLOWED_CUSTOMER_DOMAINS: list[str] = []
 
 SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS: dict[str, str] = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
+
+SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT = 10000
 
 # USE_SPLIT_DBS is leveraged in tests as we validate db splits further.
 # Split databases are also required for the USE_SILOS devserver flow.

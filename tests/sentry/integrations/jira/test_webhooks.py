@@ -13,7 +13,7 @@ from sentry.integrations.utils import AtlassianConnectValidationError
 from sentry.models import Integration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.shared_integrations.exceptions.base import ApiError
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, TestCase
 
 TOKEN = "JWT anexampletoken"
 

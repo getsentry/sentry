@@ -7,7 +7,7 @@ from sentry.api.serializers import serialize
 from sentry.models import ExternalActor, Integration
 from sentry.models.actor import Actor, get_actor_id_for_user
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders, get_provider_name
 

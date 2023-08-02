@@ -29,9 +29,7 @@ def get_link(
     integration = integration_service.get_integration(
         organization_integration_id=config.organization_integration_id
     )
-    install = integration_service.get_installation(
-        integration=integration, organization_id=config.project.organization_id
-    )
+    install = integration.get_installation(organization_id=config.project.organization_id)
 
     formatted_path = filepath.replace(config.stack_root, config.source_root, 1)
 
