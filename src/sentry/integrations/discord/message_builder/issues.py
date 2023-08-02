@@ -15,7 +15,6 @@ from sentry.integrations.message_builder import (
     build_attachment_title,
     build_footer,
     get_title_link,
-    has_releases,
 )
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
@@ -126,7 +125,7 @@ def build_components(
 
     status = group.get_status()
 
-    if not has_releases(project):
+    if not project.flags.has_releases:
         resolve_button = DiscordButton(
             custom_id=f"{CustomIds.RESOLVE}:{group.id}",
             label="Resolve",

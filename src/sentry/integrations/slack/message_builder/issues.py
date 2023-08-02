@@ -12,7 +12,6 @@ from sentry.integrations.message_builder import (
     format_actor_options,
     get_timestamp,
     get_title_link,
-    has_releases,
 )
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
@@ -162,7 +161,7 @@ def build_actions(
 
     status = group.get_status()
 
-    if not has_releases(project):
+    if not project.flags.has_releases:
         resolve_button = MessageAction(
             name="status",
             label="Resolve",

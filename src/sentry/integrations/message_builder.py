@@ -3,13 +3,10 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any, Callable, Mapping, Sequence
 
-from django.core.cache import cache
-
 from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT
 from sentry.models import Group, Project, Rule, Team
-from sentry.models.release import ReleaseProject
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -152,18 +149,6 @@ def build_footer(
             footer += f" (+{len(rules) - 1} other)"
 
     return footer
-
-
-def has_releases(project: Project) -> bool:
-    cache_key = f"has_releases:2:{project.id}"
-    has_releases_option: bool | None = cache.get(cache_key)
-    if has_releases_option is None:
-        has_releases_option = ReleaseProject.objects.filter(project_id=project.id).exists()
-        if has_releases_option:
-            cache.set(cache_key, True, 3600)
-        else:
-            cache.set(cache_key, False, 60)
-    return has_releases_option
 
 
 def get_timestamp(group: Group, event: GroupEvent | None) -> float:
