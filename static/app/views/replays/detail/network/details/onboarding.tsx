@@ -1,11 +1,10 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ExternalLink from 'sentry/components/links/externalLink';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconClose, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -179,7 +178,7 @@ function SetupInstructions({
   }
 
   const urlSnippet = `
-      networkDetailAllowUrls: ['${url}'],`;
+      networkDetailAllowUrls: ['${trimUrl(url)}'],`;
   const headersSnippet = `
       networkRequestHeaders: ['X-Custom-Header'],
       networkResponseHeaders: ['X-Custom-Header'],`;
@@ -217,29 +216,17 @@ function SetupInstructions({
           }
         )}
       </p>
-      {showSnippet === Output.URL_SKIPPED && url !== '[Filtered]' && (
-        <Fragment>
-          {tct(
+      <NetworkUrlWrapper>
+        {showSnippet === Output.URL_SKIPPED &&
+          url !== '[Filtered]' &&
+          tct(
             'Add the following to your [field] list to start capturing data: [alert] ',
             {
               field: <code>networkDetailAllowUrls</code>,
-              alert: (
-                <NetworkAlert type="warning">
-                  <StyledCopyButton
-                    borderless
-                    iconSize="xs"
-                    size="xs"
-                    text={trimUrl(url)}
-                  />
-                  {tct('[url]', {
-                    url: <code>{trimUrl(url)}</code>,
-                  })}
-                </NetworkAlert>
-              ),
+              alert: <StyledTextCopyInput>{trimUrl(url)}</StyledTextCopyInput>,
             }
           )}
-        </Fragment>
-      )}
+      </NetworkUrlWrapper>
       {showSnippet === Output.BODY_SKIPPED && (
         <Alert type="warning">
           {tct('Enable [field] to capture both Request and Response bodies.', {
@@ -268,17 +255,12 @@ function SetupInstructions({
   );
 }
 
-const StyledCopyButton = styled(CopyToClipboardButton)`
-  position: sticky;
-  display: fixed;
-  padding: ${space(0.5)} ${space(0.75)};
+const StyledTextCopyInput = styled(TextCopyInput)`
+  margin-top: ${space(0.5)};
 `;
 
-const NetworkAlert = styled(Alert)`
-  white-space: nowrap;
-  overflow: auto;
-  margin: ${space(0.5)} 0 ${space(2)} 0;
-  padding: ${space(0.75)};
+const NetworkUrlWrapper = styled('div')`
+  margin: ${space(1)} ${space(0)} ${space(1.5)} ${space(0)};
 `;
 
 const NoMarginAlert = styled(Alert)`
