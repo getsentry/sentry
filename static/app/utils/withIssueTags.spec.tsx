@@ -103,14 +103,14 @@ describe('withIssueTags HoC', function () {
       TestStubs.User(),
       TestStubs.User({username: 'joe@example.com'}),
     ]);
-    render(<Container organization={TestStubs.Organization()} forwardedValue="value" />);
-
-    expect(screen.getByTestId('Suggested Values')).toHaveTextContent(
-      'me, my_teams, [me, my_teams, none], #best-team'
+    const {container} = render(
+      <Container organization={TestStubs.Organization()} forwardedValue="value" />
     );
 
-    expect(screen.getByTestId('All Values')).toHaveTextContent(
-      'foo@example.com, joe@example.com, #worst-team'
+    expect(container).toHaveTextContent(
+      'assigned: me, my_teams, [me, my_teams, none], #best-team'
     );
+    // Has the other teams/members
+    expect(container).toHaveTextContent('foo@example.com, joe@example.com, #worst-team');
   });
 });
