@@ -634,6 +634,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         {
           ...rule,
           ...model.getTransformedData(),
+          projects: [project.slug],
           triggers: sanitizedTriggers,
           resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
           thresholdType,
