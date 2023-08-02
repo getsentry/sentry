@@ -4,7 +4,7 @@ from sentry import eventstore, eventstream
 from sentry.models import Group, GroupEnvironment, GroupMeta, GroupRedirect, UserReport
 from sentry.similarity import _make_index_backend
 from sentry.tasks.merge import merge_groups
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import redis

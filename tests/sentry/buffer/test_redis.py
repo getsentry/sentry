@@ -9,6 +9,7 @@ from freezegun import freeze_time
 from sentry import options
 from sentry.buffer.redis import RedisBuffer
 from sentry.models import Group, Project
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
 
@@ -101,7 +102,7 @@ class TestRedisBuffer:
         self.buf.process("foo")
         process.assert_called_once_with(Group, columns, filters, extra, signal_only)
 
-    @pytest.mark.django_db
+    @django_db_all
     @freeze_time()
     def test_group_cache_updated(self, default_group, task_runner):
         # Make sure group is stored in the cache and keep track of times_seen at the time

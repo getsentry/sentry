@@ -1,11 +1,12 @@
 import pytest
 
-from sentry.runner.commands.backup import DEFAULT_COMPARATORS, InstanceID
+from sentry.backup.comparators import DEFAULT_COMPARATORS
+from sentry.backup.findings import InstanceID
 from sentry.testutils.helpers.backups import (
     ValidationError,
     import_export_from_fixture_then_validate,
 )
-from sentry.utils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all(transaction=True, reset_sequences=True)

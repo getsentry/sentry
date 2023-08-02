@@ -6,7 +6,7 @@ import responses
 from sentry.constants import ObjectStatus
 from sentry.integrations.utils import get_query_hash
 from sentry.models import Integration
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.http import absolute_uri
 from tests.sentry.utils.test_jwt import RS256_KEY, RS256_PUB_KEY

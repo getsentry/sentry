@@ -13,7 +13,7 @@ from sentry.snuba.metrics import MetricField, MetricGroupByField
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer import SessionMRI
 from sentry.snuba.metrics.query_builder import QueryDefinition
-from sentry.testutils import BaseMetricsLayerTestCase, TestCase
+from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
 
 pytestmark = pytest.mark.sentry_metrics
 

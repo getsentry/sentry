@@ -1,4 +1,4 @@
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils.email.signer import _CaseInsensitiveSigner
 
 

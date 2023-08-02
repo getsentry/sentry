@@ -15,7 +15,7 @@ from sentry.services.hybrid_cloud.organization_actions.impl import (
     update_organization_with_outbox_message,
     upsert_organization_by_org_id_with_outbox_message,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 

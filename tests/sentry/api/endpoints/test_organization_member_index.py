@@ -14,7 +14,7 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner

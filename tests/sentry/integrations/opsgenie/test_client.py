@@ -1,7 +1,7 @@
 import responses
 
 from sentry.models import Integration, OrganizationIntegration, Rule
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.utils import json
 
 EXTERNAL_ID = "test-app"
@@ -84,12 +84,13 @@ class OpsgenieClientTest(APITestCase):
             "details": {
                 "Project Name": self.project.name,
                 "Triggering Rules": "my rule",
+                "Triggering Rule URLs": f"http://example.com/organizations/baz/alerts/rules/{self.project.slug}/{rule.id}/details/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",
                 "Level": "warning",
                 "Project ID": "bar",
-                "URL": "http://example.com/organizations/baz/issues/%s/" % group_id,
+                "Issue URL": "http://example.com/organizations/baz/issues/%s/" % group_id,
                 "Release": event.release,
             },
             "message": "Hello world",
