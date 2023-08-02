@@ -142,7 +142,7 @@ export function FlamegraphUIFrames({
     [uiFramesCanvas, uiFramesView, onMouseDrag, startInteractionVector]
   );
 
-  const onMinimapCanvasMouseUp = useCallback(() => {
+  const onMapCanvasMouseUp = useCallback(() => {
     setConfigSpaceCursor(null);
     setLastInteraction(null);
   }, []);
@@ -168,12 +168,12 @@ export function FlamegraphUIFrames({
   });
 
   useEffect(() => {
-    window.addEventListener('mouseup', onMinimapCanvasMouseUp);
+    window.addEventListener('mouseup', onMapCanvasMouseUp);
 
     return () => {
-      window.removeEventListener('mouseup', onMinimapCanvasMouseUp);
+      window.removeEventListener('mouseup', onMapCanvasMouseUp);
     };
-  }, [onMinimapCanvasMouseUp]);
+  }, [onMapCanvasMouseUp]);
 
   const onCanvasMouseLeave = useCallback(() => {
     setConfigSpaceCursor(null);
