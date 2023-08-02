@@ -35,10 +35,10 @@ coefficient = number / filter
 number = ~r"[0-9]+" ("." ~r"[0-9]+")?
 
 filter = target ("{" _ condition (_ "," _ condition)* _ "}")?
-condition = tag_key _ condition_op _ tag_value
+condition = (variable / tag_key) _ condition_op _ tag_value
 condition_op = "=" / "!=" / "~" / "!~" / "IN" / "NOT IN"
 tag_key = ~"[a-zA-Z0-9_]+"
-tag_value = string / string_tuple
+tag_value = string / string_tuple / variable
 string = ~r'"([^"\\]*(?:\\.[^"\\]*)*)"'
 string_tuple = "(" _ string (_ "," _ string)* _ ")"
 
@@ -51,7 +51,7 @@ function_name = ~"[a-zA-Z0-9_]+"
 quoted_metric = ~r'`([^`]*)`'
 unquoted_metric = ~"[a-zA-Z0-9_]+"
 
-_ = " "*
+_ = ~r"\s*"
 """
 )
 
@@ -127,8 +127,8 @@ class MqlVisitor(NodeVisitor):
         return Filter([target, *conditions])
 
     def visit_condition(self, node, children):
-        lhs, _, op, _, rhs = children
-        return Function(op, [lhs, rhs])
+        key_or_variable, _, op, _, rhs = children
+        return Function(op, [key_or_variable[0], rhs])
 
     def visit_condition_op(self, node, children):
         return CONDITION_OPERATORS[node.text]

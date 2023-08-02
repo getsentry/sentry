@@ -5,7 +5,18 @@ Types to construct a metrics query request.
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum, EnumMeta
-from typing import Any, Dict, FrozenSet, Iterable, Literal, Mapping, Optional, Sequence, Tuple
+from typing import (
+    Any,
+    Dict,
+    FrozenSet,
+    Iterable,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 from snuba_sdk.column import Column
 from snuba_sdk.expressions import Expression
@@ -251,6 +262,7 @@ class MetricRange:
 
 
 VariableMap = Mapping[str, Expression]
+Taggable = Union[Tag, Variable]
 
 
 @dataclass(frozen=True)
@@ -282,7 +294,7 @@ class SeriesQuery:
     range: MetricRange
     expressions: Sequence[Expression]
     filters: Sequence[Function] = field(default_factory=list)
-    groups: Sequence[Tag] = field(default_factory=list)
+    groups: Sequence[Taggable] = field(default_factory=list)
 
     def bind(self, **params: Expression) -> "SeriesQuery":
         """

@@ -9,8 +9,8 @@ from sentry.sentry_metrics.query_experimental.types import (
 
 
 def test_quoted_name():
-    dsl = "sum(`foo`)"
-    expr = Function("sum", [MetricName("foo")])
+    dsl = "sum(`d:transactions/duration@millisecond`)"
+    expr = Function("sum", [MetricName("d:transactions/duration@millisecond")])
     assert parse_expression(dsl) == expr
 
 
@@ -132,9 +132,21 @@ def test_numbers():
     assert parse_expression(dsl) == expr
 
 
-def test_variable():
+def test_metric_variable():
     dsl = "$foo"
     expr = Variable("foo")
+    assert parse_expression(dsl) == expr
+
+
+def test_tag_key_variable():
+    dsl = 'foo{$bar="baz"}'
+    expr = Filter([MetricName("foo"), Function("equals", [Variable("bar"), "baz"])])
+    assert parse_expression(dsl) == expr
+
+
+def test_tag_value_variable():
+    dsl = "foo{bar=$baz}"
+    expr = Filter([MetricName("foo"), Function("equals", [Tag("bar"), Variable("baz")])])
     assert parse_expression(dsl) == expr
 
 
@@ -237,4 +249,13 @@ def test_user_misery():
             ),
         ],
     )
+    assert parse_expression(dsl) == expr
+
+
+def test_newlines():
+    dsl = r"""
+    $foo /
+    $bar
+"""
+    expr = Function("divide", [Variable("foo"), Variable("bar")])
     assert parse_expression(dsl) == expr

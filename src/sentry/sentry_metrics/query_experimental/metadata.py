@@ -169,6 +169,9 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
         for filt in query.filters:
             self._validate_filter_condition(filt)
 
+        for tag in query.groups:
+            self._validate_tag_key(tag)
+
         return AnnotatedQuery(
             query=query,
             expressions=expressions,
@@ -270,8 +273,8 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
         raise InvalidMetricsQuery(f"Unsupported function {function.function}")
 
     def _visit_variable(self, variable: Variable) -> AnnotatedExpression:
-        # TODO: Support variables in metric position.
-        raise InvalidMetricsQuery("Unexpected variable in metric position")
+        # TODO: Get the story straight on variables
+        raise InvalidMetricsQuery(f"Unbound variable {variable.name}")
 
     def _visit_tag(self, tag: Tag) -> AnnotatedExpression:
         raise InvalidMetricsQuery("Unexpected tag in metric position")
@@ -312,8 +315,7 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
         if len(condition.parameters) != params:
             raise InvalidMetricsQuery(f"Filter {op} condition must have {params} parameters")
 
-        if not isinstance(condition.parameters[0], Tag):
-            raise InvalidMetricsQuery("LHS of filter condition must be a tag")
+        self._validate_tag_key(condition.parameters[0])
 
         if value_type == "scalar":
             self._validate_condition_value(condition.parameters[1])
@@ -325,6 +327,14 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
                 self._validate_condition_value(value)
         else:
             assert value_type == "none"
+
+    def _validate_tag_key(self, key: Any) -> None:
+        if isinstance(key, Variable):
+            raise InvalidMetricsQuery(f"Unbound variable {key.name}")
+        if not isinstance(key, Tag):
+            raise InvalidMetricsQuery(
+                f"LHS of filter condition must be a tag, received {type(key)}"
+            )
 
     def _validate_condition_value(self, value: Any) -> None:
         if not isinstance(value, (str, Variable)):
