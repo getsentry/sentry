@@ -113,15 +113,17 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
   if (diffInMinutes > SIX_HOURS) {
     // Between six hours and 24 hours
     if (fidelity === 'high') {
-      return '30m';
+      return '5m';
     }
+
     if (fidelity === 'medium') {
-      return '1h';
+      return '15m';
     }
+
     if (fidelity === 'metrics') {
       return '5m';
     }
-    return '6h';
+    return '1h';
   }
 
   if (diffInMinutes > ONE_HOUR) {
