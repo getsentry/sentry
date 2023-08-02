@@ -193,4 +193,16 @@ describe('ResolveActions', function () {
     expect(screen.getByText('The current release')).toBeInTheDocument();
     expect(screen.getByText('1.2.3 (semver)')).toBeInTheDocument();
   });
+
+  it('displays prompt to setup releases when there are no releases', async function () {
+    const organization = TestStubs.Organization({
+      features: ['issue-resolve-release-setup'],
+    });
+    render(<ResolveActions onUpdate={spy} hasRelease={false} projectSlug="proj-1" />, {
+      organization,
+    });
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(screen.getByText('Resolving is better with Releases')).toBeInTheDocument();
+  });
 });
