@@ -1,5 +1,4 @@
 from django.contrib.auth.models import AnonymousUser
-from django.db import router
 
 from sentry import audit_log
 from sentry.models import (
@@ -10,7 +9,7 @@ from sentry.models import (
     Organization,
     OrganizationStatus,
 )
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
@@ -91,22 +90,20 @@ class CreateAuditEntryTest(TestCase):
         self.assert_valid_deleted_log(deleted_org, self.org)
 
     def test_audit_entry_org_restore_log(self):
-        with assume_test_silo_mode(SiloMode.REGION), unguarded_write(
-            using=router.db_for_write(Organization)
-        ):
-            Organization.objects.filter(id=self.organization.id).update(
+        with assume_test_silo_mode(SiloMode.REGION):
+            Organization.objects.get(id=self.organization.id).update(
                 status=OrganizationStatus.PENDING_DELETION
             )
 
             org = Organization.objects.get(id=self.organization.id)
 
-            Organization.objects.filter(id=self.organization.id).update(
+            Organization.objects.get(id=self.organization.id).update(
                 status=OrganizationStatus.DELETION_IN_PROGRESS
             )
 
             org2 = Organization.objects.get(id=self.organization.id)
 
-            Organization.objects.filter(id=self.organization.id).update(
+            Organization.objects.get(id=self.organization.id).update(
                 status=OrganizationStatus.ACTIVE
             )
 
