@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupAttributesTest(TestCase):
     def test_retrieve_group_values(self) -> None:
         group = self.create_group()

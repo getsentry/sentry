@@ -4,7 +4,7 @@ from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class IssueOccurenceSerializeTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         occurrence = self.build_occurrence()
@@ -19,7 +19,7 @@ class IssueOccurenceSerializeTest(OccurrenceTestMixin, TestCase):
         assert occurrence.level == DEFAULT_LEVEL
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class IssueOccurenceSaveAndFetchTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         occurrence = self.build_occurrence()
@@ -29,7 +29,7 @@ class IssueOccurenceSaveAndFetchTest(OccurrenceTestMixin, TestCase):
         self.assert_occurrences_identical(occurrence, fetched_occurrence)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class IssueOccurrenceEvidenceDisplayPrimaryTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         important_evidence = IssueEvidence("Hello", "Hi", True)
