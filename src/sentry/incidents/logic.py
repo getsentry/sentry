@@ -1352,6 +1352,8 @@ def get_alert_rule_trigger_action_opsgenie_team(
 
     integration_key = team["integration_key"]
     integration = integration_service.get_integration(integration_id=integration_id)
+    if integration is None:
+        raise InvalidTriggerActionError("Opsgenie integration not found.")
     client = OpsgenieClient(
         integration=integration,
         integration_key=integration_key,

@@ -58,16 +58,14 @@ class OpsgenieNotifyTeamForm(forms.Form):
     def _get_team_status(
         self,
         team_id: str | None,
-        integration: RpcIntegration | None,
-        org_integration: RpcOrganizationIntegration | None,
+        integration: RpcIntegration,
+        org_integration: RpcOrganizationIntegration,
     ) -> int:
         team = get_team(team_id, org_integration)
         if not team:
             return INVALID_TEAM
 
         integration_key = team["integration_key"]
-        assert integration is not None
-        assert org_integration is not None
         client = OpsgenieClient(
             integration=integration,
             integration_key=integration_key,
@@ -96,7 +94,12 @@ class OpsgenieNotifyTeamForm(forms.Form):
             integration_id=integration_id,
             organization_id=self.org_id,
         )
-
+        if integration is None or org_integration is None:
+            raise forms.ValidationError(
+                _("The Opsgenie integration does not exist."),
+                code="invalid_integration",
+                params=params,
+            )
         team_status = self._get_team_status(
             team_id=team_id, integration=integration, org_integration=org_integration
         )
@@ -110,7 +113,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
             raise forms.ValidationError(
                 _(
                     'The provided API key is invalid. Please make sure that the Opsgenie API \
-                  key is an integration key of type "sentry".'
+                  key is an integration key of type "Sentry".'
                 ),
                 code="invalid_key",
                 params=params,
