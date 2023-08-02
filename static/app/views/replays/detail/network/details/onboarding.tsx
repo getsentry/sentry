@@ -270,7 +270,7 @@ function SetupInstructions({
 
 const StyledCopyButton = styled(CopyToClipboardButton)`
   float: right;
-  margin-top: ${space(0)};
+  margin-top: 0;
 `;
 
 const NetworkAlert = styled(Alert)`
