@@ -2,6 +2,7 @@ import logging
 import random
 
 import openai
+from litellm import completion
 from django.conf import settings
 from django.dispatch import Signal
 from django.http import HttpResponse, StreamingHttpResponse
@@ -248,7 +249,7 @@ def suggest_fix(event_data, model="gpt-3.5-turbo", stream=False):
     prompt = PROMPT.replace("___FUN_PROMPT___", random.choice(FUN_PROMPT_CHOICES))
     event_info = describe_event_for_ai(event_data, model=model)
 
-    response = openai.ChatCompletion.create(
+    response = completion(
         model=model,
         temperature=0.7,
         messages=[
