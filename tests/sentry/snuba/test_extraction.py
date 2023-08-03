@@ -227,38 +227,25 @@ def test_spec_failure_rate(on_demand_spec_builder):
     assert spec.tags_conditions == [
         {
             "condition": {
-                "inner": [
-                    {
-                        "inner": {
-                            "name": "event.contexts.trace.status",
-                            "op": "eq",
-                            "value": ["ok"],
-                        },
-                        "op": "not",
-                    },
-                    {
-                        "inner": {
-                            "name": "event.contexts.trace.status",
-                            "op": "eq",
-                            "value": ["cancelled"],
-                        },
-                        "op": "not",
-                    },
-                    {
-                        "inner": {
-                            "name": "event.contexts.trace.status",
-                            "op": "eq",
-                            "value": ["unknown"],
-                        },
-                        "op": "not",
-                    },
-                ],
-                "op": "and",
+                "inner": {
+                    "name": "event.contexts.trace.status",
+                    "op": "eq",
+                    "value": ["ok", "cancelled", "unknown"],
+                },
+                "op": "not",
             },
             "key": "failure",
             "value": "true",
         },
-        {"key": "failure", "value": "false"},
+        {
+            "condition": {
+                "name": "event.contexts.trace.status",
+                "op": "eq",
+                "value": ["ok", "cancelled", "unknown"],
+            },
+            "key": "failure",
+            "value": "false",
+        },
     ]
 
 

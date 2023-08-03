@@ -88,6 +88,8 @@ _SEARCH_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
     "<=": "lte",
     ">": "gt",
     ">=": "gte",
+    "IN": "eq",
+    "NOT IN": "eq",  # combined with external negation
 }
 
 # Maps from parsed count_if condition args to Relay rule condition operators.
@@ -436,34 +438,23 @@ class FailureRate(DerivedMetric):
                 tag_key="failure",
                 tag_value="true",
                 conditions=[
-                    # TODO: add support for NOT IN.
-                    # SearchFilter(
-                    #     key=SearchKey(name="transaction.status"),
-                    #     operator="NOT IN",
-                    #     value=SearchValue(raw_value=["ok", "cancelled", "unknown"]),
-                    # ),
                     SearchFilter(
                         key=SearchKey(name="transaction.status"),
-                        operator="!=",
-                        value=SearchValue(raw_value=["ok"]),
-                    ),
-                    "AND",
-                    SearchFilter(
-                        key=SearchKey(name="transaction.status"),
-                        operator="!=",
-                        value=SearchValue(raw_value=["cancelled"]),
-                    ),
-                    "AND",
-                    SearchFilter(
-                        key=SearchKey(name="transaction.status"),
-                        operator="!=",
-                        value=SearchValue(raw_value=["unknown"]),
+                        operator="NOT IN",
+                        value=SearchValue(raw_value=["ok", "cancelled", "unknown"]),
                     ),
                 ],
             ),
             DerivedMetricComponent(
                 tag_key="failure",
                 tag_value="false",
+                conditions=[
+                    SearchFilter(
+                        key=SearchKey(name="transaction.status"),
+                        operator="IN",
+                        value=SearchValue(raw_value=["ok", "cancelled", "unknown"]),
+                    ),
+                ],
             ),
         ]
 
@@ -763,7 +754,7 @@ def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
 
 def _map_field_name(search_key: str) -> str:
     """
-    Maps a the name of a field in a search query to the event protocol path.
+    Maps the name of a field in a search query to the event protocol path.
 
     Raises an exception if the field is not supported.
     """
@@ -877,7 +868,6 @@ class SearchQueryConverter:
             raise ValueError("Unexpected end of query")
 
     def _filter(self, token: SearchFilter) -> RuleCondition:
-        # TODO: add support for not in.
         operator = _SEARCH_TO_RELAY_OPERATORS.get(token.operator)
         if not operator:
             raise ValueError(f"Unsupported operator {token.operator}")
@@ -895,15 +885,18 @@ class SearchQueryConverter:
             # needs to be translated as `not(x == null)`.
             if token.operator == "!=" and value == "":
                 value = None
+
             if isinstance(value, str):
                 value = event_search.translate_escape_sequences(value)
+
             condition = {
                 "op": operator,
                 "name": _map_field_name(token.key.name),
                 "value": value,
             }
 
-        if token.operator == "!=":
+        # In case we have negation operators, we have to wrap them in the `not` condition.
+        if token.operator == "!=" or token.operator == "NOT IN":
             condition = {"op": "not", "inner": condition}
 
         return condition
