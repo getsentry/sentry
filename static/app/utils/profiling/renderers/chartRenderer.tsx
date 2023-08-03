@@ -100,11 +100,11 @@ export class FlamegraphChartRenderer {
 
     // Draw series
     for (let i = 0; i < this.chart.series.length; i++) {
-      this.context.lineWidth = 1;
+      this.context.lineWidth = 1 * window.devicePixelRatio;
       this.context.fillStyle = this.chart.series[i].fillColor;
       this.context.strokeStyle = this.chart.series[i].lineColor;
-      this.context.beginPath();
       this.context.lineCap = 'round';
+      this.context.beginPath();
       const serie = this.chart.series[i];
 
       const origin = vec3.fromValues(0, 0, 1);
@@ -116,11 +116,11 @@ export class FlamegraphChartRenderer {
         const r = vec3.fromValues(point.x, point.y, 1);
         vec3.transformMat3(r, r, configViewToPhysicalSpace);
 
-        if (j === 0) {
+        if (serie.type === 'area' && j === 0) {
           this.context.lineTo(r[0], origin[1]);
         }
         this.context.lineTo(r[0], r[1]);
-        if (j === serie.points.length - 1) {
+        if (serie.type === 'area' && j === serie.points.length - 1) {
           this.context.lineTo(r[0], origin[1]);
         }
       }
