@@ -90,7 +90,7 @@ function DurationChart({
   });
 
   const baselineAvgSeries: Series = {
-    seriesName: 'Baseline Average',
+    seriesName: 'Average',
     data: [],
     markLine: {
       data: [{valueDim: 'x', yAxis: avg}],
@@ -102,7 +102,7 @@ function DurationChart({
       label: {
         fontSize: 11,
         position: 'insideEndBottom',
-        formatter: () => 'Baseline Average',
+        formatter: () => 'Average',
       },
     },
   };
