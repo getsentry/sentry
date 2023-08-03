@@ -46,7 +46,7 @@ class OrganizationMemberTeamDetailsSerializer(Serializer):
         }
 
 
-class TeamOrgMemberPermission(OrganizationPermission):
+class OrganizationTeamMemberPermission(OrganizationPermission):
 
     scope_map = {
         "GET": [
@@ -85,7 +85,7 @@ def _is_org_owner_or_manager(access: Access) -> bool:
 
 @region_silo_endpoint
 class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
-    permission_classes = [TeamOrgMemberPermission]
+    permission_classes = [OrganizationTeamMemberPermission]
 
     def _can_create_team_member(self, request: Request, team: Team) -> bool:
         """
