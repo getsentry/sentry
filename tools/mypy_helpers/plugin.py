@@ -74,6 +74,17 @@ def _adjust_http_request_members(ctx: ClassDefContext) -> None:
     if ctx.cls.name == "HttpRequest":
         # added by csp.middleware.CSPMiddleware
         add_attribute_to_class(ctx.api, ctx.cls, "csp_nonce", ctx.api.named_type("builtins.str"))
+        # added by sudo.middleware.SudoMiddleware
+        # this is slightly better than a method returning bool for overriding
+        returns_bool = CallableType(
+            arg_types=[],
+            arg_kinds=[],
+            arg_names=[],
+            ret_type=ctx.api.named_type("builtins.bool"),
+            fallback=ctx.api.named_type("builtins.function"),
+            name="is_sudo",
+        )
+        add_attribute_to_class(ctx.api, ctx.cls, "is_sudo", returns_bool)
 
 
 class SentryMypyPlugin(Plugin):

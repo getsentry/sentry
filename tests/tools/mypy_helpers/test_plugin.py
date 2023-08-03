@@ -226,7 +226,10 @@ Found 4 errors in 1 file (checked 1 source file)
 
 @pytest.mark.parametrize(
     ("attr", "modname"),
-    (("csp_nonce", "csp.middleware"),),
+    (
+        ("csp_nonce", "csp.middleware"),
+        ("is_sudo", "sudo.middleware"),
+    ),
 )
 def test_added_http_request_attribute(attr: str, modname: str) -> None:
     mod = __import__(modname, fromlist=["_trash"])
