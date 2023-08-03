@@ -58,6 +58,12 @@ class OpsgenieClient(IntegrationProxyClient):
         headers = {"Authorization": "GenieKey " + self.integration_key}
         return self.get(path=path, headers=headers, params=params)
 
+    def authorize_integration(self, type: str) -> BaseApiResponseX:
+        body = {"type": type}
+        path = "/integrations/authenticate"
+        headers = {"Authorization": "GenieKey " + self.integration_key}
+        return self.post(path=path, headers=headers, data=body)
+
     def _get_rule_urls(self, group, rules):
         organization = group.project.organization
         rule_urls = []
