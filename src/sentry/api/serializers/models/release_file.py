@@ -29,8 +29,7 @@ def decode_release_file_id(id: str):
     except ValueError:
         decoded = urlsafe_b64decode(id).decode()
         dist, url = decoded.split("_", 1)
-        dist = dist or None
-        return dist, url
+        return dist or None, url
 
 
 @register(ReleaseFile)
