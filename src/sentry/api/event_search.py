@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import re
-from dataclasses import asdict, dataclass, field, replace
+from collections import namedtuple
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, List, Mapping, Sequence, Set, Tuple, Union
+from typing import Any, List, Mapping, NamedTuple, Sequence, Set, Tuple, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
@@ -305,7 +306,7 @@ def get_operator_value(operator):
     return operator
 
 
-class SearchBoolean:
+class SearchBoolean(namedtuple("SearchBoolean", "left_term operator right_term")):
     BOOLEAN_AND = "AND"
     BOOLEAN_OR = "OR"
 
@@ -318,13 +319,11 @@ class SearchBoolean:
         return value == SearchBoolean.BOOLEAN_AND or SearchBoolean.is_or_operator(value)
 
 
-@dataclass(frozen=True)
-class ParenExpression:
-    children: Sequence[Any]
+class ParenExpression(namedtuple("ParenExpression", "children")):
+    pass
 
 
-@dataclass(frozen=True)
-class SearchKey:
+class SearchKey(NamedTuple):
     name: str
 
     @property
@@ -345,8 +344,7 @@ class SearchKey:
         return is_span_op_breakdown(self.name) and self.name not in SEARCH_MAP
 
 
-@dataclass(frozen=True)
-class SearchValue:
+class SearchValue(NamedTuple):
     raw_value: Union[str, int, datetime, Sequence[int], Sequence[str]]
 
     @property
@@ -383,8 +381,7 @@ class SearchValue:
         return is_span_id(self.raw_value) or self.raw_value == ""
 
 
-@dataclass(frozen=True)
-class SearchFilter:
+class SearchFilter(NamedTuple):
     key: SearchKey
     operator: str
     value: SearchValue
@@ -411,8 +408,7 @@ class SearchFilter:
         return self.operator in ("IN", "NOT IN")
 
 
-@dataclass(frozen=True)
-class AggregateFilter:
+class AggregateFilter(NamedTuple):
     key: SearchKey
     operator: str
     value: SearchValue
@@ -421,8 +417,7 @@ class AggregateFilter:
         return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
 
-@dataclass(frozen=True)
-class AggregateKey:
+class AggregateKey(NamedTuple):
     name: str
 
 
@@ -755,7 +750,7 @@ class SearchVisitor(NodeVisitor):
 
         search_value = SearchValue("".join(search_value))
         if operator not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
-            search_value = replace(search_value, raw_value=f"{operator}{search_value.raw_value}")
+            search_value = search_value._replace(raw_value=f"{operator}{search_value.raw_value}")
 
         if search_key.name not in self.config.text_operator_keys:
             operator = "!=" if is_negated(negation) else "="
@@ -932,7 +927,7 @@ class SearchVisitor(NodeVisitor):
         if operator not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
             # Operators are not supported in text_filter.
             # Push it back into the value before handing the negation.
-            search_value = replace(search_value, raw_value=f"{operator}{search_value.raw_value}")
+            search_value = search_value._replace(raw_value=f"{operator}{search_value.raw_value}")
             operator = "="
 
         operator = handle_negation(negation, operator)
@@ -942,7 +937,7 @@ class SearchVisitor(NodeVisitor):
     def _handle_text_filter(self, search_key, operator, search_value):
         if operator not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
             # If operators aren't allowed for this key then push it back into the value
-            search_value = replace(search_value, raw_value=f"{operator}{search_value.raw_value}")
+            search_value = search_value._replace(raw_value=f"{operator}{search_value.raw_value}")
             operator = "="
 
         return self._handle_basic_filter(search_key, operator, search_value)
