@@ -3,7 +3,6 @@ import {APIRequestMethod} from 'sentry/api';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {JsonFormObject} from 'sentry/components/forms/types';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import accountDetailsFields from 'sentry/data/forms/accountDetails';
 import accountPreferencesFields from 'sentry/data/forms/accountPreferences';
@@ -36,30 +35,6 @@ class AccountDetails extends DeprecatedAsyncView<Props> {
     });
   };
 
-  getAccountPreferencesFields(): JsonFormObject[] {
-    const formGroupsEventIssue = [...accountPreferencesFields];
-    const transformOptions = (data: object) => ({options: data});
-
-    if (
-      this.props.organization.features.includes('issue-details-most-helpful-event-ui')
-    ) {
-      formGroupsEventIssue[0].fields.push({
-        name: 'defaultIssueEvent',
-        type: 'select',
-        required: false,
-        options: [
-          {value: 'recommended', label: t('Recommended')},
-          {value: 'latest', label: t('Latest')},
-          {value: 'oldest', label: t('Oldest')},
-        ],
-        label: t('Default Issue Event'),
-        help: t('Choose what event gets displayed by default'),
-        getData: transformOptions,
-      });
-    }
-    return formGroupsEventIssue;
-  }
-
   renderBody() {
     const user = this.state.user as User;
 
@@ -80,8 +55,11 @@ class AccountDetails extends DeprecatedAsyncView<Props> {
         </Form>
         <Form initialData={user.options} {...formCommonProps}>
           <JsonForm
-            forms={this.getAccountPreferencesFields()}
-            additionalFieldProps={{user}}
+            forms={accountPreferencesFields}
+            additionalFieldProps={{
+              user,
+              organization: this.props.organization,
+            }}
           />
         </Form>
         <AvatarChooser
