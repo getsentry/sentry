@@ -313,9 +313,23 @@ def _process_message(wrapper: Dict) -> None:
                     )
                 else:
                     check_in = MonitorCheckIn.objects.select_for_update().get(
-                        monitor_environment=monitor_environment,
                         guid=check_in_id,
                     )
+
+                    if check_in.monitor_environment_id != monitor_environment.id:
+                        metrics.incr(
+                            "monitors.checkin.result",
+                            tags={
+                                **metric_kwargs,
+                                "status": "failed_monitor_environment_guid_match",
+                            },
+                        )
+                        logger.debug(
+                            "monitor environment does not match on existing guid: %s %s",
+                            environment,
+                            check_in_id,
+                        )
+                        return
 
                 update_existing_check_in(check_in, status, validated_params["duration"], start_time)
 
