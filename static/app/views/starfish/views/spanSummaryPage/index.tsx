@@ -168,7 +168,7 @@ function SpanSummaryPage({params, location}: Props) {
             <Layout.Body>
               <Layout.Main fullWidth>
                 <PageErrorAlert />
-                <BlockContainer>
+                <HeaderContainer>
                   <FilterOptionsContainer>
                     <StarfishDatePicker />
                   </FilterOptionsContainer>
@@ -227,7 +227,7 @@ function SpanSummaryPage({params, location}: Props) {
                       />
                     </Block>
                   </BlockContainer>
-                </BlockContainer>
+                </HeaderContainer>
 
                 {span?.[SpanMetricsFields.SPAN_DESCRIPTION] && (
                   <DescriptionContainer>
@@ -328,7 +328,7 @@ const FilterOptionsContainer = styled('div')`
   flex-direction: row;
   gap: ${space(1)};
   align-items: center;
-  flex: 1;
+  padding-bottom: ${space(2)};
 `;
 
 type BlockProps = {
@@ -379,7 +379,13 @@ export const BlockContainer = styled('div')`
   & > div:last-child {
     padding-right: ${space(1)};
   }
-  padding-bottom: ${space(2)};
+  flex-wrap: wrap;
+`;
+
+export const HeaderContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
 `;
 
 const DescriptionContainer = styled('div')`
@@ -391,9 +397,10 @@ const DescriptionContainer = styled('div')`
 
 const BlockWrapper = styled('div')`
   padding-right: ${space(4)};
-  flex: 1;
+  flex-grow: 1;
   min-width: 0;
   word-break: break-word;
+  padding-bottom: ${space(2)};
 `;
 
 export default SpanSummaryPage;
