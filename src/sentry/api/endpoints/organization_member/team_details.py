@@ -52,6 +52,7 @@ class TeamOrgMemberPermission(OrganizationPermission):
         "GET": [
             "org:read",
             "org:write",
+            "org:admin",
             "member:read",
             "member:write",
             "member:admin",
@@ -60,11 +61,12 @@ class TeamOrgMemberPermission(OrganizationPermission):
         "PUT": [
             "org:read",
             "org:write",
+            "org:admin",
             "member:read",
             "member:write",
             "member:admin",
         ],
-        "DELETE": ["org:read", "org:write", "org:admin", "team:write"],
+        "DELETE": ["org:read", "org:write", "org:admin", "team:admin"],
     }
 
 
@@ -125,8 +127,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             return True
 
         # There is an edge case where org owners/managers cannot remove a member from a team they
-        # are not part of using team:write. We cannot explicitly check for team:write b/c org admins
-        # have it but are only allowed to remove members from teams they are on.
+        # are not part of using team:admin. We cannot explicitly check for team:admin b/c org admins
+        # also have it but are only allowed to remove members from teams they are on.
         if _is_org_owner_or_manager(request.access):
             return True
 
