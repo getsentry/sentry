@@ -23,6 +23,7 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {Event, Group, Organization} from 'sentry/types';
 import {defined, formatBytesBase2} from 'sentry/utils';
@@ -126,6 +127,8 @@ function EventNavigationDropdown({
   const theme = useTheme();
   const organization = useOrganization();
   const largeViewport = useMedia(`(min-width: ${theme.breakpoints.large})`);
+  const user = ConfigStore.get('user');
+  const options = user ? user.options : null;
 
   const isHelpfulEventUiEnabled =
     organization.features.includes('issue-details-most-helpful-event') &&
@@ -142,7 +145,7 @@ function EventNavigationDropdown({
       case EventNavDropdownOption.OLDEST:
         return params.eventId;
       case undefined:
-        return EventNavDropdownOption.RECOMMENDED;
+        return options?.defaultIssueEvent;
       default:
         return undefined;
     }
