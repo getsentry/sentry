@@ -613,6 +613,10 @@ def metrics_parallel_consumer(**options):
     streamer = get_parallel_metrics_consumer(**options)
 
     from arroyo import configure_metrics
+    from arroyo.processing.processor import logger as arroyo_logger
+    from arroyo.utils.logging import pylog_to_syslog_level
+
+    arroyo_logger.setLevel(pylog_to_syslog_level(7))
 
     from sentry.utils.arroyo import MetricsWrapper
     from sentry.utils.metrics import backend
