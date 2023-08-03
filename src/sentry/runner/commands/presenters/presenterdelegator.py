@@ -4,16 +4,16 @@ from sentry.runner.commands.presenters.slackpresenter import SlackPresenter
 
 class PresenterDelegator:
     def __init__(self) -> None:
-        self._consolepresenter = ConsolePresenter()
+        self.__consolepresenter = ConsolePresenter()
+
+        self.__slackpresenter = None
         if SlackPresenter.is_slack_enabled():
-            self._slackpresenter = SlackPresenter()
-        else:
-            self._slackpresenter = None
+            self.__slackpresenter = SlackPresenter()
 
     def __getattr__(self, attr: str):
         def wrapper(*args, **kwargs):
-            getattr(self._consolepresenter, attr)(*args, **kwargs)
-            if self._slackpresenter:
-                getattr(self._slackpresenter, attr)(*args, **kwargs)
+            getattr(self.__consolepresenter, attr)(*args, **kwargs)
+            if self.__slackpresenter:
+                getattr(self.__slackpresenter, attr)(*args, **kwargs)
 
         return wrapper

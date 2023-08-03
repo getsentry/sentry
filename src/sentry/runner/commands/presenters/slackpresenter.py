@@ -33,7 +33,7 @@ class SlackPresenter(OptionsPresenter):
             return False
 
         try:
-            payload = {
+            test_payload: dict = {
                 "drifted_options": [],
                 "channel_updated_options": [],
                 "updated_options": [],
@@ -42,7 +42,7 @@ class SlackPresenter(OptionsPresenter):
                 "error_options": [],
             }
 
-            response = requests.post(SLACK_WEBHOOK_URL, json=payload)
+            response = requests.post(SLACK_WEBHOOK_URL, json=test_payload)
             if response.status_code == 200:
                 return True
 

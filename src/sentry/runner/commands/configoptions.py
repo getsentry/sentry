@@ -187,9 +187,9 @@ def patch(ctx) -> None:
                     sample_rate=1.0,
                 )
 
-                # since _attempt_udpate already catch unknown options
-                # and invalid type setting, this is catching
-                # whatever else could happen.
+                # Configoptions is already catching invalid option names
+                # and invalid type setting, this is catching whatever
+                # else could happen.
                 presenter_delegator.error(key, str(e))
                 presenter_delegator.flush()
                 raise

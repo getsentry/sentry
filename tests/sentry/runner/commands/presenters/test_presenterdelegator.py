@@ -4,6 +4,11 @@ from sentry.runner.commands.presenters.presenterdelegator import PresenterDelega
 
 
 class TestPresenterDelegator:
+    """
+    Tests for checking implementation of the presenter delegator.
+    Formatting of the console is tested in test_configoptions.
+    """
+
     @pytest.fixture(autouse=True)
     def setup(self) -> None:
         self.presenterDelagator = PresenterDelegator()
@@ -34,13 +39,11 @@ class TestPresenterDelegator:
             self.presenterDelagator.update("key")
         with pytest.raises(TypeError):
             self.presenterDelagator.update("key", "val")
-
-        self.presenterDelagator.channel_update("key")
-        self.presenterDelagator.drift("key", "val")
-        self.presenterDelagator.error("key", "error msg")
-        self.presenterDelagator.unregistered("key")
-        self.presenterDelagator.invalid_type("key", "got_type", "expected_type")
-
-
-# test good calls to presenterDdelgator (like with attributes that exist)
-# test bad calls that don't exist
+        with pytest.raises(TypeError):
+            self.presenterDelagator.channel_update()
+        with pytest.raises(TypeError):
+            self.presenterDelagator.drift("key")
+        with pytest.raises(TypeError):
+            self.presenterDelagator.error("key")
+        with pytest.raises(TypeError):
+            self.presenterDelagator.unregistered("key", "val")
