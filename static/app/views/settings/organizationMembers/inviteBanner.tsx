@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -55,7 +56,11 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
     </MemberCard>
   ));
 
-  cards?.push(<SeeMoreCard missingUsers={missingMembers?.users} />);
+  cards?.push(
+    <Fragment key="see-more">
+      <SeeMoreCard missingUsers={missingMembers?.users} />
+    </Fragment>
+  );
 
   return (
     <StyledCard data-test-id="invite-banner">
@@ -95,7 +100,7 @@ type SeeMoreCardProps = {
 
 function SeeMoreCard({missingUsers}: SeeMoreCardProps) {
   return (
-    <MemberCard key="see-more" data-test-id="see-more-card">
+    <MemberCard data-test-id="see-more-card">
       <MemberCardContent>
         <MemberCardContentRow>
           <SeeMore>
