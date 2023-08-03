@@ -6,17 +6,16 @@ from sentry import features
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models import (
-    TRANSACTION_METRICS,
     Project,
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
 from sentry.snuba.metrics.extraction import (
-    DerivedMetricParams,
     MetricSpec,
     OndemandMetricSpecBuilder,
     RuleCondition,
+    _get_derived_metric_params,
     is_on_demand_snuba_query,
 )
 from sentry.snuba.models import SnubaQuery
@@ -117,29 +116,6 @@ def convert_query_to_metric(
     except Exception as e:
         logger.error(e, exc_info=True)
         return None
-
-
-def _get_derived_metric_params(project: Project, field: str) -> DerivedMetricParams:
-    if field == "apdex()":
-        # TODO: check if we should use the ProjectTransactionThresholdOverride.
-        result = ProjectTransactionThreshold.filter(
-            organization_id=project.organization.id,
-            project_ids=[project.id],
-            order_by=[],
-            value_list=["threshold", "metric"],
-        )
-        # We expect to find only 1 entry, if we find many or none, we throw an error.
-        if len(result) != 1:
-            raise Exception(f"Zero or multiple thresholds found for apdex in project {project.id}")
-
-        threshold, metric = result[0]
-        metric_op = TRANSACTION_METRICS[metric]
-
-        return DerivedMetricParams(
-            {"apdex_threshold": threshold, "field_to_extract": f"transaction.{metric_op}"}
-        )
-
-    return DerivedMetricParams.empty()
 
 
 # CONDITIONAL TAGGING

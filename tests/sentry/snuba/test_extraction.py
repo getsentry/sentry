@@ -257,9 +257,9 @@ def test_spec_failure_rate(on_demand_spec_builder):
         field="failure_rate()", query="transaction.duration:>1s"
     )
 
-    assert spec.metric_type == "c"
+    assert spec.metric_type == "e"
     assert spec.field is None
-    assert spec.op is None
+    assert spec.op == "failure_rate"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
     assert spec.tags_conditions == [
         {
@@ -278,18 +278,15 @@ def test_spec_failure_rate(on_demand_spec_builder):
 
 
 def test_spec_apdex(on_demand_spec_builder):
-    t = 10
     spec = on_demand_spec_builder.build_spec(
-        field="apdex()",
+        field="apdex(10)",
         query="release:a",
-        derived_metric_params=DerivedMetricParams(
-            {"apdex_threshold": t, "field_to_extract": "transaction.duration"}
-        ),
+        derived_metric_params=DerivedMetricParams({"field_to_extract": "transaction.duration"}),
     )
 
-    assert spec.metric_type == "c"
-    assert spec.field is None
-    assert spec.op is None
+    assert spec.metric_type == "e"
+    assert spec.field == "10"
+    assert spec.op == "on_demand_apdex"
     assert spec.condition == {"name": "event.release", "op": "eq", "value": "a"}
     assert spec.tags_conditions == [
         {

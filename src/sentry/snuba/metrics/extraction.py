@@ -26,6 +26,7 @@ from sentry.api import event_search
 from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, SearchValue
 from sentry.constants import DataCategory
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models import TRANSACTION_METRICS, Project, ProjectTransactionThreshold
 from sentry.search.events import fields
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricOperationType
@@ -115,6 +116,8 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "p75": "p75",
     "p95": "p95",
     "p99": "p99",
+    "failure_rate": "on_demand_failure_rate",
+    "apdex": "on_demand_apdex",
     # generic percentile is not supported by metrics layer.
 }
 
@@ -128,10 +131,9 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "p75": "d",
     "p95": "d",
     "p99": "d",
+    "failure_rate": "e",
+    "apdex": "e",
 }
-
-# Mapping to infer metric type from derived metric.
-_DERIVED_METRIC_TO_METRIC_TYPE = {"failure_rate": "c", "apdex": "c"}
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
 # will be converted to metric extraction conditions.
@@ -342,6 +344,9 @@ class DerivedMetricParams:
     def empty():
         return DerivedMetricParams({})
 
+    def add_param(self, param_key: str, param_value: Any):
+        self.params[param_key] = param_value
+
     def consume(self, consumer: str) -> "DerivedMetricParamsConsumer":
         return DerivedMetricParamsConsumer(consumer=consumer, params=self)
 
@@ -389,7 +394,7 @@ class DerivedMetric(ABC):
 
 class FailureRate(DerivedMetric):
     def get_name(self) -> str:
-        return "failure_rate()"
+        return "on_demand_failure_rate"
 
     def get_components(
         self, derived_metric_params: DerivedMetricParams
@@ -412,7 +417,7 @@ class FailureRate(DerivedMetric):
 
 class Apdex(DerivedMetric):
     def get_name(self) -> str:
-        return "apdex()"
+        return "on_demand_apdex"
 
     def get_components(
         self, derived_metric_params: DerivedMetricParams
@@ -455,7 +460,7 @@ class Apdex(DerivedMetric):
 
 
 # Dynamic mapping between derived metric field name and derived metric definition.
-_DERIVED_METRICS: Dict[str, DerivedMetric] = {
+_DERIVED_METRICS: Dict[MetricOperationType, DerivedMetric] = {
     derived_metric.get_name(): derived_metric for derived_metric in [FailureRate(), Apdex()]
 }
 
@@ -519,72 +524,61 @@ class OndemandMetricSpecBuilder:
         query: str,
         derived_metric_params: Optional[DerivedMetricParams] = None,
     ) -> OndemandMetricSpec:
-        # We need to clean up the query from unnecessary filters.
+        # First we clean up the query from unnecessary filters.
         query = self._cleanup_query(query)
 
-        if (derived_metric := _DERIVED_METRICS.get(field)) is not None:
+        # Second we process all the necessary components.
+        op, metric_type, argument = self._process_field(field=field)
+        rule_condition = self._process_query(field=field, query=query)
+        tags_conditions = []
+
+        # In case this is a derived metric, we also compute the list of tags conditions that will characterize the
+        # metric.
+        if (derived_metric := _DERIVED_METRICS.get(op)) is not None:
             if derived_metric_params is None:
                 derived_metric_params = DerivedMetricParams.empty()
 
-            return self._handle_derived_metric(field, query, derived_metric, derived_metric_params)
-        else:
-            return self._handle_normal_metric(field, query)
+            if argument is not None:
+                self._extend_derived_metric_params(
+                    op=op, argument=argument, derived_metric_params=derived_metric_params
+                )
 
-    def _handle_derived_metric(
-        self,
-        field: str,
-        query: str,
-        derived_metric: DerivedMetric,
-        derived_metric_params: DerivedMetricParams,
-    ) -> OndemandMetricSpec:
-        op, metric_type, extracted_field = self._process_field(field=field, is_derived=True)
-        rule_condition = self._process_query(field=field, query=query)
-        tags_conditions = self._process_components(
-            derived_metric=derived_metric, derived_metric_params=derived_metric_params
-        )
+            tags_conditions = self._process_components(
+                derived_metric=derived_metric, derived_metric_params=derived_metric_params
+            )
 
+        # Third we build the actual spec.
         return OndemandMetricSpec(
             op=op,
             metric_type=metric_type,
-            field=extracted_field,
+            field=argument,
             condition=rule_condition,
             tags_conditions=tags_conditions,
             original_query=query,
         )
 
-    def _handle_normal_metric(self, field: str, query: str) -> OndemandMetricSpec:
-        op, metric_type, extracted_field = self._process_field(field=field, is_derived=False)
-        rule_condition = self._process_query(field=field, query=query)
-
-        return OndemandMetricSpec(
-            op=op,
-            metric_type=metric_type,
-            field=extracted_field,
-            condition=rule_condition,
-            tags_conditions=[],
-            original_query=query,
-        )
-
-    def _process_field(
-        self, field: str, is_derived: bool
-    ) -> Tuple[Optional[MetricOperationType], str, Optional[str]]:
+    def _process_field(self, field: str) -> Tuple[MetricOperationType, str, Optional[str]]:
         parsed_field = self._field_parser.parse(field)
         if parsed_field is None:
             raise Exception(f"Unable to parse the field {field}")
 
-        # TODO: we have to figure out how we want to map the operation in case of a derived metric.
-        op = None if is_derived else self.get_op(parsed_field.function)
+        op = self._get_op(parsed_field.function)
         metric_type = self._get_metric_type(parsed_field.function)
 
         # We only support a field for sets and distributions metrics that are NOT derived.
-        if metric_type != "c" and not is_derived:
+        if metric_type != "c":
             assert len(parsed_field.arguments) == 1, "Only one parameter is supported"
-            return op, metric_type, _map_field_name(parsed_field.arguments[0])
+            argument = parsed_field.arguments[0]
+
+            # We want to map the field for any operation different from apdex.
+            if op != "on_demand_apdex":
+                argument = _map_field_name(argument)
+
+            return op, metric_type, argument
 
         return op, metric_type, None
 
     def _process_query(self, field: str, query: str) -> RuleCondition:
-        # TODO: find a way to avoid double parsing of the field.
         parsed_field = self._field_parser.parse(field)
         if parsed_field is None:
             raise Exception(f"Unable to parse the field {field}")
@@ -622,7 +616,7 @@ class OndemandMetricSpecBuilder:
     def _process_components(
         derived_metric: DerivedMetric, derived_metric_params: DerivedMetricParams
     ) -> List[TagSpec]:
-        tags_conditions = []
+        tags_conditions: List[TagSpec] = []
         for component in derived_metric.get_components(derived_metric_params):
             tags_conditions.append(
                 {
@@ -635,7 +629,14 @@ class OndemandMetricSpecBuilder:
         return tags_conditions
 
     @staticmethod
-    def get_op(function: str) -> MetricOperationType:
+    def _extend_derived_metric_params(
+        op: MetricOperationType, argument: str, derived_metric_params: DerivedMetricParams
+    ):
+        if op == "on_demand_apdex":
+            derived_metric_params.add_param("apdex_threshold", int(argument))
+
+    @staticmethod
+    def _get_op(function: str) -> MetricOperationType:
         op = _SEARCH_TO_METRIC_AGGREGATES.get(function)
         if op is not None:
             return op
@@ -645,10 +646,6 @@ class OndemandMetricSpecBuilder:
     @staticmethod
     def _get_metric_type(function: str) -> str:
         metric_type = _AGGREGATE_TO_METRIC_TYPE.get(function)
-        if metric_type is not None:
-            return metric_type
-
-        metric_type = _DERIVED_METRIC_TO_METRIC_TYPE.get(function)
         if metric_type is not None:
             return metric_type
 
@@ -702,6 +699,27 @@ def _map_field_name(search_key: str) -> str:
         return f"event.tags.{resolved[5:-1]}"
 
     raise ValueError(f"Unsupported query field {search_key}")
+
+
+def _get_derived_metric_params(project: Project, field: str) -> DerivedMetricParams:
+    if field == "apdex()":
+        result = ProjectTransactionThreshold.filter(
+            organization_id=project.organization.id,
+            project_ids=[project.id],
+            order_by=[],
+            value_list=["threshold", "metric"],
+        )
+        # We expect to find only 1 entry, if we find many or none, we throw an error.
+        if len(result) != 1:
+            raise Exception(f"Zero or multiple thresholds found for apdex in project {project.id}")
+
+        # We will extract the threshold from the apdex(x) field where x is the threshold.
+        _threshold, metric = result[0]
+        metric_op = TRANSACTION_METRICS[metric]
+
+        return DerivedMetricParams({"field_to_extract": f"transaction.{metric_op}"})
+
+    return DerivedMetricParams.empty()
 
 
 T = TypeVar("T")
