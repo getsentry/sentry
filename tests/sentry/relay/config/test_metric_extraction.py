@@ -109,7 +109,9 @@ def test_get_metric_specs_multiple_duplicated(default_project):
 @pytest.mark.django_db
 def test_get_metric_specs_with_apdex(default_project):
     alert = mock_alert(default_project, "apdex(10)", "transaction.duration:>=1000")
-    mock_project_threshold(default_project, 10, TransactionMetric.DURATION.value)
+    # The threshold stored in the database will not be considered and rather the one from the parameter will be
+    # preferred.
+    mock_project_threshold(default_project, 200, TransactionMetric.DURATION.value)
 
     specs = extraction._get_metric_specs(default_project, [alert])
 
@@ -117,7 +119,7 @@ def test_get_metric_specs_with_apdex(default_project):
     assert specs[0] == {
         "category": "transaction",
         "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-        "field": "on_demand_apdex",
+        "field": None,
         "mri": "e:transactions/on_demand@none",
         "tags": [
             {

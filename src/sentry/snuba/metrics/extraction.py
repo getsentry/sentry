@@ -630,7 +630,8 @@ class OndemandMetricSpecBuilder:
         if not requires_single_argument:
             return None
 
-        assert len(parsed_field.arguments) == 1, "Only one parameter is supported"
+        if len(parsed_field.arguments) != 1:
+            raise Exception(f"The operation {op} supports only a single parameter")
 
         argument = parsed_field.arguments[0]
         # TODO: abstract better this handling with a possible declarative approach to argument definition, which will
