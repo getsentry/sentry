@@ -1,9 +1,10 @@
 from unittest.mock import patch
 
 import pytest
-from requests_mock.mocker import Mocker
+import responses
 
 from sentry.runner.commands.presenters.slackpresenter import SlackPresenter
+from sentry.utils import json
 
 
 class TestSlackPresenter:
@@ -13,8 +14,9 @@ class TestSlackPresenter:
         self.TEST_SLACK_WEBHOOK_URL = "https://test/"
 
     @patch("sentry.runner.commands.presenters.slackpresenter.SLACK_WEBHOOK_URL", "https://test/")
-    def test_is_slack_enabled(self, requests_mock: Mocker):
-        requests_mock.post(self.TEST_SLACK_WEBHOOK_URL)
+    @responses.activate
+    def test_is_slack_enabled(self):
+        responses.add(responses.POST, self.TEST_SLACK_WEBHOOK_URL, status=200)
         self.slackPresenter.set("option1", "value1")
         self.slackPresenter.set("option2", "value2")
 
@@ -39,25 +41,23 @@ class TestSlackPresenter:
         self.slackPresenter.invalid_type("option15", "got_type15", "expected_type15")
         self.slackPresenter.invalid_type("option16", "got_type16", "expected_type16")
 
-        # Call flush to send the data to the webhook (for this specific test, we don't need to send an HTTP request)
         self.slackPresenter.flush()
 
-        # Assertions
         expected_json_data = {
+            "drifted_options": [
+                {"option_name": "option9", "option_value": "db_value9..."},
+                {"option_name": "option10", "option_value": "db_value10..."},
+            ],
+            "channel_updated_options": ["option7", "option8"],
+            "updated_options": [
+                {"option_name": "option5", "db_value": "db_value5", "value": "value5"},
+                {"option_name": "option6", "db_value": "db_value6", "value": "value6"},
+            ],
             "set_options": [
                 {"option_name": "option1", "option_value": "value1"},
                 {"option_name": "option2", "option_value": "value2"},
             ],
             "unset_options": ["option3", "option4"],
-            "updated_options": [
-                {"option_name": "option5", "db_value": "db_value5", "value": "value5"},
-                {"option_name": "option6", "db_value": "db_value6", "value": "value6"},
-            ],
-            "channel_updated_options": ["option7", "option8"],
-            "drifted_options": [
-                {"option_name": "option9", "option_value": "db_value9..."},
-                {"option_name": "option10", "option_value": "db_value10..."},
-            ],
             "error_options": [
                 {"option_name": "option11", "error_msg": "error_reason11"},
                 {"option_name": "option12", "error_msg": "error_reason12"},
@@ -77,7 +77,5 @@ class TestSlackPresenter:
             ],
         }
 
-        assert len(requests_mock.request_history) == 1
-        assert requests_mock.request_history[0].method == "POST"
-        assert requests_mock.request_history[0].url == self.TEST_SLACK_WEBHOOK_URL
-        assert expected_json_data == requests_mock.request_history[0].json()
+        assert responses.calls[0].response.status_code == 200
+        assert expected_json_data == json.loads(responses.calls[0].request.body)

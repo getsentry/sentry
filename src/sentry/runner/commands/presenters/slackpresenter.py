@@ -81,11 +81,11 @@ class SlackPresenter(OptionsPresenter):
             ],
         }
 
-        self.send_to_webhook(json_data)
+        self._send_to_webhook(json_data)
 
     def truncate_value(self, value: str) -> str:
         if len(value) > self.MAX_OPTION_VALUE_LENGTH:
-            return value[self.MAX_OPTION_VALUE_LENGTH] + "..."
+            return value[: self.MAX_OPTION_VALUE_LENGTH] + "..."
         else:
             return value
 
@@ -118,6 +118,6 @@ class SlackPresenter(OptionsPresenter):
     ) -> None:
         self.invalid_type_options.append((key, got_type, expected_type))
 
-    def send_to_webhook(self, json_data: dict) -> None:
+    def _send_to_webhook(self, json_data: dict) -> None:
         headers = {"Content-Type": "application/json"}
         requests.post(SLACK_WEBHOOK_URL, data=json.dumps(json_data), headers=headers)
