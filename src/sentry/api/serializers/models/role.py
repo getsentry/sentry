@@ -8,13 +8,16 @@ from sentry.models import User
 from sentry.roles.manager import OrganizationRole, Role, TeamRole
 
 
-class RoleSerializerResponse(TypedDict, total=False):
+class RoleSerializerResponseBase(TypedDict):
     id: str
     name: str
     desc: str
     scopes: List[str]
-    is_global: bool
     allowed: bool
+
+
+class RoleSerializerResponse(RoleSerializerResponseBase, total=False):
+    is_global: bool
     isAllowed: bool
     isRetired: bool
     isGlobal: bool
