@@ -90,7 +90,7 @@ class ConsolePresenter(OptionsPresenter):
     def error(self, key: str, not_writable_reason: str) -> None:
         self.error_options.append((key, not_writable_reason))
 
-    def unregistered(self, key: str):
+    def unregistered(self, key: str) -> None:
         self.unregistered_options.append(key)
 
     def invalid_type(
@@ -98,5 +98,5 @@ class ConsolePresenter(OptionsPresenter):
         key: str,
         got_type: str,
         expected_type: str,
-    ):
+    ) -> None:
         self.invalid_type_options.append((key, got_type, expected_type))
