@@ -29,9 +29,7 @@ class MissingMembersPermission(OrganizationPermission):
 class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
     permission_classes = (MissingMembersPermission,)
 
-    def _get_missing_members(
-        self, organization: Organization, domain: str = None
-    ) -> QuerySet[CommitAuthor]:
+    def _get_missing_members(self, organization: Organization) -> QuerySet[CommitAuthor]:
         member_emails = set(
             organization.member_set.exclude(email=None).values_list("email", flat=True)
         )
@@ -86,9 +84,9 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
             tokens = tokenize_query(query)
             for key, value in tokens.items():
                 if key == "query":
-                    value = " ".join(value)
+                    query_value = " ".join(value)
                     queryset = queryset.filter(
-                        Q(email__icontains=value) | Q(external_id__icontains=value)
+                        Q(email__icontains=query_value) | Q(external_id__icontains=query_value)
                     )
 
         return Response(

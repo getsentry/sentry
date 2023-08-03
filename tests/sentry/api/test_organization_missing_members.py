@@ -135,9 +135,6 @@ class OrganizationMissingMembersTestCase(APITestCase):
 
         self.create_commit(repo=self.repo, author=nonmember_commit_author)
 
-        self.repo = self.create_repo(project=self.project, provider="integrations:github")
-        self.create_commit(repo=self.repo, author=self.member_commit_author)
-
         response = self.get_success_response(self.organization.slug, query="c@example.com")
 
         assert response.data[0]["integration"] == "github"
