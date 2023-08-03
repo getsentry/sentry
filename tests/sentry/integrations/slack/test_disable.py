@@ -1,4 +1,5 @@
 import time
+from collections import namedtuple
 from datetime import datetime, timedelta
 
 import pytest
@@ -19,6 +20,18 @@ from sentry.utils import json
 
 control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"
+
+
+def raiseStatusFalse():
+    return False
+
+
+MockResponse = namedtuple(
+    "MockResponse",
+    ["headers", "content", "text", "ok", "status_code", "raise_for_status", "request"],
+)
+
+MockResponseInstance = MockResponse({}, {}, "", True, 200, raiseStatusFalse, None)
 
 
 @override_settings(
@@ -152,8 +165,8 @@ class SlackClientDisable(TestCase):
         now = datetime.now() - timedelta(hours=1)
         for i in reversed(range(10)):
             with freeze_time(now - timedelta(days=i)):
-                buffer._add("error")
-                buffer._add("success")
+                buffer.record_exception_error()
+                buffer.record_success(MockResponseInstance)
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         assert buffer.is_integration_broken() is False
@@ -178,7 +191,7 @@ class SlackClientDisable(TestCase):
         now = datetime.now() - timedelta(hours=1)
         for i in reversed(range(10)):
             with freeze_time(now - timedelta(days=i)):
-                buffer._add("error")
+                buffer.record_exception_error()
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         assert buffer.is_integration_broken() is True
@@ -202,13 +215,13 @@ class SlackClientDisable(TestCase):
         now = datetime.now() - timedelta(hours=1)
         for i in reversed(range(30)):
             with freeze_time(now - timedelta(days=i)):
-                buffer._add("error")
+                buffer.record_exception_error()
 
         buffer_expired = IntegrationRequestBuffer(client._get_redis_key(), 1)
         with freeze_time(now - timedelta(days=30)):
-            buffer_expired._add("error")
+            buffer_expired.record_exception_error()
         with freeze_time(now - timedelta(days=31)):
-            buffer_expired._add("error")
+            buffer_expired.record_exception_error()
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         time.sleep(1)
