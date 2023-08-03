@@ -265,6 +265,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             serialize(
                 member,
                 request.user,
+                OrganizationMemberWithRolesSerializer(
+                    allowed_roles=allowed_roles,
+                ),
             )
         )
 
