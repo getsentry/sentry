@@ -46,7 +46,7 @@ def check_broken(sentryapp: SentryApp, org_id: str):
         org = Organization.objects.get(id=org_id)
         if features.has("organizations:disable-sentryapps-on-broken", org):
             sentryapp._disable()
-            notify_disable(org, sentryapp.name, redis_key)
+            notify_disable(org, sentryapp.slug, redis_key)
 
 
 def record_timeout(sentryapp: SentryApp, org_id: str, e: Union[ConnectionError, Timeout]):
