@@ -558,8 +558,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 warning_extra,
                 event_id,
                 detailed,
-                organization,
-                request,
+                tracing_without_performance_enabled,
             )
         )
 
@@ -623,8 +622,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         warning_extra: Dict[str, str],
         event_id: Optional[str],
         detailed: bool = False,
-        organization: Organization = None,
-        request: HttpRequest = None,
+        allow_orphan_errors: bool = False,
     ) -> Sequence[LightResponse]:
         """Because the light endpoint could potentially have gaps between root and event we return a flattened list"""
         if event_id is None:
@@ -747,8 +745,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         warning_extra: Dict[str, str],
         event_id: Optional[str],
         detailed: bool = False,
-        organization: Organization = None,
-        request: HttpRequest = None,
+        allow_orphan_errors: bool = False,
     ) -> Sequence[FullResponse]:
         """For the full event trace, we return the results as a graph instead of a flattened list
 
@@ -877,12 +874,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         # We are now left with orphan errors in the error_map,
         # that we need to serialize and return with our results.
         orphan_errors: List[TraceError] = []
-        tracing_without_performance_enabled = features.has(
-            "organizations:performance-tracing-without-performance",
-            organization,
-            actor=request.user,
-        )
-        if tracing_without_performance_enabled and iteration <= MAX_TRACE_SIZE:
+        if allow_orphan_errors and iteration <= MAX_TRACE_SIZE:
             for errors in error_map.values():
                 for error in errors:
                     orphan_errors.append(self.serialize_error(error))
