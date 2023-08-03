@@ -119,8 +119,6 @@ type FieldFormatters = {
 
 export type FieldTypes = keyof FieldFormatters;
 
-const DEFAULT_RATE_SIG_DIGITS = 3;
-
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
 `;
@@ -236,12 +234,12 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data, baggage) => {
       const {unit} = baggage ?? {};
-      const renderedUnit = unit ? RATE_UNIT_LABELS[unit] : '';
-      const formattedNumber = `${formatAbbreviatedNumber(
-        data[field],
-        DEFAULT_RATE_SIG_DIGITS
-      )}${renderedUnit}`;
-      return <NumberContainer>{formattedNumber}</NumberContainer>;
+
+      return (
+        <NumberContainer>
+          {`${formatAbbreviatedNumber(data[field])}${unit ? RATE_UNIT_LABELS[unit] : ''}`}
+        </NumberContainer>
+      );
     },
   },
   integer: {

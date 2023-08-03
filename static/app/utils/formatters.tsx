@@ -286,16 +286,7 @@ const numberFormats = [
   [1000, 'k'],
 ] as const;
 
-/**
- * Formats a number to a string with a suffix
- *
- * @param number the number to format
- * @param precision the number of significant digits to include
- */
-export function formatAbbreviatedNumber(
-  number: number | string,
-  precision?: number
-): string {
+export function formatAbbreviatedNumber(number: number | string) {
   number = Number(number);
 
   let lookup: (typeof numberFormats)[number];
@@ -310,19 +301,12 @@ export function formatAbbreviatedNumber(
       continue;
     }
 
-    const formattedNumber =
-      shortValue / 10 > 1 || !fitsBound
-        ? precision === undefined
-          ? shortValue
-          : parseFloat(shortValue.toPrecision(precision)).toString()
-        : formatFloat(number / suffixNum, precision || 1).toLocaleString(undefined, {
-            maximumSignificantDigits: precision,
-          });
-
-    return `${formattedNumber}${suffix}`;
+    return shortValue / 10 > 1 || !fitsBound
+      ? `${shortValue}${suffix}`
+      : `${formatFloat(number / suffixNum, 1)}${suffix}`;
   }
 
-  return number.toLocaleString(undefined, {maximumSignificantDigits: precision});
+  return number.toLocaleString();
 }
 
 export function formatRate(value: number, unit: RateUnits = RateUnits.PER_SECOND) {
