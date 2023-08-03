@@ -160,30 +160,6 @@ QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 Variables = Dict[str, Any]
 
 
-# # TODO: implement definition of filters as a proper expression tree and use the field directly with the entity encoding,
-# #  since we know that at compile time.
-# # Derived metrics to their components.
-# _DERIVED_METRIC_TO_COMPONENTS: Dict[str, List[DerivedMetricComponent]] = {
-#     "failure_rate()": [
-#         DerivedMetricComponent(metric_type="c", conditions=),
-#         DerivedMetricComponent(metric_type="c"),
-#     ],
-#     # "apdex()": [
-#     #     # TODO: in some cases we want to extract LCP and in some DURATION, we need to implement logic to check this.
-#     #     DerivedMetricComponent(
-#     #         field="count(transaction.duration)", query="transaction.duration:<=T"
-#     #     ),  # satisfactory
-#     #     DerivedMetricComponent(
-#     #         field="count(transaction.duration)",
-#     #         query="transaction.duration:>T AND transaction.duration:<=4T",
-#     #     ),  # tolerable
-#     #     DerivedMetricComponent(
-#     #         field="count(transaction.duration)", query="transaction.duration:>4T"
-#     #     ),  # frustrated
-#     # ],
-# }
-
-
 class ComparingRuleCondition(TypedDict):
     """RuleCondition that compares a named field to a reference value."""
 
@@ -364,14 +340,30 @@ class DerivedMetricParams(NamedTuple):
     def empty():
         return DerivedMetricParams({})
 
-    def get_param(self, consumer: str, param_name: str):
-        param = self.params.get(param_name)
-        if param is None:
+    def consume(self, consumer: str) -> "ParamsConsumer":
+        return ParamsConsumer(consumer=consumer, params=self)
+
+
+class ParamsConsumer:
+    def __init__(self, consumer: str, params: DerivedMetricParams):
+        self.consumer = consumer
+        self.params = params
+
+        self._fetched_params: List[Any] = []
+
+    def param(self, param_name: str) -> "ParamsConsumer":
+        param_value = self.params.params.get(param_name)
+        if param_value is None:
             raise Exception(
-                f"Derived metric {consumer} requires parameter {param_name} but it was not supplied"
+                f"Derived metric {self.consumer} requires parameter '{param_name}' but it was not supplied"
             )
 
-        return param
+        self._fetched_params.append(param_value)
+
+        return self
+
+    def get_all(self) -> List[Any]:
+        return self._fetched_params
 
 
 class DerivedMetricComponent(NamedTuple):
@@ -382,7 +374,7 @@ class DerivedMetricComponent(NamedTuple):
 
 class DerivedMetric(ABC):
     @abstractmethod
-    def get_derived_metric_name(self) -> str:
+    def get_name(self) -> str:
         pass
 
     @abstractmethod
@@ -395,42 +387,8 @@ class DerivedMetric(ABC):
 
 
 class FailureRate(DerivedMetric):
-    def get_derived_metric_name(self) -> str:
+    def get_name(self) -> str:
         return "failure_rate()"
-
-    # TODO: instead of having components as filters, just use a single json and map the conditions to a tag key and
-    #  tag value.
-    # E.g.:
-    #  failure: true -> conditions
-    #  failure: false -> conditions
-
-    """
-    def test_failure_rate():
-    alert = create_alert("transaction.duration:>=1000", "failure_rate()")
-    specs = extraction._get_metric_specs([alert])
-
-    assert specs[0] == {
-        "category": "transaction",
-        "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-        "field": None,
-        "mri": "c:transactions/on_demand@none",
-        "tags": [
-            {"key": "query_hash", "value": ANY},
-            {
-                "key": "failure",
-                "value": "true",
-                "condition": {
-                    "op": "not",
-                    "inner": {
-                        "op": "eq",
-                        "name": "event.status",
-                        "value": ["ok", "cancelled", "unknown"],
-                    },
-                },
-            },
-        ],
-    }
-    """
 
     def get_components(self) -> List[DerivedMetricComponent]:
         return [
@@ -463,7 +421,7 @@ class FailureRate(DerivedMetric):
 
 
 class Apdex(DerivedMetric):
-    def get_derived_metric_name(self) -> str:
+    def get_name(self) -> str:
         return "apdex()"
 
     def get_components(self) -> List[DerivedMetricComponent]:
@@ -476,7 +434,7 @@ class Apdex(DerivedMetric):
                     SearchFilter(
                         key=SearchKey(name="transaction.duration"),
                         operator="<=",
-                        value=SearchValue(variable_name="t1"),
+                        value=SearchValue(variable_name="apdex_threshold_1"),
                     )
                 ],
             ),
@@ -488,13 +446,13 @@ class Apdex(DerivedMetric):
                     SearchFilter(
                         key=SearchKey(name="transaction.duration"),
                         operator=">",
-                        value=SearchValue(variable_name="t1"),
+                        value=SearchValue(variable_name="apdex_threshold_1"),
                     ),
                     "AND",
                     SearchFilter(
                         key=SearchKey(name="transaction.duration"),
                         operator="<=",
-                        value=SearchValue(variable_name="t2"),
+                        value=SearchValue(variable_name="apdex_threshold_2"),
                     ),
                 ],
             ),
@@ -506,23 +464,32 @@ class Apdex(DerivedMetric):
                     SearchFilter(
                         key=SearchKey(name="transaction.duration"),
                         operator=">",
-                        value=SearchValue(variable_name="t2"),
+                        value=SearchValue(variable_name="apdex_threshold_2"),
                     )
                 ],
             ),
         ]
 
     def get_variables(self, derived_metric_params: DerivedMetricParams) -> Variables:
-        t1 = derived_metric_params.get_param(self.get_derived_metric_name(), "t")
-        t2 = 4 * t1
+        apdex_threshold, field_to_extract = (
+            derived_metric_params.consume(consumer=self.get_name())
+            .param("apdex_threshold")
+            .param("field_to_extract")
+            .get_all()
+        )
+        # Instead of supporting expressions in the parser, we can just create here all variants.
+        t2 = 4 * apdex_threshold
 
-        return {"t1": t1, "t2": t2}
+        return {
+            "apdex_threshold_1": apdex_threshold,
+            "apdex_threshold_2": t2,
+            "field_to_extract": field_to_extract,
+        }
 
 
 # Dynamic mapping between derived metric field name and derived metric definition.
 _DERIVED_METRICS: Dict[str, DerivedMetric] = {
-    derived_metric.get_derived_metric_name(): derived_metric
-    for derived_metric in [FailureRate(), Apdex()]
+    derived_metric.get_name(): derived_metric for derived_metric in [FailureRate(), Apdex()]
 }
 
 
@@ -873,11 +840,12 @@ class SearchQueryConverter:
             raise ValueError(f"Unsupported operator {token.operator}")
 
         # We propagate the filter in order to give as output a better error message with more context.
+        key: str = self._eval_search_key(token, token.key)
         value: Any = self._eval_search_value(token, token.value)
         if operator == "eq" and token.value.is_wildcard():
             condition: RuleCondition = {
                 "op": "glob",
-                "name": _map_field_name(token.key.name),
+                "name": _map_field_name(key),
                 "value": [value],
             }
         else:
@@ -891,7 +859,7 @@ class SearchQueryConverter:
 
             condition = {
                 "op": operator,
-                "name": _map_field_name(token.key.name),
+                "name": _map_field_name(key),
                 "value": value,
             }
 
@@ -901,15 +869,30 @@ class SearchQueryConverter:
 
         return condition
 
-    def _eval_search_value(
-        self, search_filter: SearchFilter, search_value: SearchValue
-    ) -> Optional[Any]:
+    def _eval_search_key(
+        self,
+        search_filter: SearchFilter,
+        search_key: SearchKey,
+    ) -> str:
+        if search_key.variable_name is not None:
+            variable_name = search_key.variable_name
+            variable_value = self._variables.get(variable_name)
+            if variable_value is None:
+                raise Exception(
+                    f"Variable {variable_name} used in search key of {search_filter} has no value set"
+                )
+
+            return variable_value
+        else:
+            return search_key.name
+
+    def _eval_search_value(self, search_filter: SearchFilter, search_value: SearchValue) -> Any:
         if search_value.variable_name is not None:
             variable_name = search_value.variable_name
             variable_value = self._variables.get(variable_name)
             if variable_value is None:
                 raise Exception(
-                    f"Variable {variable_name} used in {search_filter} has no value set"
+                    f"Variable {variable_name} used in search value of {search_filter} has no value set"
                 )
 
             return variable_value

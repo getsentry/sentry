@@ -98,12 +98,14 @@ def convert_query_to_metric(snuba_query: SnubaQuery) -> Optional[HashedMetricSpe
         if not is_on_demand_snuba_query(snuba_query):
             return None
 
+        field = snuba_query.aggregate
+        query = snuba_query.query
+
         builder = OndemandMetricSpecBuilder.default()
         on_demand_spec = builder.build_spec(
-            field=snuba_query.aggregate,
-            query=snuba_query.query,
-            # TODO: use the actual parameter here, but only if the apdex is set.
-            derived_metric_params=DerivedMetricParams({"t": 10}),
+            field=field,
+            query=query,
+            derived_metric_params=_get_derived_metric_params(field=field),
         )
 
         return HashedMetricSpec(
@@ -112,6 +114,16 @@ def convert_query_to_metric(snuba_query: SnubaQuery) -> Optional[HashedMetricSpe
     except Exception as e:
         logger.error(e, exc_info=True)
         return None
+
+
+def _get_derived_metric_params(field: str) -> DerivedMetricParams:
+    if field == "apdex()":
+        # TODO: here we have to fetch the actual apdex param via ProjectTransactionThreshold.
+        return DerivedMetricParams(
+            {"apdex_threshold": 10, "field_to_extract": "transaction.duration"}
+        )
+
+    return DerivedMetricParams.empty()
 
 
 # CONDITIONAL TAGGING

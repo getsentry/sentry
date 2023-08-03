@@ -326,7 +326,9 @@ class ParenExpression(namedtuple("ParenExpression", "children")):
 
 
 class SearchKey(NamedTuple):
-    name: str
+    name: str = ""
+    # Used to enable variable substitution in the on demand metrics extraction.
+    variable_name: PythonOptional[str] = None
 
     @property
     def is_tag(self) -> bool:
@@ -348,6 +350,7 @@ class SearchKey(NamedTuple):
 
 class SearchValue(NamedTuple):
     raw_value: Union[str, int, datetime, Sequence[int], Sequence[str]] = ""
+    # Used to enable variable substitution in the on demand metrics extraction.
     variable_name: PythonOptional[str] = None
 
     @property

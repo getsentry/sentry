@@ -252,7 +252,11 @@ def test_spec_failure_rate(on_demand_spec_builder):
 def test_spec_apdex(on_demand_spec_builder):
     t = 10
     spec = on_demand_spec_builder.build_spec(
-        field="apdex()", query="release:a", derived_metric_params=DerivedMetricParams({"t": t})
+        field="apdex()",
+        query="release:a",
+        derived_metric_params=DerivedMetricParams(
+            {"apdex_threshold": t, "field_to_extract": "transaction.duration"}
+        ),
     )
 
     assert spec.condition == {"name": "event.release", "op": "eq", "value": "a"}
