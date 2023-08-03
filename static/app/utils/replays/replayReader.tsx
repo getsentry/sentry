@@ -20,7 +20,6 @@ import type {
   BreadcrumbFrame,
   ErrorFrame,
   MemoryFrame,
-  MultiClickFrame,
   OptionFrame,
   RecordingFrame,
   SlowClickFrame,
@@ -189,19 +188,19 @@ export default class ReplayReader {
     )
   );
 
-  getDOMFrames = memoize(() =>
-    [
-      ...this._sortedBreadcrumbFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
-      ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
-    ].filter(
-      frame =>
-        !(
-          ((frame as SlowClickFrame).category === 'ui.slowClickDetected' &&
-            !isDeadClick(frame as SlowClickFrame)) ||
-          (frame as MultiClickFrame).category === 'ui.multiClick'
-        )
-    )
-  );
+  getDOMFrames = memoize(() => [
+    ...this._sortedBreadcrumbFrames
+      .filter(frame => 'nodeId' in (frame.data ?? {}))
+      .filter(
+        frame =>
+          !(
+            (frame.category === 'ui.slowClickDetected' &&
+              !isDeadClick(frame as SlowClickFrame)) ||
+            frame.category === 'ui.multiClick'
+          )
+      ),
+    ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
+  ]);
 
   getDomNodes = memoize(() =>
     extractDomNodes({
