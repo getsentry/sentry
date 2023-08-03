@@ -9,7 +9,7 @@ from sentry.tasks.base import instrumented_task, retry
     queue="integrations",
     default_retry_delay=20,
     max_retries=5,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CONTROL,
 )
 @retry(on=(IntegrationError,), exclude=(Integration.DoesNotExist,))
 def sync_metadata(integration_id: int) -> None:
