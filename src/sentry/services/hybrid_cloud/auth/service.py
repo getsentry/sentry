@@ -84,9 +84,7 @@ class AuthService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def token_has_org_access(
-        self, *, token: AuthenticatedToken, organization_id: int, allow_unlinked: bool
-    ) -> bool:
+    def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
         pass
 
     @rpc_method
