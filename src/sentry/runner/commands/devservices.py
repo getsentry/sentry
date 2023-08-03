@@ -179,6 +179,9 @@ def attach(project: str, service: str) -> None:
             always_start=True,
         )
 
+        if container is None:
+            raise click.ClickException(f"No containers found for service `{service}`.")
+
         def exit_handler(*_: Any) -> None:
             try:
                 click.echo(f"Stopping {service}")
@@ -327,7 +330,7 @@ def _start_service(
     name: str,
     containers: dict[str, Any],
     project: str,
-    always_start: Literal[True] = ...,
+    always_start: Literal[False] = ...,
     recreate: bool = False,
 ) -> docker.models.containers.Container:
     ...
