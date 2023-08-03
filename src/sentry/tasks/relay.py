@@ -14,6 +14,7 @@ from sentry.utils.sdk import set_current_event_project
 logger = logging.getLogger(__name__)
 
 
+# TODO(hybrid-cloud): Add silo_mode for region once testing is adjusted
 # The time_limit here should match the `debounce_ttl` of the projectconfig_debounce_cache
 # service.
 @instrumented_task(
@@ -22,7 +23,6 @@ logger = logging.getLogger(__name__)
     soft_time_limit=5,
     time_limit=10,  # Extra 5 seconds to remove the debounce key.
     expires=30,  # Relay stops waiting for this anyway.
-    silo_mode=SiloMode.REGION,
 )
 def build_project_config(public_key=None, **kwargs):
     """Build a project config and put it in the Redis cache.
