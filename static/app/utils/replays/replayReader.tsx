@@ -188,20 +188,22 @@ export default class ReplayReader {
     )
   );
 
-  getDOMFrames = memoize(() => [
-    ...this._sortedBreadcrumbFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
-    ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
-  ]);
+  getDOMFrames = memoize(() =>
+    [
+      ...this._sortedBreadcrumbFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
+      ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
+    ].filter(
+      frame =>
+        !(
+          (frame as SlowClickFrame).category === 'ui.slowClickDetected' &&
+          !isDeadClick(frame as SlowClickFrame)
+        )
+    )
+  );
 
   getDomNodes = memoize(() =>
     extractDomNodes({
-      frames: this.getDOMFrames().filter(
-        frame =>
-          !(
-            (frame as SlowClickFrame).category === 'ui.slowClickDetected' &&
-            !isDeadClick(frame as SlowClickFrame)
-          )
-      ),
+      frames: this.getDOMFrames(),
       rrwebEvents: this.getRRWebFrames(),
       finishedAt: this._replayRecord.finished_at,
     })
