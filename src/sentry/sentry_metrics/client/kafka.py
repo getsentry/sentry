@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Optional, Sequence, Union
 
 import sentry_kafka_schemas
 from arroyo import Topic
@@ -11,7 +11,7 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry import quotas
-from sentry.sentry_metrics.base import GenericMetricsBackend
+from sentry.sentry_metrics.client.base import GenericMetricsBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options
@@ -67,7 +67,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         project_id: int,
         metric_name: str,
         value: Union[int, float],
-        tags: Mapping[str, str],
+        tags: Dict[str, str],
         unit: Optional[str],
     ) -> None:
 
@@ -98,7 +98,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         project_id: int,
         metric_name: str,
         value: Sequence[int],
-        tags: Mapping[str, str],
+        tags: Dict[str, str],
         unit: Optional[str],
     ) -> None:
 
@@ -129,7 +129,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         project_id: int,
         metric_name: str,
         value: Sequence[Union[int, float]],
-        tags: Mapping[str, str],
+        tags: Dict[str, str],
         unit: Optional[str],
     ) -> None:
 
@@ -152,7 +152,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
 
         self.__produce(dist_metric, use_case_id)
 
-    def __produce(self, metric: Mapping[str, Any], use_case_id: UseCaseID):
+    def __produce(self, metric: Dict[str, Any], use_case_id: UseCaseID):
         ingest_codec.validate(metric)
         payload = KafkaPayload(
             None,
@@ -163,9 +163,8 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         )
         self.producer.produce(self.kafka_topic, payload)
 
-    def close(self):
+    def close(self) -> None:
         """
-        Calling this is required once we are done emitting metrics
-        using the current instance of the KafkaMetricsBackend.
+        Calling this is not required and is mostly for usage in tests
         """
         self.producer.close()
