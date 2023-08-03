@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -44,9 +45,20 @@ class OrganizationMissingMembersTestCase(APITestCase):
         self.create_commit(repo=self.repo, author=self.nonmember_commit_author1)
         self.create_commit(repo=self.repo, author=self.nonmember_commit_author2)
 
+        not_common_domain_author = self.create_commit_author(
+            project=self.project, email="a@exampletwo.com"
+        )
+        not_common_domain_author.external_id = "not"
+        not_common_domain_author.save()
+        self.create_commit(repo=self.repo, author=not_common_domain_author)
+
         self.login_as(self.user)
 
     def test_simple__common_domain(self):
+        OrganizationMember.objects.filter(
+            organization_id=self.organization.id, role="owner"
+        ).update(user_email="owner@example.com")
+
         response = self.get_success_response(self.organization.slug)
         assert response.data[0]["integration"] == "github"
         assert response.data[0]["users"] == [
@@ -95,15 +107,15 @@ class OrganizationMissingMembersTestCase(APITestCase):
         assert response.data[0]["users"] == []
 
     def test_not_common_domain(self):
+        user = self.create_user(email="owner@exampletwo.com")
         self.create_member(
-            organization=self.organization, user=self.create_user(email="owner@exampletwo.com")
+            organization=self.organization,
+            user=user,
+            role="owner",
         )
-        not_common_domain_author = self.create_commit_author(
-            project=self.project, email="a@exampletwo.com"
-        )
-        not_common_domain_author.external_id = "not"
-        not_common_domain_author.save()
-        self.create_commit(repo=self.repo, author=not_common_domain_author)
+        OrganizationMember.objects.filter(
+            organization_id=self.organization.id, role="owner", user_id=user.id
+        ).update(user_email="owner@exampletwo.com")
 
         response = self.get_success_response(self.organization.slug)
 

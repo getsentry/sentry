@@ -1,5 +1,4 @@
 from datetime import timedelta
-from email.headerregistry import Address
 
 from django.db.models import Count, Q, QuerySet
 from django.utils import timezone
@@ -62,8 +61,7 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
         )
 
     def _get_domain_from_email(self, email: str) -> str:
-        domain = Address(email).domain
-        return domain
+        return email.split("@")[1]
 
     def get(self, request: Request, organization) -> Response:
         queryset = self._get_missing_members(organization)
@@ -76,15 +74,12 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
         prev_domain = self._get_domain_from_email(org_owners[0].user_email)
         common_domain = True
         for org_owner in org_owners:
-            if (
-                prev_domain is not None
-                and self._get_domain_from_email(org_owner.user_email) != prev_domain
-            ):
+            if prev_domain and self._get_domain_from_email(org_owner.user_email) != prev_domain:
                 common_domain = False
                 break
 
-        if common_domain:
-            queryset.filter(email__endswith=prev_domain)
+        if common_domain and prev_domain:
+            queryset = queryset.filter(email__endswith=prev_domain)
 
         query = request.GET.get("query")
         if query:
