@@ -64,26 +64,21 @@ class TestIsOnDemandMetricQuery:
         assert is_on_demand_metric_query(self.perf_metrics, "count()", "") is False
         assert is_on_demand_metric_query(self.perf_metrics, "count()", "environment:dev") is False
         assert (
-                is_on_demand_metric_query(
-                    self.perf_metrics, "count()", "release:initial OR os.name:android"
-                )
-                is False
+            is_on_demand_metric_query(
+                self.perf_metrics, "count()", "release:initial OR os.name:android"
+            )
+            is False
         )
         assert (
-                is_on_demand_metric_query(
-                    self.perf_metrics,
-                    "count()",
-                    "(http.method:POST OR http.status_code:404) browser.name:chrome",
-                )
-                is False
+            is_on_demand_metric_query(
+                self.perf_metrics,
+                "count()",
+                "(http.method:POST OR http.status_code:404) browser.name:chrome",
+            )
+            is False
         )
         assert is_on_demand_metric_query(self.perf_metrics, "foo.bar", "") is False
-        assert (
-                is_on_demand_metric_query(
-                    self.perf_metrics, "count()", "foo.bar"
-                )
-                is False
-        )
+        assert is_on_demand_metric_query(self.perf_metrics, "count()", "foo.bar") is False
 
     def test_countif(self):
         assert (
