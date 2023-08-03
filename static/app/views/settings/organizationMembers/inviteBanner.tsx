@@ -55,35 +55,7 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
     </MemberCard>
   ));
 
-  cards?.push(
-    <MemberCard key="see-more" data-test-id="see-more-card">
-      <MemberCardContent>
-        <MemberCardContentRow>
-          <SeeMore>
-            {tct('See all [missingMembersCount] missing members', {
-              missingMembersCount: missingMembers?.users.length,
-            })}
-          </SeeMore>
-        </MemberCardContentRow>
-        <Subtitle>
-          {tct('Accounting for [totalCommits] recent commits', {
-            totalCommits: missingMembers?.users.reduce(
-              (acc, curr) => acc + curr.commitCount,
-              0
-            ),
-          })}
-        </Subtitle>
-      </MemberCardContent>
-      <Button
-        size="sm"
-        priority="primary"
-        // TODO(cathy): open up invite modal
-        data-test-id="view-all-missing-members"
-      >
-        {t('View All')}
-      </Button>
-    </MemberCard>
-  );
+  cards?.push(<SeeMoreCard missingUsers={missingMembers?.users} />);
 
   return (
     <StyledCard data-test-id="invite-banner">
@@ -116,6 +88,39 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
 }
 
 export default withOrganization(InviteBanner);
+
+type SeeMoreCardProps = {
+  missingUsers: MissingMember[];
+};
+
+function SeeMoreCard({missingUsers}: SeeMoreCardProps) {
+  return (
+    <MemberCard key="see-more" data-test-id="see-more-card">
+      <MemberCardContent>
+        <MemberCardContentRow>
+          <SeeMore>
+            {tct('See all [missingMembersCount] missing members', {
+              missingMembersCount: missingUsers.length,
+            })}
+          </SeeMore>
+        </MemberCardContentRow>
+        <Subtitle>
+          {tct('Accounting for [totalCommits] recent commits', {
+            totalCommits: missingUsers.reduce((acc, curr) => acc + curr.commitCount, 0),
+          })}
+        </Subtitle>
+      </MemberCardContent>
+      <Button
+        size="sm"
+        priority="primary"
+        // TODO(cathy): open up invite modal
+        data-test-id="view-all-missing-members"
+      >
+        {t('View All')}
+      </Button>
+    </MemberCard>
+  );
+}
 
 const StyledCard = styled(Card)`
   padding: ${space(2)};
@@ -164,11 +169,13 @@ const MemberCard = styled(Card)`
   flex-direction: row;
   align-items: center;
   margin: ${space(1)} ${space(0.5)} 0 0;
-  min-width: 330px;
-  justify-content: space-between;
+  min-width: 30%;
+  justify-content: center;
+  flex-wrap: wrap;
 `;
 
 const MemberCardsContainer = styled('div')`
+  position: relative;
   display: flex;
   overflow-x: scroll;
 `;
@@ -177,6 +184,7 @@ const MemberCardContent = styled('div')`
   display: flex;
   flex-direction: column;
   width: 75%;
+  flex: 1 1;
 `;
 
 const MemberCardContentRow = styled('div')`

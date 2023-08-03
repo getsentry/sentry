@@ -173,11 +173,13 @@ export interface TeamMember extends Member {
 }
 
 /**
- * Missing org members detected through commit authors
+ * Users that exist in CommitAuthors but are not members of the organization.
+ * These users commit to repos installed for the organization.
  */
 export interface MissingMember {
   commitCount: number;
   email: string;
+  // The user's ID in the repository provider (e.g. Github username)
   userId: string;
 }
 
