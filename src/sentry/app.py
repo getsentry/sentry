@@ -11,6 +11,10 @@ class State(local):
     request_stack: List[HttpRequest] | None = None
     data: dict[str, Any] = {}
 
+    def clear(self) -> None:
+        self.request = None
+        self.request_stack = None
+
 
 env = State()
 
