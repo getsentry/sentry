@@ -2161,7 +2161,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query_hash_index = indexer.resolve(UseCaseID.TRANSACTIONS, None, QUERY_HASH_KEY)
 
         query_hash_clause = Condition(
-            lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="5573b91f"
+            lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="3b902501"
         )
 
         assert query_hash_clause in snql_query.where

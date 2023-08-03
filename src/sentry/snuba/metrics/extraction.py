@@ -403,9 +403,8 @@ class OndemandMetricSpec:
 
     def query_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
-
-        # TODO: Figure out how to support multiple fields and different but equivalent queries
-        str_to_hash = f"{self.field};{self._field_condition};{self._query}"
+        sorted_conditions = str(_deep_sorted(self.condition()))
+        str_to_hash = f"{self.field};{sorted_conditions}"
         return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
 
     def condition(self) -> RuleCondition:
@@ -584,3 +583,10 @@ class SearchQueryConverter:
             condition = {"op": "not", "inner": condition}
 
         return condition
+
+
+def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:
+    if isinstance(value, dict):
+        return {key: _deep_sorted(value) for key, value in sorted(value.items())}
+    else:
+        return value
