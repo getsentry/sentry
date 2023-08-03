@@ -36,7 +36,7 @@ class IntegrationRequestBuffer:
         self.client = redis.redis_clusters.get(cluster_id)
         self.integration_key = key
         self.key_expiration_seconds = expiration_seconds
-        self.counts = (
+        self.count_prefixes = (
             ["success", "error", "timeout"]
             if "sentry-app" in key
             else ["success", "error", "fatal"]
@@ -96,7 +96,7 @@ class IntegrationRequestBuffer:
         return True
 
     def _add(self, count: str):
-        if count not in self.counts:
+        if count not in self.count_prefixes:
             raise Exception("Requires a valid key param.")
 
         now = datetime.now().strftime("%Y-%m-%d")

@@ -809,9 +809,7 @@ class TestWebhookRequests(TestCase):
         assert requests_count == 1
         assert (self.integration_buffer._get_all_from_buffer()[0]["timeout_count"]) == "1"
         assert self.integration_buffer.is_integration_broken() is False
-        self.sentry_app = SentryApp.objects.get(
-            id=self.sentry_app.id
-        )  # reload to get updated events
+        self.sentry_app.refresh_from_db()  # reload to get updated events
         assert (
             len(self.sentry_app.events) == events
         )  # check that events are not changed / app is not disabled
