@@ -259,7 +259,7 @@ def test_spec_failure_rate(on_demand_spec_builder):
 
     assert spec.metric_type == "e"
     assert spec.field is None
-    assert spec.op == "failure_rate"
+    assert spec.op == "on_demand_failure_rate"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
     assert spec.tags_conditions == [
         {

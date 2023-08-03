@@ -565,18 +565,22 @@ class OndemandMetricSpecBuilder:
         op = self._get_op(parsed_field.function)
         metric_type = self._get_metric_type(parsed_field.function)
 
-        # We only support a field for sets and distributions metrics that are NOT derived.
-        if metric_type != "c":
-            assert len(parsed_field.arguments) == 1, "Only one parameter is supported"
-            argument = parsed_field.arguments[0]
+        return op, metric_type, self._parse_argument(op, metric_type, parsed_field)
 
-            # We want to map the field for any operation different from apdex.
-            if op != "on_demand_apdex":
-                argument = _map_field_name(argument)
+    def _parse_argument(
+        self, op: MetricOperationType, metric_type: str, parsed_field: FieldParsingResult
+    ) -> Optional[str]:
+        requires_single_argument = metric_type != "c" and op != "on_demand_failure_rate"
+        if not requires_single_argument:
+            return None
 
-            return op, metric_type, argument
+        assert len(parsed_field.arguments) == 1, "Only one parameter is supported"
 
-        return op, metric_type, None
+        argument = parsed_field.arguments[0]
+        if op == "on_demand_apdex":
+            return argument
+
+        return _map_field_name(argument)
 
     def _process_query(self, field: str, query: str) -> RuleCondition:
         parsed_field = self._field_parser.parse(field)
