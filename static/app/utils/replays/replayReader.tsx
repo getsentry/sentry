@@ -195,7 +195,13 @@ export default class ReplayReader {
 
   getDomNodes = memoize(() =>
     extractDomNodes({
-      frames: this.getDOMFrames(),
+      frames: this.getDOMFrames().filter(
+        frame =>
+          !(
+            (frame as SlowClickFrame).category === 'ui.slowClickDetected' &&
+            !isDeadClick(frame as SlowClickFrame)
+          )
+      ),
       rrwebEvents: this.getRRWebFrames(),
       finishedAt: this._replayRecord.finished_at,
     })
