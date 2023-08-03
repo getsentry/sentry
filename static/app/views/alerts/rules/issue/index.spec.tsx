@@ -223,7 +223,7 @@ describe('IssueRuleEditor', function () {
       await userEvent.click(screen.getByLabelText('Delete Rule'));
 
       expect(
-        await screen.findByText('Are you sure you want to delete this rule?')
+        await screen.findByText(/Are you sure you want to delete My alert rule\?/)
       ).toBeInTheDocument();
       await userEvent.click(screen.getByTestId('confirm-button'));
 
