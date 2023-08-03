@@ -2,7 +2,12 @@ import {mat3, vec2, vec3} from 'gl-matrix';
 
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
-import {getContext, resizeCanvasToDisplaySize} from 'sentry/utils/profiling/gl/utils';
+import {
+  getContext,
+  lowerBound,
+  resizeCanvasToDisplaySize,
+  upperBound,
+} from 'sentry/utils/profiling/gl/utils';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
 function findYIntervals(
@@ -110,7 +115,20 @@ export class FlamegraphChartRenderer {
       const origin = vec3.fromValues(0, 0, 1);
       vec3.transformMat3(origin, origin, configViewToPhysicalSpace);
 
-      for (let j = 0; j < serie.points.length; j++) {
+      let start = lowerBound(configView.left, serie.points, a => a.x);
+      let end = upperBound(configView.right, serie.points, a => a.x);
+
+      // Bounds are inclusive, so we adjust start and end by 1. This ensures we
+      // draw the previous/next line that goes outside of bounds.
+      // If we dont do this, the chart looks like | -- | instead of |----|
+      if (start > 0) {
+        start = start - 1;
+      }
+      if (end < serie.points.length) {
+        end = end + 1;
+      }
+
+      for (let j = start; j < end; j++) {
         const point = serie.points[j];
 
         const r = vec3.fromValues(point.x, point.y, 1);

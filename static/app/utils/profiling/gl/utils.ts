@@ -254,7 +254,7 @@ function getContext(canvas: HTMLCanvasElement, context: string): RenderingContex
 // Exported separately as writing export function for each overload as
 // breaks the line width rules and makes it harder to read.
 export {getContext};
-
+export const ELLIPSIS = '\u2026';
 export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rect {
   if (!string) {
     return Rect.Empty();
@@ -279,9 +279,19 @@ export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rec
  * @param values {Array<T> | ReadonlyArray<T>}
  * @returns number
  */
-export function upperBound<T extends {end: number; start: number; x: number}>(
+export function upperBound<T extends {end: number; start: number}>(
   target: number,
-  values: Array<T> | ReadonlyArray<T> | Record<any, any>
+  values: Array<T> | ReadonlyArray<T>
+): number;
+export function upperBound<T>(
+  target: number,
+  values: Array<T> | ReadonlyArray<T>,
+  getValue: (value: T) => number
+): number;
+export function upperBound<T extends {end: number; start: number} | {x: number}>(
+  target: number,
+  values: Array<T> | ReadonlyArray<T> | Record<any, any>,
+  getValue?: (value: T) => number
 ) {
   let low = 0;
   let high = values.length;
@@ -291,13 +301,20 @@ export function upperBound<T extends {end: number; start: number; x: number}>(
   }
 
   if (high === 1) {
-    return values[0].start < target ? 1 : 0;
+    return getValue
+      ? getValue(values[0]) < target
+        ? 1
+        : 0
+      : values[0].start < target
+      ? 1
+      : 0;
   }
 
   while (low !== high) {
     const mid = low + Math.floor((high - low) / 2);
+    const value = getValue ? getValue(values[mid]) : values[mid].start;
 
-    if (values[mid].start < target) {
+    if (value < target) {
       low = mid + 1;
     } else {
       high = mid;
@@ -317,7 +334,17 @@ export function upperBound<T extends {end: number; start: number; x: number}>(
 export function lowerBound<T extends {end: number; start: number}>(
   target: number,
   values: Array<T> | ReadonlyArray<T>
-) {
+): number;
+export function lowerBound<T>(
+  target: number,
+  values: Array<T> | ReadonlyArray<T>,
+  getValue: (value: T) => number
+): number;
+export function lowerBound<T extends {end: number; start: number}>(
+  target: number,
+  values: Array<T> | ReadonlyArray<T>,
+  getValue?: (value: T) => number
+): number {
   let low = 0;
   let high = values.length;
 
@@ -326,13 +353,20 @@ export function lowerBound<T extends {end: number; start: number}>(
   }
 
   if (high === 1) {
-    return values[0].end < target ? 1 : 0;
+    return getValue
+      ? getValue(values[0]) < target
+        ? 1
+        : 0
+      : values[0].end < target
+      ? 1
+      : 0;
   }
 
   while (low !== high) {
     const mid = low + Math.floor((high - low) / 2);
+    const value = getValue ? getValue(values[mid]) : values[mid].end;
 
-    if (values[mid].end < target) {
+    if (value < target) {
       low = mid + 1;
     } else {
       high = mid;
@@ -375,7 +409,6 @@ export function formatColorForFrame(
   return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
 }
 
-export const ELLIPSIS = '\u2026';
 export interface TrimTextCenter {
   end: number;
   length: number;
