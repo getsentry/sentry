@@ -1432,12 +1432,12 @@ register(
 register(
     "statistical_detectors.enable.projects.performance",
     type=Sequence,
-    default=[],
+    default=[1],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "statistical_detectors.enable.projects.profiling",
     type=Sequence,
-    default=[],
+    default=[1],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
