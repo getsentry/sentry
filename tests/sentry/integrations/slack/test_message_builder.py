@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Mapping
 from unittest.mock import patch
 
@@ -18,14 +18,8 @@ from sentry.integrations.slack.message_builder.issues import (
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.models import Group, Team, User
-from sentry.replays.testutils import mock_replay
 from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.testutils.cases import (
-    PerformanceIssueTestCase,
-    ReplaysSnubaTestCase,
-    SnubaTestCase,
-    TestCase,
-)
+from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.dates import to_timestamp
@@ -256,11 +250,13 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
 
 
-class BuildGroupAttachmentReplaysTest(SnubaTestCase, ReplaysSnubaTestCase):
-    def test_build_replay_issue(self):
+class BuildGroupAttachmentReplaysTest(TestCase):
+    @patch("sentry.models.group.Group.has_replays")
+    def test_build_replay_issue(self, has_replays):
         replay1_id = "46eb3948be25448abd53fe36b5891ff2"
         self.project.flags.has_replays = True
         self.project.save()
+
         event = self.store_event(
             data={
                 "message": "Hello world",
@@ -269,14 +265,6 @@ class BuildGroupAttachmentReplaysTest(SnubaTestCase, ReplaysSnubaTestCase):
                 "timestamp": iso_format(before_now(minutes=1)),
             },
             project_id=self.project.id,
-        )
-
-        self.store_replays(
-            mock_replay(
-                datetime.now() - timedelta(minutes=60),
-                self.project.id,
-                replay1_id,
-            )
         )
 
         with self.feature(

@@ -622,6 +622,9 @@ class Group(Model):
                 teams=[],
             )
 
+        def _cache_key(issue_id):
+            return f"has_replays:{issue_id}"
+
         from sentry.replays.usecases.replay_counts import get_replay_counts
         from sentry.search.events.types import SnubaParams
 
@@ -633,8 +636,7 @@ class Group(Model):
             metrics.incr("group.has_replays.project_has_replays_false")
             return False
 
-        cached_has_replays = cache.get(f"has_replays:{self.id}")
-
+        cached_has_replays = cache.get(_cache_key(self.id))
         if cached_has_replays is not None:
             metrics.incr(
                 "group.has_replays_cached",
@@ -659,7 +661,7 @@ class Group(Model):
                 "has_replays": has_replays,
             },
         )
-        cache.set(f"has_replays:{self.id}", has_replays, 6000)
+        cache.set(_cache_key(self.id), has_replays, 300)
 
         return has_replays
 
