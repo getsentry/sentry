@@ -1189,8 +1189,11 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                 priority="danger"
                 confirmText={t('Delete Rule')}
                 onConfirm={this.handleDeleteRule}
-                header={t('Delete Rule')}
-                message={t('Are you sure you want to delete this rule?')}
+                header={<h5>{t('Delete Alert Rule?')}</h5>}
+                message={t(
+                  'Are you sure you want to delete "%s"? You won\'t be able to view the history of this alert once it\'s deleted.',
+                  rule.name
+                )}
               >
                 <Button priority="danger">{t('Delete Rule')}</Button>
               </Confirm>
