@@ -32,7 +32,7 @@ class ConsolePresenter(OptionsPresenter):
         self.unset_options: List[str] = []
         self.error_options: List[Tuple[str, str]] = []
         self.unregistered_options: List[str] = []
-        self.invalid_type_options: List[Tuple[str, str]] = []
+        self.invalid_type_options: List[Tuple[str, str, str]] = []
 
     def flush(self) -> None:
         import logging

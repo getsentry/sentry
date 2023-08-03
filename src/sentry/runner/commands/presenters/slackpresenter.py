@@ -25,7 +25,7 @@ class SlackPresenter(OptionsPresenter):
         self.unset_options: List[str] = []
         self.error_options: List[Tuple[str, str]] = []
         self.unregistered_options: List[str] = []
-        self.invalid_type_options: List[Tuple[str, str]] = []
+        self.invalid_type_options: List[Tuple[str, str, str]] = []
 
     @staticmethod
     def is_slack_enabled():
