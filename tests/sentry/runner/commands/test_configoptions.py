@@ -215,6 +215,7 @@ class ConfigOptionsTest(CliTestCase):
 
         assert SET_MSG % ("int_option", 50) in rv.output
         assert "Option invalid_type has invalid type." in rv.output
+        assert "Option inexistent_option is not registered." in rv.output
 
         assert not options.isset("readonly_option")
         assert not options.isset("invalid_type")
