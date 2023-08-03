@@ -984,8 +984,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             rule.id ? (
               <Confirm
                 disabled={formDisabled}
-                message={t('Are you sure you want to delete this alert rule?')}
-                header={t('Delete Alert Rule?')}
+                message={t(
+                  'Are you sure you want to delete "%s"? You won\'t be able to view the history of this alert once it\'s deleted.',
+                  rule.name
+                )}
+                header={<h5>{t('Delete Alert Rule?')}</h5>}
                 priority="danger"
                 confirmText={t('Delete Rule')}
                 onConfirm={this.handleDeleteRule}

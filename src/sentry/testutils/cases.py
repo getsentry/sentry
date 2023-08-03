@@ -1485,6 +1485,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
+        aggregation_option: Optional[AggregationOption] = None,
     ):
         # We subtract one second in order to account for right non-inclusivity in the query. If we wouldn't do this
         # some data won't be returned (this applies only if we use self.now() in the "end" bound of the query).
@@ -1514,6 +1515,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             ),
             value=value,
             use_case_id=use_case_id,
+            aggregation_option=aggregation_option,
         )
 
     @staticmethod
@@ -1559,6 +1561,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
+        aggregation_option: Optional[AggregationOption] = None,
     ):
         self._store_metric(
             type=type,
@@ -1572,6 +1575,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
             seconds_before_now=seconds_before_now,
+            aggregation_option=aggregation_option,
         )
 
     def store_release_health_metric(
