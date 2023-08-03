@@ -436,8 +436,7 @@ disabled. The options are:
 - `ie11`: Internet Explorer Version 11
 - `safari_pre_6`: Safari Version 5 and lower
 - `opera_pre_15`: Opera Version 14 and lower
-- `opera_mini_pre_8`: Opera Mini Version 8 and low
-er
+- `opera_mini_pre_8`: Opera Mini Version 8 and lower
 - `android_pre_4`: Android Version 3 and lower
 """,
     )

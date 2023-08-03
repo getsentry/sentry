@@ -10,8 +10,12 @@ from sentry import audit_log, features, ratelimits, roles
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
+from sentry.api.serializers.models.organization_member.expand.teams import (
+    OrganizationMemberWithTeamsSerializer,
+)
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -19,6 +23,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -34,7 +39,6 @@ from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.utils import metrics
 
 from . import InvalidTeam, get_allowed_org_roles, save_team_assignments
-from .index import OrganizationMemberSerializer
 
 ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
@@ -122,13 +126,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             OrganizationParams.ORG_ROLE,
             OrganizationParams.TEAM_ROLES,
         ],
-        request=OrganizationMemberSerializer,
+        request=OrganizationMemberWithTeamsSerializer,
         responses={
             200: OrganizationMemberWithRolesSerializer,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
         },
+        examples=OrganizationExamples.UPDATE_ORG_MEMBER,
     )
     def put(
         self,
@@ -137,7 +142,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
     ) -> Response:
         """
-        Update an organization member's details such as their organizaton role or team role.
+        Update various settings for a given organization member.
         """
         allowed_roles = get_allowed_org_roles(request, organization)
         serializer = OrganizationMemberSerializer(
@@ -260,9 +265,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             serialize(
                 member,
                 request.user,
-                OrganizationMemberWithRolesSerializer(
-                    allowed_roles=allowed_roles,
-                ),
             )
         )
 
