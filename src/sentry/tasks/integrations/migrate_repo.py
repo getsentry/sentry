@@ -13,7 +13,7 @@ from sentry.tasks.integrations import logger
     queue="integrations",
     default_retry_delay=60 * 5,
     max_retries=5,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CONTROL,
 )
 @retry(exclude=(Integration.DoesNotExist, Repository.DoesNotExist, Organization.DoesNotExist))
 def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> None:

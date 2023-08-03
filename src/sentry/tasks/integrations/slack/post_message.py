@@ -16,7 +16,7 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
     name="sentry.integrations.slack.post_message",
     queue="integrations",
     max_retries=0,
-    silo_mode=SiloMode.CONTROL,
+    silo_mode=SiloMode.REGION,
 )
 def post_message(
     integration_id: int,

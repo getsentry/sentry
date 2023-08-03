@@ -22,9 +22,8 @@ from sentry.utils.http import absolute_uri
 logger = logging.getLogger("sentry.auth")
 
 
-@instrumented_task(
-    name="sentry.tasks.send_sso_link_emails", queue="auth", silo_mode=SiloMode.REGION
-)
+# TODO(hybrid-cloud): Remove cross-silo DB accesses, or review control silo usages
+@instrumented_task(name="sentry.tasks.send_sso_link_emails", queue="auth")
 def email_missing_links(org_id: int, actor_id: int, provider_key: str, **kwargs):
     try:
         org = Organization.objects.get(id=org_id)
@@ -45,9 +44,8 @@ def email_missing_links(org_id: int, actor_id: int, provider_key: str, **kwargs)
         member.send_sso_link_email(user.id, provider)
 
 
-@instrumented_task(
-    name="sentry.tasks.email_unlink_notifications", queue="auth", silo_mode=SiloMode.REGION
-)
+# TODO(hybrid-cloud): Remove cross-silo DB accesses, or review control silo usages
+@instrumented_task(name="sentry.tasks.email_unlink_notifications", queue="auth")
 def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
     try:
         org = Organization.objects.get(id=org_id)
