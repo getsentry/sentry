@@ -106,16 +106,6 @@ const SPECIAL_MAPPING = {
   DiscoverSavedQuery: 'discover',
   VercelProvider: 'vercelIntegration',
   TagValues: 'tagvalues',
-  ReplayRRWebDivHelloWorld: 'replaySegments',
-  ReplayRRWebNode: 'replaySegments',
-  ReplaySegmentBreadcrumb: 'replaySegments',
-  ReplaySegmentConsole: 'replaySegments',
-  ReplaySegmentFullsnapshot: 'replaySegments',
-  ReplaySegmentInit: 'replaySegments',
-  ReplaySegmentNavigation: 'replaySegments',
-  ReplaySegmentSpan: 'replaySegments',
-  ReplaySpanPayload: 'replaySegments',
-  ReplaySpanPayloadNavigate: 'replaySegments',
 };
 
 function tryRequire(dir: string, name: string): any {
