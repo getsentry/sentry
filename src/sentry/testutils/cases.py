@@ -3,7 +3,8 @@ from __future__ import annotations
 import responses
 import sentry_kafka_schemas
 
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
 
 __all__ = (
     "TestCase",
@@ -1360,7 +1361,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         def tag_value(name):
             assert isinstance(name, str)
 
-            if use_case_id == UseCaseID.TRANSACTIONS:
+            if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
                 return name
 
             res = indexer.record(
@@ -1393,13 +1394,13 @@ class BaseMetricsTestCase(SnubaTestCase):
             # making up a sentry_received_timestamp, but it should be sometime
             # after the timestamp of the event
             "sentry_received_timestamp": timestamp + 10,
-            "version": 2 if use_case_id == UseCaseID.TRANSACTIONS else 1,
+            "version": 2 if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE else 1,
         }
 
         msg["mapping_meta"] = {}
         msg["mapping_meta"][msg["type"]] = mapping_meta
 
-        if use_case_id == UseCaseID.TRANSACTIONS:
+        if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
             entity = f"generic_metrics_{type}s"
         else:
             entity = f"metrics_{type}s"
