@@ -16,6 +16,16 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
     spans_metrics_builder = True
     has_transaction = False
 
+    def __init__(
+        self,
+        *args: Any,
+        **kwargs: Any,
+    ):
+        parser_config_overrides = kwargs.pop("parser_config_overrides", {})
+        parser_config_overrides["free_text_key"] = "span.description"
+        kwargs["parser_config_overrides"] = parser_config_overrides
+        super().__init__(*args, **kwargs)
+
     def get_field_type(self, field: str) -> Optional[str]:
         if field in self.meta_resolver_map:
             return self.meta_resolver_map[field]
