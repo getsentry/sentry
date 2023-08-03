@@ -1630,6 +1630,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 integration_id=integration.id,
             )
 
+    @responses.activate
     def test_opsgenie(self):
         metadata = {
             "api_key": "1234-ABCD",
@@ -1646,6 +1647,17 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         )
         org_integration.config = {"team_table": [team]}
         org_integration.save()
+
+        resp_data = {
+            "result": "Integration [sentry] is valid",
+            "took": 1,
+            "requestId": "hello-world",
+        }
+        responses.add(
+            responses.POST,
+            url="https://api.opsgenie.com/v2/integrations/authenticate",
+            json=resp_data,
+        )
 
         type = AlertRuleTriggerAction.Type.OPSGENIE
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC

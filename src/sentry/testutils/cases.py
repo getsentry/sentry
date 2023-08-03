@@ -3,6 +3,7 @@ from __future__ import annotations
 import responses
 import sentry_kafka_schemas
 
+from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
 
@@ -1333,6 +1334,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         timestamp: int,
         value,
         use_case_id: UseCaseID,
+        aggregation_option: Optional[AggregationOption] = None,
     ):
         mapping_meta = {}
 
@@ -1399,6 +1401,9 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         msg["mapping_meta"] = {}
         msg["mapping_meta"][msg["type"]] = mapping_meta
+
+        if aggregation_option:
+            msg["aggregation_option"] = aggregation_option.value
 
         if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
             entity = f"generic_metrics_{type}s"
@@ -1688,6 +1693,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         timestamp: Optional[datetime] = None,
         project: Optional[int] = None,
         use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,
+        aggregation_option: Optional[AggregationOption] = None,
     ):
         internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
@@ -1716,6 +1722,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 int(metric_timestamp),
                 subvalue,
                 use_case_id=UseCaseID.TRANSACTIONS,
+                aggregation_option=aggregation_option,
             )
 
     def store_span_metric(

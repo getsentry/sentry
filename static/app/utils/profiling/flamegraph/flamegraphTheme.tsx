@@ -1,3 +1,4 @@
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {
   makeColorMapByApplicationFrame,
   makeColorMapByFrequency,
@@ -11,6 +12,7 @@ import {
 import {FlamegraphColorCodings} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
+import {hexToColorChannels} from 'sentry/utils/profiling/gl/utils';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
 
 import {makeColorBucketTheme} from '../speedscope';
@@ -189,7 +191,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
       'by frequency': makeColorMapByFrequency,
       'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
     },
-    CPU_CHART_COLORS: [[0.96, 0.69, 0.0, 0.5]],
+    CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
     CPU_CHART_LABEL_COLOR: 'rgba(31,35,58,.75)',
     CURSOR_CROSSHAIR: '#bbbbbb',
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
