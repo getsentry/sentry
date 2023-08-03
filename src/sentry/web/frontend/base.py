@@ -5,6 +5,7 @@ import inspect
 import logging
 from typing import Any, Mapping, Protocol
 
+from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.http import (
     HttpRequest,
     HttpResponse,
@@ -38,7 +39,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloLimit
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.auth import is_valid_redirect, make_login_link_with_redirect
+from sentry.utils.auth import construct_link_with_query, is_valid_redirect
 from sentry.utils.http import absolute_uri, is_using_customer_domain
 from sentry.web.frontend.generic import FOREVER_CACHE
 from sentry.web.helpers import render_to_response
@@ -376,7 +377,13 @@ class BaseView(View, OrganizationMixin):
     def handle_permission_required(
         self, request: HttpRequest, *args: Any, **kwargs: Any
     ) -> HttpResponse:
-        redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
+        path = reverse("sentry-login")
+        query_param = {
+            "referrer": request.GET.get("referrer"),
+            REDIRECT_FIELD_NAME: request.GET.get(REDIRECT_FIELD_NAME),
+        }
+
+        redirect_uri = construct_link_with_query(path=path, query_param=query_param)
         return self.redirect(redirect_uri)
 
     def handle_not_2fa_compliant(
@@ -384,9 +391,6 @@ class BaseView(View, OrganizationMixin):
     ) -> HttpResponse:
         redirect_uri = self.get_not_2fa_compliant_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
-
-    def get_no_permission_url(self, request: HttpRequest, *args: Any, **kwargs: Any) -> str:
-        return reverse("sentry-login")
 
     def get_not_2fa_compliant_url(self, request: HttpRequest, *args: Any, **kwargs: Any) -> str:
         return reverse("sentry-account-settings-security")
@@ -493,6 +497,9 @@ class AbstractOrganizationView(BaseView, abc.ABC):
         return False
 
     def handle_permission_required(self, request: HttpRequest, organization: Organization | RpcOrganization | None, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[override]
+        query_params = {
+            "referrer": request.GET.get("referrer"),
+        }
         if organization and self.needs_sso(request, organization):
             logger.info(
                 "access.must-sso",
@@ -508,9 +515,11 @@ class AbstractOrganizationView(BaseView, abc.ABC):
                 if is_valid_redirect(request_path, allowed_hosts=(request.get_host(),))
                 else None
             )
-            redirect_uri = make_login_link_with_redirect(path, after_login_redirect)
+            query_params[REDIRECT_FIELD_NAME] = after_login_redirect
+            redirect_uri = construct_link_with_query(path=path, query_params=query_params)
 
         else:
+            path = None
             if is_using_customer_domain(request):
                 # In the customer domain world, if an organziation is pending deletion, we redirect the user to the
                 # organization restoration page.
@@ -521,12 +530,14 @@ class AbstractOrganizationView(BaseView, abc.ABC):
                     if org_context.organization.status == OrganizationStatus.PENDING_DELETION:
                         url_base = generate_organization_url(org_context.organization.slug)
                         restore_org_path = reverse("sentry-customer-domain-restore-organization")
-                        return self.redirect(f"{url_base}{restore_org_path}")
+                        path = f"{url_base}{restore_org_path}"
                     elif org_context.organization.status == OrganizationStatus.DELETION_IN_PROGRESS:
                         url_base = options.get("system.url-prefix")
                         create_org_path = reverse("sentry-organization-create")
-                        return self.redirect(f"{url_base}{create_org_path}")
-            redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
+                        path = f"{url_base}{create_org_path}"
+            if not path:
+                path = reverse("sentry-login")
+            redirect_uri = construct_link_with_query(path=path, query_params=query_params)
         return self.redirect(redirect_uri)
 
     def needs_sso(self, request: HttpRequest, organization: Organization | RpcOrganization) -> bool:
