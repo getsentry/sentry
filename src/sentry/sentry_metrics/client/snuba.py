@@ -36,7 +36,11 @@ def get_retention_from_org_id(org_id: int) -> int:
 class SnubaMetricsBackend(GenericMetricsBackend):
 
     """
-    This backend is meant for use in dev/testing environments. It allows for producing metrics to a Snuba HTTP endpoint, which will trigger processing and ultimately, insertion, of the metric into Clickhouse.
+    This backend is meant for use in dev/testing
+    environments. It allows for producing metrics
+    to a Snuba HTTP endpoint, which will trigger
+    processing and ultimately, insertion, of the
+    metric into Clickhouse.
     """
 
     def __init__(self) -> None:
