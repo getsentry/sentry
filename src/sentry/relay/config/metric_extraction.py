@@ -55,7 +55,6 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
      - Performance alert rules with advanced filter expressions.
      - On-demand metrics widgets.
     """
-
     if not features.has("organizations:on-demand-metrics-extraction", project.organization):
         return None
 
