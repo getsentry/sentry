@@ -445,7 +445,7 @@ def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
 
 def _map_field_name(search_key: str) -> str:
     """
-    Maps a the name of a field in a search query to the event protocol path.
+    Maps a name of a field in a search query to the event protocol path.
 
     Raises an exception if the field is not supported.
     """
