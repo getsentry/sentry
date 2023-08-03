@@ -255,7 +255,7 @@ def devserver(
         # --skip-only-if is so that --ingest just works without needing to
         # explicitly set SENTRY_USE_RELAY.
         daemons += [
-            ("relay", ["sentry", "devservices", "attach", "--fast", "--skip-only-if", "relay"])
+            ("relay", ["sentry", "devservices", "attach", "--skip-only-if", "relay"])
         ]
 
         kafka_consumers.add("ingest-events")

@@ -150,12 +150,11 @@ def devservices() -> None:
 
 @devservices.command()
 @click.option("--project", default="sentry")
-@click.option("--fast", is_flag=True, default=False, help="Never pull and reuse containers.")
 @click.option(
     "--skip-only-if", is_flag=True, default=False, help="Skip 'only_if' checks for services"
 )
 @click.argument("service", nargs=1)
-def attach(project: str, fast: bool, skip_only_if: bool, service: str) -> None:
+def attach(project: str, skip_only_if: bool, service: str) -> None:
     """
     Run a single devservice in the foreground.
 
