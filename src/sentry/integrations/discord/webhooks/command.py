@@ -39,16 +39,13 @@ class DiscordCommandHandler(DiscordInteractionHandler):
         logging_data = self.request.logging_data
 
         if command_name == DiscordCommandNames.LINK:
-            logger.info("discord.interaction.command.link", extra={**logging_data})
             return self.link_user()
         elif command_name == DiscordCommandNames.UNLINK:
-            logger.info("discord.interaction.command.unlink", extra={**logging_data})
             return self.unlink_user()
         elif command_name == DiscordCommandNames.HELP:
-            logger.info("discord.interaction.command.help", extra={**logging_data})
             return self.help()
 
-        logger.info(
+        logger.warning(
             "discord.interaction.command.unknown", extra={"command": command_name, **logging_data}
         )
         return self.help()
