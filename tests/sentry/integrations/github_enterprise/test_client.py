@@ -4,9 +4,10 @@ from unittest import mock
 import pytest
 import responses
 
+from sentry.integrations.mixins.repositories import RepositoryMixin
 from sentry.models import Repository
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 GITHUB_CODEOWNERS = {
     "filepath": "CODEOWNERS",
@@ -87,6 +88,7 @@ class GitHubAppsClientTest(TestCase):
             json={"text": 200},
         )
 
+        assert hasattr(self.client, "check_file")
         resp = self.client.check_file(self.repo, path, version)
         assert resp.status_code == 200
 
@@ -99,6 +101,7 @@ class GitHubAppsClientTest(TestCase):
         responses.add(method=responses.HEAD, url=url, status=404)
 
         with pytest.raises(ApiError):
+            assert hasattr(self.client, "check_file")
             self.client.check_file(self.repo, path, version)
         assert responses.calls[1].response.status_code == 404
 
@@ -114,6 +117,7 @@ class GitHubAppsClientTest(TestCase):
             json={"text": 200},
         )
 
+        assert isinstance(self.install, RepositoryMixin)
         source_url = self.install.get_stacktrace_link(self.repo, path, "master", version)
         assert (
             source_url
@@ -142,6 +146,7 @@ class GitHubAppsClientTest(TestCase):
             url=url,
             json={"content": base64.b64encode(GITHUB_CODEOWNERS["raw"].encode()).decode("ascii")},
         )
+        assert isinstance(self.install, RepositoryMixin)
         result = self.install.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch
         )
