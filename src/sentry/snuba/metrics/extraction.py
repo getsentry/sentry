@@ -2,6 +2,8 @@ import hashlib
 import logging
 import re
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from datetime import datetime
 from typing import (
     Any,
     Dict,
@@ -333,7 +335,8 @@ class OndemandMetricSpecV2(NamedTuple):
         }
 
 
-class DerivedMetricParams(NamedTuple):
+@dataclass(frozen=True)
+class DerivedMetricParams:
     params: Dict[str, Any]
 
     @staticmethod
@@ -366,10 +369,23 @@ class DerivedMetricParamsConsumer:
         return self._fetched_params
 
 
-class DerivedMetricComponent(NamedTuple):
+@dataclass(frozen=True)
+class DerivedMetricComponent:
     tag_key: str
     tag_value: str
-    conditions: Sequence[QueryToken] = []
+    conditions: Sequence[QueryToken]
+
+
+@dataclass(frozen=True)
+class VariableSearchKey(SearchKey):
+    variable_name: str = ""
+    name: str = ""
+
+
+@dataclass(frozen=True)
+class VariableSearchValue(SearchValue):
+    variable_name: str = ""
+    raw_value: Union[str, int, datetime, Sequence[int], Sequence[str]] = ""
 
 
 class DerivedMetric(ABC):
@@ -421,9 +437,9 @@ class Apdex(DerivedMetric):
                 tag_value="satisfactory",
                 conditions=[
                     SearchFilter(
-                        key=SearchKey(name="transaction.duration"),
+                        key=VariableSearchKey(variable_name="field_to_extract"),
                         operator="<=",
-                        value=SearchValue(variable_name="apdex_threshold_1"),
+                        value=VariableSearchValue(variable_name="apdex_threshold_1"),
                     )
                 ],
             ),
@@ -433,15 +449,15 @@ class Apdex(DerivedMetric):
                 tag_value="tolerable",
                 conditions=[
                     SearchFilter(
-                        key=SearchKey(name="transaction.duration"),
+                        key=VariableSearchKey(variable_name="field_to_extract"),
                         operator=">",
-                        value=SearchValue(variable_name="apdex_threshold_1"),
+                        value=VariableSearchValue(variable_name="apdex_threshold_1"),
                     ),
                     "AND",
                     SearchFilter(
-                        key=SearchKey(name="transaction.duration"),
+                        key=VariableSearchKey(variable_name="field_to_extract"),
                         operator="<=",
-                        value=SearchValue(variable_name="apdex_threshold_2"),
+                        value=VariableSearchValue(variable_name="apdex_threshold_2"),
                     ),
                 ],
             ),
@@ -451,9 +467,9 @@ class Apdex(DerivedMetric):
                 tag_value="frustrated",
                 conditions=[
                     SearchFilter(
-                        key=SearchKey(name="transaction.duration"),
+                        key=VariableSearchKey(variable_name="field_to_extract"),
                         operator=">",
-                        value=SearchValue(variable_name="apdex_threshold_2"),
+                        value=VariableSearchValue(variable_name="apdex_threshold_2"),
                     )
                 ],
             ),
@@ -493,7 +509,8 @@ class OndemandParser(ABC, Generic[Input, Output]):
         pass
 
 
-class FieldParsingResult(NamedTuple):
+@dataclass(frozen=True)
+class FieldParsingResult:
     function: str
     arguments: List[str]
     alias: str
@@ -508,7 +525,8 @@ class FieldParser(OndemandParser[str, FieldParsingResult]):
             return None
 
 
-class QueryParsingResult(NamedTuple):
+@dataclass(frozen=True)
+class QueryParsingResult:
     conditions: Sequence[QueryToken]
 
 
@@ -861,9 +879,9 @@ class SearchQueryConverter:
     def _eval_search_key(
         self,
         search_filter: SearchFilter,
-        search_key: SearchKey,
+        search_key: Union[SearchKey, VariableSearchKey],
     ) -> str:
-        if search_key.variable_name is not None:
+        if isinstance(search_key, VariableSearchKey):
             variable_name = search_key.variable_name
             variable_value = self._variables.get(variable_name)
             if variable_value is None:
@@ -875,8 +893,10 @@ class SearchQueryConverter:
         else:
             return search_key.name
 
-    def _eval_search_value(self, search_filter: SearchFilter, search_value: SearchValue) -> Any:
-        if search_value.variable_name is not None:
+    def _eval_search_value(
+        self, search_filter: SearchFilter, search_value: Union[SearchValue, VariableSearchValue]
+    ) -> Any:
+        if isinstance(search_value, VariableSearchValue):
             variable_name = search_value.variable_name
             variable_value = self._variables.get(variable_name)
             if variable_value is None:
