@@ -208,6 +208,7 @@ def patch(ctx) -> None:
 
     if invalid_options:
         status = "update_failed"
+        amount = 2
     elif ctx.obj["drifted_options"]:
         status = "drift"
         amount = 2
@@ -285,6 +286,7 @@ def sync(ctx):
 
     if invalid_options:
         status = "update_failed"
+        amount = 2
     elif drift_found:
         status = "drift"
         amount = 2
