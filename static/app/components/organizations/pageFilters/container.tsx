@@ -49,6 +49,10 @@ interface Props extends InitializeUrlStateProps {
    * Slugs of projects to display in project selector
    */
   specificProjectSlugs?: string[];
+  /**
+   * If provided, will store page filters separately from the rest of Sentry
+   */
+  storageNamespace?: string;
 }
 
 /**
@@ -72,6 +76,7 @@ function Container({
     disablePersistence,
     desyncedAlertMessage,
     hideDesyncRevertButton,
+    storageNamespace,
   } = props;
   const router = useRouter();
   const location = useLocation();
@@ -91,7 +96,7 @@ function Container({
     ? specifiedProjects
     : specifiedProjects.filter(project => project.isMember);
 
-  const doInitialization = () =>
+  const doInitialization = () => {
     initializeUrlState({
       organization,
       queryParams: location.query,
@@ -106,7 +111,9 @@ function Container({
       shouldPersist: !disablePersistence,
       showAbsolute,
       skipInitializeUrlParams,
+      storageNamespace,
     });
+  };
 
   // Initializes GlobalSelectionHeader
   //
