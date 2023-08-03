@@ -122,33 +122,24 @@ def remove_alert_rule(request: Request, organization, alert_rule):
 class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
     def get(self, request: Request, organization, alert_rule) -> Response:
         """
-        Fetch an alert rule.
-        ``````````````````
+        Fetch a metric alert rule.
+        ``````````````````````````
         :auth: required
         """
         return fetch_alert_rule(request, organization, alert_rule)
 
     def put(self, request: Request, organization, alert_rule) -> Response:
+        """
+        Update a metric alert rule.
+        ```````````````````````````
+        :auth: required
+        """
         return update_alert_rule(request, organization, alert_rule)
-        # serializer = DrfAlertRuleSerializer(
-        #     context={
-        #         "organization": organization,
-        #         "access": request.access,
-        #         "user": request.user,
-        #         "ip_address": request.META.get("REMOTE_ADDR"),
-        #         "installations": app_service.get_installed_for_organization(
-        #             organization_id=organization.id
-        #         ),
-        #     },
-        #     instance=alert_rule,
-        #     data=request.data,
-        # )
-
-        # if serializer.is_valid():
-        #     alert_rule = serializer.save()
-        #     return Response(serialize(alert_rule, request.user), status=status.HTTP_200_OK)
-
-        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request: Request, organization, alert_rule) -> Response:
+        """
+        Fetch a metric alert rule.
+        ``````````````````````````
+        :auth: required
+        """
         return remove_alert_rule(request, organization, alert_rule)
