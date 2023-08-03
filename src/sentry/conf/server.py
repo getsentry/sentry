@@ -2516,7 +2516,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "zookeeper": lambda settings, options: (
         {
-            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-zookeeper:5.5.13",
+            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-zookeeper:5.5.13-1-ubi8",
             "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
             "volumes": {"zookeeper_6": {"bind": "/var/lib/zookeeper/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
@@ -2524,7 +2524,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "kafka": lambda settings, options: (
         {
-            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:5.5.13",
+            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:5.5.13-1-ubi8",
             "ports": {"9092/tcp": 9092},
             "environment": {
                 "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
