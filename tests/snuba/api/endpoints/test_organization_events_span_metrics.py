@@ -2,7 +2,7 @@ import pytest
 from django.urls import reverse
 
 from sentry.search.events import constants
-from sentry.testutils import MetricsEnhancedPerformanceTestCase
+from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
 
@@ -476,6 +476,62 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["dataset"] == "spansMetrics"
         assert meta["fields"]["p50(span.self_time)"] == "duration"
 
+    def test_tag_search(self):
+        self.store_span_metric(
+            321,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.description": "foo"},
+        )
+        self.store_span_metric(
+            99,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.description": "bar"},
+        )
+        response = self.do_request(
+            {
+                "field": ["sum(span.self_time)"],
+                "query": "span.description:bar",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["sum(span.self_time)"] == 99
+        assert meta["dataset"] == "spansMetrics"
+
+    def test_free_text_search(self):
+        self.store_span_metric(
+            321,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.description": "foo"},
+        )
+        self.store_span_metric(
+            99,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.description": "bar"},
+        )
+        response = self.do_request(
+            {
+                "field": ["sum(span.self_time)"],
+                "query": "foo",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["sum(span.self_time)"] == 321
+        assert meta["dataset"] == "spansMetrics"
+
 
 @region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
@@ -500,3 +556,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Cannot group by transform")
     def test_span_module(self):
         super().test_span_module()
+
+    @pytest.mark.xfail(reason="Cannot search by tags")
+    def test_tag_search(self):
+        super().test_tag_search()
+
+    @pytest.mark.xfail(reason="Cannot search by tags")
+    def test_free_text_search(self):
+        super().test_free_text_search()

@@ -20,9 +20,9 @@ from sentry.models import ProjectKeyStatus, Relay
 from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.services.hybrid_cloud.rpc import RpcServiceSetupException, generate_request_signature
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import control_silo_test
-from sentry.utils.pytest.fixtures import django_db_all
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 

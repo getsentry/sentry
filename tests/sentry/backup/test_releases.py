@@ -1,21 +1,16 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Type
+from typing import Literal, Type
 from uuid import uuid4
 
 from django.core.management import call_command
 from django.db import router
 from sentry_relay.auth import generate_key_pair
 
+from sentry.backup.helpers import get_exportable_final_derivations_of
+from sentry.db.models import BaseModel
 from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleActivity,
-    AlertRuleExcludedProjects,
-    AlertRuleTrigger,
-    AlertRuleTriggerAction,
-    AlertRuleTriggerExclusion,
-    Incident,
     IncidentActivity,
     IncidentSnapshot,
     IncidentSubscription,
@@ -39,40 +34,23 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.models.email import Email
-from sentry.models.environment import Environment, EnvironmentProject
-from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.integrations.sentry_app_component import SentryAppComponent
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.notificationaction import NotificationAction, NotificationActionProject
+from sentry.models.environment import EnvironmentProject
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.options.project_option import ProjectOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
-from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.organizationmember import OrganizationMember
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.project import Project
-from sentry.models.projectbookmark import ProjectBookmark
-from sentry.models.projectkey import ProjectKey
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
-from sentry.models.projectteam import ProjectTeam
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repository import Repository
-from sentry.models.rule import Rule, RuleActivity, RuleActivityType
-from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.rule import RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.models.servicehook import ServiceHook
-from sentry.models.team import Team
-from sentry.models.user import User
-from sentry.models.useremail import UserEmail
 from sentry.models.userip import UserIP
-from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import (
     CheckInStatus,
@@ -85,18 +63,27 @@ from sentry.monitors.models import (
 )
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.silo import unguarded_write
-from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.testutils import TransactionTestCase
+from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.helpers.backups import import_export_then_validate
 from sentry.utils.json import JSONData
-from tests.sentry.backup import import_export_then_validate, targets
+from tests.sentry.backup import targets
 
 RELEASE_TESTED_MODELS = set()
 
 
-def mark(*marking: Type):
+def mark(*marking: Type | Literal["__all__"]):
     """A function that runs at module load time and marks all models that appear in
-    `test_at_head()` below."""
+    `test_at_head()` below.
+
+    Use the sentinel string "__all__" to indicate that all models are expected."""
+
+    all: Literal["__all__"] = "__all__"
     for model in marking:
+        if model == all:
+            all_models = get_exportable_final_derivations_of(BaseModel)
+            RELEASE_TESTED_MODELS.update({c.__name__ for c in all_models})
+            return list(all_models)
+
         RELEASE_TESTED_MODELS.add(model.__name__)
     return marking
 
@@ -112,83 +99,7 @@ class VersionCompatibilityTests(TransactionTestCase):
     def import_export_then_validate(self) -> JSONData:
         return import_export_then_validate(self._testMethodName)
 
-    @targets(
-        mark(
-            Actor,
-            AlertRule,
-            AlertRuleActivity,
-            AlertRuleExcludedProjects,
-            AlertRuleTrigger,
-            AlertRuleTriggerAction,
-            AlertRuleTriggerExclusion,
-            ApiAuthorization,
-            ApiApplication,
-            ApiKey,
-            ApiToken,
-            Authenticator,
-            AuthIdentity,
-            AuthProvider,
-            ControlOption,
-            Counter,
-            Dashboard,
-            DashboardTombstone,
-            DashboardWidget,
-            DashboardWidgetQuery,
-            Email,
-            Environment,
-            EnvironmentProject,
-            Incident,
-            IncidentActivity,
-            IncidentSnapshot,
-            IncidentSubscription,
-            IncidentTrigger,
-            Monitor,
-            MonitorEnvironment,
-            MonitorLocation,
-            NotificationAction,
-            NotificationActionProject,
-            Option,
-            Organization,
-            OrganizationAccessRequest,
-            OrganizationMapping,
-            OrganizationMember,
-            OrganizationMemberTeam,
-            OrganizationOption,
-            OrgAuthToken,
-            QuerySubscription,
-            PendingIncidentSnapshot,
-            Project,
-            ProjectBookmark,
-            ProjectOwnership,
-            ProjectKey,
-            ProjectOption,
-            ProjectRedirect,
-            ProjectTeam,
-            RecentSearch,
-            Relay,
-            RelayUsage,
-            Repository,
-            Rule,
-            RuleActivity,
-            RuleSnooze,
-            SavedSearch,
-            SentryApp,
-            SentryAppComponent,
-            SentryAppInstallation,
-            ServiceHook,
-            SnubaQuery,
-            SnubaQueryEventType,
-            Team,
-            TimeSeriesSnapshot,
-            User,
-            UserEmail,
-            UserIP,
-            UserOption,
-            UserPermission,
-            UserRole,
-            UserRoleUser,
-        )
-    )
+    @targets(mark("__all__"))
     def test_at_head(self):
         """Test that the currently checked in code passes a script that hits every `__include_in_export = True` model."""
 

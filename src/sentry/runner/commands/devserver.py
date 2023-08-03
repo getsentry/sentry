@@ -60,7 +60,10 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
 @click.option(
     "--watchers/--no-watchers", default=True, help="Watch static files and recompile on changes."
 )
-@click.option("--workers/--no-workers", default=False, help="Run asynchronous workers.")
+@click.option(
+    "--workers/--no-workers", default=False, help="Run celery workers (excluding celerybeat)."
+)
+@click.option("--crons/--no-crons", default=False, help="Run celerybeat workers.")
 @click.option("--ingest/--no-ingest", default=False, help="Run ingest services (including Relay).")
 @click.option(
     "--occurrence-ingest/--no-occurrence-ingest",
@@ -104,6 +107,7 @@ def devserver(
     reload: bool,
     watchers: bool,
     workers: bool,
+    crons: bool,
     ingest: bool,
     occurrence_ingest: bool,
     experimental_spa: bool,
@@ -263,6 +267,15 @@ def devserver(
             click.echo("--ingest was provided, implicitly enabling --workers")
             workers = True
 
+    if workers and not crons:
+        click.secho(
+            "If you want to run crons (celerybeat workers), you need to also pass --crons.",
+            fg="yellow",
+        )
+
+    if crons:
+        daemons.append(_get_daemon("cron"))
+
     if workers:
         daemons += [_get_daemon("worker"), _get_daemon("cron")]
         daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
@@ -271,6 +284,8 @@ def devserver(
             raise click.ClickException(
                 "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
             )
+
+        daemons.append(_get_daemon("worker"))
 
         from sentry import eventstream
 
@@ -294,6 +309,20 @@ def devserver(
             kafka_consumers.add("ingest-metrics")
             kafka_consumers.add("ingest-generic-metrics")
             kafka_consumers.add("billing-metrics-consumer")
+
+        if settings.SENTRY_USE_RELAY:
+            daemons += [("relay", ["sentry", "devservices", "attach", "relay"])]
+
+            kafka_consumers.add("ingest-events")
+            kafka_consumers.add("ingest-attachments")
+            kafka_consumers.add("ingest-transactions")
+            kafka_consumers.add("ingest-monitors")
+
+            if settings.SENTRY_USE_PROFILING:
+                kafka_consumers.add("ingest-profiles")
+
+        if occurrence_ingest:
+            kafka_consumers.add("ingest-occurrences")
 
     if needs_https and has_https:
         https_port = str(parsed_url.port)
@@ -443,7 +472,9 @@ Alternatively, run without --workers.
         merged_env.update(control_environ)
         control_services = ["server"]
         if workers:
-            control_services.extend(["cron", "worker"])
+            control_services.append("worker")
+        if crons:
+            control_services.append("cron")
 
         for service in control_services:
             name, cmd = _get_daemon(service)

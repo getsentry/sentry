@@ -1,7 +1,7 @@
 from unittest import mock
 
 from sentry.plugins.helpers import get_option, set_option, unset_option
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class SentryPluginTest(TestCase):

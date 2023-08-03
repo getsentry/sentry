@@ -22,7 +22,7 @@ from sentry.models import (
 )
 from sentry.models.releasefile import read_artifact_index, update_artifact_index
 from sentry.tasks.assemble import assemble_artifacts
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.utils import json
 
 

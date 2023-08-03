@@ -6,7 +6,7 @@ import pytest
 
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
 from sentry.models import ProjectOption
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import PROJECT_ID, create_span, get_event
 from sentry.testutils.performance_issues.span_builder import SpanBuilder
 from sentry.testutils.silo import region_silo_test
@@ -41,7 +41,7 @@ def create_compressed_asset_span():
     )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @pytest.mark.django_db
 class UncompressedAssetsDetectorTest(TestCase):
     def setUp(self):

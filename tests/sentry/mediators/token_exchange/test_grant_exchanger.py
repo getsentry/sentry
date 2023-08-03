@@ -7,7 +7,7 @@ from sentry.coreapi import APIUnauthorized
 from sentry.mediators.token_exchange import GrantExchanger
 from sentry.models import ApiApplication, ApiGrant, SentryApp, SentryAppInstallation
 from sentry.services.hybrid_cloud.app import app_service
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 

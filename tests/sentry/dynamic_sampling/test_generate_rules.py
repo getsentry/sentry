@@ -19,8 +19,8 @@ from sentry.dynamic_sampling.rules.utils import (
 from sentry.models.projectteam import ProjectTeam
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
-from sentry.utils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture

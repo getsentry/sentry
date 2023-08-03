@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import urllib.parse
 import uuid
@@ -144,7 +146,7 @@ def store_crash(crash, project: Project, url: str) -> None:
 
 
 def translate_crash_to_event(crash, project: Project, url: str) -> Dict[str, Any]:
-    event = {
+    event: dict[str, Any] = {
         "event_id": uuid.uuid4().hex,
         "project": project.id,
         "platform": "c",

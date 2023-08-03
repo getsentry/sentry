@@ -80,9 +80,13 @@ class RuleSerializer(Serializer):
         owners_by_type = defaultdict(list)
 
         sentry_app_uuids = [
-            action.get("sentryAppInstallationUuid")
-            for rule in rules.values()
-            for action in rule.data.get("actions", [])
+            sentry_app_uuid
+            for sentry_app_uuid in (
+                action.get("sentryAppInstallationUuid")
+                for rule in rules.values()
+                for action in rule.data.get("actions", [])
+            )
+            if sentry_app_uuid is not None
         ]
 
         sentry_app_ids: List[int] = [

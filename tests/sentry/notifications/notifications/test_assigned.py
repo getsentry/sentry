@@ -10,7 +10,7 @@ from sentry.models import (
     UserOption,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import get_attachment, install_slack, link_team
 from sentry.types.integrations import ExternalProviders
 

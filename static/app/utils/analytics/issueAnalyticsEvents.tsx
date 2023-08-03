@@ -54,6 +54,7 @@ export type IssueEventParameters = {
   'issue_details.escalating_issues_banner_feedback_received': {
     group_id: string;
     should_be_escalating: boolean;
+    reason?: string;
   };
   'issue_details.event_details_clicked': GroupEventParams;
   'issue_details.external_issue_created': ExternalIssueParams;

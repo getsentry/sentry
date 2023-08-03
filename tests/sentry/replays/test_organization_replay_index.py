@@ -1,5 +1,6 @@
 import datetime
 import uuid
+from unittest import mock
 
 from django.urls import reverse
 
@@ -9,10 +10,11 @@ from sentry.replays.testutils import (
     mock_replay,
     mock_replay_click,
 )
-from sentry.testutils import APITestCase, ReplaysSnubaTestCase
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
+from sentry.utils.snuba import QueryMemoryLimitExceeded
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
@@ -1231,3 +1233,26 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 200
             response = self.client.get(self.url + "?field=browser&field=count_urls")
             assert response.status_code == 200
+
+    def test_get_replays_memory_error(self):
+        """Test replay response with fields requested in production."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+
+        with self.feature(REPLAYS_FEATURES):
+            # Invalid field-names error regardless of ordering.
+            with mock.patch(
+                "sentry.replays.endpoints.organization_replay_index.query_replays_collection",
+                side_effect=QueryMemoryLimitExceeded("mocked error"),
+            ):
+                response = self.client.get(self.url)
+                assert response.status_code == 400
+                assert (
+                    response.content
+                    == b'{"detail":"Replay search query limits exceeded. Please narrow the time-range."}'
+                )

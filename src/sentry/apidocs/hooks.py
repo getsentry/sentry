@@ -101,6 +101,12 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
                 raise SentryApiBuildError(
                     "Please add a description to your endpoint method via a docstring"
                 )
+            # ensure path parameters have a description
+            for param in method_info.get("parameters", []):
+                if param["in"] == "path" and param.get("description") is None:
+                    raise SentryApiBuildError(
+                        f"Please add a description to your path parameter '{param['name']}'"
+                    )
 
     return result
 

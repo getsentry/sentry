@@ -24,10 +24,11 @@ from sentry.models import (
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.releasefile import update_artifact_index
 from sentry.tasks.assemble import assemble_artifacts
-from sentry.testutils import RelayStoreHelper
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
 
@@ -103,7 +104,7 @@ def upload_bundle(bundle_file, project, release=None, dist=None, upload_as_artif
     )
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 class TestJavascriptIntegration(RelayStoreHelper):
     @pytest.fixture(autouse=True)
     def initialize(self, default_projectkey, default_project, set_sentry_option, live_server):
