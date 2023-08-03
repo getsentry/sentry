@@ -8,6 +8,9 @@ from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_facets_stats_performance import (
     OrganizationEventsFacetsStatsPerformanceEndpoint,
 )
+from sentry.api.endpoints.organization_events_root_cause_analysis import (
+    OrganizationEventsRootCauseAnalysisEndpoint,
+)
 from sentry.api.endpoints.organization_events_starfish import OrganizationEventsStarfishEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_projects_experiment import (
@@ -1209,6 +1212,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/events-spans-stats/$",
         OrganizationEventsSpansStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-spans-stats",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/events-root-cause-analysis/$",
+        OrganizationEventsRootCauseAnalysisEndpoint.as_view(),
+        name="sentry-api-0-organization-events-root-cause-analysis",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/events-meta/$",
