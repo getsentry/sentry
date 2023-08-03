@@ -87,6 +87,9 @@ class TraceError(TypedDict):
     project_slug: str
     title: str
     level: str
+    timestamp: str
+    event_type: str
+    generation: int
 
 
 class TracePerformanceIssue(TypedDict):
@@ -450,6 +453,9 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             "project_slug": event["project"],
             "title": event["title"],
             "level": event["tags[level]"],
+            "timestamp": event["timestamp"],
+            "event_type": "error",
+            "generation": 0,
         }
 
     @staticmethod
@@ -545,7 +551,16 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             )
 
         return Response(
-            self.serialize(transactions, errors, roots, warning_extra, event_id, detailed)
+            self.serialize(
+                transactions,
+                errors,
+                roots,
+                warning_extra,
+                event_id,
+                detailed,
+                organization,
+                request,
+            )
         )
 
 
@@ -608,6 +623,8 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         warning_extra: Dict[str, str],
         event_id: Optional[str],
         detailed: bool = False,
+        organization: Organization = None,
+        request: HttpRequest = None,
     ) -> Sequence[LightResponse]:
         """Because the light endpoint could potentially have gaps between root and event we return a flattened list"""
         if event_id is None:
@@ -730,6 +747,8 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         warning_extra: Dict[str, str],
         event_id: Optional[str],
         detailed: bool = False,
+        organization: Organization = None,
+        request: HttpRequest = None,
     ) -> Sequence[FullResponse]:
         """For the full event trace, we return the results as a graph instead of a flattened list
 
@@ -754,8 +773,8 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             results_map[None].append(root_event)
             to_check.append(root)
 
+        iteration = 0
         with sentry_sdk.start_span(op="building.trace", description="full trace"):
-            iteration = 0
             has_orphans = False
             while parent_map or to_check:
                 if len(to_check) == 0:
@@ -855,6 +874,24 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     )
                     break
 
+        # We are now left with orphan errors in the error_map,
+        # that we need to serialize and return with our results.
+        orphan_errors: List[TraceError] = []
+        tracing_without_performance_enabled = features.has(
+            "organizations:performance-tracing-without-performance",
+            organization,
+            actor=request.user,
+        )
+        if tracing_without_performance_enabled and iteration <= MAX_TRACE_SIZE:
+            for errors in error_map.values():
+                for error in errors:
+                    orphan_errors.append(self.serialize_error(error))
+                    iteration += 1
+                    if iteration > MAX_TRACE_SIZE:
+                        break
+                if iteration > MAX_TRACE_SIZE:
+                    break
+
         root_traces: List[TraceEvent] = []
         orphans: List[TraceEvent] = []
         for index, result in enumerate(results_map.values()):
@@ -867,14 +904,17 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         # We sort orphans and roots separately because we always want the root(s) as the first element(s)
         root_traces.sort(key=child_sort_key)
         orphans.sort(key=child_sort_key)
+        orphan_errors = sorted(orphan_errors, key=lambda k: k["timestamp"])
 
         if len(orphans) > 0:
             sentry_sdk.set_tag("discover.trace-view.contains-orphans", "yes")
             logger.warning("discover.trace-view.contains-orphans", extra=warning_extra)
 
-        return [trace.full_dict(detailed) for trace in root_traces] + [
-            orphan.full_dict(detailed) for orphan in orphans
-        ]
+        return (
+            [trace.full_dict(detailed) for trace in root_traces]
+            + [orphan.full_dict(detailed) for orphan in orphans]
+            + [orphan for orphan in orphan_errors]
+        )
 
 
 @region_silo_endpoint
