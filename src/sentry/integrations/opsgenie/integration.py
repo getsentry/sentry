@@ -18,7 +18,9 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.models import Integration, OrganizationIntegration
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -203,7 +205,7 @@ class InstallationTeamSelectView(PipelineView):
         teams = []
         try:
             resp = client.get_teams()
-            teams = [(i, team["name"]) for i, team in enumerate(resp["data"])]
+            teams = [(team["name"], team["name"]) for team in resp["data"]]
             return teams
         except ApiError as api_error:
             logger.info(
@@ -304,8 +306,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         api_key = state["installation_data"]["api_key"]
         base_url = state["installation_data"]["base_url"]
-        # teams = state["team_data"]["teams"]
-        # print("TEAMS:", teams)
+        teams = state["team_data"]["teams"]
         account = self.get_account_info(base_url=base_url, api_key=api_key).get("data")
         name = account.get("name")
         return {
@@ -315,5 +316,52 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
                 "api_key": api_key,
                 "base_url": base_url,
                 "domain_name": f"{name}.app.opsgenie.com",
+                "install_team_names": teams,
             },
         }
+
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
+        from sentry.services.hybrid_cloud.integration import integration_service
+
+        teams = integration.metadata["install_team_names"]
+        client = OpsgenieSetupClient(
+            base_url=integration.metadata["base_url"], api_key=integration.metadata["api_key"]
+        )
+        try:
+            org_integration = OrganizationIntegration.objects.get(
+                integration=integration, organization_id=organization.id
+            )
+        except OrganizationIntegration.DoesNotExist:
+            logger.exception("The Opsgenie post_install step failed.")
+            return
+
+        team_table = []
+        for team_name in teams:
+            try:
+                resp = client.create_sentry_integration(team_name=team_name)
+                team = {
+                    "id": str(org_integration.id) + "-" + team_name,
+                    "team": team_name,
+                    "integration_key": resp["data"]["apiKey"],
+                }
+                team_table.append(team)
+            except ApiError as e:
+                # skip adding a team if the integration already exists in Opsgenie
+                logger.info(
+                    "opsgenie.installation.create_integration_failure",
+                    extra={
+                        "team_name": team_name,
+                        "error_message": str(e),
+                    },
+                )
+                continue
+        org_integration.config["team_table"] = team_table
+        org_integration = integration_service.update_organization_integration(
+            org_integration_id=org_integration.id,
+            config=org_integration.config,
+        )

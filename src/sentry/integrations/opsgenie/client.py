@@ -34,6 +34,12 @@ class OpsgenieSetupClient(ApiClient):
         headers = {"Authorization": "GenieKey " + self.api_key}
         return self.get(path="/teams", headers=headers)
 
+    def create_sentry_integration(self, team_name: str):
+        headers = {"Authorization": "GenieKey " + self.api_key}
+        integration_name = team_name.replace(" ", "_") + "_Sentry_v2"
+        params = {"type": "Sentry", "name": integration_name, "ownerTeam": {"name": team_name}}
+        return self.post(path="/integrations", headers=headers, data=params)
+
 
 class OpsgenieClient(IntegrationProxyClient):
     integration_name = "opsgenie"
