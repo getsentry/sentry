@@ -111,9 +111,8 @@ class TeamSelectForm(forms.Form):
         self.fields["teams"] = forms.MultipleChoiceField(
             required=False,
             label=_("Select Teams"),
-            help_text=_("Trigger and acknowledge alerts on these Opsgenie teams."),
             choices=team_list,
-            widget=forms.CheckboxSelectMultiple(attrs={"placeholder": "Select..."}),
+            widget=forms.CheckboxSelectMultiple(),
         )
 
 
@@ -169,7 +168,10 @@ class InstallationTeamSelectView(PipelineView):
             pipeline.state.step_index = 1
             return pipeline.current_step()
         og_teams = self.get_og_teams(pipeline)
+        if og_teams is None:
+            raise IntegrationError("Could not authenticate with the provided integration key.")
 
+        # if we are POSTing the data from the team select form
         if "teams" in request.POST:
             form_2 = TeamSelectForm(data=request.POST, team_list=og_teams)
             if form_2.is_valid():
@@ -194,6 +196,7 @@ class InstallationTeamSelectView(PipelineView):
         api_key = pipeline.state.data["installation_data"]["api_key"]
         base_url = pipeline.state.data["installation_data"]["base_url"]
         client = OpsgenieSetupClient(base_url=base_url, api_key=api_key)
+        teams = []
         try:
             resp = client.get_teams()
             teams = [(i, team["name"]) for i, team in enumerate(resp["data"])]
@@ -207,7 +210,7 @@ class InstallationTeamSelectView(PipelineView):
                     "error_status": api_error.code,
                 },
             )
-            raise IntegrationError("Could not authenticate with the provided integration key.")
+            return None
 
 
 class OpsgenieIntegration(IntegrationInstallation):

@@ -48,7 +48,7 @@
   </form>
   {% elif form_2 %}
   <h3>{% trans "Step 3: Choose Opsgenie teams" %}</h3>
-    <p>{% trans "Blah." %}</p>
+    <p>{% trans "Trigger and acknowledge alerts on these Opsgenie teams." %}</p>
     <form action="" method="post" class="form-stacked">
       {% csrf_token %}
       <input type="hidden" name="provider" value="opsgenie" />
@@ -61,7 +61,7 @@
 
       <fieldset class="form-actions clearfix">
         <div class="pull-right">
-          <a class="btn btn-default" href="{{prev_url}}?goback=1">{% trans "Back to instructions" %}</a>
+          <a class="btn btn-default" href="{{prev_url}}?goback=1">{% trans "Back" %}</a>
           <button type="submit" class="btn btn-primary" name="save_mappings" value="url">{% trans "Submit" %}</button>
         </div>
       </fieldset>
