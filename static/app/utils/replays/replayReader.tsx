@@ -20,6 +20,7 @@ import type {
   BreadcrumbFrame,
   ErrorFrame,
   MemoryFrame,
+  MultiClickFrame,
   OptionFrame,
   RecordingFrame,
   SlowClickFrame,
@@ -195,8 +196,9 @@ export default class ReplayReader {
     ].filter(
       frame =>
         !(
-          (frame as SlowClickFrame).category === 'ui.slowClickDetected' &&
-          !isDeadClick(frame as SlowClickFrame)
+          ((frame as SlowClickFrame).category === 'ui.slowClickDetected' &&
+            !isDeadClick(frame as SlowClickFrame)) ||
+          (frame as MultiClickFrame).category === 'ui.multiClick'
         )
     )
   );
@@ -223,7 +225,6 @@ export default class ReplayReader {
           (frame.category === 'ui.slowClickDetected' &&
             (isDeadClick(frame as SlowClickFrame) ||
               isDeadRageClick(frame as SlowClickFrame)))
-        // Hiding all ui.multiClick (multi or rage clicks)
       ),
       ...this._sortedSpanFrames.filter(frame =>
         ['navigation.navigate', 'navigation.reload', 'navigation.back_forward'].includes(
