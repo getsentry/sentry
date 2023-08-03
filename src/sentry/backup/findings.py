@@ -35,6 +35,9 @@ class ComparatorFindings:
     def append(self, finding: ComparatorFinding) -> None:
         self.findings.append(finding)
 
+    def empty(self) -> bool:
+        return not self.findings
+
     def extend(self, findings: list[ComparatorFinding]) -> None:
         self.findings += findings
 

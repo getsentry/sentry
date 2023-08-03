@@ -33,41 +33,63 @@ describe('GroupEventCarousel', () => {
     window.open = jest.fn();
   });
 
-  it('can use event dropdown to navigate events', async () => {
-    // Because it isn't rendered on smaller screens
-    jest.spyOn(useMedia, 'default').mockReturnValue(true);
-
-    render(<GroupEventCarousel {...defaultProps} />, {
-      organization: TestStubs.Organization({
-        features: [
-          'issue-details-most-helpful-event',
-          'issue-details-most-helpful-event-ui',
-        ],
-      }),
+  describe('recommended event ui', () => {
+    const orgWithRecommendedEvent = TestStubs.Organization({
+      features: [
+        'issue-details-most-helpful-event',
+        'issue-details-most-helpful-event-ui',
+      ],
     });
 
-    await userEvent.click(screen.getByRole('button', {name: /recommended event/i}));
-    await userEvent.click(screen.getByRole('option', {name: /oldest event/i}));
+    it('can navigate to the oldest event', async () => {
+      jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/issues/group-id/events/oldest/',
-      query: {referrer: 'oldest-event'},
+      render(<GroupEventCarousel {...defaultProps} />, {
+        organization: orgWithRecommendedEvent,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: /recommended/i}));
+      await userEvent.click(screen.getByRole('option', {name: /oldest/i}));
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/group-id/events/oldest/',
+        query: {referrer: 'oldest-event'},
+      });
     });
 
-    await userEvent.click(screen.getByRole('button', {name: /oldest event/i}));
-    await userEvent.click(screen.getByRole('option', {name: /latest event/i}));
+    it('can navigate to the latest event', async () => {
+      jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/issues/group-id/events/oldest/',
-      query: {referrer: 'oldest-event'},
+      render(<GroupEventCarousel {...defaultProps} />, {
+        organization: orgWithRecommendedEvent,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: /recommended/i}));
+      await userEvent.click(screen.getByRole('option', {name: /latest/i}));
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/group-id/events/latest/',
+        query: {referrer: 'latest-event'},
+      });
     });
 
-    await userEvent.click(screen.getByRole('button', {name: /latest event/i}));
-    await userEvent.click(screen.getByRole('option', {name: /recommended event/i}));
+    it('can navigate to the recommended event', async () => {
+      jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/issues/group-id/events/recommended/',
-      query: {referrer: 'recommended-event'},
+      render(<GroupEventCarousel {...defaultProps} />, {
+        organization: orgWithRecommendedEvent,
+        router: {
+          params: {eventId: 'latest'},
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: /latest/i}));
+      await userEvent.click(screen.getByRole('option', {name: /recommended/i}));
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/group-id/events/recommended/',
+        query: {referrer: 'recommended-event'},
+      });
     });
   });
 

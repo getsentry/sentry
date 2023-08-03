@@ -1110,7 +1110,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "github_comment_reactions": {
         "task": "sentry.tasks.integrations.github_comment_reactions",
-        "schedule": crontab(hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
+        "schedule": crontab(minute=0, hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
     },
     "poll_recap_servers": {
         "task": "sentry.tasks.poll_recap_servers",
@@ -1500,6 +1500,8 @@ SENTRY_FEATURES = {
     "organizations:issue-details-most-helpful-event-ui": False,
     # Display if a release is using semver when resolving issues
     "organizations:issue-release-semver": False,
+    # Display a prompt to setup releases in the resolve options dropdown
+    "organizations:issue-resolve-release-setup": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -1671,8 +1673,6 @@ SENTRY_FEATURES = {
     "organizations:org-auth-tokens": False,
     # Enable detecting SDK crashes during event processing
     "organizations:sdk-crash-detection": False,
-    # Enables commenting on PRs from the Sentry comment bot.
-    "organizations:pr-comment-bot": True,
     # Enables slack channel lookup via schedule message
     "organizations:slack-use-new-lookup": False,
     # Enable functionality for recap server polling.
@@ -3583,6 +3583,8 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",
     "options": {"cluster": "default"},
 }
+
+ADDITIONAL_BULK_QUERY_DELETES: list[Tuple[str, str, str | None]] = []
 
 # Monitor limits to prevent abuse
 MAX_MONITORS_PER_ORG = 10000
