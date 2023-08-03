@@ -71,8 +71,8 @@ def record_response(sentryapp: SentryApp, org_id: str, response: Response):
         return
     buffer = IntegrationRequestBuffer(redis_key)
     buffer.record_success(response)
-    buffer.record_response_error(response)
-    check_broken(sentryapp, org_id)
+    if buffer.record_response_error(response):
+        check_broken(sentryapp, org_id)
 
 
 @ignore_unpublished_app_errors

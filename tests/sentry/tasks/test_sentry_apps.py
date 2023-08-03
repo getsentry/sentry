@@ -791,7 +791,7 @@ class TestWebhookRequests(TestCase):
         Tests that buffer records when unpublished app has a timeout but error is not raised
         """
         self.sentry_app.update(status=SentryAppStatus.UNPUBLISHED)
-        events = len(self.sentry_app.events)
+        events = self.sentry_app.events
         data = {"issue": serialize(self.issue)}
         # we don't raise errors for unpublished and internal apps
         send_webhooks(installation=self.install, event="issue.assigned", data=data, actor=self.user)

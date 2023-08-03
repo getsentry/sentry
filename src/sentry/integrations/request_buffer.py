@@ -44,13 +44,23 @@ class IntegrationRequestBuffer:
     def record_exception_error(self):
         self._add("error")
 
-    def record_response_error(self, resp):
+    def record_response_error(self, resp) -> bool:
+        """
+        Record a response error if the response is an error. Return True if the response is an error and has been recorded.
+        """
         if is_response_error(resp):
             self._add("error")
+            return True
+        return False
 
-    def record_success(self, resp):
+    def record_success(self, resp) -> bool:
+        """
+        Record a response success if the response isan succ. Return True if the response is an success and has been recorded.
+        """
         if is_response_success(resp):
             self._add("success")
+            return True
+        return False
 
     def record_fatal(self):
         self._add("fatal")
