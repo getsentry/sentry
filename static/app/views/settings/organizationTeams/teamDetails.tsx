@@ -93,7 +93,7 @@ function TeamDetails({children}: Props) {
       {team.hasAccess ? (
         <div>
           <h3>
-            <IdBadge hideAvatar team={team} avatarSize={36} />
+            <IdBadge hideAvatar hideOverflow={false} team={team} avatarSize={36} />
           </h3>
 
           <NavTabs underlined>{navigationTabs}</NavTabs>
