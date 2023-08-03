@@ -6,6 +6,7 @@ from django.db import router, transaction
 
 from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project
@@ -21,6 +22,7 @@ logger = logging.getLogger(__name__)
     soft_time_limit=5,
     time_limit=10,  # Extra 5 seconds to remove the debounce key.
     expires=30,  # Relay stops waiting for this anyway.
+    silo_mode=SiloMode.REGION,
 )
 def build_project_config(public_key=None, **kwargs):
     """Build a project config and put it in the Redis cache.
@@ -195,6 +197,7 @@ def compute_projectkey_config(key):
     queue="relay_config_bulk",
     soft_time_limit=25 * 60,  # 25mins
     time_limit=25 * 60 + 5,
+    silo_mode=SiloMode.REGION,
 )
 def invalidate_project_config(
     organization_id=None, project_id=None, public_key=None, trigger="invalidated", **kwargs

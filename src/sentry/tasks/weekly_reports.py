@@ -33,6 +33,7 @@ from sentry.models import (
     OrganizationStatus,
 )
 from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.activity import ActivityType
@@ -150,6 +151,7 @@ def check_if_ctx_is_empty(ctx):
     queue="reports.prepare",
     max_retries=5,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry
 def schedule_organizations(dry_run=False, timestamp=None, duration=None):
@@ -175,6 +177,7 @@ def schedule_organizations(dry_run=False, timestamp=None, duration=None):
     queue="reports.prepare",
     max_retries=5,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry
 def prepare_organization_report(

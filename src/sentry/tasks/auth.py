@@ -13,6 +13,7 @@ from sentry.models import Organization, OrganizationMember, User, UserEmail
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.email import MessageBuilder
@@ -21,7 +22,9 @@ from sentry.utils.http import absolute_uri
 logger = logging.getLogger("sentry.auth")
 
 
-@instrumented_task(name="sentry.tasks.send_sso_link_emails", queue="auth")
+@instrumented_task(
+    name="sentry.tasks.send_sso_link_emails", queue="auth", silo_mode=SiloMode.REGION
+)
 def email_missing_links(org_id: int, actor_id: int, provider_key: str, **kwargs):
     try:
         org = Organization.objects.get(id=org_id)
@@ -42,7 +45,9 @@ def email_missing_links(org_id: int, actor_id: int, provider_key: str, **kwargs)
         member.send_sso_link_email(user.id, provider)
 
 
-@instrumented_task(name="sentry.tasks.email_unlink_notifications", queue="auth")
+@instrumented_task(
+    name="sentry.tasks.email_unlink_notifications", queue="auth", silo_mode=SiloMode.REGION
+)
 def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
     try:
         org = Organization.objects.get(id=org_id)
@@ -164,6 +169,7 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
     queue="auth",
     default_retry_delay=60 * 5,
     max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
 @retry
 def remove_2fa_non_compliant_members(org_id, actor_id=None, actor_key_id=None, ip_address=None):
@@ -220,6 +226,7 @@ class VerifiedEmailComplianceTask(OrganizationComplianceTask):
     queue="auth",
     default_retry_delay=60 * 5,
     max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
 @retry
 def remove_email_verification_non_compliant_members(
