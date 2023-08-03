@@ -312,19 +312,17 @@ export function formatAbbreviatedNumber(
 
     const formattedNumber =
       shortValue / 10 > 1 || !fitsBound
-        ? shortValue
-        : formatFloat(number / suffixNum, precision || 1);
+        ? precision === undefined
+          ? shortValue
+          : parseFloat(shortValue.toPrecision(precision)).toString()
+        : formatFloat(number / suffixNum, precision || 1).toLocaleString(undefined, {
+            maximumSignificantDigits: precision,
+          });
 
-    const formattedNumberWithPercision =
-      precision === undefined
-        ? formattedNumber
-        : parseFloat(formattedNumber.toPrecision(precision));
-    return `${formattedNumberWithPercision}${suffix}`;
+    return `${formattedNumber}${suffix}`;
   }
 
-  return precision === undefined
-    ? number.toLocaleString()
-    : number.toPrecision(precision);
+  return number.toLocaleString(undefined, {maximumSignificantDigits: precision});
 }
 
 export function formatRate(value: number, unit: RateUnits = RateUnits.PER_SECOND) {
