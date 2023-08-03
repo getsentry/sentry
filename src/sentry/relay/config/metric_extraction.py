@@ -6,6 +6,7 @@ from sentry import features
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models import (
+    TRANSACTION_METRICS,
     Project,
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
@@ -57,7 +58,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
         .select_related("snuba_query")
     )
 
-    metrics = _get_metric_specs(alerts)
+    metrics = _get_metric_specs(project, alerts)
 
     if not metrics:
         return None
@@ -72,12 +73,12 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     }
 
 
-def _get_metric_specs(alert_rules: Sequence[AlertRule]) -> List[MetricSpec]:
+def _get_metric_specs(project: Project, alert_rules: Sequence[AlertRule]) -> List[MetricSpec]:
     # We use a dict so that we can deduplicate metrics with the same query.
     metrics: Dict[str, MetricSpec] = {}
 
     for alert in alert_rules:
-        hashed_metric_spec = convert_query_to_metric(alert.snuba_query)
+        hashed_metric_spec = convert_query_to_metric(project, alert.snuba_query)
         if hashed_metric_spec is not None:
             metrics[hashed_metric_spec.query_hash] = hashed_metric_spec.metric_spec
 
@@ -89,7 +90,9 @@ class HashedMetricSpec(NamedTuple):
     query_hash: str
 
 
-def convert_query_to_metric(snuba_query: SnubaQuery) -> Optional[HashedMetricSpec]:
+def convert_query_to_metric(
+    project: Project, snuba_query: SnubaQuery
+) -> Optional[HashedMetricSpec]:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
     returns a MetricSpec for the query. Otherwise, returns None.
@@ -105,7 +108,7 @@ def convert_query_to_metric(snuba_query: SnubaQuery) -> Optional[HashedMetricSpe
         on_demand_spec = builder.build_spec(
             field=field,
             query=query,
-            derived_metric_params=_get_derived_metric_params(field=field),
+            derived_metric_params=_get_derived_metric_params(project=project, field=field),
         )
 
         return HashedMetricSpec(
@@ -116,11 +119,23 @@ def convert_query_to_metric(snuba_query: SnubaQuery) -> Optional[HashedMetricSpe
         return None
 
 
-def _get_derived_metric_params(field: str) -> DerivedMetricParams:
+def _get_derived_metric_params(project: Project, field: str) -> DerivedMetricParams:
     if field == "apdex()":
-        # TODO: here we have to fetch the actual apdex param via ProjectTransactionThreshold.
+        result = ProjectTransactionThreshold.filter(
+            organization_id=project.organization.id,
+            project_ids=[project.id],
+            order_by=[],
+            value_list=["threshold", "metric"],
+        )
+        # We expect to find only 1 entry, if we find many or none, we throw an error.
+        if len(result) != 1:
+            raise Exception(f"Zero or multiple thresholds found for apdex in project {project.id}")
+
+        threshold, metric = result[0]
+        metric_op = TRANSACTION_METRICS[metric]
+
         return DerivedMetricParams(
-            {"apdex_threshold": 10, "field_to_extract": "transaction.duration"}
+            {"apdex_threshold": threshold, "field_to_extract": f"transaction.{metric_op}"}
         )
 
     return DerivedMetricParams.empty()

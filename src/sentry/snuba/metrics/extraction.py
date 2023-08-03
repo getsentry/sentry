@@ -74,6 +74,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "http.status_code": "contexts.response.status_code",
     # Computed fields
     "transaction.duration": "duration",
+    "transaction.lcp": "lcp",
     "release.build": "release.build",
     "release.package": "release.package",
     "release.version": "release.version.short",
@@ -340,18 +341,18 @@ class DerivedMetricParams(NamedTuple):
     def empty():
         return DerivedMetricParams({})
 
-    def consume(self, consumer: str) -> "ParamsConsumer":
-        return ParamsConsumer(consumer=consumer, params=self)
+    def consume(self, consumer: str) -> "DerivedMetricParamsConsumer":
+        return DerivedMetricParamsConsumer(consumer=consumer, params=self)
 
 
-class ParamsConsumer:
+class DerivedMetricParamsConsumer:
     def __init__(self, consumer: str, params: DerivedMetricParams):
         self.consumer = consumer
         self.params = params
 
         self._fetched_params: List[Any] = []
 
-    def param(self, param_name: str) -> "ParamsConsumer":
+    def param(self, param_name: str) -> "DerivedMetricParamsConsumer":
         param_value = self.params.params.get(param_name)
         if param_value is None:
             raise Exception(
@@ -399,17 +400,6 @@ class FailureRate(DerivedMetric):
                     SearchFilter(
                         key=SearchKey(name="transaction.status"),
                         operator="NOT IN",
-                        value=SearchValue(raw_value=["ok", "cancelled", "unknown"]),
-                    ),
-                ],
-            ),
-            DerivedMetricComponent(
-                tag_key="failure",
-                tag_value="false",
-                conditions=[
-                    SearchFilter(
-                        key=SearchKey(name="transaction.status"),
-                        operator="IN",
                         value=SearchValue(raw_value=["ok", "cancelled", "unknown"]),
                     ),
                 ],
@@ -480,6 +470,7 @@ class Apdex(DerivedMetric):
         # Instead of supporting expressions in the parser, we can just create here all variants.
         t2 = 4 * apdex_threshold
 
+        # The threshold is specified in ms.
         return {
             "apdex_threshold_1": apdex_threshold,
             "apdex_threshold_2": t2,
