@@ -10,6 +10,7 @@ import sentry_kafka_schemas
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
+from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch, PartitionIdxOffset
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
@@ -669,6 +670,149 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
             }
         },
     }
+
+
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
+def test_resolved_with_aggregation_options(caplog, settings):
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+    counter_metric_id = "c:transactions/alert@none"
+    dist_metric_id = "d:transactions/measurements.fcp@millisecond"
+    set_metric_id = "s:transactions/on_demand@none"
+
+    outer_message = _construct_outer_message(
+        [
+            (
+                {
+                    **counter_payload,
+                    "name": counter_metric_id,
+                },
+                [],
+            ),
+            ({**distribution_payload, "name": dist_metric_id}, []),
+            ({**set_payload, "name": set_metric_id}, []),
+        ]
+    )
+
+    batch = IndexerBatch(
+        outer_message,
+        False,
+        False,
+        input_codec=_INGEST_CODEC,
+    )
+    assert batch.extract_strings() == (
+        {
+            MockUseCaseID.TRANSACTIONS: {
+                1: {
+                    counter_metric_id,
+                    dist_metric_id,
+                    "environment",
+                    set_metric_id,
+                    "session.status",
+                }
+            }
+        }
+    )
+
+    caplog.set_level(logging.ERROR)
+    snuba_payloads = batch.reconstruct_messages(
+        {
+            MockUseCaseID.TRANSACTIONS: {
+                1: {
+                    counter_metric_id: 1,
+                    dist_metric_id: 2,
+                    "environment": 3,
+                    set_metric_id: 8,
+                    "session.status": 9,
+                }
+            }
+        },
+        {
+            MockUseCaseID.TRANSACTIONS: {
+                1: {
+                    counter_metric_id: Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                    dist_metric_id: Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                    "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                    set_metric_id: Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
+                    "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
+                }
+            },
+        },
+    )
+
+    assert _get_string_indexer_log_records(caplog) == []
+
+    assert _deconstruct_messages(snuba_payloads, kafka_logical_topic="snuba-generic-metrics") == [
+        (
+            {
+                "mapping_meta": {
+                    "c": {
+                        "1": counter_metric_id,
+                        "3": "environment",
+                        "9": "session.status",
+                    },
+                },
+                "metric_id": 1,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": "production", "9": "init"},
+                "timestamp": ts,
+                "type": "c",
+                "use_case_id": "transactions",
+                "value": 1.0,
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
+                "version": 2,
+            },
+            [("mapping_sources", b"c"), ("metric_type", "c")],
+        ),
+        (
+            {
+                "mapping_meta": {
+                    "c": {
+                        "2": dist_metric_id,
+                        "3": "environment",
+                        "9": "session.status",
+                    },
+                },
+                "metric_id": 2,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": "production", "9": "healthy"},
+                "timestamp": ts,
+                "type": "d",
+                "use_case_id": "transactions",
+                "value": [4, 5, 6],
+                "aggregation_option": AggregationOption.HIST.value,
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
+                "version": 2,
+            },
+            [("mapping_sources", b"c"), ("metric_type", "d")],
+        ),
+        (
+            {
+                "mapping_meta": {
+                    "c": {
+                        "3": "environment",
+                        "8": set_metric_id,
+                        "9": "session.status",
+                    },
+                },
+                "metric_id": 8,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": "production", "9": "errored"},
+                "timestamp": ts,
+                "type": "s",
+                "use_case_id": "transactions",
+                "value": [3],
+                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
+                "version": 2,
+            },
+            [("mapping_sources", b"c"), ("metric_type", "s")],
+        ),
+    ]
 
 
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
