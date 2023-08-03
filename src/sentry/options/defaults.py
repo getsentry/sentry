@@ -724,6 +724,9 @@ register(
 register(
     "store.save-event-highcpu-platforms", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+# The percentage of highcpu traffic we want to route to highcpu dedicated queue. Can remove this
+# option once we fully rollout
+register("store.save-event-highcpu-percent-opt-in", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "store.symbolicate-event-lpq-never", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
