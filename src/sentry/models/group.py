@@ -648,7 +648,9 @@ class Group(Model):
                 return_ids=False,
             )
 
-            has_replays = counts.get(self.id, 0) > 0
+            has_replays = counts.get(self.id, 0) > 0  # type: ignore
+            # need to refactor counts so that the type of the key returned in the dict is always a str
+            # for typing
             metrics.incr(
                 "group.has_replays.replay_count_query",
                 tags={
