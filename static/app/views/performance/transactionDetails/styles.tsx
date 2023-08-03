@@ -26,7 +26,7 @@ export function MetaData({
         {headingText}
         <QuestionTooltip
           position="top"
-          size="sm"
+          size="xs"
           containerDisplayMode="block"
           title={tooltipText}
         />

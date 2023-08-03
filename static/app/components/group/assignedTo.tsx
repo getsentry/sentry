@@ -311,9 +311,7 @@ const StyledSidebarSectionContent = styled(SidebarSection.Content)`
 `;
 
 const StyledSidebarTitle = styled(SidebarSection.Title)`
-  display: flex;
   justify-content: space-between;
-  align-items: center;
   margin-right: -${space(1)};
 `;
 

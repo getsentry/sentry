@@ -122,14 +122,14 @@ export default function GroupSidebar({
 
     return (
       <SidebarSection.Wrap>
-        <StyledSidebarSectionTitle>
+        <SidebarSection.Title>
           {t('Participants (%s)', participants.length)}
           <QuestionTooltip
-            size="sm"
+            size="xs"
             position="top"
             title={t('People who have resolved, ignored, or added a comment')}
           />
-        </StyledSidebarSectionTitle>
+        </SidebarSection.Title>
         <SidebarSection.Content>
           <StyledAvatarList users={participants} avatarSize={28} maxVisibleAvatars={13} />
         </SidebarSection.Content>
@@ -148,14 +148,14 @@ export default function GroupSidebar({
 
     return (
       <SidebarSection.Wrap>
-        <StyledSidebarSectionTitle>
+        <SidebarSection.Title>
           {t('Viewers (%s)', displayUsers.length)}{' '}
           <QuestionTooltip
-            size="sm"
+            size="xs"
             position="top"
             title={t('People who have viewed this issue')}
           />
-        </StyledSidebarSectionTitle>
+        </SidebarSection.Title>
         <SidebarSection.Content>
           <StyledAvatarList
             users={displayUsers}
@@ -228,8 +228,4 @@ const ExternalIssues = styled('div')`
 const StyledAvatarList = styled(AvatarList)`
   justify-content: flex-end;
   padding-left: ${space(0.75)};
-`;
-
-const StyledSidebarSectionTitle = styled(SidebarSection.Title)`
-  gap: ${space(1)};
 `;
