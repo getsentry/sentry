@@ -19,7 +19,11 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.pipeline import PipelineView
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    IntegrationError,
+    IntegrationProviderError,
+)
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
@@ -167,10 +171,10 @@ class InstallationTeamSelectView(PipelineView):
         if "completed_installation_guide?goback" in request.GET:
             pipeline.state.step_index = 1
             return pipeline.current_step()
-        og_teams = self.get_og_teams(pipeline)
-        if og_teams is None:
-            raise IntegrationError("Could not authenticate with the provided integration key.")
-
+        try:
+            og_teams = self.get_og_teams(pipeline)
+        except IntegrationProviderError as e:
+            return pipeline.render_warning(str(e))
         # if we are POSTing the data from the team select form
         if "teams" in request.POST:
             form_2 = TeamSelectForm(data=request.POST, team_list=og_teams)
@@ -210,7 +214,9 @@ class InstallationTeamSelectView(PipelineView):
                     "error_status": api_error.code,
                 },
             )
-            return None
+            raise IntegrationProviderError(
+                "Could not authenticate with the provided integration key."
+            )
 
 
 class OpsgenieIntegration(IntegrationInstallation):
@@ -298,6 +304,8 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         api_key = state["installation_data"]["api_key"]
         base_url = state["installation_data"]["base_url"]
+        # teams = state["team_data"]["teams"]
+        # print("TEAMS:", teams)
         account = self.get_account_info(base_url=base_url, api_key=api_key).get("data")
         name = account.get("name")
         return {
