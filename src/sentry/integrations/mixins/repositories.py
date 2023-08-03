@@ -5,10 +5,9 @@ from typing import Collection, Mapping, Sequence
 from sentry_sdk import configure_scope
 
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.constants import ObjectStatus
 from sentry.models import Identity, Repository
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.repository import RpcRepository
+from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 
@@ -106,11 +105,13 @@ class RepositoryMixin:
     def reinstall_repositories(self) -> None:
         """Reinstalls repositories associated with the integration."""
         _, installs = integration_service.get_organization_contexts(integration_id=self.model.id)
-        Repository.objects.filter(
-            organization_id__in=[i.organization_id for i in installs],
-            provider=f"integrations:{self.model.provider}",
-            integration_id=self.model.id,
-        ).update(status=ObjectStatus.ACTIVE)
+
+        for install in installs:
+            repository_service.reinstall_repositories_for_integration(
+                organization_id=install.organization_id,
+                integration_id=self.model.id,
+                provider=f"integrations:{self.model.provider}",
+            )
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
         raise NotImplementedError

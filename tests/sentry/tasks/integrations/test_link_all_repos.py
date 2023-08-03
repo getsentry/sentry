@@ -199,22 +199,20 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
         mock_metrics.incr.assert_called_with("sentry.integration_repo_provider.repo_exists")
 
-    @patch("sentry_sdk.capture_exception")
-    @patch("sentry.models.Repository.objects.create")
+    @patch("sentry.services.hybrid_cloud.repository.repository_service.create_repository")
     @patch("sentry.plugins.providers.IntegrationRepositoryProvider.on_delete_repository")
     @responses.activate
     def test_link_all_repos_repo_creation_exception(
-        self, mock_delete_repo, mock_repo, mock_capture_exception, _
+        self, mock_delete_repo, mock_create_repository, _
     ):
-        mock_repo.side_effect = IntegrityError
+        mock_create_repository.return_value = None
         mock_delete_repo.side_effect = Exception
 
         self._add_responses()
 
-        link_all_repos(
-            integration_key=self.key,
-            integration_id=self.integration.id,
-            organization_id=self.organization.id,
-        )
-
-        assert mock_capture_exception.called
+        with pytest.raises(Exception):
+            link_all_repos(
+                integration_key=self.key,
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+            )
