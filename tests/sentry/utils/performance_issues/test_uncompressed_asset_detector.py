@@ -41,7 +41,7 @@ def create_compressed_asset_span():
     )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @pytest.mark.django_db
 class UncompressedAssetsDetectorTest(TestCase):
     def setUp(self):

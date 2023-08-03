@@ -42,7 +42,7 @@ from sentry.search.events.fields import resolve_field
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
-from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
+from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -1339,7 +1339,8 @@ def get_alert_rule_trigger_action_opsgenie_team(
     use_async_lookup=False,
     input_channel_id=None,
     integrations=None,
-):
+) -> tuple[str, str]:
+    from sentry.integrations.opsgenie.client import OpsgenieClient
     from sentry.integrations.opsgenie.utils import get_team
 
     oi = integration_service.get_organization_integration(
@@ -1348,6 +1349,20 @@ def get_alert_rule_trigger_action_opsgenie_team(
     team = get_team(target_value, oi)
     if not team:
         raise InvalidTriggerActionError("No Opsgenie team found.")
+
+    integration_key = team["integration_key"]
+    integration = integration_service.get_integration(integration_id=integration_id)
+    if integration is None:
+        raise InvalidTriggerActionError("Opsgenie integration not found.")
+    client = OpsgenieClient(
+        integration=integration,
+        integration_key=integration_key,
+        org_integration_id=oi.id,
+    )
+    try:
+        client.authorize_integration(type="sentry")
+    except ApiError:
+        raise InvalidTriggerActionError("Invalid integration key.")
     return team["id"], team["team"]
 
 

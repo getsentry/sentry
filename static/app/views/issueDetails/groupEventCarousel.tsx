@@ -52,6 +52,7 @@ type GroupEventCarouselProps = {
 
 type GroupEventNavigationProps = {
   group: Group;
+  isDisabled: boolean;
   relativeTime: string;
 };
 
@@ -115,7 +116,11 @@ function EventNavigationButton({
   );
 }
 
-function EventNavigationDropdown({group, relativeTime}: GroupEventNavigationProps) {
+function EventNavigationDropdown({
+  group,
+  relativeTime,
+  isDisabled,
+}: GroupEventNavigationProps) {
   const location = useLocation();
   const params = useParams<{eventId?: string}>();
   const theme = useTheme();
@@ -182,6 +187,7 @@ function EventNavigationDropdown({group, relativeTime}: GroupEventNavigationProp
   return (
     <CompactSelect
       size="sm"
+      disabled={isDisabled}
       options={eventNavDropdownOptions}
       value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
       triggerLabel={
@@ -411,6 +417,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
           </Button>
         )}
         <EventNavigationDropdown
+          isDisabled={!hasPreviousEvent && !hasNextEvent}
           group={group}
           relativeTime={event.dateCreated ?? event.dateReceived}
         />
