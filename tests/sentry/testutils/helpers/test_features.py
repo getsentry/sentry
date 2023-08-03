@@ -27,16 +27,16 @@ class TestTestUtilsFeatureHelper(TestCase):
             with self.feature("organizations:customer-domains"):
                 # Make sure this check returns True for features that are defaulted to True and aren't
                 # mocked
-                results = list(
-                    features.batch_has(
-                        [
-                            "organizations:customer-domains",
-                            "organizations:advanced-search",
-                            "organizations:api-keys",
-                        ],
-                        organization=self.org,
-                    ).values()
-                )[0]
+                ret = features.batch_has(
+                    [
+                        "organizations:customer-domains",
+                        "organizations:advanced-search",
+                        "organizations:api-keys",
+                    ],
+                    organization=self.org,
+                )
+                assert ret is not None
+                results = list(ret.values())[0]
                 assert results["organizations:customer-domains"]
                 assert results["organizations:advanced-search"]
                 assert not results["organizations:api-keys"]

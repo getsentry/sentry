@@ -11,7 +11,6 @@ from django.utils import timezone
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
 from snuba_sdk import Request as SnubaRequest
 
-from sentry import features
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models import Group, GroupOwnerType, Project
 from sentry.models.options.organization_option import OrganizationOption
@@ -31,6 +30,8 @@ from sentry.utils.snuba import Dataset, raw_snql_query
 
 logger = logging.getLogger(__name__)
 
+METRICS_BASE = "github_pr_comment.{key}"
+
 
 @dataclass
 class PullRequestIssue:
@@ -40,7 +41,7 @@ class PullRequestIssue:
 
 
 COMMENT_BODY_TEMPLATE = """## Suspect Issues
-This pull request has been deployed and Sentry has observed the following issues:
+This pull request has been deployed and Sentry observed the following issues:
 
 {issue_list}
 
@@ -153,19 +154,17 @@ def create_or_update_comment(
             group_ids=issue_list,
             comment_type=comment_type,
         )
+        metrics.incr(METRICS_BASE.format(key="comment_created"))
     else:
         resp = client.update_comment(
             repo=repo.name, comment_id=pr_comment.external_id, data={"body": comment_body}
         )
-
+        metrics.incr(METRICS_BASE.format(key="comment_updated"))
         pr_comment.updated_at = timezone.now()
         pr_comment.group_ids = issue_list
         pr_comment.save()
 
-    metrics.incr(
-        "github_pr_comment.rate_limit_remaining",
-        tags={"remaining": int(resp.headers["X-Ratelimit-Remaining"])},
-    )
+    # TODO(adas): Figure out a way to track average rate limit left for GH client
 
     logger.info(
         "github.pr_comment.create_or_update_comment",
@@ -184,16 +183,13 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     except Organization.DoesNotExist:
         cache.delete(cache_key)
         logger.error("github.pr_comment.org_missing")
-        metrics.incr("github_pr_comment.error", tags={"type": "missing_org"})
+        metrics.incr(METRICS_BASE.format(key="error"), tags={"type": "missing_org"})
         return
 
-    if not (
-        features.has("organizations:pr-comment-bot", organization)
-        and OrganizationOption.objects.get_value(
-            organization=organization,
-            key="sentry:github_pr_bot",
-            default=True,
-        )
+    if not OrganizationOption.objects.get_value(
+        organization=organization,
+        key="sentry:github_pr_bot",
+        default=True,
     ):
         logger.error("github.pr_comment.option_missing", extra={"organization_id": org_id})
         return
@@ -210,7 +206,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     except Project.DoesNotExist:
         cache.delete(cache_key)
         logger.error("github.pr_comment.project_missing", extra={"organization_id": org_id})
-        metrics.incr("github_pr_comment.error", tags={"type": "missing_project"})
+        metrics.incr(METRICS_BASE.format(key="error"), tags={"type": "missing_project"})
         return
 
     top_5_issues = get_top_5_issues_by_count(issue_list, project)
@@ -222,14 +218,14 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     except Repository.DoesNotExist:
         cache.delete(cache_key)
         logger.error("github.pr_comment.repo_missing", extra={"organization_id": org_id})
-        metrics.incr("github_pr_comment.error", tags={"type": "missing_repo"})
+        metrics.incr(METRICS_BASE.format(key="error"), tags={"type": "missing_repo"})
         return
 
     integration = integration_service.get_integration(integration_id=repo.integration_id)
     if not integration:
         cache.delete(cache_key)
         logger.error("github.pr_comment.integration_missing", extra={"organization_id": org_id})
-        metrics.incr("github_pr_comment.error", tags={"type": "missing_integration"})
+        metrics.incr(METRICS_BASE.format(key="error"), tags={"type": "missing_integration"})
         return
 
     installation = integration.get_installation(organization_id=org_id)
@@ -258,14 +254,14 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 
         if e.json:
             if ISSUE_LOCKED_ERROR_MESSAGE in e.json.get("message", ""):
-                metrics.incr("github_pr_comment.issue_locked_error")
+                metrics.incr(METRICS_BASE.format(key="error"), tags={"type": "issue_locked_error"})
                 return
 
             elif RATE_LIMITED_MESSAGE in e.json.get("message", ""):
-                metrics.incr("github_pr_comment.rate_limited_error")
+                metrics.incr(METRICS_BASE.format(key="error"), tags={"type": "rate_limited_error"})
                 return
 
-        metrics.incr("github_pr_comment.api_error")
+        metrics.incr(METRICS_BASE.format(key="error"), tags={"type": "api_error"})
         raise e
 
 
