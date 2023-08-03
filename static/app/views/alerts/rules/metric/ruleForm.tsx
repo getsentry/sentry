@@ -634,6 +634,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         {
           ...rule,
           ...model.getTransformedData(),
+          projects: [project.slug],
           triggers: sanitizedTriggers,
           resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
           thresholdType,
@@ -755,7 +756,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     try {
       await this.api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/alert-rules/${ruleId}/`,
+        `/organizations/${organization.slug}/${projectId}/alert-rules/${ruleId}/`,
         {
           method: 'DELETE',
         }

@@ -363,6 +363,14 @@ class ProfileRegexType(GroupType):
 
 
 @dataclass(frozen=True)
+class ProfileFrameDropExperimentalType(GroupType):
+    type_id = 2008
+    slug = "profile_frame_drop_experimental"
+    description = "Frame Drop"
+    category = GroupCategory.PERFORMANCE.value
+
+
+@dataclass(frozen=True)
 class MonitorCheckInFailure(GroupType):
     type_id = 4001
     slug = "monitor_check_in_failure"

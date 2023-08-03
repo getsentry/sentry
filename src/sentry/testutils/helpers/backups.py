@@ -2,18 +2,15 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from typing import Type
 
 from click.testing import CliRunner
 from django.core.management import call_command
 
-from sentry.runner.commands.backup import (
-    ComparatorFindings,
-    ComparatorMap,
-    export,
-    import_,
-    validate,
-)
+from sentry.backup.comparators import ComparatorMap
+from sentry.backup.findings import ComparatorFindings
+from sentry.backup.helpers import get_exportable_final_derivations_of, get_final_derivations_of
+from sentry.backup.validate import validate
+from sentry.runner.commands.backup import export, import_
 from sentry.silo import unguarded_write
 from sentry.testutils.factories import get_fixture_path
 from sentry.utils import json
@@ -48,33 +45,6 @@ def export_to_file(path: Path) -> JSONData:
         # print("\n\n\nOUT: \n\n\n" + tmp_file.read())
         output = json.load(tmp_file)
     return output
-
-
-def get_final_derivations_of(model: Type):
-    """A "final" derivation of the given `model` base class is any non-abstract class for the
-    "sentry" app with `BaseModel` as an ancestor. Top-level calls to this class should pass in
-    `BaseModel` as the argument."""
-
-    out = set()
-    for sub in model.__subclasses__():
-        subs = sub.__subclasses__()
-        if subs:
-            out.update(get_final_derivations_of(sub))
-        if not sub._meta.abstract and sub._meta.db_table and sub._meta.app_label == "sentry":
-            out.add(sub)
-    return out
-
-
-def get_exportable_final_derivations_of(model: Type):
-    """Like `get_final_derivations_of`, except that it further filters the results to include only
-    `__include_in_export__ = True`."""
-
-    return set(
-        filter(
-            lambda c: getattr(c, "__include_in_export__") is True,
-            get_final_derivations_of(model),
-        )
-    )
 
 
 def import_export_then_validate(method_name: str) -> JSONData:

@@ -119,6 +119,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.types.region import Region, get_region_by_name
 from sentry.utils import json, loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
+from social_auth.models import UserSocialAuth
 
 
 def get_fixture_path(*parts: str) -> str:
@@ -742,6 +743,22 @@ class Factories:
         useremail.save()
 
         return useremail
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_usersocialauth(
+        user: User,
+        provider: str | None = None,
+        uid: str | None = None,
+        extra_data: Mapping[str, Any] | None = None,
+    ):
+        if not provider:
+            provider = "asana"
+        if not uid:
+            uid = "abc-123"
+        usa = UserSocialAuth(user=user, provider=provider, uid=uid, extra_data=extra_data)
+        usa.save()
+        return usa
 
     @staticmethod
     def inject_performance_problems(jobs, _):

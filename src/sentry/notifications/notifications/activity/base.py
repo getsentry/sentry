@@ -92,7 +92,11 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
 
     @cached_property
     def user(self) -> RpcUser | None:
-        return user_service.get_user(self.activity.user_id)
+        return (
+            user_service.get_user(self.activity.user_id)
+            if self.activity.user_id is not None
+            else None
+        )
 
     def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
         """This is overridden by the activity subclasses."""

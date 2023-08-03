@@ -12,10 +12,8 @@ import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/brea
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame} from 'sentry/utils/replays/types';
@@ -23,13 +21,10 @@ import useProjects from 'sentry/utils/useProjects';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
-type MouseCallback = (
-  crumb: Crumb | ReplayFrame,
-  e: React.MouseEvent<HTMLElement>
-) => void;
+type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => void;
 
 interface BaseProps {
-  crumb: Crumb | ReplayFrame;
+  frame: ReplayFrame;
   onClick: null | MouseCallback;
   startTimestampMs: number;
   className?: string;
@@ -58,25 +53,17 @@ interface WithDimensionChangeProps extends BaseProps {
 
 type Props = NoDimensionChangeProps | WithDimensionChangeProps;
 
-function getCrumbOrFrameData(crumb: Crumb | ReplayFrame) {
-  if ('offsetMs' in crumb) {
-    return {
-      ...getFrameDetails(crumb),
-      projectSlug: isErrorFrame(crumb) ? crumb.data.projectSlug : null,
-      timestampMs: crumb.timestampMs,
-    };
-  }
-  const details = getDetails(crumb);
+function getCrumbOrFrameData(frame: ReplayFrame) {
   return {
-    ...details,
-    timestampMs: crumb.timestamp || '',
-    projectSlug: crumb.type === BreadcrumbType.ERROR ? details.projectSlug : undefined,
+    ...getFrameDetails(frame),
+    projectSlug: isErrorFrame(frame) ? frame.data.projectSlug : null,
+    timestampMs: frame.timestampMs,
   };
 }
 
 function BreadcrumbItem({
   className,
-  crumb,
+  frame,
   expandPaths,
   index,
   onClick,
@@ -87,31 +74,27 @@ function BreadcrumbItem({
   style,
 }: Props) {
   const {color, description, projectSlug, title, type, timestampMs} =
-    getCrumbOrFrameData(crumb);
+    getCrumbOrFrameData(frame);
 
   const handleMouseEnter = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => onMouseEnter && onMouseEnter(crumb, e),
-    [onMouseEnter, crumb]
+    (e: React.MouseEvent<HTMLElement>) => onMouseEnter && onMouseEnter(frame, e),
+    [onMouseEnter, frame]
   );
   const handleMouseLeave = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => onMouseLeave && onMouseLeave(crumb, e),
-    [onMouseLeave, crumb]
+    (e: React.MouseEvent<HTMLElement>) => onMouseLeave && onMouseLeave(frame, e),
+    [onMouseLeave, frame]
   );
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLElement>) => {
-      onClick?.(crumb, e);
+      onClick?.(frame, e);
     },
-    [crumb, onClick]
+    [frame, onClick]
   );
   const handleDimensionChange = useCallback(
     (path, expandedState, e) =>
       onDimensionChange && onDimensionChange(index, path, expandedState, e),
     [index, onDimensionChange]
   );
-
-  // Note: use `crumb.type` here as `getDetails()` will return a type based on
-  // crumb category for presentation purposes. e.g. if we wanted to use an
-  // error icon for a non-Sentry error
 
   return (
     <CrumbItem

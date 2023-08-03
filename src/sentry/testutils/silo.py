@@ -33,7 +33,8 @@ from sentry import deletions
 from sentry.db.models.base import ModelSiloLimit
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.deletions.base import BaseDeletionTask
-from sentry.models import Actor, NotificationSetting
+from sentry.models.actor import Actor
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.silo import SiloMode, match_fence_query
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
@@ -83,7 +84,7 @@ class SiloModeTestDecorator:
 
     @staticmethod
     def _is_acceptance_test(test_class: type) -> bool:
-        from sentry.testutils import AcceptanceTestCase
+        from sentry.testutils.cases import AcceptanceTestCase
 
         return issubclass(test_class, AcceptanceTestCase)
 
@@ -210,9 +211,34 @@ class SiloModeTestDecorator:
 
 
 all_silo_test = SiloModeTestDecorator(SiloMode.CONTROL, SiloMode.REGION)
+"""
+Apply to test functions/classes to indicate that tests are
+expected to pass in CONTROL, REGION and MONOLITH modes.
+"""
+
 no_silo_test = SiloModeTestDecorator()
+"""
+Apply to test functions/classes to indicate that tests are
+free of silo mode logic and hybrid cloud service usage.
+"""
+
 control_silo_test = SiloModeTestDecorator(SiloMode.CONTROL)
+"""
+Apply to test functions/classes to indicate that tests are
+expected to pass with the current silo mode set to CONTROL.
+
+When the stable=True parameter is provided tests will be
+run twice as both CONTROL and MONOLITH modes.
+"""
+
 region_silo_test = SiloModeTestDecorator(SiloMode.REGION)
+"""
+Apply to test functions/classes to indicate that tests are
+expected to pass with the current silo mode set to REGION.
+
+When the stable=True parameter is provided tests will be
+run twice as both REGION and MONOLITH modes.
+"""
 
 
 @contextmanager
@@ -439,6 +465,8 @@ def validate_model_no_cross_silo_foreign_keys(
     model: Type[Model],
     exemptions: Set[Tuple[Type[Model], Type[Model]]],
 ) -> Set[Any]:
+    from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+
     seen: Set[Any] = set()
     for field in model._meta.fields:
         if isinstance(field, RelatedField):

@@ -107,6 +107,15 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
 
         assert resp.data == serialize(self.alert_rule, serializer=DetailedAlertRuleSerializer())
 
+    def test_aggregate_translation(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        alert_rule = self.create_alert_rule(aggregate="count_unique(tags[sentry:user])")
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug, alert_rule.id)
+            assert resp.data["aggregate"] == "count_unique(user)"
+            assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
+
     def test_expand_latest_incident(self):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -521,7 +530,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
     def test_team_permission(self):
         # Test ensures you can only edit alerts owned by your team or no one.
-
         om = self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -537,7 +545,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         ).delete()
         with self.feature("organizations:incidents"):
             resp = self.get_response(self.organization.slug, alert_rule.id, **serialized_alert_rule)
-        assert resp.status_code == 403
+        assert resp.status_code == 200
         self.create_team_membership(team=self.team, member=om)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(
@@ -624,7 +632,10 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         ).delete()
         with self.feature("organizations:incidents"):
             resp = self.get_response(self.organization.slug, alert_rule.id)
-        assert resp.status_code == 403
+        assert resp.status_code == 204
+        another_alert_rule = self.alert_rule
+        alert_rule.owner = self.team.actor
+        another_alert_rule.save()
         self.create_team_membership(team=self.team, member=om)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug, alert_rule.id, status_code=204)
