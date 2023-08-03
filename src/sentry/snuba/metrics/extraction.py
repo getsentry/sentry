@@ -543,6 +543,11 @@ class OndemandMetricSpecBuilder:
                     op=op, argument=argument, derived_metric_params=derived_metric_params
                 )
 
+                # For now if we have an argument for a derived metric, it implies it is the argument for apdex(x) thus
+                # we want to scrape it, since Relay will not need that. However, we need to better define this behavior
+                # since right now it's very hacky.
+                argument = None
+
             tags_conditions = self._process_components(
                 derived_metric=derived_metric, derived_metric_params=derived_metric_params
             )
@@ -566,21 +571,6 @@ class OndemandMetricSpecBuilder:
         metric_type = self._get_metric_type(parsed_field.function)
 
         return op, metric_type, self._parse_argument(op, metric_type, parsed_field)
-
-    def _parse_argument(
-        self, op: MetricOperationType, metric_type: str, parsed_field: FieldParsingResult
-    ) -> Optional[str]:
-        requires_single_argument = metric_type != "c" and op != "on_demand_failure_rate"
-        if not requires_single_argument:
-            return None
-
-        assert len(parsed_field.arguments) == 1, "Only one parameter is supported"
-
-        argument = parsed_field.arguments[0]
-        if op == "on_demand_apdex":
-            return argument
-
-        return _map_field_name(argument)
 
     def _process_query(self, field: str, query: str) -> RuleCondition:
         parsed_field = self._field_parser.parse(field)
@@ -631,6 +621,25 @@ class OndemandMetricSpecBuilder:
             )
 
         return tags_conditions
+
+    @staticmethod
+    def _parse_argument(
+        op: MetricOperationType, metric_type: str, parsed_field: FieldParsingResult
+    ) -> Optional[str]:
+        requires_single_argument = metric_type != "c" and op != "on_demand_failure_rate"
+        if not requires_single_argument:
+            return None
+
+        assert len(parsed_field.arguments) == 1, "Only one parameter is supported"
+
+        argument = parsed_field.arguments[0]
+        # TODO: abstract better this handling with a possible declarative approach to argument definition, which will
+        #  also support the definition of arguments that are not directly referring to fields that Relay will have to
+        #  extract.
+        if op == "on_demand_apdex":
+            return argument
+
+        return _map_field_name(argument)
 
     @staticmethod
     def _extend_derived_metric_params(
@@ -706,7 +715,7 @@ def _map_field_name(search_key: str) -> str:
 
 
 def _get_derived_metric_params(project: Project, field: str) -> DerivedMetricParams:
-    if field == "apdex()":
+    if field.startswith("apdex"):
         result = ProjectTransactionThreshold.filter(
             organization_id=project.organization.id,
             project_ids=[project.id],
