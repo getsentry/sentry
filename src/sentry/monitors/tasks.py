@@ -3,10 +3,10 @@ import logging
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
-from ..silo import SiloMode
 from .models import (
     CheckInStatus,
     MonitorCheckIn,

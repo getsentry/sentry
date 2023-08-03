@@ -7,7 +7,7 @@ from hashlib import sha1
 import celery
 import sentry_sdk
 
-from ..silo import SiloMode
+from sentry.silo import SiloMode
 
 # XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
 if celery.version_info >= (5, 2):
