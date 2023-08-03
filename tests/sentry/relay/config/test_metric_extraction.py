@@ -110,6 +110,7 @@ def test_get_metric_specs_multiple_duplicated(default_project):
 def test_get_metric_specs_with_apdex(default_project):
     alert = mock_alert(default_project, "apdex()", "transaction.duration:>=1000")
     mock_project_threshold(default_project, 10, TransactionMetric.DURATION.value)
+
     specs = extraction._get_metric_specs(default_project, [alert])
 
     assert len(specs) == 1

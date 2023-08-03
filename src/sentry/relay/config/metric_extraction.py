@@ -121,6 +121,7 @@ def convert_query_to_metric(
 
 def _get_derived_metric_params(project: Project, field: str) -> DerivedMetricParams:
     if field == "apdex()":
+        # TODO: check if we should use the ProjectTransactionThresholdOverride.
         result = ProjectTransactionThreshold.filter(
             organization_id=project.organization.id,
             project_ids=[project.id],
