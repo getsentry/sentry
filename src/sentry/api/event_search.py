@@ -1,10 +1,10 @@
+from __future__ import annotations
+
 import re
 from collections import namedtuple
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, List, Mapping, NamedTuple
-from typing import Optional as PythonOptional
-from typing import Sequence, Set, Tuple, Union
+from typing import Any, List, Mapping, NamedTuple, Sequence, Set, Tuple, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
@@ -345,8 +345,7 @@ class SearchKey(NamedTuple):
 
 
 class SearchValue(NamedTuple):
-    raw_value: Union[str, int, datetime, Sequence[int], Sequence[str]] = ""
-    variable_name: PythonOptional[str] = None
+    raw_value: Union[str, int, datetime, Sequence[int], Sequence[str]]
 
     @property
     def value(self):
@@ -469,7 +468,7 @@ class SearchConfig:
     free_text_key = "message"
 
     @classmethod
-    def create_from(cls, search_config: "SearchConfig", **overrides):
+    def create_from(cls, search_config: SearchConfig, **overrides):
         config = cls(**asdict(search_config))
         for key, val in overrides.items():
             setattr(config, key, val)
@@ -1139,7 +1138,7 @@ default_config = SearchConfig(
 
 def parse_search_query(
     query, config=None, params=None, builder=None, config_overrides=None
-) -> Sequence[SearchFilter]:
+) -> list[SearchFilter]:
     if config is None:
         config = default_config
 
