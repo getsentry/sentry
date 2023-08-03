@@ -237,15 +237,6 @@ def test_spec_failure_rate(on_demand_spec_builder):
             "key": "failure",
             "value": "true",
         },
-        {
-            "condition": {
-                "name": "event.contexts.trace.status",
-                "op": "eq",
-                "value": ["ok", "cancelled", "unknown"],
-            },
-            "key": "failure",
-            "value": "false",
-        },
     ]
 
 
