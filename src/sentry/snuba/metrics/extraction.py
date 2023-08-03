@@ -322,7 +322,11 @@ def _is_standard_metrics_field(field: str) -> bool:
 
 
 def _is_on_demand_supported_field(field: str) -> bool:
-    return field == "event.type" or field in _SEARCH_TO_PROTOCOL_FIELDS.keys()
+    try:
+        _map_field_name(field)
+        return True
+    except ValueError:
+        return False
 
 
 class OndemandMetricSpec:
