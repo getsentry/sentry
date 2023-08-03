@@ -14,7 +14,7 @@ from sentry.runner.commands.configoptions import (
     UPDATE_MSG,
     configoptions,
 )
-from sentry.testutils import CliTestCase
+from sentry.testutils.cases import CliTestCase
 
 
 class ConfigOptionsTest(CliTestCase):
@@ -30,6 +30,7 @@ class ConfigOptionsTest(CliTestCase):
         options.register("drifted_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("change_channel_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("to_unset_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+        options.register("invalid_type", default=15, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
         yield
 
@@ -41,6 +42,7 @@ class ConfigOptionsTest(CliTestCase):
         options.unregister("drifted_option")
         options.unregister("change_channel_option")
         options.unregister("to_unset_option")
+        options.unregister("invalid_type")
 
     @pytest.fixture(autouse=True)
     def set_options(self) -> None:
@@ -76,6 +78,7 @@ class ConfigOptionsTest(CliTestCase):
         options.default_store.delete_cache(options.lookup_key("list_option"))
         options.default_store.delete_cache(options.lookup_key("drifted_option"))
         options.default_store.delete_cache(options.lookup_key("change_channel_option"))
+        options.default_store.delete_cache(options.lookup_key("invalid_type"))
 
     def test_patch(self):
         def assert_not_set() -> None:
@@ -86,13 +89,26 @@ class ConfigOptionsTest(CliTestCase):
 
         def assert_output(rv):
             assert rv.exit_code == 0, rv.output
-            output = "\n".join(
+
+            # The script produces log lines when DRIFT is detected. This
+            # makes it easier to surface these as Sentry errors.
+            # This also means the output is polluted with a log line
+            # because reconfiguring the logger in the test is quite tricky
+            # as it is initialized at the beginning of the test.
+            # So we just split the output in two and check each part
+            # independently.
+            output_before_log = "\n".join(
                 [
                     SET_MSG % ("int_option", 40),
                     UPDATE_MSG % ("str_option", "old value", "new value"),
                     SET_MSG % ("map_option", {"a": 1, "b": 2}),
                     SET_MSG % ("list_option", [1, 2]),
                     DRIFT_MSG % "drifted_option",
+                ]
+            )
+
+            output_after_log = "\n".join(
+                [
                     DB_VALUE % "drifted_option",
                     "- 1",
                     "- 2",
@@ -101,7 +117,8 @@ class ConfigOptionsTest(CliTestCase):
                     CHANNEL_UPDATE_MSG % "change_channel_option",
                 ]
             )
-            assert output in rv.output
+            assert output_before_log in rv.output
+            assert output_after_log in rv.output
 
         assert_not_set()
         rv = self.invoke(
@@ -153,13 +170,17 @@ class ConfigOptionsTest(CliTestCase):
             "sync",
         )
         assert rv.exit_code == 0, rv.output
-        output = "\n".join(
+        output_before_log = "\n".join(
             [
                 SET_MSG % ("int_option", 40),
                 UPDATE_MSG % ("str_option", "old value", "new value"),
                 SET_MSG % ("map_option", {"a": 1, "b": 2}),
                 SET_MSG % ("list_option", [1, 2]),
                 DRIFT_MSG % "drifted_option",
+            ]
+        )
+        output_after_log = "\n".join(
+            [
                 DB_VALUE % "drifted_option",
                 "- 1",
                 "- 2",
@@ -170,7 +191,8 @@ class ConfigOptionsTest(CliTestCase):
             ]
         )
 
-        assert output in rv.output
+        assert output_before_log in rv.output
+        assert output_after_log in rv.output
 
         assert options.get("int_option") == 40
         assert options.get("str_option") == "new value"
@@ -188,7 +210,12 @@ class ConfigOptionsTest(CliTestCase):
             "--file=tests/sentry/runner/commands/badpatch.yaml",
             "patch",
         )
-        assert rv.exit_code == -1
-        assert "Invalid option. readonly_option cannot be updated. Reason readonly" in rv.output
-        # Verify this was not updated
-        assert options.get("int_option") == 20
+
+        assert rv.exit_code == 0, rv.output
+
+        assert SET_MSG % ("int_option", 50) in rv.output
+        assert "Option invalid_type has invalid type." in rv.output
+
+        assert not options.isset("readonly_option")
+        assert not options.isset("invalid_type")
+        assert options.get("int_option") == 50

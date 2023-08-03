@@ -217,7 +217,7 @@ def get_sentry_version(context):
 
 @register.filter
 def timesince(value, now=None):
-    from django.template.defaultfilters import timesince
+    from django.utils.timesince import timesince
 
     if now is None:
         now = timezone.now()

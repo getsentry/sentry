@@ -133,7 +133,10 @@ describe('ReplayReader', () => {
       },
       {
         method: 'getConsoleFrames',
-        expected: [expect.objectContaining({category: 'console'})],
+        expected: [
+          expect.objectContaining({category: 'console'}),
+          expect.objectContaining({category: 'redux.action'}),
+        ],
       },
       {
         method: 'getNetworkFrames',

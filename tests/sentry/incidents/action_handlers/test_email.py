@@ -28,7 +28,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.integrations import ExternalProviders
 
@@ -217,7 +217,6 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 
 @freeze_time()
 class EmailActionHandlerGenerateEmailContextTest(TestCase):
-    @with_feature("organizations:mute-metric-alerts")
     def test_simple(self):
         trigger_status = TriggerStatus.ACTIVE
         incident = self.create_incident()

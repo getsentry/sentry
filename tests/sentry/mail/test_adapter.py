@@ -29,7 +29,6 @@ from sentry.models import (
     OrganizationMemberTeam,
     Project,
     ProjectOption,
-    ProjectOwnership,
     Repository,
     Rule,
     User,
@@ -37,6 +36,7 @@ from sentry.models import (
     UserOption,
     UserReport,
 )
+from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -48,8 +48,7 @@ from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.testutils import TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -641,10 +640,11 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         organization = project.organization
         event = self.store_event(
             data={
+                "contexts": {"replay": {"replay_id": "46eb3948be25448abd53fe36b5891ff2"}},
                 "message": "Kaboom!",
                 "platform": "python",
                 "timestamp": iso_format(before_now(seconds=1)),
-                "tags": [("level", "error"), ("replayId", "123456789")],
+                "tags": [("level", "error")],
                 "request": {"url": "example.com"},
             },
             project_id=project.id,
@@ -1216,6 +1216,43 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
 
         message = mail.outbox[0]
         assert "List-ID" in message.message()
+
+    @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
+    def test_notify_digest_replay_id(self, notify):
+        project = self.project
+        timestamp = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={
+                "timestamp": timestamp,
+                "fingerprint": ["group-1"],
+                "contexts": {"replay": {"replay_id": "46eb3948be25448abd53fe36b5891ff2"}},
+            },
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "timestamp": timestamp,
+                "fingerprint": ["group-2"],
+                "contexts": {"replay": {"replay_id": "46eb3948be25448abd53fe36b5891ff2"}},
+            },
+            project_id=project.id,
+        )
+
+        rule = project.rule_set.all()[0]
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+        digest = build_digest(
+            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+        )[0]
+
+        features = ["organizations:session-replay", "organizations:session-replay-issue-emails"]
+        with self.feature(features), self.tasks():
+            self.adapter.notify_digest(project, digest, ActionTargetType.ISSUE_OWNERS)
+
+        assert notify.call_count == 0
+        assert len(mail.outbox) == 1
+
+        message = mail.outbox[0]
+        assert "View Replays" in message.message().as_string()
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_dont_notify_digest_snoozed(self, notify):

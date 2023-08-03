@@ -85,6 +85,7 @@ class _UserOptions(TypedDict):
     theme: str  # TODO: enum/literal for theme options
     language: str
     stacktraceOrder: int  # TODO enum/literal
+    defaultIssueEvent: str
     timezone: str
     clock24Hours: bool
 
@@ -201,6 +202,7 @@ class UserSerializer(Serializer):
                 "theme": options.get("theme") or "light",
                 "language": options.get("language") or settings.SENTRY_DEFAULT_LANGUAGE,
                 "stacktraceOrder": stacktrace_order,
+                "defaultIssueEvent": options.get("default_issue_event") or "recommended",
                 "timezone": options.get("timezone") or settings.SENTRY_DEFAULT_TIME_ZONE,
                 "clock24Hours": options.get("clock_24_hours") or False,
             }
@@ -210,7 +212,7 @@ class UserSerializer(Serializer):
         if attrs.get("avatar"):
             avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
-                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
+                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].get_file_id() else None,
             }
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}

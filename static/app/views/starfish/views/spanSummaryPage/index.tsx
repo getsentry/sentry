@@ -5,55 +5,56 @@ import * as qs from 'query-string';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {t} from 'sentry/locale';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {fromSorts} from 'sentry/utils/discover/eventView';
-import {Sort} from 'sentry/utils/discover/fields';
+import {RateUnits, Sort} from 'sentry/utils/discover/fields';
+import {formatRate} from 'sentry/utils/formatters';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
+import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {SpanMeta} from 'sentry/views/starfish/queries/useSpanMeta';
+import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import {
-  SpanMetrics,
   SpanSummaryQueryFilters,
   useSpanMetrics,
 } from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
-import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {
+  DataTitles,
+  getThroughputChartTitle,
+  getThroughputTitle,
+} from 'sentry/views/starfish/views/spans/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 import {
   isAValidSort,
   SpanTransactionsTable,
 } from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
 
-const {SPAN_SELF_TIME, SPAN_OP, SPAN_DESCRIPTION, SPAN_ACTION, SPAN_DOMAIN} =
-  SpanMetricsFields;
-
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
   field: 'time_spent_percentage(local)',
 };
+
+const CHART_HEIGHT = 160;
 
 type Props = {
   location: Location;
@@ -63,6 +64,8 @@ function SpanSummaryPage({params, location}: Props) {
   const organization = useOrganization();
   const {groupId} = params;
   const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
+
+  const {data: fullSpan} = useFullSpanFromTrace(groupId);
 
   const queryFilter: SpanSummaryQueryFilters = endpoint
     ? {transactionName: endpoint, 'transaction.method': endpointMethod}
@@ -76,42 +79,53 @@ function SpanSummaryPage({params, location}: Props) {
   }
 
   const {data: spanMetrics, isLoading: isSpanMetricsLoading} = useSpanMetrics(
-    {group: groupId},
+    groupId,
     queryFilter,
     [
-      SPAN_OP,
-      SPAN_DESCRIPTION,
-      SPAN_ACTION,
-      SPAN_DOMAIN,
+      SpanMetricsFields.SPAN_OP,
+      SpanMetricsFields.SPAN_DESCRIPTION,
+      SpanMetricsFields.SPAN_ACTION,
+      SpanMetricsFields.SPAN_DOMAIN,
       'count()',
-      'sps()',
-      `sum(${SPAN_SELF_TIME})`,
-      `p95(${SPAN_SELF_TIME})`,
+      'spm()',
+      `sum(${SpanMetricsFields.SPAN_SELF_TIME})`,
+      `avg(${SpanMetricsFields.SPAN_SELF_TIME})`,
       'time_spent_percentage()',
       'http_error_count()',
     ],
-    'span-summary-page-metrics'
+    'api.starfish.span-summary-page-metrics'
   );
 
-  const span = Object.assign({group: groupId}, spanMetrics as SpanMetrics & SpanMeta);
+  const span = {
+    ...spanMetrics,
+    [SpanMetricsFields.SPAN_GROUP]: groupId,
+  } as {
+    [SpanMetricsFields.SPAN_OP]: string;
+    [SpanMetricsFields.SPAN_DESCRIPTION]: string;
+    [SpanMetricsFields.SPAN_ACTION]: string;
+    [SpanMetricsFields.SPAN_DOMAIN]: string;
+    [SpanMetricsFields.SPAN_GROUP]: string;
+  };
 
   const {isLoading: areSpanMetricsSeriesLoading, data: spanMetricsSeriesData} =
     useSpanMetricsSeries(
-      {group: groupId},
+      groupId,
       queryFilter,
-      [`p95(${SPAN_SELF_TIME})`, 'sps()', 'http_error_count()'],
-      'span-summary-page-metrics'
+      [`avg(${SpanMetricsFields.SPAN_SELF_TIME})`, 'spm()', 'http_error_count()'],
+      'api.starfish.span-summary-page-metrics-chart'
     );
 
   useSynchronizeCharts([!areSpanMetricsSeriesLoading]);
 
   const spanMetricsThroughputSeries = {
-    seriesName: span?.[SPAN_OP]?.startsWith('db') ? 'Queries' : 'Requests',
-    data: spanMetricsSeriesData?.['sps()'].data,
+    seriesName: span?.[SpanMetricsFields.SPAN_OP]?.startsWith('db')
+      ? 'Queries'
+      : 'Requests',
+    data: spanMetricsSeriesData?.['spm()'].data,
   };
 
-  const title = getDescriptionLabel(location, span, true);
-  const spanDescriptionCardTitle = getDescriptionLabel(location, span);
+  const title = getDescriptionLabel(span[SpanMetricsFields.SPAN_OP], true);
+  const spanDescriptionCardTitle = getDescriptionLabel(span[SpanMetricsFields.SPAN_OP]);
 
   const crumbs: Crumb[] = [];
   crumbs.push({
@@ -137,124 +151,144 @@ function SpanSummaryPage({params, location}: Props) {
   });
 
   return (
-    <Layout.Page>
-      <PageFiltersContainer>
-        <PageErrorProvider>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              {!isSpanMetricsLoading && <Breadcrumbs crumbs={crumbs} />}
-              <Layout.Title>
-                {endpointMethod && endpoint
-                  ? `${endpointMethod} ${endpoint}`
-                  : !isSpanMetricsLoading && title}
-              </Layout.Title>
-            </Layout.HeaderContent>
-          </Layout.Header>
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              <PageErrorAlert />
-              <BlockContainer>
-                <FilterOptionsContainer>
-                  <StarfishDatePicker />
-                </FilterOptionsContainer>
+    <SentryDocumentTitle title={title} orgSlug={organization.slug}>
+      <Layout.Page>
+        <StarfishPageFiltersContainer>
+          <PageErrorProvider>
+            <Layout.Header>
+              <Layout.HeaderContent>
+                {!isSpanMetricsLoading && <Breadcrumbs crumbs={crumbs} />}
+                <Layout.Title>
+                  {endpointMethod && endpoint
+                    ? `${endpointMethod} ${endpoint}`
+                    : !isSpanMetricsLoading && title}
+                </Layout.Title>
+              </Layout.HeaderContent>
+            </Layout.Header>
+            <Layout.Body>
+              <Layout.Main fullWidth>
+                <PageErrorAlert />
                 <BlockContainer>
-                  <Block title={t('Operation')}>{span?.[SPAN_OP]}</Block>
-                  <Block
-                    title={t('Throughput')}
-                    description={t('Throughput of this span per second')}
-                  >
-                    <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
-                  </Block>
-                  <Block
-                    title={t('Duration (P95)')}
-                    description={t('Time spent in this span')}
-                  >
-                    <DurationCell
-                      milliseconds={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
-                    />
-                  </Block>
-                  {span?.[SPAN_OP]?.startsWith('http') && (
+                  <FilterOptionsContainer>
+                    <StarfishDatePicker />
+                  </FilterOptionsContainer>
+                  <BlockContainer>
+                    {span?.[SpanMetricsFields.SPAN_OP]?.startsWith('db') &&
+                      span?.[SpanMetricsFields.SPAN_OP] !== 'db.redis' && (
+                        <Block title={t('Table')}>
+                          {span?.[SpanMetricsFields.SPAN_DOMAIN]}
+                        </Block>
+                      )}
                     <Block
-                      title={t('5XX Responses')}
-                      description={t('5XX responses in this span')}
+                      title={getThroughputTitle(span?.[SpanMetricsFields.SPAN_OP])}
+                      description={tct('Throughput of this [spanType] per minute', {
+                        spanType: spanDescriptionCardTitle,
+                      })}
                     >
-                      <CountCell count={spanMetrics?.[`http_error_count()`]} />
+                      <ThroughputCell
+                        rate={spanMetrics?.['spm()']}
+                        unit={RateUnits.PER_MINUTE}
+                      />
                     </Block>
-                  )}
-                  <Block
-                    title={t('Time Spent')}
-                    description={t(
-                      'Time spent in this span as a proportion of total application time'
+                    <Block
+                      title={DataTitles.avg}
+                      description={tct(
+                        'The average duration of [spanType] in the selected period',
+                        {
+                          spanType: spanDescriptionCardTitle.endsWith('y')
+                            ? `${spanDescriptionCardTitle.slice(0, -1)}ies`
+                            : `${spanDescriptionCardTitle}s`,
+                        }
+                      )}
+                    >
+                      <DurationCell
+                        milliseconds={
+                          spanMetrics?.[`avg(${SpanMetricsFields.SPAN_SELF_TIME})`]
+                        }
+                      />
+                    </Block>
+                    {span?.[SpanMetricsFields.SPAN_OP]?.startsWith('http') && (
+                      <Block
+                        title={t('5XX Responses')}
+                        description={t('5XX responses in this span')}
+                      >
+                        <CountCell count={spanMetrics?.[`http_error_count()`]} />
+                      </Block>
                     )}
-                  >
-                    <TimeSpentCell
-                      timeSpentPercentage={spanMetrics?.['time_spent_percentage()']}
-                      totalSpanTime={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
-                    />
-                  </Block>
+                    <Block
+                      title={t('Time Spent')}
+                      description={t(
+                        'Time spent in this span as a proportion of total application time'
+                      )}
+                    >
+                      <TimeSpentCell
+                        percentage={spanMetrics?.['time_spent_percentage()']}
+                        total={spanMetrics?.[`avg(${SpanMetricsFields.SPAN_SELF_TIME})`]}
+                      />
+                    </Block>
+                  </BlockContainer>
                 </BlockContainer>
-              </BlockContainer>
 
-              {span?.[SPAN_DESCRIPTION] && (
+                {span?.[SpanMetricsFields.SPAN_DESCRIPTION] && (
+                  <DescriptionContainer>
+                    <SpanDescription
+                      span={{
+                        ...span,
+                        [SpanMetricsFields.SPAN_DESCRIPTION]:
+                          fullSpan?.description ??
+                          spanMetrics?.[SpanMetricsFields.SPAN_DESCRIPTION],
+                      }}
+                    />
+                  </DescriptionContainer>
+                )}
+
                 <BlockContainer>
                   <Block>
-                    <Panel>
-                      <DescriptionPanelBody>
-                        <DescriptionContainer>
-                          <DescriptionTitle>{spanDescriptionCardTitle}</DescriptionTitle>
-                          <SpanDescription spanMeta={span} />
-                        </DescriptionContainer>
-                      </DescriptionPanelBody>
-                    </Panel>
-                  </Block>
-
-                  <Block>
-                    <ChartPanel title={DataTitles.throughput}>
+                    <ChartPanel
+                      title={getThroughputChartTitle(span?.[SpanMetricsFields.SPAN_OP])}
+                    >
                       <Chart
-                        statsPeriod="24h"
-                        height={140}
+                        height={CHART_HEIGHT}
                         data={[spanMetricsThroughputSeries]}
-                        start=""
-                        end=""
                         loading={areSpanMetricsSeriesLoading}
                         utc={false}
                         chartColors={[THROUGHPUT_COLOR]}
                         isLineChart
                         definedAxisTicks={4}
                         aggregateOutputFormat="rate"
+                        rateUnit={RateUnits.PER_MINUTE}
                         tooltipFormatterOptions={{
-                          valueFormatter: value => formatThroughput(value),
+                          valueFormatter: value =>
+                            formatRate(value, RateUnits.PER_MINUTE),
                         }}
                       />
                     </ChartPanel>
                   </Block>
 
                   <Block>
-                    <ChartPanel title={DataTitles.p95}>
+                    <ChartPanel title={DataTitles.avg}>
                       <Chart
-                        statsPeriod="24h"
-                        height={140}
-                        data={[spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]}
-                        start=""
-                        end=""
+                        height={CHART_HEIGHT}
+                        data={[
+                          spanMetricsSeriesData?.[
+                            `avg(${SpanMetricsFields.SPAN_SELF_TIME})`
+                          ],
+                        ]}
                         loading={areSpanMetricsSeriesLoading}
                         utc={false}
-                        chartColors={[P95_COLOR]}
+                        chartColors={[AVG_COLOR]}
                         isLineChart
                         definedAxisTicks={4}
                       />
                     </ChartPanel>
                   </Block>
 
-                  {span?.[SPAN_OP]?.startsWith('http') && (
+                  {span?.[SpanMetricsFields.SPAN_OP]?.startsWith('http') && (
                     <Block>
                       <ChartPanel title={DataTitles.errorCount}>
                         <Chart
-                          statsPeriod="24h"
-                          height={140}
+                          height={CHART_HEIGHT}
                           data={[spanMetricsSeriesData?.[`http_error_count()`]]}
-                          start=""
-                          end=""
                           loading={areSpanMetricsSeriesLoading}
                           utc={false}
                           chartColors={[ERRORS_COLOR]}
@@ -265,27 +299,27 @@ function SpanSummaryPage({params, location}: Props) {
                     </Block>
                   )}
                 </BlockContainer>
-              )}
 
-              {span && (
-                <SpanTransactionsTable
-                  span={span}
-                  sort={sort}
-                  endpoint={endpoint}
-                  endpointMethod={endpointMethod}
+                {span && (
+                  <SpanTransactionsTable
+                    span={span}
+                    sort={sort}
+                    endpoint={endpoint}
+                    endpointMethod={endpointMethod}
+                  />
+                )}
+
+                <SampleList
+                  groupId={span[SpanMetricsFields.SPAN_GROUP]}
+                  transactionName={transaction}
+                  transactionMethod={transactionMethod}
                 />
-              )}
-
-              <SampleList
-                groupId={span.group}
-                transactionName={transaction}
-                transactionMethod={transactionMethod}
-              />
-            </Layout.Main>
-          </Layout.Body>
-        </PageErrorProvider>
-      </PageFiltersContainer>
-    </Layout.Page>
+              </Layout.Main>
+            </Layout.Body>
+          </PageErrorProvider>
+        </StarfishPageFiltersContainer>
+      </Layout.Page>
+    </SentryDocumentTitle>
   );
 }
 
@@ -306,14 +340,16 @@ type BlockProps = {
 export function Block({title, description, children}: BlockProps) {
   return (
     <BlockWrapper>
-      <BlockTitle>
-        {title}
-        {description && (
-          <BlockTooltipContainer>
-            <QuestionTooltip size="sm" position="right" title={description} />
-          </BlockTooltipContainer>
-        )}
-      </BlockTitle>
+      {title && (
+        <BlockTitle>
+          {title}
+          {description && (
+            <BlockTooltipContainer>
+              <QuestionTooltip size="sm" position="right" title={description} />
+            </BlockTooltipContainer>
+          )}
+        </BlockTitle>
+      )}
       <BlockContent>{children}</BlockContent>
     </BlockWrapper>
   );
@@ -325,6 +361,8 @@ const BlockTitle = styled('h3')`
   margin: 0;
   margin-bottom: ${space(1)};
   white-space: nowrap;
+  display: flex;
+  height: ${space(3)};
 `;
 
 const BlockContent = styled('h4')`
@@ -346,54 +384,38 @@ export const BlockContainer = styled('div')`
 
 const DescriptionContainer = styled('div')`
   width: 100%;
-  padding: ${space(1)};
+  margin-bottom: ${space(4)};
   font-size: 1rem;
   line-height: 1.2;
-`;
-
-const DescriptionPanelBody = styled(PanelBody)`
-  padding: ${space(2)};
-  height: 208px;
 `;
 
 const BlockWrapper = styled('div')`
   padding-right: ${space(4)};
   flex: 1;
-`;
-
-const DescriptionTitle = styled('h4')`
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.2;
+  min-width: 0;
+  word-break: break-word;
 `;
 
 export default SpanSummaryPage;
 
-const getDescriptionLabel = (location: Location, spanMeta: SpanMeta, title?: boolean) => {
-  const module = extractRoute(location);
-  if (module === 'api') {
+const getDescriptionLabel = (spanOp: string, title?: boolean) => {
+  if (spanOp?.startsWith('http')) {
     return title ? t('URL Request Summary') : t('URL Request');
   }
-  if (module === 'database') {
-    return title ? t('Query Summary') : t('Query');
-  }
-
-  const spanOp = spanMeta[SPAN_OP];
-  let label;
-  if (spanOp?.startsWith('http')) {
-    label = title ? t('URL Request Summary') : t('URL Request');
+  if (spanOp === 'db.redis') {
+    return title ? t('Cache Query Summary') : t('Cache Query');
   }
   if (spanOp?.startsWith('db')) {
-    label = title ? t('Query Summary') : t('Query');
-  }
-  if (spanOp?.startsWith('serialize')) {
-    label = title ? t('Serializer Summary') : t('Serializer');
+    return title ? t('Database Query Summary') : t('Database Query');
   }
   if (spanOp?.startsWith('task')) {
-    label = title ? t('Task Summary') : t('Task');
+    return title ? t('Application Task Summary') : t('Application Task');
   }
-  if (!label) {
-    label = title ? t('Span Summary') : t('Span Description');
+  if (spanOp?.startsWith('serialize')) {
+    return title ? t('Serializer Summary') : t('Serializer');
   }
-  return label;
+  if (spanOp?.startsWith('middleware')) {
+    return title ? t('Middleware Summary') : t('Middleware');
+  }
+  return title ? t('Request Summary') : t('Request');
 };

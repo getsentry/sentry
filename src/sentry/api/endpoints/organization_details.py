@@ -1,9 +1,12 @@
 import logging
 from copy import copy
-from datetime import datetime
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
+from django.urls import reverse
+from django.utils import timezone
 from pytz import UTC
 from rest_framework import serializers, status
 
@@ -37,7 +40,7 @@ from sentry.models import (
     OrganizationOption,
     OrganizationStatus,
     OutboxFlushError,
-    ScheduledDeletion,
+    RegionScheduledDeletion,
     UserEmail,
 )
 from sentry.models.integrations import SentryApp
@@ -529,7 +532,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         if serializer.is_valid():
             changed_data = {}
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(Organization)):
                     organization, changed_data = serializer.save()
             except IntegrityError:
                 return self.respond(
@@ -547,7 +550,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     event=audit_log.get_event_id("ORG_RESTORE"),
                     data=organization.get_audit_log_data(),
                 )
-                ScheduledDeletion.cancel(organization)
+                RegionScheduledDeletion.cancel(organization)
             elif changed_data:
                 self.create_audit_entry(
                     request=request,
@@ -580,13 +583,17 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         ).exists():
             return self.respond({"detail": ERR_3RD_PARTY_PUBLISHED_APP}, status=400)
 
-        with transaction.atomic():
+        user_name = request.user.get_username()
+        with transaction.atomic(router.db_for_write(RegionScheduledDeletion)):
             updated_organization = mark_organization_as_pending_deletion_with_outbox_message(
                 org_id=organization.id
             )
 
             if updated_organization is not None:
-                schedule = ScheduledDeletion.schedule(organization, days=1, actor=request.user)
+                schedule = RegionScheduledDeletion.schedule(
+                    organization, days=1, actor=request.user
+                )
+
                 entry = self.create_audit_entry(
                     request=request,
                     organization=updated_organization,
@@ -595,7 +602,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     data=updated_organization.get_audit_log_data(),
                     transaction_id=schedule.guid,
                 )
-                updated_organization.send_delete_confirmation(entry, ONE_DAY)
+
+                delete_confirmation_args: DeleteConfirmationArgs = dict(
+                    username=user_name,
+                    ip_address=entry.ip_address,
+                    deletion_datetime=entry.datetime,
+                    countdown=ONE_DAY,
+                    organization=updated_organization,
+                )
+                send_delete_confirmation(delete_confirmation_args)
                 Organization.objects.uncache_object(updated_organization.id)
 
             organization.status = OrganizationStatus.PENDING_DELETION
@@ -653,6 +668,50 @@ def update_tracked_data(model):
         model.__data = data
     else:
         model.__data = UNSAVED
+
+
+@dataclass
+class DeleteConfirmationArgs:
+    username: str
+    ip_address: str
+    deletion_datetime: datetime
+    organization: Organization
+    countdown: int
+
+
+def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs):
+    from sentry import options
+    from sentry.utils.email import MessageBuilder
+
+    organization = delete_confirmation_args.get("organization")
+    username = delete_confirmation_args.get("username")
+    user_ip_address = delete_confirmation_args.get("ip_address")
+    deletion_datetime = delete_confirmation_args.get("deletion_datetime")
+    countdown = delete_confirmation_args.get("countdown")
+
+    url = organization.absolute_url(
+        reverse("sentry-restore-organization", args=[organization.slug])
+    )
+
+    context = {
+        "organization": organization,
+        "username": username,
+        "user_ip_address": user_ip_address,
+        "deletion_datetime": deletion_datetime,
+        "eta": timezone.now() + timedelta(seconds=countdown),
+        "url": url,
+    }
+
+    message = MessageBuilder(
+        subject="{}Organization Queued for Deletion".format(options.get("mail.subject-prefix")),
+        template="sentry/emails/org_delete_confirm.txt",
+        html_template="sentry/emails/org_delete_confirm.html",
+        type="org.confirm_delete",
+        context=context,
+    )
+
+    owners = organization.get_owners()
+    message.send_async([o.email for o in owners])
 
 
 def get_field_value(model, field):

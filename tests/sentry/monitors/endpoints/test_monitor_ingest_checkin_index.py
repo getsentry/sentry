@@ -21,7 +21,7 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.monitors.tasks import TIMEOUT
-from sentry.testutils import MonitorIngestTestCase
+from sentry.testutils.cases import MonitorIngestTestCase
 from sentry.testutils.silo import region_silo_test
 
 
@@ -85,6 +85,10 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             assert monitor_environment.last_checkin == checkin.date_added
             assert (
                 monitor_environment.next_checkin
+                == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+            )
+            assert (
+                monitor_environment.next_checkin_latest
                 == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
             )
 
@@ -158,6 +162,10 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 monitor_environment.next_checkin
                 == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
             )
+            assert (
+                monitor_environment.next_checkin_latest
+                == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+            )
 
     def test_disabled(self):
         for path_func in self._get_path_functions():
@@ -178,6 +186,10 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             assert monitor_environment.last_checkin == checkin.date_added
             assert (
                 monitor_environment.next_checkin
+                == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+            )
+            assert (
+                monitor_environment.next_checkin_latest
                 == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
             )
 
@@ -358,6 +370,25 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             )
             assert resp.status_code == 403
             assert "MonitorEnvironmentLimitsExceeded" in resp.data.keys()
+
+    def test_monitor_environment_validation(self):
+        for i, path_func in enumerate(self._get_path_functions()):
+            slug = f"my-new-monitor-{i}"
+            path = path_func(slug)
+
+            invalid_name = "x" * 65
+
+            resp = self.client.post(
+                path,
+                {
+                    "status": "ok",
+                    "monitor_config": {"schedule_type": "crontab", "schedule": "5 * * * *"},
+                    "environment": f"environment-{invalid_name}",
+                },
+                **self.dsn_auth_headers,
+            )
+            assert resp.status_code == 403
+            assert "MonitorEnvironmentValidationFailed" in resp.data.keys()
 
     def test_with_dsn_auth_and_guid(self):
         for path_func in self._get_path_functions():

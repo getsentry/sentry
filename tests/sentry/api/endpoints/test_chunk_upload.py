@@ -17,7 +17,7 @@ from sentry.api.endpoints.chunk import (
 )
 from sentry.models import MAX_FILE_SIZE, ApiToken, FileBlob, Organization
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
@@ -231,7 +231,7 @@ class ChunkUploadTest(APITestCase):
     def test_checksum_missmatch(self):
         files = []
         content = b"x" * (settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE + 1)
-        files.append(SimpleUploadedFile(b"wrong checksum", content))
+        files.append(SimpleUploadedFile("wrong checksum", content))
 
         response = self.client.post(
             self.url,

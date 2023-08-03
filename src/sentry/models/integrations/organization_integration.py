@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List
 
-from django.db import models, transaction
+from django.db import models, router, transaction
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
@@ -50,7 +50,9 @@ class OrganizationIntegration(DefaultFieldsModel):
         ]
 
     def delete(self, *args, **kwds):
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(
+            transaction.atomic(router.db_for_write(OrganizationIntegration)), flush=False
+        ):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             super().delete(*args, **kwds)

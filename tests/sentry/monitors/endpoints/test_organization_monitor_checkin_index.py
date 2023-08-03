@@ -6,7 +6,7 @@ from freezegun import freeze_time
 
 from sentry.models import Environment, Group
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorStatus
-from sentry.testutils import MonitorTestCase
+from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 

@@ -3,7 +3,17 @@ import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDoc
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types';
+
+type StepProps = {
+  newOrg: boolean;
+  organization: Organization;
+  platformKey: PlatformKey;
+  projectId: string;
+  sentryInitContent: string;
+};
 
 // Configuration Start
 const replayIntegration = `
@@ -30,9 +40,8 @@ tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production
 
 export const steps = ({
   sentryInitContent,
-}: {
-  sentryInitContent?: string;
-} = {}): LayoutProps['steps'] => [
+  ...props
+}: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t(
@@ -42,11 +51,11 @@ export const steps = ({
       {
         language: 'bash',
         code: `
-        # Using yarn
-        yarn add @sentry/react
+# Using yarn
+yarn add @sentry/react
 
-        # Using npm
-        npm install --save @sentry/react
+# Using npm
+npm install --save @sentry/react
         `,
       },
     ],
@@ -71,9 +80,10 @@ export const steps = ({
       },
     ],
   },
-  getUploadSourceMapsStep(
-    'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/'
-  ),
+  getUploadSourceMapsStep({
+    guideLink: 'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/',
+    ...props,
+  }),
   {
     type: StepType.VERIFY,
     description: t(
@@ -127,7 +137,10 @@ export const nextSteps = [
 export function GettingStartedWithReact({
   dsn,
   activeProductSelection = [],
-  ...props
+  organization,
+  newOrg,
+  platformKey,
+  projectId,
 }: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
@@ -161,9 +174,16 @@ export function GettingStartedWithReact({
 
   return (
     <Layout
-      steps={steps({sentryInitContent: sentryInitContent.join('\n')})}
+      steps={steps({
+        sentryInitContent: sentryInitContent.join('\n'),
+        organization,
+        newOrg,
+        platformKey,
+        projectId,
+      })}
       nextSteps={nextStepDocs}
-      {...props}
+      newOrg={newOrg}
+      platformKey={platformKey}
     />
   );
 }

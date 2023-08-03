@@ -12,8 +12,7 @@ jest.mock('sentry/utils/useProjects');
 
 const {organization, project} = initializeOrg();
 
-const mockUseProjects = useProjects as jest.MockedFunction<typeof useProjects>;
-mockUseProjects.mockReturnValue({
+jest.mocked(useProjects).mockReturnValue({
   fetching: false,
   projects: [project],
   fetchError: null,
@@ -116,10 +115,15 @@ describe('useReplayData', () => {
       },
     });
 
-    const mockSegmentResponse1 = TestStubs.ReplaySegmentInit({timestamp: startedAt});
+    const mockSegmentResponse1 = TestStubs.Replay.RRWebInitFrameEvents({
+      timestamp: startedAt,
+    });
     const mockSegmentResponse2 = [
-      ...TestStubs.ReplaySegmentConsole({timestamp: startedAt}),
-      ...TestStubs.ReplaySegmentNavigation({timestamp: startedAt}),
+      TestStubs.Replay.ConsoleEvent({timestamp: startedAt}),
+      TestStubs.Replay.NavigateEvent({
+        startTimestamp: startedAt,
+        endTimestamp: finishedAt,
+      }),
     ];
 
     MockApiClient.addMockResponse({
@@ -181,14 +185,14 @@ describe('useReplayData', () => {
       TestStubs.ReplayError({
         id: ERROR_IDS[0],
         issue: 'JAVASCRIPT-123E',
-        timestamp: startedAt,
+        timestamp: startedAt.toISOString(),
       }),
     ];
     const mockErrorResponse2 = [
       TestStubs.ReplayError({
         id: ERROR_IDS[1],
         issue: 'JAVASCRIPT-789Z',
-        timestamp: startedAt,
+        timestamp: startedAt.toISOString(),
       }),
     ];
 
@@ -261,12 +265,14 @@ describe('useReplayData', () => {
       count_segments: 1,
       error_ids: [ERROR_ID],
     });
-    const mockSegmentResponse = TestStubs.ReplaySegmentInit({timestamp: startedAt});
+    const mockSegmentResponse = TestStubs.Replay.RRWebInitFrameEvents({
+      timestamp: startedAt,
+    });
     const mockErrorResponse = [
       TestStubs.ReplayError({
         id: ERROR_ID,
         issue: 'JAVASCRIPT-123E',
-        timestamp: startedAt,
+        timestamp: startedAt.toISOString(),
       }),
     ];
 

@@ -19,37 +19,31 @@ def test_time_window_duration(start, end, expected):
 
 
 union_time_windows_test_cases = [
-    pytest.param(
+    (
         [(0, 1), (2, 3), (4, 5), (6, 7), (8, 9)],
         [(0, 1), (2, 3), (4, 5), (6, 7), (8, 9)],
-        id="non_overlapping",
+        "non_overlapping",
     ),
-    pytest.param([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)], [(0, 5)], id="all_edges_overlapping"),
-    pytest.param(
-        [(0, 2), (1, 3), (2, 4), (3, 5), (4, 6)], [(0, 6)], id="all_intervals_overlapping"
-    ),
-    pytest.param([(0, 1), (1, 2), (3, 4), (4, 5)], [(0, 2), (3, 5)], id="some_edges_overlapping"),
-    pytest.param(
-        [(0, 2), (1, 3), (4, 6), (5, 7)], [(0, 3), (4, 7)], id="some_intervals_overlapping"
-    ),
-    pytest.param(
-        [(0, 1), (1, 2), (3, 5), (4, 6), (6, 7)], [(0, 2), (3, 7)], id="mixed_of_different_overlaps"
-    ),
+    ([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)], [(0, 5)], "all_edges_overlapping"),
+    ([(0, 2), (1, 3), (2, 4), (3, 5), (4, 6)], [(0, 6)], "all_intervals_overlapping"),
+    ([(0, 1), (1, 2), (3, 4), (4, 5)], [(0, 2), (3, 5)], "some_edges_overlapping"),
+    ([(0, 2), (1, 3), (4, 6), (5, 7)], [(0, 3), (4, 7)], "some_intervals_overlapping"),
+    ([(0, 1), (1, 2), (3, 5), (4, 6), (6, 7)], [(0, 2), (3, 7)], "mixed_of_different_overlaps"),
 ]
 
 
 @pytest.mark.parametrize(
     "time_windows, expected",
-    union_time_windows_test_cases
+    [pytest.param(*case, id=test_id) for *case, test_id in union_time_windows_test_cases]
     + [
         # the order of the time windows shouldn't matter,
         # give it a shuffle to generate additional test cases
         pytest.param(
-            random.sample(test_case.values[0], len(test_case.values[0])),
-            test_case.values[1],
-            id=f"shuffled_{test_case.id}",
+            random.sample(inputs, len(inputs)),
+            outputs,
+            id=f"shuffled_{test_case_id}",
         )
-        for test_case in union_time_windows_test_cases
+        for inputs, outputs, test_case_id in union_time_windows_test_cases
     ],
 )
 def test_union_time_windows(time_windows, expected):
@@ -59,35 +53,33 @@ def test_union_time_windows(time_windows, expected):
 
 
 remove_time_windows_test_cases = [
-    pytest.param(
-        (4, 5), [(0, 1), (1, 2), (3, 4), (6, 7), (7, 8), (8, 9)], [(4, 5)], id="non_overlapping"
-    ),
-    pytest.param((0, 1), [(0, 1)], [], id="is_source_time_window"),
-    pytest.param((1, 3), [(0, 2), (2, 4)], [], id="covers_source_time_window"),
-    pytest.param((4, 7), [(3, 5), (6, 8)], [(5, 6)], id="leaves_source_time_window_center"),
-    pytest.param((4, 7), [(5, 6)], [(4, 5), (6, 7)], id="leaves_source_time_window_ends"),
-    pytest.param(
+    ((4, 5), [(0, 1), (1, 2), (3, 4), (6, 7), (7, 8), (8, 9)], [(4, 5)], "non_overlapping"),
+    ((0, 1), [(0, 1)], [], "is_source_time_window"),
+    ((1, 3), [(0, 2), (2, 4)], [], "covers_source_time_window"),
+    ((4, 7), [(3, 5), (6, 8)], [(5, 6)], "leaves_source_time_window_center"),
+    ((4, 7), [(5, 6)], [(4, 5), (6, 7)], "leaves_source_time_window_ends"),
+    (
         (2, 7),
         [(0, 3), (1, 4), (5, 8), (6, 9)],
         [(4, 5)],
-        id="covers_source_time_window_ends_multiple_times",
+        "covers_source_time_window_ends_multiple_times",
     ),
 ]
 
 
 @pytest.mark.parametrize(
     "source_time_window, time_windows, expected",
-    remove_time_windows_test_cases
+    [pytest.param(*case, id=test_id) for *case, test_id in remove_time_windows_test_cases]
     + [
         # the order of the time windows shouldn't matter,
         # give it a shuffle to generate additional test cases
         pytest.param(
-            test_case.values[0],
-            random.sample(test_case.values[1], len(test_case.values[1])),
-            test_case.values[2],
-            id=f"shuffled_{test_case.id}",
+            src,
+            random.sample(inputs, len(inputs)),
+            outputs,
+            id=f"shuffled_{test_case_id}",
         )
-        for test_case in remove_time_windows_test_cases
+        for src, inputs, outputs, test_case_id in remove_time_windows_test_cases
     ],
 )
 def test_remove_time_windows(source_time_window, time_windows, expected):

@@ -51,7 +51,7 @@ export const steps = ({
     configurations: [
       {
         language: 'bash',
-        code: `npx @sentry/wizard -i nextjs`,
+        code: `npx @sentry/wizard@latest -i nextjs`,
       },
     ],
   },
@@ -63,9 +63,11 @@ export const steps = ({
         <List symbol="bullet">
           <ListItem>
             {tct(
-              'Create [code:sentry.client.config.js] and [code:sentry.server.config.js] with the default [code:Sentry.init].',
+              'Create [sentryClientCode:sentry.client.config.js] and [sentryServerCode:sentry.server.config.js] with the default [sentryInitCode:Sentry.init].',
               {
-                code: <code />,
+                sentryClientCode: <code />,
+                sentryServerCode: <code />,
+                sentryInitCode: <code />,
               }
             )}
           </ListItem>
@@ -99,9 +101,10 @@ export const steps = ({
             <strong>{t('Configure the Sentry SDK:')}</strong>
             <p>
               {tct(
-                'Install Sentry’s Next.js SDK using either [code:yarn] or [code:npm]:',
+                'Install Sentry’s Next.js SDK using either [yarnCode:yarn] or [npmCode:npm]:',
                 {
-                  code: <code />,
+                  yarnCode: <code />,
+                  npmCode: <code />,
                 }
               )}
             </p>
@@ -109,9 +112,9 @@ export const steps = ({
         ),
         language: 'bash',
         code: `
-        yarn add @sentry/nextjs
-        # or
-        npm install --save @sentry/nextjs
+yarn add @sentry/nextjs
+# or
+npm install --save @sentry/nextjs
         `,
       },
       {

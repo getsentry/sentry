@@ -9,7 +9,7 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.models import Organization
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 
 
@@ -44,9 +44,12 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
             context = {"repos": []}
             return self.respond(context)
 
-        install = integration_service.get_installation(
-            integration=integration, organization_id=organization.id
+        installed_repos = Repository.objects.filter(integration_id=integration.id).exclude(
+            status=ObjectStatus.HIDDEN
         )
+        repo_names = {installed_repo.name for installed_repo in installed_repos}
+
+        install = integration.get_installation(organization_id=organization.id)
 
         if isinstance(install, RepositoryMixin):
             try:
@@ -61,6 +64,7 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
                     defaultBranch=repo.get("default_branch"),
                 )
                 for repo in repositories
+                if repo["identifier"] not in repo_names
             ]
             context = {"repos": serializedRepositories, "searchable": install.repo_search}
             return self.respond(context)

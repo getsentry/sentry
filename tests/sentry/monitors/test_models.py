@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from unittest.mock import patch
 
@@ -13,7 +14,9 @@ from sentry.issues.grouptype import (
     MonitorCheckInTimeout,
 )
 from sentry.monitors.models import (
+    CheckInStatus,
     Monitor,
+    MonitorCheckIn,
     MonitorEnvironment,
     MonitorEnvironmentLimitsExceeded,
     MonitorFailure,
@@ -22,8 +25,9 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
+from sentry.monitors.tasks import SUBTITLE_DATETIME_FORMAT
 from sentry.monitors.validators import ConfigValidator
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
@@ -314,8 +318,18 @@ class MonitorEnvironmentTestCase(TestCase):
             status=monitor.status,
         )
 
+        successful_check_in = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.OK,
+        )
+
         last_checkin = timezone.now()
-        assert monitor_environment.mark_failed(last_checkin=last_checkin)
+        trace_id = uuid.uuid4().hex
+        assert monitor_environment.mark_failed(
+            last_checkin=last_checkin, occurrence_context={"trace_id": trace_id}
+        )
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
 
@@ -328,7 +342,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 "project_id": self.project.id,
                 "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "error"])],
                 "issue_title": f"Monitor failure: {monitor.name}",
-                "subtitle": "",
+                "subtitle": "An error occurred during the latest check-in.",
                 "resource_id": None,
                 "evidence_data": {},
                 "evidence_display": [
@@ -339,8 +353,8 @@ class MonitorEnvironmentTestCase(TestCase):
                         "important": False,
                     },
                     {
-                        "name": "Last check-in",
-                        "value": last_checkin.isoformat(),
+                        "name": "Last successful check-in",
+                        "value": successful_check_in.date_added.isoformat(),
                         "important": False,
                     },
                 ],
@@ -373,6 +387,7 @@ class MonitorEnvironmentTestCase(TestCase):
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": monitor.slug,
                 },
+                "trace_id": trace_id,
             },
         ) == dict(event)
 
@@ -384,16 +399,28 @@ class MonitorEnvironmentTestCase(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "max_runtime": 10,
+            },
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
             status=monitor.status,
         )
+        successful_check_in = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.OK,
+        )
         last_checkin = timezone.now()
         assert monitor_environment.mark_failed(
-            last_checkin=last_checkin, reason=MonitorFailure.DURATION
+            last_checkin=last_checkin,
+            reason=MonitorFailure.DURATION,
+            occurrence_context={"duration": monitor.config.get("max_runtime")},
         )
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
@@ -407,7 +434,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 "project_id": self.project.id,
                 "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "duration"])],
                 "issue_title": f"Monitor failure: {monitor.name}",
-                "subtitle": "",
+                "subtitle": "Check-in exceeded maximum duration of 10 minutes.",
                 "resource_id": None,
                 "evidence_data": {},
                 "evidence_display": [
@@ -418,8 +445,8 @@ class MonitorEnvironmentTestCase(TestCase):
                         "important": False,
                     },
                     {
-                        "name": "Last check-in",
-                        "value": last_checkin.isoformat(),
+                        "name": "Last successful check-in",
+                        "value": successful_check_in.date_added.isoformat(),
                         "important": False,
                     },
                 ],
@@ -436,7 +463,7 @@ class MonitorEnvironmentTestCase(TestCase):
                     "monitor": {
                         "status": "active",
                         "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
+                        "config": {"schedule_type": 2, "schedule": [1, "month"], "max_runtime": 10},
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
@@ -452,6 +479,7 @@ class MonitorEnvironmentTestCase(TestCase):
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": monitor.slug,
                 },
+                "trace_id": None,
             },
         ) == dict(event)
 
@@ -471,8 +499,12 @@ class MonitorEnvironmentTestCase(TestCase):
             status=monitor.status,
         )
         last_checkin = timezone.now()
+        expected_time = monitor.get_next_scheduled_checkin(last_checkin)
+
         assert monitor_environment.mark_failed(
-            last_checkin=last_checkin, reason=MonitorFailure.MISSED_CHECKIN
+            last_checkin=last_checkin,
+            reason=MonitorFailure.MISSED_CHECKIN,
+            occurrence_context={"expected_time": expected_time.strftime(SUBTITLE_DATETIME_FORMAT)},
         )
 
         monitor.refresh_from_db()
@@ -490,7 +522,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 "project_id": self.project.id,
                 "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "missed_checkin"])],
                 "issue_title": f"Monitor failure: {monitor.name}",
-                "subtitle": "",
+                "subtitle": f"No check-in reported on {expected_time.strftime(SUBTITLE_DATETIME_FORMAT)}.",
                 "resource_id": None,
                 "evidence_data": {},
                 "evidence_display": [
@@ -501,8 +533,8 @@ class MonitorEnvironmentTestCase(TestCase):
                         "important": False,
                     },
                     {
-                        "name": "Last check-in",
-                        "value": last_checkin.isoformat(),
+                        "name": "Last successful check-in",
+                        "value": "None",
                         "important": False,
                     },
                 ],
@@ -535,6 +567,7 @@ class MonitorEnvironmentTestCase(TestCase):
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": monitor.slug,
                 },
+                "trace_id": None,
             },
         ) == dict(event)
 

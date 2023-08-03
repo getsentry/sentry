@@ -10,7 +10,7 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 from django.utils.text import slugify
 
 from sentry import ratelimits
@@ -24,6 +24,7 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorEnvironmentLimitsExceeded,
+    MonitorEnvironmentValidationFailed,
     MonitorLimitsExceeded,
     MonitorType,
 )
@@ -220,7 +221,7 @@ def _process_message(wrapper: Dict) -> None:
         return
 
     try:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Monitor)):
             monitor_config = params.pop("monitor_config", None)
 
             params["duration"] = (
@@ -283,8 +284,16 @@ def _process_message(wrapper: Dict) -> None:
                 )
                 logger.debug("monitor environment exceeds limits for monitor: %s", monitor_slug)
                 return
+            except MonitorEnvironmentValidationFailed:
+                metrics.incr(
+                    "monitors.checkin.result",
+                    tags={**metric_kwargs, "status": "failed_monitor_environment_name_length"},
+                )
+                logger.debug("monitor environment name too long: %s %s", monitor_slug, environment)
+                return
 
             status = getattr(CheckInStatus, validated_params["status"].upper())
+            trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
 
             # Invalid UUIDs will raise ValueError
             check_in_id = uuid.UUID(params["check_in_id"])
@@ -297,12 +306,14 @@ def _process_message(wrapper: Dict) -> None:
                 if use_latest_checkin:
                     check_in = (
                         MonitorCheckIn.objects.select_for_update()
+                        .filter(monitor_environment=monitor_environment)
                         .exclude(status__in=CheckInStatus.FINISHED_VALUES)
                         .order_by("-date_added")[:1]
                         .get()
                     )
                 else:
                     check_in = MonitorCheckIn.objects.select_for_update().get(
+                        monitor_environment=monitor_environment,
                         guid=check_in_id,
                     )
 
@@ -324,8 +335,6 @@ def _process_message(wrapper: Dict) -> None:
 
                 monitor_config = monitor.get_validated_config()
                 timeout_at = get_timeout_at(monitor_config, status, date_added)
-
-                trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
 
                 # If the UUID is unset (zero value) generate a new UUID
                 if check_in_id.int == 0:
@@ -366,7 +375,9 @@ def _process_message(wrapper: Dict) -> None:
                     return
 
             if check_in.status == CheckInStatus.ERROR:
-                monitor_environment.mark_failed(start_time)
+                monitor_environment.mark_failed(
+                    start_time, occurrence_context={"trace_id": trace_id}
+                )
             else:
                 monitor_environment.mark_ok(check_in, start_time)
 

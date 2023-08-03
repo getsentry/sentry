@@ -31,7 +31,7 @@ export function WidgetLibrary({
   organization,
 }: Props) {
   const theme = useTheme();
-  let defaultWidgets = getTopNConvertedDefaultWidgets(organization);
+  let defaultWidgets = getTopNConvertedDefaultWidgets();
   if (!organization.features.includes('dashboards-rh-widget')) {
     defaultWidgets = defaultWidgets.filter(
       widget => !(widget.widgetType === WidgetType.RELEASE)

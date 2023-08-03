@@ -1,6 +1,6 @@
 import logging
 
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models.signals import post_delete, post_save
 
 from sentry.db.models import (
@@ -16,6 +16,7 @@ from sentry.types.integrations import ExternalProviders
 logger = logging.getLogger(__name__)
 
 
+# TODO(hybrid-cloud): This should probably be a control silo model. We'd need to replace the actor reference with a team_id and user_id
 @region_silo_only_model
 class ExternalActor(DefaultFieldsModel):
     __include_in_export__ = False
@@ -31,6 +32,7 @@ class ExternalActor(DefaultFieldsModel):
             (ExternalProviders.PAGERDUTY, "pagerduty"),
             (ExternalProviders.GITHUB, "github"),
             (ExternalProviders.GITLAB, "gitlab"),
+            # TODO: do migration to delete this from database
             (ExternalProviders.CUSTOM, "custom_scm"),
         ),
     )
@@ -48,9 +50,7 @@ class ExternalActor(DefaultFieldsModel):
         from sentry.services.hybrid_cloud.integration import integration_service
 
         integration = integration_service.get_integration(integration_id=self.integration_id)
-        install = integration_service.get_installation(
-            integration=integration, organization_id=self.organization.id
-        )
+        install = integration.get_installation(organization_id=self.organization.id)
 
         team = self.actor.resolve()
         install.notify_remove_external_team(external_team=self, team=team)
@@ -76,7 +76,7 @@ def process_resource_change(instance, **kwargs):
         except (Organization.DoesNotExist, Project.DoesNotExist):
             pass
 
-    transaction.on_commit(_spawn_task)
+    transaction.on_commit(_spawn_task, router.db_for_write(Project))
 
 
 post_save.connect(

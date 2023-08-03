@@ -4,7 +4,7 @@ import uuid
 from itertools import chain
 from typing import TYPE_CHECKING, Any, List
 
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models import OuterRef, QuerySet, Subquery
 from django.utils import timezone
 
@@ -40,7 +40,7 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
     def get_installed_for_organization(self, organization_id: int) -> QuerySet:
         return self.filter(**self.get_organization_filter_kwargs([organization_id]))
 
-    def get_by_api_token(self, token_id: str) -> QuerySet:
+    def get_by_api_token(self, token_id: int) -> QuerySet:
         return self.filter(status=SentryAppInstallationStatus.INSTALLED, api_token_id=token_id)
 
     def get_projects(self, token: ApiToken) -> QuerySet[Project]:
@@ -170,7 +170,9 @@ class SentryAppInstallation(ParanoidModel):
         return super().save(*args, **kwargs)
 
     def delete(self, **kwargs):
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(
+            transaction.atomic(router.db_for_write(SentryAppInstallation)), flush=False
+        ):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().delete(**kwargs)

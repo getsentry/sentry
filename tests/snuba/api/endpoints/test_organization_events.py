@@ -1,6 +1,5 @@
 import math
 import uuid
-from base64 import b64encode
 from datetime import timedelta
 from unittest import mock
 
@@ -15,14 +14,14 @@ from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold, ReleaseStages
+from sentry.models import ApiKey, ProjectTransactionThreshold, ReleaseStages
+from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
 from sentry.search.events import constants
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -122,7 +121,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             url,
             query,
             format="json",
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
         )
 
         assert response.status_code == 200, response.content
@@ -2521,6 +2520,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["epm()"] == 0.5
         assert data[1]["transaction"] == event2.transaction
         assert data[1]["epm()"] == 0.5
+        meta = response.data["meta"]
+        assert meta["fields"]["epm()"] == "rate"
+        assert meta["units"]["epm()"] == "1/minute"
 
     def test_nonexistent_fields(self):
         self.store_event(
@@ -4215,7 +4217,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 url,
                 query,
                 format="json",
-                HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
+                HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
             )
 
         _, kwargs = mock.call_args
@@ -6061,6 +6063,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             before_now(hours=1).replace(tzinfo=timezone.utc),
             user=user_data,
         )
+        assert group_info is not None
 
         query = {
             "field": ["title", "release", "environment", "user.display", "timestamp"],
@@ -6134,6 +6137,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             before_now(hours=1).replace(tzinfo=timezone.utc),
             user=user_data,
         )
+        assert group_info is not None
 
         features = {
             "organizations:discover-basic": True,

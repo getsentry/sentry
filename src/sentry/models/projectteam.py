@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Sequence
 
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models.signals import post_delete, post_save
 
 from sentry.constants import ObjectStatus
@@ -68,7 +68,7 @@ def process_resource_change(instance, **kwargs):
         except (Project.DoesNotExist, Organization.DoesNotExist):
             pass
 
-    transaction.on_commit(_spawn_task)
+    transaction.on_commit(_spawn_task, router.db_for_write(ProjectTeam))
 
 
 post_save.connect(

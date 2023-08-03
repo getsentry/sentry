@@ -8,8 +8,7 @@ from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus, IncidentTrigger
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
-from sentry.testutils.cases import BaseMetricsTestCase
+from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.utils.dates import to_timestamp
 
 pytestmark = pytest.mark.sentry_metrics
@@ -122,6 +121,52 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
+        )
+
+    def test_percent_change_alert(self):
+        # 1 hour comparison_delta
+        alert_rule = self.create_alert_rule(comparison_delta=60)
+        date_started = self.now
+        incident = self.create_incident(
+            self.organization,
+            title="Incident #1",
+            projects=[self.project],
+            alert_rule=alert_rule,
+            status=IncidentStatus.CLOSED.value,
+            date_started=date_started,
+        )
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        metric_value = 123.12
+        data = incident_attachment_info(incident, IncidentStatus.CRITICAL, metric_value)
+        assert (
+            data["text"]
+            == "Events 123% higher in the last 10 minutes compared to the same time one hour ago"
+        )
+
+    def test_percent_change_alert_custom_comparison_delta(self):
+        # 12 hour comparison_delta
+        alert_rule = self.create_alert_rule(comparison_delta=60 * 12)
+        date_started = self.now
+        incident = self.create_incident(
+            self.organization,
+            title="Incident #1",
+            projects=[self.project],
+            alert_rule=alert_rule,
+            status=IncidentStatus.CLOSED.value,
+            date_started=date_started,
+        )
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        metric_value = 123.12
+        data = incident_attachment_info(incident, IncidentStatus.CRITICAL, metric_value)
+        assert (
+            data["text"]
+            == "Events 123% higher in the last 10 minutes compared to the same time 720 minutes ago"
         )
 
 

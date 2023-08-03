@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import urllib.parse
 import uuid
@@ -58,10 +60,10 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
         logger.warning("Polled project do not exist", extra={"project_id": project_id})
         return
 
-    if not features.has("projects:recap-server", project):
+    if not features.has("organizations:recap-server", project.organization):
         logger.info(
-            "Recap server polling feature is not enabled for a given project",
-            extra={"project_id": project_id},
+            "Recap server polling feature is not enabled for a given organization",
+            extra={"organization": project.organization},
         )
         return
 
@@ -144,7 +146,7 @@ def store_crash(crash, project: Project, url: str) -> None:
 
 
 def translate_crash_to_event(crash, project: Project, url: str) -> Dict[str, Any]:
-    event = {
+    event: dict[str, Any] = {
         "event_id": uuid.uuid4().hex,
         "project": project.id,
         "platform": "c",

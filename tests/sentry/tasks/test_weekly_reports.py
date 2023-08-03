@@ -6,13 +6,14 @@ from unittest import mock
 import pytz
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
+from django.db import router
 from django.db.models import F
 from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.constants import DataCategory
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import GroupStatus, OrganizationMember, Project, UserOption
+from sentry.silo import SiloMode, unguarded_write
 from sentry.tasks.weekly_reports import (
     ONE_DAY,
     OrganizationReportContext,
@@ -26,6 +27,8 @@ from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import floor_to_utc_day, to_timestamp
 from sentry.utils.outcomes import Outcome
@@ -33,11 +36,12 @@ from sentry.utils.outcomes import Outcome
 DISABLED_ORGANIZATIONS_USER_OPTION_KEY = "reports:disabled-organizations"
 
 
+@region_silo_test(stable=True)
 class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     @with_feature("organizations:weekly-email-refresh")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_integration(self):
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
         now = datetime.now().replace(tzinfo=pytz.utc)
@@ -65,7 +69,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     @with_feature("organizations:weekly-email-refresh")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_message_links_customer_domains(self):
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
         now = datetime.now().replace(tzinfo=pytz.utc)
@@ -98,8 +102,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         organization = self.organization
         ctx = OrganizationReportContext(0, 0, organization)
 
-        set_option_value = functools.partial(
-            UserOption.objects.set_value, user, DISABLED_ORGANIZATIONS_USER_OPTION_KEY
+        set_option_value = assume_test_silo_mode(SiloMode.CONTROL)(
+            functools.partial(
+                UserOption.objects.set_value, user, DISABLED_ORGANIZATIONS_USER_OPTION_KEY
+            )
         )
 
         # disabled
@@ -110,14 +116,14 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         # enabled
         set_option_value([])
         deliver_reports(ctx)
-        mock_send_email.assert_called_once_with(ctx, user, dry_run=False)
+        mock_send_email.assert_called_once_with(ctx, user.id, dry_run=False)
 
     @mock.patch("sentry.tasks.weekly_reports.send_email")
     def test_member_disabled(self, mock_send_email):
         ctx = OrganizationReportContext(0, 0, self.organization)
 
-        with in_test_psql_role_override("postgres"):
-            OrganizationMember.objects.filter(user_id=self.user.id).update(
+        with unguarded_write(using=router.db_for_write(Project)):
+            OrganizationMember.objects.get(user_id=self.user.id).update(
                 flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
             )
 
@@ -129,7 +135,8 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     def test_user_inactive(self, mock_send_email):
         ctx = OrganizationReportContext(0, 0, self.organization)
 
-        self.user.update(is_active=False)
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.user.update(is_active=False)
 
         # disabled
         deliver_reports(ctx)

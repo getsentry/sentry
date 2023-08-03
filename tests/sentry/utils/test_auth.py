@@ -7,7 +7,7 @@ from django.urls import reverse
 
 import sentry.utils.auth
 from sentry.models import User
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.auth import EmailAuthBackend, SsoSession, get_login_redirect, login
 
@@ -27,9 +27,19 @@ class EmailAuthBackendTest(TestCase):
         result = self.backend.authenticate(HttpRequest(), username="foo", password="bar")
         self.assertEqual(result, self.user)
 
+    def test_can_authenticate_with_username_case_insensitive(self):
+        result = self.backend.authenticate(HttpRequest(), username="FOO", password="bar")
+        self.assertEqual(result, self.user)
+
     def test_can_authenticate_with_email(self):
         result = self.backend.authenticate(
             HttpRequest(), username="baz@example.com", password="bar"
+        )
+        self.assertEqual(result, self.user)
+
+    def test_can_authenticate_with_email_case_insensitive(self):
+        result = self.backend.authenticate(
+            HttpRequest(), username="BAZ@example.com", password="bar"
         )
         self.assertEqual(result, self.user)
 

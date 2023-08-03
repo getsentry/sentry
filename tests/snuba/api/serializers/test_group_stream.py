@@ -7,9 +7,10 @@ from django.utils import timezone
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba, snuba_tsdb
+from sentry.api.serializers.models.group import snuba_tsdb
+from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
 from sentry.models import Environment
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cache import cache

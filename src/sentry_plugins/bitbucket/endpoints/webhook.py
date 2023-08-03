@@ -1,10 +1,10 @@
 import ipaddress
 import logging
+from datetime import timezone
 
 from dateutil.parser import parse as parse_date
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.http import Http404, HttpResponse
-from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
@@ -62,7 +62,7 @@ class PushEventWebhook(Webhook):
                 else:
                     author = authors[author_email]
                 try:
-                    with transaction.atomic():
+                    with transaction.atomic(router.db_for_write(Commit)):
 
                         Commit.objects.create(
                             repository_id=repo.id,

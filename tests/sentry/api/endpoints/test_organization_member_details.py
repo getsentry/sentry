@@ -4,7 +4,7 @@ from django.core import mail
 from django.db.models import F
 from django.urls import reverse
 
-from sentry.auth.authenticators import RecoveryCodeInterface
+from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import (
     Authenticator,
@@ -16,7 +16,7 @@ from sentry.models import (
     SentryAppInstallationToken,
     UserOption,
 )
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
@@ -729,6 +729,7 @@ class ResetOrganizationMember2faTest(APITestCase):
         self.login_as(self.member)
         totp = TotpInterface()
         totp.enroll(self.member)
+        assert totp.authenticator is not None
         self.interface_id = totp.authenticator.id
         assert Authenticator.objects.filter(user=self.member).exists()
 

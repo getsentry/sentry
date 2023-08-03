@@ -1,10 +1,14 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
+import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
@@ -27,16 +31,32 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
       ? `${groupId}:${transactionName}:${transactionMethod}`
       : undefined;
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debounceSetHighlightedSpanId = useCallback(
+    debounce(id => {
+      setHighlightedSpanId(id);
+    }, 10),
+    []
+  );
+
+  const organization = useOrganization();
+  const {query} = useLocation();
+
   return (
     <PageErrorProvider>
       <DetailPanel
         detailKey={detailKey}
         onClose={() => {
-          router.push({
+          router.replace({
             pathname: router.location.pathname,
-            query: omit(router.location.query, 'transaction'),
+            query: omit(router.location.query, 'transaction', 'transactionMethod'),
           });
         }}
+        onOpen={useCallback(() => {
+          if (query.transaction) {
+            trackAnalytics('starfish.panel.open', {organization});
+          }
+        }, [organization, query.transaction])}
       >
         <h3>{`${transactionMethod} ${transactionName}`}</h3>
         <PageErrorAlert />
@@ -55,8 +75,8 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
               `/performance/${span.project}:${span['transaction.id']}/#span-${span.span_id}`
             );
           }}
-          onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
-          onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
+          onMouseOverSample={sample => debounceSetHighlightedSpanId(sample.span_id)}
+          onMouseLeaveSample={() => debounceSetHighlightedSpanId(undefined)}
           highlightedSpanId={highlightedSpanId}
         />
 

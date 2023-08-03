@@ -1,3 +1,4 @@
+import pytest
 from django.conf import settings
 
 from sentry import options
@@ -42,20 +43,16 @@ def test_make_storage_driver_sample_rate():
     assert isinstance(_make_storage_driver(0, 0, []), FilestoreBlob)
 
 
-def test_direct_storage_sample_rate_default_value():
-    """Test "replay.storage.direct-storage-sample-rate" default value."""
-    result = options.get("replay.storage.direct-storage-sample-rate")
-    assert result == 0
-
-
 def test_sentry_replays_storage_allow_list_default_value():
     """Test "SENTRY_REPLAYS_STORAGE_ALLOWLIST" default value."""
     allow_list = settings.SENTRY_REPLAYS_STORAGE_ALLOWLIST
     assert allow_list == []
 
 
+@pytest.mark.django_db
 def test_make_storage_driver():
     """Test "make_storage_driver" returns FilestoreBlob without further configuration."""
+    options.set("replay.storage.direct-storage-sample-rate", 0)
     assert isinstance(make_storage_driver(0), FilestoreBlob)
     assert isinstance(make_storage_driver(10), FilestoreBlob)
     assert isinstance(make_storage_driver(20), FilestoreBlob)

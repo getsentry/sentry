@@ -21,7 +21,7 @@ class ActorType(str, Enum):
     TEAM = "Team"
 
 
-ActorTarget = Union["RpcActor", "User", "RpcUser", "Team", "RpcTeam"]
+ActorTarget = Union["Actor", "RpcActor", "User", "RpcUser", "Team", "RpcTeam"]
 
 
 class RpcActor(RpcModel):
@@ -71,10 +71,11 @@ class RpcActor(RpcModel):
                 grouped_by_type[ActorType.TEAM].append(obj.id)
 
         if grouped_by_type[ActorType.TEAM]:
-            actors = Actor.objects.filter(
-                type=ACTOR_TYPES["team"], team__in=grouped_by_type[ActorType.TEAM]
-            )
-            for actor in actors:
+            team_ids = grouped_by_type[ActorType.TEAM]
+            actors = Actor.objects.filter(type=ACTOR_TYPES["team"], team__in=team_ids)
+            actors_by_team_id = {actor.team_id: actor for actor in actors}
+            for team_id in team_ids:
+                actor = actors_by_team_id[team_id]
                 result.append(
                     RpcActor(
                         actor_id=actor.id,
@@ -86,19 +87,16 @@ class RpcActor(RpcModel):
 
         if grouped_by_type[ActorType.USER]:
             user_ids = grouped_by_type[ActorType.USER]
-            missing = set(user_ids)
             actors = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id__in=user_ids)
-            for actor in actors:
-                missing.remove(actor.user_id)
+            actors_by_user_id = {actor.user_id: actor for actor in actors}
+            for user_id in user_ids:
+                if user_id in actors_by_user_id:
+                    actor = actors_by_user_id[user_id]
+                else:
+                    actor = get_actor_for_user(user_id)
                 result.append(
                     RpcActor(actor_id=actor.id, id=actor.user_id, actor_type=ActorType.USER)
                 )
-            if len(missing):
-                for user_id in missing:
-                    actor = get_actor_for_user(user_id)
-                    result.append(
-                        RpcActor(actor_id=actor.id, id=actor.user_id, actor_type=ActorType.USER)
-                    )
         return result
 
     @classmethod

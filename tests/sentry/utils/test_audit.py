@@ -1,7 +1,8 @@
 from django.contrib.auth.models import AnonymousUser
+from django.db import router
+from django.http.request import HttpRequest
 
 from sentry import audit_log
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     DeletedOrganization,
@@ -10,8 +11,8 @@ from sentry.models import (
     Organization,
     OrganizationStatus,
 )
-from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.silo import SiloMode, unguarded_write
+from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.utils.audit import (
@@ -23,17 +24,18 @@ from sentry.utils.audit import (
 username = "hello" * 20
 
 
-class FakeHttpRequest:
-    def __init__(self, user):
-        self.user = user
-        self.META = {"REMOTE_ADDR": "127.0.0.1"}
+def fake_http_request(user):
+    request = HttpRequest()
+    request.user = user
+    request.META["REMOTE_ADDR"] = "127.0.0.1"
+    return request
 
 
 @all_silo_test(stable=True)
 class CreateAuditEntryTest(TestCase):
     def setUp(self):
         self.user = self.create_user(username=username)
-        self.req = FakeHttpRequest(self.user)
+        self.req = fake_http_request(self.user)
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org)
         self.project = self.create_project(teams=[self.team], platform="java")
@@ -48,7 +50,7 @@ class CreateAuditEntryTest(TestCase):
         org = self.create_organization()
         apikey = self.create_api_key(org, allowed_origins="*")
 
-        req = FakeHttpRequest(AnonymousUser())
+        req = fake_http_request(AnonymousUser())
         req.auth = apikey
 
         entry = create_audit_entry(req)
@@ -59,7 +61,7 @@ class CreateAuditEntryTest(TestCase):
         self.assert_no_delete_log_created()
 
     def test_audit_entry_frontend(self):
-        req = FakeHttpRequest(self.create_user())
+        req = fake_http_request(self.create_user())
         entry = create_audit_entry(req)
 
         assert entry.actor == req.user
@@ -91,7 +93,9 @@ class CreateAuditEntryTest(TestCase):
         self.assert_valid_deleted_log(deleted_org, self.org)
 
     def test_audit_entry_org_restore_log(self):
-        with assume_test_silo_mode(SiloMode.REGION), in_test_psql_role_override("postgres"):
+        with assume_test_silo_mode(SiloMode.REGION), unguarded_write(
+            using=router.db_for_write(Organization)
+        ):
             Organization.objects.filter(id=self.organization.id).update(
                 status=OrganizationStatus.PENDING_DELETION
             )

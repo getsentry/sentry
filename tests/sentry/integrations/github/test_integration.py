@@ -13,7 +13,7 @@ from sentry.models import Integration, OrganizationIntegration, Project, Reposit
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.cache import cache
 
@@ -251,10 +251,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert integration.external_id == self.installation_id
         assert integration.name == "Test Organization"
         assert integration.metadata == {
-            "access_token": None,
+            "access_token": self.access_token,
             # The metadata doesn't get saved with the timezone "Z" character
-            # for some reason, so just compare everything but that.
-            "expires_at": None,
+            "expires_at": self.expires_at[:-1],
             "icon": "http://example.com/avatar.png",
             "domain_name": "github.com/Test-Organization",
             "account_type": "Organization",

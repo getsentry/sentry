@@ -3,8 +3,8 @@ from __future__ import annotations
 import responses
 import sentry_kafka_schemas
 
+from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.utils.dates import to_timestamp
 
 __all__ = (
     "TestCase",
@@ -78,6 +78,7 @@ from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry import auth, eventstore
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.provider import Provider
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.auth.superuser import COOKIE_DOMAIN as SU_COOKIE_DOMAIN
@@ -144,12 +145,13 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
+from sentry.testutils.pytest.selenium import Browser
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
+from sentry.utils.dates import to_timestamp
 from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
-from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
@@ -164,7 +166,7 @@ from ..snuba.metrics import (
     get_date_range,
 )
 from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
-from . import assert_status_code
+from .asserts import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
 from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
@@ -246,6 +248,8 @@ class BaseTestCase(Fixtures):
         path="/",
         secure_scheme=False,
         subdomain=None,
+        *,
+        GET: dict[str, str] | None = None,
     ) -> HttpRequest:
         request = HttpRequest()
         if subdomain:
@@ -256,6 +260,9 @@ class BaseTestCase(Fixtures):
         request.META["REMOTE_ADDR"] = "127.0.0.1"
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = 80
+        if GET is not None:
+            for k, v in GET.items():
+                request.GET[k] = v
         if secure_scheme:
             secure_header = settings.SECURE_PROXY_SSL_HEADER
             request.META[secure_header[0]] = secure_header[1]
@@ -286,7 +293,7 @@ class BaseTestCase(Fixtures):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
-        with override_settings(SILO_MODE=SiloMode.MONOLITH):
+        with assume_test_silo_mode(SiloMode.CONTROL):
             login(request, user)
         request.user = user
 
@@ -751,7 +758,7 @@ class TwoFactorAPITestCase(APITestCase):
 
 
 class AuthProviderTestCase(TestCase):
-    provider = DummyProvider
+    provider: type[Provider] = DummyProvider
     provider_name = "dummy"
 
     def setUp(self):
@@ -1326,6 +1333,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         timestamp: int,
         value,
         use_case_id: UseCaseID,
+        aggregation_option: Optional[AggregationOption] = None,
     ):
         mapping_meta = {}
 
@@ -1392,6 +1400,9 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         msg["mapping_meta"] = {}
         msg["mapping_meta"][msg["type"]] = mapping_meta
+
+        if aggregation_option:
+            msg["aggregation_option"] = aggregation_option.value
 
         if use_case_id == UseCaseID.TRANSACTIONS:
             entity = f"generic_metrics_{type}s"
@@ -1673,7 +1684,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_transaction_metric(
         self,
-        value: List[int] | int,
+        value: List[float] | float,
         metric: str = "transaction.duration",
         internal_metric: Optional[str] = None,
         entity: Optional[str] = None,
@@ -1681,6 +1692,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         timestamp: Optional[datetime] = None,
         project: Optional[int] = None,
         use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,
+        aggregation_option: Optional[AggregationOption] = None,
     ):
         internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
@@ -1709,6 +1721,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 int(metric_timestamp),
                 subvalue,
                 use_case_id=UseCaseID.TRANSACTIONS,
+                aggregation_option=aggregation_option,
             )
 
     def store_span_metric(
@@ -2261,12 +2274,15 @@ class TestMigrations(TransactionTestCase):
 class SCIMTestCase(APITestCase):
     def setUp(self, provider="dummy"):
         super().setUp()
-        self.auth_provider_inst = AuthProviderModel(
-            organization_id=self.organization.id, provider=provider
-        )
-        self.auth_provider_inst.enable_scim(self.user)
-        self.auth_provider_inst.save()
-        self.scim_user = ApiToken.objects.get(token=self.auth_provider_inst.get_scim_token()).user
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.auth_provider_inst = AuthProviderModel(
+                organization_id=self.organization.id, provider=provider
+            )
+            self.auth_provider_inst.enable_scim(self.user)
+            self.auth_provider_inst.save()
+            self.scim_user = ApiToken.objects.get(
+                token=self.auth_provider_inst.get_scim_token()
+            ).user
         self.login_as(user=self.scim_user)
 
 
@@ -2278,6 +2294,7 @@ class SCIMAzureTestCase(SCIMTestCase):
 
 
 class ActivityTestCase(TestCase):
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def another_user(self, email_string, team=None, alt_email_string=None):
         user = self.create_user(email_string)
         if alt_email_string:
@@ -2334,34 +2351,37 @@ class SlackActivityNotificationTest(ActivityTestCase):
         return mail_adapter
 
     def setUp(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.DEPLOY,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        UserOption.objects.create(user=self.user, key="self_notifications", value="1")
-        self.integration = install_slack(self.organization)
-        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
-        self.identity = Identity.objects.create(
-            external_id="UXXXXXXX1",
-            idp=self.idp,
-            user=self.user,
-            status=IdentityStatus.VALID,
-            scopes=[],
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.WORKFLOW,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user.id,
+            )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.DEPLOY,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user.id,
+            )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user.id,
+            )
+            UserOption.objects.create(user=self.user, key="self_notifications", value="1")
+            self.integration = install_slack(self.organization)
+            self.idp = IdentityProvider.objects.create(
+                type="slack", external_id="TXXXXXXX1", config={}
+            )
+            self.identity = Identity.objects.create(
+                external_id="UXXXXXXX1",
+                idp=self.idp,
+                user=self.user,
+                status=IdentityStatus.VALID,
+                scopes=[],
+            )
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/chat.postMessage",

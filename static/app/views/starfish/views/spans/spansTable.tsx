@@ -1,13 +1,11 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -19,24 +17,24 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
+import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
-import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
-import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
+import {
+  ModuleName,
+  SpanMetricsFields,
+  StarfishFunctions,
+} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 type Row = {
+  'avg(span.self_time)': number;
   'http_error_count()': number;
-  'http_error_count_percent_change()': number;
-  'p95(span.self_time)': number;
-  'percentile_percent_change(span.self_time, 0.95)': number;
   'span.description': string;
   'span.domain': string;
   'span.group': string;
   'span.op': string;
-  'sps()': number;
-  'sps_percent_change()': number;
+  'spm()': number;
   'time_spent_percentage()': number;
   'time_spent_percentage(local)': number;
 };
@@ -59,16 +57,15 @@ type Props = {
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP, SPAN_OP} =
   SpanMetricsFields;
+const {TIME_SPENT_PERCENTAGE, SPS, SPM, HTTP_ERROR_COUNT} = StarfishFunctions;
 
 const SORTABLE_FIELDS = new Set([
-  `p95(${SPAN_SELF_TIME})`,
-  `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
-  'sps()',
-  'sps_percent_change()',
-  'time_spent_percentage()',
-  'time_spent_percentage(local)',
-  'http_error_count()',
-  'http_error_count_percent_change()',
+  `avg(${SPAN_SELF_TIME})`,
+  `${SPS}()`,
+  `${SPM}()`,
+  `${TIME_SPENT_PERCENTAGE}()`,
+  `${TIME_SPENT_PERCENTAGE}(local)`,
+  `${HTTP_ERROR_COUNT}()`,
 ]);
 
 export default function SpansTable({
@@ -92,7 +89,7 @@ export default function SpansTable({
     spanCategory,
     [sort],
     limit,
-    'use-span-list',
+    'api.starfish.use-span-list',
     spansCursor
   );
 
@@ -109,14 +106,14 @@ export default function SpansTable({
     <Fragment>
       <VisuallyCompleteWithData
         id="SpansTable"
-        hasData={data?.length > 0}
+        hasData={(data?.length ?? 0) > 0}
         isLoading={isLoading}
         disabled={shouldTrackVCD}
       >
         <GridEditable
           isLoading={isLoading}
           data={data as Row[]}
-          columnOrder={columnOrder ?? getColumns(moduleName, endpoint)}
+          columnOrder={columnOrder ?? getColumns(moduleName, spanCategory, endpoint)}
           columnSortBy={[
             {
               key: sort.field,
@@ -126,7 +123,16 @@ export default function SpansTable({
           grid={{
             renderHeadCell: column => renderHeadCell({column, sort, location}),
             renderBodyCell: (column, row) =>
-              renderBodyCell(column, row, meta, location, organization, endpoint, method),
+              renderBodyCell(
+                column,
+                row,
+                moduleName,
+                meta,
+                location,
+                organization,
+                endpoint,
+                method
+              ),
           }}
           location={location}
         />
@@ -139,32 +145,22 @@ export default function SpansTable({
 function renderBodyCell(
   column: Column,
   row: Row,
+  moduleName: ModuleName,
   meta: EventsMetaType | undefined,
   location: Location,
   organization: Organization,
   endpoint?: string,
   endpointMethod?: string
-): React.ReactNode {
+) {
   if (column.key === SPAN_DESCRIPTION) {
-    const queryString = {
-      ...location.query,
-      endpoint,
-      endpointMethod,
-    };
     return (
-      <OverflowEllipsisTextContainer>
-        {row[SPAN_GROUP] ? (
-          <Link
-            to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${row[SPAN_GROUP]}${
-              queryString ? `?${qs.stringify(queryString)}` : ''
-            }`}
-          >
-            {row[SPAN_DESCRIPTION] || '<null>'}
-          </Link>
-        ) : (
-          row[SPAN_DESCRIPTION] || '<null>'
-        )}
-      </OverflowEllipsisTextContainer>
+      <SpanDescriptionCell
+        moduleName={moduleName}
+        description={row[SPAN_DESCRIPTION]}
+        group={row[SPAN_GROUP]}
+        endpoint={endpoint}
+        endpointMethod={endpointMethod}
+      />
     );
   }
 
@@ -192,33 +188,56 @@ function getDomainHeader(moduleName: ModuleName) {
   }
   return 'Domain';
 }
-function getDescriptionHeader(moduleName: ModuleName) {
+function getDescriptionHeader(moduleName: ModuleName, spanCategory?: string) {
   if (moduleName === ModuleName.HTTP) {
-    return 'URL';
+    return 'URL Request';
   }
   if (moduleName === ModuleName.DB) {
-    return 'Query';
+    return 'Query Description';
+  }
+  if (spanCategory === 'cache') {
+    return 'Cache Query';
+  }
+  if (spanCategory === 'serialize') {
+    return 'Serializer';
+  }
+  if (spanCategory === 'middleware') {
+    return 'Middleware';
+  }
+  if (spanCategory === 'app') {
+    return 'Application Task';
+  }
+  if (moduleName === 'other') {
+    return 'Requests';
   }
   return 'Description';
 }
 
-function getColumns(moduleName: ModuleName, transaction?: string): Column[] {
-  const description = getDescriptionHeader(moduleName);
+function getColumns(
+  moduleName: ModuleName,
+  spanCategory?: string,
+  transaction?: string
+): Column[] {
+  const description = getDescriptionHeader(moduleName, spanCategory);
 
   const domain = getDomainHeader(moduleName);
 
-  const order: Column[] = [
-    {
-      key: SPAN_OP,
-      name: 'Operation',
-      width: 120,
-    },
+  const order = [
+    // We don't show the operation selector in specific modules, so there's no
+    // point having that column
+    [ModuleName.ALL, ModuleName.OTHER].includes(moduleName)
+      ? {
+          key: SPAN_OP,
+          name: 'Operation',
+          width: 120,
+        }
+      : undefined,
     {
       key: SPAN_DESCRIPTION,
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
-    ...(moduleName !== ModuleName.ALL
+    ...(moduleName !== ModuleName.ALL && moduleName !== ModuleName.DB
       ? [
           {
             key: SPAN_DOMAIN,
@@ -228,23 +247,13 @@ function getColumns(moduleName: ModuleName, transaction?: string): Column[] {
         ]
       : []),
     {
-      key: 'sps()',
-      name: 'Throughput',
+      key: 'spm()',
+      name: getThroughputTitle(moduleName),
       width: COL_WIDTH_UNDEFINED,
     },
     {
-      key: 'sps_percent_change()',
-      name: DataTitles.change,
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
-      key: `p95(${SPAN_SELF_TIME})`,
-      name: DataTitles.p95,
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
-      key: `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
-      name: DataTitles.change,
+      key: `avg(${SPAN_SELF_TIME})`,
+      name: DataTitles.avg,
       width: COL_WIDTH_UNDEFINED,
     },
     ...(moduleName === ModuleName.HTTP
@@ -252,11 +261,6 @@ function getColumns(moduleName: ModuleName, transaction?: string): Column[] {
           {
             key: 'http_error_count()',
             name: DataTitles.errorCount,
-            width: COL_WIDTH_UNDEFINED,
-          } as Column,
-          {
-            key: 'http_error_count_percent_change()',
-            name: DataTitles.change,
             width: COL_WIDTH_UNDEFINED,
           } as Column,
         ]
@@ -277,7 +281,7 @@ function getColumns(moduleName: ModuleName, transaction?: string): Column[] {
     });
   }
 
-  return order;
+  return order.filter((item): item is NonNullable<Column> => Boolean(item));
 }
 
 export function isAValidSort(sort: Sort): sort is ValidSort {

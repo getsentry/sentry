@@ -7,18 +7,11 @@ import pytest
 from django.utils import timezone
 
 from sentry.integrations.github.integration import GitHubIntegration
-from sentry.models import (
-    Commit,
-    CommitAuthor,
-    CommitFileChange,
-    GroupRelease,
-    Release,
-    ReleaseCommit,
-    Repository,
-)
+from sentry.models import Commit, CommitAuthor, GroupRelease, Release, ReleaseCommit, Repository
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.integrations.integration import Integration
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test

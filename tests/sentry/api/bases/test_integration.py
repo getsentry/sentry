@@ -7,7 +7,7 @@ from sentry_sdk.utils import exc_info_from_error
 
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 @patch("sys.stderr.write")

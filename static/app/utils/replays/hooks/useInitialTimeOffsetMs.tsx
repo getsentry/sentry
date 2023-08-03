@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 import first from 'lodash/first';
 
+import isValidDate from 'sentry/utils/date/isValidDate';
 import fetchReplayClicks from 'sentry/utils/replays/fetchReplayClicks';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
@@ -77,7 +78,13 @@ function fromEventTimestamp({eventTimestamp, replayStartTimestampMs}): Result {
   }
 
   if (replayStartTimestampMs !== undefined) {
-    const eventTimestampMs = new Date(eventTimestamp).getTime();
+    let date = new Date(eventTimestamp);
+    if (!isValidDate(date)) {
+      const asInt = parseInt(eventTimestamp, 10);
+      // Allow input to be `?event_t=$num_of_seconds` or `?event_t=$num_of_miliseconds`
+      date = asInt < 9999999999 ? new Date(asInt * 1000) : new Date(asInt);
+    }
+    const eventTimestampMs = date.getTime();
     if (eventTimestampMs >= replayStartTimestampMs) {
       return {offsetMs: eventTimestampMs - replayStartTimestampMs};
     }

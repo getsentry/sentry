@@ -5,10 +5,10 @@ from django.urls import reverse
 
 from sentry import audit_log
 from sentry.constants import SentryAppInstallationStatus
-from sentry.mediators.token_exchange import GrantExchanger
+from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
 from sentry.models import AuditLogEntry
 from sentry.services.hybrid_cloud.app import app_service
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -56,7 +56,7 @@ class SentryAppInstallationDetailsTest(APITestCase):
         )
 
 
-@control_silo_test()
+@control_silo_test(stable=True)
 class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
     def test_access_within_installs_organization(self):
         self.login_as(user=self.user)

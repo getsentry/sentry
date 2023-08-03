@@ -5,13 +5,14 @@ import responses
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 
-from sentry.plugins.bases.issue2 import PluginError
-from sentry.testutils import PluginTestCase
+from sentry.exceptions import PluginError
+from sentry.testutils.cases import PluginTestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry_plugins.github.plugin import GitHubPlugin
-from social_auth.models import UserSocialAuth
 
 
+@region_silo_test(stable=True)
 class GitHubPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
@@ -60,7 +61,7 @@ class GitHubPluginTest(PluginTestCase):
 
         request.user = self.user
         self.login_as(self.user)
-        UserSocialAuth.objects.create(
+        self.create_usersocialauth(
             user=self.user, provider=self.plugin.auth_provider, extra_data={"access_token": "foo"}
         )
 
@@ -94,7 +95,7 @@ class GitHubPluginTest(PluginTestCase):
 
         request.user = self.user
         self.login_as(self.user)
-        UserSocialAuth.objects.create(
+        self.create_usersocialauth(
             user=self.user, provider=self.plugin.auth_provider, extra_data={"access_token": "foo"}
         )
 

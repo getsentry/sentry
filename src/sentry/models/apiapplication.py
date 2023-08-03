@@ -1,9 +1,9 @@
+import secrets
 from typing import List
 from urllib.parse import urlparse
-from uuid import uuid4
 
 import petname
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -24,7 +24,9 @@ def generate_name():
 
 
 def generate_token():
-    return uuid4().hex + uuid4().hex
+    # `client_id` on `ApiApplication` is currently limited to 64 characters
+    # so we need to restrict the length of the secret
+    return secrets.token_hex(nbytes=32)  # generates a 128-bit secure token
 
 
 class ApiApplicationStatus:
@@ -71,11 +73,7 @@ class ApiApplication(Model):
         return self.name
 
     def delete(self, **kwargs):
-        from sentry.models import NotificationSetting
-
-        # There is no foreign key relationship so we have to manually cascade.
-        NotificationSetting.objects.remove_for_project(self)
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(transaction.atomic(router.db_for_write(ApiApplication)), flush=False):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().delete(**kwargs)

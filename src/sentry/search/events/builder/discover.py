@@ -64,7 +64,10 @@ from sentry.search.events.datasets.profile_functions import ProfileFunctionsData
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 from sentry.search.events.datasets.spans_indexed import SpansIndexedDatasetConfig
-from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfig
+from sentry.search.events.datasets.spans_metrics import (
+    SpansMetricsDatasetConfig,
+    SpansMetricsLayerDatasetConfig,
+)
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
@@ -219,6 +222,7 @@ class QueryBuilder(BaseQueryBuilder):
         # Currently this is only used for avoiding conflicting values when doing the first query
         # of a top events request
         skip_tag_resolution: bool = False,
+        on_demand_metrics_enabled: bool = False,
     ):
         self.dataset = dataset
 
@@ -234,6 +238,7 @@ class QueryBuilder(BaseQueryBuilder):
         self.transform_alias_to_input_format = transform_alias_to_input_format
         self.raw_equations = equations
         self.use_metrics_layer = use_metrics_layer
+        self.on_demand_metrics_enabled = on_demand_metrics_enabled
         self.auto_fields = auto_fields
         self.query = query
         self.groupby_columns = groupby_columns
@@ -376,7 +381,10 @@ class QueryBuilder(BaseQueryBuilder):
             self.config = SessionsDatasetConfig(self)
         elif self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
             if self.spans_metrics_builder:
-                self.config = SpansMetricsDatasetConfig(self)
+                if self.use_metrics_layer:
+                    self.config = SpansMetricsLayerDatasetConfig(self)
+                else:
+                    self.config = SpansMetricsDatasetConfig(self)
             elif self.use_metrics_layer:
                 self.config = MetricsLayerDatasetConfig(self)
             else:

@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Iterable, Optional, Sequence, Union
 
 from django.conf import settings
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -30,8 +32,8 @@ if TYPE_CHECKING:
 class GroupSubscriptionManager(BaseManager):
     def subscribe(
         self,
-        group: "Group",
-        user: "RpcUser",
+        group: Group,
+        user: User | RpcUser,
         reason: int = GroupSubscriptionReason.unknown,
     ) -> bool:
         """
@@ -39,7 +41,7 @@ class GroupSubscriptionManager(BaseManager):
         unsubscribed.
         """
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(GroupSubscription)):
                 self.create(
                     user_id=user.id,
                     group=group,
@@ -53,8 +55,8 @@ class GroupSubscriptionManager(BaseManager):
 
     def subscribe_actor(
         self,
-        group: "Group",
-        actor: Union["Team", "User", "RpcUser"],
+        group: Group,
+        actor: Union[Team, User, RpcUser],
         reason: int = GroupSubscriptionReason.unknown,
     ) -> Optional[bool]:
         from sentry.models import Team, User
@@ -70,7 +72,7 @@ class GroupSubscriptionManager(BaseManager):
 
     def bulk_subscribe(
         self,
-        group: "Group",
+        group: Group,
         user_ids: Iterable[int],
         reason: int = GroupSubscriptionReason.unknown,
     ) -> bool:
@@ -104,7 +106,7 @@ class GroupSubscriptionManager(BaseManager):
             ]
 
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(GroupSubscription)):
                     self.bulk_create(subscriptions)
                     return True
             except IntegrityError as e:
@@ -112,7 +114,7 @@ class GroupSubscriptionManager(BaseManager):
                     raise e
         return False
 
-    def get_participants(self, group: "Group") -> "ParticipantMap":
+    def get_participants(self, group: Group) -> ParticipantMap:
         """
         Identify all users who are participating with a given issue.
         :param group: Group object
@@ -155,7 +157,7 @@ class GroupSubscriptionManager(BaseManager):
         return result
 
     @staticmethod
-    def get_participating_user_ids(group: "Group") -> Sequence[int]:
+    def get_participating_user_ids(group: Group) -> Sequence[int]:
         """Return the list of user ids participating in this issue."""
 
         return list(

@@ -1,5 +1,6 @@
-from sentry.models import ProjectTeam, Team, User
-from sentry.testutils import TestCase
+from sentry.models import Team, User
+from sentry.models.projectteam import ProjectTeam
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 

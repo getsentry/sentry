@@ -8,7 +8,7 @@ import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {formatTime, relativeTimeInMs} from 'sentry/components/replays/utils';
+import {formatTime} from 'sentry/components/replays/utils';
 import {
   IconContract,
   IconExpand,
@@ -24,7 +24,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getNextReplayEvent} from 'sentry/utils/replays/getReplayEvent';
+import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -79,17 +79,16 @@ function ReplayPlayPauseBar() {
         title={t('Next breadcrumb')}
         icon={<IconNext size="sm" />}
         onClick={() => {
-          const startTimestampMs = replay?.getReplay().started_at?.getTime();
-          if (!startTimestampMs) {
+          if (!replay) {
             return;
           }
-          const next = getNextReplayEvent({
-            items: replay?.getUserActionCrumbs() || [],
-            targetTimestampMs: startTimestampMs + currentTime,
+          const next = getNextReplayFrame({
+            frames: replay.getChapterFrames(),
+            targetOffsetMs: currentTime,
           });
 
-          if (startTimestampMs !== undefined && next?.timestamp) {
-            setCurrentTime(relativeTimeInMs(next.timestamp, startTimestampMs));
+          if (next) {
+            setCurrentTime(next.offsetMs);
           }
         }}
         aria-label={t('Fast-forward to next breadcrumb')}

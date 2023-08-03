@@ -1,12 +1,13 @@
-from sentry.db.postgres.roles import in_test_psql_role_override
+from django.db import router
+
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
 )
-from sentry.silo import SiloMode
-from sentry.testutils import TransactionTestCase
+from sentry.silo import SiloMode, unguarded_write
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
@@ -42,6 +43,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
             mapping=RpcOrganizationMemberMappingUpdate.from_orm(om),
         )
 
+        assert rpc_orgmember_mapping is not None
         assert rpc_orgmember_mapping.email == "foo@example.com"
         assert rpc_orgmember_mapping.user_id is None
         assert rpc_orgmember_mapping.organization_id == self.organization.id
@@ -55,6 +57,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
             mapping=RpcOrganizationMemberMappingUpdate.from_orm(om),
         )
 
+        assert rpc_orgmember_mapping is not None
         assert rpc_orgmember_mapping.user_id == om.user_id
 
     def test_upsert_happy_path(self):
@@ -79,6 +82,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
             organization_id=self.organization.id
         )
 
+        assert rpc_orgmember_mapping is not None
         assert (
             rpc_orgmember_mapping.organizationmember_id == orgmember_mapping.organizationmember_id
         )
@@ -167,7 +171,7 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
             self.assert_org_member_mapping(org_member=org_member)
 
         # Update step of receiver
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             org_member.update(role="owner")
         region_outbox = org_member.save_outbox_for_update()
         region_outbox.drain_shard()

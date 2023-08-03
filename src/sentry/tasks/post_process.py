@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, Type
 
 import sentry_sdk
 from django.conf import settings
+from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
@@ -158,8 +159,8 @@ def handle_owner_assignment(job):
                 ASSIGNEE_EXISTS_KEY,
                 ISSUE_OWNERS_DEBOUNCE_DURATION,
                 ISSUE_OWNERS_DEBOUNCE_KEY,
-                ProjectOwnership,
             )
+            from sentry.models.projectownership import ProjectOwnership
 
             event = job["event"]
             project, group = event.project, event.group
@@ -368,6 +369,12 @@ def handle_group_owners(project, group, issue_owners):
                         )
             if new_group_owners:
                 GroupOwner.objects.bulk_create(new_group_owners)
+                for go in new_group_owners:
+                    post_save.send_robust(
+                        sender=GroupOwner,
+                        instance=go,
+                        created=True,
+                    )
 
     except UnableToAcquireLock:
         pass
@@ -966,7 +973,7 @@ def handle_auto_assignment(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.models import ProjectOwnership
+    from sentry.models.projectownership import ProjectOwnership
 
     event = job["event"]
     try:

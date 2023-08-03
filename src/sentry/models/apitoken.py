@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import secrets
 from datetime import timedelta
-from uuid import uuid4
 
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_str
 
@@ -24,7 +24,7 @@ def default_expiration():
 
 
 def generate_token():
-    return uuid4().hex + uuid4().hex
+    return secrets.token_hex(nbytes=32)
 
 
 @control_silo_only_model
@@ -52,7 +52,7 @@ class ApiToken(Model, HasApiScopes):
 
     @classmethod
     def from_grant(cls, grant):
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(cls)):
             return cls.objects.create(
                 application=grant.application, user=grant.user, scope_list=grant.get_scopes()
             )

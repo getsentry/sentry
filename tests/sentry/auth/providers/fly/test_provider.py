@@ -1,10 +1,10 @@
 import pytest
 
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.auth.partnership_config import ChannelName
+from sentry.auth.partnership_configs import ChannelName
 from sentry.auth.provider import MigratingIdentityId
 from sentry.models import AuthIdentity, AuthProvider
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 

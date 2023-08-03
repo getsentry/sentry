@@ -1,10 +1,9 @@
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 from unittest.mock import ANY, patch
 
 import pytest
-import pytz
 from freezegun import freeze_time
 from sentry_relay import validate_project_config
 
@@ -18,16 +17,17 @@ from sentry.dynamic_sampling import (
     get_redis_client_for_ds,
 )
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
-from sentry.models import ProjectKey, ProjectTeam
+from sentry.models import ProjectKey
+from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import ProjectConfig, get_project_config
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
-from sentry.utils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path
 
 PII_CONFIG = """
@@ -258,7 +258,7 @@ def test_project_config_with_all_biases_enabled(
     default_project.add_team(default_team)
     # We have to create the project and organization in the past, since we boost new orgs and projects to 100%
     # automatically.
-    old_date = datetime.now(tz=pytz.UTC) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
+    old_date = datetime.now(tz=timezone.utc) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
     default_project.organization.date_added = old_date
     default_project.date_added = old_date
 
@@ -639,7 +639,7 @@ def test_project_config_get_at_path(default_project):
     assert project_cfg.get_at_path() == project_cfg
 
 
-@pytest.mark.django_db
+@django_db_all
 @pytest.mark.parametrize(
     "health_check_set",
     [True, False],

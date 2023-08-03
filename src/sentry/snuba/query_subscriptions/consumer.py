@@ -1,7 +1,7 @@
 import logging
+from datetime import timezone
 from typing import Callable, Dict
 
-import pytz
 import sentry_sdk
 from dateutil.parser import parse as parse_date
 from sentry_kafka_schemas.codecs import Codec, ValidationError
@@ -58,7 +58,7 @@ def parse_message_value(value: bytes, jsoncodec: Codec[SubscriptionResult]) -> S
         "entity": payload["entity"],
         "subscription_id": payload["subscription_id"],
         "values": payload["result"],
-        "timestamp": parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc),
+        "timestamp": parse_date(payload["timestamp"]).replace(tzinfo=timezone.utc),
     }
 
 

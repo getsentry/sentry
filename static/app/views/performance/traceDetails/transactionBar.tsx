@@ -19,6 +19,7 @@ import {
   Row,
   RowCell,
   RowCellContainer,
+  RowReplayTimeIndicators,
 } from 'sentry/components/performance/waterfall/row';
 import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {
@@ -546,6 +547,7 @@ class TransactionBar extends Component<Props, State> {
           showDetail={showDetail}
           onClick={this.toggleDisplayDetail}
         >
+          <RowReplayTimeIndicators />
           <GuideAnchor target="trace_view_guide_row_details" disabled={!hasGuideAnchor}>
             {this.renderRectangle()}
             {this.renderMeasurements()}

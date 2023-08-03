@@ -53,11 +53,11 @@ export const steps = ({
       {
         language: 'bash',
         code: `
-        # Using yarn
-        yarn add @sentry/remix
+# Using yarn
+yarn add @sentry/remix
 
-        # Using npm
-        npm install --save @sentry/remix
+# Using npm
+npm install --save @sentry/remix
         `,
       },
     ],

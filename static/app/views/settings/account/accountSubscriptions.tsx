@@ -21,7 +21,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
-type Subscription = {
+export type Subscription = {
   email: string;
   listDescription: string;
   listId: number;

@@ -221,8 +221,8 @@ def get_channel_id_with_timeout_new(
         if str(e) != "channel_not_found":
             raise e
         # Check if user
+        cursor = ""
         while True:
-            cursor = ""
             # Slack limits the response of `<list_type>.list` to 1000 channels
             try:
                 items = client.get("/users.list", params=dict(payload, cursor=cursor, limit=1000))
@@ -274,11 +274,7 @@ def get_channel_id_with_timeout_new(
     return prefix, channel_id, False
 
 
-def check_for_channel(
-    client: SlackClient,
-    name: str,
-) -> str:
-
+def check_for_channel(client: SlackClient, name: str) -> str | None:
     msg_response = client.post(
         "/chat.scheduleMessage",
         data={
@@ -300,3 +296,4 @@ def check_for_channel(
         )
 
         return msg_response["channel"]
+    return None

@@ -11,7 +11,7 @@ from sentry.options import (
     FLAG_REQUIRED,
     register,
 )
-from sentry.options.manager import FLAG_CREDENTIAL
+from sentry.options.manager import FLAG_CREDENTIAL, FLAG_MODIFIABLE_BOOL
 from sentry.utils.types import Any, Bool, Dict, Int, Sequence, String
 
 # Cache
@@ -226,7 +226,7 @@ register(
 )
 register(
     "u2f.facets",
-    default=(),
+    default=[],
     type=Sequence,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -310,7 +310,7 @@ register(
 register(
     "symbolicator.ignored_sources",
     type=Sequence,
-    default=(),
+    default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -444,6 +444,7 @@ register("msteams.app-id")
 register("discord.application-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("discord.public-key", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("discord.bot-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register("discord.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -565,6 +566,16 @@ register(
 # Enable use of Symbolicator Source Maps processing for fraction of projects.
 register(
     "symbolicator.sourcemaps-processing-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+# Query and supply Bundle Indexes to Symbolicator SourceMap processing
+register(
+    "symbolicator.sourcemaps-bundle-index-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+# Refresh Bundle Indexes reported as used by symbolicator
+register(
+    "symbolicator.sourcemaps-bundle-index-refresh-sample-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Normalization after processors
@@ -908,12 +919,8 @@ register(
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
 register("api.deprecation.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Flag to determine whether performance metrics indexer should index tag
-# values or not
-register(
-    "sentry-metrics.performance.index-tag-values", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
+# Option to disable misbehaving use case IDs
+register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # A slow rollout option for writing "new" cache keys
 # as the transition from UseCaseKey to UseCaseID occurs
@@ -1004,7 +1011,7 @@ register(
 
 register(
     "sentry-metrics.writes-limiter.apply-uca-limiting",
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # per-organization limits on the number of timeseries that can be observed in
@@ -1081,12 +1088,12 @@ register(
 )
 
 # Performance issue option for *all* performance issues detection
-register("performance.issues.all.problem-detection", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("performance.issues.all.problem-detection", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Individual system-wide options in case we need to turn off specific detectors for load concerns, ignoring the set project options.
 register(
     "performance.issues.compressed_assets.problem-creation",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1096,11 +1103,11 @@ register(
     "performance.issues.compressed_assets.ea-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
-    "performance.issues.compressed_assets.ga-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "performance.issues.compressed_assets.ga-rollout", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
     "performance.issues.consecutive_db.problem-creation",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1110,36 +1117,36 @@ register(
     "performance.issues.consecutive_db.ea-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
-    "performance.issues.consecutive_db.ga-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "performance.issues.consecutive_db.ga-rollout", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
     "performance.issues.n_plus_one_db.problem-detection",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.n_plus_one_db.problem-creation",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.n_plus_one_db_ext.problem-creation",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.file_io_main_thread.problem-creation",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.db_main_thread.problem-creation",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.n_plus_one_api_calls.problem-creation",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1148,16 +1155,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "performance.issues.n_plus_one_api_calls.ea-rollout", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
-    "performance.issues.n_plus_one_api_calls.ga-rollout",
+    "performance.issues.n_plus_one_api_calls.ea-rollout",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.issues.n_plus_one_api_calls.ga-rollout",
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.issues.slow_db_query.problem-creation",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1167,11 +1176,11 @@ register(
     "performance.issues.slow_db_query.ea-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
-    "performance.issues.slow_db_query.ga-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "performance.issues.slow_db_query.ga-rollout", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
     "performance.issues.render_blocking_assets.problem-creation",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1186,12 +1195,12 @@ register(
 )
 register(
     "performance.issues.render_blocking_assets.ga-rollout",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.m_n_plus_one_db.problem-creation",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1201,7 +1210,21 @@ register(
     "performance.issues.m_n_plus_one_db.ea-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
-    "performance.issues.m_n_plus_one_db.ga-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "performance.issues.m_n_plus_one_db.ga-rollout", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+register(
+    "performance.issues.http_overhead.problem-creation",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.issues.http_overhead.la-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+register(
+    "performance.issues.http_overhead.ea-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+register(
+    "performance.issues.http_overhead.ga-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 
@@ -1211,12 +1234,12 @@ register(
 )
 register(
     "performance.issues.n_plus_one_db.duration_threshold",
-    default=100.0,
+    default=90.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.slow_db_query.duration_threshold",
-    default=1000.0,  # ms
+    default=900.0,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1236,12 +1259,12 @@ register(
 )
 register(
     "performance.issues.render_blocking_assets.size_threshold",
-    default=1000000,
+    default=500000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.consecutive_http.max_duration_between_spans",
-    default=1000,
+    default=500,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1251,12 +1274,17 @@ register(
 )
 register(
     "performance.issues.consecutive_http.span_duration_threshold",
-    default=1000,
+    default=900,  # ms
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.issues.consecutive_http.min_time_saved_threshold",
+    default=2000,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.large_http_payload.size_threshold",
-    default=1000000,
+    default=300000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # 1MB
 register(
@@ -1276,12 +1304,22 @@ register(
 )  # 512 kilo bytes
 register(
     "performance.issues.uncompressed_asset.duration_threshold",
-    default=500,
+    default=300,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # ms
 register(
     "performance.issues.consecutive_db.min_time_saved_threshold",
     default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.http_overhead.http_request_delay_threshold",
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.n_plus_one_api_calls.total_duration",
+    default=300,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # ms
 
@@ -1371,3 +1409,35 @@ register(
 
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
+
+# Turns on and off the running for dynamic sampling collect_orgs.
+register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)
+
+# Sets the timeout for webhooks
+register(
+    "sentry-apps.webhook.timeout.sec",
+    default=5.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# The flag activates whether to send group attributes messages to kafka
+register("issues.group_attributes.send_kafka", default=False, flags=FLAG_MODIFIABLE_BOOL)
+
+# Enables statistical detectors for a project
+register(
+    "statistical_detectors.enable",
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "statistical_detectors.enable.projects.performance",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "statistical_detectors.enable.projects.profiling",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

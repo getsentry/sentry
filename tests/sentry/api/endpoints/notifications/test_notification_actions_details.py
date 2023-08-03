@@ -13,9 +13,11 @@ from sentry.models.notificationaction import (
     NotificationAction,
     NotificationActionProject,
 )
-from sentry.testutils import APITestCase
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.slack import install_slack
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -213,7 +215,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
 
     @patch.dict(NotificationAction._registry, {})
     @responses.activate
-    def test_post_with_slack_validation(self):
+    def test_put_with_slack_validation(self):
         class MockActionRegistration(ActionRegistration):
             pass
 
@@ -261,7 +263,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         assert response.data["targetIdentifier"] == channel_id
 
     @patch.dict(NotificationAction._registry, {})
-    def test_PUT_with_pagerduty_validation(self):
+    def test_put_with_pagerduty_validation(self):
         class MockActionRegistration(ActionRegistration):
             pass
 
@@ -293,11 +295,14 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             **data,
         )
         assert "Did not recieve PagerDuty service id" in str(response.data["targetIdentifier"])
-        service = PagerDutyService.objects.create(
-            service_name=service_name,
-            integration_key="abc",
-            organization_integration_id=second_integration.organizationintegration_set.first().id,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            service = PagerDutyService.objects.create(
+                service_name=service_name,
+                integration_key="abc",
+                organization_integration_id=second_integration.organizationintegration_set.first().id,
+                organization_id=self.organization.id,
+                integration_id=second_integration.id,
+            )
         data["targetIdentifier"] = service.id
         response = self.get_error_response(
             self.organization.slug,
@@ -307,11 +312,14 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             **data,
         )
         assert "ensure Sentry has access" in str(response.data["targetIdentifier"])
-        service = PagerDutyService.objects.create(
-            service_name=service_name,
-            integration_key="def",
-            organization_integration_id=integration.organizationintegration_set.first().id,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            service = PagerDutyService.objects.create(
+                service_name=service_name,
+                integration_key="def",
+                organization_integration_id=integration.organizationintegration_set.first().id,
+                organization_id=self.organization.id,
+                integration_id=integration.id,
+            )
         data["targetIdentifier"] = service.id
         response = self.get_success_response(
             self.organization.slug,
@@ -348,6 +356,40 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         # Relation table has been updated
         assert not NotificationActionProject.objects.filter(action_id=self.notif_action.id).exists()
 
+    @patch.dict(NotificationAction._registry, {})
+    def test_put_org_member(self):
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, teams=[self.team])
+        self.login_as(user)
+
+        data = {**self.base_data}
+        self.get_error_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="PUT",
+            **data,
+        )
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_put_org_admin(self):
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, role="admin")
+        self.login_as(user)
+
+        self.test_put_simple()
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_put_team_admin(self):
+        user = self.create_user()
+        member = self.create_member(organization=self.organization, user=user, role="member")
+        OrganizationMemberTeam.objects.create(
+            team=self.team, organizationmember=member, role="admin"
+        )
+        self.login_as(user)
+
+        self.test_put_simple()
+
     def test_delete_invalid_action(self):
         self.get_error_response(
             self.organization.slug,
@@ -374,15 +416,38 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         )
         assert not NotificationAction.objects.filter(id=self.notif_action.id).exists()
 
-    def test_delete_success_as_manager(self):
+    def test_delete_manager(self):
         user = self.create_user()
         self.create_member(user=user, organization=self.organization, role="manager")
         self.login_as(user)
-        assert NotificationAction.objects.filter(id=self.notif_action.id).exists()
-        self.get_success_response(
+
+        self.test_delete_simple()
+
+    def test_delete_org_member(self):
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization)
+        self.login_as(user)
+
+        self.get_error_response(
             self.organization.slug,
             self.notif_action.id,
-            status_code=status.HTTP_204_NO_CONTENT,
+            status_code=status.HTTP_403_FORBIDDEN,
             method="DELETE",
         )
-        assert not NotificationAction.objects.filter(id=self.notif_action.id).exists()
+
+    def test_delete_org_admin(self):
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, role="admin")
+        self.login_as(user)
+
+        self.test_delete_simple()
+
+    def test_delete_team_admin(self):
+        user = self.create_user()
+        member = self.create_member(organization=self.organization, user=user, role="member")
+        OrganizationMemberTeam.objects.create(
+            team=self.team, organizationmember=member, role="admin"
+        )
+        self.login_as(user)
+
+        self.test_delete_simple()
