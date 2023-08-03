@@ -1,4 +1,4 @@
-from typing import Any, List, Mapping, Optional
+from typing import Any, List, Mapping
 
 from typing_extensions import TypedDict
 
@@ -8,21 +8,13 @@ from sentry.models import User
 from sentry.roles.manager import OrganizationRole, Role, TeamRole
 
 
-class RoleSerializerResponseBase(TypedDict):
+class RoleSerializerResponse(TypedDict):
     id: str
     name: str
     desc: str
     scopes: List[str]
-    allowed: bool
-
-
-class RoleSerializerResponse(RoleSerializerResponseBase, total=False):
     is_global: bool
-    isAllowed: bool
-    isRetired: bool
-    isGlobal: bool
-    minimumTeamRole: str
-    isMinimumRoleFor: Optional[str]
+    allowed: bool
 
 
 class RoleSerializer(Serializer):
@@ -48,7 +40,7 @@ class RoleSerializer(Serializer):
             "id": str(obj.id),
             "name": obj.name,
             "desc": obj.desc,
-            "scopes": list(obj.scopes),
+            "scopes": obj.scopes,
             "allowed": obj in allowed_roles,  # backward compatibility
             "isAllowed": obj in allowed_roles,
             "isRetired": is_retired_role,
@@ -56,7 +48,7 @@ class RoleSerializer(Serializer):
 
 
 class OrganizationRoleSerializer(RoleSerializer):
-    def serialize(self, obj: OrganizationRole, attrs, user, **kwargs):  # type: ignore[override]
+    def serialize(self, obj: OrganizationRole, attrs, user, **kwargs):
         serialized = super().serialize(obj, attrs, user, **kwargs)
         serialized.update(
             {
@@ -69,7 +61,7 @@ class OrganizationRoleSerializer(RoleSerializer):
 
 
 class TeamRoleSerializer(RoleSerializer):
-    def serialize(self, obj: TeamRole, attrs, user, **kwargs):  # type: ignore[override]
+    def serialize(self, obj: TeamRole, attrs, user, **kwargs):
         serialized = super().serialize(obj, attrs, user, **kwargs)
         serialized.update(
             {
