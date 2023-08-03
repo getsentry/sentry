@@ -1,3 +1,48 @@
+23.7.2
+------
+
+### Notify on Disabled Integration  (ongoing)
+
+https://www.notion.so/sentry/Tech-Spec-Notify-on-Disabled-Integration-Spec-e7ea0f86ccd6419cb3e564067cf4a2ef?pvs=4
+
+By: @chloeho7 (#54001)
+
+### save_event improvements (ongoing)
+
+With the new 2023 grouping config, we started incurring a higher processing cost per saved event.
+In order to bring it back under controlled a series of code changes will be perform to improve the understandability of the code and its performance.
+
+By: @armenzg (#53645, #53541)
+
+### Various fixes & improvements
+
+- feat(tracing-without-performance): Returned orphan errors with trace … (#54103) by @Abdkhan14
+- feat(profiling): use color pallete on chart (#54101) by @JonasBa
+- feat(issue-platform): Add an experimental frame drop issue type (#54028) by @phacops
+- feat(backup): Add DateAddedComparator (#54009) by @azaslavsky
+- feat(opsgenie): refactor validation (#53996) by @mifu67
+- Declare events.save_event_highcpu queue (#54041) by @hubertsentry
+- fix(escalating): Add reason to feedback analytic (#54082) by @scttcper
+- deps(ui): Update jest dependencies (#54065) by @scttcper
+- feat(discord): Add metrics (#54072) by @spalmurray
+- fix(starfish): Handle free text search (#54060) by @wmak
+- fix(github-comments): update comment copy (#54104) by @cathteng
+- fix(most-helpful-event): One event dropdown disabled (#54070) by @17hogeju
+- feat(most-helpful-event): Add option in user settings to change default issue event (#54048) by @17hogeju
+- ref(metrics-layer): Test the span metric charts too (#54045) by @wmak
+- fix(metrics-layer): Incorrect metrics layer tests (#54046) by @wmak
+- fix(notification-actions): allow org and team admins to modify (#53797) by @cathteng
+- ref(starfish): Show 3 significant digits for queries per minute try 2 (#54100) by @AbhiPrasad
+- ref(hc): Mark silo stable tests stable (#54074) by @mrduncan
+- feat(profiling): add react native onboarding wizard (#54096) by @JonasBa
+- fix(mypy): fix mypy errors for src/sentry/api/serializers/models (part 1) (#53905) by @hubertsentry
+- Revert "ref(starfish): Show 3 significant digits for queries per minute (#54033)" (dd75a2cb) by @getsentry-bot
+- ref(starfish): Show 3 significant digits for queries per minute (#54033) by @AbhiPrasad
+- chore(grouping): Kill grouping levels endpoints (#54073) by @lobsterkatie
+- xfail flakey test (#54081) by @JoshFerge
+
+_Plus 400 more_
+
 23.7.1
 ------
 
