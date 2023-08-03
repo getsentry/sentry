@@ -258,14 +258,16 @@ def _get_aggregate_fields(aggregate: str) -> Sequence[str]:
     Returns any fields referenced by the arguments of supported aggregate
     functions, otherwise ``None``.
     """
+    _SUPPORTED_AGG_FNS = ("count_if", "count_unique")
 
     # count_if is currently the only supported function, exit early
-    if not aggregate.startswith("count_if("):
+
+    if not aggregate.startswith(_SUPPORTED_AGG_FNS):
         return []
 
     try:
         function, arguments, _ = fields.parse_function(aggregate)
-        if function == "count_if" and arguments:
+        if function in _SUPPORTED_AGG_FNS and arguments:
             return [arguments[0]]
     except InvalidSearchQuery:
         logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)

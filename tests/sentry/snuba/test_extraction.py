@@ -90,6 +90,17 @@ class TestIsOnDemandMetricQuery:
             is False
         )
 
+    def test_count_unique(self):
+        assert (
+            is_on_demand_metric_query(self.perf_metrics, "count_unique(transaction)", "") is False
+        )
+        assert (
+            is_on_demand_metric_query(
+                self.perf_metrics, "count_unique(transaction)", "transaction.duration:>=1"
+            )
+            is True
+        )
+
 
 class TestIsStandardMetricsCompatible:
     perf_metrics = Dataset.PerformanceMetrics
@@ -166,6 +177,18 @@ class TestIsStandardMetricsCompatible:
         assert (
             is_standard_metrics_compatible(self.perf_metrics, 'count_if(release,equals,"foo")', "")
             is True
+        )
+
+    def test_count_unique(self):
+        assert (
+            is_standard_metrics_compatible(self.perf_metrics, "count_unique(transaction)", "")
+            is True
+        )
+        assert (
+            is_standard_metrics_compatible(
+                self.perf_metrics, "count_unique(transaction)", "transaction.duration:>=1"
+            )
+            is False
         )
 
 
