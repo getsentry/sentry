@@ -449,7 +449,7 @@ class Apdex(DerivedMetric):
             DerivedMetricComponent(
                 tag_key="satisfaction",
                 tag_value="frustrated",
-                condition={"name": field, "op": "gt", "value": apdex_threshold},
+                condition={"name": field, "op": "gt", "value": apdex_threshold * 4},
             ),
         ]
 
