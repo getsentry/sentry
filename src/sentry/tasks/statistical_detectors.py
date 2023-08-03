@@ -123,6 +123,8 @@ def query_functions(project: Project, start: datetime) -> None:
 def _get_function_query_params(project: Project, start: datetime) -> Dict[str, Any]:
     # The functions dataset only supports 1 hour granularity.
     # So we always look back at the last full hour that just elapsed.
+    # And since the timestamps are truncated to the start of the hour
+    # we just need to query for the 1 minute of data.
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
 
