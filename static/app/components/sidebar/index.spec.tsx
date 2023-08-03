@@ -47,8 +47,6 @@ describe('Sidebar', function () {
       url: `/organizations/${organization.slug}/sdk-updates/`,
       body: [],
     });
-
-    jest.restoreAllMocks();
   });
 
   it('renders', async function () {
