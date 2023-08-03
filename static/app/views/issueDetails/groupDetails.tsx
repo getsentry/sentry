@@ -23,7 +23,7 @@ import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import {Group, IssueCategory, Organization, Project} from 'sentry/types';
+import {Group, GroupStatus, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -502,11 +502,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   }, [isGroupError, groupError, handleError]);
 
   const refetchGroup = useCallback(() => {
-    if (
-      group?.status !== ReprocessingStatus.REPROCESSING ||
-      loadingGroup ||
-      loadingEvent
-    ) {
+    if (group?.status !== GroupStatus.REPROCESSING || loadingGroup || loadingEvent) {
       return;
     }
 

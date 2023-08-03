@@ -13,11 +13,11 @@ import {IconChevron, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
+  GroupStatus,
   GroupStatusResolution,
   GroupSubstatus,
   Project,
-  ResolutionStatus,
-  ResolutionStatusDetails,
+  ResolvedStatusDetails,
 } from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatVersion, isSemverRelease} from 'sentry/utils/formatters';
@@ -87,19 +87,17 @@ function ResolveActions({
 }: ResolveActionsProps) {
   const organization = useOrganization();
 
-  function handleCommitResolution(statusDetails: ResolutionStatusDetails) {
+  function handleCommitResolution(statusDetails: ResolvedStatusDetails) {
     onUpdate({
-      status: ResolutionStatus.RESOLVED,
+      status: GroupStatus.RESOLVED,
       statusDetails,
       substatus: null,
     });
   }
 
-  function handleAnotherExistingReleaseResolution(
-    statusDetails: ResolutionStatusDetails
-  ) {
+  function handleAnotherExistingReleaseResolution(statusDetails: ResolvedStatusDetails) {
     onUpdate({
-      status: ResolutionStatus.RESOLVED,
+      status: GroupStatus.RESOLVED,
       statusDetails,
       substatus: null,
     });
@@ -112,7 +110,7 @@ function ResolveActions({
   function handleCurrentReleaseResolution() {
     if (hasRelease) {
       onUpdate({
-        status: ResolutionStatus.RESOLVED,
+        status: GroupStatus.RESOLVED,
         statusDetails: {
           inRelease: latestRelease ? latestRelease.version : 'latest',
         },
@@ -129,7 +127,7 @@ function ResolveActions({
   function handleNextReleaseResolution() {
     if (hasRelease) {
       onUpdate({
-        status: ResolutionStatus.RESOLVED,
+        status: GroupStatus.RESOLVED,
         statusDetails: {
           inNextRelease: true,
         },
@@ -161,7 +159,7 @@ function ResolveActions({
           disabled={isAutoResolved}
           onClick={() =>
             onUpdate({
-              status: ResolutionStatus.UNRESOLVED,
+              status: GroupStatus.UNRESOLVED,
               statusDetails: {},
               substatus: GroupSubstatus.ONGOING,
             })
@@ -265,7 +263,7 @@ function ResolveActions({
     openModal(deps => (
       <CustomCommitsResolutionModal
         {...deps}
-        onSelected={(statusDetails: ResolutionStatusDetails) =>
+        onSelected={(statusDetails: ResolvedStatusDetails) =>
           handleCommitResolution(statusDetails)
         }
         orgSlug={organization.slug}
@@ -278,7 +276,7 @@ function ResolveActions({
     openModal(deps => (
       <CustomResolutionModal
         {...deps}
-        onSelected={(statusDetails: ResolutionStatusDetails) =>
+        onSelected={(statusDetails: ResolvedStatusDetails) =>
           handleAnotherExistingReleaseResolution(statusDetails)
         }
         organization={organization}
@@ -304,7 +302,7 @@ function ResolveActions({
               bypass: !shouldConfirm,
               onConfirm: () =>
                 onUpdate({
-                  status: ResolutionStatus.RESOLVED,
+                  status: GroupStatus.RESOLVED,
                   statusDetails: {},
                   substatus: null,
                 }),
