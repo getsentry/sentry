@@ -169,18 +169,55 @@ class RuleProcessor:
         filter_match = rule.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
         rule_condition_list = rule.data.get("conditions", ())
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
+        logging_details = {
+            "rule_id": rule.id,
+            "group_id": self.group.id,
+            "event_id": self.event.event_id,
+            "is_new": self.is_new,
+            "is_regression": self.is_regression,
+            "has_reappeared": self.has_reappeared,
+            "new_group_environment": self.is_new_group_environment,
+        }
 
+        self.logger.info(
+            "apply_rule",
+            extra={**logging_details},
+        )
         try:
             environment = self.event.get_environment()
+            self.logger.info(
+                "apply_rule got environment",
+                extra={**logging_details},
+            )
         except Environment.DoesNotExist:
+            self.logger.info(
+                "apply_rule environment does not exist",
+                extra={**logging_details},
+            )
             return
 
         if rule.environment_id is not None and environment.id != rule.environment_id:
+            self.logger.info(
+                "apply_rule environment does not match",
+                extra={
+                    **logging_details,
+                    "rule_environment_id": rule.environment_id,
+                    "event_environment_id": environment.id,
+                },
+            )
             return
 
         now = timezone.now()
         freq_offset = now - timedelta(minutes=frequency)
         if status.last_active and status.last_active > freq_offset:
+            self.logger.info(
+                "apply_rule skipping rule because of last_active",
+                extra={
+                    **logging_details,
+                    "last_active": status.last_active,
+                    "freq_offset": freq_offset,
+                },
+            )
             return
 
         state = self.get_state()
@@ -190,6 +227,11 @@ class RuleProcessor:
         for rule_cond in rule_condition_list:
             if self.get_rule_type(rule_cond) == "condition/event":
                 condition_list.append(rule_cond)
+                if (
+                    rule_cond.get("id", None)
+                    == "sentry.rules.conditions.regression_event.RegressionEventCondition"
+                ):
+                    self.logger.info("apply_rule got regression_event", extra={**logging_details})
             else:
                 filter_list.append(rule_cond)
 
@@ -206,10 +248,17 @@ class RuleProcessor:
             predicate_func = get_match_function(match)
             if predicate_func:
                 if not predicate_func(predicate_iter):
+                    self.logger.info(
+                        "apply_rule invalid predicate_func",
+                        extra={**logging_details},
+                    )
                     return
             else:
                 self.logger.error(
-                    f"Unsupported {name}_match {match!r} for rule {rule.id}", filter_match, rule.id
+                    f"Unsupported {name}_match {match!r} for rule {rule.id}",
+                    filter_match,
+                    rule.id,
+                    extra={**logging_details},
                 )
                 return
 
@@ -220,6 +269,10 @@ class RuleProcessor:
         )
 
         if not updated:
+            self.logger.info(
+                "apply_rule not updated",
+                extra={**logging_details},
+            )
             return
 
         if randrange(10) == 0:
