@@ -34,7 +34,7 @@ function SetupReleasesPrompt() {
         </SetupReleasesHeader>
         <div>
           {t(
-            "Set up Releases so Sentry will only bother you when somthing you've fixed breaks in a future release."
+            'Set up Releases so Sentry can bother you when this problem comes back in a future release.'
           )}
         </div>
       </div>
@@ -364,7 +364,7 @@ const StyledDropdownMenu = styled(DropdownMenu)<{itemsHidden: boolean}>`
 const SetupReleases = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1.5)};
+  gap: ${space(2)};
   align-items: center;
   padding: ${space(2)} 0;
   text-align: center;
