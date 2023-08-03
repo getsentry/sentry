@@ -7,10 +7,8 @@ from django.core.cache import cache
 
 from sentry import quotas
 from sentry.sentry_metrics.client.base import GenericMetricsBackend
-from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
-from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.testutils.cases import BaseMetricsTestCase as metrics_test_base
+from sentry.testutils.cases import BaseMetricsTestCase
 
 
 def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optional[str]) -> str:
@@ -43,11 +41,6 @@ class SnubaMetricsBackend(GenericMetricsBackend):
     metric into Clickhouse.
     """
 
-    def __init__(self) -> None:
-        self._message_processor = MessageProcessor(
-            get_ingest_config(UseCaseKey.PERFORMANCE, IndexerStorage.POSTGRES)
-        )
-
     def counter(
         self,
         use_case_id: UseCaseID,
@@ -63,7 +56,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         Emit a counter metric for internal use cases only.
         """
 
-        metrics_test_base.store_metric(
+        BaseMetricsTestCase.store_metric(
             name=build_mri(metric_name, "c", use_case_id, unit),
             tags=tags,
             value=value,
@@ -91,7 +84,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         """
 
         for val in value:
-            metrics_test_base.store_metric(
+            BaseMetricsTestCase.store_metric(
                 name=build_mri(metric_name, "s", use_case_id, unit),
                 tags=tags,
                 value=val,
@@ -118,7 +111,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         support a sequence of values.
         """
         for val in value:
-            metrics_test_base.store_metric(
+            BaseMetricsTestCase.store_metric(
                 name=build_mri(metric_name, "d", use_case_id, unit),
                 tags=tags,
                 value=val,
