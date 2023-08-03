@@ -167,11 +167,11 @@ runs:
           services="${services} chartcuterie"
         fi
 
-        sentry devservices up $services &
-
         if [ "$NEED_KAFKA" = "true" ]; then
           services="${services} kafka zookeeper"
         fi
+
+        sentry devservices up --skip-only-if $services &
 
         wait
 
