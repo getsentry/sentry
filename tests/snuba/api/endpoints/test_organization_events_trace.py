@@ -1109,6 +1109,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.gen1_project.slug,
             "level": "fatal",
             "title": error.title,
+            "timestamp": error.timestamp,
+            "generation": 0,
+            "event_type": "error",
         } in gen1_event["errors"]
         assert {
             "event_id": error1.event_id,
@@ -1118,7 +1121,181 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.gen1_project.slug,
             "level": "warning",
             "title": error1.title,
+            "timestamp": error1.timestamp,
+            "generation": 0,
+            "event_type": "error",
         } in gen1_event["errors"]
+
+    def test_with_only_orphan_errors_with_same_span_ids(self):
+        span_id = uuid4().hex[:16]
+        start, end = self.get_start_end(10000)
+
+        # Error 1
+        error_data = load_data(
+            "javascript",
+            timestamp=end,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": span_id,
+        }
+        error_data["level"] = "fatal"
+        error = self.store_event(error_data, project_id=self.project.id)
+
+        # Error 2 before after Error 1
+        error_data1 = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data1["level"] = "warning"
+        error_data1["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": span_id,
+        }
+        error1 = self.store_event(error_data1, project_id=self.project.id)
+
+        with self.feature(
+            [*self.FEATURES, "organizations:performance-tracing-without-performance"]
+        ):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        # Sorting by timestamp puts Error1 after Error2 in the response
+        assert {
+            "event_id": error.event_id,
+            "issue_id": error.group_id,
+            "span": span_id,
+            "project_id": self.project.id,
+            "project_slug": self.project.slug,
+            "level": "fatal",
+            "title": error.title,
+            "timestamp": error.timestamp,
+            "generation": 0,
+            "event_type": "error",
+        } == response.data[1]
+        assert {
+            "event_id": error1.event_id,
+            "issue_id": error1.group_id,
+            "span": span_id,
+            "project_id": self.project.id,
+            "project_slug": self.project.slug,
+            "level": "warning",
+            "title": error1.title,
+            "timestamp": error1.timestamp,
+            "generation": 0,
+            "event_type": "error",
+        } == response.data[0]
+
+    def test_with_only_orphan_errors_with_different_span_ids(self):
+        start, _ = self.get_start_end(1000)
+        span_id = uuid4().hex[:16]
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": span_id,
+        }
+        error_data["level"] = "fatal"
+        error = self.store_event(error_data, project_id=self.project.id)
+        error_data["level"] = "warning"
+        span_id1 = uuid4().hex[:16]
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": span_id1,
+        }
+        error1 = self.store_event(error_data, project_id=self.project.id)
+
+        with self.feature(
+            [*self.FEATURES, "organizations:performance-tracing-without-performance"]
+        ):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert {
+            "event_id": error.event_id,
+            "issue_id": error.group_id,
+            "span": span_id,
+            "project_id": self.project.id,
+            "project_slug": self.project.slug,
+            "level": "fatal",
+            "title": error.title,
+            "timestamp": error.timestamp,
+            "generation": 0,
+            "event_type": "error",
+        } in response.data
+        assert {
+            "event_id": error1.event_id,
+            "issue_id": error1.group_id,
+            "span": span_id1,
+            "project_id": self.project.id,
+            "project_slug": self.project.slug,
+            "level": "warning",
+            "title": error1.title,
+            "timestamp": error1.timestamp,
+            "generation": 0,
+            "event_type": "error",
+        } in response.data
+
+    def test_with_mixup_of_orphan_errors_with_simple_trace_data(self):
+        self.load_trace()
+        start, _ = self.get_start_end(1000)
+        span_id = uuid4().hex[:16]
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": span_id,
+        }
+        error_data["level"] = "fatal"
+        error = self.store_event(error_data, project_id=self.project.id)
+        error_data["level"] = "warning"
+        span_id1 = uuid4().hex[:16]
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": span_id1,
+        }
+
+        with self.feature(
+            [*self.FEATURES, "organizations:performance-tracing-without-performance"]
+        ):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        self.assert_trace_data(response.data[0])
+        assert {
+            "event_id": error.event_id,
+            "issue_id": error.group_id,
+            "span": span_id,
+            "project_id": self.project.id,
+            "project_slug": self.project.slug,
+            "level": "fatal",
+            "title": error.title,
+            "timestamp": error.timestamp,
+            "generation": 0,
+            "event_type": "error",
+        } in response.data
 
     def test_with_default(self):
         self.load_trace()
@@ -1143,6 +1320,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.gen1_project.slug,
             "level": "debug",
             "title": "this is a log message",
+            "timestamp": default_event.timestamp,
+            "generation": 0,
+            "event_type": "error",
         } in root_event["errors"]
 
     def test_pruning_root(self):
