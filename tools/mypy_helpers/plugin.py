@@ -72,6 +72,9 @@ def field_descriptor_no_overloads(ctx: MethodSigContext) -> FunctionLike:
 
 def _adjust_http_request_members(ctx: ClassDefContext) -> None:
     if ctx.cls.name == "HttpRequest":
+        # added by sentry.api.base and sentry.web.frontend.base
+        # TODO: idk why I can't use the real type here :/
+        add_attribute_to_class(ctx.api, ctx.cls, "access", AnyType(TypeOfAny.explicit))
         # added by csp.middleware.CSPMiddleware
         add_attribute_to_class(ctx.api, ctx.cls, "csp_nonce", ctx.api.named_type("builtins.str"))
         # added by sudo.middleware.SudoMiddleware
