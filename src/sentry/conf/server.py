@@ -813,6 +813,7 @@ CELERY_QUEUES_REGION = [
         routing_key="events.reprocessing.symbolicate_event_low_priority",
     ),
     Queue("events.save_event", routing_key="events.save_event"),
+    Queue("events.save_event_highcpu", routing_key="events.save_event_highcpu"),
     Queue("events.save_event_transaction", routing_key="events.save_event_transaction"),
     Queue("events.save_event_attachments", routing_key="events.save_event_attachments"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
@@ -1156,6 +1157,7 @@ PROCESSING_QUEUES = [
     "events.reprocessing.symbolicate_event",
     "events.reprocessing.symbolicate_event_low_priority",
     "events.save_event",
+    "events.save_event_highcpu",
     "events.save_event_attachments",
     "events.save_event_transaction",
     "events.symbolicate_event",
@@ -1500,6 +1502,8 @@ SENTRY_FEATURES = {
     "organizations:issue-details-most-helpful-event-ui": False,
     # Display if a release is using semver when resolving issues
     "organizations:issue-release-semver": False,
+    # Display a prompt to setup releases in the resolve options dropdown
+    "organizations:issue-resolve-release-setup": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -3581,6 +3585,8 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",
     "options": {"cluster": "default"},
 }
+
+ADDITIONAL_BULK_QUERY_DELETES: list[Tuple[str, str, str | None]] = []
 
 # Monitor limits to prevent abuse
 MAX_MONITORS_PER_ORG = 10000

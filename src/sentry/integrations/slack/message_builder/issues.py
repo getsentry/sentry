@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
 
-from django.core.cache import cache
-
 from sentry import features, tagstore
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.message_builder import (
@@ -12,13 +10,14 @@ from sentry.integrations.message_builder import (
     build_attachment_title,
     build_footer,
     format_actor_options,
+    get_timestamp,
     get_title_link,
 )
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import ActorTuple, Group, GroupStatus, Project, ReleaseProject, Rule, Team, User
+from sentry.models import ActorTuple, Group, GroupStatus, Project, Rule, Team, User
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.actions import MessageAction
@@ -26,7 +25,6 @@ from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.dates import to_timestamp
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 
@@ -116,18 +114,6 @@ def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
     return option_groups
 
 
-def has_releases(project: Project) -> bool:
-    cache_key = f"has_releases:2:{project.id}"
-    has_releases_option: bool | None = cache.get(cache_key)
-    if has_releases_option is None:
-        has_releases_option = ReleaseProject.objects.filter(project_id=project.id).exists()
-        if has_releases_option:
-            cache.set(cache_key, True, 3600)
-        else:
-            cache.set(cache_key, False, 60)
-    return has_releases_option
-
-
 def get_action_text(
     text: str, actions: Sequence[Any], identity: RpcIdentity, has_escalating: bool = False
 ) -> str:
@@ -175,7 +161,7 @@ def build_actions(
 
     status = group.get_status()
 
-    if not has_releases(project):
+    if not project.flags.has_releases:
         resolve_button = MessageAction(
             name="status",
             label="Resolve",
@@ -206,11 +192,6 @@ def build_actions(
     )
 
     return [resolve_button, ignore_button, assign_button], text, color
-
-
-def get_timestamp(group: Group, event: GroupEvent | None) -> float:
-    ts = group.last_seen
-    return to_timestamp(max(ts, event.datetime) if event else ts)
 
 
 def get_color(
