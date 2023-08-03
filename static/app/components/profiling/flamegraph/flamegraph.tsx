@@ -299,20 +299,27 @@ function Flamegraph(): ReactElement {
       return LOADING_OR_FALLBACK_CPU_CHART;
     }
 
+    const measures: Profiling.Measurement[] = [];
+
+    for (const key in profileGroup.measurements) {
+      if (key.startsWith('cpu_usage')) {
+        measures.push(profileGroup.measurements[key]!);
+      }
+    }
+
     return new FlamegraphChart(
       Rect.From(flamegraph.configSpace),
-      profileGroup.measurements?.cpu_usage_0 ?? {
-        unit: 'percentage',
-        values: [],
-      },
+      measures.length > 0
+        ? measures
+        : [
+            {
+              unit: 'percent',
+              values: [],
+            },
+          ],
       flamegraphTheme.COLORS.CPU_CHART_COLORS
     );
-  }, [
-    profileGroup.measurements?.cpu_usage_0,
-    flamegraph.configSpace,
-    flamegraphTheme,
-    hasCPUChart,
-  ]);
+  }, [profileGroup.measurements, flamegraph.configSpace, flamegraphTheme, hasCPUChart]);
 
   const flamegraphCanvas = useMemo(() => {
     if (!flamegraphCanvasRef) {
