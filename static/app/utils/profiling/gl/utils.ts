@@ -3,6 +3,7 @@ import Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
@@ -382,6 +383,14 @@ export interface TrimTextCenter {
   text: string;
 }
 
+export function hexToColorChannels(color: string, alpha: number): ColorChannels {
+  return [
+    parseInt(color.slice(1, 3), 16) / 255,
+    parseInt(color.slice(3, 5), 16) / 255,
+    parseInt(color.slice(5, 7), 16) / 255,
+    alpha,
+  ];
+}
 // Utility function to compute a clamped view. This is essentially a bounds check
 // to ensure that zoomed viewports stays in the bounds and does not escape the view.
 export function computeClampedConfigView(
