@@ -760,7 +760,6 @@ module = [
     "sentry.tasks.deliver_from_outbox",
     "sentry.tasks.derive_code_mappings",
     "sentry.tasks.digests",
-    "sentry.tasks.files",
     "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
     "sentry.tasks.integrations.create_comment",
