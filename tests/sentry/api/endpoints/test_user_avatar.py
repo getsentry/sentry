@@ -78,6 +78,32 @@ class UserAvatarTest(APITestCase):
         assert response.data["avatar"]["avatarType"] == "upload"
         assert response.data["avatar"]["avatarUuid"]
 
+    def test_get_prefers_control_file(self):
+        user = self.create_user(email="a@example.com")
+        with assume_test_silo_mode(SiloMode.REGION):
+            photo = File.objects.create(name="test.png", type="avatar.file")
+            photo.putfile(BytesIO(b"test"))
+        controlphoto = ControlFile.objects.create(name="control_test.png", type="avatar.file")
+        controlphoto.putfile(BytesIO(b"control test"))
+
+        avatar = UserAvatar.objects.create(
+            user=user,
+            file_id=photo.id,
+            control_file_id=controlphoto.id,
+            avatar_type=UserAvatarType.UPLOAD,
+        )
+
+        self.login_as(user=user)
+
+        url = reverse("sentry-api-0-user-avatar", kwargs={"user_id": "me"})
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(user.id)
+        assert response.data["avatar"]["avatarType"] == "upload"
+        assert response.data["avatar"]["avatarUuid"]
+        assert isinstance(avatar.get_file(), ControlFile)
+
     def test_put_gravatar(self):
         user = self.create_user(email="a@example.com")
 

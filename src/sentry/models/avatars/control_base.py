@@ -18,11 +18,15 @@ class ControlAvatarBase(AvatarBase):
         storage for saas, but self-hosted and single-tenant instances
         did not have relations and storage migrated.
         """
+        if self.control_file_id:
+            return ControlFile
         if self.file_id:
             return File
         return ControlFile
 
     def file_fk(self) -> str:
+        if self.control_file_id:
+            return "control_file_id"
         if self.file_id:
             return "file_id"
         return "control_file_id"

@@ -132,4 +132,5 @@ def copy_file_to_control_and_update_model(
         control_file.putfile(file_handle)
 
         instance.control_file_id = control_file.id
+        instance.file_id = None
         instance.save()
