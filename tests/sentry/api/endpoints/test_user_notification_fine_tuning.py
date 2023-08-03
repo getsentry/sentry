@@ -55,7 +55,7 @@ class UserNotificationFineTuningGetTest(UserNotificationFineTuningTestBase):
         assert response.data.get(self.organization.id) == "0"
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
     method = "put"
 

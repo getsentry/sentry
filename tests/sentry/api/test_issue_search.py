@@ -358,7 +358,7 @@ class ConvertActorOrNoneValueTest(TestCase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ConvertUserValueTest(TestCase):
     def test_me(self):
         result = convert_user_value(["me"], [self.project], self.user, None)

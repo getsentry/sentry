@@ -5,7 +5,7 @@ from sentry.testutils.silo import region_silo_test
 from . import BaseEventTest
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class UrlVerificationEventTest(BaseEventTest):
     challenge = "3eZbrw1aBm2rZgRNFdxV2595E9CY3gmdALWMmHkvFXO7tYXAYM8P"
 

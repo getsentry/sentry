@@ -90,7 +90,7 @@ class AuthIdentityHandlerTest(TestCase):
         return user, auth_identity
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     @mock.patch("sentry.analytics.record")
     def test_simple(self, mock_record):
@@ -167,7 +167,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         assert assigned_member.id == member.id
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     @mock.patch("sentry.auth.helper.auth")
     def test_simple(self, mock_auth):
@@ -219,7 +219,7 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             self.assert_org_member_mapping(org_member=persisted_om)
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     @mock.patch("sentry.auth.helper.messages")
     def test_new_identity(self, mock_messages):
@@ -355,7 +355,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         assert not AuthIdentity.objects.filter(id=existing_identity.id).exists()
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
     def _test_simple(self, mock_render, expected_template):
         redirect = self.handler.handle_unknown_identity(self.state)
@@ -429,7 +429,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
     # TODO: More test cases for various values of request.POST.get("op")
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class AuthHelperTest(TestCase):
     def setUp(self):
         self.provider = "dummy"

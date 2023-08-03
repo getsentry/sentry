@@ -4,7 +4,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class AppPlatformEventSerializerTest(TestCase):
     def setUp(self):
         self.user = self.create_user(username="foo")

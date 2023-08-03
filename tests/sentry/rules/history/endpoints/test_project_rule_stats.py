@@ -27,7 +27,7 @@ class TimeSeriesValueSerializerTest(TestCase):
 
 
 @freeze_time()
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectRuleStatsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-stats-index"
 
