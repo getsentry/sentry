@@ -2114,6 +2114,26 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert len(meta) == 1
         assert meta[0]["name"] == "d:transactions/on_demand@none"
 
+    def test_run_on_demand_query_with_derived_metric(self):
+        query = AlertMetricsQueryBuilder(
+            self.params,
+            use_metrics_layer=False,
+            granularity=3600,
+            query="transaction.duration:>=100",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=["apdex()"],
+            on_demand_metrics_enabled=True,
+        )
+
+        result = query.run_query("test_query")
+
+        assert len(result["data"]) == 1
+
+        meta = result["meta"]
+
+        assert len(meta) == 1
+        assert meta[0]["name"] == "c:transactions/on_demand@none"
+
     def test_get_snql_query(self):
         query = AlertMetricsQueryBuilder(
             self.params,
