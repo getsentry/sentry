@@ -667,11 +667,10 @@ class TestWebhookRequests(TestCase):
                 installation=self.install, event="issue.assigned", data=data, actor=self.user
             )
         requests = self.buffer.get_requests()
-        requests_count = len(requests)
         first_request = requests[0]
 
         assert safe_urlopen.called
-        assert requests_count == 1
+        assert len(requests) == 1
         assert first_request["response_code"] == 400
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
@@ -691,11 +690,10 @@ class TestWebhookRequests(TestCase):
             )
 
         requests = self.buffer.get_requests()
-        requests_count = len(requests)
         first_request = requests[0]
 
         assert safe_urlopen.called
-        assert requests_count == 1
+        assert len(requests) == 1
         assert first_request["response_code"] == 400
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
@@ -716,11 +714,10 @@ class TestWebhookRequests(TestCase):
             )
 
         requests = self.buffer.get_requests()
-        requests_count = len(requests)
         first_request = requests[0]
 
         assert safe_urlopen.called
-        assert requests_count == 1
+        assert len(requests) == 1
         assert first_request["response_code"] == 400
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
@@ -734,11 +731,10 @@ class TestWebhookRequests(TestCase):
         send_webhooks(installation=self.install, event="issue.assigned", data=data, actor=self.user)
 
         requests = self.buffer.get_requests()
-        requests_count = len(requests)
         first_request = requests[0]
 
         assert safe_urlopen.called
-        assert requests_count == 1
+        assert len(requests) == 1
         assert first_request["response_code"] == 200
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
@@ -755,11 +751,10 @@ class TestWebhookRequests(TestCase):
             )
 
         requests = self.buffer.get_requests()
-        requests_count = len(requests)
         first_request = requests[0]
 
         assert safe_urlopen.called
-        assert requests_count == 1
+        assert len(requests) == 1
         assert first_request["response_code"] == 0
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
@@ -779,11 +774,10 @@ class TestWebhookRequests(TestCase):
             )
 
         requests = self.buffer.get_requests()
-        requests_count = len(requests)
         first_request = requests[0]
 
         assert safe_urlopen.called
-        assert requests_count == 1
+        assert len(requests) == 1
         assert first_request["response_code"] == 400
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
@@ -803,16 +797,13 @@ class TestWebhookRequests(TestCase):
         send_webhooks(installation=self.install, event="issue.assigned", data=data, actor=self.user)
 
         requests = self.buffer.get_requests()
-        requests_count = len(requests)
 
         assert safe_urlopen.called
-        assert requests_count == 1
+        assert len(requests) == 1
         assert (self.integration_buffer._get_all_from_buffer()[0]["timeout_count"]) == "1"
         assert self.integration_buffer.is_integration_broken() is False
         self.sentry_app.refresh_from_db()  # reload to get updated events
-        assert (
-            len(self.sentry_app.events) == events
-        )  # check that events are not changed / app is not disabled
+        assert self.sentry_app.events == events  # check that events are the same / app is enabled
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
     @with_feature("organizations:disable-sentryapps-on-broken")
@@ -832,9 +823,7 @@ class TestWebhookRequests(TestCase):
         assert safe_urlopen.called
         assert (self.integration_buffer._get_all_from_buffer()[0]["timeout_count"]) == "3"
         assert self.integration_buffer.is_integration_broken() is True
-        self.sentry_app = SentryApp.objects.get(
-            id=self.sentry_app.id
-        )  # reload to get updated events
+        self.sentry_app.refresh_from_db()  # reload to get updated events
         assert len(self.sentry_app.events) == 0  # check that events are empty / app is disabled
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
@@ -854,9 +843,7 @@ class TestWebhookRequests(TestCase):
         assert safe_urlopen.called
         assert (self.integration_buffer._get_all_from_buffer()[0]["timeout_count"]) == "3"
         assert self.integration_buffer.is_integration_broken() is True
-        self.sentry_app = SentryApp.objects.get(
-            id=self.sentry_app.id
-        )  # reload to get updated events
+        self.sentry_app.refresh_from_db()  # reload to get updated events
         assert self.sentry_app.events == events  # check that events are the same / app is enabled
 
     @patch(
@@ -880,9 +867,7 @@ class TestWebhookRequests(TestCase):
         assert safe_urlopen.called
         assert len(self.integration_buffer._get_all_from_buffer()) == 10
         assert self.integration_buffer.is_integration_broken() is True
-        self.sentry_app = SentryApp.objects.get(
-            id=self.sentry_app.id
-        )  # reload to get updated events
+        self.sentry_app.refresh_from_db()  # reload to get updated events
         assert len(self.sentry_app.events) == 0  # check that events are empty / app is disabled
 
     @patch(
@@ -906,7 +891,5 @@ class TestWebhookRequests(TestCase):
         assert safe_urlopen.called
         assert len(self.integration_buffer._get_all_from_buffer()) == 10
         assert self.integration_buffer.is_integration_broken() is True
-        self.sentry_app = SentryApp.objects.get(
-            id=self.sentry_app.id
-        )  # reload to get updated events
+        self.sentry_app.refresh_from_db()  # reload to get updated events
         assert self.sentry_app.events == events  # check that events are the same / app is enabled

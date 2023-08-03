@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 
 from django.conf import settings
-from requests import Response
 
 from sentry.utils import redis
 
@@ -11,14 +10,14 @@ KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
 BROKEN_RANGE_DAYS = 7  # 7 days
 
 
-def is_response_success(resp: Response) -> bool:
+def is_response_success(resp) -> bool:
     if resp.status_code:
         if resp.status_code < 300:
             return True
     return False
 
 
-def is_response_error(resp: Response) -> bool:
+def is_response_error(resp) -> bool:
     if resp.status_code:
         if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
             return True
@@ -45,11 +44,11 @@ class IntegrationRequestBuffer:
     def record_exception_error(self):
         self._add("error")
 
-    def record_response_error(self, resp: Response):
+    def record_response_error(self, resp):
         if is_response_error(resp):
             self._add("error")
 
-    def record_success(self, resp: Response):
+    def record_success(self, resp):
         if is_response_success(resp):
             self._add("success")
 
