@@ -107,17 +107,15 @@ def copy_file_to_control_and_update_model(
     file_id: int,
     **kwargs,
 ):
-    from sentry.models.files import ControlFile, ControlFileBlob, File
-
-    if ControlFileBlob._storage_config() is None:
-        return
+    from sentry.models.files import ControlFile, File
 
     lock = f"copy-file-lock-{model_name}:{model_id}"
 
     with locks.get(lock, duration=60, name="copy-file-lock").acquire():
         # Short circuit duplicate copy calls
-        model = apps.get_app_config(app_name).get_model(model_name).objects.get(id=model_id)
-        if model.control_file_id:
+        model_class = apps.get_model(app_name, model_name)
+        instance = model_class.objects.get(id=model_id)
+        if instance.control_file_id:
             return
 
         file_model = File.objects.get(id=file_id)
@@ -133,5 +131,5 @@ def copy_file_to_control_and_update_model(
         )
         control_file.putfile(file_handle)
 
-        model.control_file_id = control_file.id
-        model.save()
+        instance.control_file_id = control_file.id
+        instance.save()
