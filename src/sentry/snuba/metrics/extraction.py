@@ -3,7 +3,6 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
 from typing import (
     Any,
     Dict,
@@ -373,19 +372,7 @@ class DerivedMetricParamsConsumer:
 class DerivedMetricComponent:
     tag_key: str
     tag_value: str
-    conditions: Sequence[QueryToken]
-
-
-@dataclass(frozen=True)
-class VariableSearchKey(SearchKey):
-    variable_name: str = ""
-    name: str = ""
-
-
-@dataclass(frozen=True)
-class VariableSearchValue(SearchValue):
-    variable_name: str = ""
-    raw_value: Union[str, int, datetime, Sequence[int], Sequence[str]] = ""
+    condition: RuleCondition
 
 
 class DerivedMetric(ABC):
@@ -394,11 +381,9 @@ class DerivedMetric(ABC):
         pass
 
     @abstractmethod
-    def get_components(self) -> List[DerivedMetricComponent]:
-        pass
-
-    @abstractmethod
-    def get_variables(self, derived_metric_params: DerivedMetricParams) -> Variables:
+    def get_components(
+        self, derived_metric_params: DerivedMetricParams
+    ) -> List[DerivedMetricComponent]:
         pass
 
 
@@ -406,91 +391,67 @@ class FailureRate(DerivedMetric):
     def get_name(self) -> str:
         return "failure_rate()"
 
-    def get_components(self) -> List[DerivedMetricComponent]:
+    def get_components(
+        self, derived_metric_params: DerivedMetricParams
+    ) -> List[DerivedMetricComponent]:
         return [
             DerivedMetricComponent(
                 tag_key="failure",
                 tag_value="true",
-                conditions=[
-                    SearchFilter(
-                        key=SearchKey(name="transaction.status"),
-                        operator="NOT IN",
-                        value=SearchValue(raw_value=["ok", "cancelled", "unknown"]),
-                    ),
-                ],
+                condition={
+                    "inner": {
+                        "name": "event.contexts.trace.status",
+                        "op": "eq",
+                        "value": ["ok", "cancelled", "unknown"],
+                    },
+                    "op": "not",
+                },
             ),
         ]
-
-    def get_variables(self, derived_metric_params: DerivedMetricParams) -> Variables:
-        return {}
 
 
 class Apdex(DerivedMetric):
     def get_name(self) -> str:
         return "apdex()"
 
-    def get_components(self) -> List[DerivedMetricComponent]:
-        return [
-            # Satisfactory.
-            DerivedMetricComponent(
-                tag_key="satisfaction",
-                tag_value="satisfactory",
-                conditions=[
-                    SearchFilter(
-                        key=VariableSearchKey(variable_name="field_to_extract"),
-                        operator="<=",
-                        value=VariableSearchValue(variable_name="apdex_threshold_1"),
-                    )
-                ],
-            ),
-            # Tolerable.
-            DerivedMetricComponent(
-                tag_key="satisfaction",
-                tag_value="tolerable",
-                conditions=[
-                    SearchFilter(
-                        key=VariableSearchKey(variable_name="field_to_extract"),
-                        operator=">",
-                        value=VariableSearchValue(variable_name="apdex_threshold_1"),
-                    ),
-                    "AND",
-                    SearchFilter(
-                        key=VariableSearchKey(variable_name="field_to_extract"),
-                        operator="<=",
-                        value=VariableSearchValue(variable_name="apdex_threshold_2"),
-                    ),
-                ],
-            ),
-            # Frustrated.
-            DerivedMetricComponent(
-                tag_key="satisfaction",
-                tag_value="frustrated",
-                conditions=[
-                    SearchFilter(
-                        key=VariableSearchKey(variable_name="field_to_extract"),
-                        operator=">",
-                        value=VariableSearchValue(variable_name="apdex_threshold_2"),
-                    )
-                ],
-            ),
-        ]
-
-    def get_variables(self, derived_metric_params: DerivedMetricParams) -> Variables:
+    def get_components(
+        self, derived_metric_params: DerivedMetricParams
+    ) -> List[DerivedMetricComponent]:
         apdex_threshold, field_to_extract = (
             derived_metric_params.consume(consumer=self.get_name())
             .param("apdex_threshold")
             .param("field_to_extract")
             .get_all()
         )
-        # Instead of supporting expressions in the parser, we can just create here all variants.
-        t2 = 4 * apdex_threshold
 
-        # The threshold is specified in ms.
-        return {
-            "apdex_threshold_1": apdex_threshold,
-            "apdex_threshold_2": t2,
-            "field_to_extract": field_to_extract,
-        }
+        field = _map_field_name(field_to_extract)
+
+        return [
+            # Satisfactory.
+            DerivedMetricComponent(
+                tag_key="satisfaction",
+                tag_value="satisfactory",
+                condition={"name": field, "op": "lte", "value": apdex_threshold},
+            ),
+            # Tolerable.
+            DerivedMetricComponent(
+                tag_key="satisfaction",
+                tag_value="tolerable",
+                condition={
+                    "inner": [
+                        {"name": field, "op": "gt", "value": apdex_threshold},
+                        {"name": field, "op": "lte", "value": apdex_threshold * 4},
+                    ],
+                    "op": "and",
+                },
+            ),
+            # Frustrated.
+            DerivedMetricComponent(
+                tag_key="satisfaction",
+                tag_value="frustrated",
+                condition={"name": field, "op": "gt", "value": apdex_threshold},
+            ),
+        ]
 
 
 # Dynamic mapping between derived metric field name and derived metric definition.
@@ -662,20 +623,14 @@ class OndemandMetricSpecBuilder:
         derived_metric: DerivedMetric, derived_metric_params: DerivedMetricParams
     ) -> List[TagSpec]:
         tags_conditions = []
-        variables = derived_metric.get_variables(derived_metric_params)
-        for component in derived_metric.get_components():
-            tag_condition = None
-            if len(component.conditions) > 0:
-                tag_condition = SearchQueryConverter(
-                    component.conditions,
-                    variables,
-                ).convert()
-
-            tag: TagSpec = {"key": component.tag_key, "value": component.tag_value}
-            if tag_condition is not None:
-                tag["condition"] = tag_condition
-
-            tags_conditions.append(tag)
+        for component in derived_metric.get_components(derived_metric_params):
+            tags_conditions.append(
+                {
+                    "key": component.tag_key,
+                    "value": component.tag_value,
+                    "condition": component.condition,
+                }
+            )
 
         return tags_conditions
 
@@ -847,8 +802,8 @@ class SearchQueryConverter:
             raise ValueError(f"Unsupported operator {token.operator}")
 
         # We propagate the filter in order to give as output a better error message with more context.
-        key: str = self._eval_search_key(token, token.key)
-        value: Any = self._eval_search_value(token, token.value)
+        key: str = self._eval_search_key(token.key)
+        value: Any = self._eval_search_value(token.value)
         if operator == "eq" and token.value.is_wildcard():
             condition: RuleCondition = {
                 "op": "glob",
@@ -876,34 +831,12 @@ class SearchQueryConverter:
 
         return condition
 
+    @staticmethod
     def _eval_search_key(
-        self,
-        search_filter: SearchFilter,
-        search_key: Union[SearchKey, VariableSearchKey],
+        search_key: SearchKey,
     ) -> str:
-        if isinstance(search_key, VariableSearchKey):
-            variable_name = search_key.variable_name
-            variable_value = self._variables.get(variable_name)
-            if variable_value is None:
-                raise Exception(
-                    f"Variable {variable_name} used in search key of {search_filter} has no value set"
-                )
+        return search_key.name
 
-            return variable_value
-        else:
-            return search_key.name
-
-    def _eval_search_value(
-        self, search_filter: SearchFilter, search_value: Union[SearchValue, VariableSearchValue]
-    ) -> Any:
-        if isinstance(search_value, VariableSearchValue):
-            variable_name = search_value.variable_name
-            variable_value = self._variables.get(variable_name)
-            if variable_value is None:
-                raise Exception(
-                    f"Variable {variable_name} used in search value of {search_filter} has no value set"
-                )
-
-            return variable_value
-        else:
-            return search_value.raw_value
+    @staticmethod
+    def _eval_search_value(search_value: SearchValue) -> Any:
+        return search_value.raw_value
