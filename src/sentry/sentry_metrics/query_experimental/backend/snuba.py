@@ -37,10 +37,10 @@ REFERRER = "sentry_metrics.query"
 # Snuba column names
 COLUMN_PROJECT_ID = Column("project_id")
 COLUMN_ORG_ID = Column("org_id")
-COLUMN_TIMESTAMP_FILTER = Column("timestamp")  # Used in filters
-COLUMN_TIMESTAMP_GROUP = Column("bucketed_time")  # Used in groupby
+COLUMN_TIMESTAMP = Column("timestamp")
 COLUMN_VALUE = Column("value")
 COLUMN_METRIC_ID = Column("metric_id")
+TIMESTAMP_ALIAS = "__bucketed_time"
 
 # Functions and operators.
 #
@@ -232,8 +232,8 @@ class SnubaQueryConverter:
         return [
             Condition(COLUMN_ORG_ID, Op.EQ, self.query.scope.org_id),
             Condition(COLUMN_PROJECT_ID, Op.IN, self.query.scope.project_ids),
-            Condition(COLUMN_TIMESTAMP_FILTER, Op.GTE, self.query.range.start),
-            Condition(COLUMN_TIMESTAMP_FILTER, Op.LT, self.query.range.end),
+            Condition(COLUMN_TIMESTAMP, Op.GTE, self.query.range.start),
+            Condition(COLUMN_TIMESTAMP, Op.LT, self.query.range.end),
         ]
 
     def _convert_tag_key(self, tag: Any) -> str:
@@ -277,9 +277,23 @@ class SnubaQueryConverter:
         return value
 
     def _build_groupby(self):
+        if self.query.rollup.interval is None or self.query.rollup.totals:
+            raise NotImplementedError("Totals queries are not yet supported")
+
         groupby = [AliasedExpression(self._convert_tag_key(c), c.name) for c in self.query.groups]
-        groupby.append(COLUMN_TIMESTAMP_GROUP)
+        groupby.append(self._build_timestamp_group())
         return groupby
+
+    def _build_timestamp_group(self) -> Function:
+        return Function(
+            "toStartOfInterval",
+            [
+                COLUMN_TIMESTAMP,
+                Function("toIntervalSecond", [self.query.rollup.interval]),
+                "Universal",
+            ],
+            TIMESTAMP_ALIAS,
+        )
 
 
 TagDict = Dict[str, str]
@@ -305,7 +319,7 @@ class SnubaResultConverter:
             series.setdefault(expr_id, {})[bucket_time] = value
 
     def _record_entry(self, entry: Dict[str, Any]):
-        timestamp: str = entry.pop(COLUMN_TIMESTAMP_GROUP.name)
+        timestamp: str = entry.pop(TIMESTAMP_ALIAS)
         bucket_time = datetime.fromisoformat(timestamp)
         self.intervals.add(bucket_time)
 
