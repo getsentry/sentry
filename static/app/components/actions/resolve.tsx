@@ -27,16 +27,13 @@ function SetupReleasesPrompt() {
   return (
     <SetupReleases>
       <IconReleases size="xl" />
-
       <div>
         <SetupReleasesHeader>
           {t('Resolving is better with Releases')}
         </SetupReleasesHeader>
-        <div>
-          {t(
-            'Set up Releases so Sentry can bother you when this problem comes back in a future release.'
-          )}
-        </div>
+        {t(
+          'Set up Releases so Sentry can bother you when this problem comes back in a future release.'
+        )}
       </div>
       <LinkButton
         priority="primary"
@@ -369,12 +366,12 @@ const SetupReleases = styled('div')`
   padding: ${space(2)} 0;
   text-align: center;
   color: ${p => p.theme.gray400};
-  width: 288px;
+  width: 250px;
   white-space: normal;
   font-weight: normal;
 `;
 
 const SetupReleasesHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(1)};
 `;
