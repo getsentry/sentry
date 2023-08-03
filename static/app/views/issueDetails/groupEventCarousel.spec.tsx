@@ -17,11 +17,15 @@ describe('GroupEventCarousel', () => {
     nextEventID: 'next-event-id',
   });
 
+  const singleTestEvent = {...testEvent, previousEventID: null, nextEventID: null};
+
   const defaultProps = {
     event: testEvent,
     group: TestStubs.Group({id: 'group-id'}),
     projectSlug: 'project-slug',
   };
+
+  const singleEventProps = {...defaultProps, event: singleTestEvent};
 
   beforeEach(() => {
     jest.restoreAllMocks();
@@ -90,6 +94,16 @@ describe('GroupEventCarousel', () => {
         pathname: '/organizations/org-slug/issues/group-id/events/recommended/',
         query: {referrer: 'recommended-event'},
       });
+    });
+
+    it('will disable the dropdown if there is only one event', async () => {
+      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+
+      render(<GroupEventCarousel {...singleEventProps} />, {
+        organization: orgWithRecommendedEvent,
+      });
+
+      expect(await screen.getByRole('button', {name: 'Recommended'})).toBeDisabled();
     });
   });
 
