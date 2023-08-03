@@ -95,8 +95,11 @@ class OrganizationMissingMembersTestCase(APITestCase):
         assert response.data[0]["users"] == []
 
     def test_not_common_domain(self):
+        self.create_member(
+            organization=self.organization, user=self.create_user(email="owner@exampletwo.com")
+        )
         not_common_domain_author = self.create_commit_author(
-            project=self.project, email="a@notexample.com"
+            project=self.project, email="a@exampletwo.com"
         )
         not_common_domain_author.external_id = "not"
         not_common_domain_author.save()
@@ -108,7 +111,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
         assert response.data[0]["users"] == [
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
-            {"email": "a@notexample.com", "externalId": "not", "commitCount": 1},
+            {"email": "a@exampletwo.com", "externalId": "not", "commitCount": 1},
         ]
 
     def test_query(self):
