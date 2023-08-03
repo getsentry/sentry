@@ -171,7 +171,7 @@ export function Chart(props: ChartProps) {
     type: 'value' as const,
     axisLabel: {
       color: theme.chartLabel,
-      formatter: formatAbbreviatedNumber,
+      formatter: (value: number | string) => formatAbbreviatedNumber(value),
     },
   };
 
