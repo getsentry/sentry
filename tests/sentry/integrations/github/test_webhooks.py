@@ -12,7 +12,7 @@ from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.models import Commit, CommitAuthor, GroupLink, PullRequest, Repository
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 

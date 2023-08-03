@@ -8,7 +8,7 @@ import responses
 from fixtures.vsts import COMMIT_DETAILS_EXAMPLE, COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
 from sentry.integrations.vsts.repository import VstsRepositoryProvider
 from sentry.models import Identity, IdentityProvider, Integration, Repository
-from sentry.testutils import IntegrationRepositoryTestCase, TestCase
+from sentry.testutils.cases import IntegrationRepositoryTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 
 

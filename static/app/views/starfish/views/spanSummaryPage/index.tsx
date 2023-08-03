@@ -5,8 +5,6 @@ import * as qs from 'query-string';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -30,6 +28,7 @@ import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import {
   SpanSummaryQueryFilters,
   useSpanMetrics,
@@ -55,6 +54,8 @@ const DEFAULT_SORT: Sort = {
   field: 'time_spent_percentage(local)',
 };
 
+const CHART_HEIGHT = 160;
+
 type Props = {
   location: Location;
 } & RouteComponentProps<{groupId: string}, {transaction: string}>;
@@ -63,6 +64,8 @@ function SpanSummaryPage({params, location}: Props) {
   const organization = useOrganization();
   const {groupId} = params;
   const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
+
+  const {data: fullSpan} = useFullSpanFromTrace(groupId);
 
   const queryFilter: SpanSummaryQueryFilters = endpoint
     ? {transactionName: endpoint, 'transaction.method': endpointMethod}
@@ -165,7 +168,7 @@ function SpanSummaryPage({params, location}: Props) {
             <Layout.Body>
               <Layout.Main fullWidth>
                 <PageErrorAlert />
-                <BlockContainer>
+                <HeaderContainer>
                   <FilterOptionsContainer>
                     <StarfishDatePicker />
                   </FilterOptionsContainer>
@@ -190,7 +193,7 @@ function SpanSummaryPage({params, location}: Props) {
                     <Block
                       title={DataTitles.avg}
                       description={tct(
-                        '95% of [spanType] in the selected period have a lower duration than this value',
+                        'The average duration of [spanType] in the selected period',
                         {
                           spanType: spanDescriptionCardTitle.endsWith('y')
                             ? `${spanDescriptionCardTitle.slice(0, -1)}ies`
@@ -224,80 +227,78 @@ function SpanSummaryPage({params, location}: Props) {
                       />
                     </Block>
                   </BlockContainer>
-                </BlockContainer>
+                </HeaderContainer>
 
                 {span?.[SpanMetricsFields.SPAN_DESCRIPTION] && (
-                  <BlockContainer>
-                    <Block>
-                      <Panel>
-                        <DescriptionPanelBody>
-                          <DescriptionContainer>
-                            <DescriptionTitle>
-                              {spanDescriptionCardTitle}
-                            </DescriptionTitle>
-                            <SpanDescription spanMeta={span} />
-                          </DescriptionContainer>
-                        </DescriptionPanelBody>
-                      </Panel>
-                    </Block>
-
-                    <Block>
-                      <ChartPanel
-                        title={getThroughputChartTitle(span?.[SpanMetricsFields.SPAN_OP])}
-                      >
-                        <Chart
-                          height={140}
-                          data={[spanMetricsThroughputSeries]}
-                          loading={areSpanMetricsSeriesLoading}
-                          utc={false}
-                          chartColors={[THROUGHPUT_COLOR]}
-                          isLineChart
-                          definedAxisTicks={4}
-                          aggregateOutputFormat="rate"
-                          rateUnit={RateUnits.PER_MINUTE}
-                          tooltipFormatterOptions={{
-                            valueFormatter: value =>
-                              formatRate(value, RateUnits.PER_MINUTE),
-                          }}
-                        />
-                      </ChartPanel>
-                    </Block>
-
-                    <Block>
-                      <ChartPanel title={DataTitles.avg}>
-                        <Chart
-                          height={140}
-                          data={[
-                            spanMetricsSeriesData?.[
-                              `avg(${SpanMetricsFields.SPAN_SELF_TIME})`
-                            ],
-                          ]}
-                          loading={areSpanMetricsSeriesLoading}
-                          utc={false}
-                          chartColors={[AVG_COLOR]}
-                          isLineChart
-                          definedAxisTicks={4}
-                        />
-                      </ChartPanel>
-                    </Block>
-
-                    {span?.[SpanMetricsFields.SPAN_OP]?.startsWith('http') && (
-                      <Block>
-                        <ChartPanel title={DataTitles.errorCount}>
-                          <Chart
-                            height={140}
-                            data={[spanMetricsSeriesData?.[`http_error_count()`]]}
-                            loading={areSpanMetricsSeriesLoading}
-                            utc={false}
-                            chartColors={[ERRORS_COLOR]}
-                            isLineChart
-                            definedAxisTicks={4}
-                          />
-                        </ChartPanel>
-                      </Block>
-                    )}
-                  </BlockContainer>
+                  <DescriptionContainer>
+                    <SpanDescription
+                      span={{
+                        ...span,
+                        [SpanMetricsFields.SPAN_DESCRIPTION]:
+                          fullSpan?.description ??
+                          spanMetrics?.[SpanMetricsFields.SPAN_DESCRIPTION],
+                      }}
+                    />
+                  </DescriptionContainer>
                 )}
+
+                <BlockContainer>
+                  <Block>
+                    <ChartPanel
+                      title={getThroughputChartTitle(span?.[SpanMetricsFields.SPAN_OP])}
+                    >
+                      <Chart
+                        height={CHART_HEIGHT}
+                        data={[spanMetricsThroughputSeries]}
+                        loading={areSpanMetricsSeriesLoading}
+                        utc={false}
+                        chartColors={[THROUGHPUT_COLOR]}
+                        isLineChart
+                        definedAxisTicks={4}
+                        aggregateOutputFormat="rate"
+                        rateUnit={RateUnits.PER_MINUTE}
+                        tooltipFormatterOptions={{
+                          valueFormatter: value =>
+                            formatRate(value, RateUnits.PER_MINUTE),
+                        }}
+                      />
+                    </ChartPanel>
+                  </Block>
+
+                  <Block>
+                    <ChartPanel title={DataTitles.avg}>
+                      <Chart
+                        height={CHART_HEIGHT}
+                        data={[
+                          spanMetricsSeriesData?.[
+                            `avg(${SpanMetricsFields.SPAN_SELF_TIME})`
+                          ],
+                        ]}
+                        loading={areSpanMetricsSeriesLoading}
+                        utc={false}
+                        chartColors={[AVG_COLOR]}
+                        isLineChart
+                        definedAxisTicks={4}
+                      />
+                    </ChartPanel>
+                  </Block>
+
+                  {span?.[SpanMetricsFields.SPAN_OP]?.startsWith('http') && (
+                    <Block>
+                      <ChartPanel title={DataTitles.errorCount}>
+                        <Chart
+                          height={CHART_HEIGHT}
+                          data={[spanMetricsSeriesData?.[`http_error_count()`]]}
+                          loading={areSpanMetricsSeriesLoading}
+                          utc={false}
+                          chartColors={[ERRORS_COLOR]}
+                          isLineChart
+                          definedAxisTicks={4}
+                        />
+                      </ChartPanel>
+                    </Block>
+                  )}
+                </BlockContainer>
 
                 {span && (
                   <SpanTransactionsTable
@@ -327,7 +328,7 @@ const FilterOptionsContainer = styled('div')`
   flex-direction: row;
   gap: ${space(1)};
   align-items: center;
-  flex: 1;
+  padding-bottom: ${space(2)};
 `;
 
 type BlockProps = {
@@ -339,14 +340,16 @@ type BlockProps = {
 export function Block({title, description, children}: BlockProps) {
   return (
     <BlockWrapper>
-      <BlockTitle>
-        {title}
-        {description && (
-          <BlockTooltipContainer>
-            <QuestionTooltip size="sm" position="right" title={description} />
-          </BlockTooltipContainer>
-        )}
-      </BlockTitle>
+      {title && (
+        <BlockTitle>
+          {title}
+          {description && (
+            <BlockTooltipContainer>
+              <QuestionTooltip size="sm" position="right" title={description} />
+            </BlockTooltipContainer>
+          )}
+        </BlockTitle>
+      )}
       <BlockContent>{children}</BlockContent>
     </BlockWrapper>
   );
@@ -376,30 +379,28 @@ export const BlockContainer = styled('div')`
   & > div:last-child {
     padding-right: ${space(1)};
   }
-  padding-bottom: ${space(2)};
+  flex-wrap: wrap;
+`;
+
+export const HeaderContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
 `;
 
 const DescriptionContainer = styled('div')`
   width: 100%;
-  padding: ${space(1)};
+  margin-bottom: ${space(4)};
   font-size: 1rem;
   line-height: 1.2;
-`;
-
-const DescriptionPanelBody = styled(PanelBody)`
-  padding: ${space(2)};
-  height: 208px;
 `;
 
 const BlockWrapper = styled('div')`
   padding-right: ${space(4)};
-  flex: 1;
-`;
-
-const DescriptionTitle = styled('h4')`
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.2;
+  flex-grow: 1;
+  min-width: 0;
+  word-break: break-word;
+  padding-bottom: ${space(2)};
 `;
 
 export default SpanSummaryPage;

@@ -1,11 +1,10 @@
 import unittest
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import cached_property
 from unittest import mock
 
 import pytest
-import pytz
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from dateutil.parser import parse as parse_date
@@ -122,7 +121,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         data["payload"].pop("result")
         data["payload"].pop("request")
         data["payload"]["timestamp"] = parse_date(data["payload"]["timestamp"]).replace(
-            tzinfo=pytz.utc
+            tzinfo=timezone.utc
         )
         mock_callback.assert_called_once_with(data["payload"], sub)
 

@@ -1,13 +1,11 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -19,10 +17,13 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
+import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
-import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
-import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
+import {
+  ModuleName,
+  SpanMetricsFields,
+  StarfishFunctions,
+} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
@@ -56,14 +57,15 @@ type Props = {
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP, SPAN_OP} =
   SpanMetricsFields;
+const {TIME_SPENT_PERCENTAGE, SPS, SPM, HTTP_ERROR_COUNT} = StarfishFunctions;
 
 const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
-  'sps()',
-  'spm()',
-  'time_spent_percentage()',
-  'time_spent_percentage(local)',
-  'http_error_count()',
+  `${SPS}()`,
+  `${SPM}()`,
+  `${TIME_SPENT_PERCENTAGE}()`,
+  `${TIME_SPENT_PERCENTAGE}(local)`,
+  `${HTTP_ERROR_COUNT}()`,
 ]);
 
 export default function SpansTable({
@@ -121,7 +123,16 @@ export default function SpansTable({
           grid={{
             renderHeadCell: column => renderHeadCell({column, sort, location}),
             renderBodyCell: (column, row) =>
-              renderBodyCell(column, row, meta, location, organization, endpoint, method),
+              renderBodyCell(
+                column,
+                row,
+                moduleName,
+                meta,
+                location,
+                organization,
+                endpoint,
+                method
+              ),
           }}
           location={location}
         />
@@ -134,32 +145,22 @@ export default function SpansTable({
 function renderBodyCell(
   column: Column,
   row: Row,
+  moduleName: ModuleName,
   meta: EventsMetaType | undefined,
   location: Location,
   organization: Organization,
   endpoint?: string,
   endpointMethod?: string
-): React.ReactNode {
+) {
   if (column.key === SPAN_DESCRIPTION) {
-    const queryString = {
-      ...location.query,
-      endpoint,
-      endpointMethod,
-    };
     return (
-      <OverflowEllipsisTextContainer>
-        {row[SPAN_GROUP] ? (
-          <Link
-            to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${row[SPAN_GROUP]}${
-              queryString ? `?${qs.stringify(queryString)}` : ''
-            }`}
-          >
-            {row[SPAN_DESCRIPTION] || '<null>'}
-          </Link>
-        ) : (
-          row[SPAN_DESCRIPTION] || '<null>'
-        )}
-      </OverflowEllipsisTextContainer>
+      <SpanDescriptionCell
+        moduleName={moduleName}
+        description={row[SPAN_DESCRIPTION]}
+        group={row[SPAN_GROUP]}
+        endpoint={endpoint}
+        endpointMethod={endpointMethod}
+      />
     );
   }
 
@@ -192,7 +193,7 @@ function getDescriptionHeader(moduleName: ModuleName, spanCategory?: string) {
     return 'URL Request';
   }
   if (moduleName === ModuleName.DB) {
-    return 'Database Query';
+    return 'Query Description';
   }
   if (spanCategory === 'cache') {
     return 'Cache Query';

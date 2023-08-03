@@ -14,7 +14,7 @@ from sentry.models.transaction_threshold import (
 from sentry.search.events import constants
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
-from sentry.testutils import MetricsEnhancedPerformanceTestCase
+from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
@@ -2188,6 +2188,88 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
         assert meta["isMetricsData"]
 
+    def test_has_filter(self):
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "foo_transaction", "transaction.status": "foobar"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "p50()",
+                ],
+                # For the metrics dataset, has on metrics should be no-ops
+                "query": "has:measurements.frames_frozen_rate",
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p50()"] == 1
+        meta = response.data["meta"]
+        assert meta["isMetricsData"]
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "p50()",
+                ],
+                "query": "has:transaction.status",
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p50()"] == 1
+        meta = response.data["meta"]
+        assert meta["isMetricsData"]
+
+    def test_not_has_filter(self):
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "foo_transaction", "transaction.status": "foobar"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "p50()",
+                ],
+                "query": "!has:transaction.status",
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 0
+        meta = response.data["meta"]
+        assert meta["isMetricsData"]
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "p50()",
+                ],
+                # Doing !has on the metrics dataset doesn't really make sense
+                "query": "!has:measurements.frames_frozen_rate",
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
@@ -2214,8 +2296,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
 
     @pytest.mark.xfail(reason="Not supported")
     def test_time_spent(self):
-        super().test_custom_measurement_size_filtering()
+        super().test_time_spent()
 
     @pytest.mark.xfail(reason="Not supported")
     def test_http_error_rate(self):
-        super().test_having_condition()
+        super().test_http_error_rate()

@@ -10,7 +10,7 @@ from sentry.middleware.integrations.parsers.base import RegionResult
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.models.outbox import ControlOutbox
 from sentry.silo.client import SiloClientError
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 from sentry.utils.signing import sign

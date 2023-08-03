@@ -42,7 +42,7 @@ export const steps = ({
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry-log4j2</artifactId>
-  <version>6.25.2</version>
+  <version>6.27.0</version>
 </dependency>
           `,
           },
@@ -57,7 +57,7 @@ export const steps = ({
     <plugin>
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
-      <version>0.0.2</version>
+      <version>0.0.3</version>
       <configuration>
       <!-- for showing output of sentry-cli -->
       <debugSentryCli>true</debugSentryCli>
@@ -99,7 +99,7 @@ export const steps = ({
         configurations: [
           {
             language: 'groovy',
-            code: "implementation 'io.sentry:sentry-log4j2:6.25.2'",
+            code: "implementation 'io.sentry:sentry-log4j2:6.27.0'",
           },
           {
             description: t(

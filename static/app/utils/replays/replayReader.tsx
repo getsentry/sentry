@@ -2,7 +2,6 @@ import * as Sentry from '@sentry/react';
 import memoize from 'lodash/memoize';
 import {duration} from 'moment';
 
-import type {Crumb} from 'sentry/types/breadcrumbs';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
@@ -16,12 +15,7 @@ import {
   recordingStartFrame,
 } from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
-import {
-  breadcrumbFactory,
-  replayTimestamps,
-  spansFactory,
-} from 'sentry/utils/replays/replayDataUtils';
-import splitAttachmentsByType from 'sentry/utils/replays/splitAttachmentsByType';
+import {replayTimestamps} from 'sentry/utils/replays/replayDataUtils';
 import type {
   BreadcrumbFrame,
   ErrorFrame,
@@ -31,14 +25,12 @@ import type {
   SlowClickFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
-import {isDeadClick, isDeadRageClick} from 'sentry/utils/replays/types';
-import type {
-  RecordingEvent,
-  ReplayCrumb,
-  ReplayError,
-  ReplayRecord,
-  ReplaySpan,
-} from 'sentry/views/replays/types';
+import {
+  BreadcrumbCategories,
+  isDeadClick,
+  isDeadRageClick,
+} from 'sentry/utils/replays/types';
+import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 interface ReplayReaderParams {
   /**
@@ -125,7 +117,7 @@ export default class ReplayReader {
     }
 
     // Hydrate the data we were given
-    this.replayRecord = replayRecord;
+    this._replayRecord = replayRecord;
     // Errors don't need to be sorted here, they will be merged with breadcrumbs
     // and spans in the getter and then sorted together.
     this._errors = hydrateErrors(replayRecord, errors).sort(sortFrames);
@@ -147,38 +139,6 @@ export default class ReplayReader {
     this._sortedBreadcrumbFrames.push(replayInitBreadcrumb(replayRecord));
     this._sortedRRWebEvents.unshift(recordingStartFrame(replayRecord));
     this._sortedRRWebEvents.push(recordingEndFrame(replayRecord));
-
-    /*********************/
-    /** OLD STUFF BELOW **/
-    /*********************/
-    const {rawBreadcrumbs, rawRRWebEvents, rawNetworkSpans, rawMemorySpans} =
-      splitAttachmentsByType(attachments);
-
-    const spans = [...rawMemorySpans, ...rawNetworkSpans] as ReplaySpan[];
-
-    // TODO(replays): We should get correct timestamps from the backend instead
-    // of having to fix them up here.
-    const {startTimestampMs, endTimestampMs} = replayTimestamps(
-      replayRecord,
-      rawRRWebEvents as RecordingEvent[],
-      rawBreadcrumbs as ReplayCrumb[],
-      spans
-    );
-    replayRecord.started_at = new Date(startTimestampMs);
-    replayRecord.finished_at = new Date(endTimestampMs);
-    replayRecord.duration = duration(
-      replayRecord.finished_at.getTime() - replayRecord.started_at.getTime()
-    );
-
-    this.sortedSpans = spansFactory(spans);
-    this.breadcrumbs = breadcrumbFactory(
-      replayRecord,
-      errors,
-      rawBreadcrumbs as ReplayCrumb[],
-      this.sortedSpans
-    );
-
-    this.replayRecord = replayRecord;
   }
 
   public timestampDeltas = {startedAtDelta: 0, finishedAtDelta: 0};
@@ -186,13 +146,10 @@ export default class ReplayReader {
   private _cacheKey: string;
   private _errors: ErrorFrame[];
   private _optionFrame: undefined | OptionFrame;
+  private _replayRecord: ReplayRecord;
   private _sortedBreadcrumbFrames: BreadcrumbFrame[];
   private _sortedRRWebEvents: RecordingFrame[];
   private _sortedSpanFrames: SpanFrame[];
-
-  private sortedSpans: ReplaySpan[];
-  private replayRecord: ReplayRecord;
-  private breadcrumbs: Crumb[];
 
   toJSON = () => this._cacheKey;
 
@@ -200,11 +157,11 @@ export default class ReplayReader {
    * @returns Duration of Replay (milliseonds)
    */
   getDurationMs = () => {
-    return this.replayRecord.duration.asMilliseconds();
+    return this._replayRecord.duration.asMilliseconds();
   };
 
   getReplay = () => {
-    return this.replayRecord;
+    return this._replayRecord;
   };
 
   getRRWebFrames = () => this._sortedRRWebEvents;
@@ -212,7 +169,10 @@ export default class ReplayReader {
   getErrorFrames = () => this._errors;
 
   getConsoleFrames = memoize(() =>
-    this._sortedBreadcrumbFrames.filter(frame => frame.category === 'console')
+    this._sortedBreadcrumbFrames.filter(
+      frame =>
+        frame.category === 'console' || !BreadcrumbCategories.includes(frame.category)
+    )
   );
 
   getNavigationFrames = memoize(() =>
@@ -229,7 +189,16 @@ export default class ReplayReader {
   );
 
   getDOMFrames = memoize(() => [
-    ...this._sortedBreadcrumbFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
+    ...this._sortedBreadcrumbFrames
+      .filter(frame => 'nodeId' in (frame.data ?? {}))
+      .filter(
+        frame =>
+          !(
+            (frame.category === 'ui.slowClickDetected' &&
+              !isDeadClick(frame as SlowClickFrame)) ||
+            frame.category === 'ui.multiClick'
+          )
+      ),
     ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
   ]);
 
@@ -237,7 +206,7 @@ export default class ReplayReader {
     extractDomNodes({
       frames: this.getDOMFrames(),
       rrwebEvents: this.getRRWebFrames(),
-      finishedAt: this.replayRecord.finished_at,
+      finishedAt: this._replayRecord.finished_at,
     })
   );
 
@@ -255,7 +224,6 @@ export default class ReplayReader {
           (frame.category === 'ui.slowClickDetected' &&
             (isDeadClick(frame as SlowClickFrame) ||
               isDeadRageClick(frame as SlowClickFrame)))
-        // Hiding all ui.multiClick (multi or rage clicks)
       ),
       ...this._sortedSpanFrames.filter(frame =>
         ['navigation.navigate', 'navigation.reload', 'navigation.back_forward'].includes(
@@ -298,15 +266,4 @@ export default class ReplayReader {
         Object.keys(frame?.data?.response?.headers ?? {}).length
     );
   });
-
-  /*********************/
-  /** OLD STUFF BELOW **/
-  /*********************/
-  getConsoleCrumbs = memoize(() =>
-    this.breadcrumbs.filter(crumb => crumb.category === 'console')
-  );
-
-  getNonConsoleCrumbs = memoize(() =>
-    this.breadcrumbs.filter(crumb => crumb.category !== 'console')
-  );
 }

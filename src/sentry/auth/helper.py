@@ -108,11 +108,6 @@ class AuthIdentityHandler:
     request: HttpRequest
     identity: Mapping[str, Any]
 
-    def __post_init__(self) -> None:
-        # For debugging. TODO: Remove when tests are stable
-        if not isinstance(self.organization, RpcOrganization):
-            raise TypeError
-
     @cached_property
     def user(self) -> User | AnonymousUser:
         email = self.identity.get("email")

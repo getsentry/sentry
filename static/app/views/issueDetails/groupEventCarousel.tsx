@@ -1,18 +1,22 @@
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button, ButtonProps} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import FeatureBadge from 'sentry/components/featureBadge';
+import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
   IconCopy,
   IconEllipsis,
+  IconJson,
+  IconLink,
   IconNext,
   IconOpen,
   IconPrevious,
@@ -46,6 +50,12 @@ type GroupEventCarouselProps = {
   projectSlug: string;
 };
 
+type GroupEventNavigationProps = {
+  group: Group;
+  isDisabled: boolean;
+  relativeTime: string;
+};
+
 type EventNavigationButtonProps = {
   disabled: boolean;
   group: Group;
@@ -59,29 +69,12 @@ enum EventNavDropdownOption {
   RECOMMENDED = 'recommended',
   LATEST = 'latest',
   OLDEST = 'oldest',
+  CUSTOM = 'custom',
   ALL = 'all',
 }
 
 const BUTTON_SIZE = 'sm';
 const BUTTON_ICON_SIZE = 'sm';
-
-const EVENT_NAV_DROPDOWN_OPTIONS = [
-  {value: EventNavDropdownOption.RECOMMENDED, label: 'Recommended Event'},
-  {value: EventNavDropdownOption.LATEST, label: 'Latest Event'},
-  {value: EventNavDropdownOption.OLDEST, label: 'Oldest Event'},
-  {options: [{value: EventNavDropdownOption.ALL, label: 'View All Events'}]},
-];
-
-const copyToClipboard = (value: string) => {
-  navigator.clipboard
-    .writeText(value)
-    .then(() => {
-      addSuccessMessage(t('Copied to clipboard'));
-    })
-    .catch(() => {
-      t('Error copying to clipboard');
-    });
-};
 
 const makeBaseEventsPath = ({
   organization,
@@ -123,7 +116,11 @@ function EventNavigationButton({
   );
 }
 
-function EventNavigationDropdown({group}: {group: Group}) {
+function EventNavigationDropdown({
+  group,
+  relativeTime,
+  isDisabled,
+}: GroupEventNavigationProps) {
   const location = useLocation();
   const params = useParams<{eventId?: string}>();
   const theme = useTheme();
@@ -152,13 +149,55 @@ function EventNavigationDropdown({group}: {group: Group}) {
   };
 
   const selectedValue = getSelectedOption();
+  const eventNavDropdownOptions = [
+    {
+      value: EventNavDropdownOption.RECOMMENDED,
+      label: (
+        <div>
+          {t('Recommended')}
+          <FeatureBadge type="new" />
+        </div>
+      ),
+      textValue: t('Recommended'),
+      details: t('Event with the most context'),
+    },
+    {
+      value: EventNavDropdownOption.LATEST,
+      label: t('Latest'),
+      details: t('Last seen event in this issue'),
+    },
+    {
+      value: EventNavDropdownOption.OLDEST,
+      label: t('Oldest'),
+      details: t('First seen event in this issue'),
+    },
+    ...(!selectedValue
+      ? [
+          {
+            value: EventNavDropdownOption.CUSTOM,
+            label: t('Custom Selection'),
+          },
+        ]
+      : []),
+    {
+      options: [{value: EventNavDropdownOption.ALL, label: 'View All Events'}],
+    },
+  ];
 
   return (
     <CompactSelect
       size="sm"
-      options={EVENT_NAV_DROPDOWN_OPTIONS}
-      value={selectedValue}
-      triggerLabel={!selectedValue ? 'Navigate Events' : undefined}
+      disabled={isDisabled}
+      options={eventNavDropdownOptions}
+      value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
+      triggerLabel={
+        !selectedValue ? (
+          <TimeSince date={relativeTime} disabledAbsoluteTooltip />
+        ) : selectedValue === EventNavDropdownOption.RECOMMENDED ? (
+          t('Recommended')
+        ) : undefined
+      }
+      menuWidth={232}
       onChange={selectedOption => {
         switch (selectedOption.value) {
           case EventNavDropdownOption.RECOMMENDED:
@@ -172,11 +211,12 @@ function EventNavigationDropdown({group}: {group: Group}) {
             });
             break;
           case EventNavDropdownOption.ALL:
+            const searchTermWithoutQuery = omit(location.query, 'query');
             browserHistory.push({
               pathname: normalizeUrl(
                 `/organizations/${organization.slug}/issues/${group.id}/events/`
               ),
-              query: location.query,
+              query: searchTermWithoutQuery,
             });
             break;
           default:
@@ -204,8 +244,6 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
   const hasPreviousEvent = defined(event.previousEventID);
   const hasNextEvent = defined(event.nextEventID);
 
-  const {onClick: onClickCopy} = useCopyToClipboard({text: event.id});
-
   const downloadJson = () => {
     const jsonUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/json/`;
     window.open(jsonUrl);
@@ -215,17 +253,23 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
     });
   };
 
-  const copyLink = () => {
-    copyToClipboard(
+  const {onClick: copyLink} = useCopyToClipboard({
+    successMessage: t('Event URL copied to clipboard'),
+    text:
       window.location.origin +
-        normalizeUrl(`${makeBaseEventsPath({organization, group})}${event.id}/`)
-    );
-    trackAnalytics('issue_details.copy_event_link_clicked', {
-      organization,
-      ...getAnalyticsDataForGroup(group),
-      ...getAnalyticsDataForEvent(event),
-    });
-  };
+      normalizeUrl(`${makeBaseEventsPath({organization, group})}${event.id}/`),
+    onCopy: () =>
+      trackAnalytics('issue_details.copy_event_link_clicked', {
+        organization,
+        ...getAnalyticsDataForGroup(group),
+        ...getAnalyticsDataForEvent(event),
+      }),
+  });
+
+  const {onClick: copyEventId} = useCopyToClipboard({
+    successMessage: t('Event ID copied to clipboard'),
+    text: event.id,
+  });
 
   const isHelpfulEventUiEnabled =
     organization.features.includes('issue-details-most-helpful-event') &&
@@ -241,7 +285,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
               <Button
                 aria-label={t('Copy')}
                 borderless
-                onClick={onClickCopy}
+                onClick={copyEventId}
                 size="zero"
                 title={event.id}
                 tooltipProps={{overlayStyle: {maxWidth: 'max-content'}}}
@@ -294,7 +338,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             {
               key: 'copy-event-id',
               label: t('Copy Event ID'),
-              onAction: () => copyToClipboard(event.id),
+              onAction: copyEventId,
             },
             {
               key: 'copy-event-url',
@@ -343,20 +387,40 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
           ]}
         />
         {xlargeViewport && (
-          <Button size={BUTTON_SIZE} onClick={copyLink}>
-            Copy Link
+          <Button
+            title={
+              isHelpfulEventUiEnabled ? t('Copy link to this issue event') : undefined
+            }
+            size={BUTTON_SIZE}
+            onClick={copyLink}
+            aria-label={t('Copy Link')}
+            icon={isHelpfulEventUiEnabled ? <IconLink /> : undefined}
+          >
+            {!isHelpfulEventUiEnabled && 'Copy Link'}
           </Button>
         )}
         {xlargeViewport && (
           <Button
+            title={isHelpfulEventUiEnabled ? t('View JSON') : undefined}
             size={BUTTON_SIZE}
-            icon={<IconOpen size={BUTTON_ICON_SIZE} />}
             onClick={downloadJson}
+            aria-label={t('View JSON')}
+            icon={
+              isHelpfulEventUiEnabled ? (
+                <IconJson />
+              ) : (
+                <IconOpen size={BUTTON_ICON_SIZE} />
+              )
+            }
           >
-            JSON
+            {!isHelpfulEventUiEnabled && 'JSON'}
           </Button>
         )}
-        <EventNavigationDropdown group={group} />
+        <EventNavigationDropdown
+          isDisabled={!hasPreviousEvent && !hasNextEvent}
+          group={group}
+          relativeTime={event.dateCreated ?? event.dateReceived}
+        />
         <NavButtons>
           {!isHelpfulEventUiEnabled && (
             <EventNavigationButton

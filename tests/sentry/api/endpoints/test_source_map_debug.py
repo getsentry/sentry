@@ -3,7 +3,7 @@ from rest_framework import status
 
 from sentry.api.helpers.source_map_helper import _find_url_prefix
 from sentry.models import Distribution, File, Release, ReleaseFile
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
@@ -70,6 +70,33 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert resp.data["detail"] == "Query parameter 'frame_idx' is required"
+
+    def test_non_integer_frame_given(self):
+        event = self.store_event(
+            data={"event_id": "a" * 32, "release": "my-release"}, project_id=self.project.id
+        )
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx="hello",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert resp.data["detail"] == "Query parameter 'frame_idx' must be an integer"
+
+    def test_non_integer_exception_given(self):
+        event = self.store_event(
+            data={"event_id": "a" * 32, "release": "my-release"}, project_id=self.project.id
+        )
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx="hello",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert resp.data["detail"] == "Query parameter 'exception_idx' must be an integer"
 
     def test_frame_out_of_bounds(self):
         event = self.store_event(

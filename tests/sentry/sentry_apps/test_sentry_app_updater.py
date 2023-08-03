@@ -9,7 +9,7 @@ from sentry.models import ApiToken, SentryApp, SentryAppComponent, ServiceHook
 from sentry.sentry_apps import expand_events
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 

@@ -7,15 +7,10 @@ from abc import abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union, cast
 
-from sentry.integrations.base import (
-    IntegrationFeatures,
-    IntegrationInstallation,
-    IntegrationProvider,
-)
-from sentry.models.integrations import Integration
 from sentry.models.integrations.pagerduty_service import PagerDutyService, PagerDutyServiceDict
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
@@ -92,6 +87,7 @@ class IntegrationService(RpcService):
         integration_id: Optional[int] = None,
         provider: Optional[str] = None,
         external_id: Optional[str] = None,
+        organization_id: Optional[int] = None,
         organization_integration_id: Optional[int] = None,
     ) -> Optional[RpcIntegration]:
         """
@@ -195,6 +191,15 @@ class IntegrationService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def add_organization(
+        self, *, integration_id: int, rpc_organizations: List[RpcOrganization]
+    ) -> Optional[RpcIntegration]:
+        """
+        Adds organizations to an existing integration
+        """
+
+    @rpc_method
+    @abstractmethod
     def update_integration(
         self,
         *,
@@ -243,39 +248,6 @@ class IntegrationService(RpcService):
         """
         pass
 
-    # The following methods replace instance methods of the ORM objects!
-
-    def get_installation(
-        self,
-        *,
-        integration: Union[RpcIntegration, Integration],
-        organization_id: int,
-    ) -> IntegrationInstallation:
-        """
-        Returns the IntegrationInstallation class for a given integration.
-        Intended to replace calls of `integration.get_installation`.
-        See src/sentry/models/integrations/integration.py
-        """
-        from sentry import integrations
-
-        provider = integrations.get(integration.provider)
-        installation: IntegrationInstallation = provider.get_installation(
-            model=integration,
-            organization_id=organization_id,
-        )
-        return installation
-
-    def has_feature(self, *, provider: str, feature: IntegrationFeatures) -> bool:
-        """
-        Returns True if the IntegrationProvider subclass contains a given feature
-        Intended to replace calls of `integration.has_feature`.
-        See src/sentry/models/integrations/integration.py
-        """
-        from sentry import integrations
-
-        int_provider: IntegrationProvider = integrations.get(provider)
-        return feature in int_provider.features
-
     @rpc_method
     @abstractmethod
     def send_incident_alert_notification(
@@ -294,7 +266,7 @@ class IntegrationService(RpcService):
     @rpc_method
     @abstractmethod
     def send_msteams_incident_alert_notification(
-        self, *, integration_id: int, channel: Optional[str], attachment: Dict[str, Any]
+        self, *, integration_id: int, channel: str, attachment: Dict[str, Any]
     ) -> None:
         raise NotImplementedError
 

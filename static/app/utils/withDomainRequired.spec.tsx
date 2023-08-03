@@ -24,6 +24,7 @@ describe('normalizeUrl', function () {
     const cases = [
       // input, expected
       ['/settings/', '/settings/'],
+      ['/accept-terms/acme/', '/accept-terms/'],
 
       // Organization settings views.
       ['/settings/acme/', '/settings/organization/'],

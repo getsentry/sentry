@@ -20,9 +20,7 @@ def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> Non
     integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
         raise Integration.DoesNotExist
-    installation = integration_service.get_installation(
-        integration=integration, organization_id=organization_id
-    )
+    installation = integration.get_installation(organization_id=organization_id)
 
     repo = repository_service.get_repository(organization_id=organization_id, id=repo_id)
     if repo is None:

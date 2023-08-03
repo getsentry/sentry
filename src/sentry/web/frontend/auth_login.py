@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
@@ -68,10 +69,11 @@ class AdditionalContext:
 additional_context = AdditionalContext()
 
 
+# TODO(hybridcloud) Make this view control silo only.
 class AuthLoginView(BaseView):
     auth_required = False
 
-    @never_cache
+    @method_decorator(never_cache)
     def handle(self, request: Request, *args, **kwargs) -> HttpResponse:
         """
         Hooks in to the django view dispatch which delegates request to GET/POST/PUT/DELETE.

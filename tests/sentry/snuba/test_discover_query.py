@@ -19,7 +19,7 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
 )
 from sentry.snuba import discover
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 

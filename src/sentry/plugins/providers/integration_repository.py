@@ -6,11 +6,11 @@ from typing import Any, MutableMapping
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
-from rest_framework.exceptions import APIException
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.api.exceptions import SentryAPIException, status
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.integrations import IntegrationInstallation
@@ -21,9 +21,10 @@ from sentry.signals import repo_linked
 from sentry.utils import metrics
 
 
-class RepoExistsError(APIException):
-    status_code = 400
-    detail = {"errors": {"__all__": "A repository with that name already exists"}}
+class RepoExistsError(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "repo_exists"
+    message = "A repository with that configuration already exists"
 
 
 def get_integration_repository_provider(integration):
@@ -72,9 +73,7 @@ class IntegrationRepositoryProvider:
         if rpc_org_integration is None:
             raise Integration.DoesNotExist("Integration matching query does not exist.")
 
-        return integration_service.get_installation(
-            integration=rpc_integration, organization_id=organization_id
-        )
+        return rpc_integration.get_installation(organization_id=organization_id)
 
     def create_repository(
         self,
@@ -166,7 +165,7 @@ class IntegrationRepositoryProvider:
             result, repo = self.create_repository(repo_config=config, organization=organization)
         except RepoExistsError as e:
             metrics.incr("sentry.integration_repo_provider.repo_exists")
-            return self.handle_api_error(e)
+            raise (e)
         except Exception as e:
             return self.handle_api_error(e)
 

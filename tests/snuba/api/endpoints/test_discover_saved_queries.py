@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.discover.models import DiscoverSavedQuery
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
@@ -710,52 +710,3 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                 },
             )
         assert response.status_code == 400, response.content
-
-    def test_filters_queries_with_worldmap_displays(self):
-        query = {
-            "fields": ["geo.country_code"],
-            "query": "has:geo.country_code",
-            "limit": 10,
-            "display": "worldmap",
-        }
-        DiscoverSavedQuery.objects.create(
-            organization=self.org,
-            created_by_id=self.user.id,
-            name="Test world map1",
-            query=query,
-            version=1,
-        )
-        query = {
-            "fields": ["geo.country_code"],
-            "display": "worldmap",
-            "query": "has:geo.country_code",
-            "limit": 10,
-        }
-        DiscoverSavedQuery.objects.create(
-            organization=self.org,
-            created_by_id=self.user.id,
-            name="Test world map2",
-            query=query,
-            version=1,
-        )
-        query = {
-            "fields": ["geo.country_code"],
-            "query": "has:geo.country_code",
-            "limit": 10,
-            "display": "default",
-        }
-        DiscoverSavedQuery.objects.create(
-            organization=self.org,
-            created_by_id=self.user.id,
-            name="Test default",
-            query=query,
-            version=1,
-        )
-
-        queries = DiscoverSavedQuery.objects.filter(query__contains={"display": "worldmap"})
-
-        assert len(queries) == 2
-        assert queries[0].name == "Test world map1"
-        assert queries[0].query["display"] == "worldmap"
-        assert queries[1].name == "Test world map2"
-        assert queries[1].query["display"] == "worldmap"

@@ -10,7 +10,7 @@ from sentry.models import InviteStatus, OrganizationMember
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.scim.endpoints.utils import SCIMQueryParamSerializer
 from sentry.silo import SiloMode
-from sentry.testutils import SCIMAzureTestCase, SCIMTestCase
+from sentry.testutils.cases import SCIMAzureTestCase, SCIMTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, region_silo_test

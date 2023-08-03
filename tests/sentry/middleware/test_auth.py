@@ -8,7 +8,7 @@ from sentry.models import ApiKey, ApiToken, UserIP
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.utils.auth import login
@@ -128,6 +128,17 @@ class AuthenticationMiddlewareTestCase(TestCase):
 
         self.middleware.process_request(request)
         # Should swallow errors and pass on
+        assert request.user.is_anonymous
+        assert request.auth is None
+
+    def test_process_request_rpc_path_ignored(self):
+        request = self.make_request(
+            method="GET", path="/api/0/internal/rpc/organization/get_organization_by_id"
+        )
+        request.META["HTTP_AUTHORIZATION"] = b"Rpcsignature not-a-checksum"
+
+        self.middleware.process_request(request)
+        # No errors, and no user identified.
         assert request.user.is_anonymous
         assert request.auth is None
 

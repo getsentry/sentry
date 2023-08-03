@@ -29,8 +29,6 @@ function getReferrer(displayType: DisplayType) {
     referrer = 'api.dashboards.tablewidget';
   } else if (displayType === DisplayType.BIG_NUMBER) {
     referrer = 'api.dashboards.bignumberwidget';
-  } else if (displayType === DisplayType.WORLD_MAP) {
-    referrer = 'api.dashboards.worldmapwidget';
   } else {
     referrer = `api.dashboards.widget.${displayType}-chart`;
   }
@@ -237,12 +235,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     const widget = this.applyDashboardFilters(cloneDeep(originalWidget));
     const responses = await Promise.all(
       widget.queries.map(query => {
-        let requestLimit: number | undefined = limit ?? DEFAULT_TABLE_LIMIT;
-        let requestCreator = config.getTableRequest;
-        if (widget.displayType === DisplayType.WORLD_MAP) {
-          requestLimit = undefined;
-          requestCreator = config.getWorldMapRequest;
-        }
+        const requestLimit: number | undefined = limit ?? DEFAULT_TABLE_LIMIT;
+        const requestCreator = config.getTableRequest;
 
         if (!requestCreator) {
           throw new Error(
@@ -379,11 +373,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     });
 
     try {
-      if (
-        [DisplayType.TABLE, DisplayType.BIG_NUMBER, DisplayType.WORLD_MAP].includes(
-          widget.displayType
-        )
-      ) {
+      if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
         await this.fetchTableData(queryFetchID);
       } else {
         await this.fetchSeriesData(queryFetchID);
