@@ -642,8 +642,9 @@ class OndemandMetricSpecBuilder:
         rule_condition["inner"].append(count_if_rule_condition)
         return rule_condition
 
+    @staticmethod
     def _process_components(
-        self, derived_metric: DerivedMetric, derived_metric_params: DerivedMetricParams
+        derived_metric: DerivedMetric, derived_metric_params: DerivedMetricParams
     ) -> List[TagSpec]:
         tags_conditions = []
         variables = derived_metric.get_variables(derived_metric_params)

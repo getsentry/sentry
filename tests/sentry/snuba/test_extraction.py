@@ -74,6 +74,22 @@ def test_is_on_demand_query_countif():
     assert is_on_demand_query(dataset, 'count_if(release,equals,"foo")', "") is False
 
 
+def test_is_on_demand_query_failure_rate():
+    dataset = Dataset.PerformanceMetrics
+
+    assert is_on_demand_query(dataset, "failure_rate()", "") is False
+    assert is_on_demand_query(dataset, "failure_rate()", "release:foo") is False
+    assert is_on_demand_query(dataset, "failure_rate()", "transaction.duration:1000") is True
+
+
+def test_is_on_demand_query_apdex():
+    dataset = Dataset.PerformanceMetrics
+
+    assert is_on_demand_query(dataset, "apdex()", "") is False
+    assert is_on_demand_query(dataset, "apdex()", "release:foo") is False
+    assert is_on_demand_query(dataset, "apdex()", "transaction.duration:1000") is True
+
+
 def test_spec_simple_query_count(on_demand_spec_builder):
     spec = on_demand_spec_builder.build_spec(field="count()", query="transaction.duration:>1s")
 
@@ -99,6 +115,9 @@ def test_spec_or_condition(on_demand_spec_builder):
         field="count()", query="transaction.duration:>=100 OR transaction.duration:<1000"
     )
 
+    assert spec.metric_type == "c"
+    assert spec.field is None
+    assert spec.op == "sum"
     assert spec.condition == {
         "inner": [
             {"name": "event.duration", "op": "gte", "value": 100.0},
@@ -113,6 +132,9 @@ def test_spec_and_condition(on_demand_spec_builder):
         field="count()", query="release:foo transaction.duration:<10s"
     )
 
+    assert spec.metric_type == "c"
+    assert spec.field is None
+    assert spec.op == "sum"
     assert spec.condition == {
         "inner": [
             {"name": "event.release", "op": "eq", "value": "foo"},
@@ -127,6 +149,9 @@ def test_spec_nested_condition(on_demand_spec_builder):
         field="count()", query="(release:a OR transaction.op:b) transaction.duration:>1s"
     )
 
+    assert spec.metric_type == "c"
+    assert spec.field is None
+    assert spec.op == "sum"
     assert spec.condition == {
         "op": "and",
         "inner": [
@@ -147,6 +172,9 @@ def test_spec_boolean_precedence(on_demand_spec_builder):
         field="count()", query="release:a OR transaction.op:b transaction.duration:>1s"
     )
 
+    assert spec.metric_type == "c"
+    assert spec.field is None
+    assert spec.op == "sum"
     assert spec.condition == {
         "op": "or",
         "inner": [
@@ -165,6 +193,9 @@ def test_spec_boolean_precedence(on_demand_spec_builder):
 def test_spec_wildcard(on_demand_spec_builder):
     spec = on_demand_spec_builder.build_spec(field="count()", query="release.version:1.*")
 
+    assert spec.metric_type == "c"
+    assert spec.field is None
+    assert spec.op == "sum"
     assert spec.condition == {
         "name": "event.release.version.short",
         "op": "glob",
@@ -192,6 +223,9 @@ def test_spec_countif_with_query(on_demand_spec_builder):
         field="count_if(transaction.duration,equals,300)", query="release:a OR transaction.op:b"
     )
 
+    assert spec.metric_type == "c"
+    assert spec.field is None
+    assert spec.op == "sum"
     assert spec.condition == {
         "op": "and",
         "inner": [
@@ -223,6 +257,9 @@ def test_spec_failure_rate(on_demand_spec_builder):
         field="failure_rate()", query="transaction.duration:>1s"
     )
 
+    assert spec.metric_type == "c"
+    assert spec.field is None
+    assert spec.op is None
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
     assert spec.tags_conditions == [
         {
@@ -250,6 +287,9 @@ def test_spec_apdex(on_demand_spec_builder):
         ),
     )
 
+    assert spec.metric_type == "c"
+    assert spec.field is None
+    assert spec.op is None
     assert spec.condition == {"name": "event.release", "op": "eq", "value": "a"}
     assert spec.tags_conditions == [
         {
