@@ -32,7 +32,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   },
   {
     key: 'avg_comparison',
-    name: 'Compared to baseline',
+    name: 'Compared to Average',
     width: 200,
   },
 ];
