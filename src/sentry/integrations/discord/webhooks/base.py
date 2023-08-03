@@ -4,6 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.webhooks.command import DiscordCommandHandler
@@ -41,9 +42,17 @@ class DiscordInteractionsEndpoint(Endpoint):
                 return self.respond({"type": DiscordResponseTypes.PONG}, status=200)
 
             elif discord_request.is_command():
+                analytics.record(
+                    "integrations.discord.command_interaction",
+                    command_name=discord_request.get_command_name(),
+                )
                 return DiscordCommandHandler(discord_request).handle()
 
             elif discord_request.is_message_component():
+                analytics.record(
+                    "integrations.discord.message_interaction",
+                    custom_id=discord_request.get_component_custom_id(),
+                )
                 return DiscordMessageComponentHandler(discord_request).handle()
 
         except DiscordRequestError as e:

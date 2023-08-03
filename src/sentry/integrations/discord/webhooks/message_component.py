@@ -4,6 +4,7 @@ from collections.abc import Mapping
 
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.helpers.group_index.update import update_groups
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.component import (
@@ -127,6 +128,13 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
             }
         )
 
+        assert self.request.user is not None
+
+        analytics.record(
+            "integrations.discord.assign",
+            actor_id=self.request.user.id,
+        )
+
         message = DiscordMessageBuilder(
             content=ASSIGNEE_UPDATED,
             flags=DiscordMessageFlags().set_ephemeral(),
@@ -187,6 +195,12 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
         return self.send_message(IGNORE_UNTIL_ESCALATES)
 
     def update_group(self, data: Mapping[str, object]) -> None:
+        analytics.record(
+            "integrations.discord.status",
+            organization_id=self.group.organization.id,
+            user_id=self.user.id,
+            status=data,
+        )
         update_groups(
             request=self.request.request,
             group_ids=[self.group.id],

@@ -82,4 +82,4 @@ class DiscordClient(IntegrationProxyClient):
         """
         Send a message to the specified channel.
         """
-        self.post(self.MESSAGE_URL.format(channel_id=channel_id), data=message.build())
+        self.post(self.MESSAGE_URL.format(channel_id=channel_id), data=message.build(), timeout=5)
