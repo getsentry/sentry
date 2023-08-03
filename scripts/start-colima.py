@@ -24,7 +24,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"{memsize_bytes//(2*1024**3)}",
     ]
     if APPLE_ARM64:
-        args = [*args, "--vm-type=vz", "--vz-rosetta", "--mount-type=virtiofs"]
+        args = [*args, "--arch=x86_64", "--vm-type=vz", "--vz-rosetta", "--mount-type=virtiofs"]
     return subprocess.call(
         (
             "colima",

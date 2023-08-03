@@ -115,7 +115,9 @@ def retryable_pull(client: docker.DockerClient, image: str, max_attempts: int = 
     # See https://github.com/docker/docker-py/issues/2101 for more information
     while True:
         try:
-            client.images.pull(image)
+            # We currently run on this platform entirely in prod.
+            # Docker runtime on Apple ARM hosts must emulate this.
+            client.images.pull(image, platform="linux/amd64")
         except APIError:
             if current_attempt + 1 >= max_attempts:
                 raise
