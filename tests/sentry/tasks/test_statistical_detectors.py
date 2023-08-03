@@ -4,7 +4,11 @@ from unittest import mock
 import pytest
 from freezegun import freeze_time
 
-from sentry.tasks.statistical_detectors import detect_regressed_functions, run_detection
+from sentry.tasks.statistical_detectors import (
+    detect_regressed_functions,
+    detect_regressed_transactions,
+    run_detection,
+)
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.task_runner import TaskRunner
@@ -112,6 +116,26 @@ def test_run_detection_options(
         detect_regressed_functions.delay.assert_has_calls(
             [mock.call(call, timestamp) for call in profiling_projects],
         )
+
+
+@pytest.mark.parametrize(
+    "enabled",
+    [
+        pytest.param(False, id="disabled"),
+        pytest.param(True, id="enabled"),
+    ],
+)
+@mock.patch("sentry.tasks.statistical_detectors.query_transactions")
+@django_db_all
+def test_detect_regressed_transactions_options(
+    query_transactions,
+    enabled,
+    timestamp,
+    project,
+):
+    with override_options({"statistical_detectors.enable": enabled}):
+        detect_regressed_transactions([project.id])
+    assert query_transactions.called == enabled
 
 
 @pytest.mark.parametrize(
