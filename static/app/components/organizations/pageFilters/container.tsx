@@ -46,13 +46,13 @@ interface Props extends InitializeUrlStateProps {
    */
   hideDesyncRevertButton?: boolean;
   /**
-   * Starfish pages have pagefilters stored separately from the rest of Sentry
-   */
-  isStarfishPage?: boolean;
-  /**
    * Slugs of projects to display in project selector
    */
   specificProjectSlugs?: string[];
+  /**
+   * If provided, will store page filters separately from the rest of Sentry
+   */
+  storageNamespace?: string;
 }
 
 /**
@@ -76,7 +76,7 @@ function Container({
     disablePersistence,
     desyncedAlertMessage,
     hideDesyncRevertButton,
-    isStarfishPage,
+    storageNamespace,
   } = props;
   const router = useRouter();
   const location = useLocation();
@@ -111,7 +111,7 @@ function Container({
       shouldPersist: !disablePersistence,
       showAbsolute,
       skipInitializeUrlParams,
-      storageNamespace: isStarfishPage ? 'starfish' : undefined,
+      storageNamespace,
     });
   };
 

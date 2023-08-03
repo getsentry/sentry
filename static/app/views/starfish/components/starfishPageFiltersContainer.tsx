@@ -6,7 +6,7 @@ type Props = {
 
 export function StarfishPageFiltersContainer({children}: Props) {
   return (
-    <PageFiltersContainer isStarfishPage skipLoadLastUsedEnvironment>
+    <PageFiltersContainer storageNamespace="starfish" skipLoadLastUsedEnvironment>
       {children}
     </PageFiltersContainer>
   );
