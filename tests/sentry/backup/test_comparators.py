@@ -1,4 +1,5 @@
 from sentry.backup.comparators import (
+    DateAddedComparator,
     DateUpdatedComparator,
     EmailObfuscatingComparator,
     HashObfuscatingComparator,
@@ -63,6 +64,53 @@ def test_bad_comparator_only_one_side_existing():
     assert "my_date_field" in res[0].reason
 
 
+def test_good_date_added_comparator():
+    cmp = DateAddedComparator("my_date_field")
+    id = InstanceID("test", 1)
+    left: JSONData = {
+        "model": "test",
+        "pk": 1,
+        "fields": {
+            "my_date_field": "2023-06-22T23:00:00.123Z",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "pk": 1,
+        "fields": {
+            "my_date_field": "2023-06-22T23:00:00.123Z",
+        },
+    }
+    assert not cmp.compare(id, left, right)
+
+
+def test_bad_date_added_comparator():
+    cmp = DateAddedComparator("my_date_field")
+    id = InstanceID("test", 1)
+    left: JSONData = {
+        "model": "test",
+        "pk": 1,
+        "fields": {
+            "my_date_field": "2023-06-22T00:00:00.000Z",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "pk": 1,
+        "fields": {
+            "my_date_field": "2023-06-22T00:00:00.123Z",
+        },
+    }
+    res = cmp.compare(id, left, right)
+    assert res
+    assert res[0]
+    assert res[0].on == id
+    assert res[0].kind == "DateAddedComparator"
+    assert "`my_date_field`" in res[0].reason
+    assert "left value (2023-06-22T00:00:00.000Z)" in res[0].reason
+    assert "right value (2023-06-22T00:00:00.123Z)" in res[0].reason
+
+
 def test_good_date_updated_comparator():
     cmp = DateUpdatedComparator("my_date_field")
     id = InstanceID("test", 1)
@@ -105,6 +153,9 @@ def test_bad_date_updated_comparator():
     assert res[0]
     assert res[0].on == id
     assert res[0].kind == "DateUpdatedComparator"
+    assert "`my_date_field`" in res[0].reason
+    assert "left value (2023-06-22T23:12:34.567Z)" in res[0].reason
+    assert "right value (2023-06-22T23:00:00.001Z)" in res[0].reason
 
 
 def test_good_email_obfuscating_comparator():
@@ -155,14 +206,14 @@ def test_bad_email_obfuscating_comparator():
     assert res[0]
     assert res[0].on == id
     assert res[0].kind == "EmailObfuscatingComparator"
-    assert "a...@...le.com" in res[0].reason
-    assert "a...@...ng.com" in res[0].reason
+    assert "b...@...le.com" in res[0].reason
+    assert "b...@...ng.com" in res[0].reason
 
     assert res[1]
     assert res[1].on == id
     assert res[1].kind == "EmailObfuscatingComparator"
-    assert "b...@...le.com" in res[1].reason
-    assert "b...@...ng.com" in res[1].reason
+    assert "a...@...le.com" in res[1].reason
+    assert "a...@...ng.com" in res[1].reason
 
 
 def test_good_email_obfuscating_comparator_scrubbed():
@@ -253,14 +304,14 @@ def test_bad_hash_obfuscating_comparator():
     assert res[0]
     assert res[0].on == id
     assert res[0].kind == "HashObfuscatingComparator"
-    assert "123...39b" in res[0].reason
-    assert "124...39c" in res[0].reason
+    assert "1...e" in res[0].reason
+    assert "2...f" in res[0].reason
 
     assert res[1]
     assert res[1].on == id
     assert res[1].kind == "HashObfuscatingComparator"
-    assert "1...e" in res[1].reason
-    assert "2...f" in res[1].reason
+    assert "123...39b" in res[1].reason
+    assert "124...39c" in res[1].reason
 
 
 def test_good_hash_obfuscating_comparator_scrubbed():
