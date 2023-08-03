@@ -230,6 +230,7 @@ Found 4 errors in 1 file (checked 1 source file)
         ("access", "sentry.api.base"),
         ("csp_nonce", "csp.middleware"),
         ("is_sudo", "sudo.middleware"),
+        ("subdomain", "sentry.middleware.subdomain"),
     ),
 )
 def test_added_http_request_attribute(attr: str, modname: str) -> None:

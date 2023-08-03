@@ -5,7 +5,7 @@ from typing import Callable
 from mypy.nodes import ARG_POS, TypeInfo
 from mypy.plugin import ClassDefContext, FunctionSigContext, MethodSigContext, Plugin
 from mypy.plugins.common import add_attribute_to_class
-from mypy.types import AnyType, CallableType, FunctionLike, Instance, TypeOfAny
+from mypy.types import AnyType, CallableType, FunctionLike, Instance, NoneType, TypeOfAny, UnionType
 
 
 def _make_using_required_str(ctx: FunctionSigContext) -> CallableType:
@@ -88,6 +88,9 @@ def _adjust_http_request_members(ctx: ClassDefContext) -> None:
             name="is_sudo",
         )
         add_attribute_to_class(ctx.api, ctx.cls, "is_sudo", returns_bool)
+        # added by sentry.middleware.subdomain
+        subdomain_tp = UnionType([NoneType(), ctx.api.named_type("builtins.str")])
+        add_attribute_to_class(ctx.api, ctx.cls, "subdomain", subdomain_tp)
 
 
 class SentryMypyPlugin(Plugin):
