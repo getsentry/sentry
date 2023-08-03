@@ -23,6 +23,7 @@ class BaseNotification(abc.ABC):
     provider_to_url_format = {
         ExternalProviders.SLACK: "<{url}|{text}>",
         ExternalProviders.MSTEAMS: "[{text}]({url})",
+        ExternalProviders.DISCORD: "[{text}]({url})",
     }
     message_builder = "SlackNotificationsMessageBuilder"
     # some notifications have no settings for it

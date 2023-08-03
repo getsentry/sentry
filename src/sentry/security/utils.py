@@ -31,7 +31,6 @@ def capture_security_activity(
         current_datetime = timezone.now()
 
     assert not isinstance(account, AnonymousUser)
-    assert not isinstance(actor, AnonymousUser)
 
     logger_context = {"ip_address": ip_address, "user_id": account.id, "actor_id": actor.id}
 

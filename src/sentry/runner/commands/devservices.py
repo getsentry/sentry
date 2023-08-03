@@ -45,30 +45,11 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
             if DARWIN:
                 if USE_COLIMA:
                     click.echo("Attempting to start colima...")
-                    cpus = int(
-                        subprocess.run(
-                            ("sysctl", "-n", "hw.ncpu"), check=True, capture_output=True
-                        ).stdout
-                    )
-                    memsize_bytes = int(
-                        subprocess.run(
-                            ("sysctl", "-n", "hw.memsize"), check=True, capture_output=True
-                        ).stdout
-                    )
-                    args = [
-                        "--cpu",
-                        f"{cpus//2}",
-                        "--memory",
-                        f"{memsize_bytes//(2*1024**3)}",
-                    ]
-                    if APPLE_ARM64:
-                        args = [*args, "--vm-type=vz", "--vz-rosetta"]
                     subprocess.check_call(
                         (
-                            "colima",
-                            "start",
-                            f"--mount=/private/tmp/colima:w,{os.path.expanduser('~')}:r",
-                            *args,
+                            "python3",
+                            "-uS",
+                            f"{os.path.dirname(__file__)}/../../../../scripts/start-colima.py",
                         )
                     )
                 else:
@@ -169,9 +150,8 @@ def devservices() -> None:
 
 @devservices.command()
 @click.option("--project", default="sentry")
-@click.option("--fast", is_flag=True, default=False, help="Never pull and reuse containers.")
 @click.argument("service", nargs=1)
-def attach(project: str, fast: bool, service: str) -> None:
+def attach(project: str, service: str) -> None:
     """
     Run a single devservice in the foreground.
 
@@ -196,7 +176,6 @@ def attach(project: str, fast: bool, service: str) -> None:
             service,
             containers,
             project,
-            fast=fast,
             always_start=True,
         )
 
@@ -220,7 +199,6 @@ def attach(project: str, fast: bool, service: str) -> None:
 @click.argument("services", nargs=-1)
 @click.option("--project", default="sentry")
 @click.option("--exclude", multiple=True, help="Service to ignore and not run. Repeatable option.")
-@click.option("--fast", is_flag=True, default=False, help="Never pull and reuse containers.")
 @click.option(
     "--skip-only-if", is_flag=True, default=False, help="Skip 'only_if' checks for services"
 )
@@ -228,7 +206,6 @@ def up(
     services: list[str],
     project: str,
     exclude: list[str],
-    fast: bool,
     skip_only_if: bool,
 ) -> None:
     """
@@ -273,13 +250,6 @@ def up(
             raise click.Abort()
         selected_services.remove(service)
 
-    if fast:
-        click.secho(
-            "> Warning! Fast mode completely eschews any image updating, so services may be stale.",
-            err=True,
-            fg="red",
-        )
-
     with get_docker_client() as docker_client:
         get_or_create(docker_client, "network", project)
 
@@ -293,7 +263,6 @@ def up(
                         name,
                         containers,
                         project,
-                        fast=fast,
                     )
                 )
             for future in as_completed(futures):
@@ -352,7 +321,6 @@ def _start_service(
     name: str,
     containers: dict[str, Any],
     project: str,
-    fast: bool = False,
     always_start: Literal[True] = ...,
 ) -> docker.models.containers.Container:
     ...
@@ -364,7 +332,6 @@ def _start_service(
     name: str,
     containers: dict[str, Any],
     project: str,
-    fast: bool = False,
     always_start: bool = False,
 ) -> docker.models.containers.Container | None:
     ...
@@ -375,7 +342,6 @@ def _start_service(
     name: str,
     containers: dict[str, Any],
     project: str,
-    fast: bool = False,
     always_start: bool = False,
 ) -> docker.models.containers.Container | None:
     from docker.errors import NotFound
@@ -385,19 +351,8 @@ def _start_service(
     for key, value in list(options["environment"].items()):
         options["environment"][key] = value.format(containers=containers)
 
-    pull = options.pop("pull", False)
-    if not fast:
-        if pull:
-            click.secho(f"> Pulling image '{options['image']}'", fg="green")
-            retryable_pull(client, options["image"])
-        else:
-            # We want make sure to pull everything on the first time,
-            # (the image doesn't exist), regardless of pull=True.
-            try:
-                client.images.get(options["image"])
-            except NotFound:
-                click.secho(f"> Pulling image '{options['image']}'", fg="green")
-                retryable_pull(client, options["image"])
+    click.secho(f"> Pulling image '{options['image']}'", fg="green")
+    retryable_pull(client, options["image"])
 
     for mount in list(options.get("volumes", {}).keys()):
         if "/" not in mount:
@@ -435,25 +390,6 @@ def _start_service(
         pass
 
     if container is not None:
-        # devservices which are marked with pull True will need their containers
-        # to be recreated with the freshly pulled image.
-        should_reuse_container = not pull
-
-        # Except if the container is started as part of devserver we should reuse it.
-        # Or, if we're in fast mode (devservices up --fast)
-        if with_devserver or fast:
-            should_reuse_container = True
-
-        if should_reuse_container:
-            click.secho(
-                f"> Starting EXISTING container '{container.name}' {listening}",
-                fg="yellow",
-            )
-            # Note that if the container is already running, this will noop.
-            # This makes repeated `devservices up` quite fast.
-            container.start()
-            return container
-
         click.secho(f"> Stopping container '{container.name}'", fg="yellow")
         container.stop()
         click.secho(f"> Removing container '{container.name}'", fg="yellow")
@@ -471,18 +407,18 @@ def _start_service(
 @click.argument("service", nargs=-1)
 def down(project: str, service: list[str]) -> None:
     """
-    Shut down services without deleting their underlying containers and data.
+    Shut down services without deleting their underlying data.
     Useful if you want to temporarily relieve resources on your computer.
 
     The default is everything, however you may pass positional arguments to specify
     an explicit list of services to bring down.
     """
-    # TODO: make more like devservices rm
 
     def _down(container: docker.models.containers.Container) -> None:
         click.secho(f"> Stopping '{container.name}' container", fg="red")
         container.stop()
-        click.secho(f"> Stopped '{container.name}' container", fg="red")
+        click.secho(f"> Removing '{container.name}' container", fg="red")
+        container.remove()
 
     containers = []
     prefix = f"{project}_"

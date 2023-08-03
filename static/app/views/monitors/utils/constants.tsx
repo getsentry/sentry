@@ -1,4 +1,5 @@
 import {IconCheckmark, IconFire, IconPause, IconTimer, IconWarning} from 'sentry/icons';
+import {Aliases} from 'sentry/utils/theme';
 import {StatsBucket} from 'sentry/views/monitors/components/overviewTimeline/types';
 import {CheckInStatus, MonitorStatus} from 'sentry/views/monitors/types';
 
@@ -10,11 +11,32 @@ export const CHECKIN_STATUS_PRECEDENT = [
   CheckInStatus.ERROR,
 ] satisfies Array<keyof StatsBucket>;
 
-export const statusIconMap: Record<MonitorStatus, React.ReactNode> = {
-  ok: <IconCheckmark color="successText" />,
-  error: <IconFire color="errorText" />,
-  timeout: <IconFire color="errorText" />,
-  missed_checkin: <IconWarning color="warningText" />,
-  active: <IconTimer color="subText" />,
-  disabled: <IconPause color="subText" size="xs" />,
+export const statusIconColorMap: Record<
+  MonitorStatus,
+  {color: keyof Aliases; icon: React.ReactNode}
+> = {
+  ok: {
+    icon: <IconCheckmark color="successText" />,
+    color: 'successText',
+  },
+  error: {
+    icon: <IconFire color="errorText" />,
+    color: 'errorText',
+  },
+  timeout: {
+    icon: <IconFire color="errorText" />,
+    color: 'errorText',
+  },
+  missed_checkin: {
+    icon: <IconWarning color="warningText" />,
+    color: 'warningText',
+  },
+  active: {
+    icon: <IconTimer color="subText" />,
+    color: 'subText',
+  },
+  disabled: {
+    icon: <IconPause color="subText" size="xs" />,
+    color: 'subText',
+  },
 };

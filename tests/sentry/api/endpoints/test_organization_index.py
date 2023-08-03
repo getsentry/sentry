@@ -103,7 +103,7 @@ class OrganizationsListTest(OrganizationIndexTest):
         assert len(response.data) == 0
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
     method = "post"
 
