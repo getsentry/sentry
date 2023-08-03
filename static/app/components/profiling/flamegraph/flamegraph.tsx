@@ -309,14 +309,7 @@ function Flamegraph(): ReactElement {
 
     return new FlamegraphChart(
       Rect.From(flamegraph.configSpace),
-      measures.length > 0
-        ? measures
-        : [
-            {
-              unit: 'percent',
-              values: [],
-            },
-          ],
+      measures.length > 0 ? measures : [],
       flamegraphTheme.COLORS.CPU_CHART_COLORS
     );
   }, [profileGroup.measurements, flamegraph.configSpace, flamegraphTheme, hasCPUChart]);

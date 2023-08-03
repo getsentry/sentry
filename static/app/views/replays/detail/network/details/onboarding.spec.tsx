@@ -62,7 +62,7 @@ describe('Setup', () => {
       expect(
         screen.getByText(
           textWithMarkupMatcher(
-            'Add /api/0/issues/1234 to your networkDetailAllowUrls list to start capturing data.'
+            'Add the following to your networkDetailAllowUrls list to start capturing data:'
           )
         )
       ).toBeInTheDocument();
@@ -83,7 +83,7 @@ describe('Setup', () => {
       expect(
         screen.getByText(
           textWithMarkupMatcher(
-            'Add /api/0/issues/1234 to your networkDetailAllowUrls list to start capturing data.'
+            'Add the following to your networkDetailAllowUrls list to start capturing data:'
           )
         )
       ).toBeInTheDocument();

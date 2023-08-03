@@ -61,7 +61,7 @@ def find_problems(settings, event: dict[str, Any]) -> list[PerformanceProblem]:
     return list(detector.stored_problems.values())
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @pytest.mark.django_db
 class RenderBlockingAssetDetectorTest(TestCase):
     def setUp(self):
