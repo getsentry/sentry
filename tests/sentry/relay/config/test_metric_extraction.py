@@ -55,7 +55,7 @@ def create_widget(
     widget = DashboardWidget.objects.create(
         dashboard=dashboard,
         order=0,
-        widget_type=DashboardWidgetTypes.ON_DEMAND_METRICS,
+        widget_type=DashboardWidgetTypes.DISCOVER,
         display_type=DashboardWidgetDisplayTypes.LINE_CHART,
     )
 
@@ -186,6 +186,56 @@ def test_get_metric_extraction_config_single_widget_multiple_aggregates(default_
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
             "field": "event.duration",
             "mri": "d:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+
+
+@django_db_all
+def test_get_metric_extraction_config_single_widget_multiple_count_if(default_project):
+    # widget with multiple fields should result in multiple metrics
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+        aggregates = [
+            "count()",
+            "count_if(transaction.duration, greater, 2000)",
+            "count_if(transaction.duration, greaterOrEquals, 1000)",
+        ]
+        create_widget(aggregates, "transaction.duration:>=1000", default_project)
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 3
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+        assert config["metrics"][1] == {
+            "category": "transaction",
+            "condition": {
+                "inner": [
+                    {"name": "event.duration", "op": "gte", "value": 1000.0},
+                    {"name": "event.duration", "op": "gt", "value": 2000.0},
+                ],
+                "op": "and",
+            },
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+        assert config["metrics"][2] == {
+            "category": "transaction",
+            "condition": {
+                "inner": [
+                    {"name": "event.duration", "op": "gte", "value": 1000.0},
+                    {"name": "event.duration", "op": "gte", "value": 1000.0},
+                ],
+                "op": "and",
+            },
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
             "tags": [{"key": "query_hash", "value": ANY}],
         }
 

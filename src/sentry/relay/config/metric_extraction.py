@@ -20,7 +20,7 @@ from sentry.snuba.metrics.extraction import (
     MetricSpec,
     OndemandMetricSpec,
     RuleCondition,
-    is_on_demand_query,
+    is_on_demand_metric_query,
 )
 from sentry.snuba.models import SnubaQuery
 
@@ -33,7 +33,7 @@ _METRIC_EXTRACTION_VERSION = 1
 
 # Maximum number of custom metrics that can be extracted for alerts and widgets with
 # advanced filter expressions.
-# TODO: remove this, or enforce limits for alerts and widgets separately.
+# TODO(Ogi): remove this, or enforce limits for alerts and widgets separately.
 _MAX_ON_DEMAND_METRICS = 100
 
 HashMetricSpec = Tuple[str, MetricSpec]
@@ -100,7 +100,7 @@ def _get_widget_metric_specs(project: Project) -> List[HashMetricSpec]:
     # fetch all queries of all on demand metrics widgets of this organization
     widget_queries = DashboardWidgetQuery.objects.filter(
         widget__dashboard__organization=project.organization,
-        widget__widget_type=DashboardWidgetTypes.ON_DEMAND_METRICS,
+        widget__widget_type=DashboardWidgetTypes.DISCOVER,
     )
 
     specs = []
@@ -117,6 +117,16 @@ def _merge_metric_specs(
     # We use a dict so that we can deduplicate metrics with the same hash.
     metrics: Dict[str, MetricSpec] = {}
     for query_hash, spec in alert_specs + widget_specs:
+        already_present = metrics.get(query_hash)
+        if already_present and already_present != spec:
+            logger.error(
+                "Duplicate metric spec found for hash %s with different specs: %s != %s",
+                query_hash,
+                already_present,
+                spec,
+            )
+            continue
+
         metrics[query_hash] = spec
 
     return [metric for metric in metrics.values()]
@@ -163,7 +173,7 @@ def _convert_aggregate_and_query_to_metric(
     dataset: str, aggregate: str, query: str
 ) -> Optional[HashMetricSpec]:
     try:
-        if not is_on_demand_query(dataset, aggregate, query):
+        if not is_on_demand_metric_query(dataset, aggregate, query):
             return None
 
         spec = OndemandMetricSpec(aggregate, query)
