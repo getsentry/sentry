@@ -1394,7 +1394,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             # making up a sentry_received_timestamp, but it should be sometime
             # after the timestamp of the event
             "sentry_received_timestamp": timestamp + 10,
-            "version": 2 if use_case_id == UseCaseID.TRANSACTIONS else 1,
+            "version": 2 if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE else 1,
         }
 
         msg["mapping_meta"] = {}
