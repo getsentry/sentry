@@ -31,6 +31,7 @@ def main() -> None:
         "sentry_kafka",
         "kafka-topics",
         "--zookeeper",
+        # TODO: sentry_zookeeper:2181 doesn't work in CI, but 127.0.0.1 doesn't work locally
         "127.0.0.1:2181",
         "--list",
     ]

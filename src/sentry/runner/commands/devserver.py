@@ -294,7 +294,7 @@ def devserver(
             kafka_consumers.add("billing-metrics-consumer")
 
         if settings.SENTRY_USE_RELAY:
-            daemons += [("relay", ["sentry", "devservices", "attach", "--fast", "relay"])]
+            daemons += [("relay", ["sentry", "devservices", "attach", "relay"])]
 
             kafka_consumers.add("ingest-events")
             kafka_consumers.add("ingest-attachments")
