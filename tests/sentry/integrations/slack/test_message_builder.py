@@ -26,6 +26,7 @@ from sentry.testutils.cases import (
     SnubaTestCase,
     TestCase,
 )
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
@@ -265,12 +266,14 @@ class BuildGroupAttachmentReplaysTest(SnubaTestCase, ReplaysSnubaTestCase):
                 "message": "Hello world",
                 "level": "error",
                 "contexts": {"replay": {"replay_id": replay1_id}},
+                "timestamp": iso_format(before_now(minutes=1)),
             },
             project_id=self.project.id,
         )
+
         self.store_replays(
             mock_replay(
-                datetime.now() - timedelta(seconds=60),
+                datetime.now() - timedelta(minutes=60),
                 self.project.id,
                 replay1_id,
             )
