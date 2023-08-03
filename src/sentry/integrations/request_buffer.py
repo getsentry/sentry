@@ -55,7 +55,7 @@ class IntegrationRequestBuffer:
 
     def record_success(self, resp) -> bool:
         """
-        Record a response success if the response isan succ. Return True if the response is an success and has been recorded.
+        Record a response success if the response is a success. Return True if the response is an success and has been recorded.
         """
         if is_response_success(resp):
             self._add("success")
