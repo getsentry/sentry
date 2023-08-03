@@ -17,6 +17,11 @@ class MetricsInterfaceTestCase(BaseMetricsLayerTestCase, TestCase, GenericMetric
 
 
 class SnubaMetricsInterfaceTest(MetricsInterfaceTestCase):
+
+    """
+    A sample test case that shows the process of writing the metric via the Snuba HTTP endpoint, and then querying for it using APIs in the Metrics Layer. This test is also very similar to those in the Metrics Layer.
+    """
+
     @property
     def now(self):
         return BaseMetricsLayerTestCase.MOCK_DATETIME

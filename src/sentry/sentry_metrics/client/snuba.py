@@ -34,6 +34,11 @@ def get_retention_from_org_id(org_id: int) -> int:
 
 
 class SnubaMetricsBackend(GenericMetricsBackend):
+
+    """
+    This backend is meant for use in dev/testing environments. It allows for producing metrics to a Snuba HTTP endpoint, which will trigger processing and ultimately, insertion, of the metric into Clickhouse.
+    """
+
     def __init__(self) -> None:
         self._message_processor = MessageProcessor(
             get_ingest_config(UseCaseKey.PERFORMANCE, IndexerStorage.POSTGRES)
@@ -52,9 +57,6 @@ class SnubaMetricsBackend(GenericMetricsBackend):
 
         """
         Emit a counter metric for internal use cases only.
-        Note that, as of now, this function will return
-        immediately even if the metric message has not been
-        produced to the broker yet.
         """
 
         metrics_test_base.store_metric(
@@ -81,9 +83,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
 
         """
         Emit a set metric for internal use cases only. Can support
-        a sequence of values. Note that, as of now, this function
-        will return immediately even if the metric message has not been
-        produced to the broker yet.
+        a sequence of values.
         """
 
         for val in value:
@@ -111,9 +111,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
 
         """
         Emit a distribution metric for internal use cases only. Can
-        support a sequence of values. Note that, as of now, this function
-        will return immediately even if the metric message has not been
-        produced to the broker yet.
+        support a sequence of values.
         """
         for val in value:
             metrics_test_base.store_metric(
