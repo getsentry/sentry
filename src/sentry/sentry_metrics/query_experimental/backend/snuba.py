@@ -211,7 +211,7 @@ class SnubaQueryConverter:
             if not node.key.isnumeric():
                 raise InvalidMetricsQuery("Metric name must be a resolved index")
             mri = parse_mri(node.name)
-            filters = self.global_filters + [Function("equals", [COLUMN_METRIC_ID, node.key])]
+            filters = self.global_filters + [Function("equals", [COLUMN_METRIC_ID, int(node.key)])]
             return (mri.entity, filters)
 
         if isinstance(node, Filter):
