@@ -304,7 +304,6 @@ class OndemandMetricSpecV2(NamedTuple):
     field: Optional[str]
     condition: RuleCondition
     tags_conditions: List[TagSpec]
-    is_derived_metric: bool
 
     original_query: str
 
@@ -571,7 +570,6 @@ class OndemandMetricSpecBuilder:
             field=extracted_field,
             condition=rule_condition,
             tags_conditions=tags_conditions,
-            is_derived_metric=True,
             original_query=query,
         )
 
@@ -585,7 +583,6 @@ class OndemandMetricSpecBuilder:
             field=extracted_field,
             condition=rule_condition,
             tags_conditions=[],
-            is_derived_metric=False,
             original_query=query,
         )
 
