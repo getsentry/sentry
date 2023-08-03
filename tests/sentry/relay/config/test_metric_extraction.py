@@ -26,8 +26,8 @@ def test_simple_query_count():
 
     metric = extraction.convert_query_to_metric(alert.snuba_query)
 
-    assert metric
-    assert metric[1] == {
+    assert metric is not None
+    assert metric.metric_spec == {
         "category": "transaction",
         "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
         "field": None,
