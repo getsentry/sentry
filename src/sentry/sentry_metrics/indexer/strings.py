@@ -150,6 +150,9 @@ SHARED_TAG_STRINGS = {
     "span.group": PREFIX + 252,
     "transaction.method": PREFIX + 253,
     "span.category": PREFIX + 254,
+    "span.contribution": PREFIX + 255,
+    "span.main_thread": PREFIX + 256,
+    "device.class": PREFIX + 257,
     # More Transactions
     "has_profile": PREFIX + 260,
     "query_hash": PREFIX + 261,
@@ -168,6 +171,8 @@ SPAN_METRICS_NAMES = {
     "d:spans/duration@millisecond": PREFIX + 404,
     "d:spans/exclusive_time@millisecond": PREFIX + 405,
     "d:spans/exclusive_time_light@millisecond": PREFIX + 406,
+    "d:spans/frames_frozen@none": PREFIX + 407,
+    "d:spans/frames_slow@none": PREFIX + 408,
 }
 
 SHARED_STRINGS = {
