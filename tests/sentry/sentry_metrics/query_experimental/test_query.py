@@ -10,10 +10,11 @@ from sentry.sentry_metrics.query_experimental.types import (
     Filter,
     Function,
     MetricName,
-    MetricQueryScope,
-    MetricRange,
+    MetricScope,
     SeriesQuery,
+    SeriesRollup,
     Tag,
+    TimeRange,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
@@ -55,9 +56,10 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
             )
 
         query = SeriesQuery(
-            scope=MetricQueryScope(org_id=1, project_ids=[1]),
-            range=MetricRange.start_at(self.now, hours=4, interval=3600),
+            scope=MetricScope(org_id=1, project_ids=[1]),
+            range=TimeRange.start_at(self.now, hours=4),
             expressions=[Function("avg", [MetricName(MRI)])],
+            rollup=SeriesRollup(3600),
         )
 
         result = get_series(query)
@@ -86,10 +88,11 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
             )
 
         query = SeriesQuery(
-            scope=MetricQueryScope(org_id=1, project_ids=[1]),
-            range=MetricRange.start_at(self.now, hours=4, interval=3600),
+            scope=MetricScope(org_id=1, project_ids=[1]),
+            range=TimeRange.start_at(self.now, hours=4),
             expressions=[Function("avg", [MetricName(MRI)])],
             groups=[Tag("transaction")],
+            rollup=SeriesRollup(3600),
         )
 
         result = get_series(query)
@@ -124,10 +127,11 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
             )
 
         query = SeriesQuery(
-            scope=MetricQueryScope(org_id=1, project_ids=[1]),
-            range=MetricRange.start_at(self.now, hours=4, interval=3600),
+            scope=MetricScope(org_id=1, project_ids=[1]),
+            range=TimeRange.start_at(self.now, hours=4),
             expressions=[Function("avg", [MetricName(MRI)])],
             filters=[Function("equals", [Tag("transaction"), "b"])],
+            rollup=SeriesRollup(3600),
         )
 
         result = get_series(query)
@@ -164,9 +168,10 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
         )
 
         query = SeriesQuery(
-            scope=MetricQueryScope(org_id=1, project_ids=[1]),
-            range=MetricRange.start_at(self.now, hours=4, interval=3600),
+            scope=MetricScope(org_id=1, project_ids=[1]),
+            range=TimeRange.start_at(self.now, hours=4),
             expressions=[expr],
+            rollup=SeriesRollup(3600),
         )
 
         result = get_series(query)
@@ -206,9 +211,10 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
         )
 
         query = SeriesQuery(
-            scope=MetricQueryScope(org_id=1, project_ids=[1]),
-            range=MetricRange.start_at(self.now, hours=4, interval=3600),
+            scope=MetricScope(org_id=1, project_ids=[1]),
+            range=TimeRange.start_at(self.now, hours=4),
             expressions=[expr],
+            rollup=SeriesRollup(3600),
         )
 
         result = get_series(query)
@@ -241,9 +247,10 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
             )
 
         query = SeriesQuery(
-            scope=MetricQueryScope(org_id=1, project_ids=[1]),
-            range=MetricRange.start_at(self.now, hours=4, interval=3600),
+            scope=MetricScope(org_id=1, project_ids=[1]),
+            range=TimeRange.start_at(self.now, hours=4),
             expressions=[Function("multiply", [Function("avg", [MetricName(MRI)]), 2])],
+            rollup=SeriesRollup(3600),
         )
 
         result = get_series(query)
@@ -298,9 +305,10 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
         )
 
         query = SeriesQuery(
-            scope=MetricQueryScope(org_id=1, project_ids=[1]),
-            range=MetricRange.start_at(self.now, hours=1, interval=3600),
+            scope=MetricScope(org_id=1, project_ids=[1]),
+            range=TimeRange.start_at(self.now, hours=1),
             expressions=[MetricName(MRI_FAILURE_RATE)],
+            rollup=SeriesRollup(3600),
         )
 
         result = get_series(query)
@@ -337,10 +345,11 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
         registry.register("transaction.status", "status")
 
         query = SeriesQuery(
-            scope=MetricQueryScope(org_id=1, project_ids=[1]),
-            range=MetricRange.start_at(self.now, hours=4, interval=3600),
+            scope=MetricScope(org_id=1, project_ids=[1]),
+            range=TimeRange.start_at(self.now, hours=4),
             expressions=[Function("avg", [MetricName("transaction.duration")])],
             groups=[Tag("status")],
+            rollup=SeriesRollup(3600),
         )
 
         result = get_series(query, public=True)

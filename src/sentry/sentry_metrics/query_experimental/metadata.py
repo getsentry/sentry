@@ -19,10 +19,11 @@ from .types import (
     Function,
     InvalidMetricsQuery,
     MetricName,
-    MetricQueryScope,
-    MetricRange,
+    MetricScope,
     SeriesQuery,
+    SeriesRollup,
     Tag,
+    TimeRange,
     Variable,
     parse_mri,
 )
@@ -158,7 +159,7 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
 
     def _visit_query(self, query: SeriesQuery) -> AnnotatedQuery:
         self._validate_scope(query.scope)
-        self._validate_timerange(query.range)
+        self._validate_timeframe(query.range, query.rollup)
 
         # The use case is set when visiting a metric name, so if it is not
         # set at this point, there are no metrics in the query.
@@ -340,13 +341,22 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
         if not isinstance(value, (str, Variable)):
             raise InvalidMetricsQuery("Filters values must be a strings or variables")
 
-    def _validate_timerange(self, range_: MetricRange) -> None:
+    def _validate_timeframe(self, range_: TimeRange, rollup: SeriesRollup) -> None:
         if range_.start > range_.end:
             raise InvalidMetricsQuery("Start must be before end.")
 
-        if range_.interval <= 0:
+        if rollup.interval is None:
+            return
+
+        if rollup.interval == "auto":
+            raise InvalidMetricsQuery("Query has an unresolved time interval, missing layer.")
+
+        if rollup.interval <= 0:
             raise InvalidMetricsQuery("Interval must be positive.")
 
-    def _validate_scope(self, scope: MetricQueryScope) -> None:
+        if (range_.end - range_.start).total_seconds() % rollup.interval != 0:
+            raise InvalidMetricsQuery("Time range doesn't align with interval, missing layer.")
+
+    def _validate_scope(self, scope: MetricScope) -> None:
         if not scope.org_id or not scope.project_ids:
             raise InvalidMetricsQuery("Missing required organization or projects.")

@@ -34,12 +34,13 @@ __all__ = (
     "Filter",
     "Function",
     "InvalidMetricsQuery",
-    "MetricQueryScope",
-    "MetricRange",
+    "MetricScope",
+    "TimeRange",
     "parse_mri",
     "ParsedMRI",
     "SeriesQuery",
     "SeriesResult",
+    "SeriesRollup",
     "VariableMap",
 )
 
@@ -203,7 +204,7 @@ class InvalidMetricsQuery(Exception):
 
 
 @dataclass(frozen=True)
-class MetricQueryScope:
+class MetricScope:
     """
     Scoping information for metrics queries.
     """
@@ -213,52 +214,86 @@ class MetricQueryScope:
 
 
 @dataclass(frozen=True)
-class MetricRange:
+class TimeRange:
     """
     A time range for a metrics query.
 
     :param start: The inclusive start of the time range to query.
     :param end: The exclusive end of the time range to query.
-    :param interval: The interval in seconds for each of the data points in the
-        returned timeseries. Defaults to ``0``, which will infer an appropriate
-        interval from the time range.
     """
 
     start: datetime
     end: datetime
-    interval: int = 0
 
     @classmethod
-    def start_at(
-        cls, start: datetime, days=0, hours=0, minutes=0, seconds=0, interval: int = 0
-    ) -> "MetricRange":
+    def start_at(cls, start: datetime, days=0, hours=0, minutes=0, seconds=0) -> "TimeRange":
         """
         Create a metric range that starts at the specified time and ends after
         the specified duration.
         """
         delta = timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
-        return cls(start, start + delta, interval)
+        return cls(start, start + delta)
 
     @classmethod
-    def end_at(
-        cls, end: datetime, days=0, hours=0, minutes=0, seconds=0, interval: int = 0
-    ) -> "MetricRange":
+    def end_at(cls, end: datetime, days=0, hours=0, minutes=0, seconds=0) -> "TimeRange":
         """
         Create a metric range that ends at the specified time and goes back for
         the specified duration.
         """
         delta = timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
-        return cls(end - delta, end, interval)
+        return cls(end - delta, end)
 
     @classmethod
-    def last(cls, days=0, hours=0, minutes=0, seconds=0, interval: int = 0) -> "MetricRange":
+    def since(cls, start: datetime) -> "TimeRange":
         """
-        Create a metric range that ends at the current time and goes back for
-        the specified duration.
+        Create a metric range that starts at the specified time and ends now.
         """
-        end = datetime.utcnow()
-        delta = timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
-        return cls(end - delta, end, interval)
+        return cls(start, datetime.utcnow())
+
+    @classmethod
+    def last(cls, days=0, hours=0, minutes=0, seconds=0) -> "TimeRange":
+        """
+        Create a metric range that ends now and goes back for the specified
+        duration.
+        """
+        return cls.end_at(datetime.utcnow(), days, hours, minutes, seconds)
+
+
+@dataclass(frozen=True)
+class SeriesRollup:
+    """
+    Configures how time series are rolled up for a metrics query.
+
+    By default, time series are rolled up into intervals that adjust
+    automatically based on the queried time range. This can be configured to use
+    a fixed interval instead:
+
+        SeriesRollup(3600)
+
+    Additionally, the rollup can be configured to include totals:
+
+        SeriesRollup(totals=True)
+
+    If just totals are desired, set ``interval`` to ``None`` or use
+    ``SeriesRollup.totals_only()``:
+
+        SeriesRollup.totals_only()
+
+    :param interval: The interval in seconds to roll up time series into. If
+        ``"auto"``, the interval will be automatically determined based on the
+        queried time range. Defaults to ``"auto"``.
+    :param totals: Whether to include totals in the result. Defaults to False.
+    """
+
+    interval: Optional[Union[int, Literal["auto"]]] = "auto"
+    totals: bool = False
+
+    @classmethod
+    def totals_only(cls) -> "SeriesRollup":
+        """
+        Create a rollup that only returns totals.
+        """
+        return cls(interval=None, totals=True)
 
 
 VariableMap = Mapping[str, Expression]
@@ -278,23 +313,27 @@ class SeriesQuery:
         expressions in the specified filters. Default is empty.
     :param groups: A set of tag names to group the time series specified by
         `expressions` by. Default is empty.
+    :param rollup: The rollup configuration for the query. Default is
+        automatically inferred intervals and no totals.
 
     Example::
 
         SeriesQuery(
-            scope=MetricQueryScope(org_id=1, project_ids=[1]),
-            range=MetricRange.end_at(self.now, hours=12, interval=3600),
+            scope=MetricScope(org_id=1, project_ids=[1]),
+            range=TimeRange.end_at(self.now, hours=12),
             expressions=[Function("avg", [MetricName("measurements.fcp")])],
             filters=[Function("equals", [Tag("transaction"), "xyz"])],
             groups=[Tag("environment")],
+            rollup=SeriesRollup(3600),
         )
     """
 
-    scope: MetricQueryScope
-    range: MetricRange
+    scope: MetricScope
+    range: TimeRange
     expressions: Sequence[Expression]
     filters: Sequence[Function] = field(default_factory=list)
     groups: Sequence[Taggable] = field(default_factory=list)
+    rollup: SeriesRollup = field(default_factory=SeriesRollup)
 
     def bind(self, **params: Expression) -> "SeriesQuery":
         """

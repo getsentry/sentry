@@ -5,7 +5,9 @@ The main entry points are ``E`` and ``Q`` to construct expressions and queries,
 respectively.
 """
 
-from typing import List, Optional, Tuple, Union
+from dataclasses import replace
+from datetime import datetime
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 from .dsl import parse_expression
 from .types import (
@@ -16,11 +18,12 @@ from .types import (
     Filter,
     Function,
     MetricName,
-    MetricQueryScope,
-    MetricRange,
+    MetricScope,
     SeriesQuery,
     SeriesResult,
+    SeriesRollup,
     Tag,
+    TimeRange,
     Variable,
 )
 
@@ -224,31 +227,120 @@ class E:
 
 class Q:
     """
-    Builder for series queries.
+    Builder to incrementally construct metrics series queries.
+
+    It is required to provide the following components:
+     - at least one expression
+     - an explicit scope
+     - the time range
+
+    Example::
+
+        query = (
+            Q()
+            .expr("avg(`d:transactions/duration@millisecond`)")
+            .scope(org_id=1, project_ids=[1])
+            .last(hours=1)
+            .build()
+        )
     """
 
     def __init__(self):
-        self._scope: Optional[MetricQueryScope] = None
-        self._range: Optional[MetricRange] = None
-        self._expressions = []
-        self._filters = []
-        self._groups = []
-        self._params = None
+        self._scope: Optional[MetricScope] = None
+        self._range: Optional[TimeRange] = None
+        self._rollup: SeriesRollup = SeriesRollup()
+        self._expressions: List[Expression] = []
+        self._filters: List[Function] = []
+        self._groups: List[Tag] = []
+        self._params: Optional[Dict[str, Expression]] = None
 
-    def scope(self, scope: MetricQueryScope) -> "Q":
+    def scope(self, org_id: int, project_ids: Sequence[int]) -> "Q":
         """
         Set the scope of the query.
         """
-
-        self._scope = scope
+        self._scope = MetricScope(org_id, project_ids)
         return self
 
-    def range(self, range: MetricRange) -> "Q":
+    def range(self, start: datetime, end: datetime) -> "Q":
         """
-        Set the time range of the query.
+        Query the specified time range. The end time is exclusive.
+        """
+        self._range = TimeRange(start, end)
+        return self
+
+    def start_at(self, start: datetime, days=0, hours=0, minutes=0, seconds=0) -> "Q":
+        """
+        Query starting at the provided time for the specified duration.
+        """
+        self._range = TimeRange.start_at(start, days, hours, minutes, seconds)
+        return self
+
+    def end_at(self, end: datetime, days=0, hours=0, minutes=0, seconds=0) -> "Q":
+        """
+        Query ending at the provided time for the specified duration.
+        """
+        self._range = TimeRange.end_at(end, days, hours, minutes, seconds)
+        return self
+
+    def since(self, start: datetime) -> "Q":
+        """
+        Query starting at the provided time until now.
+        """
+        self._range = TimeRange.since(start)
+        return self
+
+    def last(self, days=0, hours=0, minutes=0, seconds=0) -> "Q":
+        """
+        Query for the specified duration until now.
+        """
+        self._range = TimeRange.last(days, hours, minutes, seconds)
+        return self
+
+    def interval(
+        self,
+        seconds: Optional[int],
+        minutes: Optional[int],
+        hours: Optional[int],
+        days: Optional[int],
+    ) -> "Q":
+        """
+        Sets an explicit rollup interval on the query. The default is to
+        auto-infer the interval based on the chosen time range.
+
+        Note, only one of the interval components can be provided.
+
+        Example::
+            query = Q().interval(3600)
+            query = Q().interval(hours=1)
+        """
+        if seconds is not None:
+            interval = seconds
+        elif minutes is not None:
+            interval = minutes * 60
+        elif hours is not None:
+            interval = hours * 60 * 60
+        elif days is not None:
+            interval = days * 24 * 60 * 60
+        else:
+            raise AttributeError("Must provide at one interval component")
+
+        self._rollup = replace(self._rollup, interval=interval)
+        return self
+
+    def include_totals(self) -> "Q":
+        """
+        Include rollups on the total time range in the result.
         """
 
-        self._range = range
+        self._rollup = replace(self._rollup, totals=True)
+        return self
+
+    def totals_only(self) -> "Q":
+        """
+        Return just rollups on the total time range in the result without a time
+        series.
+        """
+        self._rollup = SeriesRollup.totals_only()
         return self
 
     def expr(self, initializer: Union[str, Expression, E]) -> "Q":
@@ -261,6 +353,15 @@ class Q:
 
         Otherwise, the passed expression is used directly. To construct complex
         expressions, use and pass an instance of the `E` expression builder.
+
+        Example::
+
+            query = (
+                Q()
+                .expr("sum(foo) * 10")
+                .expr(E("bar").count())
+                .build()
+            )
         """
 
         if isinstance(initializer, str):
@@ -288,14 +389,31 @@ class Q:
         Add a grouping to the query.
         """
 
-        self._groups.append(tag)
+        self._groups.append(tag if isinstance(tag, Tag) else Tag(tag))
         return self
 
     def bind(self, **params: Expression) -> "Q":
         """
         Bind the specified variables to this query.
+
+        This can be called multiple times to add more variable bindings.
+        Previous bindings will be overwritten for duplicate variables.
+
+        Example::
+
+            query = (
+                Q()
+                .expr("sum(metric) * $multiplier")
+                .bind(multiplier=10)
+                .build()
+            )
         """
-        self._params = params
+        if params:
+            if not self._params:
+                self._params = params
+            else:
+                self._params.update(params)
+
         return self
 
     def build(self) -> SeriesQuery:
@@ -318,6 +436,7 @@ class Q:
             expressions=self._expressions,
             filters=self._filters,
             groups=self._groups,
+            rollup=self._rollup,
         )
 
         if self._params is not None:

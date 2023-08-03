@@ -6,9 +6,10 @@ from sentry.sentry_metrics.query_experimental.timeframe import normalize_timefra
 from sentry.sentry_metrics.query_experimental.types import (
     Function,
     MetricName,
-    MetricQueryScope,
-    MetricRange,
+    MetricScope,
     SeriesQuery,
+    SeriesRollup,
+    TimeRange,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID, get_query_config
 
@@ -80,7 +81,7 @@ CASES = [
     (
         "2023-01-01T00:00:00Z",
         "2023-01-01T01:00:00Z",
-        0,
+        "auto",
         "2023-01-01T00:00:00Z",
         "2023-01-01T01:00:00Z",
         60,
@@ -89,7 +90,7 @@ CASES = [
     (
         "2023-01-01T00:00:00Z",
         "2023-01-01T12:00:00Z",
-        0,
+        "auto",
         "2023-01-01T00:00:00Z",
         "2023-01-01T12:00:00Z",
         120,
@@ -98,7 +99,7 @@ CASES = [
     (
         "2023-01-01T00:00:00Z",
         "2023-01-15T00:00:00Z",
-        0,
+        "auto",
         "2023-01-01T00:00:00Z",
         "2023-01-15T00:00:00Z",
         3600,
@@ -107,7 +108,7 @@ CASES = [
     (
         "2023-01-01T00:00:00Z",
         "2023-02-01T00:00:00Z",
-        0,
+        "auto",
         "2023-01-01T00:00:00Z",
         "2023-02-01T01:00:00Z",  # TODO: 5h doesn't divide cleanly with one day
         5 * 3600,  # Could fit 2h in a 30d month
@@ -116,7 +117,7 @@ CASES = [
     (
         "2023-01-01T00:00:00Z",
         "2024-01-01T00:00:00Z",
-        0,
+        "auto",
         "2023-01-01T00:00:00Z",
         "2024-01-02T00:00:00Z",  # expanded to a multiple of 2 calendar days
         2 * 86400,
@@ -125,7 +126,7 @@ CASES = [
     (
         "2023-01-01T00:00:00Z",
         "2023-04-01T00:00:00Z",
-        0,
+        "auto",
         "2023-01-01T00:00:00Z",
         "2023-04-01T00:00:00Z",
         10 * 3600,
@@ -134,7 +135,7 @@ CASES = [
     (
         "2023-01-01T00:00:00Z",
         "2033-01-01T00:00:00Z",
-        0,
+        "auto",
         "2023-01-01T00:00:00Z",
         "2033-01-08T00:00:00Z",  # expanded to a multiple of 20 calendar days
         20 * 86400,
@@ -154,10 +155,12 @@ def test_normalize(start, end, interval, nstart, nend, ninterval):
     assert get_query_config(UseCaseID.TRANSACTIONS).granularities == [60, 3600, 86400]
 
     query = SeriesQuery(
-        scope=MetricQueryScope(org_id=1, project_ids=[1]),
-        range=MetricRange(_d(start), _d(end), interval),
+        scope=MetricScope(org_id=1, project_ids=[1]),
+        range=TimeRange(_d(start), _d(end)),
         expressions=[Function("avg", [MetricName("d:transactions/duration@millisecond")])],
+        rollup=SeriesRollup(interval),
     )
 
     normalized = normalize_timeframe(query)
-    assert normalized.range == MetricRange(_d(nstart), _d(nend), ninterval)
+    assert normalized.range == TimeRange(_d(nstart), _d(nend))
+    assert normalized.rollup == SeriesRollup(ninterval)

@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import pytest
 
 from sentry.sentry_metrics.query_experimental.builder import E, Q
@@ -7,8 +5,6 @@ from sentry.sentry_metrics.query_experimental.types import (
     Filter,
     Function,
     MetricName,
-    MetricQueryScope,
-    MetricRange,
     Tag,
     Variable,
 )
@@ -69,14 +65,7 @@ def test_q_failure_rate():
     STATUSES = ("ok", "cancelled", "unknown")
 
     failure_rate = E(MRI).count().filter("status", "notIn", STATUSES).divide(E(MRI).count())
-
-    query = (
-        Q()
-        .expr(failure_rate)
-        .scope(MetricQueryScope(org_id=1, project_ids=[1]))
-        .range(MetricRange.start_at(datetime.utcnow(), hours=1, interval=3600))
-        .build()
-    )
+    query = Q().expr(failure_rate).scope(org_id=1, project_ids=[1]).last(hours=1).build()
 
     EXPECTED = Function(
         "divide",
@@ -98,8 +87,8 @@ def test_q_dsl_with_bind():
     query = (
         Q()
         .expr("$foo / 2")
-        .scope(MetricQueryScope(org_id=1, project_ids=[1]))
-        .range(MetricRange.start_at(datetime.utcnow(), hours=1, interval=3600))
+        .scope(org_id=1, project_ids=[1])
+        .last(hours=1)
         .bind(foo=MetricName("failure_rate"))
         .build()
     )

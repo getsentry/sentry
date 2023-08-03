@@ -2,14 +2,14 @@ import math
 from dataclasses import replace
 from datetime import datetime, timedelta
 from itertools import zip_longest
-from typing import Iterable, Sequence, Tuple
+from typing import Iterable, Sequence
 
 from snuba_sdk import Granularity
 
 from sentry.sentry_metrics.use_case_id_registry import get_query_config
 
 from .pipeline import QueryLayer
-from .types import MetricRange, SeriesQuery
+from .types import InvalidMetricsQuery, SeriesQuery, TimeRange
 from .use_case import get_use_case
 
 # Maximum number of points to return in a query with inferred interval.
@@ -32,10 +32,19 @@ class TimeframeLayer(QueryLayer):
 def resolve_granularity(query: SeriesQuery) -> Granularity:
     """
     Resolves the nearest granularity that resolves the interval.
+
+    This requires that "auto" intervals have been normalized.
     """
 
     config = get_query_config(get_use_case(query))
-    return config.granularity(query.range.interval)
+    interval = query.rollup.interval
+
+    if interval == "auto":
+        raise InvalidMetricsQuery("Unresolved auto interval, missing layer.")
+    elif interval is None:
+        return _infer_granularity(query.range, config.granularities)
+    else:
+        return config.granularity(interval)
 
 
 def normalize_timeframe(query: SeriesQuery) -> SeriesQuery:
@@ -46,25 +55,38 @@ def normalize_timeframe(query: SeriesQuery) -> SeriesQuery:
 
     config = get_query_config(get_use_case(query))
 
-    interval = query.range.interval
-    if interval == 0:
-        interval = _infer_interval(query.range.start, query.range.end, config.granularities)
-    granularity = config.granularity(interval).granularity
+    interval = query.rollup.interval
+    if interval is None:
+        base = _infer_granularity(query.range, config.granularities)
+    elif interval == "auto":
+        base = interval = _infer_interval(query.range, config.granularities)
+    else:
+        # Ensure the requested interval is a multiple of an available granularity
+        granularity = config.granularity(interval).granularity
+        base = interval = round(interval / granularity) * granularity
 
-    # Ensure the interval is a multiple of the granularity and align the timeframe
-    interval = round(interval / granularity) * granularity
-    (start, end) = _align_timeframe(query.range.start, query.range.end, interval)
-
-    return replace(query, range=MetricRange(start=start, end=end, interval=interval))
+    # Align the timeframe to the interval or granularity
+    range_ = _align_timerange(query.range, base)
+    return replace(query, range=range_, rollup=replace(query.rollup, interval=interval))
 
 
-def _infer_interval(start: datetime, end: datetime, granularities: Sequence[int]) -> int:
+def _infer_granularity(r: TimeRange, granularities: Sequence[int]) -> int:
+    """
+    Chooses a sensible granularity for totals of the given timeframe based if no
+    interval series is requested.
+    """
+
+    window = (r.end - r.start).total_seconds()
+    return next(g for g in granularities if window / g <= 10_000) or max(granularities)
+
+
+def _infer_interval(r: TimeRange, granularities: Sequence[int]) -> int:
     """
     Infers an appropriate interval in seconds for the given timeframe based on
     the available granularities.
     """
 
-    window = (end - start).total_seconds()
+    window = (r.end - r.start).total_seconds()
 
     last = granularities[0]
     for interval in _iter_intervals(granularities):
@@ -96,16 +118,16 @@ def _iter_intervals(granularities: Sequence[int]) -> Iterable[int]:
             yield int(next_granularity / 2)
 
 
-def _align_timeframe(start: datetime, end: datetime, interval: int) -> Tuple[datetime, datetime]:
+def _align_timerange(r: TimeRange, interval: int) -> TimeRange:
     """
     Expands the timeframe to cover the interval and aligns the start and end
     to the interval.
     """
 
-    m = datetime.min.replace(tzinfo=start.tzinfo)
+    m = datetime.min.replace(tzinfo=r.start.tzinfo)
     delta = timedelta(seconds=interval)
 
-    start = m + math.floor((start - m) / delta) * delta
-    end = m + math.ceil((end - m) / delta) * delta
-
-    return (start, end)
+    return TimeRange(
+        start=m + math.floor((r.start - m) / delta) * delta,
+        end=m + math.ceil((r.end - m) / delta) * delta,
+    )

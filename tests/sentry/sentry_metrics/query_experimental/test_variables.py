@@ -7,10 +7,10 @@ from sentry.sentry_metrics.query_experimental.types import (
     Function,
     InvalidMetricsQuery,
     MetricName,
-    MetricQueryScope,
-    MetricRange,
+    MetricScope,
     SeriesQuery,
     Tag,
+    TimeRange,
     Variable,
 )
 from sentry.sentry_metrics.query_experimental.variables import VariableTransform
@@ -52,8 +52,8 @@ def test_expr_tag_value():
 
 def test_query_filters():
     query = SeriesQuery(
-        scope=MetricQueryScope(org_id=1, project_ids=[1]),
-        range=MetricRange.end_at(datetime.utcnow(), hours=1),
+        scope=MetricScope(org_id=1, project_ids=[1]),
+        range=TimeRange.end_at(datetime.utcnow(), hours=1),
         expressions=[Function("avg", [MetricName("foo")])],
         filters=[Function("equals", [Variable("tag"), "value"])],
     )
@@ -65,8 +65,8 @@ def test_query_filters():
 
 def test_query_groups():
     query = SeriesQuery(
-        scope=MetricQueryScope(org_id=1, project_ids=[1]),
-        range=MetricRange.end_at(datetime.utcnow(), hours=1),
+        scope=MetricScope(org_id=1, project_ids=[1]),
+        range=TimeRange.end_at(datetime.utcnow(), hours=1),
         expressions=[Function("avg", [MetricName("foo")])],
         groups=[Variable("tag")],
     )
