@@ -626,7 +626,15 @@ class Group(Model):
         from sentry.search.events.types import SnubaParams
 
         metrics.incr("group.has_replays")
+
+        # XXX(jferg) Note that this check will preclude backend projects from receiving the "View Replays"
+        # link in their notification. This will need to be addressed in a future change.
+        if not self.project.flags.has_replays:
+            metrics.incr("group.has_replays.project_has_replays_false")
+            return False
+
         cached_has_replays = cache.get(f"has_replays:{self.id}")
+
         if cached_has_replays is not None:
             metrics.incr(
                 "group.has_replays_cached",
@@ -636,31 +644,22 @@ class Group(Model):
             )
             return cached_has_replays
 
-        if not self.project.flags.has_replays:
-            metrics.incr("group.has_replays.project_has_replays_false")
-            has_replays = False
-            # XXX(jferg) Note that this check will preclude backend projects from receiving the "View Replays"
-            # link in their notification. This will be addressed in a future change.
-        else:
-            counts = get_replay_counts(
-                make_snuba_params_for_replay_count_query(),
-                f"issue.id:[{self.id}]",
-                return_ids=False,
-            )
+        counts = get_replay_counts(
+            make_snuba_params_for_replay_count_query(),
+            f"issue.id:[{self.id}]",
+            return_ids=False,
+        )
 
-            has_replays = counts.get(self.id, 0) > 0  # type: ignore
-            # need to refactor counts so that the type of the key returned in the dict is always a str
-            # for typing
-            metrics.incr(
-                "group.has_replays.replay_count_query",
-                tags={
-                    "has_replays": has_replays,
-                },
-            )
-
+        has_replays = counts.get(self.id, 0) > 0  # type: ignore
+        # need to refactor counts so that the type of the key returned in the dict is always a str
+        # for typing
+        metrics.incr(
+            "group.has_replays.replay_count_query",
+            tags={
+                "has_replays": has_replays,
+            },
+        )
         cache.set(f"has_replays:{self.id}", has_replays, 6000)
-
-        metrics.incr("group.has_replays")
 
         return has_replays
 
