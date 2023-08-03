@@ -563,4 +563,4 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
 
     @pytest.mark.xfail(reason="Cannot search by tags")
     def test_free_text_search(self):
-        super().free_text_search()
+        super().test_free_text_search()
