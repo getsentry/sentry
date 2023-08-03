@@ -331,7 +331,8 @@ class PushEventWebhook(Webhook):
             else:
                 author = authors[author_email]
 
-            author.preload_users()
+            if author:
+                author.preload_users()
             try:
                 with transaction.atomic(router.db_for_write(Commit)):
                     c = Commit.objects.create(
