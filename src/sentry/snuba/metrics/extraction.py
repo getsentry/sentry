@@ -299,7 +299,7 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
         return value
 
 
-class OndemandMetricSpecV2(NamedTuple):
+class OndemandMetricSpec(NamedTuple):
     op: Optional[MetricOperationType]
     metric_type: str
     field: Optional[str]
@@ -518,7 +518,7 @@ class OndemandMetricSpecBuilder:
         field: str,
         query: str,
         derived_metric_params: Optional[DerivedMetricParams] = None,
-    ) -> OndemandMetricSpecV2:
+    ) -> OndemandMetricSpec:
         # We need to clean up the query from unnecessary filters.
         query = self._cleanup_query(query)
 
@@ -536,14 +536,14 @@ class OndemandMetricSpecBuilder:
         query: str,
         derived_metric: DerivedMetric,
         derived_metric_params: DerivedMetricParams,
-    ) -> OndemandMetricSpecV2:
+    ) -> OndemandMetricSpec:
         op, metric_type, extracted_field = self._process_field(field=field, is_derived=True)
         rule_condition = self._process_query(field=field, query=query)
         tags_conditions = self._process_components(
             derived_metric=derived_metric, derived_metric_params=derived_metric_params
         )
 
-        return OndemandMetricSpecV2(
+        return OndemandMetricSpec(
             op=op,
             metric_type=metric_type,
             field=extracted_field,
@@ -552,11 +552,11 @@ class OndemandMetricSpecBuilder:
             original_query=query,
         )
 
-    def _handle_normal_metric(self, field: str, query: str) -> OndemandMetricSpecV2:
+    def _handle_normal_metric(self, field: str, query: str) -> OndemandMetricSpec:
         op, metric_type, extracted_field = self._process_field(field=field, is_derived=False)
         rule_condition = self._process_query(field=field, query=query)
 
-        return OndemandMetricSpecV2(
+        return OndemandMetricSpec(
             op=op,
             metric_type=metric_type,
             field=extracted_field,

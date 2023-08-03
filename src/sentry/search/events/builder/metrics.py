@@ -42,8 +42,8 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
+    OndemandMetricSpec,
     OndemandMetricSpecBuilder,
-    OndemandMetricSpecV2,
     is_on_demand_query,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
@@ -114,7 +114,7 @@ class MetricsQueryBuilder(QueryBuilder):
         selected_cols: List[Optional[str]],
         query: str,
         on_demand_metrics_enabled: bool,
-    ) -> Optional[OndemandMetricSpecV2]:
+    ) -> Optional[OndemandMetricSpec]:
         if not on_demand_metrics_enabled:
             return None
 
