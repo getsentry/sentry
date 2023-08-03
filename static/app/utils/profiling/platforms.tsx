@@ -18,6 +18,7 @@ export const supportedProfilingPlatformSDKs = [
   'javascript-sveltekit',
   'javascript',
   'javascript-react',
+  'react-native',
 ] as const;
 export type SupportedProfilingPlatform = (typeof supportedProfilingPlatforms)[number];
 export type SupportedProfilingPlatformSDK =
@@ -83,6 +84,11 @@ export function getDocsPlatformSDKForPlatform(
   // Ruby
   if (platform.startsWith('ruby')) {
     return 'ruby';
+  }
+
+  // React native
+  if (platform === 'react-native') {
+    return 'react-native';
   }
 
   return null;

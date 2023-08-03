@@ -233,6 +233,8 @@ export const profiling: PlatformKey[] = [
   'javascript-sveltekit',
   'javascript',
   'javascript-react',
+  // react-native
+  'react-native',
   // python
   'python',
   'python-django',
