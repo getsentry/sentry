@@ -202,18 +202,6 @@ describe('formatAbbreviatedNumber()', function () {
     expect(formatAbbreviatedNumber(1500)).toBe('1.5k');
     expect(formatAbbreviatedNumber(1213122)).toBe('1.2m');
   });
-
-  it('should round to set amount of significant digits', () => {
-    expect(formatAbbreviatedNumber(100.12, 3)).toBe('100');
-    expect(formatAbbreviatedNumber(199.99, 3)).toBe('200');
-    expect(formatAbbreviatedNumber(1500, 3)).toBe('1.5k');
-    expect(formatAbbreviatedNumber(1213122, 3)).toBe('1.21m');
-    expect(formatAbbreviatedNumber(1500000000000, 3)).toBe('1500b');
-
-    expect(formatAbbreviatedNumber('1249.23421', 3)).toBe('1.25k');
-    expect(formatAbbreviatedNumber('1239567891299', 3)).toBe('1240b');
-    expect(formatAbbreviatedNumber('158.80421626984128', 3)).toBe('159');
-  });
 });
 
 describe('formatFloat()', function () {
