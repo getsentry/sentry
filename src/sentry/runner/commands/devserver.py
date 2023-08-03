@@ -267,25 +267,23 @@ def devserver(
             click.echo("--ingest was provided, implicitly enabling --workers")
             workers = True
 
-    if workers and not crons:
-        click.secho(
-            "If you want to run crons (celerybeat workers), you need to also pass --crons.",
-            fg="yellow",
-        )
-
     if crons:
         daemons.append(_get_daemon("cron"))
 
     if workers:
-        daemons += [_get_daemon("worker"), _get_daemon("cron")]
-        daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
-
         if settings.CELERY_ALWAYS_EAGER:
             raise click.ClickException(
                 "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
             )
 
         daemons.append(_get_daemon("worker"))
+        daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
+
+        if not crons:
+            click.secho(
+                "If you want to run crons (celerybeat workers), you need to also pass --crons.",
+                fg="yellow",
+            )
 
         from sentry import eventstream
 
@@ -311,8 +309,6 @@ def devserver(
             kafka_consumers.add("billing-metrics-consumer")
 
         if settings.SENTRY_USE_RELAY:
-            daemons += [("relay", ["sentry", "devservices", "attach", "relay"])]
-
             kafka_consumers.add("ingest-events")
             kafka_consumers.add("ingest-attachments")
             kafka_consumers.add("ingest-transactions")
