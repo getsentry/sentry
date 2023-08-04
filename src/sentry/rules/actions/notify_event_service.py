@@ -25,7 +25,7 @@ from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.integrations.sentry_app")
-PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack"]
+PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack", "Opsgenie"]
 
 
 def build_incident_attachment(
