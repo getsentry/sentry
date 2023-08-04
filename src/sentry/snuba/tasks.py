@@ -173,6 +173,9 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
 
     if subscription.subscription_id is not None:
         query_dataset = Dataset(subscription.snuba_query.dataset)
+
+        # Clear the query because we don't need it to delete the subscription
+        subscription.snuba_query.query = ""
         entity_key = get_entity_key_from_snuba_query(
             subscription.snuba_query, subscription.project.organization_id, subscription.project_id
         )
