@@ -1448,3 +1448,12 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# The percentage non-sampled profiles (normally dropped due to DS) that we'll use anyway
+# in order to enhance aggregations with more data.
+# Set to 1.0 in order to "ingest" all of them, <=0.0 to stop ingesting them
+register(
+    "profiling.unsampled-profiles.rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

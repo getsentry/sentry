@@ -1,17 +1,26 @@
+import random
 from typing import Mapping
 
+import msgpack
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 
+from sentry import options
 from sentry.processing.backpressure.arroyo import HealthChecker, create_backpressure_step
 from sentry.profiles.task import process_profile_task
 
 
 def process_message(message: Message[KafkaPayload]) -> None:
-    process_profile_task.s(payload=message.payload.value).apply_async()
+    msg_payload = message.payload.value
+    message_dict = msgpack.unpackb(msg_payload, use_list=False)
+
+    if message_dict.get("sampled", True) or random.random() < options.get(
+        "profiling.unsampled-profiles.rate"
+    ):
+        process_profile_task.s(payload=msg_payload).apply_async()
 
 
 class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

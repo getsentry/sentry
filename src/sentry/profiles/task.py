@@ -11,7 +11,7 @@ from django.conf import settings
 from pytz import UTC
 from symbolic.proguard import ProguardMapper
 
-from sentry import quotas
+from sentry import options, quotas
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.javascript.processing import generate_scraping_config
@@ -55,6 +55,12 @@ def process_profile_task(
     if payload:
         message_dict = msgpack.unpackb(payload, use_list=False)
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
+
+        if (
+            not message_dict.get("sampled", True)
+            and options.get("profiling.unsampled-profiles.rate") == 0
+        ):
+            return
 
         assert profile is not None
 
