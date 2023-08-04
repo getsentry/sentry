@@ -219,9 +219,6 @@ def is_on_demand_metric_query(
 ) -> bool:
     """Returns ``True`` if the dataset is performance metrics and query contains non-standard search fields."""
 
-    if is_standard_metrics_compatible(dataset, aggregate, query):
-        return False
-
     if not dataset or Dataset(dataset) != Dataset.PerformanceMetrics:
         return False
 
@@ -247,10 +244,10 @@ def is_standard_metrics_compatible(
         return False
 
     for field in _get_aggregate_fields(aggregate):
-        if not _is_on_demand_supported_field(field):
+        if not _is_standard_metrics_field(field):
             return False
     try:
-        return _is_on_demand_supported_query(event_search.parse_search_query(query))
+        return _is_standard_metrics_query(event_search.parse_search_query(query))
     except InvalidSearchQuery:
         logger.error(f"Failed to parse search query: {query}", exc_info=True)
         return False
@@ -262,8 +259,6 @@ def _get_aggregate_fields(aggregate: str) -> Sequence[str]:
     functions, otherwise ``None``.
     """
     _SUPPORTED_AGG_FNS = ("count_if", "count_unique")
-
-    # count_if is currently the only supported function, exit early
 
     if not aggregate.startswith(_SUPPORTED_AGG_FNS):
         return []
