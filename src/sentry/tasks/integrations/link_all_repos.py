@@ -26,7 +26,7 @@ def get_repo_config(repo, integration_id):
     name="sentry.integrations.github.link_all_repos",
     queue="integrations",
     max_retries=3,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CONTROL,
 )
 @retry(
     exclude=(
