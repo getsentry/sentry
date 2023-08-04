@@ -151,3 +151,17 @@ class IntegrationRequestBuffer:
             ret.append(item)
 
         return ret
+
+    def clear(self):
+        """
+        Clear the buffer.
+        """
+        pipe = self.client.pipeline()
+        now = datetime.now()
+        broken_range_keys = [
+            f"{self.integration_key}:{(now - timedelta(days=i)).strftime('%Y-%m-%d')}"
+            for i in range(BROKEN_RANGE_DAYS)
+        ]
+        for key in broken_range_keys:
+            pipe.delete(key)
+        pipe.execute()

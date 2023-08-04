@@ -373,7 +373,7 @@ class BaseApiClient(TrackResponseMixin):
                 buffer.record_response_error(response)
                 buffer.record_success(response)
             if buffer.is_integration_broken():
-                self.disable_integration()
+                self.disable_integration(buffer)
 
         except Exception:
             metrics.incr("integration.slack.disable_on_broken.redis")
@@ -387,12 +387,12 @@ class BaseApiClient(TrackResponseMixin):
             buffer = IntegrationRequestBuffer(redis_key)
             buffer.record_exception_error()
             if buffer.is_integration_broken():
-                self.disable_integration()
+                self.disable_integration(buffer)
         except Exception:
             metrics.incr("integration.slack.disable_on_broken.redis")
             return
 
-    def disable_integration(self) -> None:
+    def disable_integration(self, buffer) -> None:
         rpc_integration, rpc_org_integration = integration_service.get_organization_contexts(
             integration_id=self.integration_id
         )
@@ -411,7 +411,7 @@ class BaseApiClient(TrackResponseMixin):
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )
             notify_disable(org, rpc_integration.provider, self._get_redis_key())
-
+            buffer.clear()
         extra = {"integration_id": self.integration_id}
         if len(rpc_org_integration) == 0 and rpc_integration is None:
             extra["provider"] = "unknown"

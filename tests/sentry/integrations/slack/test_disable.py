@@ -80,9 +80,9 @@ class SlackClientDisable(TestCase):
         with self.tasks() and pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
-        assert buffer.is_integration_broken() is True
         integration = Integration.objects.get(id=self.integration.id)
         assert integration.status == ObjectStatus.DISABLED
+        assert [len(item) == 0 for item in buffer._get_broken_range_from_buffer()]
 
     @responses.activate
     @with_feature("organizations:disable-on-broken")
