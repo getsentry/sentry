@@ -13,7 +13,7 @@ from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models import Organization
 from sentry.models.integrations.sentry_app import track_response_code
-from sentry.models.integrations.utils import is_response_error, is_response_success
+from sentry.models.integrations.utils import get_redis_key, is_response_error, is_response_success
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
@@ -41,7 +41,7 @@ def ignore_unpublished_app_errors(func):
 
 
 def check_broken(sentryapp: SentryApp, org_id: str):
-    redis_key = sentryapp._get_redis_key(org_id)
+    redis_key = get_redis_key(sentryapp, org_id)
     buffer = IntegrationRequestBuffer(redis_key)
     if buffer.is_integration_broken():
         org = Organization.objects.get(id=org_id)
@@ -69,7 +69,7 @@ def record_timeout(sentryapp: SentryApp, org_id: str, e: Union[ConnectionError, 
     """
     if sentryapp.is_published:
         return
-    redis_key = sentryapp._get_redis_key(org_id)
+    redis_key = get_redis_key(sentryapp, org_id)
     if not len(redis_key):
         return
     buffer = IntegrationRequestBuffer(redis_key)
@@ -80,7 +80,7 @@ def record_timeout(sentryapp: SentryApp, org_id: str, e: Union[ConnectionError, 
 def record_response(sentryapp: SentryApp, org_id: str, response: Response):
     if sentryapp.is_published:
         return
-    redis_key = sentryapp._get_redis_key(org_id)
+    redis_key = get_redis_key(sentryapp, org_id)
     if not len(redis_key):
         return
     buffer = IntegrationRequestBuffer(redis_key)

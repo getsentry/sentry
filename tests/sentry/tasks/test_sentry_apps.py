@@ -14,6 +14,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models import Activity, Group, Rule, SentryApp, SentryAppInstallation, SentryFunction
+from sentry.models.integrations.utils import get_redis_key
 from sentry.shared_integrations.exceptions import ClientError
 from sentry.tasks.post_process import post_process_group
 from sentry.tasks.sentry_apps import (
@@ -653,7 +654,7 @@ class TestWebhookRequests(TestCase):
         self.issue = self.create_group(project=self.project)
         self.buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
         self.integration_buffer = IntegrationRequestBuffer(
-            self.sentry_app._get_redis_key(self.organization.id)
+            get_redis_key(self.sentry_app, self.organization.id)
         )
 
     @patch(

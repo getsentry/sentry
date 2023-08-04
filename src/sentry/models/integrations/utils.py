@@ -8,6 +8,7 @@ if TYPE_CHECKING:
         IntegrationInstallation,
         IntegrationProvider,
     )
+    from sentry.models import SentryApp
     from sentry.models.integrations.integration import Integration
     from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 
@@ -45,3 +46,16 @@ def is_response_error(resp) -> bool:
         if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
             return True
     return False
+
+
+def get_redis_key(sentryapp: SentryApp, org_id):
+    from sentry.models import SentryAppInstallation
+
+    installations = SentryAppInstallation.objects.filter(
+        organization_id=org_id,
+        sentry_app=sentryapp,
+    )
+    if installations.exists():
+        installation = installations.first()
+        return f"sentry-app-error:{installation.uuid}"
+    return ""
