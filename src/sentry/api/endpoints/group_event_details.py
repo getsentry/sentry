@@ -156,6 +156,41 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                         event = group.get_helpful_event_for_environments(environments)
             else:
                 return Response(status=404)
+        elif event_id == "recommended":
+            if features.has(
+                "organizations:issue-details-most-helpful-event",
+                group.project.organization,
+                actor=request.user,
+            ):
+                query = request.GET.get("query")
+                if query:
+                    with metrics.timer(
+                        "api.endpoints.group_event_details.get",
+                        tags={"type": "recommended", "query": True},
+                    ):
+                        try:
+                            conditions = issue_search_query_to_conditions(
+                                query, group, request.user, environments
+                            )
+                            event = group.get_helpful_event_for_environments(
+                                environments, conditions
+                            )
+                        except ValidationError:
+                            return Response(status=400)
+                        except Exception:
+                            logging.error(
+                                "group_event_details:get_recommended",
+                                exc_info=True,
+                            )
+                            return Response(status=500)
+                else:
+                    with metrics.timer(
+                        "api.endpoints.group_event_details.get",
+                        tags={"type": "recommended", "query": False},
+                    ):
+                        event = group.get_helpful_event_for_environments(environments)
+            else:
+                return Response(status=404)
         else:
             with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "event"}):
                 event = eventstore.backend.get_event_by_id(

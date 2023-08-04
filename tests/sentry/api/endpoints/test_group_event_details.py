@@ -149,6 +149,40 @@ class GroupEventDetailsHelpfulEndpointTest(
 
         assert response.status_code == 404, response.content
 
+    def test_get_recommended_feature_off(self):
+        url = f"/api/0/issues/{self.event_a.group.id}/events/recommended/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 404, response.content
+
+    @with_feature("organizations:issue-details-most-helpful-event")
+    def test_get_simple_recommended(self):
+        self.event_d = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "environment": "staging",
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group-1"],
+                "contexts": {
+                    "replay": {"replay_id": uuid.uuid4().hex},
+                    "trace": {
+                        "sampled": True,
+                        "span_id": "babaae0d4b7512d9",
+                        "trace_id": "a7d67cf796774551a95be6543cacd459",
+                    },
+                },
+                "errors": [],
+            },
+            project_id=self.project_1.id,
+        )
+        url = f"/api/0/issues/{self.event_a.group.id}/events/recommended/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.event_d.event_id)
+        assert response.data["previousEventID"] == self.event_c.event_id
+        assert response.data["nextEventID"] is None
+
     @with_feature("organizations:issue-details-most-helpful-event")
     def test_get_simple_helpful(self):
         self.event_d = self.store_event(
