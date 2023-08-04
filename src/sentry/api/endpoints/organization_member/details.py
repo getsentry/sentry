@@ -119,7 +119,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         )
 
     @extend_schema(
-        operation_id="Update an Organization Member",
+        operation_id="Update an Organization Member's Roles",
         parameters=[
             GlobalParams.ORG_SLUG,
             OrganizationParams.MEMBER_ID,
@@ -142,7 +142,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
     ) -> Response:
         """
-        Update various settings for a given organization member.
+        Update an member's organization and team-level roles.
         """
         allowed_roles = get_allowed_org_roles(request, organization)
         serializer = OrganizationMemberSerializer(
