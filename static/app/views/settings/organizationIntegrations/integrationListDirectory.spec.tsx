@@ -12,7 +12,7 @@ describe('IntegrationListDirectory', function () {
     MockApiClient.clearMockResponses();
   });
 
-  const {organization: org, routerContext, router} = initializeOrg();
+  const {organization: org, routerContext, routerProps} = initializeOrg();
 
   describe('Renders view', function () {
     beforeEach(() => {
@@ -37,11 +37,8 @@ describe('IntegrationListDirectory', function () {
     it('shows installed integrations at the top in order of weight', function () {
       render(
         <IntegrationListDirectory
+          {...routerProps}
           params={{orgId: org.slug}}
-          location={router.location}
-          router={router}
-          route={router.routes[0]}
-          routes={router.routes}
           routeParams={{orgId: org.slug}}
           hideHeader={false}
         />,
@@ -66,11 +63,8 @@ describe('IntegrationListDirectory', function () {
     it('does not show legacy plugin that has a First Party Integration if not installed', function () {
       render(
         <IntegrationListDirectory
+          {...routerProps}
           params={{orgId: org.slug}}
-          location={router.location}
-          router={router}
-          route={router.routes[0]}
-          routes={router.routes}
           routeParams={{orgId: org.slug}}
           hideHeader={false}
         />,
@@ -83,11 +77,8 @@ describe('IntegrationListDirectory', function () {
     it('shows legacy plugin that has a First Party Integration if installed', function () {
       render(
         <IntegrationListDirectory
+          {...routerProps}
           params={{orgId: org.slug}}
-          location={router.location}
-          router={router}
-          route={router.routes[0]}
-          routes={router.routes}
           routeParams={{orgId: org.slug}}
           hideHeader={false}
         />,
