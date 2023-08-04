@@ -83,6 +83,7 @@ class SlackClientDisable(TestCase):
         integration = Integration.objects.get(id=self.integration.id)
         assert integration.status == ObjectStatus.DISABLED
         assert [len(item) == 0 for item in buffer._get_broken_range_from_buffer()]
+        assert len(buffer._get_all_from_buffer()) == 0
 
     @responses.activate
     @with_feature("organizations:disable-on-broken")

@@ -129,10 +129,10 @@ class IntegrationRequestBuffer:
         """
         pipe = self.client.pipeline()
         now = datetime.now()
-        broken_range_keys = [
+        all_range = [
             f"{self.integration_key}:{(now - timedelta(days=i)).strftime('%Y-%m-%d')}"
-            for i in range(BROKEN_RANGE_DAYS)
+            for i in range(BUFFER_SIZE)
         ]
-        for key in broken_range_keys:
+        for key in all_range:
             pipe.delete(key)
         pipe.execute()

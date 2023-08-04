@@ -822,6 +822,7 @@ class TestWebhookRequests(TestCase):
         assert features.has("organizations:disable-sentryapps-on-broken", self.organization)
         assert safe_urlopen.called
         assert [len(item) == 0 for item in self.integration_buffer._get_broken_range_from_buffer()]
+        assert len(self.integration_buffer._get_all_from_buffer()) == 0
         self.sentry_app.refresh_from_db()  # reload to get updated events
         assert len(self.sentry_app.events) == 0  # check that events are empty / app is disabled
 
@@ -851,13 +852,13 @@ class TestWebhookRequests(TestCase):
     @with_feature("organizations:disable-sentryapps-on-broken")
     def test_slow_should_disable(self, safe_urlopen):
         """
-        Tests that the integration is broken after 10 days of errors and disabled since flag is on
+        Tests that the integration is broken after 7 days of errors and disabled since flag is on
         Slow shut off
         """
         self.sentry_app.update(status=SentryAppStatus.UNPUBLISHED)
         data = {"issue": serialize(self.issue)}
         now = datetime.now() + timedelta(hours=1)
-        for i in reversed(range(10)):
+        for i in reversed(range(7)):
             with freeze_time(now - timedelta(days=i)):
                 send_webhooks(
                     installation=self.install, event="issue.assigned", data=data, actor=self.user
@@ -867,6 +868,7 @@ class TestWebhookRequests(TestCase):
         assert [len(item) == 0 for item in self.integration_buffer._get_broken_range_from_buffer()]
         self.sentry_app.refresh_from_db()  # reload to get updated events
         assert len(self.sentry_app.events) == 0  # check that events are empty / app is disabled
+        assert len(self.integration_buffer._get_all_from_buffer()) == 0
 
     @patch(
         "sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockFailureResponseInstance
