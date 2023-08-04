@@ -17,6 +17,7 @@ from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcRegionUser,
+    RpcTeam,
     RpcUserInviteContext,
     RpcUserOrganizationContext,
 )

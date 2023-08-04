@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Optional, cast
+from typing import TYPE_CHECKING, List, Optional, cast
 
 from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
@@ -18,6 +18,9 @@ from sentry.services.hybrid_cloud.region import ByOrganizationId, ByOrganization
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
+
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.organization.model import RpcTeam
 
 
 class ProjectService(RpcService):
