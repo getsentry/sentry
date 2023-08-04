@@ -120,6 +120,10 @@ class Webhook:
                         try:
                             provider.create_repository(repo_config=config, organization=rpc_org)
                         except RepoExistsError:
+                            logger.info(
+                                "github.auto-repo-linking.repo_exists",
+                                extra={"organization_id": rpc_org.id},
+                            )
                             metrics.incr("sentry.integration_repo_provider.repo_exists")
                             continue
                         metrics.incr("github.webhook.create_repository")
