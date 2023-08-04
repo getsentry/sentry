@@ -8,6 +8,22 @@ class ActionPriority:
     UNKNOWN = 4
 
 
+sourcemap_sdks = [
+    "sentry.javascript.browser",
+    "sentry.javascript.node",
+    "sentry.javascript.react",
+    "sentry.javascript.angular",
+    "sentry.javascript.angular-ivy",
+    "sentry.javascript.ember",
+    "sentry.javascript.gatsby",
+    "sentry.javascript.vue",
+    "sentry.javascript.nextjs",
+    "sentry.javascript.remix",
+    "sentry.javascript.svelte",
+    "sentry.javascript.sveltekit",
+    "sentry.javascript.react-native",
+]
+
 fileNameBlocklist = ["@webkit-masked-url"]
 
 priority_ranking = {

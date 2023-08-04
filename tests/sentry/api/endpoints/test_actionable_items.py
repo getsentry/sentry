@@ -26,6 +26,10 @@ class ActionableItemsEndpointTestCase(APITestCase):
 
     base_data = {
         "event_id": "a" * 32,
+        "sdk": {
+            "name": "sentry.javascript.browser",
+            "version": "7.3.0",
+        },
         "exception": {
             "values": [
                 {
@@ -125,6 +129,48 @@ class ActionableItemsEndpointTestCase(APITestCase):
         assert resp.data["detail"] == "Event not found"
 
     @with_feature("organizations:actionable-items")
+    def test_event_is_not_javascript(self):
+        data = {
+            "event_id": "a" * 32,
+            "sdk": {
+                "name": "sentry.python",
+                "version": "1.29.2",
+            },
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "https://app.example.com/static/py/main.py",
+                                    "filename": "/static/py/main.py",
+                                    "lineno": 1,
+                                    "colno": 39,
+                                    "context_line": "return results",
+                                    "in_app": True,
+                                }
+                            ]
+                        },
+                    },
+                ]
+            },
+        }
+
+        event = self.store_event(
+            data=data,
+            project_id=self.project.id,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+        )
+
+        assert resp.data["errors"] == []
+
+    @with_feature("organizations:actionable-items")
     def test_event_has_no_release(self):
         event = self.store_event(
             data=self.base_data,
@@ -179,9 +225,12 @@ class ActionableItemsEndpointTestCase(APITestCase):
 
     @with_feature("organizations:actionable-items")
     def test_multiple_source_map_errors(self):
-
         data = {
             "event_id": "a" * 32,
+            "sdk": {
+                "name": "sentry.javascript.browser",
+                "version": "7.3.0",
+            },
             "exception": {
                 "values": [
                     {
@@ -241,6 +290,10 @@ class ActionableItemsEndpointTestCase(APITestCase):
     def test_event_has_no_release_with_event_error(self):
         data = {
             "event_id": "a" * 32,
+            "sdk": {
+                "name": "sentry.javascript.browser",
+                "version": "7.3.0",
+            },
             "exception": {
                 "values": [
                     {
@@ -293,6 +346,10 @@ class ActionableItemsEndpointTestCase(APITestCase):
                 "event_id": "a" * 32,
                 "release": "my-release",
                 "dist": "my-dist",
+                "sdk": {
+                    "name": "sentry.javascript.browser",
+                    "version": "7.3.0",
+                },
                 "exception": {
                     "values": [
                         {
