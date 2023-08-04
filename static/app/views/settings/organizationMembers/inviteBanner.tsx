@@ -68,7 +68,7 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
     </MemberCard>
   ));
 
-  cards?.push(<SeeMoreCard key="see-more" missingUsers={users} />);
+  cards.push(<SeeMoreCard key="see-more" missingUsers={users} />);
 
   return (
     <StyledCard data-test-id="invite-banner">
@@ -136,8 +136,8 @@ function SeeMoreCard({missingUsers}: SeeMoreCardProps) {
 }
 
 const StyledCard = styled(Card)`
-  padding: ${space(2)};
   display: flex;
+  padding: ${space(2)};
   overflow: hidden;
 `;
 
@@ -158,11 +158,11 @@ const CardTitle = styled('div')`
 `;
 
 const Subtitle = styled('div')`
+  display: flex;
+  align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 400;
   color: ${p => p.theme.gray300};
-  display: flex;
-  align-items: center;
   & > *:first-child {
     margin-left: ${space(0.5)};
     display: flex;
@@ -177,14 +177,14 @@ const ButtonContainer = styled('div')`
 `;
 
 const MemberCard = styled(Card)`
-  padding: ${space(2)} 18px;
   display: flex;
   flex-direction: row;
-  align-items: center;
-  margin: ${space(1)} ${space(0.5)} 0 0;
-  min-width: 30%;
-  justify-content: center;
   flex-wrap: wrap;
+  min-width: 30%;
+  margin: ${space(1)} ${space(0.5)} 0 0;
+  padding: ${space(2)} 18px;
+  justify-content: center;
+  align-items: center;
 `;
 
 const MemberCardsContainer = styled('div')`
@@ -196,18 +196,18 @@ const MemberCardsContainer = styled('div')`
 const MemberCardContent = styled('div')`
   display: flex;
   flex-direction: column;
-  width: 75%;
   flex: 1 1;
+  width: 75%;
 `;
 
 const MemberCardContentRow = styled('div')`
   display: flex;
   align-items: center;
+  margin-bottom: ${space(0.25)};
   font-size: ${p => p.theme.fontSizeSmall};
   & > *:first-child {
     margin-right: ${space(0.75)};
   }
-  margin-bottom: ${space(0.25)};
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
