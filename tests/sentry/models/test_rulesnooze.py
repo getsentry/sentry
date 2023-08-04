@@ -5,7 +5,7 @@ from django.db import IntegrityError, router, transaction
 
 from sentry.models import Rule
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 
 
 class RuleSnoozeTest(APITestCase):

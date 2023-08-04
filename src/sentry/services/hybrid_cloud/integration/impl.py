@@ -12,17 +12,21 @@ from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.msteams import MsTeamsClient
 from sentry.models import SentryApp, SentryAppInstallation
 from sentry.models.integrations import Integration, OrganizationIntegration
+from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_component
 from sentry.services.hybrid_cloud.integration import (
     IntegrationService,
     RpcIntegration,
     RpcOrganizationIntegration,
 )
+from sentry.services.hybrid_cloud.integration.model import RpcIntegrationExternalProject
 from sentry.services.hybrid_cloud.integration.serial import (
     serialize_integration,
+    serialize_integration_external_project,
     serialize_organization_integration,
 )
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
@@ -231,10 +235,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             integration_id=integration.id,
             organization_id=organization_id,
         )
-        return (
-            serialize_integration(integration),
-            organization_integrations,
-        )
+        return (integration, organization_integrations)
 
     def update_integrations(
         self,
@@ -277,7 +278,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             status=status,
             metadata=metadata,
         )
-        return serialize_integration(integrations[0]) if len(integrations) > 0 else None
+        return integrations[0] if len(integrations) > 0 else None
 
     def update_organization_integrations(
         self,
@@ -326,6 +327,16 @@ class DatabaseBackedIntegrationService(IntegrationService):
             set_grace_period_end_null=set_grace_period_end_null,
         )
         return ois[0] if len(ois) > 0 else None
+
+    def add_organization(
+        self, *, integration_id: int, rpc_organizations: List[RpcOrganization]
+    ) -> Optional[RpcIntegration]:
+        integration = Integration.objects.filter(id=integration_id).first()
+        if not integration:
+            return None
+        for org in rpc_organizations:
+            integration.add_organization(organization=org)
+        return integration
 
     def send_incident_alert_notification(
         self,
@@ -386,7 +397,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             )
 
     def send_msteams_incident_alert_notification(
-        self, *, integration_id: int, channel: Optional[str], attachment: Dict[str, Any]
+        self, *, integration_id: int, channel: str, attachment: Dict[str, Any]
     ) -> None:
         integration = Integration.objects.get(id=integration_id)
         client = MsTeamsClient(integration)
@@ -400,3 +411,17 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if integration is None:
             return
         integration.delete()
+
+    def get_integration_external_project(
+        self, *, organization_id: int, integration_id: int, external_id: str
+    ) -> RpcIntegrationExternalProject | None:
+        external_project = IntegrationExternalProject.objects.filter(
+            external_id=external_id,
+            organization_integration_id__in=OrganizationIntegration.objects.filter(
+                organization_id=organization_id,
+                integration_id=integration_id,
+            ),
+        ).first()
+        if external_project is None:
+            return None
+        return serialize_integration_external_project(external_project)

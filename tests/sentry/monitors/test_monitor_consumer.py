@@ -23,7 +23,7 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.monitors.tasks import TIMEOUT
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.services import build_instance_from_options
@@ -101,6 +101,10 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
+        assert (
+            monitor_environment.next_checkin_latest
+            == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+        )
 
         # Process another check-in to verify we set an expected time for the next check-in
         expected_time = monitor_environment.next_checkin
@@ -124,6 +128,10 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
+        assert (
+            monitor_environment.next_checkin_latest
+            == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+        )
 
         # Process another check-in to verify we set an expected time for the next check-in
         expected_time = monitor_environment.next_checkin
@@ -145,6 +153,10 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
+        assert (
+            monitor_environment.next_checkin_latest
+            == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+        )
 
     def test_disabled(self):
         monitor = self._create_monitor(status=ObjectStatus.DISABLED)
@@ -161,6 +173,10 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.last_checkin == checkin.date_added
         assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
+        )
+        assert (
+            monitor_environment.next_checkin_latest
+            == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
         )
 
     def test_create_lock(self):
@@ -256,6 +272,10 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
+        assert (
+            monitor_environment.next_checkin_latest
+            == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+        )
 
     def test_monitor_create(self):
         self.send_message(
@@ -273,6 +293,12 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.last_checkin == checkin.date_added
         assert (
             monitor_environment.next_checkin
+            == monitor_environment.monitor.get_next_scheduled_checkin_with_margin(
+                checkin.date_added
+            )
+        )
+        assert (
+            monitor_environment.next_checkin_latest
             == monitor_environment.monitor.get_next_scheduled_checkin_with_margin(
                 checkin.date_added
             )
@@ -298,6 +324,12 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.last_checkin == checkin.date_added
         assert (
             monitor_environment.next_checkin
+            == monitor_environment.monitor.get_next_scheduled_checkin_with_margin(
+                checkin.date_added
+            )
+        )
+        assert (
+            monitor_environment.next_checkin_latest
             == monitor_environment.monitor.get_next_scheduled_checkin_with_margin(
                 checkin.date_added
             )
@@ -357,6 +389,19 @@ class MonitorConsumerTest(TestCase):
 
             checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
             assert len(checkins) == 2
+
+    def test_invalid_guid_environment_match(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_message(monitor.slug, status="in_progress")
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.monitor_environment.environment.name == "production"
+
+        self.send_message(monitor.slug, guid=self.guid, status="ok", environment="test")
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.IN_PROGRESS
+        assert checkin.monitor_environment.environment.name != "test"
 
     def test_invalid_duration(self):
         monitor = self._create_monitor(slug="my-monitor")

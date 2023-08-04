@@ -16,6 +16,7 @@ from typing import (
     Iterable,
     Mapping,
     Optional,
+    Protocol,
     Tuple,
     Type,
     TypeVar,
@@ -180,6 +181,10 @@ class RpcModel(pydantic.BaseModel):
         return cls(**fields)
 
 
+class RpcModelProtocolMeta(type(RpcModel), type(Protocol)):  # type: ignore
+    """A unifying metaclass for RpcModel classes that also implement a Protocol."""
+
+
 ServiceInterface = TypeVar("ServiceInterface")
 
 
@@ -252,7 +257,9 @@ class DelegatedByOpenTransaction(Generic[ServiceInterface]):
     def __getattr__(self, item: str) -> Any:
         for model, constructor in self._constructors.items():
             if in_test_environment():
-                from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
+                from sentry.testutils.hybrid_cloud import (  # NOQA:S007
+                    simulated_transaction_watermarks,
+                )
 
                 open_transaction = (
                     simulated_transaction_watermarks.connection_transaction_depth_above_watermark(

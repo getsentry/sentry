@@ -271,8 +271,10 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
 @instrumented_task(name="sentry.tasks.sentry_apps.workflow_notification", **TASK_OPTIONS)
 @retry(**RETRY_OPTIONS)
 def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwargs):
-    install, issue, user = get_webhook_data(installation_id, issue_id, user_id)
-
+    webhook_data = get_webhook_data(installation_id, issue_id, user_id)
+    if not webhook_data:
+        return
+    install, issue, user = webhook_data
     data = kwargs.get("data", {})
     data.update({"issue": serialize(issue)})
     send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
@@ -287,7 +289,10 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
 @instrumented_task(name="sentry.tasks.sentry_apps.build_comment_webhook", **TASK_OPTIONS)
 @retry(**RETRY_OPTIONS)
 def build_comment_webhook(installation_id, issue_id, type, user_id, *args, **kwargs):
-    install, _, user = get_webhook_data(installation_id, issue_id, user_id)
+    webhook_data = get_webhook_data(installation_id, issue_id, user_id)
+    if not webhook_data:
+        return
+    install, _, user = webhook_data
     data = kwargs.get("data", {})
     project_slug = data.get("project_slug")
     comment_id = data.get("comment_id")

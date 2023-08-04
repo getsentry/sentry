@@ -20,7 +20,7 @@ from sentry.signals import (
     sso_enabled,
     user_feedback_received,
 )
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 
 
 class FeatureAdoptionTest(TestCase, SnubaTestCase):

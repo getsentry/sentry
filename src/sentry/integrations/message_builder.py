@@ -10,6 +10,7 @@ from sentry.models import Group, Project, Rule, Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 
 
@@ -139,9 +140,17 @@ def build_footer(
     footer = f"{group.qualified_short_id}"
     if rules:
         rule_url = build_rule_url(rules[0], group, project)
-        footer += f" via {url_format.format(text=rules[0].label, url=rule_url)}"
+        # If this notification is triggered via the "Send Test Notification"
+        # button then the label is not defined, but the url works.
+        text = rules[0].label if rules[0].label else "Test Alert"
+        footer += f" via {url_format.format(text=text, url=rule_url)}"
 
         if len(rules) > 1:
             footer += f" (+{len(rules) - 1} other)"
 
     return footer
+
+
+def get_timestamp(group: Group, event: GroupEvent | None) -> float:
+    ts = group.last_seen
+    return to_timestamp(max(ts, event.datetime) if event else ts)

@@ -4,8 +4,10 @@ from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 
+from sentry import analytics
 from sentry.integrations.utils.identities import get_identity_or_404
 from sentry.models.identity import Identity
+from sentry.services.hybrid_cloud.actor import ActorType
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
@@ -52,6 +54,12 @@ class DiscordLinkIdentityView(BaseView):
 
         Identity.objects.link_identity(user=request.user, idp=idp, external_id=params["discord_id"])  # type: ignore
 
+        analytics.record(
+            "integrations.discord.identity_linked",
+            provider="discord",
+            actor_id=request.user.id,
+            actor_type=ActorType.USER,
+        )
         return render_to_response(
             "sentry/integrations/discord/linked.html",
             request=request,

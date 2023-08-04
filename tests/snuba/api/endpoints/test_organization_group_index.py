@@ -50,7 +50,7 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
 )
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import Feature, with_feature
@@ -497,7 +497,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_perf_issue(self):
         perf_group = self.create_group(type=PerformanceNPlusOneGroupType.type_id)
         self.login_as(user=self.user)
-        response = self.get_success_response(query="issue.category:performance")
+        with self.feature(
+            [
+                "organizations:issue-search-allow-postgres-only-search",
+            ]
+        ):
+            response = self.get_success_response(query="issue.category:performance")
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(perf_group.id)
 

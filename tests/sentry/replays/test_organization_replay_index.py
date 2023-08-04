@@ -10,7 +10,7 @@ from sentry.replays.testutils import (
     mock_replay,
     mock_replay_click,
 )
-from sentry.testutils import APITestCase, ReplaysSnubaTestCase
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
@@ -1251,7 +1251,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 side_effect=QueryMemoryLimitExceeded("mocked error"),
             ):
                 response = self.client.get(self.url)
-                assert response.status_code == 504
+                assert response.status_code == 400
                 assert (
                     response.content
                     == b'{"detail":"Replay search query limits exceeded. Please narrow the time-range."}'

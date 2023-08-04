@@ -4,7 +4,7 @@ from typing import Any
 
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 def make_stacktrace(frame_0_in_app="not set", frame_1_in_app="not set") -> dict[str, Any]:

@@ -10,6 +10,7 @@ from urllib.parse import quote as urlquote
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
+from django.http.request import HttpRequest
 from django.views.decorators.csrf import csrf_exempt
 from pytz import utc
 from rest_framework import status
@@ -587,7 +588,7 @@ class ReleaseAnalyticsMixin:
         )
 
 
-def resolve_region(request: Request) -> Optional[str]:
+def resolve_region(request: HttpRequest) -> Optional[str]:
     subdomain = getattr(request, "subdomain", None)
     if subdomain is None:
         return None
@@ -666,7 +667,18 @@ class EndpointSiloLimit(SiloLimit):
 
 
 control_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL)
+"""
+Apply to endpoints that exist in CONTROL silo.
+If a request is received and the application is not in CONTROL
+mode 404s will be returned.
+"""
+
 region_silo_endpoint = EndpointSiloLimit(SiloMode.REGION)
+"""
+Apply to endpoints that exist in REGION silo.
+If a request is received and the application is not in REGION
+mode 404s will be returned.
+"""
 
 # Use this decorator to mark endpoints that still need to be marked as either
 # control_silo_endpoint or region_silo_endpoint. Marking a class with
@@ -675,5 +687,10 @@ region_silo_endpoint = EndpointSiloLimit(SiloMode.REGION)
 # Eventually we should replace all instances of this decorator and delete it.
 pending_silo_endpoint = EndpointSiloLimit()
 
-# This should be rarely used, but this should be used for any endpoints that exist in any silo mode.
+
 all_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)
+"""
+Apply to endpoints that are available in all silo modes.
+
+This should be rarely used, but is relevant for resources like ROBOTS.txt.
+"""

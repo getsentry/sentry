@@ -202,6 +202,7 @@ class EventOrdering(Enum):
         "-replayId",
         "-profile.id",
         "num_processing_errors",
+        "-trace.sampled",
         "-timestamp",
     ]
 

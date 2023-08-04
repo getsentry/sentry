@@ -58,6 +58,20 @@ class OpsgenieClient(IntegrationProxyClient):
         headers = {"Authorization": "GenieKey " + self.integration_key}
         return self.get(path=path, headers=headers, params=params)
 
+    def authorize_integration(self, type: str) -> BaseApiResponseX:
+        body = {"type": type}
+        path = "/integrations/authenticate"
+        headers = {"Authorization": "GenieKey " + self.integration_key}
+        return self.post(path=path, headers=headers, data=body)
+
+    def _get_rule_urls(self, group, rules):
+        organization = group.project.organization
+        rule_urls = []
+        for rule in rules:
+            path = f"/organizations/{organization.slug}/alerts/rules/{group.project.slug}/{rule.id}/details/"
+            rule_urls.append(organization.absolute_url(path))
+        return rule_urls
+
     def _get_issue_alert_payload(self, data, rules, event: Event | GroupEvent, group: Group | None):
         payload = {
             "message": event.message or event.title,
@@ -69,6 +83,7 @@ class OpsgenieClient(IntegrationProxyClient):
             "tags": [f'{str(x).replace(",", "")}:{str(y).replace(",", "")}' for x, y in event.tags],
         }
         if group:
+            rule_urls = self._get_rule_urls(group, rules)
             payload["alias"] = f"sentry: {group.id}"
             payload["entity"] = group.culprit if group.culprit else ""
             payload["details"] = {
@@ -78,11 +93,11 @@ class OpsgenieClient(IntegrationProxyClient):
                 "Project Name": group.project.name,
                 "Logger": group.logger,
                 "Level": group.get_level_display(),
-                "URL": group.get_absolute_url(),
+                "Issue URL": group.get_absolute_url(),
                 "Triggering Rules": ", ".join([rule.label for rule in rules]),
+                "Triggering Rule URLs": "\n".join(rule_urls),
                 "Release": data.release,
             }
-
         return payload
 
     def send_notification(self, data, rules=None):
@@ -92,7 +107,17 @@ class OpsgenieClient(IntegrationProxyClient):
             event = data
             payload = self._get_issue_alert_payload(data, rules, event, group)
         else:
-            # this is for metric alerts, which will be in the next PR
-            pass
-        headers = {"Authorization": "GenieKey " + self.integration_key}
-        return self.post("/alerts", data=payload, headers=headers)
+            # if we're acknowledging the alert—meaning that the Sentry alert was resolved
+            if data.get("identifier"):
+                alias = data["identifier"]
+                resp = self.post(
+                    f"/alerts/{alias}/acknowledge",
+                    data={},
+                    params={"identifierType": "alias"},
+                    headers=headers,
+                )
+                return resp
+            # this is a metric alert
+            payload = data
+        resp = self.post("/alerts", data=payload, headers=headers)
+        return resp

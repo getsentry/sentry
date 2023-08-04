@@ -17,7 +17,6 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from sentry import options
 from sentry.models import Organization, User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
@@ -251,9 +250,21 @@ def find_users(
     Return a list of users that match a username
     and falling back to email
     """
-    return user_service.get_by_username(
-        username=username, with_valid_password=with_valid_password, is_active=is_active
-    )
+    queryset = User.objects.filter()
+    if is_active is not None:
+        queryset = queryset.filter(is_active=is_active)
+    if with_valid_password:
+        queryset = queryset.exclude(password="!")
+    try:
+        # First try username case insenstive match on username.
+        user = queryset.get(username__iexact=username)
+        return [user]
+    except User.DoesNotExist:
+        # If not, we can take a stab at guessing it's an email address
+        if "@" in username:
+            # email isn't guaranteed unique
+            return list(queryset.filter(email__iexact=username))
+        return []
 
 
 def login(

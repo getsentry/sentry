@@ -15,7 +15,7 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.constants import TRACE_PARENT_SPAN_CONTEXT
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test

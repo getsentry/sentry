@@ -359,6 +359,45 @@ describe('PageFilters ActionCreators', function () {
 
       pageFilterStorageMock.mockRestore();
     });
+
+    it('retrieves filters from a separate key when storageNamespace is provided', function () {
+      const starfishKey = `global-selection:starfish:${organization.slug}`;
+      localStorage.setItem(
+        starfishKey,
+        JSON.stringify({
+          environments: [],
+          projects: [1],
+          pinnedFilters: ['projects', 'environments'],
+        })
+      );
+
+      initializeUrlState({
+        organization,
+        queryParams: {},
+        router,
+        memberProjects: [],
+        shouldEnforceSingleProject: false,
+        storageNamespace: 'starfish',
+      });
+
+      expect(localStorage.getItem).toHaveBeenCalledWith(starfishKey);
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          environments: [],
+          projects: [1],
+        }),
+        new Set(['projects', 'environments']),
+        true
+      );
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {
+            environment: [],
+            project: ['1'],
+          },
+        })
+      );
+    });
   });
 
   describe('updateProjects()', function () {

@@ -1,6 +1,6 @@
 from sentry.models import NotificationSetting, UserEmail, UserOption
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
@@ -55,7 +55,7 @@ class UserNotificationFineTuningGetTest(UserNotificationFineTuningTestBase):
         assert response.data.get(self.organization.id) == "0"
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
     method = "put"
 

@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime, timedelta
 from time import time
 from unittest import mock
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -75,13 +76,13 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.eventuser import EventUser
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
-from sentry.testutils import (
+from sentry.testutils.asserts import assert_mock_called_once_with_partial
+from sentry.testutils.cases import (
+    PerformanceIssueTestCase,
     SnubaTestCase,
     TestCase,
     TransactionTestCase,
-    assert_mock_called_once_with_partial,
 )
-from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.event_generators import get_event
@@ -1735,7 +1736,23 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert event.message == "hello world"
 
-    def test_search_message(self):
+    def test_search_message_simple(self):
+        manager = EventManager(
+            make_event(
+                **{
+                    "message": "test",
+                    "transaction": "sentry.tasks.process",
+                }
+            )
+        )
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        search_message = event.search_message
+        assert "test" in search_message
+        assert "sentry.tasks.process" in search_message
+
+    def test_search_message_prefers_log_entry_message(self):
         manager = EventManager(
             make_event(
                 **{
@@ -1747,7 +1764,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         )
         manager.normalize()
         event = manager.save(self.project.id)
-        assert event.search_message == "hello world sentry.tasks.process"
+
+        search_message = event.search_message
+        assert "test" not in search_message
+        assert "hello world" in search_message
+        assert "sentry.tasks.process" in search_message
 
     def test_stringified_message(self):
         manager = EventManager(make_event(**{"message": 1234}))
@@ -2648,6 +2669,20 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             last_event = attempt_to_generate_slow_db_issue()
             assert last_event.group
             assert last_event.group.type == PerformanceSlowDBQueryGroupType.type_id
+
+    @patch("sentry.event_manager.metrics.incr")
+    def test_new_group_metrics_logging(self, mock_metrics_incr: MagicMock) -> None:
+        manager = EventManager(make_event(platform="javascript"))
+        manager.normalize()
+        manager.save(self.project.id)
+
+        mock_metrics_incr.assert_any_call(
+            "group.created",
+            skip_internal=True,
+            tags={
+                "platform": "javascript",
+            },
+        )
 
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):

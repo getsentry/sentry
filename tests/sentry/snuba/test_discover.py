@@ -16,7 +16,7 @@ from sentry.search.events.constants import (
 from sentry.search.events.types import HistogramParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.snuba import get_array_column_alias
 

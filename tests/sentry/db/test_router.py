@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from django.contrib.auth.models import Permission
 from django.test import override_settings
@@ -6,6 +8,10 @@ from sentry.db.router import SiloRouter
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.testutils.cases import TestCase
+
+
+def use_split_dbs() -> bool:
+    return bool(os.environ.get("SENTRY_USE_SPLIT_DBS"))
 
 
 class SiloRouterSimulatedTest(TestCase):
@@ -80,8 +86,9 @@ class SiloRouterSimulatedTest(TestCase):
         assert router.allow_migrate("control", "sentry", User)
         assert not router.allow_migrate("default", "sentry", User)
 
+    @pytest.mark.skipif(use_split_dbs(), reason="requires single db mode")
     @override_settings(SILO_MODE="MONOLITH")
-    def test_for_monolith(self):
+    def test_for_monolith_single(self):
         router = SiloRouter()
         assert "default" == router.db_for_read(Organization)
         assert "default" == router.db_for_read(User)
@@ -89,6 +96,17 @@ class SiloRouterSimulatedTest(TestCase):
         assert "default" == router.db_for_write(User)
         assert router.allow_migrate("default", "sentry", Organization)
         assert router.allow_migrate("default", "sentry", User)
+
+    @pytest.mark.skipif(not use_split_dbs(), reason="requires split db mode")
+    @override_settings(SILO_MODE="MONOLITH")
+    def test_for_monolith_split(self):
+        router = SiloRouter()
+        assert "default" == router.db_for_read(Organization)
+        assert "control" == router.db_for_read(User)
+        assert "default" == router.db_for_write(Organization)
+        assert "control" == router.db_for_write(User)
+        assert router.allow_migrate("default", "sentry", Organization)
+        assert router.allow_migrate("control", "sentry", User)
 
 
 class SiloRouterIsolatedTest(TestCase):

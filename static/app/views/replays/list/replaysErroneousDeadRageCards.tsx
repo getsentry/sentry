@@ -47,32 +47,7 @@ function ReplaysErroneousDeadRageCards() {
     location.query.end,
   ]);
 
-  const eventViewErrors = useMemo(() => {
-    return EventView.fromNewQueryWithLocation(
-      {
-        id: '',
-        name: '',
-        version: 2,
-        fields: [
-          'activity',
-          'duration',
-          'count_errors',
-          'id',
-          'project_id',
-          'user',
-          'finished_at',
-          'is_archived',
-          'started_at',
-        ],
-        projects: [],
-        query: 'count_errors:>0',
-        orderby: '-count_errors',
-      },
-      newLocation
-    );
-  }, [newLocation]);
-
-  const eventViewDeadRage = useMemo(() => {
+  const eventViewDead = useMemo(() => {
     return EventView.fromNewQueryWithLocation(
       {
         id: '',
@@ -82,6 +57,30 @@ function ReplaysErroneousDeadRageCards() {
           'activity',
           'duration',
           'count_dead_clicks',
+          'id',
+          'project_id',
+          'user',
+          'finished_at',
+          'is_archived',
+          'started_at',
+        ],
+        projects: [],
+        query: 'count_dead_clicks:>0',
+        orderby: '-count_dead_clicks',
+      },
+      newLocation
+    );
+  }, [newLocation]);
+
+  const eventViewRage = useMemo(() => {
+    return EventView.fromNewQueryWithLocation(
+      {
+        id: '',
+        name: '',
+        version: 2,
+        fields: [
+          'activity',
+          'duration',
           'count_rage_clicks',
           'id',
           'project_id',
@@ -102,40 +101,31 @@ function ReplaysErroneousDeadRageCards() {
   const hasDeadRageCards = organization.features.includes('replay-error-click-cards');
   const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
 
-  const deadRageCols = [
-    ReplayColumn.MOST_RAGE_CLICKS,
-    ReplayColumn.COUNT_DEAD_CLICKS,
-    ReplayColumn.COUNT_RAGE_CLICKS,
-  ];
+  const deadCols = [ReplayColumn.MOST_DEAD_CLICKS, ReplayColumn.COUNT_DEAD_CLICKS];
 
-  const errorCols = [
-    ReplayColumn.MOST_ERRONEOUS_REPLAYS,
-    ReplayColumn.DURATION,
-    ReplayColumn.COUNT_ERRORS,
-    ReplayColumn.ACTIVITY,
-  ];
+  const rageCols = [ReplayColumn.MOST_RAGE_CLICKS, ReplayColumn.COUNT_RAGE_CLICKS];
 
   return hasSessionReplay && !fetching && hasSentOneReplay ? (
     hasDeadRageCards ? (
       <SplitCardContainer>
         <CardTable
-          eventView={eventViewErrors}
+          eventView={eventViewDead}
           location={newLocation}
           organization={organization}
-          visibleColumns={errorCols}
+          visibleColumns={deadCols}
           searchQuery={{
             ...location.query,
             cursor: undefined,
-            query: 'count_errors:>0',
-            sort: '-count_errors',
+            query: 'count_dead_clicks:>0',
+            sort: '-count_dead_clicks',
           }}
-          buttonLabel={t('Show all replays with errors')}
+          buttonLabel={t('Show all replays with dead clicks')}
         />
         <CardTable
-          eventView={eventViewDeadRage}
+          eventView={eventViewRage}
           location={newLocation}
           organization={organization}
-          visibleColumns={deadRageCols}
+          visibleColumns={rageCols}
           searchQuery={{
             ...location.query,
             cursor: undefined,
