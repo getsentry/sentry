@@ -113,11 +113,11 @@ class AlertRulesList extends DeprecatedAsyncComponent<
 
   handleDeleteRule = async (projectId: string, rule: CombinedMetricIssueAlerts) => {
     const {organization} = this.props;
-    const alertPath = isIssueAlert(rule) ? 'rules' : 'alert-rules';
-
     try {
       await this.api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/${alertPath}/${rule.id}/`,
+        isIssueAlert(rule)
+          ? `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`
+          : `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
         {
           method: 'DELETE',
         }
