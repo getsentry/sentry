@@ -23,6 +23,7 @@ export function UserDetails(params = {}) {
       stacktraceOrder: 'default',
       language: 'en',
       clock24Hours: false,
+      defaultIssueEvent: 'recommended',
     },
     avatar: {avatarUuid: null, avatarType: 'letter_avatar'},
     lastLogin: '2018-01-25T19:57:46.973Z',

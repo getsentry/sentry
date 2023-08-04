@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -46,6 +47,22 @@ describe('groupDetails', () => {
   const defaultInit = initializeOrg<{groupId: string}>({
     project,
     router: initRouter,
+  });
+
+  const recommendedUser = TestStubs.User({
+    options: {
+      defaultIssueEvent: 'recommended',
+    },
+  });
+  const latestUser = TestStubs.User({
+    options: {
+      defaultIssueEvent: 'latest',
+    },
+  });
+  const oldestUser = TestStubs.User({
+    options: {
+      defaultIssueEvent: 'oldest',
+    },
   });
 
   function MockComponent({
@@ -318,5 +335,62 @@ describe('groupDetails', () => {
     });
 
     await waitFor(() => expect(helpfulMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('uses /latest endpoint when default is set to latest', async function () {
+    ConfigStore.loadInitialData(TestStubs.Config({user: latestUser}));
+    const latestMock = MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/events/latest/`,
+      statusCode: 200,
+      body: event,
+    });
+
+    createWrapper({
+      ...defaultInit,
+      organization: {
+        ...defaultInit.organization,
+        features: ['issue-details-most-helpful-event'],
+      },
+    });
+
+    await waitFor(() => expect(latestMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('uses /oldest endpoint when default is set to oldest', async function () {
+    ConfigStore.loadInitialData(TestStubs.Config({user: oldestUser}));
+    const oldestMock = MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/events/oldest/`,
+      statusCode: 200,
+      body: event,
+    });
+
+    createWrapper({
+      ...defaultInit,
+      organization: {
+        ...defaultInit.organization,
+        features: ['issue-details-most-helpful-event'],
+      },
+    });
+
+    await waitFor(() => expect(oldestMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('uses /helpful endpoint when default is set to recommended', async function () {
+    ConfigStore.loadInitialData(TestStubs.Config({user: recommendedUser}));
+    const recommendedMock = MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/events/helpful/`,
+      statusCode: 200,
+      body: event,
+    });
+
+    createWrapper({
+      ...defaultInit,
+      organization: {
+        ...defaultInit.organization,
+        features: ['issue-details-most-helpful-event'],
+      },
+    });
+
+    await waitFor(() => expect(recommendedMock).toHaveBeenCalledTimes(1));
   });
 });

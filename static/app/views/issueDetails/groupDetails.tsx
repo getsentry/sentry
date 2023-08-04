@@ -63,6 +63,7 @@ import {
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
+  useDefaultIssueEvent,
   useEnvironmentsFromUrl,
   useFetchIssueTagsForDetailsPage,
 } from './utils';
@@ -248,7 +249,9 @@ function useEventApiQuery({
   const hasMostHelpfulEventFeature = organization.features.includes(
     'issue-details-most-helpful-event'
   );
-  const eventIdUrl = eventId ?? (hasMostHelpfulEventFeature ? 'recommended' : 'latest');
+  const defaultIssueEvent = useDefaultIssueEvent();
+  const eventIdUrl =
+    eventId ?? (hasMostHelpfulEventFeature ? defaultIssueEvent : 'latest');
   const helpfulEventQuery =
     hasMostHelpfulEventFeature && typeof location.query.query === 'string'
       ? location.query.query

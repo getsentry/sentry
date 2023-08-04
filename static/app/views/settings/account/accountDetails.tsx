@@ -7,13 +7,18 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import accountDetailsFields from 'sentry/data/forms/accountDetails';
 import accountPreferencesFields from 'sentry/data/forms/accountPreferences';
 import {t} from 'sentry/locale';
-import {User} from 'sentry/types';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import {Organization, User} from 'sentry/types';
+import withOrganization from 'sentry/utils/withOrganization';
+import DeprecatedAsyncView, {AsyncViewProps} from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const ENDPOINT = '/users/me/';
 
-class AccountDetails extends DeprecatedAsyncView {
+interface Props extends AsyncViewProps {
+  organization: Organization;
+}
+
+class AccountDetails extends DeprecatedAsyncView<Props> {
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     // local state is NOT updated when the form saves
     return [['user', ENDPOINT]];
@@ -49,7 +54,13 @@ class AccountDetails extends DeprecatedAsyncView {
           <JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />
         </Form>
         <Form initialData={user.options} {...formCommonProps}>
-          <JsonForm forms={accountPreferencesFields} additionalFieldProps={{user}} />
+          <JsonForm
+            forms={accountPreferencesFields}
+            additionalFieldProps={{
+              user,
+              organization: this.props.organization,
+            }}
+          />
         </Form>
         <AvatarChooser
           endpoint="/users/me/avatar/"
@@ -64,4 +75,4 @@ class AccountDetails extends DeprecatedAsyncView {
   }
 }
 
-export default AccountDetails;
+export default withOrganization(AccountDetails);

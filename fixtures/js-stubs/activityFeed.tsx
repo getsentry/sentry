@@ -51,6 +51,7 @@ export function ActivityFeed(params: Partial<Activity> = {}): Activity {
         stacktraceOrder: -1,
         language: 'en',
         clock24Hours: false,
+        defaultIssueEvent: 'recommended',
       },
       flags: {newsletter_consent_prompt: false},
       avatar: {avatarUuid: null, avatarType: 'letter_avatar'},

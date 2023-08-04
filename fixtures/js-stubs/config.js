@@ -3,6 +3,7 @@ import {User} from './user';
 export function Config(params = {}) {
   return {
     theme: 'light',
+    defaultIssueEvent: 'recommended',
     user: User(),
     messages: [],
     languageCode: 'en',
