@@ -11,6 +11,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.dates import to_timestamp_from_iso_format
 from sentry.utils.samples import load_data
 
 
@@ -1109,7 +1110,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.gen1_project.slug,
             "level": "fatal",
             "title": error.title,
-            "timestamp": error.timestamp,
+            "timestamp": to_timestamp_from_iso_format(error.timestamp),
             "generation": 0,
             "event_type": "error",
         } in gen1_event["errors"]
@@ -1121,7 +1122,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.gen1_project.slug,
             "level": "warning",
             "title": error1.title,
-            "timestamp": error1.timestamp,
+            "timestamp": to_timestamp_from_iso_format(error1.timestamp),
             "generation": 0,
             "event_type": "error",
         } in gen1_event["errors"]
@@ -1175,10 +1176,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "fatal",
             "title": error.title,
-            "timestamp": error.timestamp,
+            "timestamp": to_timestamp_from_iso_format(error.timestamp),
             "generation": 0,
             "event_type": "error",
-        } == response.data[1]
+        } == response.data["orphanErrors"][1]
         assert {
             "event_id": error1.event_id,
             "issue_id": error1.group_id,
@@ -1187,10 +1188,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "warning",
             "title": error1.title,
-            "timestamp": error1.timestamp,
+            "timestamp": to_timestamp_from_iso_format(error1.timestamp),
             "generation": 0,
             "event_type": "error",
-        } == response.data[0]
+        } == response.data["orphanErrors"][0]
 
     def test_with_only_orphan_errors_with_different_span_ids(self):
         start, _ = self.get_start_end(1000)
@@ -1224,7 +1225,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 format="json",
             )
         assert response.status_code == 200, response.content
-        assert len(response.data) == 2
+        assert len(response.data["orphanErrors"]) == 2
         assert {
             "event_id": error.event_id,
             "issue_id": error.group_id,
@@ -1233,10 +1234,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "fatal",
             "title": error.title,
-            "timestamp": error.timestamp,
+            "timestamp": to_timestamp_from_iso_format(error.timestamp),
             "generation": 0,
             "event_type": "error",
-        } in response.data
+        } in response.data["orphanErrors"]
         assert {
             "event_id": error1.event_id,
             "issue_id": error1.group_id,
@@ -1245,10 +1246,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "warning",
             "title": error1.title,
-            "timestamp": error1.timestamp,
+            "timestamp": to_timestamp_from_iso_format(error1.timestamp),
             "generation": 0,
             "event_type": "error",
-        } in response.data
+        } in response.data["orphanErrors"]
 
     def test_with_mixup_of_orphan_errors_with_simple_trace_data(self):
         self.load_trace()
@@ -1282,8 +1283,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 format="json",
             )
         assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-        self.assert_trace_data(response.data[0])
+        assert len(response.data["transactions"]) == 1
+        assert len(response.data["orphanErrors"]) == 1
+        self.assert_trace_data(response.data["transactions"][0])
         assert {
             "event_id": error.event_id,
             "issue_id": error.group_id,
@@ -1292,10 +1294,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "fatal",
             "title": error.title,
-            "timestamp": error.timestamp,
+            "timestamp": to_timestamp_from_iso_format(error.timestamp),
             "generation": 0,
             "event_type": "error",
-        } in response.data
+        } in response.data["orphanErrors"]
 
     def test_with_default(self):
         self.load_trace()
@@ -1320,7 +1322,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.gen1_project.slug,
             "level": "debug",
             "title": "this is a log message",
-            "timestamp": default_event.timestamp,
+            "timestamp": to_timestamp_from_iso_format(default_event.timestamp),
             "generation": 0,
             "event_type": "error",
         } in root_event["errors"]

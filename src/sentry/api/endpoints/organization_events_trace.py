@@ -35,6 +35,7 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
+from sentry.utils.dates import to_timestamp_from_iso_format
 from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import bulk_snql_query
@@ -453,7 +454,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             "project_slug": event["project"],
             "title": event["title"],
             "level": event["tags[level]"],
-            "timestamp": event["timestamp"],
+            "timestamp": to_timestamp_from_iso_format(event["timestamp"]),
             "event_type": "error",
             "generation": 0,
         }
@@ -901,6 +902,13 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         if len(orphans) > 0:
             sentry_sdk.set_tag("discover.trace-view.contains-orphans", "yes")
             logger.warning("discover.trace-view.contains-orphans", extra=warning_extra)
+
+        if allow_orphan_errors:
+            return {
+                "transactions": [trace.full_dict(detailed) for trace in root_traces]
+                + [orphan.full_dict(detailed) for orphan in orphans],
+                "orphanErrors": [orphan for orphan in orphan_errors],
+            }
 
         return (
             [trace.full_dict(detailed) for trace in root_traces]
