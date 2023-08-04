@@ -50,9 +50,12 @@ class MonitorConsumerTest(TestCase):
         self,
         monitor_slug: str,
         guid: Optional[str] = None,
+        ts: Optional[datetime] = None,
         **overrides: Any,
     ) -> None:
-        now = datetime.now()
+        if ts is None:
+            ts = datetime.now()
+
         self.guid = uuid.uuid4().hex if not guid else guid
         self.trace_id = uuid.uuid4().hex
 
@@ -67,7 +70,7 @@ class MonitorConsumerTest(TestCase):
         payload.update(overrides)
 
         wrapper = {
-            "start_time": now.timestamp(),
+            "start_time": ts.timestamp(),
             "project_id": self.project.id,
             "payload": json.dumps(payload),
             "sdk": "test/1.0",
@@ -81,7 +84,7 @@ class MonitorConsumerTest(TestCase):
                     KafkaPayload(b"fake-key", msgpack.packb(wrapper), []),
                     partition,
                     1,
-                    datetime.now(),
+                    ts,
                 )
             )
         )
@@ -547,3 +550,35 @@ class MonitorConsumerTest(TestCase):
         options.set("crons.organization.disable-check-in", opt_val)
 
         assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
+
+    @override_settings(SENTRY_MONITORS_HIGH_VOLUME_MODE=True)
+    @mock.patch("sentry.monitors.consumers.monitor_consumer._dispatch_tasks")
+    @mock.patch("sentry_sdk.capture_message")
+    def test_high_volume_task_trigger(self, capture_message, dispatch_tasks):
+        monitor = self._create_monitor(slug="my-monitor")
+
+        assert dispatch_tasks.call_count == 0
+
+        now = datetime.now().replace(second=0, microsecond=0)
+
+        # First checkin triggers tasks
+        self.send_checkin(monitor.slug, ts=now)
+        assert dispatch_tasks.call_count == 1
+
+        # 5 seconds later does NOT trigger the task
+        self.send_checkin(monitor.slug, ts=now + timedelta(seconds=5))
+        assert dispatch_tasks.call_count == 1
+
+        # a minute later DOES trigger the task
+        self.send_checkin(monitor.slug, ts=now + timedelta(minutes=1))
+        assert dispatch_tasks.call_count == 2
+
+        # Same time does NOT trigger the task
+        self.send_checkin(monitor.slug, ts=now + timedelta(minutes=1))
+        assert dispatch_tasks.call_count == 2
+
+        # A skipped minute trigges the task AND captures an error
+        assert capture_message.call_count == 0
+        self.send_checkin(monitor.slug, ts=now + timedelta(minutes=3, seconds=5))
+        assert dispatch_tasks.call_count == 3
+        capture_message.assert_called_with("Monitor task dispatch minute skipped")
