@@ -49,27 +49,27 @@ const missingMembers = [
       {
         commitCount: 6,
         email: 'hello@sentry.io',
-        userId: 'hello',
+        externalId: 'hello',
       },
       {
         commitCount: 5,
         email: 'abcd@sentry.io',
-        userId: 'abcd',
+        externalId: 'abcd',
       },
       {
         commitCount: 4,
         email: 'hola@sentry.io',
-        userId: 'hola',
+        externalId: 'hola',
       },
       {
         commitCount: 3,
         email: 'test@sentry.io',
-        userId: 'test',
+        externalId: 'test',
       },
       {
         commitCount: 2,
         email: 'five@sentry.io',
-        userId: 'five',
+        externalId: 'five',
       },
     ],
   },

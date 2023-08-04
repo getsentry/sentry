@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -13,13 +13,14 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   missingMembers: {integration: string; users: MissingMember[]};
-  onSendInvite: (email: string) => void;
+  onSendInvite: (email: string) => Promise<void>;
   organization: Organization;
 };
 
 export function InviteBanner({missingMembers, onSendInvite, organization}: Props) {
   // NOTE: this is currently used for Github only
   // TODO(cathy): include snoozing, docs link
+  const [sendingInvite, setSendingInvite] = useState<boolean>(false);
 
   if (
     !organization.access.includes('org:write') ||
@@ -29,14 +30,25 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
     return null;
   }
 
-  const cards = missingMembers?.users.slice(0, 5).map(member => (
-    <MemberCard key={member.userId} data-test-id={`member-card-${member.userId}`}>
+  const handleSendInvite = async (email: string) => {
+    if (sendingInvite) {
+      return;
+    }
+    setSendingInvite(true);
+    await onSendInvite(email);
+    setSendingInvite(false);
+  };
+
+  const users = missingMembers.users;
+
+  const cards = users.slice(0, 5).map(member => (
+    <MemberCard key={member.externalId} data-test-id={`member-card-${member.externalId}`}>
       <MemberCardContent>
         <MemberCardContentRow>
           <IconGithub size="sm" />
           {/* TODO: create mapping from integration to lambda external link function */}
-          <StyledExternalLink href={`http://github.com/${member.userId}`}>
-            {tct('@[userId]', {userId: member.userId})}
+          <StyledExternalLink href={`http://github.com/${member.externalId}`}>
+            {tct('@[externalId]', {externalId: member.externalId})}
           </StyledExternalLink>
         </MemberCardContentRow>
         <MemberCardContentRow>
@@ -47,7 +59,7 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
       </MemberCardContent>
       <Button
         size="sm"
-        onClick={() => onSendInvite(member.email)}
+        onClick={() => handleSendInvite(member.email)}
         data-test-id="invite-missing-member"
         icon={<IconMail />}
       >
@@ -56,11 +68,7 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
     </MemberCard>
   ));
 
-  cards?.push(
-    <Fragment key="see-more">
-      <SeeMoreCard missingUsers={missingMembers?.users} />
-    </Fragment>
-  );
+  cards?.push(<SeeMoreCard key="see-more" missingUsers={users} />);
 
   return (
     <StyledCard data-test-id="invite-banner">
@@ -69,7 +77,7 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
           <CardTitle>{t('Bring your full GitHub team on board in Sentry')}</CardTitle>
           <Subtitle>
             {tct('[missingMemberCount] missing members that are active in your GitHub', {
-              missingMemberCount: missingMembers?.users.length,
+              missingMemberCount: users.length,
             })}
             <Tooltip title="Based on the last 30 days of commit data">
               <IconInfo size="xs" />

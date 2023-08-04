@@ -180,7 +180,7 @@ export interface MissingMember {
   commitCount: number;
   email: string;
   // The user's ID in the repository provider (e.g. Github username)
-  userId: string;
+  externalId: string;
 }
 
 /**
