@@ -39,9 +39,9 @@ class DiscordCommandManager:
         result = cache.get(cache_key)
 
         if result is None:
+            cache.set(cache_key, True, 3600)
             try:
                 DiscordClient().overwrite_application_commands(self.COMMANDS)
             except ApiError as e:
                 logger.error("discord.setup.update_bot_commands_failure", extra={"status": e.code})
-
-            cache.set(cache_key, True, 3600)
+                cache.delete(cache_key)

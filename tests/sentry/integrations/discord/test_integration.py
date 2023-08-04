@@ -174,7 +174,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
         responses.add(
             responses.PUT,
             url=url,
-            status=200,
+            status=500,
         )
 
         provider.setup()
@@ -190,6 +190,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
         responses.add(
             responses.PUT,
             url=url,
+            json={},
             status=200,
         )
 
