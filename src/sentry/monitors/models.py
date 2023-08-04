@@ -290,6 +290,9 @@ class Monitor(Model):
         next_checkin = self.get_next_scheduled_checkin(last_checkin)
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
+    def get_checkin_with_margin(self, checkin):
+        return checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
+
     def update_config(self, config_payload, validated_config):
         monitor_config = self.config
         keys = set(config_payload.keys())
@@ -517,16 +520,16 @@ class MonitorEnvironment(Model):
         elif reason == MonitorFailure.DURATION:
             new_status = MonitorStatus.TIMEOUT
 
+        next_checkin = self.monitor.get_next_scheduled_checkin(next_checkin_base)
+
         affected = (
             type(self)
             .objects.filter(
                 Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=self.id
             )
             .update(
-                next_checkin=self.monitor.get_next_scheduled_checkin(next_checkin_base),
-                next_checkin_latest=self.monitor.get_next_scheduled_checkin_with_margin(
-                    next_checkin_base
-                ),
+                next_checkin=next_checkin,
+                next_checkin_latest=self.monitor.get_checkin_with_margin(next_checkin),
                 status=new_status,
                 last_checkin=last_checkin,
             )
@@ -640,10 +643,11 @@ class MonitorEnvironment(Model):
         return True
 
     def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
+        next_checkin = self.monitor.get_next_scheduled_checkin(ts)
         params = {
             "last_checkin": ts,
-            "next_checkin": self.monitor.get_next_scheduled_checkin(ts),
-            "next_checkin_latest": self.monitor.get_next_scheduled_checkin_with_margin(ts),
+            "next_checkin": next_checkin,
+            "next_checkin_latest": self.monitor.get_checkin_with_margin(next_checkin),
         }
         if checkin.status == CheckInStatus.OK and self.monitor.status != ObjectStatus.DISABLED:
             params["status"] = MonitorStatus.OK
