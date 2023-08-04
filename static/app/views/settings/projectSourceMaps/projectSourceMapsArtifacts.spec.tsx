@@ -57,7 +57,7 @@ function renderDebugIdBundlesMockRequests({
 describe('ProjectSourceMapsArtifacts', function () {
   describe('Release Bundles', function () {
     it('renders default state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, routerContext, project, routerProps} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -78,12 +78,8 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       render(
         <ProjectSourceMapsArtifacts
-          location={routerContext.context.location}
+          {...routerProps}
           project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
           params={{
             orgId: organization.slug,
             projectId: project.slug,
@@ -118,7 +114,7 @@ describe('ProjectSourceMapsArtifacts', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, routerProps, project, routerContext} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -135,12 +131,8 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       render(
         <ProjectSourceMapsArtifacts
-          location={routerContext.context.location}
+          {...routerProps}
           project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
           params={{
             orgId: organization.slug,
             projectId: project.slug,
@@ -158,7 +150,7 @@ describe('ProjectSourceMapsArtifacts', function () {
 
   describe('Artifact Bundles', function () {
     it('renders default state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, project, routerProps, routerContext} = initializeOrg({
         router: {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
@@ -182,12 +174,8 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       render(
         <ProjectSourceMapsArtifacts
-          location={routerContext.context.location}
+          {...routerProps}
           project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
           params={{
             orgId: organization.slug,
             projectId: project.slug,
@@ -232,7 +220,7 @@ describe('ProjectSourceMapsArtifacts', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, project, routerProps, routerContext} = initializeOrg({
         router: {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
@@ -252,12 +240,8 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       render(
         <ProjectSourceMapsArtifacts
-          location={routerContext.context.location}
+          {...routerProps}
           project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
           params={{
             orgId: organization.slug,
             projectId: project.slug,

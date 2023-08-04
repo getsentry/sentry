@@ -51,18 +51,11 @@ describe('Sudo Modal', function () {
   });
 
   it('can delete an org with sudo flow', async function () {
-    const {router, route} = initializeOrg();
+    const {routerProps} = initializeOrg({router: {params: {}}});
     setHasPasswordAuth(true);
 
     render(
-      <App
-        location={router.location}
-        routes={router.routes}
-        route={route}
-        router={router}
-        params={{}}
-        routeParams={router.params}
-      >
+      <App {...routerProps}>
         <div>placeholder content</div>
       </App>
     );
@@ -128,18 +121,11 @@ describe('Sudo Modal', function () {
   });
 
   it('shows button to redirect if user does not have password auth', async function () {
-    const {router, route} = initializeOrg();
+    const {routerProps} = initializeOrg({router: {params: {}}});
     setHasPasswordAuth(false);
 
     render(
-      <App
-        location={router.location}
-        routes={router.routes}
-        route={route}
-        router={router}
-        params={{}}
-        routeParams={router.params}
-      >
+      <App {...routerProps}>
         <div>placeholder content</div>
       </App>
     );
