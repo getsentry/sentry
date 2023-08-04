@@ -28,7 +28,9 @@ class FunctionPayload:
 
 def run_regressed_functions_detection(
     project: Project, start: datetime, payloads: List[FunctionPayload]
-) -> None:
+) -> List[FunctionPayload]:
+    regressed_functions: List[FunctionPayload] = []
+
     cluster_key = "default"  # TODO: move this to a setting
     client = redis.redis_clusters.get(cluster_key)
 
@@ -69,7 +71,7 @@ def run_regressed_functions_detection(
             count > MIN_DATA_POINTS
             and is_regressed(ema_short_old, ema_short.value, ema_long_old, ema_long.value)
         ):
-            pass
+            regressed_functions.append(payload)
 
     with client.pipeline() as pipeline:
         for key, value in new_states:
@@ -77,6 +79,8 @@ def run_regressed_functions_detection(
             pipeline.expire(key, KEY_TTL)
 
         pipeline.execute()
+
+    return regressed_functions
 
 
 def _make_function_key(project: Project, payload: FunctionPayload, version: int) -> str:
