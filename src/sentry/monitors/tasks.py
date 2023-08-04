@@ -1,10 +1,15 @@
 import logging
 
+from arroyo import Topic
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from django.conf import settings
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 from .models import (
     CheckInStatus,
@@ -38,6 +43,39 @@ CHECKINS_LIMIT = 10_000
 
 # Format to use in the issue subtitle for the missed check-in timestamp
 SUBTITLE_DATETIME_FORMAT = "%b %d, %I:%M %p"
+
+
+def _get_monitor_checkin_producer() -> KafkaProducer:
+    cluster_name = get_topic_definition(settings.KAFKA_INGEST_MONITORS)["cluster"]
+    producer_config = get_kafka_producer_cluster_options(cluster_name)
+    producer_config.pop("compression.type", None)
+    producer_config.pop("message.max.bytes", None)
+    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+
+_checkin_producer = SingletonProducer(_get_monitor_checkin_producer)
+
+
+@instrumented_task(name="sentry.monitors.tasks.produce_clock_pulse")
+def produce_clock_pulse(current_datetime=None):
+    """
+    This task is run once a minute when
+    settings.SENTRY_MONITORS_HIGH_VOLUME_MODE is disabled. It produces a clock
+    pulse to the check-ins topic
+    """
+    if current_datetime is None:
+        current_datetime = timezone.now()
+
+    if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
+        # If we're not running Kafka then we're just in dev. Directly dispatch the
+        # write to the issue platform directly
+        check_missing.delay(current_datetime)
+        check_timeout.delay(current_datetime)
+        return
+
+    # Produce the pulse into the topic
+    payload = KafkaPayload(None, b"", [])
+    _checkin_producer.produce(Topic(settings.KAFKA_INGEST_MONITORS), payload)
 
 
 @instrumented_task(name="sentry.monitors.tasks.check_missing", time_limit=15, soft_time_limit=10)
