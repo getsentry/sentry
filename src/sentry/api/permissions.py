@@ -116,16 +116,15 @@ class SentryPermission(ScopedPermission):
         org_context: RpcUserOrganizationContext | None
         if isinstance(organization, RpcUserOrganizationContext):
             org_context = organization
-            organization = org_context.organization
         else:
             org_context = organization_service.get_organization_by_id(
                 id=extract_id_from(organization), user_id=request.user.id if request.user else None
             )
-            organization = org_context.organization
 
         if org_context is None:
             assert False, "Failed to fetch organization in determine_access"
 
+        organization = org_context.organization
         if (
             request.user
             and request.user.is_superuser
