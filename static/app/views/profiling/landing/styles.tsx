@@ -9,7 +9,7 @@ export const WidgetContainer = styled(Panel)<{height?: string}>`
   ${p => defined(p.height) && `height: ${p.height};`}
   display: flex;
   flex-direction: column;
-  padding-top: ${space(2)};
+  padding-top: ${space(1.5)};
 `;
 
 export const HeaderContainer = styled('div')`

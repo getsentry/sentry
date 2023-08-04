@@ -4,6 +4,7 @@ import omit from 'lodash/omit';
 
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useRouter from 'sentry/utils/useRouter';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -118,8 +119,11 @@ const WIDGET_OPTIONS: SelectOption<WidgetOption>[] = [
 ];
 
 const StyledCompactSelect = styled(CompactSelect)`
-  > button {
-    border: None;
-    padding: 0;
+  margin: -${space(0.5)} -${space(1)} -${space(0.25)};
+  min-width: 0;
+
+  button {
+    padding: ${space(0.5)} ${space(1)};
+    font-size: ${p => p.theme.fontSizeLarge};
   }
 `;
