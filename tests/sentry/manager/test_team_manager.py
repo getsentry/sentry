@@ -8,6 +8,7 @@ from sentry.testutils.silo import region_silo_test
 @region_silo_test
 class TeamManagerTest(TestCase):
     def setUp(self) -> None:
+        super().setUp()
         env.clear()
 
     def test_simple(self):
