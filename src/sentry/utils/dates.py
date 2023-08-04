@@ -30,6 +30,14 @@ def to_timestamp(value: datetime) -> float:
     return (value - epoch).total_seconds()
 
 
+def to_timestamp_from_iso_format(value: str) -> float:
+    """
+    Convert a str representation of datetime in iso format to
+    a POSIX timestamp
+    """
+    return datetime.fromisoformat(value).timestamp()
+
+
 @overload
 def to_datetime(value: None) -> None:
     ...
