@@ -358,12 +358,18 @@ class BaseView(View, OrganizationMixin):
         return self.auth_required and not (request.user.is_authenticated and request.user.is_active)
 
     def handle_auth_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        # NOTE: initiate_login simply clears session cache
         auth.initiate_login(request, next_url=request.get_full_path())
         if "organization_slug" in kwargs:
             redirect_to = reverse("sentry-auth-organization", args=[kwargs["organization_slug"]])
         else:
             redirect_to = auth.get_login_url()
-        return self.redirect(redirect_to, headers={"X-Robots-Tag": "noindex, nofollow"})
+        query_params = {
+            "referrer": request.GET.get("referrer"),
+            REDIRECT_FIELD_NAME: request.GET.get(REDIRECT_FIELD_NAME),
+        }
+        redirect_uri = construct_link_with_query(path=redirect_to, query_params=query_params)
+        return self.redirect(redirect_uri, headers={"X-Robots-Tag": "noindex, nofollow"})
 
     def is_sudo_required(self, request: HttpRequest) -> bool:
         return self.sudo_required and not request.is_sudo()
@@ -378,12 +384,12 @@ class BaseView(View, OrganizationMixin):
         self, request: HttpRequest, *args: Any, **kwargs: Any
     ) -> HttpResponse:
         path = reverse("sentry-login")
-        query_param = {
+        query_params = {
             "referrer": request.GET.get("referrer"),
             REDIRECT_FIELD_NAME: request.GET.get(REDIRECT_FIELD_NAME),
         }
 
-        redirect_uri = construct_link_with_query(path=path, query_param=query_param)
+        redirect_uri = construct_link_with_query(path=path, query_params=query_params)
         return self.redirect(redirect_uri)
 
     def handle_not_2fa_compliant(
