@@ -109,17 +109,19 @@ class SentryPermission(ScopedPermission):
     def determine_access(
         self,
         request: Request,
-        organization: RpcUserOrganizationContext | Organization | RpcOrganization | int,
+        organization: RpcUserOrganizationContext | Organization | RpcOrganization,
     ) -> None:
         from sentry.api.base import logger
 
         org_context: RpcUserOrganizationContext | None
         if isinstance(organization, RpcUserOrganizationContext):
             org_context = organization
+            organization = org_context.organization
         else:
             org_context = organization_service.get_organization_by_id(
                 id=extract_id_from(organization), user_id=request.user.id if request.user else None
             )
+            organization = org_context.organization
 
         if org_context is None:
             assert False, "Failed to fetch organization in determine_access"
@@ -174,7 +176,9 @@ class SentryPermission(ScopedPermission):
                 ):
                     after_login_redirect = None
 
-                raise SsoRequired(organization, after_login_redirect=after_login_redirect)
+                raise SsoRequired(
+                    organization=organization, after_login_redirect=after_login_redirect
+                )
 
             if self.is_not_2fa_compliant(request, org_context.organization):
                 logger.info(
