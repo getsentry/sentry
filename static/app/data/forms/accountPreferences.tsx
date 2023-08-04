@@ -75,7 +75,7 @@ const formGroups: JsonFormObject[] = [
         label: t('Default Issue Event'),
         help: t('Choose what event gets displayed by default'),
         visible: ({organization}: {organization: Organization}) => {
-          return organization.features.includes('issue-details-most-helpful-event-ui');
+          return organization?.features.includes('issue-details-most-helpful-event-ui');
         },
         getData: transformOptions,
       },
