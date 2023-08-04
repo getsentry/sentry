@@ -16,6 +16,7 @@ from sentry.utils import json, kafka_config
 def process_message(message: Message[KafkaPayload]) -> None:
     payload = msgpack.unpackb(message.payload.value)
     span_dict = json.loads(payload["span"])
+    span_dict["project_id"] = payload["project_id"]
     Span.from_dict(span_dict).save()
 
 
