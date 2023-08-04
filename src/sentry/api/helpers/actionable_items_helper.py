@@ -5,6 +5,7 @@ class ActionPriority:
     HIGH = 1
     MEDIUM = 2
     LOW = 3
+    UNKNOWN = 4
 
 
 fileNameBlocklist = ["@webkit-masked-url"]

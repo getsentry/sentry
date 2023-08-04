@@ -10,6 +10,7 @@ from sentry import eventstore, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.actionable_items_helper import (
+    ActionPriority,
     deprecated_event_errors,
     errors_to_hide,
     find_debug_frames,
@@ -94,7 +95,7 @@ class ActionableItemsEndpoint(ProjectEndpoint):
                 if dismissed and timezone.now().timestamp() < int(dismissed) + 60 * 60 * 24 * 7:
                     action["dismissed"] = True
 
-        priority_get = lambda x: priority_ranking.get(x["type"], 26)
+        priority_get = lambda x: priority_ranking.get(x["type"], ActionPriority.UNKNOWN)
         sorted_errors = sorted(actions, key=priority_get)
 
         return Response({"errors": sorted_errors})
