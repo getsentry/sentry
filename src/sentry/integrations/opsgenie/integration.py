@@ -11,6 +11,7 @@ from requests.exceptions import MissingSchema
 from rest_framework.request import Request
 from rest_framework.serializers import ValidationError
 
+from sentry import features
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
@@ -178,7 +179,12 @@ class InstallationTeamSelectView(PipelineView):
         except IntegrationProviderError as e:
             return pipeline.render_warning(str(e))
         # if we are POSTing the data from the team select form
-        if "teams" in request.POST:
+        # if the organization does not have access to instant key gen — skip over the second
+        # form and go directly to config by POSTing an empty list of teams
+        has_instant_key_gen_access = features.has(
+            "organizations:integrations-opsgenie-automatic-key-gen", pipeline.organization
+        )
+        if "teams" in request.POST or not has_instant_key_gen_access:
             form_2 = TeamSelectForm(data=request.POST, team_list=og_teams)
             if form_2.is_valid():
                 form_data = form_2.cleaned_data
@@ -360,8 +366,9 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
                     },
                 )
                 continue
-        org_integration.config["team_table"] = team_table
+        config = org_integration.config
+        config.update({"team_table": team_table})
         org_integration = integration_service.update_organization_integration(
             org_integration_id=org_integration.id,
-            config=org_integration.config,
+            config=config,
         )
