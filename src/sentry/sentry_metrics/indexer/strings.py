@@ -150,9 +150,8 @@ SHARED_TAG_STRINGS = {
     "span.group": PREFIX + 252,
     "transaction.method": PREFIX + 253,
     "span.category": PREFIX + 254,
-    "span.contribution": PREFIX + 255,
-    "span.main_thread": PREFIX + 256,
-    "device.class": PREFIX + 257,
+    "span.main_thread": PREFIX + 255,
+    "device.class": PREFIX + 256,
     # More Transactions
     "has_profile": PREFIX + 260,
     "query_hash": PREFIX + 261,
