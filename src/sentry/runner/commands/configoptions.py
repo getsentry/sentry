@@ -156,18 +156,18 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
                 invalid_options.add(key)
             elif not_writable_reason == options.NotWritableReason.DRIFTED:
                 drifted_options.add(key)
+
+            opt = options.lookup_key(key)
+            if not opt.type.test(value):
+                invalid_options.add(key)
+                logger.error(
+                    "Option %s has invalid type. got %s, expected %s.", key, type(value), opt.type
+                )
         except options.UnknownOption:
             invalid_options.add(key)
             logger.error(
                 "Option %s is not registered. and cannot be updated.",
                 key,
-            )
-
-        opt = options.lookup_key(key)
-        if not opt.type.test(value):
-            invalid_options.add(key)
-            logger.error(
-                "Option %s has invalid type. got %s, expected %s.", key, type(value), opt.type
             )
 
     ctx.obj["invalid_options"] = invalid_options
@@ -200,6 +200,7 @@ def patch(ctx) -> None:
             except Exception:
                 metrics.incr(
                     "options_automator.run",
+                    amount=2,
                     tags={"status": "update_failed"},
                     sample_rate=1.0,
                 )
@@ -207,13 +208,17 @@ def patch(ctx) -> None:
 
     if invalid_options:
         status = "update_failed"
+        amount = 2
     elif ctx.obj["drifted_options"]:
         status = "drift"
+        amount = 2
     else:
         status = "success"
+        amount = 1
 
     metrics.incr(
         "options_automator.run",
+        amount=amount,
         tags={"status": status},
         sample_rate=1.0,
     )
@@ -255,6 +260,7 @@ def sync(ctx):
                 except Exception:
                     metrics.incr(
                         "options_automator.run",
+                        amount=2,
                         tags={"status": "update_failed"},
                         sample_rate=1.0,
                     )
@@ -268,6 +274,7 @@ def sync(ctx):
                             except Exception:
                                 metrics.incr(
                                     "options_automator.run",
+                                    amount=2,
                                     tags={"status": "update_failed"},
                                     sample_rate=1.0,
                                 )
@@ -279,13 +286,17 @@ def sync(ctx):
 
     if invalid_options:
         status = "update_failed"
+        amount = 2
     elif drift_found:
         status = "drift"
+        amount = 2
     else:
         status = "success"
+        amount = 1
 
     metrics.incr(
         "options_automator.run",
+        amount=amount,
         tags={"status": status},
         sample_rate=1.0,
     )

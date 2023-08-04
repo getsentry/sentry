@@ -2,8 +2,8 @@ from collections import defaultdict
 from typing import Mapping
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.release import Author, CommitAuthor, get_users_for_authors
-from sentry.models import Commit, PullRequest, Repository
+from sentry.api.serializers.models.release import Author, get_users_for_authors
+from sentry.models import Commit, CommitAuthor, PullRequest, Repository
 
 
 def get_users_for_commits(item_list, user=None) -> Mapping[str, Author]:
