@@ -403,16 +403,11 @@ class BaseApiClient(TrackResponseMixin):
             return
         oi = OrganizationIntegration.objects.filter(integration_id=self.integration_id)[0]
         org = Organization.objects.get(id=oi.organization_id)
-        if (
-            features.has("organizations:slack-disable-on-broken", org)
-            and rpc_integration.provider == "slack"
-        ):
-            integration_service.update_integration(
-                integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
-            )
-            notify_disable(org, rpc_integration.provider, self._get_redis_key())
-            buffer.clear()
-        extra = {"integration_id": self.integration_id}
+
+        extra = {
+            "integration_id": self.integration_id,
+            "buffer_record": buffer._get_all_from_buffer(),
+        }
         if len(rpc_org_integration) == 0 and rpc_integration is None:
             extra["provider"] = "unknown"
             extra["organization_id"] = "unknown"
@@ -430,4 +425,14 @@ class BaseApiClient(TrackResponseMixin):
             "integration.disabled",
             extra=extra,
         )
+
+        if (
+            features.has("organizations:slack-disable-on-broken", org)
+            and rpc_integration.provider == "slack"
+        ):
+            integration_service.update_integration(
+                integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
+            )
+            notify_disable(org, rpc_integration.provider, self._get_redis_key())
+            buffer.clear()
         return

@@ -49,6 +49,18 @@ def check_broken(sentryapp: SentryApp, org_id: str):
             notify_disable(org, sentryapp.slug, redis_key)
             buffer.clear()
 
+        extra = {
+            "sentryapp_webhook": sentryapp.webhook_url,
+            "sentryapp_slug": sentryapp.slug,
+            "sentryapp_uuid": sentryapp.uuid,
+            "org_id": org_id,
+            "buffer_record": buffer._get_all_from_buffer(),
+        }
+        logger.info(
+            "sentryapp.disabled",
+            extra=extra,
+        )
+
 
 def record_timeout(sentryapp: SentryApp, org_id: str, e: Union[ConnectionError, Timeout]):
     """
