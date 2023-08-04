@@ -211,10 +211,10 @@ class MetricSpec(TypedDict):
 
 def is_on_demand_snuba_query(snuba_query: SnubaQuery) -> bool:
     """Returns ``True`` if the snuba query can't be supported by standard metrics."""
-    return is_on_demand_query(snuba_query.dataset, snuba_query.aggregate, snuba_query.query)
+    return is_on_demand_metric_query(snuba_query.dataset, snuba_query.aggregate, snuba_query.query)
 
 
-def is_on_demand_query(
+def is_on_demand_metric_query(
     dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
 ) -> bool:
     """Returns ``True`` if the dataset is performance metrics and query contains non-standard search fields."""
@@ -222,11 +222,32 @@ def is_on_demand_query(
     if not dataset or Dataset(dataset) != Dataset.PerformanceMetrics:
         return False
 
+    if is_standard_metrics_compatible(dataset, aggregate, query):
+        return False
+
+    for field in _get_aggregate_fields(aggregate):
+        if not _is_on_demand_supported_field(field):
+            return False
+    try:
+        return _is_on_demand_supported_query(event_search.parse_search_query(query))
+    except InvalidSearchQuery:
+        logger.error(f"Failed to parse search query: {query}", exc_info=True)
+        return False
+
+
+def is_standard_metrics_compatible(
+    dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
+) -> bool:
+    """Returns ``True`` if the query can be supported by standard metrics."""
+
+    if not dataset or Dataset(dataset) not in [Dataset.Metrics, Dataset.PerformanceMetrics]:
+        return False
+
     for field in _get_aggregate_fields(aggregate):
         if not _is_standard_metrics_field(field):
-            return True
+            return False
     try:
-        return not _is_standard_metrics_query(event_search.parse_search_query(query))
+        return _is_standard_metrics_query(event_search.parse_search_query(query))
     except InvalidSearchQuery:
         logger.error(f"Failed to parse search query: {query}", exc_info=True)
         return False
@@ -274,8 +295,38 @@ def _is_standard_metrics_search_filter(token: QueryToken) -> bool:
     return True
 
 
+def _is_on_demand_supported_query(tokens: Sequence[QueryToken]) -> bool:
+    """
+    Recursively checks if any of the supplied token contain search filters that can't be handled by standard metrics.
+    """
+
+    for token in tokens:
+        if not _is_on_demand_supported_search_filter(token):
+            return False
+
+    return True
+
+
+def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
+    if isinstance(token, SearchFilter):
+        return _is_on_demand_supported_field(token.key.name)
+
+    if isinstance(token, ParenExpression):
+        return _is_on_demand_supported_query(token.children)
+
+    return True
+
+
 def _is_standard_metrics_field(field: str) -> bool:
     return field in _STANDARD_METRIC_FIELDS
+
+
+def _is_on_demand_supported_field(field: str) -> bool:
+    try:
+        _map_field_name(field)
+        return True
+    except ValueError:
+        return False
 
 
 class OndemandMetricSpec:
@@ -352,9 +403,8 @@ class OndemandMetricSpec:
 
     def query_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
-
-        # TODO: Figure out how to support multiple fields and different but equivalent queries
-        str_to_hash = f"{self.field};{self._query}"
+        sorted_conditions = str(_deep_sorted(self.condition()))
+        str_to_hash = f"{self.field};{sorted_conditions}"
         return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
 
     def condition(self) -> RuleCondition:
@@ -394,7 +444,7 @@ def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
 
 def _map_field_name(search_key: str) -> str:
     """
-    Maps a the name of a field in a search query to the event protocol path.
+    Maps a name of a field in a search query to the event protocol path.
 
     Raises an exception if the field is not supported.
     """
@@ -533,3 +583,10 @@ class SearchQueryConverter:
             condition = {"op": "not", "inner": condition}
 
         return condition
+
+
+def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:
+    if isinstance(value, dict):
+        return {key: _deep_sorted(value) for key, value in sorted(value.items())}
+    else:
+        return value
