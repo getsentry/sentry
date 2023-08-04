@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import timezone
 from functools import cached_property
 
@@ -121,6 +122,33 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 self.project.slug,
                 status_code=201,
                 **self.valid_alert_rule,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_log_entry = AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("ALERT_RULE_ADD"), target_object=alert_rule.id
+            )
+        assert len(audit_log_entry) == 1
+        assert (
+            resp.renderer_context["request"].META["REMOTE_ADDR"]
+            == list(audit_log_entry)[0].ip_address
+        )
+
+    def test_project_not_in_request(self):
+        """Test that if you don't provide the project data in the request, we grab it from the URL"""
+        data = deepcopy(self.valid_alert_rule)
+        del data["projects"]
+        with outbox_runner(), self.feature(
+            ["organizations:incidents", "organizations:performance-view"]
+        ):
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                status_code=201,
+                **data,
             )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
