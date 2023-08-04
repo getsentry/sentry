@@ -1,5 +1,4 @@
 import base64
-from typing import cast
 from unittest import mock
 
 import pytest
@@ -67,11 +66,9 @@ class GitHubAppsClientTest(TestCase):
             external_id=123,
             integration_id=integration.id,
         )
-        self.install = cast(
-            GitHubEnterpriseIntegration,
-            integration.get_installation(organization_id=self.organization.id),
-        )
-        assert isinstance(self.install, GitHubEnterpriseIntegration)
+        install = integration.get_installation(organization_id=self.organization.id)
+        assert isinstance(install, GitHubEnterpriseIntegration)
+        self.install = install
         self.gh_client = self.install.get_client()
         responses.add(
             method=responses.POST,
