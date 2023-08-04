@@ -21,7 +21,6 @@ import MissingProjectMembership from 'sentry/components/projects/missingProjectM
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import {Group, IssueCategory, Organization, Project} from 'sentry/types';
@@ -64,6 +63,7 @@ import {
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
+  useDefaultIssueEvent,
   useEnvironmentsFromUrl,
   useFetchIssueTagsForDetailsPage,
 } from './utils';
@@ -234,13 +234,6 @@ function useRefetchGroupForReprocessing({
   }, [hasReprocessingV2Feature, refetchGroup]);
 }
 
-function getUserDefault() {
-  const user = ConfigStore.get('user');
-  const options = user ? user.options : null;
-
-  return options?.defaultIssueEvent;
-}
-
 function useEventApiQuery({
   groupId,
   eventId,
@@ -256,8 +249,9 @@ function useEventApiQuery({
   const hasMostHelpfulEventFeature = organization.features.includes(
     'issue-details-most-helpful-event'
   );
+  const defaultIssueEvent = useDefaultIssueEvent();
   const eventIdUrl =
-    eventId ?? (hasMostHelpfulEventFeature ? getUserDefault() : 'latest');
+    eventId ?? (hasMostHelpfulEventFeature ? defaultIssueEvent : 'latest');
   const helpfulEventQuery =
     hasMostHelpfulEventFeature && typeof location.query.query === 'string'
       ? location.query.query
