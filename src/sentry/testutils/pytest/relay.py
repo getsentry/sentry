@@ -120,9 +120,9 @@ def relay_server_setup(live_server, tmpdir_factory):
 
     # cleanup
     shutil.rmtree(config_path)
-
-    import subprocess
-    subprocess.call(("docker", "logs", "sentry_test_relay_server"))
+    if not environ.get("RELAY_TEST_KEEP_CONTAINER", False):
+        with get_docker_client() as docker_client:
+            _remove_container_if_exists(docker_client, container_name)
 
 
 @pytest.fixture(scope="function")
