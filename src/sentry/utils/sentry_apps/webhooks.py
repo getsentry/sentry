@@ -67,7 +67,7 @@ def record_timeout(sentryapp: SentryApp, org_id: str, e: Union[ConnectionError, 
     """
     Record Unpublished Sentry App timeout or connection error in integration buffer to check if it is broken and should be disabled
     """
-    if sentryapp.is_published:
+    if not sentryapp.is_internal:
         return
     redis_key = get_redis_key(sentryapp, org_id)
     if not len(redis_key):
@@ -78,7 +78,7 @@ def record_timeout(sentryapp: SentryApp, org_id: str, e: Union[ConnectionError, 
 
 
 def record_response(sentryapp: SentryApp, org_id: str, response: Response):
-    if sentryapp.is_published:
+    if not sentryapp.is_internal:
         return
     redis_key = get_redis_key(sentryapp, org_id)
     if not len(redis_key):

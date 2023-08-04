@@ -791,7 +791,7 @@ class TestWebhookRequests(TestCase):
         """
         Tests that buffer records when unpublished app has a timeout but error is not raised
         """
-        self.sentry_app.update(status=SentryAppStatus.UNPUBLISHED)
+        self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         events = self.sentry_app.events
         data = {"issue": serialize(self.issue)}
         # we don't raise errors for unpublished and internal apps
@@ -813,7 +813,7 @@ class TestWebhookRequests(TestCase):
         """
         Test that the integration is disabled after BROKEN_TIMEOUT_THRESHOLD number of timeouts
         """
-        self.sentry_app.update(status=SentryAppStatus.UNPUBLISHED)
+        self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         data = {"issue": serialize(self.issue)}
         # we don't raise errors for unpublished and internal apps
         for i in range(3):
@@ -833,7 +833,7 @@ class TestWebhookRequests(TestCase):
         """
         Tests that the integration would be disabled if the feature flag is enabled but is not
         """
-        self.sentry_app.update(status=SentryAppStatus.UNPUBLISHED)
+        self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         events = self.sentry_app.events  # save events to check later
         data = {"issue": serialize(self.issue)}
         # we don't raise errors for unpublished and internal apps
@@ -856,7 +856,7 @@ class TestWebhookRequests(TestCase):
         Tests that the integration is broken after 7 days of errors and disabled since flag is on
         Slow shut off
         """
-        self.sentry_app.update(status=SentryAppStatus.UNPUBLISHED)
+        self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         data = {"issue": serialize(self.issue)}
         now = datetime.now() + timedelta(hours=1)
         for i in reversed(range(7)):
@@ -879,7 +879,7 @@ class TestWebhookRequests(TestCase):
         Tests that the integration is broken after 10 days of errors but still enabled since flag is off
         Slow shut off
         """
-        self.sentry_app.update(status=SentryAppStatus.UNPUBLISHED)
+        self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         events = self.sentry_app.events  # save events to check later
         data = {"issue": serialize(self.issue)}
         now = datetime.now() + timedelta(hours=1)

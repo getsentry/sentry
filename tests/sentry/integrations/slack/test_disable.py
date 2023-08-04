@@ -1,5 +1,4 @@
 import time
-from collections import namedtuple
 from datetime import datetime, timedelta
 
 import pytest
@@ -20,18 +19,6 @@ from sentry.utils import json
 
 control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"
-
-
-def raiseStatusFalse():
-    return False
-
-
-MockResponse = namedtuple(
-    "MockResponse",
-    ["headers", "content", "text", "ok", "status_code", "raise_for_status", "request"],
-)
-
-MockResponseInstance = MockResponse({}, {}, "", True, 200, raiseStatusFalse, None)
 
 
 @override_settings(
