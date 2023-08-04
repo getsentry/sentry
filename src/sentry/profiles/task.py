@@ -56,9 +56,8 @@ def process_profile_task(
         message_dict = msgpack.unpackb(payload, use_list=False)
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
-        if (
-            not message_dict.get("sampled", True)
-            and options.get("profiling.unsampled-profiles.rate") == 0
+        if not message_dict.get("sampled", True) and options.get(
+            "profiling.unsampled-profiles.flag_disabled"
         ):
             return
 
