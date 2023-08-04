@@ -7,6 +7,8 @@ from sentry.models import Project, ProjectOption
 from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
+from sentry.services.hybrid_cloud.organization.model import RpcTeam
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_team
 from sentry.services.hybrid_cloud.project import (
     ProjectFilterArgs,
     ProjectService,
@@ -71,3 +73,11 @@ class DatabaseBackedProjectService(ProjectService):
             user=as_user,
             serializer=ProjectSerializer(),
         )
+
+    def get_teams_for_project(self, *, organization_id: int, project_id: int) -> List[RpcTeam]:
+        projects = Project.objects.filter(organization_id=organization_id, id=project_id)
+        teams = []
+        for project in projects:
+            for team in project.teams.all():
+                teams.append(serialize_rpc_team(team))
+        return teams
