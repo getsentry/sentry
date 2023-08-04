@@ -7,8 +7,8 @@ from sentry.plugins.providers.integration_repository import (
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.exceptions.base import ApiError
-from sentry.tasks.base import instrumented_task, retry
 from sentry.silo import SiloMode
+from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
