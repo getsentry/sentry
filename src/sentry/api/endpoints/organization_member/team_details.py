@@ -408,7 +408,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
                     <ul style="list-style-type: none; padding-left: 0;">
                         <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
                         <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
-                        <li><strong style="color: #9c5f99;">&bull; team:write</strong></li>
+                        <li><strong style="color: #9c5f99;">&bull; team:admin</strong></li>
                     </ul>
                 </td>
             </tr>
@@ -419,8 +419,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
                         <li><strong style="color: #9c5f99;">&bull; org:read*</strong></li>
                         <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
                         <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
-                        <li><strong style="color: #9c5f99;">&bull; team:write</strong></li>
-                        <li><strong style="color: #9c5f99;">&bull; org:read + team:write**</strong></li>
+                        <li><strong style="color: #9c5f99;">&bull; team:admin</strong></li>
+                        <li><strong style="color: #9c5f99;">&bull; org:read + team:admin**</strong></li>
                     </ul>
                 </td>
             </tr>
@@ -430,7 +430,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         \***`org:read`** can only be used to remove yourself from the teams you are a member of.
 
 
-        \*\*Team Admins must have both **`org:read`** and **`team:write`** scopes in their user
+        \*\*Team Admins must have both **`org:read`** and **`team:admin`** scopes in their user
         auth token to remove other organization members from the teams they are admins of.
         """
         try:
