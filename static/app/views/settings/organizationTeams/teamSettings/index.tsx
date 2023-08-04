@@ -27,7 +27,7 @@ interface TeamSettingsProps extends RouteComponentProps<{teamId: string}, {}> {
 
 function TeamSettings({team, params}: TeamSettingsProps) {
   const organization = useOrganization();
-  const api = useApi({persistInFlight: true});
+  const api = useApi();
 
   const handleSubmitSuccess: FormProps['onSubmitSuccess'] = (resp: Team, _model, id) => {
     // Use the old slug when triggering the update so we correctly replace the
