@@ -127,7 +127,7 @@ class OrganizationIntegrationsPermission(OrganizationPermission):
 
 class OrganizationIntegrationsLoosePermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin", "org:integrations"],
+        "GET": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
         "POST": ["org:read", "org:write", "org:admin", "org:integrations"],
         "PUT": ["org:read", "org:write", "org:admin", "org:integrations"],
         "DELETE": ["org:admin", "org:integrations"],
