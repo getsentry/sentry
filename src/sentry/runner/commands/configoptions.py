@@ -183,6 +183,7 @@ def patch(ctx) -> None:
             except Exception as e:
                 metrics.incr(
                     "options_automator.run",
+                    amount=2,
                     tags={"status": "update_failed"},
                     sample_rate=1.0,
                 )
@@ -196,15 +197,19 @@ def patch(ctx) -> None:
 
     if invalid_options:
         status = "update_failed"
+        amount = 2
     elif ctx.obj["drifted_options"]:
         status = "drift"
+        amount = 2
     else:
         status = "success"
+        amount = 1
 
     presenter_delegator.flush()
 
     metrics.incr(
         "options_automator.run",
+        amount=amount,
         tags={"status": status},
         sample_rate=1.0,
     )
@@ -248,6 +253,7 @@ def sync(ctx):
                 except Exception as e:
                     metrics.incr(
                         "options_automator.run",
+                        amount=2,
                         tags={"status": "update_failed"},
                         sample_rate=1.0,
                     )
@@ -263,6 +269,7 @@ def sync(ctx):
                             except Exception as e:
                                 metrics.incr(
                                     "options_automator.run",
+                                    amount=2,
                                     tags={"status": "update_failed"},
                                     sample_rate=1.0,
                                 )
@@ -277,15 +284,19 @@ def sync(ctx):
 
     if invalid_options:
         status = "update_failed"
+        amount = 2
     elif drift_found:
         status = "drift"
+        amount = 2
     else:
         status = "success"
+        amount = 1
 
     presenter_delegator.flush()
 
     metrics.incr(
         "options_automator.run",
+        amount=amount,
         tags={"status": status},
         sample_rate=1.0,
     )

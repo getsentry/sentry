@@ -2500,7 +2500,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "postgres": lambda settings, options: (
         {
             "image": f"ghcr.io/getsentry/image-mirror-library-postgres:{PG_VERSION}-alpine",
-            "pull": True,
             "ports": {"5432/tcp": 5432},
             "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
             "volumes": {
@@ -2563,7 +2562,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
             # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
             else "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.6.1.6734-testing-arm",
-            "pull": True,
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
             # The arm image does not properly load the MAX_MEMORY_USAGE_RATIO
@@ -2585,7 +2583,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "snuba": lambda settings, options: (
         {
             "image": "ghcr.io/getsentry/snuba:latest",
-            "pull": True,
             "ports": {"1218/tcp": 1218, "1219/tcp": 1219},
             "command": ["devserver"]
             + (["--no-workers"] if "snuba" in settings.SENTRY_EVENTSTREAM else []),
@@ -2636,7 +2633,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "symbolicator": lambda settings, options: (
         {
             "image": "us.gcr.io/sentryio/symbolicator:nightly",
-            "pull": True,
             "ports": {"3021/tcp": 3021},
             "volumes": {settings.SYMBOLICATOR_CONFIG_DIR: {"bind": "/etc/symbolicator"}},
             "command": ["run", "--config", "/etc/symbolicator/config.yml"],
@@ -2646,7 +2642,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "relay": lambda settings, options: (
         {
             "image": "us.gcr.io/sentryio/relay:nightly",
-            "pull": True,
             "ports": {"7899/tcp": settings.SENTRY_RELAY_PORT},
             "volumes": {settings.RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
             "command": ["run", "--config", "/etc/relay"],
@@ -2657,7 +2652,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "chartcuterie": lambda settings, options: (
         {
             "image": "us.gcr.io/sentryio/chartcuterie:latest",
-            "pull": True,
             "volumes": {settings.CHARTCUTERIE_CONFIG_DIR: {"bind": "/etc/chartcuterie"}},
             "environment": {
                 "CHARTCUTERIE_CONFIG": "/etc/chartcuterie/config.js",
@@ -2672,7 +2666,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "cdc": lambda settings, options: (
         {
             "image": "ghcr.io/getsentry/cdc:latest",
-            "pull": True,
             "only_if": settings.SENTRY_USE_CDC_DEV,
             "command": ["cdc", "-c", "/etc/cdc/configuration.yaml", "producer"],
             "volumes": {settings.CDC_CONFIG_DIR: {"bind": "/etc/cdc"}},
@@ -2681,7 +2674,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "vroom": lambda settings, options: (
         {
             "image": "us.gcr.io/sentryio/vroom:nightly",
-            "pull": True,
             "volumes": {"profiles": {"bind": "/var/lib/sentry-profiles"}},
             "environment": {
                 "SENTRY_KAFKA_BROKERS_PROFILING": "{containers[kafka][name]}:9093",
@@ -3653,3 +3645,6 @@ USE_ROLE_SWAPPING_IN_TESTS = True
 # This webhook url can be configured to log the changes made to runtime options as they
 # are changed by sentry configoptions.
 SLACK_WEBHOOK_URL = ""
+
+SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
+SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}

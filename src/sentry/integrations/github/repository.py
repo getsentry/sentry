@@ -6,6 +6,7 @@ from sentry.integrations import IntegrationInstallation
 from sentry.models import Organization, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.json import JSONData
 
@@ -48,7 +49,7 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
         return config
 
     def build_repository_config(
-        self, organization: Organization, data: Mapping[str, Any]
+        self, organization: RpcOrganization, data: Mapping[str, Any]
     ) -> Mapping[str, Any]:
         return {
             "name": data["identifier"],
