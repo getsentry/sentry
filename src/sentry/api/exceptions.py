@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import List, Optional
 
 from django.urls import reverse
@@ -5,6 +7,8 @@ from rest_framework import status
 from rest_framework.exceptions import APIException
 
 from sentry.app import env
+from sentry.models.organization import Organization
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.utils.auth import make_login_link_with_redirect
 from sentry.utils.http import is_using_customer_domain
 
@@ -56,11 +60,15 @@ class SsoRequired(SentryAPIException):
     code = "sso-required"
     message = "Must login via SSO"
 
-    def __init__(self, organization, after_login_redirect=None):
+    def __init__(
+        self,
+        organization: Organization | RpcOrganization,
+        after_login_redirect=None,
+    ):
         login_url = reverse("sentry-auth-organization", args=[organization.slug])
         request = env.request
         if request and is_using_customer_domain(request):
-            login_url = organization.absolute_url(login_url)
+            login_url = organization.absolute_url(path=login_url)
 
         if after_login_redirect:
             login_url = make_login_link_with_redirect(login_url, after_login_redirect)
