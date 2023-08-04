@@ -10,6 +10,7 @@ from urllib.parse import quote as urlquote
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
+from django.http.request import HttpRequest
 from django.views.decorators.csrf import csrf_exempt
 from pytz import utc
 from rest_framework import status
@@ -587,7 +588,7 @@ class ReleaseAnalyticsMixin:
         )
 
 
-def resolve_region(request: Request) -> Optional[str]:
+def resolve_region(request: HttpRequest) -> Optional[str]:
     subdomain = getattr(request, "subdomain", None)
     if subdomain is None:
         return None

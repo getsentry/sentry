@@ -332,10 +332,10 @@ class OrganizationEndpoint(Endpoint):
                     or include_all_accessible
                 ):
                     span.set_tag("mode", "has_project_access")
-                    func = request.access.has_project_access  # type: ignore
+                    func = request.access.has_project_access
                 else:
                     span.set_tag("mode", "has_project_membership")
-                    func = request.access.has_project_membership  # type: ignore
+                    func = request.access.has_project_membership
                 projects = [p for p in qs if func(p)]
 
         project_ids = {p.id for p in projects}

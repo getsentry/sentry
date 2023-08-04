@@ -5,6 +5,8 @@ import subprocess
 import sys
 import tempfile
 
+import pytest
+
 
 def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
     if plugins is None:
@@ -23,6 +25,7 @@ def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
             capture_output=True,
             encoding="UTF-8",
         )
+        assert not ret.stderr
         return ret.returncode, ret.stdout
 
 
@@ -219,3 +222,35 @@ Found 4 errors in 1 file (checked 1 source file)
     ret, out = call_mypy(code)
     assert ret
     assert out == expected
+
+
+@pytest.mark.parametrize(
+    ("attr", "modname"),
+    (
+        ("access", "sentry.api.base"),
+        ("csp_nonce", "csp.middleware"),
+        ("is_sudo", "sudo.middleware"),
+        ("subdomain", "sentry.middleware.subdomain"),
+    ),
+)
+def test_added_http_request_attribute(attr: str, modname: str) -> None:
+    mod = __import__(modname, fromlist=["_trash"])
+    assert mod.__file__ is not None
+    with open(mod.__file__) as f:
+        if f"request.{attr} =" not in f.read():
+            raise AssertionError(
+                f"expected a `request.{attr} = ` monkeypatch "
+                f"in {modname} ({mod.__file__})!\n\n"
+                f"perhaps the mypy plug for this can be removed?"
+            )
+
+    src = f"""\
+from django.http.request import HttpRequest
+x: HttpRequest
+x.{attr}
+"""
+    ret, out = call_mypy(src, plugins=[])
+    assert ret
+
+    ret, out = call_mypy(src)
+    assert ret == 0, (ret, out)
