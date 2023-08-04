@@ -168,7 +168,7 @@ def adjust_settings_for_relay_tests(settings):
     ]
     settings.KAFKA_CLUSTERS = {
         "default": {
-            "common": {"bootstrap.servers": "sentry_kafka:9092"},
+            "common": {"bootstrap.servers": "localhost:9092"},
             "producers": {
                 "compression.type": "lz4",
                 "message.max.bytes": 50000000,  # 50MB, default is 1MB
