@@ -624,11 +624,10 @@ class _RemoteSiloCall:
         with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
             target_mode, self.region
         ):
-            content_type = f"application/json; charset={_RPC_CONTENT_CHARSET}"
             extra: Mapping[str, Any] = {
                 f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
             }
-            return Client().post(self.path, data, content_type, **extra)
+            return Client().post(self.path, data, headers.get("Content-Type"), **extra)
 
     def _fire_request(self, headers: Mapping[str, str], data: bytes) -> requests.Response:
         # TODO: Performance considerations (persistent connections, pooling, etc.)?

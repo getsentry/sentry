@@ -245,7 +245,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         try:
-            org = Organization.objects.get(slug=slug)
+            org = Organization.objects.get_from_cache(slug=slug)
             if only_visible and org.status != OrganizationStatus.ACTIVE:
                 raise Organization.DoesNotExist
             return cast(int, org.id)
