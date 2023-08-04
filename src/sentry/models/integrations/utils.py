@@ -31,3 +31,17 @@ def get_installation(
 
 def has_feature(instance: Integration | RpcIntegration, feature: IntegrationFeatures) -> bool:
     return feature in instance.get_provider().features
+
+
+def is_response_success(resp) -> bool:
+    if resp.status_code:
+        if resp.status_code < 300:
+            return True
+    return False
+
+
+def is_response_error(resp) -> bool:
+    if resp.status_code:
+        if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
+            return True
+    return False

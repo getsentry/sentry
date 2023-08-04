@@ -165,8 +165,8 @@ class SlackClientDisable(TestCase):
         now = datetime.now() - timedelta(hours=1)
         for i in reversed(range(10)):
             with freeze_time(now - timedelta(days=i)):
-                buffer.record_exception_error()
-                buffer.record_success(MockResponseInstance)
+                buffer.record_error()
+                buffer.record_success()
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         assert buffer.is_integration_broken() is False
@@ -191,7 +191,7 @@ class SlackClientDisable(TestCase):
         now = datetime.now() - timedelta(hours=1)
         for i in reversed(range(10)):
             with freeze_time(now - timedelta(days=i)):
-                buffer.record_exception_error()
+                buffer.record_error()
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         assert buffer.is_integration_broken() is True
@@ -215,13 +215,13 @@ class SlackClientDisable(TestCase):
         now = datetime.now() - timedelta(hours=1)
         for i in reversed(range(30)):
             with freeze_time(now - timedelta(days=i)):
-                buffer.record_exception_error()
+                buffer.record_error()
 
         buffer_expired = IntegrationRequestBuffer(client._get_redis_key(), 1)
         with freeze_time(now - timedelta(days=30)):
-            buffer_expired.record_exception_error()
+            buffer_expired.record_error()
         with freeze_time(now - timedelta(days=31)):
-            buffer_expired.record_exception_error()
+            buffer_expired.record_error()
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         time.sleep(1)

@@ -16,6 +16,7 @@ from sentry.http import build_session
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models import Organization, OrganizationIntegration
+from sentry.models.integrations.utils import is_response_error, is_response_success
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import md5_text
@@ -370,8 +371,11 @@ class BaseApiClient(TrackResponseMixin):
             if self.is_response_fatal(response):
                 buffer.record_fatal()
             else:
-                buffer.record_response_error(response)
-                buffer.record_success(response)
+                if is_response_success(response):
+                    buffer.record_success()
+                    return
+                if is_response_error(response):
+                    buffer.record_error()
             if buffer.is_integration_broken():
                 self.disable_integration(buffer)
 
@@ -385,7 +389,7 @@ class BaseApiClient(TrackResponseMixin):
             return
         try:
             buffer = IntegrationRequestBuffer(redis_key)
-            buffer.record_exception_error()
+            buffer.record_error()
             if buffer.is_integration_broken():
                 self.disable_integration(buffer)
         except Exception:

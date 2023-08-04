@@ -13,6 +13,7 @@ from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models import Organization
 from sentry.models.integrations.sentry_app import track_response_code
+from sentry.models.integrations.utils import is_response_error, is_response_success
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
@@ -83,8 +84,11 @@ def record_response(sentryapp: SentryApp, org_id: str, response: Response):
     if not len(redis_key):
         return
     buffer = IntegrationRequestBuffer(redis_key)
-    buffer.record_success(response)
-    if buffer.record_response_error(response):
+    if is_response_success(response):
+        buffer.record_success()
+        return
+    if is_response_error(response):
+        buffer.record_error()
         check_broken(sentryapp, org_id)
 
 

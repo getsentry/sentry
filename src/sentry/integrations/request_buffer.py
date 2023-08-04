@@ -10,20 +10,6 @@ KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
 BROKEN_RANGE_DAYS = 7  # 7 days
 
 
-def is_response_success(resp) -> bool:
-    if resp.status_code:
-        if resp.status_code < 300:
-            return True
-    return False
-
-
-def is_response_error(resp) -> bool:
-    if resp.status_code:
-        if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
-            return True
-    return False
-
-
 class IntegrationRequestBuffer:
     """
     Create a data structure to store daily successful and failed request counts for each installed integration in Redis
@@ -41,26 +27,11 @@ class IntegrationRequestBuffer:
             else ["success", "error", "fatal"]
         )
 
-    def record_exception_error(self):
+    def record_error(self):
         self._add("error")
 
-    def record_response_error(self, resp) -> bool:
-        """
-        Record a response error if the response is an error. Return True if the response is an error and has been recorded.
-        """
-        if is_response_error(resp):
-            self._add("error")
-            return True
-        return False
-
-    def record_success(self, resp) -> bool:
-        """
-        Record a response success if the response is a success. Return True if the response is an success and has been recorded.
-        """
-        if is_response_success(resp):
-            self._add("success")
-            return True
-        return False
+    def record_success(self):
+        self._add("success")
 
     def record_fatal(self):
         self._add("fatal")
