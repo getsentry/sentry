@@ -40,6 +40,8 @@ class SlackPresenter(OptionsPresenter):
                 "set_options": [],
                 "unset_options": [],
                 "error_options": [],
+                "unregistered_options": [],
+                "invalid_type_options": [],
             }
 
             response = requests.post(SLACK_WEBHOOK_URL, json=test_payload)
