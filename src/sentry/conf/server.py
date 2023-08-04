@@ -1682,8 +1682,6 @@ SENTRY_FEATURES = {
     "organizations:org-auth-tokens": False,
     # Enable detecting SDK crashes during event processing
     "organizations:sdk-crash-detection": False,
-    # Enables slack channel lookup via schedule message
-    "organizations:slack-use-new-lookup": False,
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
     # Adds additional filters and a new section to issue alert rules.
