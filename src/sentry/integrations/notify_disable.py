@@ -46,13 +46,11 @@ def notify_disable(
     integration_link = get_url(
         organization,
         get_provider_type(redis_key),
-        integration.slug if hasattr(integration, "slug") else integration.provider,
+        integration.provider if integration.get_provider() else integration.slug,
     )
 
     integration_name = (
-        integration.provider.title()
-        if hasattr(integration, "provider")
-        else integration.name.title()
+        integration.get_provider().name if integration.get_provider() else integration.name
     )
 
     for user in organization.get_owners():
