@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 import responses
-from django.db import router
+from django.db import router, transaction
 from django.test.utils import override_settings
 from freezegun import freeze_time
 
@@ -16,11 +16,11 @@ from sentry.incidents.models import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
-from sentry.models import AuditLogEntry, Integration
+from sentry.models import AuditLogEntry, Integration, outbox_context
 from sentry.models.organizationmember import OrganizationMember
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.testutils.cases import APITestCase
@@ -96,6 +96,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, APITestCase):
         assert resp.status_code == 404
 
 
+@region_silo_test(stable=True)
 @freeze_time()
 class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
     method = "post"
@@ -492,7 +493,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         assert resp.status_code == 404
 
     def test_no_perms(self):
-        with unguarded_write(using=router.db_for_write(OrganizationMember)):
+        with assume_test_silo_mode(SiloMode.REGION), outbox_context(
+            transaction.atomic(using=router.db_for_write(OrganizationMember))
+        ):
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="member")
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug, **self.alert_rule_dict)
@@ -701,7 +704,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         assert mock_get_channel_id.call_count == 3
 
 
-@region_silo_test(stable=True)
+# TODO(Gabe): Rewrite this test to properly annotate the silo mode
 @freeze_time()
 class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase, APITestCase):
     method = "post"
