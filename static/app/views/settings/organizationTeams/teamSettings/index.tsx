@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -9,7 +9,6 @@ import Confirm from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -29,7 +28,6 @@ interface TeamSettingsProps extends RouteComponentProps<{teamId: string}, {}> {
 function TeamSettings({team, params}: TeamSettingsProps) {
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmitSuccess: FormProps['onSubmitSuccess'] = (resp: Team, _model, id) => {
     // Use the old slug when triggering the update so we correctly replace the
@@ -40,7 +38,6 @@ function TeamSettings({team, params}: TeamSettingsProps) {
       browserHistory.replace(
         normalizeUrl(`/settings/${organization.slug}/teams/${resp.slug}/settings/`)
       );
-      setIsLoading(true);
     }
   };
 
@@ -60,10 +57,6 @@ function TeamSettings({team, params}: TeamSettingsProps) {
   const hasTeamWrite = hasEveryAccess(['team:write'], {organization, team});
   const hasTeamAdmin = hasEveryAccess(['team:admin'], {organization, team});
   const hasOrgAdmin = hasEveryAccess(['org:admin'], {organization});
-
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
 
   return (
     <Fragment>
