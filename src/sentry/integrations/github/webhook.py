@@ -30,6 +30,7 @@ from sentry.services.hybrid_cloud.integration.model import (
     RpcOrganizationIntegration,
 )
 from sentry.services.hybrid_cloud.integration.service import integration_service
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json, metrics
@@ -96,6 +97,10 @@ class Webhook:
             )
 
             if not repos.exists():
+                logger.info(
+                    "github.auto-repo-linking", extra={"organization_ids": list(orgs.keys())}
+                )
+
                 provider = get_integration_repository_provider(integration)
 
                 config = {
@@ -104,10 +109,16 @@ class Webhook:
                     "identifier": event.get("repository", {}).get("full_name", None),
                 }
 
-                for org in orgs.values():
-                    if features.has("organizations:auto-repo-linking", org):
+                for org_id in orgs.keys():
+                    rpc_org = organization_service.get(id=org_id)
+
+                    if features.has("organizations:auto-repo-linking", rpc_org):
+                        logger.info(
+                            "github.auto-repo-linking.create_repository",
+                            extra={"organization_id": org_id},
+                        )
                         try:
-                            provider.create_repository(config, org)
+                            provider.create_repository(repo_config=config, organization=rpc_org)
                         except RepoExistsError:
                             metrics.incr("sentry.integration_repo_provider.repo_exists")
                             continue
