@@ -210,7 +210,7 @@ def _try_handle_high_volume_task_trigger(ts: datetime):
 def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
     # When running in high volume mode we will not consume clock pulses (The
     # clock_pulse task is not enabled). Instead we use each check-in message as
-    # a means for trigering our tasks.
+    # a means for triggering our tasks.
     if settings.SENTRY_MONITORS_HIGH_VOLUME_MODE:
         _try_handle_high_volume_task_trigger(ts)
 
