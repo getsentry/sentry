@@ -30,18 +30,17 @@ class SourceMapProcessingResponse(TypedDict):
     errors: List[ActionableItemResponse]
 
 
+# This endpoint is used to retrieve actionable items that a user can perform on an event. It is a private endpoint
+# that is only used by the Sentry UI. The Source Map Debugging endpoint will remain public as it will only ever
+# return information about the source map debugging process while this endpoint will grow. Actionable items are
+# errors or messages we show to users about problems with their event which we will show the user how to fix.
 @region_silo_endpoint
 class ActionableItemsEndpoint(ProjectEndpoint):
     def has_feature(self, organization: Organization, request: Request):
         return features.has("organizations:actionable-items", organization, actor=request.user)
 
     def get(self, request: Request, project: Project, event_id: str) -> Response:
-        """
-        Retrieve information about actionable items (source maps, event errors, etc.) for a given event.
-        ```````````````````````````````````````````
-        Return a list of actionable items for a given event.
-        """
-
+        # Retrieve information about actionable items (source maps, event errors, etc.) for a given event.
         organization = project.organization
         if not self.has_feature(organization, request):
             raise NotFound(
