@@ -1,6 +1,6 @@
-import type {ResolutionStatus} from 'sentry/types';
-import {CommonGroupAnalyticsData} from 'sentry/utils/events';
-import {Tab} from 'sentry/views/issueDetails/types';
+import type {GroupStatus} from 'sentry/types';
+import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
+import type {Tab} from 'sentry/views/issueDetails/types';
 
 type RuleViewed = {
   alert_type: 'issue' | 'metric';
@@ -81,7 +81,7 @@ export type TeamInsightsEventParameters = {
       | 'discarded'
       | 'open_in_discover'
       | 'assign'
-      | ResolutionStatus;
+      | GroupStatus;
     action_status_details?: string;
     action_substatus?: string;
     assigned_suggestion_reason?: string;
