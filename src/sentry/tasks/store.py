@@ -1,5 +1,4 @@
 import logging
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from time import time
 from typing import Any, Callable, Dict, List, Optional
@@ -78,28 +77,19 @@ def submit_process(
     )
 
 
-@dataclass(frozen=True)
-class SaveEventTaskKind:
-    has_attachments: bool = False
-    from_reprocessing: bool = False
-
-
 def submit_save_event(
-    task_kind: SaveEventTaskKind,
     project_id: int,
+    from_reprocessing: bool,
     cache_key: Optional[str],
     event_id: Optional[str],
     start_time: Optional[int],
     data: Optional[Event],
+    has_attachments: bool,
 ) -> None:
     if cache_key:
         data = None
 
     # XXX: honor from_reprocessing
-    if task_kind.has_attachments:
-        task = save_event_attachments
-    else:
-        task = save_event
 
     task_kwargs = {
         "cache_key": cache_key,
@@ -109,7 +99,7 @@ def submit_save_event(
         "project_id": project_id,
     }
 
-    task.delay(**task_kwargs)
+    (save_event_attachments if has_attachments else save_event).delay(**task_kwargs)
 
 
 def _do_preprocess_event(
@@ -193,16 +183,14 @@ def _do_preprocess_event(
         )
         return
 
-    task_kind = SaveEventTaskKind(
-        has_attachments=has_attachments, from_reprocessing=from_reprocessing
-    )
     submit_save_event(
-        task_kind,
         project_id=project_id,
+        from_reprocessing=from_reprocessing,
         cache_key=cache_key,
         event_id=event_id,
         start_time=start_time,
         data=original_data,
+        has_attachments=has_attachments,
     )
 
 
@@ -310,17 +298,15 @@ def do_process_event(
     event_id = data["event_id"]
 
     def _continue_to_save_event() -> None:
-        task_kind = SaveEventTaskKind(
-            from_reprocessing=process_task is process_event_from_reprocessing,
-            has_attachments=has_attachments,
-        )
+        from_reprocessing = process_task is process_event_from_reprocessing
         submit_save_event(
-            task_kind,
             project_id=project_id,
+            from_reprocessing=from_reprocessing,
             cache_key=cache_key,
             event_id=event_id,
             start_time=start_time,
             data=data,
+            has_attachments=has_attachments,
         )
 
     if killswitch_matches_context(
