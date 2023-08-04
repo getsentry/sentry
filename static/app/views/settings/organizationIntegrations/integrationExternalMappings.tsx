@@ -8,8 +8,8 @@ import Confirm from 'sentry/components/confirm';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Pagination from 'sentry/components/pagination';
 import PanelTable from 'sentry/components/panels/panelTable';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconAdd, IconArrow, IconDelete, IconQuestion} from 'sentry/icons';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
@@ -176,21 +176,10 @@ class IntegrationExternalMappings extends DeprecatedAsyncComponent<Props, State>
         />
       </Confirm>
     ) : (
-      <Tooltip
+      <QuestionTooltip
         title={t('This %s mapping suggestion was generated from a CODEOWNERS file', type)}
-      >
-        <Button
-          disabled
-          borderless
-          size="sm"
-          icon={<IconQuestion size="sm" />}
-          aria-label={t(
-            `This %s mapping suggestion was generated from a CODEOWNERS file`,
-            type
-          )}
-          data-test-id="suggestion-option"
-        />
-      </Tooltip>
+        size="sm"
+      />
     );
   }
 
