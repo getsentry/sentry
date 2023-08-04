@@ -97,7 +97,7 @@ def submit_save_event(
     if cache_key:
         data = None
 
-    highcpu_ratio = options.get("store.save-event-highcpu-percent-opt-in") or 0
+    highcpu_ratio = options.get("store.save-event-highcpu-percentage") or 0
 
     # XXX: honor from_reprocessing
     if task_kind.has_attachments:
