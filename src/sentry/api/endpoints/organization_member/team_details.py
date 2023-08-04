@@ -85,7 +85,7 @@ def _is_org_owner_or_manager(access: Access) -> bool:
 
 @region_silo_endpoint
 class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
-    permission_classes = OrganizationTeamMemberPermission
+    permission_classes = (OrganizationTeamMemberPermission,)
 
     def _can_create_team_member(self, request: Request, team: Team) -> bool:
         """
