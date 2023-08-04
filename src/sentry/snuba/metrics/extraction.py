@@ -218,11 +218,11 @@ def is_on_demand_metric_query(
     dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
 ) -> bool:
     """Returns ``True`` if the dataset is performance metrics and query contains non-standard search fields."""
-
-    if is_standard_metrics_compatible(dataset, aggregate, query):
+    
+    if not dataset or Dataset(dataset) != Dataset.PerformanceMetrics:
         return False
 
-    if not dataset or Dataset(dataset) != Dataset.PerformanceMetrics:
+    if is_standard_metrics_compatible(dataset, aggregate, query):
         return False
 
     for field in _get_aggregate_fields(aggregate):
