@@ -173,6 +173,7 @@ class RuleProcessor:
             "rule_id": rule.id,
             "group_id": self.group.id,
             "event_id": self.event.event_id,
+            "project_id": self.project.id,
             "is_new": self.is_new,
             "is_regression": self.is_regression,
             "has_reappeared": self.has_reappeared,
