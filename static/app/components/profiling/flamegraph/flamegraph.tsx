@@ -299,14 +299,20 @@ function Flamegraph(): ReactElement {
       return LOADING_OR_FALLBACK_CPU_CHART;
     }
 
+    const measures: Profiling.Measurement[] = [];
+
+    for (const key in profileGroup.measurements) {
+      if (key.startsWith('cpu_usage')) {
+        measures.push(profileGroup.measurements[key]!);
+      }
+    }
+
     return new FlamegraphChart(
       Rect.From(flamegraph.configSpace),
-      profileGroup.measurements?.cpu_usage_0 ?? {
-        unit: 'percentage',
-        values: [],
-      }
+      measures.length > 0 ? measures : [],
+      flamegraphTheme.COLORS.CPU_CHART_COLORS
     );
-  }, [profileGroup.measurements?.cpu_usage_0, flamegraph.configSpace, hasCPUChart]);
+  }, [profileGroup.measurements, flamegraph.configSpace, flamegraphTheme, hasCPUChart]);
 
   const flamegraphCanvas = useMemo(() => {
     if (!flamegraphCanvasRef) {
@@ -487,7 +493,7 @@ function Flamegraph(): ReactElement {
 
   const cpuChartView = useMemoWithPrevious<CanvasView<FlamegraphChart> | null>(
     _previousView => {
-      if (!flamegraphView || !flamegraphCanvas || !CPUChart) {
+      if (!flamegraphView || !flamegraphCanvas || !CPUChart || !cpuChartCanvas) {
         return null;
       }
 
@@ -502,18 +508,28 @@ function Flamegraph(): ReactElement {
           minWidth: uiFrames.minFrameDuration,
           barHeight: 0,
           depthOffset: 0,
-          maxHeight: 100,
+          maxHeight: CPUChart.configSpace.height,
         },
       });
 
-      // Initialize configView to whatever the flamegraph configView is
-      newView.setConfigView(flamegraphView.configView.withHeight(100), {
-        width: {min: 0},
-      });
+      // Compute the total size of the padding and stretch the view. This ensures that
+      // the total range is rendered and perfectly aligned from top to bottom.
+      newView.setConfigView(
+        flamegraphView.configView.withHeight(newView.configView.height),
+        {
+          width: {min: 0},
+        }
+      );
 
       return newView;
     },
-    [flamegraphView, flamegraphCanvas, CPUChart, uiFrames.minFrameDuration]
+    [
+      flamegraphView,
+      flamegraphCanvas,
+      CPUChart,
+      uiFrames.minFrameDuration,
+      cpuChartCanvas,
+    ]
   );
 
   const spansView = useMemoWithPrevious<CanvasView<SpanChart> | null>(
@@ -603,6 +619,7 @@ function Flamegraph(): ReactElement {
           cpuChartView.setConfigView(rect);
         }
       }
+
       canvasPoolManager.draw();
     };
 
@@ -612,7 +629,8 @@ function Flamegraph(): ReactElement {
     ) => {
       if (
         sourceTransformConfigView === flamegraphView ||
-        sourceTransformConfigView === uiFramesView
+        sourceTransformConfigView === uiFramesView ||
+        sourceTransformConfigView === cpuChartView
       ) {
         flamegraphView.transformConfigView(mat);
         if (spansView) {

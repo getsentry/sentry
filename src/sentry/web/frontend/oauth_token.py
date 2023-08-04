@@ -117,11 +117,11 @@ class OAuthTokenView(View):
             return {"error": "invalid_grant", "reason": "invalid redirect URI"}
 
         token_data = {"token": ApiToken.from_grant(grant=grant)}
-        if grant.has_scope("openid") and options.get("codecov.client-secret"):
+        if grant.has_scope("openid") and options.get("codecov.signing_secret"):
             open_id_token = OpenIDToken(
                 request.POST.get("client_id"),
                 grant.user_id,
-                options.get("codecov.client-secret"),
+                options.get("codecov.signing_secret"),
                 nonce=request.POST.get("nonce"),
             )
             token_data["id_token"] = open_id_token.get_signed_id_token(grant=grant)

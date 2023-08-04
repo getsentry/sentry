@@ -60,7 +60,9 @@ UTC ISO8601 or epoch seconds. Use along with `start` instead of `statsPeriod`.
         required=False,
     )
     project = serializers.ListField(
-        required=False, help_text="The ID of the projects to filter by."
+        required=False,
+        help_text="The ID of the projects to filter by.",
+        child=serializers.IntegerField(),
     )
     environment = serializers.CharField(help_text="The environment to filter by.", required=False)
     sort = serializers.CharField(help_text="The field to sort the output by.", required=False)

@@ -1,7 +1,7 @@
 import logging
 import uuid
 from datetime import datetime, timedelta
-from typing import Dict, Mapping, Optional
+from typing import Dict, Mapping, Optional, TypedDict
 
 import msgpack
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -12,6 +12,7 @@ from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 from django.db import router, transaction
 from django.utils.text import slugify
+from typing_extensions import NotRequired
 
 from sentry import ratelimits
 from sentry.constants import ObjectStatus
@@ -48,6 +49,31 @@ logger = logging.getLogger(__name__)
 
 CHECKIN_QUOTA_LIMIT = 5
 CHECKIN_QUOTA_WINDOW = 60
+
+
+class CheckinMessage(TypedDict):
+    payload: str
+    start_time: str
+    project_id: str
+    sdk: str
+
+
+class CheckinTrace(TypedDict):
+    trace_id: str
+
+
+class CheckinContexts(TypedDict):
+    trace: NotRequired[CheckinTrace]
+
+
+class CheckinPayload(TypedDict):
+    check_in_id: str
+    monitor_slug: str
+    status: str
+    environment: NotRequired[str]
+    duration: NotRequired[int]
+    monitor_config: NotRequired[Dict]
+    contexts: NotRequired[CheckinContexts]
 
 
 def _ensure_monitor_with_config(
@@ -114,8 +140,8 @@ def _ensure_monitor_with_config(
     return monitor
 
 
-def _process_message(wrapper: Dict) -> None:
-    params = json.loads(wrapper["payload"])
+def _process_message(wrapper: CheckinMessage) -> None:
+    params: CheckinPayload = json.loads(wrapper["payload"])
     start_time = to_datetime(float(wrapper["start_time"]))
     project_id = int(wrapper["project_id"])
     source_sdk = wrapper["sdk"]
@@ -313,9 +339,23 @@ def _process_message(wrapper: Dict) -> None:
                     )
                 else:
                     check_in = MonitorCheckIn.objects.select_for_update().get(
-                        monitor_environment=monitor_environment,
                         guid=check_in_id,
                     )
+
+                    if check_in.monitor_environment_id != monitor_environment.id:
+                        metrics.incr(
+                            "monitors.checkin.result",
+                            tags={
+                                **metric_kwargs,
+                                "status": "failed_monitor_environment_guid_match",
+                            },
+                        )
+                        logger.debug(
+                            "monitor environment does not match on existing guid: %s %s",
+                            environment,
+                            check_in_id,
+                        )
+                        return
 
                 update_existing_check_in(check_in, status, validated_params["duration"], start_time)
 

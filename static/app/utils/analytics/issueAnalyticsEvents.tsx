@@ -54,6 +54,7 @@ export type IssueEventParameters = {
   'issue_details.escalating_issues_banner_feedback_received': {
     group_id: string;
     should_be_escalating: boolean;
+    reason?: string;
   };
   'issue_details.event_details_clicked': GroupEventParams;
   'issue_details.external_issue_created': ExternalIssueParams;
@@ -160,9 +161,6 @@ export type IssueEventParameters = {
     did_assign_suggestion: boolean;
     assigned_suggestion_reason?: string;
   };
-  'issues_stream.issue_category_dropdown_changed': {
-    category: string;
-  };
   'issues_stream.paginate': {
     direction: string;
   };
@@ -246,8 +244,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
   'issues_stream.paginate': 'Paginate Issues Stream',
-  'issues_stream.issue_category_dropdown_changed':
-    'Issues Stream: Issue Category Dropdown Changed',
   'issue.shared_publicly': 'Issue Shared Publicly',
   'issue_group_details.stack_traces.setup_source_maps_alert.clicked':
     'Issue Group Details: Setup Source Maps Alert Clicked',

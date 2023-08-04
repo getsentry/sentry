@@ -3,7 +3,9 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from typing import Any, Dict, TypedDict
+from typing import Any, Dict
+
+from typing_extensions import TypedDict
 
 from sentry.services.hybrid_cloud import RpcModel
 from social_auth.utils import expiration_datetime, get_backend, tokens

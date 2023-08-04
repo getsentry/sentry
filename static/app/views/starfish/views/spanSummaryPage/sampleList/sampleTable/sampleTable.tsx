@@ -123,7 +123,7 @@ function SampleTable({
           avg={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
         />
       </VisuallyCompleteWithData>
-      <Button onClick={() => refetch()}>{t('Load More Samples')}</Button>
+      <Button onClick={() => refetch()}>{t('Try Different Samples')}</Button>
     </Fragment>
   );
 }

@@ -112,6 +112,12 @@ class HybridCloudAuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request: Request):
         from sentry.web.frontend.accounts import expired
 
+        if request.path.startswith("/api/0/internal/rpc/"):
+            # Avoid doing RPC authentication when we're already
+            # in an RPC request.
+            request.user = AnonymousUser()
+            return
+
         auth_result = auth_service.authenticate(request=authentication_request_from(request))
         request.user_from_signed_request = auth_result.user_from_signed_request
 
