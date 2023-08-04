@@ -131,7 +131,7 @@ class OrganizationMemberSerializer(Serializer):
                 inviter_name = inviter.get_display_name()
         user = attrs["user"]
         email = attrs["email"]
-        d: OrganizationMemberResponse = {
+        data: OrganizationMemberResponse = {
             "id": str(obj.id),
             "email": email,
             "name": user["name"] if user else email,
@@ -151,10 +151,12 @@ class OrganizationMemberSerializer(Serializer):
             "dateCreated": obj.date_added,
             "inviteStatus": obj.get_invite_status_name(),
             "inviterName": inviter_name,
-            "groupOrgRoles": attrs.get("groupOrgRoles", []),
         }
 
-        if "externalUsers" in self.expand:
-            d["externalUsers"] = attrs.get("externalUsers", [])
+        if "groupOrgRoles" in attrs:
+            data["groupOrgRoles"] = attrs.get("groupOrgRoles", [])
 
-        return d
+        if "externalUsers" in self.expand:
+            data["externalUsers"] = attrs.get("externalUsers", [])
+
+        return data
