@@ -12,6 +12,7 @@ DetectorState = Mapping[Union[str, bytes], Union[float, int]]
 
 KEY_TTL = 24 * 60 * 60  # 1 day TTL
 MIN_DATA_POINTS = 6
+VERSION = 1
 FIELD_COUNT = "N"
 FIELD_SHORT_TERM = "S"
 FIELD_LONG_TERM = "L"
@@ -33,7 +34,7 @@ def run_regressed_functions_detection(
 
     with client.pipeline() as pipeline:
         for payload in payloads:
-            key = _make_function_key(project, payload)
+            key = _make_function_key(project, payload, VERSION)
             pipeline.hgetall(key)
 
         results = pipeline.execute()
@@ -41,22 +42,22 @@ def run_regressed_functions_detection(
     new_states = []
 
     for payload, result in zip(payloads, results):
-        key = _make_function_key(project, payload)
+        key = _make_function_key(project, payload, VERSION)
 
-        n = int(result.get(FIELD_COUNT, 0))
+        count = int(result.get(FIELD_COUNT, 0))
 
         ema_short_old = float(result.get(FIELD_SHORT_TERM, 0))
         ema_short = ExponentialMovingAverage(smoothing=2, period=20)
-        ema_short.set(ema_short_old, n)
+        ema_short.set(ema_short_old, count)
         ema_short.update(payload.p95)
 
         ema_long_old = float(result.get(FIELD_LONG_TERM, 0))
         ema_long = ExponentialMovingAverage(smoothing=2, period=40)
-        ema_long.set(ema_long_old, n)
+        ema_long.set(ema_long_old, count)
         ema_long.update(payload.p95)
 
         value: DetectorState = {
-            FIELD_COUNT: n + 1,
+            FIELD_COUNT: count + 1,
             FIELD_SHORT_TERM: ema_short.value,
             FIELD_LONG_TERM: ema_long.value,
         }
@@ -65,7 +66,7 @@ def run_regressed_functions_detection(
         if (
             # The heuristic isn't stable initially, so ensure we have a minimum
             # number of data points before looking for a regression.
-            n > MIN_DATA_POINTS
+            count > MIN_DATA_POINTS
             and is_regressed(ema_short_old, ema_short.value, ema_long_old, ema_long.value)
         ):
             pass
@@ -78,8 +79,8 @@ def run_regressed_functions_detection(
         pipeline.execute()
 
 
-def _make_function_key(project: Project, payload: FunctionPayload) -> str:
-    return f"statdtr:p:{project.id}:f:{payload.fingerprint}"
+def _make_function_key(project: Project, payload: FunctionPayload, version: int) -> str:
+    return f"statdtr:v:{version}:p:{project.id}:f:{payload.fingerprint}"
 
 
 def is_regressed(
@@ -88,10 +89,14 @@ def is_regressed(
     avg_long_old: float,
     avg_long_new: float,
 ) -> bool:
-    # We're looking for the point where the short term average crosses above the
-    # long term average. This is an indication that the timeseries has a upwards
-    # moving trend.
-    # This is because the short term average reacts faster to changes in the
-    # data compared to the long term average. So by looking for the cross over
-    # we can determine the start of the regression.
+    """
+    We're looking for the point where the short term average crosses above the
+    long term average. This is an indication that the timeseries has a upwards
+    moving trend.
+
+    This is because the short term average reacts faster to changes in the
+    data compared to the long term average. So by looking for the cross over
+    we can determine the start of the regression.
+    """
+
     return avg_short_new > avg_long_new and avg_short_old <= avg_long_old
