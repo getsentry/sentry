@@ -220,34 +220,6 @@ def _process_message(wrapper: Dict) -> None:
 
         return
 
-    monitor_config = params.pop("monitor_config", None)
-
-    params["duration"] = (
-        # Duration is specified in seconds from the client, it is
-        # stored in the checkin model as milliseconds
-        int(params["duration"] * 1000)
-        if params.get("duration") is not None
-        else None
-    )
-
-    validator = MonitorCheckInValidator(
-        data=params,
-        partial=True,
-        context={
-            "project": project,
-        },
-    )
-
-    if not validator.is_valid():
-        metrics.incr(
-            "monitors.checkin.result",
-            tags={**metric_kwargs, "status": "failed_checkin_validation"},
-        )
-        logger.info("monitor_checkin.validation.failed", extra={**params})
-        return
-
-    validated_params = validator.validated_data
-
     try:
         check_in_id = uuid.UUID(params["check_in_id"])
     except ValueError:
@@ -272,6 +244,34 @@ def _process_message(wrapper: Dict) -> None:
     try:
         with lock.acquire(), transaction.atomic(router.db_for_write(Monitor)):
             try:
+                monitor_config = params.pop("monitor_config", None)
+
+                params["duration"] = (
+                    # Duration is specified in seconds from the client, it is
+                    # stored in the checkin model as milliseconds
+                    int(params["duration"] * 1000)
+                    if params.get("duration") is not None
+                    else None
+                )
+
+                validator = MonitorCheckInValidator(
+                    data=params,
+                    partial=True,
+                    context={
+                        "project": project,
+                    },
+                )
+
+                if not validator.is_valid():
+                    metrics.incr(
+                        "monitors.checkin.result",
+                        tags={**metric_kwargs, "status": "failed_checkin_validation"},
+                    )
+                    logger.info("monitor_checkin.validation.failed", extra={**params})
+                    return
+
+                validated_params = validator.validated_data
+
                 monitor = _ensure_monitor_with_config(
                     project,
                     monitor_slug,
