@@ -21,6 +21,7 @@ from sentry.models import AuditLogEntry, Integration
 from sentry.models.actor import get_actor_for_user
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
@@ -114,7 +115,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         test_params["resolve_threshold"] = self.alert_rule.resolve_threshold
         test_params.update({"name": "what"})
 
-        with self.feature("organizations:incidents"):
+        with self.feature("organizations:incidents"), outbox_runner():
             resp = self.get_success_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
             )
@@ -652,7 +653,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         self.login_as(self.owner_user)
 
     def test_simple(self):
-        with self.feature("organizations:incidents"):
+        with self.feature("organizations:incidents"), outbox_runner():
             self.get_success_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
             )
