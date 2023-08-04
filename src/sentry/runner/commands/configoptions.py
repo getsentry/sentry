@@ -156,18 +156,18 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
                 invalid_options.add(key)
             elif not_writable_reason == options.NotWritableReason.DRIFTED:
                 drifted_options.add(key)
+
+            opt = options.lookup_key(key)
+            if not opt.type.test(value):
+                invalid_options.add(key)
+                logger.error(
+                    "Option %s has invalid type. got %s, expected %s.", key, type(value), opt.type
+                )
         except options.UnknownOption:
             invalid_options.add(key)
             logger.error(
                 "Option %s is not registered. and cannot be updated.",
                 key,
-            )
-
-        opt = options.lookup_key(key)
-        if not opt.type.test(value):
-            invalid_options.add(key)
-            logger.error(
-                "Option %s has invalid type. got %s, expected %s.", key, type(value), opt.type
             )
 
     ctx.obj["invalid_options"] = invalid_options
