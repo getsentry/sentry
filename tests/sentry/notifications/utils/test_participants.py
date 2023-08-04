@@ -251,7 +251,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             organization_id=self.organization.id, name=self.organization.id
         )
 
-        user_ids = self.project.member_set.values_list("user_id", flat=True)
+        user_ids = list(self.project.member_set.values_list("user_id", flat=True))
         with assume_test_silo_mode(SiloMode.CONTROL):
             users = [Owner("user", user.email) for user in User.objects.filter(id__in=user_ids)]
         ProjectOwnership.objects.create(
