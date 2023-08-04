@@ -83,37 +83,32 @@ class SiloModeTestDecorator:
         self.silo_modes = frozenset(sm for sm in silo_modes if sm != SiloMode.MONOLITH)
 
     @staticmethod
-    def _is_acceptance_test(test_class: type) -> bool:
-        from sentry.testutils.cases import AcceptanceTestCase
+    @contextmanager
+    def test_config(regions: Sequence[Region] | None, silo_mode: SiloMode):
+        final_regions = tuple(regions or _DEFAULT_TEST_REGIONS)
 
-        return issubclass(test_class, AcceptanceTestCase)
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(
+                override_settings(
+                    SILO_MODE=silo_mode,
+                    SENTRY_SUBNET_SECRET="secret",
+                    SENTRY_CONTROL_ADDRESS="http://controlserver/",
+                    SENTRY_MONOLITH_REGION=final_regions[0].name,
+                )
+            )
+            stack.enter_context(override_regions(final_regions))
+            if silo_mode == SiloMode.REGION:
+                stack.enter_context(override_settings(SENTRY_REGION=final_regions[0].name))
+
+            yield
 
     def _add_siloed_test_classes_to_module(
         self, test_class: Type[TestCase], regions: Sequence[Region] | None
     ) -> Type[TestCase]:
-        is_acceptance_test = self._is_acceptance_test(test_class)
-        final_regions = tuple(regions or _DEFAULT_TEST_REGIONS)
-        # settings: Dict[str, Any] | None = getattr(test_class, '_overridden_settings', None)
-
         def create_overriding_test_class(name: str, silo_mode: SiloMode) -> Type[TestCase]:
             def decorate_with_context(callable: Callable[..., Any]) -> Callable[..., Any]:
                 def wrapper(*args, **kwds):
-                    with contextlib.ExitStack() as stack:
-                        stack.enter_context(
-                            override_settings(
-                                SILO_MODE=silo_mode,
-                                SINGLE_SERVER_SILO_MODE=is_acceptance_test,
-                                SENTRY_SUBNET_SECRET="secret",
-                                SENTRY_CONTROL_ADDRESS="http://controlserver/",
-                                SENTRY_MONOLITH_REGION=final_regions[0].name,
-                            )
-                        )
-                        stack.enter_context(override_regions(final_regions))
-                        if silo_mode == SiloMode.REGION:
-                            stack.enter_context(
-                                override_settings(SENTRY_REGION=final_regions[0].name)
-                            )
-
+                    with SiloModeTestDecorator.test_config(regions, silo_mode):
                         return callable(*args, **kwds)
 
                 functools.update_wrapper(wrapper, callable)
@@ -163,22 +158,10 @@ class SiloModeTestDecorator:
     def _mark_parameterized_by_silo_mode(
         self, test_method: TestMethod, regions: Sequence[Region] | None
     ) -> TestMethod:
-        regions = tuple(regions or _DEFAULT_TEST_REGIONS)
-
         def replacement_test_method(*args: Any, **kwargs: Any) -> None:
             silo_mode = kwargs.pop("silo_mode")
-            with override_settings(
-                SILO_MODE=silo_mode,
-                SENTRY_SUBNET_SECRET="secret",
-                SENTRY_CONTROL_ADDRESS="http://controlserver/",
-                SENTRY_MONOLITH_REGION=regions[0].name,
-            ):
-                with override_regions(regions):
-                    if silo_mode == SiloMode.REGION:
-                        with override_settings(SENTRY_REGION=regions[0].name):
-                            test_method(*args, **kwargs)
-                    else:
-                        test_method(*args, **kwargs)
+            with SiloModeTestDecorator.test_config(regions, silo_mode):
+                test_method(*args, **kwargs)
 
         orig_sig = inspect.signature(test_method)
         new_test_method = functools.update_wrapper(replacement_test_method, test_method)

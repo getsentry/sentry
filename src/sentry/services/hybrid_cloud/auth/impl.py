@@ -4,7 +4,7 @@ import base64
 from typing import Any, List, Mapping
 
 from django.contrib.auth.models import AnonymousUser
-from django.db import connections, router, transaction
+from django.db import router, transaction
 from django.db.models import Count, F, Q
 
 from sentry import roles
@@ -41,7 +41,6 @@ from sentry.services.hybrid_cloud.organization import (
 )
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import unguarded_write
-from sentry.silo.base import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
 
 _SSO_BYPASS = RpcMemberSsoState(is_required=False, is_valid=True)
@@ -189,8 +188,6 @@ class DatabaseBackedAuthService(AuthService):
             with transaction.atomic(using=router.db_for_read(User)):
                 result.user = user_service.get_user(user_id=fake_request.user.id)
                 transaction.set_rollback(True, using=router.db_for_read(User))
-            if SiloMode.single_process_silo_mode():
-                connections.close_all()
 
         return result
 

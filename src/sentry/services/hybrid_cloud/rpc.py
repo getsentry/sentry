@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-import contextlib
 import hashlib
 import hmac
 import inspect
@@ -617,22 +616,19 @@ class _RemoteSiloCall:
             f"remote service method to {self.path} called inside transaction!  Move service calls to outside of transactions."
         )
 
-        with SiloMode.exit_single_process_silo_context():
-            if self.region:
-                target_mode = SiloMode.REGION
-            else:
-                target_mode = SiloMode.CONTROL
+        if self.region:
+            target_mode = SiloMode.REGION
+        else:
+            target_mode = SiloMode.CONTROL
 
-            with contextlib.ExitStack() as stack:
-                if not SiloMode.single_process_silo_mode():
-                    stack.enter_context(
-                        SiloMode.enter_single_process_silo_context(target_mode, self.region)
-                    )
-                content_type = f"application/json; charset={_RPC_CONTENT_CHARSET}"
-                extra: Mapping[str, Any] = {
-                    f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
-                }
-                return Client().post(self.path, data, content_type, **extra)
+        with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
+            target_mode, self.region
+        ):
+            content_type = f"application/json; charset={_RPC_CONTENT_CHARSET}"
+            extra: Mapping[str, Any] = {
+                f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
+            }
+            return Client().post(self.path, data, content_type, **extra)
 
     def _fire_request(self, headers: Mapping[str, str], data: bytes) -> requests.Response:
         # TODO: Performance considerations (persistent connections, pooling, etc.)?
