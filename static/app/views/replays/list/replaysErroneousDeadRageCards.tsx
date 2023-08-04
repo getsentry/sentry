@@ -179,7 +179,7 @@ function CardTable({
 
   return (
     <Fragment>
-      <StyledReplayTable
+      <ReplayTable
         fetchError={fetchError}
         isFetching={isFetching}
         replays={replays}
@@ -223,10 +223,6 @@ const SplitCardContainer = styled('div')`
   grid-auto-flow: column;
   gap: 0 ${space(2)};
   align-items: stretch;
-`;
-
-const StyledReplayTable = styled(ReplayTable)`
-  height: 221px;
 `;
 
 const StyledButton = styled(Button)`
