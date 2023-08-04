@@ -1126,7 +1126,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 20 minutes
         "schedule": crontab(minute="*/20"),
     },
-    "detect-regressed-functions": {
+    "statistical-detectors-detect-regressions": {
         "task": "sentry.tasks.statistical_detectors.run_detection",
         "schedule": crontab(minute=0, hour="*/1"),
     },
