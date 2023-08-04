@@ -302,6 +302,11 @@ class OrganizationService(RpcService):
             signal=signal, organization_id=organization_id, args=args
         )
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_teams_for_user(self, *, organization_id: int, user_id: int) -> List[RpcTeam]:
+        pass
+
 
 class OrganizationSignalService(abc.ABC):
     @abc.abstractmethod
