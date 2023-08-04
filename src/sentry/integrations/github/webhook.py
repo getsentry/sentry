@@ -126,6 +126,10 @@ class Webhook:
                             )
                             metrics.incr("sentry.integration_repo_provider.repo_exists")
                             continue
+                        logger.info(
+                            "github.auto-repo-linking.create_repository",
+                            extra={"organization_id": rpc_org.id},
+                        )
                         metrics.incr("github.webhook.create_repository")
 
                 repos = repos.all()
