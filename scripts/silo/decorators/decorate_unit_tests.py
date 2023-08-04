@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from sentry.testutils.modelmanifest import ModelManifest
-from sentry.utils.silo.decorate_unit_tests import decorate_unit_tests
+from sentry.testutils.modelmanifest import ModelManifest  # NOQA:S007
+from sentry.testutils.silo.decorate_unit_tests import decorate_unit_tests  # NOQA:S007
 
 """Add silo mode decorators to unit test cases en masse.
 

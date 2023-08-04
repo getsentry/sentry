@@ -53,8 +53,11 @@ from sentry.notifications.utils import (
     get_issue_replay_link,
     get_rules,
 )
-from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.notifications import SAMPLE_TO_OCCURRENCE_MAP, TEST_ISSUE_OCCURRENCE
+from sentry.testutils.helpers.datetime import before_now  # NOQA:S007
+from sentry.testutils.helpers.notifications import (  # NOQA:S007
+    SAMPLE_TO_OCCURRENCE_MAP,
+    TEST_ISSUE_OCCURRENCE,
+)
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
