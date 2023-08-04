@@ -9,7 +9,13 @@ import sentry.utils.auth
 from sentry.models import User
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.utils.auth import EmailAuthBackend, SsoSession, get_login_redirect, login
+from sentry.utils.auth import (
+    EmailAuthBackend,
+    SsoSession,
+    construct_link_with_query,
+    get_login_redirect,
+    login,
+)
 
 
 @control_silo_test(stable=True)
@@ -170,3 +176,17 @@ def test_sso_expiry_default():
 def test_sso_expiry_from_env():
     value = sentry.utils.auth._sso_expiry_from_env("20")
     assert value == timedelta(seconds=20)
+
+
+def test_construct_link_with_query():
+    path = "foobar"
+    query_params = {"biz": "baz"}
+    expected_path = "foobar?biz=baz"
+
+    assert construct_link_with_query(path=path, query_params=query_params) == expected_path
+
+    path = "foobar"
+    query_params = {}
+    expected_path = "foobar"
+
+    assert construct_link_with_query(path=path, query_params=query_params) == expected_path
