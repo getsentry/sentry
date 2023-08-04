@@ -89,6 +89,15 @@ class Webhook:
                 )
             }
 
+            logger.info(
+                "github.repository-event",
+                extra={
+                    "organization_ids": set(orgs.keys()),
+                    "external_id": str(event["repository"]["id"]),
+                    "repository": event.get("repository", {}).get("full_name", None),
+                },
+            )
+
             # TODO: Replace with repository_service; deal with potential multiple regions
             repos = Repository.objects.filter(
                 organization_id__in=orgs.keys(),
