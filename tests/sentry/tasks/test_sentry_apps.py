@@ -4,6 +4,7 @@ from unittest.mock import ANY, patch
 
 import pytest
 from celery import Task
+from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
 from freezegun import freeze_time
@@ -12,6 +13,7 @@ from requests.exceptions import Timeout
 from sentry import features
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
+from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models import Activity, Group, Rule, SentryApp, SentryAppInstallation, SentryFunction
 from sentry.models.integrations.utils import get_redis_key
@@ -894,3 +896,23 @@ class TestWebhookRequests(TestCase):
         assert self.integration_buffer.is_integration_broken() is True
         self.sentry_app.refresh_from_db()  # reload to get updated events
         assert self.sentry_app.events == events  # check that events are the same / app is enabled
+
+    def test_notify_disabled_email(self):
+        with self.tasks():
+            notify_disable(
+                self.organization,
+                self.sentry_app,
+                get_redis_key(self.sentry_app, self.organization.id),
+            )
+        assert len(mail.outbox) == 1
+        msg = mail.outbox[0]
+        assert (
+            msg.subject
+            == f"Action required: re-authenticate or fix your {self.sentry_app.name} integration"
+        )
+        assert (
+            self.organization.absolute_url(
+                f"/settings/{self.organization.slug}/integrations/{self.sentry_app.slug}"
+            )
+            in msg.body
+        )
