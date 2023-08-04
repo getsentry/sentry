@@ -722,6 +722,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "store.save-event-highcpu-platforms", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+register(
     "store.symbolicate-event-lpq-never", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
@@ -1421,23 +1424,27 @@ register(
 )
 
 # The flag activates whether to send group attributes messages to kafka
-register("issues.group_attributes.send_kafka", default=False, flags=FLAG_MODIFIABLE_BOOL)
+register(
+    "issues.group_attributes.send_kafka",
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Enables statistical detectors for a project
 register(
     "statistical_detectors.enable",
     default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "statistical_detectors.enable.projects.performance",
     type=Sequence,
     default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "statistical_detectors.enable.projects.profiling",
     type=Sequence,
     default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

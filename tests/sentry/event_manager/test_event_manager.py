@@ -1736,7 +1736,23 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert event.message == "hello world"
 
-    def test_search_message(self):
+    def test_search_message_simple(self):
+        manager = EventManager(
+            make_event(
+                **{
+                    "message": "test",
+                    "transaction": "sentry.tasks.process",
+                }
+            )
+        )
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        search_message = event.search_message
+        assert "test" in search_message
+        assert "sentry.tasks.process" in search_message
+
+    def test_search_message_prefers_log_entry_message(self):
         manager = EventManager(
             make_event(
                 **{
@@ -1748,7 +1764,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         )
         manager.normalize()
         event = manager.save(self.project.id)
-        assert event.search_message == "hello world sentry.tasks.process"
+
+        search_message = event.search_message
+        assert "test" not in search_message
+        assert "hello world" in search_message
+        assert "sentry.tasks.process" in search_message
 
     def test_stringified_message(self):
         manager = EventManager(make_event(**{"message": 1234}))

@@ -23,55 +23,63 @@ export class FlamegraphChart {
     y: [0, 0],
   };
 
-  static Empty = new FlamegraphChart(Rect.Empty(), {unit: 'percent', values: []}, [
-    [0, 0, 0, 0],
-  ]);
+  static Empty = new FlamegraphChart(Rect.Empty(), [], [[0, 0, 0, 0]]);
 
   constructor(
     configSpace: Rect,
-    measurement: Profiling.Measurement,
+    measurements: Profiling.Measurement[],
     colors: ColorChannels[]
   ) {
     this.series = new Array<Series>();
 
-    if (!measurement || !measurement.values.length) {
+    if (!measurements || !measurements.length) {
       this.formatter = makeFormatter('percent');
       this.configSpace = configSpace.clone();
       return;
     }
 
-    this.series[0] = {
-      type: 'area',
-      lineColor: colorComponentsToRGBA(colors[0]),
-      fillColor: colorComponentsToRGBA(colors[0]),
-      points: new Array(measurement.values.length),
-    };
+    const type = measurements.length > 0 ? 'line' : 'area';
 
-    for (let i = 0; i < measurement.values.length; i++) {
-      const m = measurement.values[i];
+    for (let j = 0; j < measurements.length; j++) {
+      const measurement = measurements[j];
+      this.series[j] = {
+        type,
+        lineColor: colorComponentsToRGBA(colors[j]),
+        fillColor: colorComponentsToRGBA(colors[j]),
+        points: new Array(measurement.values.length).fill(0),
+      };
 
-      // Track and update Y max and min
-      if (m.value > this.domains.y[1]) {
-        this.domains.y[1] = m.value;
-      }
-      if (m.value < this.domains.y[0]) {
-        this.domains.y[0] = m.value;
-      }
+      for (let i = 0; i < measurement.values.length; i++) {
+        const m = measurement.values[i];
 
-      // Track and update X domain max and min
-      if (m.elapsed_since_start_ns > this.domains.x[1]) {
-        this.domains.x[1] = m.elapsed_since_start_ns;
-      }
-      if (m.elapsed_since_start_ns < this.domains.x[0]) {
-        this.domains.x[1] = m.elapsed_since_start_ns;
-      }
+        // Track and update Y max and min
+        if (m.value > this.domains.y[1]) {
+          this.domains.y[1] = m.value;
+        }
+        if (m.value < this.domains.y[0]) {
+          this.domains.y[0] = m.value;
+        }
 
-      this.series[0].points[i] = {x: m.elapsed_since_start_ns, y: m.value};
+        // Track and update X domain max and min
+        if (m.elapsed_since_start_ns > this.domains.x[1]) {
+          this.domains.x[1] = m.elapsed_since_start_ns;
+        }
+        if (m.elapsed_since_start_ns < this.domains.x[0]) {
+          this.domains.x[1] = m.elapsed_since_start_ns;
+        }
+
+        this.series[j].points[i] = {x: m.elapsed_since_start_ns, y: m.value};
+      }
     }
+
+    this.series.sort((a, b) => {
+      const aAvg = a.points.reduce((acc, point) => acc + point.y, 0) / a.points.length;
+      const bAvg = b.points.reduce((acc, point) => acc + point.y, 0) / b.points.length;
+      return bAvg - aAvg;
+    });
 
     this.domains.y[1] = 100;
     this.configSpace = configSpace.withHeight(this.domains.y[1] - this.domains.y[0]);
-
-    this.formatter = makeFormatter(measurement.unit, 0);
+    this.formatter = makeFormatter(measurements[0].unit, 0);
   }
 }

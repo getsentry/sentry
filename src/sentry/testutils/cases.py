@@ -3,7 +3,9 @@ from __future__ import annotations
 import responses
 import sentry_kafka_schemas
 
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
+from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
 
 __all__ = (
     "TestCase",
@@ -1332,6 +1334,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         timestamp: int,
         value,
         use_case_id: UseCaseID,
+        aggregation_option: Optional[AggregationOption] = None,
     ):
         mapping_meta = {}
 
@@ -1360,7 +1363,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         def tag_value(name):
             assert isinstance(name, str)
 
-            if use_case_id == UseCaseID.TRANSACTIONS:
+            if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
                 return name
 
             res = indexer.record(
@@ -1393,13 +1396,16 @@ class BaseMetricsTestCase(SnubaTestCase):
             # making up a sentry_received_timestamp, but it should be sometime
             # after the timestamp of the event
             "sentry_received_timestamp": timestamp + 10,
-            "version": 2 if use_case_id == UseCaseID.TRANSACTIONS else 1,
+            "version": 2 if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE else 1,
         }
 
         msg["mapping_meta"] = {}
         msg["mapping_meta"][msg["type"]] = mapping_meta
 
-        if use_case_id == UseCaseID.TRANSACTIONS:
+        if aggregation_option:
+            msg["aggregation_option"] = aggregation_option.value
+
+        if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
             entity = f"generic_metrics_{type}s"
         else:
             entity = f"metrics_{type}s"
@@ -1479,6 +1485,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
+        aggregation_option: Optional[AggregationOption] = None,
     ):
         # We subtract one second in order to account for right non-inclusivity in the query. If we wouldn't do this
         # some data won't be returned (this applies only if we use self.now() in the "end" bound of the query).
@@ -1508,6 +1515,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             ),
             value=value,
             use_case_id=use_case_id,
+            aggregation_option=aggregation_option,
         )
 
     @staticmethod
@@ -1553,6 +1561,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
+        aggregation_option: Optional[AggregationOption] = None,
     ):
         self._store_metric(
             type=type,
@@ -1566,6 +1575,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
             seconds_before_now=seconds_before_now,
+            aggregation_option=aggregation_option,
         )
 
     def store_release_health_metric(
@@ -1687,6 +1697,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         timestamp: Optional[datetime] = None,
         project: Optional[int] = None,
         use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,
+        aggregation_option: Optional[AggregationOption] = None,
     ):
         internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
@@ -1715,6 +1726,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 int(metric_timestamp),
                 subvalue,
                 use_case_id=UseCaseID.TRANSACTIONS,
+                aggregation_option=aggregation_option,
             )
 
     def store_span_metric(

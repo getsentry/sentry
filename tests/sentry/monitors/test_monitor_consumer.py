@@ -390,6 +390,19 @@ class MonitorConsumerTest(TestCase):
             checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
             assert len(checkins) == 2
 
+    def test_invalid_guid_environment_match(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_message(monitor.slug, status="in_progress")
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.monitor_environment.environment.name == "production"
+
+        self.send_message(monitor.slug, guid=self.guid, status="ok", environment="test")
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.IN_PROGRESS
+        assert checkin.monitor_environment.environment.name != "test"
+
     def test_invalid_duration(self):
         monitor = self._create_monitor(slug="my-monitor")
 
