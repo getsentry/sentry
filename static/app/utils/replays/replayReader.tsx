@@ -68,7 +68,7 @@ function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
 
   const clickFrames = frames.filter(frame => frame.category === 'ui.click');
 
-  const noClickFrames = frames.filter(
+  const otherFrames = frames.filter(
     frame => !(slowClickFrames.includes(frame) || clickFrames.includes(frame))
   );
 
@@ -84,7 +84,7 @@ function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
     );
   });
 
-  return uniqueClickFrames.concat(noClickFrames).concat(slowClickFrames);
+  return uniqueClickFrames.concat(otherFrames).concat(slowClickFrames);
 }
 
 export default class ReplayReader {
@@ -261,18 +261,6 @@ export default class ReplayReader {
         ['navigation.navigate', 'navigation.reload', 'navigation.back_forward'].includes(
           frame.op
         )
-      ),
-      ...this._errors,
-    ].sort(sortFrames)
-  );
-
-  getTimelineFrames = memoize(() =>
-    [
-      ...this._sortedBreadcrumbFrames.filter(frame =>
-        ['replay.init', 'ui.click'].includes(frame.category)
-      ),
-      ...this._sortedSpanFrames.filter(frame =>
-        ['navigation.navigate', 'navigation.reload'].includes(frame.op)
       ),
       ...this._errors,
     ].sort(sortFrames)
