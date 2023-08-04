@@ -115,6 +115,10 @@ class Webhook:
                 }
 
                 for org in orgs.values():
+                    logger.info(
+                        "github.auto-repo-linking.orgs",
+                        extra={"organization_id": org.id},
+                    )
                     rpc_org = serialize_rpc_organization(org)
 
                     if features.has("organizations:auto-repo-linking", org):
