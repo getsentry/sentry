@@ -4,7 +4,7 @@ from unittest import mock
 import pytest
 import responses
 
-from sentry.integrations.mixins.repositories import RepositoryMixin
+from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.models import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
@@ -67,7 +67,8 @@ class GitHubAppsClientTest(TestCase):
             integration_id=integration.id,
         )
         self.install = integration.get_installation(organization_id=self.organization.id)
-        self.client = self.install.get_client()
+        assert isinstance(self.install, GitHubEnterpriseIntegration)
+        self.gh_client = self.install.get_client()
         responses.add(
             method=responses.POST,
             url=f"{self.base_url}/app/installations/install_id_1/access_tokens",
@@ -88,8 +89,7 @@ class GitHubAppsClientTest(TestCase):
             json={"text": 200},
         )
 
-        assert hasattr(self.client, "check_file")
-        resp = self.client.check_file(self.repo, path, version)
+        resp = self.gh_client.check_file(self.repo, path, version)
         assert resp.status_code == 200
 
     @responses.activate
@@ -101,8 +101,7 @@ class GitHubAppsClientTest(TestCase):
         responses.add(method=responses.HEAD, url=url, status=404)
 
         with pytest.raises(ApiError):
-            assert hasattr(self.client, "check_file")
-            self.client.check_file(self.repo, path, version)
+            self.gh_client.check_file(self.repo, path, version)
         assert responses.calls[1].response.status_code == 404
 
     @responses.activate
@@ -117,7 +116,7 @@ class GitHubAppsClientTest(TestCase):
             json={"text": 200},
         )
 
-        assert isinstance(self.install, RepositoryMixin)
+        assert isinstance(self.install, GitHubEnterpriseIntegration)
         source_url = self.install.get_stacktrace_link(self.repo, path, "master", version)
         assert (
             source_url
@@ -146,7 +145,7 @@ class GitHubAppsClientTest(TestCase):
             url=url,
             json={"content": base64.b64encode(GITHUB_CODEOWNERS["raw"].encode()).decode("ascii")},
         )
-        assert isinstance(self.install, RepositoryMixin)
+        assert isinstance(self.install, GitHubEnterpriseIntegration)
         result = self.install.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch
         )
