@@ -15,7 +15,7 @@ from sentry.incidents.logic import (
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
-from sentry.models import SentryAppComponent, SentryAppInstallation
+from sentry.models import Project, SentryAppComponent, SentryAppInstallation
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -74,6 +74,17 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
 
 def update_alert_rule(request: Request, organization, alert_rule):
     data = request.data
+    organization_id = data.get("organizationId")
+    if not organization_id:
+        project_slugs = data.get("projects")
+        if project_slugs:
+            projects = Project.objects.filter(slug__in=project_slugs)
+            if not projects:
+                return Response(
+                    "Must pass organizationId or projects in request data",
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+                organization_id = projects[0].organization_id
     serializer = DrfAlertRuleSerializer(
         context={
             "organization": organization,
@@ -81,12 +92,12 @@ def update_alert_rule(request: Request, organization, alert_rule):
             "user": request.user,
             "ip_address": request.META.get("REMOTE_ADDR"),
             "installations": app_service.get_installed_for_organization(
-                organization_id=organization.id
+                organization_id=organization_id
             ),
         },
         instance=alert_rule,
         data=data,
-        partial=True,  # only used for proj one - does it cause problems to be used for org stuff?
+        partial=True,
     )
     if serializer.is_valid():
         trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
@@ -94,7 +105,7 @@ def update_alert_rule(request: Request, organization, alert_rule):
             # need to kick off an async job for Slack
             client = RedisRuleStatus()
             task_args = {
-                "organization_id": data.get("organizationId"),
+                "organization_id": organization_id,
                 "uuid": client.uuid,
                 "data": data,
                 "alert_rule_id": alert_rule.id,
