@@ -627,7 +627,7 @@ class _RemoteSiloCall:
             extra: Mapping[str, Any] = {
                 f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
             }
-            return Client().post(self.path, data, headers.get("Content-Type"), **extra)
+            return Client().post(self.path, data, headers["Content-Type"], **extra)
 
     def _fire_request(self, headers: Mapping[str, str], data: bytes) -> requests.Response:
         # TODO: Performance considerations (persistent connections, pooling, etc.)?
