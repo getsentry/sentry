@@ -1468,6 +1468,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-discord-notifications": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": False,
+    # Enable automatic integration key generation
+    "organizations:integrations-opsgenie-automatic-key-gen": False,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
     # Enable data forwarding functionality for organizations.
