@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Mapping, Type
+from typing import Callable, Mapping, Type
+
+from django.http import HttpRequest, HttpResponse
 
 from sentry.silo import SiloMode
 
@@ -46,10 +48,10 @@ class IntegrationControlMiddleware:
         parser.provider: parser for parser in ACTIVE_PARSERS
     }
 
-    def __init__(self, get_response):
+    def __init__(self, get_response: Callable[[], HttpResponse]):
         self.get_response = get_response
 
-    def _identify_provider(self, request) -> str | None:
+    def _identify_provider(self, request: HttpRequest) -> str | None:
         """
         Parses the provider out of the request path
             e.g. `/extensions/slack/commands/` -> `slack`
@@ -65,7 +67,7 @@ class IntegrationControlMiddleware:
             return None
         return result.group(1)
 
-    def _should_operate(self, request) -> bool:
+    def _should_operate(self, request: HttpRequest) -> bool:
         """
         Determines whether this middleware will operate or just pass the request along.
         """
@@ -74,7 +76,7 @@ class IntegrationControlMiddleware:
         is_not_setup = not request.path.endswith(self.setup_suffix)
         return is_correct_silo and is_integration and is_not_setup
 
-    def __call__(self, request):
+    def __call__(self, request: HttpRequest):
         if not self._should_operate(request):
             return self.get_response(request)
 

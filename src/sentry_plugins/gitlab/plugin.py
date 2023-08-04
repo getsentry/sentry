@@ -20,20 +20,6 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
     feature_descriptions = [
         FeatureDescription(
             """
-            Track commits and releases (learn more
-            [here](https://docs.sentry.io/learn/releases/))
-            """,
-            IntegrationFeatures.COMMITS,
-        ),
-        FeatureDescription(
-            """
-            Resolve Sentry issues via GitLab commits and merge requests by
-            including `Fixes PROJ-ID` in the message
-            """,
-            IntegrationFeatures.COMMITS,
-        ),
-        FeatureDescription(
-            """
             Create GitLab issues from Sentry
             """,
             IntegrationFeatures.ISSUE_BASIC,

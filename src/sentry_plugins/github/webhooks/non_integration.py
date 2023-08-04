@@ -12,7 +12,7 @@ from .base import GithubWebhookBase
 logger = logging.getLogger("sentry.webhooks")
 
 
-class GithubWebhookEndpoint(GithubWebhookBase):
+class GithubPluginWebhookEndpoint(GithubWebhookBase):
     def get_logging_data(self, organization):
         return {"organization_id": organization.id}
 
@@ -22,6 +22,10 @@ class GithubWebhookEndpoint(GithubWebhookBase):
         )
 
     def post(self, request: Request, organization_id):
+        logger.error(
+            "github_plugin.webhook.deprecation_check",
+            extra={"organization_id": organization_id, "meta": request.META},
+        )
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:
