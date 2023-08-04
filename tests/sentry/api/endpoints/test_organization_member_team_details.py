@@ -2,6 +2,7 @@ from functools import cached_property
 
 from rest_framework import status
 
+from sentry.api.endpoints.organization_member.team_details import ERR_INSUFFICIENT_ROLE
 from sentry.auth import access
 from sentry.models import (
     Organization,
@@ -489,8 +490,8 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     def test_admin_cannot_remove_member_using_user_token(self):
         # admin not in team
         self.login_as(self.admin)
-        token = self.create_user_auth_token(user=self.admin_user, scope_list=["team:write"])
-        self.get_error_response(
+        token = self.create_user_auth_token(user=self.admin_user, scope_list=["team:admin"])
+        response = self.get_error_response(
             self.org.slug,
             self.member_on_team.id,
             self.team.slug,
@@ -498,6 +499,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             status_code=400,
         )
 
+        assert response.data["detail"] == ERR_INSUFFICIENT_ROLE
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.member_on_team
         ).exists()
@@ -535,7 +537,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     def test_admin_on_team_can_remove_members_using_user_token(self):
         self.login_as(self.admin_on_team)
 
-        token = self.create_user_auth_token(user=self.admin_on_team_user, scope_list=["team:write"])
+        token = self.create_user_auth_token(user=self.admin_on_team_user, scope_list=["team:admin"])
         self.get_success_response(
             self.org.slug,
             self.member_on_team.id,
@@ -581,7 +583,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     def test_manager_can_remove_members_using_user_token(self):
         self.login_as(self.manager)
 
-        scopes = ["org:write", "team:write"]
+        scopes = ["org:write", "team:admin"]
         members = [self.member_on_team, self.manager_on_team, self.owner_on_team]
         for scope in scopes:
             for member in members:
@@ -631,7 +633,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     def test_owner_can_remove_members_using_user_token(self):
         self.login_as(self.owner)
 
-        scopes = ["org:write", "org:admin", "team:write"]
+        scopes = ["org:write", "org:admin", "team:admin"]
         members = [self.member_on_team, self.manager_on_team, self.owner_on_team]
         for scope in scopes:
             for member in members:

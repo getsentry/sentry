@@ -309,7 +309,7 @@ export function Provider({
       }
 
       const maxTimeMs = replayerRef.current?.getMetaData().totalTime;
-      const time = requestedTimeMs > maxTimeMs ? 0 : requestedTimeMs;
+      const time = requestedTimeMs > maxTimeMs ? 0 : Math.max(0, requestedTimeMs);
 
       // Sometimes rrweb doesn't get to the exact target time, as long as it has
       // changed away from the previous time then we can hide then buffering message.

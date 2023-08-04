@@ -30,6 +30,7 @@ from sentry.services.hybrid_cloud.integration.model import (
     RpcOrganizationIntegration,
 )
 from sentry.services.hybrid_cloud.integration.service import integration_service
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json, metrics
@@ -96,6 +97,10 @@ class Webhook:
             )
 
             if not repos.exists():
+                logger.info(
+                    "github.auto-repo-linking", extra={"organization_ids": list(orgs.keys())}
+                )
+
                 provider = get_integration_repository_provider(integration)
 
                 config = {
@@ -105,12 +110,26 @@ class Webhook:
                 }
 
                 for org in orgs.values():
-                    if features.has("organizations:auto-repo-linking", org):
+                    rpc_org = serialize_rpc_organization(org)
+
+                    if features.has("organizations:auto-repo-linking", rpc_org):
+                        logger.info(
+                            "github.auto-repo-linking.create_repository",
+                            extra={"organization_id": rpc_org.id},
+                        )
                         try:
-                            provider.create_repository(config, org)
+                            provider.create_repository(repo_config=config, organization=rpc_org)
                         except RepoExistsError:
+                            logger.info(
+                                "github.auto-repo-linking.repo_exists",
+                                extra={"organization_id": rpc_org.id},
+                            )
                             metrics.incr("sentry.integration_repo_provider.repo_exists")
                             continue
+                        logger.info(
+                            "github.auto-repo-linking.create_repository",
+                            extra={"organization_id": rpc_org.id},
+                        )
                         metrics.incr("github.webhook.create_repository")
 
                 repos = repos.all()
@@ -331,7 +350,8 @@ class PushEventWebhook(Webhook):
             else:
                 author = authors[author_email]
 
-            author.preload_users()
+            if author:
+                author.preload_users()
             try:
                 with transaction.atomic(router.db_for_write(Commit)):
                     c = Commit.objects.create(

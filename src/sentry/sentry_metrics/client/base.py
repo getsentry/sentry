@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from typing import Mapping, Optional, Sequence, Union
+from typing import Dict, Optional, Sequence, Union
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.utils.services import Service
 
 
-class GenericMetricsBackend(ABC):
-    @abstractmethod
+class GenericMetricsBackend(Service):
     def counter(
         self,
         use_case_id: UseCaseID,
@@ -15,7 +14,7 @@ class GenericMetricsBackend(ABC):
         project_id: int,
         metric_name: str,
         value: Union[int, float],
-        tags: Mapping[str, str],
+        tags: Dict[str, str],
         unit: Optional[str],
     ) -> None:
 
@@ -27,7 +26,6 @@ class GenericMetricsBackend(ABC):
 
         raise NotImplementedError()
 
-    @abstractmethod
     def set(
         self,
         use_case_id: UseCaseID,
@@ -35,7 +33,7 @@ class GenericMetricsBackend(ABC):
         project_id: int,
         metric_name: str,
         value: Sequence[int],
-        tags: Mapping[str, str],
+        tags: Dict[str, str],
         unit: Optional[str],
     ) -> None:
 
@@ -46,7 +44,6 @@ class GenericMetricsBackend(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
     def distribution(
         self,
         use_case_id: UseCaseID,
@@ -54,7 +51,7 @@ class GenericMetricsBackend(ABC):
         project_id: int,
         metric_name: str,
         value: Sequence[Union[int, float]],
-        tags: Mapping[str, str],
+        tags: Dict[str, str],
         unit: Optional[str],
     ) -> None:
 
@@ -62,5 +59,11 @@ class GenericMetricsBackend(ABC):
         Used for emitting a distribution metric for internal use cases only. Can
         support a sequence of values. Ensure that the use_case_id passed in
         has been registered in the UseCaseID enum.
+        """
+        raise NotImplementedError()
+
+    def close(self) -> None:
+        """
+        Calling this is not required and is mostly for usage in tests
         """
         raise NotImplementedError()
