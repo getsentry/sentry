@@ -1,4 +1,5 @@
 from datetime import timedelta
+from email.headerregistry import Address
 
 from django.db.models import Count, Q, QuerySet
 from django.utils import timezone
@@ -58,8 +59,8 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
             .order_by("-commit_count")
         )
 
-    def _get_domain_from_email(self, email: str) -> str:
-        return email.split("@")[1]
+    def _get_email_domain(self, email: str) -> str:
+        return Address(addr_spec=email).domain
 
     def get(self, request: Request, organization) -> Response:
         queryset = self._get_missing_members(organization)
@@ -69,25 +70,19 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
             roles=[roles.get_top_dog().id]
         ).exclude(user_email=None)
 
-        prev_domain = self._get_domain_from_email(org_owners[0].user_email)
-        common_domain = True
-        for org_owner in org_owners:
-            if prev_domain and self._get_domain_from_email(org_owner.user_email) != prev_domain:
-                common_domain = False
-                break
+        owner_emails = {self._get_email_domain(owner.user_email) for owner in org_owners}
 
-        if common_domain and prev_domain:
-            queryset = queryset.filter(email__endswith=prev_domain)
+        if len(owner_emails) == 1:
+            queryset = queryset.filter(email__endswith=owner_emails.pop())
 
         query = request.GET.get("query")
         if query:
             tokens = tokenize_query(query)
-            for key, value in tokens.items():
-                if key == "query":
-                    query_value = " ".join(value)
-                    queryset = queryset.filter(
-                        Q(email__icontains=query_value) | Q(external_id__icontains=query_value)
-                    )
+            if "query" in tokens:
+                query_value = " ".join(tokens["query"])
+                queryset = queryset.filter(
+                    Q(email__icontains=query_value) | Q(external_id__icontains=query_value)
+                )
 
         return Response(
             [
