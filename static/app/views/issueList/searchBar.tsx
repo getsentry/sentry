@@ -92,7 +92,6 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
     [tagValueLoader]
   );
 
-  const hasSearchShortcuts = organization.features.includes('issue-search-shortcuts');
   const recommendedGroup: SearchGroup = {
     title: t('Popular Filters'),
     type: 'header',
@@ -147,7 +146,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       excludedTags={EXCLUDED_TAGS}
       maxMenuHeight={500}
       supportedTags={getSupportedTags(tags)}
-      defaultSearchGroup={hasSearchShortcuts ? recommendedGroup : undefined}
+      defaultSearchGroup={recommendedGroup}
       organization={organization}
       {...props}
     />

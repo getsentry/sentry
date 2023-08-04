@@ -63,7 +63,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
           'Click on [selector] did not cause a visible effect within [timeout] ms',
           {
             selector: stringifyNodeAttributes(node),
-            timeout: frame.data.timeAfterClickMs,
+            timeout: Math.round(frame.data.timeAfterClickMs),
           }
         ),
         type: BreadcrumbType.ERROR,
@@ -77,7 +77,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
         'Click on [selector] took [duration] ms to have a visible effect',
         {
           selector: stringifyNodeAttributes(node),
-          duration: frame.data.timeAfterClickMs,
+          duration: Math.round(frame.data.timeAfterClickMs),
         }
       ),
       type: BreadcrumbType.WARNING,
@@ -227,7 +227,49 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: 'Paint',
     type: BreadcrumbType.INFO,
   }),
+  'resource.css': frame => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.NETWORK,
+    title: frame.description,
+    type: BreadcrumbType.HTTP,
+  }),
   'resource.fetch': frame => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.NETWORK,
+    title: frame.description,
+    type: BreadcrumbType.HTTP,
+  }),
+  'resource.iframe': frame => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.NETWORK,
+    title: frame.description,
+    type: BreadcrumbType.HTTP,
+  }),
+  'resource.img': frame => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.NETWORK,
+    title: frame.description,
+    type: BreadcrumbType.HTTP,
+  }),
+  'resource.link': frame => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.NETWORK,
+    title: frame.description,
+    type: BreadcrumbType.HTTP,
+  }),
+  'resource.other': frame => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.NETWORK,
+    title: frame.description,
+    type: BreadcrumbType.HTTP,
+  }),
+  'resource.script': frame => ({
     color: 'gray300',
     description: undefined,
     tabKey: TabKey.NETWORK,

@@ -634,6 +634,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         {
           ...rule,
           ...model.getTransformedData(),
+          projects: [project.slug],
           triggers: sanitizedTriggers,
           resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
           thresholdType,
@@ -755,7 +756,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     try {
       await this.api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/alert-rules/${ruleId}/`,
+        `/organizations/${organization.slug}/${projectId}/alert-rules/${ruleId}/`,
         {
           method: 'DELETE',
         }
@@ -983,8 +984,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             rule.id ? (
               <Confirm
                 disabled={formDisabled}
-                message={t('Are you sure you want to delete this alert rule?')}
-                header={t('Delete Alert Rule?')}
+                message={t(
+                  'Are you sure you want to delete "%s"? You won\'t be able to view the history of this alert once it\'s deleted.',
+                  rule.name
+                )}
+                header={<h5>{t('Delete Alert Rule?')}</h5>}
                 priority="danger"
                 confirmText={t('Delete Rule')}
                 onConfirm={this.handleDeleteRule}

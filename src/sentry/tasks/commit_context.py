@@ -6,7 +6,7 @@ from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 from sentry_sdk import set_tag
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.utils.commit_context import find_commit_context_for_event
@@ -361,9 +361,7 @@ def process_commit_context(
                 },  # Updates date of an existing owner, since we just matched them with this new event
             )
 
-            if features.has(
-                "organizations:pr-comment-bot", project.organization
-            ) and OrganizationOption.objects.get_value(
+            if OrganizationOption.objects.get_value(
                 organization=project.organization,
                 key="sentry:github_pr_bot",
                 default=True,

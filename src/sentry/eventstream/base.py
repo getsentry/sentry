@@ -141,7 +141,7 @@ class EventStream(Service):
     ) -> None:
         if event.get_tag("sample_event"):
             logger.info(
-                "inserting event",
+                "insert: inserting event",
                 extra={"event.id": event.event_id, "project_id": event.project_id},
             )
         self._dispatch_post_process_group_task(

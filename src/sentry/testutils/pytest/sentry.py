@@ -15,6 +15,7 @@ import pytest
 from django.conf import settings
 from sentry_sdk import Hub
 
+from sentry.runner.importer import install_plugin_apps
 from sentry.utils.warnings import UnsupportedBackend
 
 K = TypeVar("K")
@@ -87,6 +88,7 @@ def pytest_configure(config):
     settings.STATIC_BUNDLES = {}
 
     # override a few things with our test specifics
+    install_plugin_apps("sentry.apps", settings)
     settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + ("fixtures",)
     # Need a predictable key for tests that involve checking signatures
     settings.SENTRY_PUBLIC = False
@@ -211,6 +213,8 @@ def pytest_configure(config):
     settings.FAIL_ON_UNAVAILABLE_API_CALL = True
 
     settings.SENTRY_USE_ISSUE_OCCURRENCE = True
+
+    settings.SENTRY_USE_GROUP_ATTRIBUTES = True
 
     # For now, multiprocessing does not work in tests.
     settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = True

@@ -17,6 +17,7 @@ from sentry.search.events.builder import (
 )
 from sentry.search.events.types import HistogramParams
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.snuba.dataset import Dataset
@@ -2025,16 +2026,19 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
             100,
             tags={"transaction": "foo_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
+            aggregation_option=AggregationOption.HIST,
         )
         self.store_transaction_metric(
             100,
             tags={"transaction": "foo_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
+            aggregation_option=AggregationOption.HIST,
         )
         self.store_transaction_metric(
             450,
             tags={"transaction": "foo_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
+            aggregation_option=AggregationOption.HIST,
         )
 
         query = HistogramMetricQueryBuilder(
@@ -2067,6 +2071,7 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
                     100 * i + 50,
                     tags={"transaction": "foo_transaction"},
                     timestamp=self.start + datetime.timedelta(minutes=5),
+                    aggregation_option=AggregationOption.HIST,
                 )
 
         query = HistogramMetricQueryBuilder(
@@ -2161,7 +2166,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query_hash_index = indexer.resolve(UseCaseID.TRANSACTIONS, None, QUERY_HASH_KEY)
 
         query_hash_clause = Condition(
-            lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="5573b91f"
+            lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="3b902501"
         )
 
         assert query_hash_clause in snql_query.where

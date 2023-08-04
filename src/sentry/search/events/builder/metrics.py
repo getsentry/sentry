@@ -1115,6 +1115,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         use_metrics_layer: Optional[bool] = False,
         groupby: Optional[Column] = None,
         on_demand_metrics_enabled: Optional[bool] = False,
+        parser_config_overrides: Optional[Mapping[str, Any]] = None,
     ):
         super().__init__(
             params=params,
@@ -1126,6 +1127,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             functions_acl=functions_acl,
             use_metrics_layer=use_metrics_layer,
             on_demand_metrics_enabled=on_demand_metrics_enabled,
+            parser_config_overrides=parser_config_overrides,
         )
         if self.granularity.granularity > interval:
             for granularity in constants.METRICS_GRANULARITIES:

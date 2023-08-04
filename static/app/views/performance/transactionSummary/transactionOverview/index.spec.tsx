@@ -464,7 +464,6 @@ describe('Performance > TransactionSummary', function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     jest.clearAllMocks();
-    jest.restoreAllMocks();
   });
 
   describe('with events', function () {

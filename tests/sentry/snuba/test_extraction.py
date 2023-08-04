@@ -35,7 +35,7 @@ class TestIsOnDemandMetricQuery:
         )
         assert is_on_demand_metric_query(self.perf_metrics, "count_if(}", "") is False
 
-    def test_returns_true(self):
+    def test_on_demand_queries(self):
         # # transaction.duration is a non-standard field
         assert (
             is_on_demand_metric_query(self.perf_metrics, "count()", "transaction.duration:>=1")
@@ -60,7 +60,7 @@ class TestIsOnDemandMetricQuery:
             is True
         )
 
-    def test_returns_false(self):
+    def test_standard_comaptible_queries(self):
         assert is_on_demand_metric_query(self.perf_metrics, "count()", "") is False
         assert is_on_demand_metric_query(self.perf_metrics, "count()", "environment:dev") is False
         assert (
@@ -77,6 +77,8 @@ class TestIsOnDemandMetricQuery:
             )
             is False
         )
+        assert is_on_demand_metric_query(self.perf_metrics, "foo.bar", "") is False
+        assert is_on_demand_metric_query(self.perf_metrics, "count()", "foo.bar") is False
 
     def test_countif(self):
         assert (
@@ -88,17 +90,6 @@ class TestIsOnDemandMetricQuery:
         assert (
             is_on_demand_metric_query(self.perf_metrics, 'count_if(release,equals,"foo")', "")
             is False
-        )
-
-    def test_count_unique(self):
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "count_unique(transaction)", "") is False
-        )
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics, "count_unique(transaction)", "transaction.duration:>=1"
-            )
-            is True
         )
 
 
@@ -120,7 +111,7 @@ class TestIsStandardMetricsCompatible:
         assert is_standard_metrics_compatible(dataset, "count()", ")AND os.name:>=1") is False
         assert is_standard_metrics_compatible(dataset, "count()", "os.name><=abc") is False
 
-    def test_returns_false(self):
+    def test_on_demand_queries(self):
         # # transaction.duration is a non-standard field
         assert (
             is_standard_metrics_compatible(self.perf_metrics, "count()", "transaction.duration:>=1")
@@ -147,7 +138,7 @@ class TestIsStandardMetricsCompatible:
             is False
         )
 
-    def test_returns_true(self):
+    def test_standard_comaptible_queries(self):
         assert is_standard_metrics_compatible(self.perf_metrics, "count()", "") is True
         assert (
             is_standard_metrics_compatible(self.perf_metrics, "count()", "environment:dev") is True
@@ -177,18 +168,6 @@ class TestIsStandardMetricsCompatible:
         assert (
             is_standard_metrics_compatible(self.perf_metrics, 'count_if(release,equals,"foo")', "")
             is True
-        )
-
-    def test_count_unique(self):
-        assert (
-            is_standard_metrics_compatible(self.perf_metrics, "count_unique(transaction)", "")
-            is True
-        )
-        assert (
-            is_standard_metrics_compatible(
-                self.perf_metrics, "count_unique(transaction)", "transaction.duration:>=1"
-            )
-            is False
         )
 
 
