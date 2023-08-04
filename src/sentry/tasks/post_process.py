@@ -16,7 +16,7 @@ from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
-from sentry.sentry_metrics.client.kafka import KafkaMetricsBackend
+from sentry.sentry_metrics.client import generic_metrics_backend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
@@ -121,8 +121,7 @@ def _update_escalating_metrics(event: Event) -> None:
     """
     Update metrics for escalating issues when an event is processed.
     """
-    metrics_backend = KafkaMetricsBackend()
-    metrics_backend.counter(
+    generic_metrics_backend.counter(
         UseCaseID.ESCALATING_ISSUES,
         org_id=event.project.organization_id,
         project_id=event.project.id,
@@ -131,7 +130,6 @@ def _update_escalating_metrics(event: Event) -> None:
         tags={"group": str(event.group_id)},
         unit=None,
     )
-    metrics_backend.close()
 
 
 def _capture_group_stats(job: PostProcessJob) -> None:
