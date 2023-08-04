@@ -1,8 +1,10 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
+import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -14,6 +16,10 @@ import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsFields;
+
+const SpanSamplesTableContainer = styled('div')`
+  padding-bottom: ${space(2)};
+`;
 
 type Props = {
   groupId: string;
@@ -103,7 +109,7 @@ function SampleTable({
   }
 
   return (
-    <Fragment>
+    <SpanSamplesTableContainer>
       <VisuallyCompleteWithData
         id="SpanSummary.Samples.SampleTable"
         hasData={spans.length > 0}
@@ -124,7 +130,7 @@ function SampleTable({
         />
       </VisuallyCompleteWithData>
       <Button onClick={() => refetch()}>{t('Try Different Samples')}</Button>
-    </Fragment>
+    </SpanSamplesTableContainer>
   );
 }
 

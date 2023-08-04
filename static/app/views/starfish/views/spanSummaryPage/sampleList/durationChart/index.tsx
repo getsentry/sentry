@@ -5,12 +5,17 @@ import {EChartClickHandler, EChartHighlightHandler, Series} from 'sentry/types/e
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {AVG_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
-import {isNearBaseline} from 'sentry/views/starfish/components/samplesTable/common';
+import {isNearAverage} from 'sentry/views/starfish/components/samplesTable/common';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {
+  crossIconPath,
+  downwardPlayIconPath,
+  upwardPlayIconPath,
+} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/symbol';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsFields;
 
@@ -41,20 +46,20 @@ function DurationChart({
     duration: number,
     compareToDuration: number
   ): {color: string; symbol: string} => {
-    if (isNearBaseline(duration, compareToDuration)) {
+    if (isNearAverage(duration, compareToDuration)) {
       return {
-        symbol: 'path://M 0 0 V -8 L 5 0 L 0 8 L -5 0 L 0 -8',
-        color: theme.gray300,
+        symbol: crossIconPath,
+        color: theme.gray500,
       };
     }
 
     return duration > compareToDuration
       ? {
-          symbol: 'path://M 5 4 L 0 -4 L -5 4 L 5 4',
+          symbol: upwardPlayIconPath,
           color: theme.red300,
         }
       : {
-          symbol: 'path://M -5 -4 L 0 4 L 5 -4 L -5 -4',
+          symbol: downwardPlayIconPath,
           color: theme.green300,
         };
   };
@@ -113,18 +118,21 @@ function DurationChart({
       [SPAN_SELF_TIME]: duration,
       'transaction.id': transaction_id,
       span_id,
-    }) => ({
-      data: [
-        {
-          name: timestamp,
-          value: duration,
-        },
-      ],
-      symbol: getSampleSymbol(duration, avg).symbol,
-      color: getSampleSymbol(duration, avg).color,
-      symbolSize: span_id === highlightedSpanId ? 15 : 10,
-      seriesName: transaction_id.substring(0, 8),
-    })
+    }) => {
+      const {symbol, color} = getSampleSymbol(duration, avg);
+      return {
+        data: [
+          {
+            name: timestamp,
+            value: duration,
+          },
+        ],
+        symbol,
+        color,
+        symbolSize: span_id === highlightedSpanId ? 19 : 14,
+        seriesName: transaction_id.substring(0, 8),
+      };
+    }
   );
 
   const getSample = (timestamp: string, duration: number) => {
