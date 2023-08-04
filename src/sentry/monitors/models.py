@@ -196,7 +196,7 @@ class CheckInStatus:
 
 class MonitorType:
     # In the future we may have other types of monitors such as health check
-    # monitors. But for now we just have CRON_JOB style moniotors.
+    # monitors. But for now we just have CRON_JOB style monitors.
     UNKNOWN = 0
     CRON_JOB = 3
 
@@ -445,7 +445,7 @@ class MonitorLocation(Model):
 
 class MonitorEnvironmentManager(BaseManager):
     """
-    A manager that consolidates logic for monitor enviroment updates
+    A manager that consolidates logic for monitor environment updates
     """
 
     def ensure_environment(
