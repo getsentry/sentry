@@ -17,9 +17,9 @@ import {TransactionProfileIdProvider} from 'sentry/components/profiling/transact
 import ResolutionBox from 'sentry/components/resolutionBox';
 import {space} from 'sentry/styles/space';
 import {
-  BaseGroupStatusReprocessing,
   Group,
   GroupActivityReprocess,
+  GroupReprocessing,
   Organization,
   Project,
 } from 'sentry/types';
@@ -201,8 +201,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
             <ReprocessingProgress
               totalEvents={(mostRecentActivity as GroupActivityReprocess).data.eventCount}
               pendingEvents={
-                (group.statusDetails as BaseGroupStatusReprocessing['statusDetails'])
-                  .pendingEvents
+                (group.statusDetails as GroupReprocessing['statusDetails']).pendingEvents
               }
             />
           ) : (
