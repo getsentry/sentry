@@ -246,7 +246,6 @@ module = [
     "sentry.api.endpoints.organization_member.requests.invite.details",
     "sentry.api.endpoints.organization_member.requests.invite.index",
     "sentry.api.endpoints.organization_member.requests.join",
-    "sentry.api.endpoints.organization_member.team_details",
     "sentry.api.endpoints.organization_member_unreleased_commits",
     "sentry.api.endpoints.organization_metrics",
     "sentry.api.endpoints.organization_metrics_meta",
