@@ -5,7 +5,6 @@ import IntegrationDetailedView from 'sentry/views/settings/organizationIntegrati
 describe('IntegrationDetailedView', function () {
   const org = TestStubs.Organization({
     access: ['org:integrations', 'org:write'],
-    features: ['pr-comment-bot'],
   });
 
   beforeEach(() => {
