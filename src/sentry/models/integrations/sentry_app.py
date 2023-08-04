@@ -216,18 +216,6 @@ class SentryApp(ParanoidModel, HasApiScopes):
         SentryAppAvatar.objects.filter(sentry_app=self).delete()
         return super().delete()
 
-    def _get_redis_key(self, org_id):
-        from sentry.models import SentryAppInstallation
-
-        installations = SentryAppInstallation.objects.filter(
-            organization_id=org_id,
-            sentry_app=self,
-        )
-        if installations.exists():
-            installation = installations.first()
-            return f"sentry-app-error:{installation.uuid}"
-        return ""
-
     def _disable(self):
         self.events = []
         self.save(update_fields=["events"])
