@@ -29,6 +29,24 @@ export function ClickEvent({timestamp}: {timestamp: Date}) {
   });
 }
 
+export function DeadClickEvent({timestamp}: {timestamp: Date}) {
+  return ReplayFrameEvents.BreadcrumbFrameEvent({
+    timestamp,
+    data: {
+      payload: BreadcrumbFrameData.SlowClickFrame({
+        timestamp,
+        message: 'nav[aria-label="Primary Navigation"] > div > a#sidebar-item-projects',
+        data: {
+          nodeId: 42,
+          url: '',
+          timeAfterClickMs: 7000,
+          endReason: 'timeout',
+        },
+      }),
+    },
+  });
+}
+
 export function NavigateEvent({
   startTimestamp,
   endTimestamp,

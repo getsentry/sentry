@@ -157,7 +157,7 @@ describe('getMutationsTypes', () => {
     const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {actions}});
     expect(result.current.getMutationsTypes()).toStrictEqual([
       {label: 'LCP', value: 'largest-contentful-paint'},
-      {label: 'Click', value: 'ui.click'},
+      {label: 'User Click', value: 'ui.click'},
     ]);
   });
 
@@ -167,7 +167,7 @@ describe('getMutationsTypes', () => {
     const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {actions}});
     expect(result.current.getMutationsTypes()).toStrictEqual([
       {label: 'LCP', value: 'largest-contentful-paint'},
-      {label: 'Click', value: 'ui.click'},
+      {label: 'User Click', value: 'ui.click'},
     ]);
   });
 });
