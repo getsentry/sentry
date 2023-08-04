@@ -98,7 +98,12 @@ class Webhook:
 
             if not repos.exists():
                 logger.info(
-                    "github.auto-repo-linking", extra={"organization_ids": list(orgs.keys())}
+                    "github.auto-repo-linking",
+                    extra={
+                        "organization_ids": set(orgs.keys()),
+                        "external_id": str(event["repository"]["id"]),
+                        "repository": event.get("repository", {}).get("full_name", None),
+                    },
                 )
 
                 provider = get_integration_repository_provider(integration)
@@ -112,7 +117,7 @@ class Webhook:
                 for org in orgs.values():
                     rpc_org = serialize_rpc_organization(org)
 
-                    if features.has("organizations:auto-repo-linking", rpc_org):
+                    if features.has("organizations:auto-repo-linking", org):
                         logger.info(
                             "github.auto-repo-linking.create_repository",
                             extra={"organization_id": rpc_org.id},
