@@ -60,7 +60,6 @@ EXPOSABLE_FEATURES = [
     "organizations:session-replay",
     "organizations:session-replay-recording-scrubbing",
     "organizations:device-class-synthesis",
-    "organizations:profiling-ingest-unsampled-profiles",
 ]
 
 EXTRACT_METRICS_VERSION = 1
