@@ -418,5 +418,7 @@ def construct_link_with_query(path: str, query_params: dict[str, str]) -> str:
     note: this function assumes that the redirect has been validated
     """
     query_string = urlencode({k: v for k, v in query_params.items() if v})
-    redirect_uri = f"{path}?{query_string}"
+    redirect_uri = f"{path}"
+    if query_string:
+        redirect_uri += f"?{query_string}"
     return redirect_uri
