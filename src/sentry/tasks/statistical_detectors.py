@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.models.project import Project
+from sentry.profiles.statistical_detectors import FunctionPayload, run_regressed_functions_detection
 from sentry.snuba import functions
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
@@ -87,7 +88,8 @@ def detect_regressed_functions(project_ids: List[int], start: datetime, **kwargs
 
     for project in Project.objects.filter(id__in=project_ids):
         try:
-            query_functions(project, start)
+            function_payloads = query_functions(project, start)
+            run_regressed_functions_detection(project, start, function_payloads)
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
@@ -96,13 +98,13 @@ def query_transactions(project_id: int) -> None:
     pass
 
 
-def query_functions(project: Project, start: datetime) -> None:
+def query_functions(project: Project, start: datetime) -> List[FunctionPayload]:
     params = _get_function_query_params(project, start)
 
     # TODOs:
     # - format and return this for further processing
     # - handle any errors
-    functions.query(
+    results = functions.query(
         selected_columns=[
             "timestamp",
             "fingerprint",
@@ -118,6 +120,16 @@ def query_functions(project: Project, start: datetime) -> None:
         use_aggregate_conditions=True,
         transform_alias_to_input_format=True,
     )
+
+    return [
+        FunctionPayload(
+            fingerprint=row["fingerprint"],
+            count=row["count()"],
+            p95=row["p95()"],
+            timestamp=datetime.fromisoformat(row["timestamp"]),
+        )
+        for row in results["data"]
+    ]
 
 
 def _get_function_query_params(project: Project, start: datetime) -> Dict[str, Any]:
