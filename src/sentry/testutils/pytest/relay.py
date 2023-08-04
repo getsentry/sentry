@@ -61,16 +61,10 @@ def relay_server_setup(live_server, tmpdir_factory):
     else:
         port = "80"
 
-    if sys.platform.startswith("linux"):
-        upstream_host = "http://127.0.0.1:%s/" % port
-        kafka_host = "127.0.0.1"
-        redis_host = "127.0.0.1"
-        network = "host"
-    else:
-        upstream_host = "http://host.docker.internal:%s/" % port
-        kafka_host = "sentry_kafka"
-        redis_host = "sentry_redis"
-        network = "sentry"
+    upstream_host = "http://host.docker.internal:%s/" % port
+    kafka_host = "sentry_kafka"
+    redis_host = "sentry_redis"
+    network = "sentry"
 
     template_path = _get_template_dir()
     sources = ["config.yml", "credentials.json"]
@@ -174,7 +168,7 @@ def adjust_settings_for_relay_tests(settings):
     ]
     settings.KAFKA_CLUSTERS = {
         "default": {
-            "common": {"bootstrap.servers": "127.0.0.1:9092"},
+            "common": {"bootstrap.servers": "sentry_kafka:9092"},
             "producers": {
                 "compression.type": "lz4",
                 "message.max.bytes": 50000000,  # 50MB, default is 1MB
