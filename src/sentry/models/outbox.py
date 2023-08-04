@@ -113,7 +113,6 @@ class WebhookProviderIdentifier(IntEnum):
     JIRA_SERVER = 7
     GITHUB_ENTERPRISE = 8
     BITBUCKET_SERVER = 9
-    PLUGIN = 10
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:

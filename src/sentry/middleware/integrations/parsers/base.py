@@ -144,9 +144,6 @@ class BaseRequestParser(abc.ABC):
 
     # Optional Overrides
 
-    def should_operate_parser(self, request: HttpRequest):
-        return True
-
     def get_organizations_from_integration(
         self, integration: Optional[Integration] = None
     ) -> Sequence[RpcOrganizationSummary]:
