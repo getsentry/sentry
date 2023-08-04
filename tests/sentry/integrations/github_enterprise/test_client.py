@@ -1,4 +1,5 @@
 import base64
+from typing import cast
 from unittest import mock
 
 import pytest
@@ -66,7 +67,10 @@ class GitHubAppsClientTest(TestCase):
             external_id=123,
             integration_id=integration.id,
         )
-        self.install = integration.get_installation(organization_id=self.organization.id)
+        self.install = cast(
+            GitHubEnterpriseIntegration,
+            integration.get_installation(organization_id=self.organization.id),
+        )
         assert isinstance(self.install, GitHubEnterpriseIntegration)
         self.gh_client = self.install.get_client()
         responses.add(
@@ -116,7 +120,6 @@ class GitHubAppsClientTest(TestCase):
             json={"text": 200},
         )
 
-        assert isinstance(self.install, GitHubEnterpriseIntegration)
         source_url = self.install.get_stacktrace_link(self.repo, path, "master", version)
         assert (
             source_url
@@ -145,7 +148,6 @@ class GitHubAppsClientTest(TestCase):
             url=url,
             json={"content": base64.b64encode(GITHUB_CODEOWNERS["raw"].encode()).decode("ascii")},
         )
-        assert isinstance(self.install, GitHubEnterpriseIntegration)
         result = self.install.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch
         )
