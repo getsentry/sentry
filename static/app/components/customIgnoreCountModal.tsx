@@ -6,7 +6,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
-import {ResolutionStatusDetails, SelectValue} from 'sentry/types';
+import {IgnoredStatusDetails, SelectValue} from 'sentry/types';
 
 type CountNames = 'ignoreCount' | 'ignoreUserCount';
 type WindowNames = 'ignoreWindow' | 'ignoreUserWindow';
@@ -15,7 +15,7 @@ type Props = ModalRenderProps & {
   countLabel: string;
   countName: CountNames;
   label: string;
-  onSelected: (statusDetails: ResolutionStatusDetails) => void;
+  onSelected: (statusDetails: IgnoredStatusDetails) => void;
   windowName: WindowNames;
   windowOptions: SelectValue<number>[];
 };
@@ -35,7 +35,7 @@ class CustomIgnoreCountModal extends Component<Props, State> {
     const {count, window} = this.state;
     const {countName, windowName} = this.props;
 
-    const statusDetails: ResolutionStatusDetails = {[countName]: count};
+    const statusDetails: IgnoredStatusDetails = {[countName]: count};
     if (window) {
       statusDetails[windowName] = window;
     }

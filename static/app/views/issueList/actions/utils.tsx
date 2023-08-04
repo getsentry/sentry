@@ -4,7 +4,7 @@ import capitalize from 'lodash/capitalize';
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tn} from 'sentry/locale';
-import {Organization, ResolutionStatusDetails} from 'sentry/types';
+import {IgnoredStatusDetails, Organization} from 'sentry/types';
 
 import ExtraDescription from './extraDescription';
 
@@ -163,7 +163,7 @@ export function getLabel(numIssues: number, allInQuerySelected: boolean) {
 }
 
 export function performanceIssuesSupportsIgnoreAction(
-  statusDetails: ResolutionStatusDetails
+  statusDetails: IgnoredStatusDetails
 ) {
   return !(statusDetails.ignoreWindow || statusDetails.ignoreUserWindow);
 }

@@ -8,7 +8,7 @@ import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {GroupStatusResolution, GroupSubstatus, ResolutionStatus} from 'sentry/types';
+import {GroupStatus, GroupStatusResolution, GroupSubstatus} from 'sentry/types';
 
 interface ArchiveActionProps {
   onUpdate: (params: GroupStatusResolution) => void;
@@ -22,12 +22,12 @@ interface ArchiveActionProps {
 }
 
 const ARCHIVE_UNTIL_ESCALATING: GroupStatusResolution = {
-  status: ResolutionStatus.IGNORED,
+  status: GroupStatus.IGNORED,
   statusDetails: {},
   substatus: GroupSubstatus.ARCHIVED_UNTIL_ESCALATING,
 };
 const ARCHIVE_FOREVER: GroupStatusResolution = {
-  status: ResolutionStatus.IGNORED,
+  status: GroupStatus.IGNORED,
   statusDetails: {},
   substatus: GroupSubstatus.ARCHIVED_FOREVER,
 };
@@ -101,7 +101,7 @@ function ArchiveActions({
         title={t('Change status to unresolved')}
         onClick={() =>
           onUpdate({
-            status: ResolutionStatus.UNRESOLVED,
+            status: GroupStatus.UNRESOLVED,
             statusDetails: {},
             substatus: GroupSubstatus.ONGOING,
           })
