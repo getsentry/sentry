@@ -1,6 +1,7 @@
 from typing import Union
 
-from sentry.models import Organization
+from sentry.models import Organization, SentryApp
+from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.utils.email import MessageBuilder
 
 provider_types = {
@@ -10,13 +11,13 @@ provider_types = {
 }
 
 
-def get_url(organization: Organization, provider_type: str, provider: str) -> str:
+def get_url(organization: Organization, provider_type: str, slug: str) -> str:
     if provider_type:
         type_name = provider_types.get(provider_type, "")
         if type_name:
             return str(
                 organization.absolute_url(
-                    f"/settings/{type_name}/{provider}/",
+                    f"/settings/{organization.slug}/{type_name}/{slug}/",
                 )
             )
 
@@ -37,7 +38,7 @@ def get_subject(integration_name: str) -> str:
 
 def notify_disable(
     organization: Organization,
-    integration_name: str,
+    integration: Union[SentryApp, RpcIntegration],
     redis_key: str,
     project: Union[str, None] = None,
 ):
@@ -45,7 +46,13 @@ def notify_disable(
     integration_link = get_url(
         organization,
         get_provider_type(redis_key),
-        integration_name,
+        integration.slug if hasattr(integration, "slug") else integration.provider,
+    )
+
+    integration_name = (
+        integration.provider.title()
+        if hasattr(integration, "provider")
+        else integration.name.title()
     )
 
     for user in organization.get_owners():
