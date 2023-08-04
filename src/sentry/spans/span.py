@@ -44,11 +44,13 @@ class Span:
         return f"s:{identifier}"
 
     def save(self) -> None:
-        nodestore.set(self.build_storage_identifier(self.id, self.project_id), self.to_dict())
+        nodestore.backend.set(
+            self.build_storage_identifier(self.id, self.project_id), self.to_dict()
+        )
 
     @classmethod
     def fetch(cls, span_id: str, project_id: int) -> Optional[Span]:
-        results = nodestore.get(cls.build_storage_identifier(span_id, project_id))
+        results = nodestore.backend.get(cls.build_storage_identifier(span_id, project_id))
         if results:
             return Span.from_dict(results)
         return None
@@ -56,5 +58,5 @@ class Span:
     @classmethod
     def fetch_multi(cls, ids: Sequence[str], project_id: int) -> Sequence[Optional[Span]]:
         ids = [cls.build_storage_identifier(id, project_id) for id in ids]
-        results = nodestore.get_multi(ids)
+        results = nodestore.backend.get_multi(ids)
         return [Span.from_dict(results[id]) if results.get(id) else None for id in ids]

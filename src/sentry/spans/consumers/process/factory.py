@@ -6,7 +6,7 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy, Processing
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.run_task import RunTask
-from arroyo.typps import Commit, Message, Partition, Topic
+from arroyo.types import Commit, Message, Partition, Topic
 from confluent_kafka import Producer
 
 from sentry.spans.span import Span
