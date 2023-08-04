@@ -907,7 +907,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             return {
                 "transactions": [trace.full_dict(detailed) for trace in root_traces]
                 + [orphan.full_dict(detailed) for orphan in orphans],
-                "orphanErrors": [orphan for orphan in orphan_errors],
+                "orphan_errors": [orphan for orphan in orphan_errors],
             }
 
         return (

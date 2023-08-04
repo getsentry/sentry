@@ -1179,7 +1179,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": to_timestamp_from_iso_format(error.timestamp),
             "generation": 0,
             "event_type": "error",
-        } == response.data["orphanErrors"][1]
+        } == response.data["orphan_errors"][1]
         assert {
             "event_id": error1.event_id,
             "issue_id": error1.group_id,
@@ -1191,7 +1191,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": to_timestamp_from_iso_format(error1.timestamp),
             "generation": 0,
             "event_type": "error",
-        } == response.data["orphanErrors"][0]
+        } == response.data["orphan_errors"][0]
 
     def test_with_only_orphan_errors_with_different_span_ids(self):
         start, _ = self.get_start_end(1000)
@@ -1225,7 +1225,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 format="json",
             )
         assert response.status_code == 200, response.content
-        assert len(response.data["orphanErrors"]) == 2
+        assert len(response.data["orphan_errors"]) == 2
         assert {
             "event_id": error.event_id,
             "issue_id": error.group_id,
@@ -1237,7 +1237,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": to_timestamp_from_iso_format(error.timestamp),
             "generation": 0,
             "event_type": "error",
-        } in response.data["orphanErrors"]
+        } in response.data["orphan_errors"]
         assert {
             "event_id": error1.event_id,
             "issue_id": error1.group_id,
@@ -1249,7 +1249,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": to_timestamp_from_iso_format(error1.timestamp),
             "generation": 0,
             "event_type": "error",
-        } in response.data["orphanErrors"]
+        } in response.data["orphan_errors"]
 
     def test_with_mixup_of_orphan_errors_with_simple_trace_data(self):
         self.load_trace()
@@ -1284,7 +1284,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             )
         assert response.status_code == 200, response.content
         assert len(response.data["transactions"]) == 1
-        assert len(response.data["orphanErrors"]) == 1
+        assert len(response.data["orphan_errors"]) == 1
         self.assert_trace_data(response.data["transactions"][0])
         assert {
             "event_id": error.event_id,
@@ -1297,7 +1297,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": to_timestamp_from_iso_format(error.timestamp),
             "generation": 0,
             "event_type": "error",
-        } in response.data["orphanErrors"]
+        } in response.data["orphan_errors"]
 
     def test_with_default(self):
         self.load_trace()
