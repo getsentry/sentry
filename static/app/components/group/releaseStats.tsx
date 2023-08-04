@@ -6,14 +6,14 @@ import GroupReleaseChart from 'sentry/components/group/releaseChart';
 import SeenInfo from 'sentry/components/group/seenInfo';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {CurrentRelease, Group, Organization, Project, Release} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
+
+import QuestionTooltip from '../questionTooltip';
 
 type Props = {
   environments: string[];
@@ -101,17 +101,11 @@ function GroupReleaseStats({
 
           <SidebarSection.Wrap>
             <SidebarSection.Title>
-              <Fragment>
-                {t('Last Seen')}
-                <TooltipWrapper>
-                  <Tooltip
-                    title={t('When the most recent event in this issue was captured.')}
-                    disableForVisualTest
-                  >
-                    <IconQuestion size="sm" color="gray200" />
-                  </Tooltip>
-                </TooltipWrapper>
-              </Fragment>
+              {t('Last Seen')}
+              <QuestionTooltip
+                title={t('When the most recent event in this issue was captured.')}
+                size="xs"
+              />
             </SidebarSection.Title>
             <StyledSidebarSectionContent>
               <SeenInfo
@@ -132,17 +126,11 @@ function GroupReleaseStats({
           </SidebarSection.Wrap>
           <SidebarSection.Wrap>
             <SidebarSection.Title>
-              <Fragment>
-                {t('First Seen')}
-                <TooltipWrapper>
-                  <Tooltip
-                    title={t('When the first event in this issue was captured.')}
-                    disableForVisualTest
-                  >
-                    <IconQuestion size="sm" color="gray200" />
-                  </Tooltip>
-                </TooltipWrapper>
-              </Fragment>
+              {t('First Seen')}
+              <QuestionTooltip
+                title={t('When the first event in this issue was captured.')}
+                size="xs"
+              />
             </SidebarSection.Title>
             <StyledSidebarSectionContent>
               <SeenInfo
@@ -178,10 +166,6 @@ function GroupReleaseStats({
 }
 
 export default memo(GroupReleaseStats);
-
-const TooltipWrapper = styled('span')`
-  margin-left: ${space(0.5)};
-`;
 
 const GraphContainer = styled('div')`
   margin-bottom: ${space(3)};
