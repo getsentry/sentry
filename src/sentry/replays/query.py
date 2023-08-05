@@ -453,21 +453,6 @@ def _grouped_unique_values(
     )
 
 
-def take_any_from_aggregation(
-    column_name: str,
-    alias: Optional[str] = None,
-    aliased: bool = True,
-) -> Function:
-    """Returns any value of a non group-by field. in our case, they are always the same,
-    so the value should be consistent.
-    """
-    return Function(
-        "any",
-        parameters=[Column(column_name)],
-        alias=alias or column_name if aliased else None,
-    )
-
-
 def anyIfNonZeroIP(
     column_name: str,
     alias: Optional[str] = None,
