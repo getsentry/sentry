@@ -29,6 +29,17 @@ class DatabaseBackedProjectService(ProjectService):
             return serialize_project(project)
         return None
 
+    def get_by_slug(self, *, organization_id: int, slug: str) -> RpcProject | None:
+        try:
+            project = Project.objects.get_from_cache(slug=slug, organization=organization_id)
+        except ValueError:
+            project = Project.objects.filter(slug=slug, organization=organization_id).first()
+        except Project.DoesNotExist:
+            return None
+        if project:
+            return serialize_project(project)
+        return None
+
     def get_option(self, *, project: RpcProject, key: str) -> RpcProjectOptionValue:
         from sentry import projectoptions
 
