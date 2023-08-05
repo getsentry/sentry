@@ -12,15 +12,15 @@ type Props = {
 };
 
 const FrameWalker = memo(function FrameWalker({frames, replayRecord}: Props) {
+  const {onClickTimestamp} = useCrumbHandlers();
   const startTimestampMs = replayRecord.started_at.getTime();
-  const {handleClick} = useCrumbHandlers(startTimestampMs);
 
   return (
     <ChevronDividedList
       items={splitCrumbs({
         frames,
+        handleOnClick: onClickTimestamp,
         startTimestampMs,
-        onClick: handleClick,
       })}
     />
   );

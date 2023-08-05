@@ -27,7 +27,7 @@ const [BOOTSTRAP_FRAME, UNDERSCORE_FRAME] = hydrateBreadcrumbs(replayRecord, [
 ]);
 
 describe('splitCrumbs', () => {
-  const onClick = null;
+  const handleOnClick = null;
   const startTimestampMs = 0;
 
   it('should accept an empty list, and print that there are zero pages', () => {
@@ -35,7 +35,7 @@ describe('splitCrumbs', () => {
 
     const results = splitCrumbs({
       frames,
-      onClick,
+      handleOnClick,
       startTimestampMs,
     });
     expect(results).toHaveLength(1);
@@ -49,7 +49,7 @@ describe('splitCrumbs', () => {
 
     const results = splitCrumbs({
       frames,
-      onClick,
+      handleOnClick,
       startTimestampMs,
     });
     expect(results).toHaveLength(1);
@@ -63,7 +63,7 @@ describe('splitCrumbs', () => {
 
     const results = splitCrumbs({
       frames,
-      onClick,
+      handleOnClick,
       startTimestampMs,
     });
     expect(results).toHaveLength(3);
@@ -97,7 +97,7 @@ describe('splitCrumbs', () => {
 
     const results = splitCrumbs({
       frames,
-      onClick,
+      handleOnClick,
       startTimestampMs,
     });
     expect(results).toHaveLength(3);
@@ -127,7 +127,7 @@ describe('splitCrumbs', () => {
 
     const results = splitCrumbs({
       frames,
-      onClick,
+      handleOnClick,
       startTimestampMs,
     });
     expect(results).toHaveLength(3);

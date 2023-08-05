@@ -13,11 +13,11 @@ type MaybeOnClickHandler = null | ((frame: ReplayFrame) => void);
 
 function splitCrumbs({
   frames,
-  onClick,
+  handleOnClick,
   startTimestampMs,
 }: {
   frames: ReplayFrame[];
-  onClick: MaybeOnClickHandler;
+  handleOnClick: MaybeOnClickHandler;
   startTimestampMs: number;
 }) {
   const firstFrame = frames.slice(0, 1);
@@ -40,19 +40,19 @@ function splitCrumbs({
         key="first"
         frames={firstFrame}
         startTimestampMs={startTimestampMs}
-        handleOnClick={onClick}
+        handleOnClick={handleOnClick}
       />,
       <SummarySegment
         key="summary"
         frames={summarizedFrames}
         startTimestampMs={startTimestampMs}
-        handleOnClick={onClick}
+        handleOnClick={handleOnClick}
       />,
       <SummarySegment
         key="last"
         frames={lastFrame}
         startTimestampMs={startTimestampMs}
-        handleOnClick={onClick}
+        handleOnClick={handleOnClick}
       />,
     ];
   }
@@ -62,7 +62,7 @@ function splitCrumbs({
       key={i}
       frames={[frame]}
       startTimestampMs={startTimestampMs}
-      handleOnClick={onClick}
+      handleOnClick={handleOnClick}
     />
   ));
 }
@@ -76,7 +76,7 @@ function SummarySegment({
   handleOnClick: MaybeOnClickHandler;
   startTimestampMs: number;
 }) {
-  const {handleMouseEnter, handleMouseLeave} = useCrumbHandlers(startTimestampMs);
+  const {handleMouseEnter, handleMouseLeave} = useCrumbHandlers();
 
   const summaryItems = (
     <ScrollingList>
@@ -123,7 +123,7 @@ const Span = styled('span')`
 
 const HalfPaddingHovercard = styled(
   ({children, bodyClassName, ...props}: React.ComponentProps<typeof Hovercard>) => (
-    <Hovercard bodyClassName={bodyClassName || '' + ' half-padding'} {...props}>
+    <Hovercard bodyClassName={(bodyClassName ?? '') + ' half-padding'} {...props}>
       {children}
     </Hovercard>
   )

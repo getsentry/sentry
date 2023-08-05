@@ -15,7 +15,7 @@ const StringWalker = memo(function StringWalker({urls}: StringProps) {
       items={splitCrumbs({
         frames: urls.map(urlToFrame),
         startTimestampMs: 0,
-        onClick: null,
+        handleOnClick: null,
       })}
     />
   );

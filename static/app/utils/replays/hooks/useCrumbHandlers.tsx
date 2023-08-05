@@ -1,19 +1,18 @@
 import {useCallback, useRef} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {ReplayFrame} from 'sentry/utils/replays/types';
 
-function useCrumbHandlers(startTimestampMs: number = 0) {
+function useCrumbHandlers() {
   const {
+    replay,
     clearAllHighlights,
     highlight,
     removeHighlight,
-    setCurrentHoverTime,
     setCurrentTime,
+    setCurrentHoverTime,
   } = useReplayContext();
-  const {setActiveTab} = useActiveReplayTab();
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
 
   const mouseEnterCallback = useRef<{
     id: ReplayFrame | null;
@@ -70,18 +69,15 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
     [setCurrentHoverTime, removeHighlight]
   );
 
-  const handleClick = useCallback(
-    (frame: ReplayFrame) => {
-      setCurrentTime(frame.offsetMs);
-      setActiveTab(getFrameDetails(frame).tabKey);
-    },
-    [setCurrentTime, setActiveTab]
+  const onClickTimestamp = useCallback(
+    (frame: ReplayFrame) => setCurrentTime(frame.offsetMs),
+    [setCurrentTime]
   );
 
   return {
     handleMouseEnter,
     handleMouseLeave,
-    handleClick,
+    onClickTimestamp,
   };
 }
 

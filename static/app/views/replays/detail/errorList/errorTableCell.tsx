@@ -11,6 +11,7 @@ import {
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {getShortEventId} from 'sentry/utils/events';
+import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -21,19 +22,16 @@ import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
 
 const EMPTY_CELL = '--';
 
-type Props = {
+interface Props extends ReturnType<typeof useCrumbHandlers> {
   columnIndex: number;
   currentHoverTime: number | undefined;
   currentTime: number;
   frame: ErrorFrame;
-  onClickTimestamp: (frame: ErrorFrame) => void;
-  onMouseEnter: (frame: ErrorFrame) => void;
-  onMouseLeave: (frame: ErrorFrame) => void;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortErrors>['sortConfig'];
   startTimestampMs: number;
   style: CSSProperties;
-};
+}
 
 const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
   (
@@ -42,9 +40,9 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
       currentHoverTime,
       currentTime,
       frame,
+      handleMouseEnter,
+      handleMouseLeave,
       onClickTimestamp,
-      onMouseEnter,
-      onMouseLeave,
       sortConfig,
       startTimestampMs,
       style,
@@ -105,8 +103,8 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
             : undefined,
       }),
       hasOccurred: isByTimestamp ? hasOccurred : undefined,
-      onMouseEnter: () => onMouseEnter(frame),
-      onMouseLeave: () => onMouseLeave(frame),
+      onMouseEnter: () => handleMouseEnter(frame),
+      onMouseLeave: () => handleMouseLeave(frame),
       ref,
       style,
     } as ComponentProps<typeof Cell>;
@@ -206,7 +204,8 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
         <Cell {...columnProps} numeric>
           <StyledTimestampButton
             format="mm:ss.SSS"
-            onClick={() => {
+            onClick={event => {
+              event.stopPropagation();
               onClickTimestamp(frame);
             }}
             startTimestampMs={startTimestampMs}

@@ -14,11 +14,17 @@ import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Resizeable} from 'sentry/components/replays/resizeable';
+import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
+import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 
 type Props = {};
 
 function ReplayTimeline({}: Props) {
   const {replay} = useReplayContext();
+  const {handleMouseEnter, handleMouseLeave, onClickTimestamp} = useCrumbHandlers();
+
+  const {setActiveTab} = useActiveReplayTab();
 
   const elem = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useScrubberMouseTracking({elem});
@@ -49,8 +55,14 @@ function ReplayTimeline({}: Props) {
             </UnderTimestamp>
             <UnderTimestamp paddingTop="26px">
               <ReplayTimelineEvents
-                frames={chapterFrames}
                 durationMs={durationMs}
+                frames={chapterFrames}
+                handleMouseEnter={handleMouseEnter}
+                handleMouseLeave={handleMouseLeave}
+                onClickTimestamp={frame => {
+                  onClickTimestamp(frame);
+                  setActiveTab(getFrameDetails(frame).tabKey);
+                }}
                 startTimestampMs={startTimestampMs}
                 width={width}
               />

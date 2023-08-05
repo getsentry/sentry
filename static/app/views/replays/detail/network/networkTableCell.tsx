@@ -1,4 +1,4 @@
-import {ComponentProps, CSSProperties, forwardRef, MouseEvent} from 'react';
+import {ComponentProps, CSSProperties, forwardRef} from 'react';
 import classNames from 'classnames';
 
 import FileSize from 'sentry/components/fileSize';
@@ -8,6 +8,7 @@ import {
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {Tooltip} from 'sentry/components/tooltip';
+import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {
   getFrameMethod,
   getFrameStatus,
@@ -20,20 +21,17 @@ import {operationName} from 'sentry/views/replays/detail/utils';
 
 const EMPTY_CELL = '--';
 
-type Props = {
+interface Props extends ReturnType<typeof useCrumbHandlers> {
   columnIndex: number;
   currentHoverTime: number | undefined;
   currentTime: number;
   frame: SpanFrame;
   onClickCell: (props: {dataIndex: number; rowIndex: number}) => void;
-  onClickTimestamp: (crumb: SpanFrame) => void;
-  onMouseEnter: (span: SpanFrame) => void;
-  onMouseLeave: (span: SpanFrame) => void;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortNetwork>['sortConfig'];
   startTimestampMs: number;
   style: CSSProperties;
-};
+}
 
 const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
   (
@@ -41,13 +39,13 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       columnIndex,
       currentHoverTime,
       currentTime,
-      onMouseEnter,
-      onMouseLeave,
+      frame,
+      handleMouseEnter,
+      handleMouseLeave,
       onClickCell,
       onClickTimestamp,
       rowIndex,
       sortConfig,
-      frame,
       startTimestampMs,
       style,
     }: Props,
@@ -98,8 +96,8 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       isSelected,
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
       onClick: () => onClickCell({dataIndex, rowIndex}),
-      onMouseEnter: () => onMouseEnter(frame),
-      onMouseLeave: () => onMouseLeave(frame),
+      onMouseEnter: () => handleMouseEnter(frame),
+      onMouseLeave: () => handleMouseLeave(frame),
       ref,
       style,
     } as ComponentProps<typeof Cell>;
@@ -150,7 +148,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
         <Cell {...columnProps} numeric>
           <StyledTimestampButton
             format="mm:ss.SSS"
-            onClick={(event: MouseEvent) => {
+            onClick={event => {
               event.stopPropagation();
               onClickTimestamp(frame);
             }}
