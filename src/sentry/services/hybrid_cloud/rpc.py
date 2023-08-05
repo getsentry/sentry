@@ -104,7 +104,7 @@ class RpcMethodSignature:
         parameters = list(inspect.signature(self._base_method).parameters.values())
         parameters = parameters[1:]  # exclude `self` argument
         field_definitions = {p.name: create_field(p) for p in parameters}
-        return pydantic.create_model(name, **field_definitions)  # type: ignore
+        return pydantic.create_model(name, **field_definitions)  # type: ignore[call-overload]
 
     _RETURN_MODEL_ATTR = "value"
 
@@ -123,7 +123,7 @@ class RpcMethodSignature:
         self._validate_type_token(return_type)
 
         field_definitions = {self._RETURN_MODEL_ATTR: (return_type, ...)}
-        return pydantic.create_model(name, **field_definitions)  # type: ignore
+        return pydantic.create_model(name, **field_definitions)  # type: ignore[call-overload]
 
     def _extract_region_resolution(self) -> RegionResolutionStrategy | None:
         region_resolution = getattr(self._base_method, _REGION_RESOLUTION_ATTR, None)
@@ -291,6 +291,10 @@ class RpcService(abc.ABC):
                 yield attr
 
     @classmethod
+    def _get_abstract_rpc_methods(cls) -> Iterator[Callable[..., Any]]:
+        return (m for m in cls._get_all_rpc_methods() if getattr(m, "__isabstractmethod__", False))
+
+    @classmethod
     def _has_rpc_methods(cls) -> bool:
         for _ in cls._get_all_rpc_methods():
             return True
@@ -330,6 +334,41 @@ class RpcService(abc.ABC):
             else:
                 model_table[base_method.__name__] = signature
         return model_table
+
+    @classmethod
+    def _get_and_validate_local_implementation(cls) -> RpcService:
+        def get_parameters(method: Callable[..., Any]) -> set[str]:
+            """Get the expected set of parameter names.
+
+            The `inspect.signature` also gives us type annotations (on parameters and
+            the return value) but it's tricky to compare those, because of
+            semantically equivalent annotations represented with unequal type tokens,
+            such as `Optional[int]` versus `int | None`.
+            """
+            sig = inspect.signature(method)
+            param_names = list(sig.parameters.keys())
+            if param_names and param_names[0] == "self":
+                del param_names[0]
+            return set(param_names)
+
+        impl = cls.get_local_implementation()
+        for method_sig in cls._get_abstract_rpc_methods():
+            method_impl = getattr(impl, method_sig.__name__)
+
+            if getattr(method_impl, "__isabstractmethod__", False):
+                raise RpcServiceSetupException(
+                    f"{type(impl).__name__} must provide a concrete implementation of `{method_sig.__name__}`"
+                )
+
+            sig_params = get_parameters(method_sig)
+            impl_params = get_parameters(method_impl)
+            if not sig_params == impl_params:
+                raise RpcServiceSetupException(
+                    f"{type(impl).__name__}.{method_sig.__name__} does not match specified parameters "
+                    f"(expected: {sig_params!r}; actual: {impl_params!r})"
+                )
+
+        return impl
 
     @classmethod
     def _create_remote_implementation(cls) -> RpcService:
@@ -387,8 +426,7 @@ class RpcService(abc.ABC):
 
         overrides = {
             service_method.__name__: create_remote_method(service_method.__name__)
-            for service_method in cls._get_all_rpc_methods()
-            if getattr(service_method, "__isabstractmethod__", False)
+            for service_method in cls._get_abstract_rpc_methods()
         }
         remote_service_class = type(f"{cls.__name__}__RemoteDelegate", (cls,), overrides)
         return cast(RpcService, remote_service_class())
@@ -398,7 +436,7 @@ class RpcService(abc.ABC):
         """Instantiate a base service class for the current mode."""
         constructors = {
             mode: (
-                cls.get_local_implementation
+                cls._get_and_validate_local_implementation
                 if mode == SiloMode.MONOLITH or mode == cls.local_mode
                 else cls._create_remote_implementation
             )
@@ -571,27 +609,6 @@ def generate_request_signature(url_path: str, body: bytes) -> str:
     secret = settings.RPC_SHARED_SECRET[0]
     signature = hmac.new(secret.encode("utf-8"), signature_input, hashlib.sha256).hexdigest()
     return f"rpc0:{signature}"
-
-
-@dataclass(frozen=True)
-class RpcSenderCredentials:
-    """Credentials for sending remote procedure calls.
-
-    This implementation is for dev environments only, and presumes that the
-    credentials can be picked up from Django settings. A production implementation
-    will likely look different.
-    """
-
-    is_allowed: bool = False
-    control_silo_api_token: str | None = None
-    control_silo_address: str | None = None
-
-    @classmethod
-    def read_from_settings(cls) -> RpcSenderCredentials:
-        setting_values = settings.DEV_HYBRID_CLOUD_RPC_SENDER
-        if isinstance(setting_values, str):
-            setting_values = json.loads(setting_values)
-        return cls(**setting_values) if setting_values else cls()
 
 
 class RpcSendException(RpcServiceUnimplementedException):

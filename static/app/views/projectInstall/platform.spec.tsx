@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Project} from 'sentry/types';
@@ -52,7 +52,7 @@ describe('ProjectInstallPlatform', function () {
     const routeParams = {
       projectId: TestStubs.Project().slug,
     };
-    const {organization, router, route, project, routerContext} = initializeOrg({
+    const {organization, routerProps, project, routerContext} = initializeOrg({
       router: {
         location: {
           query: {},
@@ -63,30 +63,20 @@ describe('ProjectInstallPlatform', function () {
 
     mockProjectApiResponses([{...project, platform: 'lua'}]);
 
-    render(
-      <ProjectInstallPlatform
-        router={router}
-        route={route}
-        location={router.location}
-        routeParams={routeParams}
-        routes={router.routes}
-        params={routeParams}
-      />,
-      {
-        organization,
-        context: routerContext,
-      }
-    );
+    render(<ProjectInstallPlatform {...routerProps} />, {
+      organization,
+      context: routerContext,
+    });
 
     expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
   });
 
-  it('should redirect to neutral docs if no matching platform', async function () {
+  it('should display info for a non-supported platform', async function () {
     const routeParams = {
       projectId: TestStubs.Project().slug,
     };
 
-    const {organization, router, route, project, routerContext} = initializeOrg({
+    const {organization, routerProps, project} = initializeOrg({
       router: {
         location: {
           query: {},
@@ -100,24 +90,13 @@ describe('ProjectInstallPlatform', function () {
 
     mockProjectApiResponses([{...project, platform: 'other'}]);
 
-    render(
-      <ProjectInstallPlatform
-        router={router}
-        route={route}
-        location={router.location}
-        routeParams={routeParams}
-        routes={router.routes}
-        params={routeParams}
-      />,
-      {
-        organization,
-        context: routerContext,
-      }
-    );
-
-    await waitFor(() => {
-      expect(router.push).toHaveBeenCalledTimes(1);
+    render(<ProjectInstallPlatform {...routerProps} />, {
+      organization,
     });
+
+    expect(
+      await screen.findByText(/We cannot provide instructions for 'Other' projects/)
+    ).toBeInTheDocument();
   });
 
   it('should render getting started docs for correct platform', async function () {
@@ -128,7 +107,7 @@ describe('ProjectInstallPlatform', function () {
       platform: 'python',
     };
 
-    const {router, route, routerContext} = initializeOrg({
+    const {routerProps, routerContext} = initializeOrg({
       router: {
         location: {
           query: {},
@@ -141,19 +120,9 @@ describe('ProjectInstallPlatform', function () {
 
     mockProjectApiResponses([project]);
 
-    render(
-      <ProjectInstallPlatform
-        router={router}
-        route={route}
-        location={router.location}
-        routeParams={routeParams}
-        routes={router.routes}
-        params={routeParams}
-      />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<ProjectInstallPlatform {...routerProps} />, {
+      context: routerContext,
+    });
 
     expect(
       await screen.findByRole('heading', {

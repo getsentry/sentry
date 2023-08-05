@@ -5,23 +5,27 @@ import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
+import {RateUnits} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {formatRate} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
-import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
 import {
   DataTitles,
+  getDurationChartTitle,
   getThroughputChartTitle,
 } from 'sentry/views/starfish/views/spans/types';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const {SPAN_SELF_TIME, SPAN_OP, SPAN_MODULE, SPAN_DESCRIPTION} = SpanMetricsFields;
+
+const CHART_HEIGHT = 140;
 
 type Props = {
   appliedFilters: AppliedFilters;
@@ -64,7 +68,7 @@ export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props
   > = {
     [ModuleName.ALL]: [
       {title: getThroughputChartTitle(moduleName), Comp: ThroughputChart},
-      {title: DataTitles.p95, Comp: DurationChart},
+      {title: getDurationChartTitle(moduleName), Comp: DurationChart},
     ],
     [ModuleName.DB]: [],
     [ModuleName.HTTP]: [{title: DataTitles.errorCount, Comp: ErrorChart}],
@@ -96,9 +100,9 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
   const label = getSegmentLabel(moduleName);
   const {isLoading, data} = useSpansQuery<
     {
+      'avg(span.self_time)': number;
       interval: number;
-      'p95(span.self_time)': number;
-      'sps()': number;
+      'spm()': number;
     }[]
   >({
     eventView,
@@ -113,7 +117,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
     return {
       seriesName: label ?? 'Throughput',
       data: (groupData ?? []).map(datum => ({
-        value: datum['sps()'],
+        value: datum['spm()'],
         name: datum.interval,
       })),
     };
@@ -121,7 +125,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
 
   return (
     <Chart
-      height={100}
+      height={CHART_HEIGHT}
       data={throughputTimeSeries}
       loading={isLoading}
       utc={false}
@@ -133,11 +137,12 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       }}
       definedAxisTicks={4}
       aggregateOutputFormat="rate"
+      rateUnit={RateUnits.PER_MINUTE}
       stacked
       isLineChart
       chartColors={[THROUGHPUT_COLOR]}
       tooltipFormatterOptions={{
-        valueFormatter: value => formatThroughput(value),
+        valueFormatter: value => formatRate(value, RateUnits.PER_MINUTE),
       }}
     />
   );
@@ -147,13 +152,13 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
   const eventView = getEventView(moduleName, pageFilters.selection, filters);
 
-  const label = `p95(${SPAN_SELF_TIME})`;
+  const label = `avg(${SPAN_SELF_TIME})`;
 
   const {isLoading, data} = useSpansQuery<
     {
+      'avg(span.self_time)': number;
       interval: number;
-      'p95(span.self_time)': number;
-      'sps()': number;
+      'spm()': number;
     }[]
   >({
     eventView,
@@ -162,13 +167,13 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
   });
   const dataByGroup = {[label]: data};
 
-  const p95Series = Object.keys(dataByGroup).map(groupName => {
+  const avgSeries = Object.keys(dataByGroup).map(groupName => {
     const groupData = dataByGroup[groupName];
 
     return {
       seriesName: label,
       data: (groupData ?? []).map(datum => ({
-        value: datum[`p95(${SPAN_SELF_TIME})`],
+        value: datum[`avg(${SPAN_SELF_TIME})`],
         name: datum.interval,
       })),
     };
@@ -176,8 +181,8 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
 
   return (
     <Chart
-      height={100}
-      data={[...p95Series]}
+      height={CHART_HEIGHT}
+      data={[...avgSeries]}
       loading={isLoading}
       utc={false}
       grid={{
@@ -189,7 +194,7 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
       definedAxisTicks={4}
       stacked
       isLineChart
-      chartColors={[P95_COLOR]}
+      chartColors={[AVG_COLOR]}
     />
   );
 }
@@ -210,7 +215,7 @@ function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
 
   return (
     <Chart
-      height={100}
+      height={CHART_HEIGHT}
       data={[errorRateSeries]}
       loading={isLoading}
       utc={false}
@@ -242,7 +247,7 @@ const getEventView = (
     {
       name: '',
       fields: [''],
-      yAxis: ['sps()', `p50(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`],
+      yAxis: ['spm()', `avg(${SPAN_SELF_TIME})`],
       query,
       dataset: DiscoverDatasets.SPANS_METRICS,
       interval: getInterval(pageFilters.datetime, STARFISH_CHART_INTERVAL_FIDELITY),

@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime, timedelta
 from time import time
 from unittest import mock
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -75,13 +76,13 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.eventuser import EventUser
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
-from sentry.testutils import (
+from sentry.testutils.asserts import assert_mock_called_once_with_partial
+from sentry.testutils.cases import (
+    PerformanceIssueTestCase,
     SnubaTestCase,
     TestCase,
     TransactionTestCase,
-    assert_mock_called_once_with_partial,
 )
-from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.event_generators import get_event
@@ -623,6 +624,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             group=group, type=ActivityType.SET_REGRESSION.value
         )
         assert regressed_activity.data["version"] == "b"
+        assert regressed_activity.data["follows_semver"] is False
 
         mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
 
@@ -685,6 +687,65 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert regressed_activity.data["version"] == "b"
 
         mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
+
+    @mock.patch("sentry.event_manager.plugin_is_regression")
+    def test_resolved_in_release_regression_activity_follows_semver(self, plugin_is_regression):
+        """
+        Issue was marked resolved in 1.0.0, regression occurred in 2.0.0.
+        If the project follows semver then the regression activity should have `follows_semver` set.
+        We should also record which version the issue was resolved in as `resolved_in_version`.
+
+        This allows the UI to say the issue was resolved in 1.0.0, regressed in 2.0.0 and
+        the versions were compared using semver.
+        """
+        plugin_is_regression.return_value = True
+
+        # Create a release and a group associated with it
+        old_release = self.create_release(
+            version="foo@1.0.0", date_added=timezone.now() - timedelta(minutes=30)
+        )
+        manager = EventManager(
+            make_event(
+                event_id="a" * 32,
+                checksum="a" * 32,
+                timestamp=time() - 50000,  # need to work around active_at
+                release=old_release.version,
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.group is not None
+        group = event.group
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+
+        # Resolve the group in old_release
+        resolution = GroupResolution.objects.create(release=old_release, group=group)
+        activity = Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+            ident=resolution.id,
+            data={"version": "foo@1.0.0"},
+        )
+
+        # Create a regression
+        manager = EventManager(
+            make_event(event_id="c" * 32, checksum="a" * 32, timestamp=time(), release="foo@2.0.0")
+        )
+        event = manager.save(self.project.id)
+        assert event.group_id == group.id
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+
+        activity = Activity.objects.get(id=activity.id)
+        assert activity.data["version"] == "foo@1.0.0"
+
+        regressed_activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_REGRESSION.value
+        )
+        assert regressed_activity.data["version"] == "foo@2.0.0"
+        assert regressed_activity.data["follows_semver"] is True
+        assert regressed_activity.data["resolved_in_version"] == "foo@1.0.0"
 
     def test_has_pending_commit_resolution(self):
         project_id = self.project.id
@@ -1675,7 +1736,23 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert event.message == "hello world"
 
-    def test_search_message(self):
+    def test_search_message_simple(self):
+        manager = EventManager(
+            make_event(
+                **{
+                    "message": "test",
+                    "transaction": "sentry.tasks.process",
+                }
+            )
+        )
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        search_message = event.search_message
+        assert "test" in search_message
+        assert "sentry.tasks.process" in search_message
+
+    def test_search_message_prefers_log_entry_message(self):
         manager = EventManager(
             make_event(
                 **{
@@ -1687,7 +1764,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         )
         manager.normalize()
         event = manager.save(self.project.id)
-        assert event.search_message == "hello world sentry.tasks.process"
+
+        search_message = event.search_message
+        assert "test" not in search_message
+        assert "hello world" in search_message
+        assert "sentry.tasks.process" in search_message
 
     def test_stringified_message(self):
         manager = EventManager(make_event(**{"message": 1234}))
@@ -2588,6 +2669,20 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             last_event = attempt_to_generate_slow_db_issue()
             assert last_event.group
             assert last_event.group.type == PerformanceSlowDBQueryGroupType.type_id
+
+    @patch("sentry.event_manager.metrics.incr")
+    def test_new_group_metrics_logging(self, mock_metrics_incr: MagicMock) -> None:
+        manager = EventManager(make_event(platform="javascript"))
+        manager.normalize()
+        manager.save(self.project.id)
+
+        mock_metrics_incr.assert_any_call(
+            "group.created",
+            skip_internal=True,
+            tags={
+                "platform": "javascript",
+            },
+        )
 
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):

@@ -21,7 +21,7 @@ function FocusArea({}: Props) {
       return (
         <NetworkList
           isNetworkDetailsSetup={Boolean(replay?.isNetworkDetailsSetup())}
-          networkSpans={replay?.getNetworkSpans()}
+          networkFrames={replay?.getNetworkFrames()}
           projectId={replay?.getReplay()?.project_id}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
@@ -57,7 +57,7 @@ function FocusArea({}: Props) {
     default: {
       return (
         <Console
-          breadcrumbs={replay?.getConsoleCrumbs()}
+          frames={replay?.getConsoleFrames()}
           startTimestampMs={replay?.getReplay().started_at.getTime() || 0}
         />
       );

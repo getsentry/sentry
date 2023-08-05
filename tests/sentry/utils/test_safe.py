@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import unittest
 from functools import partial
+from typing import Any, MutableMapping
 from unittest.mock import Mock, patch
 
 import pytest
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.safe import (
     get_path,
@@ -48,7 +51,7 @@ class TrimTest(unittest.TestCase):
 
     def test_max_depth(self):
         trm = partial(trim, max_depth=2)
-        a = {"a": {"b": {"c": "d"}}}
+        a: dict[str, Any] = {"a": {"b": {"c": "d"}}}
         assert trm(a) == a
 
         a = {"a": {"b": {"c": "d"}}}
@@ -109,9 +112,9 @@ class GetPathTest(unittest.TestCase):
     def test_get_none(self):
         assert get_path(None, "foo") is None
         assert get_path("foo", "foo") is None
-        assert get_path(42, "foo") is None
-        assert get_path(ValueError(), "foo") is None
-        assert get_path(True, "foo") is None
+        assert get_path(42, "foo") is None  # type: ignore[arg-type]
+        assert get_path(ValueError(), "foo") is None  # type: ignore[arg-type]
+        assert get_path(True, "foo") is None  # type: ignore[arg-type]
 
     def test_get_path_dict(self):
         assert get_path({}, "a") is None
@@ -169,7 +172,7 @@ class SetPathTest(unittest.TestCase):
         assert not set_path(True, "foo", value=42)
 
     def test_set_dict(self):
-        data = {}
+        data: MutableMapping[str, Any] = {}
         assert set_path(data, "a", value=42)
         assert data == {"a": 42}
 

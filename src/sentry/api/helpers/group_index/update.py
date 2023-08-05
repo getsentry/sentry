@@ -173,7 +173,7 @@ def get_current_release_version_of_group(
 
 def update_groups(
     request: Request,
-    group_ids: Sequence[Group],
+    group_ids: Sequence[int],
     projects: Sequence[Project],
     organization_id: int,
     search_fn: SearchFunction | None,
@@ -532,7 +532,9 @@ def update_groups(
                     # TODO(dcramer): we need a solution for activity rollups
                     # before sending notifications on bulk changes
                     if not is_bulk:
-                        activity.send_notification()
+                        transaction.on_commit(
+                            lambda: activity.send_notification(), router.db_for_write(Group)
+                        )
 
             issue_resolved.send_robust(
                 organization_id=organization_id,

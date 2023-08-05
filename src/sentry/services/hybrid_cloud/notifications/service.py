@@ -122,7 +122,6 @@ class NotificationsService(RpcService):
         filter: NotificationSettingFilterArgs,
         as_user: Optional[RpcUser] = None,
         auth_context: Optional[AuthenticationContext] = None,
-        serializer: Optional[None] = None,
     ) -> List[OpaqueSerializedResponse]:
         pass
 

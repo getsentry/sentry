@@ -5,6 +5,8 @@ import subprocess
 import sys
 import tempfile
 
+import pytest
+
 
 def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
     if plugins is None:
@@ -23,6 +25,7 @@ def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
             capture_output=True,
             encoding="UTF-8",
         )
+        assert not ret.stderr
         return ret.returncode, ret.stdout
 
 
@@ -181,3 +184,73 @@ Found 2 errors in 1 file (checked 1 source file)
     # should be fixed with our special plugin
     ret, _ = call_mypy(code)
     assert ret == 0
+
+
+def test_rest_framework_serializers_require_sequence():
+    code = """\
+from __future__ import annotations
+
+from rest_framework import serializers
+
+SOME_FSET = frozenset(('a', 'b', 'c'))
+SOME_SET = {'a', 'b', 'c'}
+SOME_TUPLE = ('a', 'b', 'c')
+SOME_LIST = ['a', 'b', 'c']
+
+# ok
+serializers.ChoiceField(choices=SOME_TUPLE)
+serializers.ChoiceField(choices=SOME_LIST)
+serializers.MultipleChoiceField(choices=SOME_TUPLE)
+serializers.MultipleChoiceField(choices=SOME_LIST)
+# not ok
+serializers.ChoiceField(choices=SOME_SET)
+serializers.ChoiceField(choices=SOME_FSET)
+serializers.MultipleChoiceField(choices=SOME_SET)
+serializers.MultipleChoiceField(choices=SOME_FSET)
+"""
+    expected = """\
+<string>:16: error: Argument "choices" to "ChoiceField" has incompatible type "Set[str]"; expected "Sequence[Any]"  [arg-type]
+<string>:17: error: Argument "choices" to "ChoiceField" has incompatible type "FrozenSet[str]"; expected "Sequence[Any]"  [arg-type]
+<string>:18: error: Argument "choices" to "MultipleChoiceField" has incompatible type "Set[str]"; expected "Sequence[Any]"  [arg-type]
+<string>:19: error: Argument "choices" to "MultipleChoiceField" has incompatible type "FrozenSet[str]"; expected "Sequence[Any]"  [arg-type]
+Found 4 errors in 1 file (checked 1 source file)
+"""
+    # should be ok without plugins
+    ret, _ = call_mypy(code, plugins=[])
+    assert ret == 0
+    # should be an error with plugins
+    ret, out = call_mypy(code)
+    assert ret
+    assert out == expected
+
+
+@pytest.mark.parametrize(
+    ("attr", "modname"),
+    (
+        ("access", "sentry.api.base"),
+        ("csp_nonce", "csp.middleware"),
+        ("is_sudo", "sudo.middleware"),
+        ("subdomain", "sentry.middleware.subdomain"),
+    ),
+)
+def test_added_http_request_attribute(attr: str, modname: str) -> None:
+    mod = __import__(modname, fromlist=["_trash"])
+    assert mod.__file__ is not None
+    with open(mod.__file__) as f:
+        if f"request.{attr} =" not in f.read():
+            raise AssertionError(
+                f"expected a `request.{attr} = ` monkeypatch "
+                f"in {modname} ({mod.__file__})!\n\n"
+                f"perhaps the mypy plug for this can be removed?"
+            )
+
+    src = f"""\
+from django.http.request import HttpRequest
+x: HttpRequest
+x.{attr}
+"""
+    ret, out = call_mypy(src, plugins=[])
+    assert ret
+
+    ret, out = call_mypy(src)
+    assert ret == 0, (ret, out)

@@ -6,7 +6,7 @@ from freezegun import freeze_time
 from sentry.constants import ObjectStatus
 from sentry.incidents.action_handlers import SlackActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 

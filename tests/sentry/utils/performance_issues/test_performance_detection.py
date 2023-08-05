@@ -12,10 +12,10 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import get_event
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import no_silo_test, region_silo_test
 from sentry.utils.performance_issues.base import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
     DetectorType,
@@ -87,6 +87,7 @@ def assert_n_plus_one_db_problem(perf_problems):
     )
 
 
+@region_silo_test(stable=True)
 @pytest.mark.django_db
 class PerformanceDetectionTest(TestCase):
     def setUp(self):
@@ -108,13 +109,13 @@ class PerformanceDetectionTest(TestCase):
 
     @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_disabled(self, mock):
-        detect_performance_problems({}, self.project)
-        assert mock.call_count == 0
+        with override_options({"performance.issues.all.problem-detection": 0.0}):
+            detect_performance_problems({}, self.project)
+            assert mock.call_count == 0
 
     @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_enabled(self, mock):
-        with override_options({"performance.issues.all.problem-detection": 1.0}):
-            detect_performance_problems({}, self.project)
+        detect_performance_problems({}, self.project)
         assert mock.call_count == 1
 
     @override_options(BASE_DETECTOR_OPTIONS)
@@ -182,7 +183,7 @@ class PerformanceDetectionTest(TestCase):
 
         default_settings = get_detection_settings(self.project)
 
-        assert default_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 100
+        assert default_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 90
         assert (
             default_settings[DetectorType.RENDER_BLOCKING_ASSET_SPAN]["fcp_ratio_threshold"] == 0.33
         )
@@ -191,9 +192,12 @@ class PerformanceDetectionTest(TestCase):
         assert (
             default_settings[DetectorType.UNCOMPRESSED_ASSETS]["size_threshold_bytes"] == 500 * 1024
         )
-        assert default_settings[DetectorType.UNCOMPRESSED_ASSETS]["duration_threshold"] == 500
+        assert default_settings[DetectorType.UNCOMPRESSED_ASSETS]["duration_threshold"] == 300
         assert default_settings[DetectorType.CONSECUTIVE_DB_OP]["min_time_saved"] == 100
-        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 1000
+        assert default_settings[DetectorType.N_PLUS_ONE_API_CALLS]["total_duration"] == 300
+        assert default_settings[DetectorType.LARGE_HTTP_PAYLOAD]["payload_size_threshold"] == 300000
+        assert default_settings[DetectorType.CONSECUTIVE_HTTP_OP]["min_time_saved"] == 2000
+        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 900
 
         self.project_option_mock.return_value = {
             "n_plus_one_db_duration_threshold": 100000,
@@ -205,6 +209,8 @@ class PerformanceDetectionTest(TestCase):
             "db_on_main_thread_duration_threshold": 50,
             "file_io_on_main_thread_duration_threshold": 33,
             "consecutive_db_min_time_saved_threshold": 500,
+            "n_plus_one_api_calls_total_duration_threshold": 500,
+            "consecutive_http_spans_min_time_saved_threshold": 1000,
         }
 
         configured_settings = get_detection_settings(self.project)
@@ -212,6 +218,7 @@ class PerformanceDetectionTest(TestCase):
         assert (
             configured_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 100000
         )
+        assert configured_settings[DetectorType.N_PLUS_ONE_API_CALLS]["total_duration"] == 500
         assert configured_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 5000
         assert (
             configured_settings[DetectorType.RENDER_BLOCKING_ASSET_SPAN]["fcp_ratio_threshold"]
@@ -228,6 +235,7 @@ class PerformanceDetectionTest(TestCase):
         assert configured_settings[DetectorType.DB_MAIN_THREAD][0]["duration_threshold"] == 50
         assert configured_settings[DetectorType.FILE_IO_MAIN_THREAD][0]["duration_threshold"] == 33
         assert configured_settings[DetectorType.CONSECUTIVE_DB_OP]["min_time_saved"] == 500
+        assert configured_settings[DetectorType.CONSECUTIVE_HTTP_OP]["min_time_saved"] == 1000
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_n_plus_one_extended_detection_no_parent_span(self):
@@ -413,7 +421,7 @@ class PerformanceDetectionTest(TestCase):
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 12
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 7
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
@@ -472,7 +480,7 @@ class PerformanceDetectionTest(TestCase):
             for call in incr_mock.mock_calls
             if call.args[0] == "performance.performance_issue.detected"
         ]
-        assert len(detection_calls) == 2
+        assert len(detection_calls) == 1
         tags = detection_calls[0].kwargs["tags"]
 
         assert tags["uncompressed_assets"]
@@ -485,7 +493,7 @@ class PerformanceDetectionTest(TestCase):
         assert not any([v for k, v in tags.items() if k not in pre_checked_keys])
 
 
-@region_silo_test
+@no_silo_test(stable=True)
 class DetectorTypeToGroupTypeTest(unittest.TestCase):
     def test(self):
         # Make sure we don't forget to include a mapping to `GroupType`
@@ -495,7 +503,7 @@ class DetectorTypeToGroupTypeTest(unittest.TestCase):
             ), f"{detector_type} must have a corresponding entry in DETECTOR_TYPE_TO_GROUP_TYPE"
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EventPerformanceProblemTest(TestCase):
     def test_save_and_fetch(self):
         event = Event(self.project.id, "something")

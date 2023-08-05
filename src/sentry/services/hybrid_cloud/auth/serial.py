@@ -14,4 +14,5 @@ def serialize_auth_provider(ap: AuthProvider) -> RpcAuthProvider:
         organization_id=ap.organization_id,
         provider=ap.provider,
         flags=_serialize_auth_provider_flags(ap),
+        config=ap.config,
     )

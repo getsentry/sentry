@@ -1,56 +1,54 @@
+from __future__ import annotations
+
 from unittest import mock
 from urllib.parse import urlencode
 
-import pytest
-
-from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
+from sentry.integrations.discord.requests.base import DiscordRequest
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.utils.cache import memoize
 
 
 @control_silo_test(stable=True)
 class DiscordRequestTest(TestCase):
-    def setUp(self):
-        super().setUp()
-
+    def mock_request(self, request_data: dict | None = None) -> DiscordRequest:
         self.request = mock.Mock()
-        self.request.data = {
-            "type": 1,
-            "guild_id": "guild-id",
-            "channel_id": "channel-id",
-        }
+        self.request.data = (
+            {
+                "type": 1,
+                "guild_id": "guild-id",
+                "channel_id": "channel-id",
+                "member": {
+                    "user": {
+                        "id": "user-id",
+                    },
+                },
+            }
+            if request_data is None
+            else request_data
+        )
         self.request.body = urlencode(self.request.data).encode()
         self.request.META = {
             "HTTP_X_SIGNATURE_ED25519": "signature",
             "HTTP_X_SIGNATURE_TIMESTAMP": "timestamp",
         }
-
-    @memoize
-    def discord_request(self):
         return DiscordRequest(self.request)
 
-    def test_exposes_data(self):
-        assert self.discord_request.data["type"] == 1
-
     def test_exposes_guild_id(self):
-        assert self.discord_request.guild_id == "guild-id"
-
-    def test_validate_data_returns_400(self):
-        type(self.request).data = mock.PropertyMock(side_effect=ValueError())
-        with pytest.raises(DiscordRequestError) as e:
-            self.discord_request.validate()
-            assert e.value.status == 400
+        discord_request = self.mock_request()
+        assert discord_request.guild_id == "guild-id"
 
     def test_collects_logging_data(self):
-        assert self.discord_request.logging_data == {
+        discord_request = self.mock_request()
+        assert discord_request.logging_data == {
             "discord_guild_id": "guild-id",
             "discord_channel_id": "channel-id",
+            "discord_user_id": "user-id",
         }
 
     @mock.patch("sentry.integrations.discord.requests.base.integration_service.get_integration")
     def test_collects_logging_data_with_integration_id(self, mock_get_integration):
+        discord_request = self.mock_request()
         mock_get_integration.return_value = RpcIntegration(
             id=1,
             provider="discord",
@@ -59,15 +57,17 @@ class DiscordRequestTest(TestCase):
             metadata={},
             status=1,
         )
-        self.discord_request.validate_integration()
-        assert self.discord_request.logging_data == {
+        discord_request.validate_integration()
+        assert discord_request.logging_data == {
             "discord_guild_id": "guild-id",
             "discord_channel_id": "channel-id",
+            "discord_user_id": "user-id",
             "integration_id": 1,
         }
 
     @mock.patch("sentry.integrations.discord.requests.base.integration_service.get_integration")
     def test_validate_integration(self, mock_get_integration):
+        discord_request = self.mock_request()
         mock_get_integration.return_value = RpcIntegration(
             id=1,
             provider="discord",
@@ -76,13 +76,46 @@ class DiscordRequestTest(TestCase):
             metadata={},
             status=1,
         )
-        self.discord_request.validate_integration()
+        discord_request.validate_integration()
         assert mock_get_integration.call_count == 1
-        assert self.discord_request.integration is not None
+        assert discord_request.integration is not None
 
     @mock.patch("sentry.integrations.discord.requests.base.integration_service.get_integration")
     def test_validate_integration_no_integration(self, mock_get_integration):
+        discord_request = self.mock_request()
         mock_get_integration.return_value = None
-        self.discord_request.validate_integration()
+        discord_request.validate_integration()
         assert mock_get_integration.call_count == 1
-        assert self.discord_request.integration is None
+        assert discord_request.integration is None
+
+    def test_get_command_name(self):
+        discord_request = self.mock_request(
+            {
+                "type": 2,
+                "guild_id": "guild-id",
+                "channel_id": "channel-id",
+                "data": {
+                    "name": "test_command",
+                },
+            }
+        )
+        res = discord_request.get_command_name()
+        assert res == "test_command"
+
+    def test_get_command_name_not_command(self):
+        discord_request = self.mock_request()
+        res = discord_request.get_command_name()
+        assert res == ""
+
+    def test_validate_identity_flow(self):
+        integration = self.create_integration(
+            self.organization, provider="discord", external_id="guild-id"
+        )
+        provider = self.create_identity_provider(integration=integration)
+        self.create_identity(user=self.user, identity_provider=provider, external_id="user-id")
+
+        discord_request = self.mock_request()
+        discord_request._validate_identity()
+        user = discord_request.get_identity_user()
+        assert user is not None
+        assert user.id == self.user.id

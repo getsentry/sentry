@@ -117,6 +117,7 @@ export const backend = [
   'python-pyramid',
   'python-tornado',
   'python-rq',
+  'python-pymongo',
   'ruby',
   'ruby-rails',
   'ruby-rack',
@@ -230,6 +231,10 @@ export const profiling: PlatformKey[] = [
   'javascript-nextjs',
   'javascript-remix',
   'javascript-sveltekit',
+  'javascript',
+  'javascript-react',
+  // react-native
+  'react-native',
   // python
   'python',
   'python-django',
@@ -295,6 +300,7 @@ export const releaseHealth: PlatformKey[] = [
   'python-pyramid',
   'python-tornado',
   'python-rq',
+  'python-pymongo',
   'rust',
   // serverless
   // desktop

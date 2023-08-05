@@ -1,4 +1,3 @@
-import pytz
 import sentry_sdk
 from django.conf import settings
 from django.http.request import HttpRequest
@@ -45,10 +44,8 @@ class SentryLocaleMiddleware(LocaleMiddleware):
         )
 
         if language := get_option_from_list(options, key="language"):
-            request.session[translation.LANGUAGE_SESSION_KEY] = language
-
-        if timezone := get_option_from_list(options, key="timezone"):
-            request.timezone = pytz.timezone(timezone)  # type: ignore[attr-defined]
+            # TODO: django 4.x removes this from session
+            request.session[translation.LANGUAGE_SESSION_KEY] = language  # type: ignore[attr-defined]
 
     def process_response(
         self, request: HttpRequest, response: HttpResponseBase

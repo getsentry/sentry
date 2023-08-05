@@ -1,3 +1,98 @@
+23.7.2
+------
+
+### Notify on Disabled Integration  (ongoing)
+
+https://www.notion.so/sentry/Tech-Spec-Notify-on-Disabled-Integration-Spec-e7ea0f86ccd6419cb3e564067cf4a2ef?pvs=4
+
+By: @chloeho7 (#54001)
+
+### save_event improvements (ongoing)
+
+With the new 2023 grouping config, we started incurring a higher processing cost per saved event.
+In order to bring it back under controlled a series of code changes will be perform to improve the understandability of the code and its performance.
+
+By: @armenzg (#53645, #53541)
+
+### Various fixes & improvements
+
+- feat(tracing-without-performance): Returned orphan errors with trace … (#54103) by @Abdkhan14
+- feat(profiling): use color pallete on chart (#54101) by @JonasBa
+- feat(issue-platform): Add an experimental frame drop issue type (#54028) by @phacops
+- feat(backup): Add DateAddedComparator (#54009) by @azaslavsky
+- feat(opsgenie): refactor validation (#53996) by @mifu67
+- Declare events.save_event_highcpu queue (#54041) by @hubertsentry
+- fix(escalating): Add reason to feedback analytic (#54082) by @scttcper
+- deps(ui): Update jest dependencies (#54065) by @scttcper
+- feat(discord): Add metrics (#54072) by @spalmurray
+- fix(starfish): Handle free text search (#54060) by @wmak
+- fix(github-comments): update comment copy (#54104) by @cathteng
+- fix(most-helpful-event): One event dropdown disabled (#54070) by @17hogeju
+- feat(most-helpful-event): Add option in user settings to change default issue event (#54048) by @17hogeju
+- ref(metrics-layer): Test the span metric charts too (#54045) by @wmak
+- fix(metrics-layer): Incorrect metrics layer tests (#54046) by @wmak
+- fix(notification-actions): allow org and team admins to modify (#53797) by @cathteng
+- ref(starfish): Show 3 significant digits for queries per minute try 2 (#54100) by @AbhiPrasad
+- ref(hc): Mark silo stable tests stable (#54074) by @mrduncan
+- feat(profiling): add react native onboarding wizard (#54096) by @JonasBa
+- fix(mypy): fix mypy errors for src/sentry/api/serializers/models (part 1) (#53905) by @hubertsentry
+- Revert "ref(starfish): Show 3 significant digits for queries per minute (#54033)" (dd75a2cb) by @getsentry-bot
+- ref(starfish): Show 3 significant digits for queries per minute (#54033) by @AbhiPrasad
+- chore(grouping): Kill grouping levels endpoints (#54073) by @lobsterkatie
+- xfail flakey test (#54081) by @JoshFerge
+
+_Plus 400 more_
+
+23.7.1
+------
+
+### Escalating Issues V1 (ongoing)
+
+This will allow marking an issue as archived until escalating.
+
+By: @scttcper (#53011)
+
+### Escalating Issues V2 (EA) (ongoing)
+
+This is a placeholder milestone for tracking post-v1 work for escalating issues.
+See the RFC: https://github.com/getsentry/rfcs/blob/main/text/0078-escalating-issues.md
+There's also discussions about escalation in here:
+https://github.com/getsentry/sentry/discussions/43039
+
+V2 will focus on moving ongoing issues (upcoming) into the state archived-until-escalating after an issue being in the `ongoing` state for 14 days.
+
+
+By: @snigdhas (#52774)
+
+### Various fixes & improvements
+
+- chore(replay): Remove unicode from slack View Replays link (#53518) by @ryan953
+- feat(starfish): Replaces usage of p95 in the Database Module with avg (#53515) by @edwardgou-sentry
+- Revert "feat(profiling): Deobfuscate Android methods' signature (#53427)" (af3ae3b7) by @getsentry-bot
+- feat(integration-slack): store request error counts and disable on broken (#52994) by @chloeho7
+- ref(grouping): Clean up message normalization (#53479) by @lobsterkatie
+- ref(projects): Redirect after project transfer (#53466) by @ceorourke
+- feat(secrecy): enable data secrecy for organizations (#53322) by @cathteng
+- feat(perf-detector-threshold-configuration) Added option for new Cons… (#53461) by @Abdkhan14
+- fix(ci): Increase codecov `comment.after_n_builds` value (#53488) by @lobsterkatie
+- test(ui): Reset api mocks between EventDetails tests (#53497) by @scttcper
+- ref(hybrid-cloud): Fix a few tests in split silo mode (#53482) by @mikejihbe
+- feat(profiling): Deobfuscate Android methods' signature (#53427) by @phacops
+- feat(perf-detector-threshold-configuration) Added new thresholds and … (#53460) by @Abdkhan14
+- fix(starfish): clicking endpoint in span summary replaces groupId with 'db' in url (#53517) by @DominikB2014
+- feat(starfish): add transaction.op:http.server to webservice queries (#53355) by @DominikB2014
+- fix(starfish): add quotes around transaction name (#53516) by @DominikB2014
+- ref(redis): Configure default 3s socket timeout (#53513) by @beezz
+- feat(dynamic-sampling): Add project slug to response of AM2 check (#53514) by @iambriccardo
+- feat(dnd-worldmap-removal) Added null checks for columns and fields. (#53475) by @Abdkhan14
+- Implement ArtifactBundle flat file indexing (#53505) by @Swatinem
+- chore(ts): Improve Starfish span metrics typing (#53453) by @gggritso
+- ref(feature): Remove no longer used heartbeat feature flag (#53510) by @priscilawebdev
+- ref(feature): Remove heartbeat feature (#53509) by @priscilawebdev
+- feat(dynamic-sampling): Improve check am2 compatibility (#53414) by @iambriccardo
+
+_Plus 399 more_
+
 23.7.0
 ------
 

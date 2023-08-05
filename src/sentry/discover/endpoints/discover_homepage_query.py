@@ -66,7 +66,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
             context={"params": params},
         )
         if not serializer.is_valid():
-            return ParseError(serializer.errors)
+            raise ParseError(serializer.errors)
 
         data = serializer.validated_data
         if previous_homepage:

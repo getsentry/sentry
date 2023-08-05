@@ -4,7 +4,7 @@ import pytest
 import responses
 
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.testutils import PluginTestCase
+from sentry.testutils.cases import PluginTestCase
 from sentry.utils import json
 from sentry_plugins.splunk.plugin import SplunkPlugin
 

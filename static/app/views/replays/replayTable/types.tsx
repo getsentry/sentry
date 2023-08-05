@@ -6,6 +6,7 @@ export enum ReplayColumn {
   COUNT_RAGE_CLICKS = 'countRageClicks',
   DURATION = 'duration',
   MOST_ERRONEOUS_REPLAYS = 'mostErroneousReplays',
+  MOST_RAGE_CLICKS = 'mostRageClicks',
   MOST_DEAD_CLICKS = 'mostDeadClicks',
   OS = 'os',
   REPLAY = 'replay',

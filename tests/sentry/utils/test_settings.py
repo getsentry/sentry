@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 from django.conf import settings
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils.imports import import_string
 from sentry.utils.settings import ConfigurationError, validate_settings
 

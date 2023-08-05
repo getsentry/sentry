@@ -16,6 +16,7 @@ from typing import (
     Iterable,
     Mapping,
     Optional,
+    Protocol,
     Tuple,
     Type,
     TypeVar,
@@ -180,6 +181,10 @@ class RpcModel(pydantic.BaseModel):
         return cls(**fields)
 
 
+class RpcModelProtocolMeta(type(RpcModel), type(Protocol)):  # type: ignore
+    """A unifying metaclass for RpcModel classes that also implement a Protocol."""
+
+
 ServiceInterface = TypeVar("ServiceInterface")
 
 
@@ -252,7 +257,9 @@ class DelegatedByOpenTransaction(Generic[ServiceInterface]):
     def __getattr__(self, item: str) -> Any:
         for model, constructor in self._constructors.items():
             if in_test_environment():
-                from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
+                from sentry.testutils.hybrid_cloud import (  # NOQA:S007
+                    simulated_transaction_watermarks,
+                )
 
                 open_transaction = (
                     simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
@@ -347,6 +354,17 @@ def silo_mode_delegation(
     In split database mode, it will also inject DelegatedByOpenTransaction in for the monolith mode implementation.
     """
 
+    return cast(ServiceInterface, DelegatedBySiloMode(get_delegated_constructors(mapping)))
+
+
+def get_delegated_constructors(
+    mapping: Mapping[SiloMode, Callable[[], ServiceInterface]]
+) -> Mapping[SiloMode, Callable[[], ServiceInterface]]:
+    """
+    Creates a new constructor mapping by replacing the monolith constructor with a DelegatedByOpenTransaction
+    that intelligently selects the correct service implementation based on the call site.
+    """
+
     def delegator() -> ServiceInterface:
         from sentry.models import Organization, User
 
@@ -366,8 +384,7 @@ def silo_mode_delegation(
         SiloMode.MONOLITH: delegator,
         **({k: v for k, v in mapping.items() if k != SiloMode.MONOLITH}),
     }
-
-    return cast(ServiceInterface, DelegatedBySiloMode(final_mapping))
+    return final_mapping
 
 
 def coerce_id_from(m: object | int | None) -> int | None:

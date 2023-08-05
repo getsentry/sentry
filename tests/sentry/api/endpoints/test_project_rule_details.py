@@ -16,7 +16,7 @@ from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActi
 from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json

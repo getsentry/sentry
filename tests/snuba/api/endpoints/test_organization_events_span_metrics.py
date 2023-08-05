@@ -2,7 +2,7 @@ import pytest
 from django.urls import reverse
 
 from sentry.search.events import constants
-from sentry.testutils import MetricsEnhancedPerformanceTestCase
+from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
 
@@ -172,6 +172,48 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["p50()"] == 1
         assert meta["dataset"] == "spansMetrics"
 
+    def test_p50_with_duration(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": ["p50(span.duration)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["p50(span.duration)"] == 1
+        assert meta["dataset"] == "spansMetrics"
+
+    def test_avg(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": ["avg()"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["avg()"] == 1
+        assert meta["dataset"] == "spansMetrics"
+
     def test_eps(self):
         for _ in range(6):
             self.store_span_metric(
@@ -323,131 +365,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["fields"]["http_error_count()"] == "integer"
         assert meta["fields"]["http_error_rate()"] == "percentage"
 
-    def test_percentile_percent_change(self):
-        self.store_span_metric(
-            5,
-            internal_metric=constants.SELF_TIME_LIGHT,
-            timestamp=self.six_min_ago,
-        )
-        self.store_span_metric(
-            10,
-            internal_metric=constants.SELF_TIME_LIGHT,
-            timestamp=self.min_ago,
-        )
-        response = self.do_request(
-            {
-                "field": ["percentile_percent_change(span.self_time, 0.95)"],
-                "query": "",
-                "orderby": ["-percentile_percent_change(span.self_time, 0.95)"],
-                "project": self.project.id,
-                "dataset": "spansMetrics",
-                "statsPeriod": "10m",
-            }
-        )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        meta = response.data["meta"]
-        assert len(data) == 1
-        assert data[0]["percentile_percent_change(span.self_time, 0.95)"] == 1
-        assert meta["dataset"] == "spansMetrics"
-        assert meta["fields"]["percentile_percent_change(span.self_time, 0.95)"] == "percent_change"
-
-    def test_http_error_count_percent_change(self):
-        for _ in range(4):
-            self.store_span_metric(
-                1,
-                internal_metric=constants.SELF_TIME_LIGHT,
-                tags={"span.status_code": "500"},
-                timestamp=self.six_min_ago,
-            )
-        self.store_span_metric(
-            1,
-            internal_metric=constants.SELF_TIME_LIGHT,
-            tags={"span.status_code": "500"},
-            timestamp=self.min_ago,
-        )
-        response = self.do_request(
-            {
-                "field": ["http_error_count_percent_change()"],
-                "query": "",
-                "orderby": ["-http_error_count_percent_change()"],
-                "project": self.project.id,
-                "dataset": "spansMetrics",
-                "statsPeriod": "10m",
-            }
-        )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        meta = response.data["meta"]
-        assert len(data) == 1
-        assert data[0]["http_error_count_percent_change()"] == -0.75
-        assert meta["dataset"] == "spansMetrics"
-        assert meta["fields"]["http_error_count_percent_change()"] == "percent_change"
-
-    def test_epm_percent_change(self):
-        for _ in range(4):
-            self.store_span_metric(
-                1,
-                internal_metric=constants.SELF_TIME_LIGHT,
-                timestamp=self.six_min_ago,
-            )
-        self.store_span_metric(
-            1,
-            internal_metric=constants.SELF_TIME_LIGHT,
-            timestamp=self.min_ago,
-        )
-        response = self.do_request(
-            {
-                "field": ["epm_percent_change()", "spm_percent_change()"],
-                "query": "",
-                "orderby": ["-epm_percent_change()"],
-                "project": self.project.id,
-                "dataset": "spansMetrics",
-                "statsPeriod": "10m",
-            }
-        )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        meta = response.data["meta"]
-        assert len(data) == 1
-        assert data[0]["epm_percent_change()"] == pytest.approx(-0.75)
-        assert data[0]["spm_percent_change()"] == pytest.approx(-0.75)
-        assert meta["dataset"] == "spansMetrics"
-        assert meta["fields"]["epm_percent_change()"] == "percent_change"
-        assert meta["fields"]["spm_percent_change()"] == "percent_change"
-
-    def test_eps_percent_change(self):
-        for _ in range(4):
-            self.store_span_metric(
-                1,
-                internal_metric=constants.SELF_TIME_LIGHT,
-                timestamp=self.min_ago,
-            )
-        self.store_span_metric(
-            1,
-            internal_metric=constants.SELF_TIME_LIGHT,
-            timestamp=self.six_min_ago,
-        )
-        response = self.do_request(
-            {
-                "field": ["eps_percent_change()", "sps_percent_change()"],
-                "query": "",
-                "orderby": ["-eps_percent_change()"],
-                "project": self.project.id,
-                "dataset": "spansMetrics",
-                "statsPeriod": "10m",
-            }
-        )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        meta = response.data["meta"]
-        assert len(data) == 1
-        assert data[0]["eps_percent_change()"] == pytest.approx(3)
-        assert data[0]["sps_percent_change()"] == pytest.approx(3)
-        assert meta["dataset"] == "spansMetrics"
-        assert meta["fields"]["eps_percent_change()"] == "percent_change"
-        assert meta["fields"]["sps_percent_change()"] == "percent_change"
-
     def test_use_self_time_light(self):
         self.store_span_metric(
             100,
@@ -558,3 +475,92 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[3]["span.module"] == "http"
         assert meta["dataset"] == "spansMetrics"
         assert meta["fields"]["p50(span.self_time)"] == "duration"
+
+    def test_tag_search(self):
+        self.store_span_metric(
+            321,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.description": "foo"},
+        )
+        self.store_span_metric(
+            99,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.description": "bar"},
+        )
+        response = self.do_request(
+            {
+                "field": ["sum(span.self_time)"],
+                "query": "span.description:bar",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["sum(span.self_time)"] == 99
+        assert meta["dataset"] == "spansMetrics"
+
+    def test_free_text_search(self):
+        self.store_span_metric(
+            321,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.description": "foo"},
+        )
+        self.store_span_metric(
+            99,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.description": "bar"},
+        )
+        response = self.do_request(
+            {
+                "field": ["sum(span.self_time)"],
+                "query": "foo",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["sum(span.self_time)"] == 321
+        assert meta["dataset"] == "spansMetrics"
+
+
+@region_silo_test
+class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
+    OrganizationEventsMetricsEnhancedPerformanceEndpointTest
+):
+    def setUp(self):
+        super().setUp()
+        self.features["organizations:use-metrics-layer"] = True
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_time_spent_percentage(self):
+        super().test_time_spent_percentage()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_time_spent_percentage_local(self):
+        super().test_time_spent_percentage_local()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_http_error_rate_and_count(self):
+        super().test_http_error_rate_and_count()
+
+    @pytest.mark.xfail(reason="Cannot group by transform")
+    def test_span_module(self):
+        super().test_span_module()
+
+    @pytest.mark.xfail(reason="Cannot search by tags")
+    def test_tag_search(self):
+        super().test_tag_search()
+
+    @pytest.mark.xfail(reason="Cannot search by tags")
+    def test_free_text_search(self):
+        super().test_free_text_search()

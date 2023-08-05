@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import zipfile
 from enum import Enum
+from io import BytesIO
 from typing import IO, Callable, Dict, List, Mapping, Optional, Set, Tuple
 
-from django.db import models
+from django.db import models, router
 from django.db.models.signals import post_delete
 from django.utils import timezone
 from symbolic.debuginfo import normalize_debug_id
@@ -16,6 +19,7 @@ from sentry.db.models import (
     region_silo_only_model,
 )
 from sentry.utils import json
+from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import sha1_text
 
 # Sentinel values used to represent a null state in the database. This is done since the `NULL` type in the db is
@@ -37,7 +41,7 @@ class SourceFileType(Enum):
         return [(key.value, key.name) for key in cls]
 
     @classmethod
-    def from_lowercase_key(cls, lowercase_key: Optional[str]) -> Optional["SourceFileType"]:
+    def from_lowercase_key(cls, lowercase_key: Optional[str]) -> Optional[SourceFileType]:
         if lowercase_key is None:
             return None
 
@@ -85,8 +89,8 @@ class ArtifactBundle(Model):
 
     @classmethod
     def get_release_associations(
-        cls, organization_id: int, artifact_bundle: "ArtifactBundle"
-    ) -> List[Mapping[str, str]]:
+        cls, organization_id: int, artifact_bundle: ArtifactBundle
+    ) -> List[Mapping[str, str | None]]:
         release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
             organization_id=organization_id, artifact_bundle=artifact_bundle
         )
@@ -111,6 +115,90 @@ def delete_file_for_artifact_bundle(instance, **kwargs):
 
 
 post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
+
+
+@region_silo_only_model
+class ArtifactBundleFlatFileIndex(Model):
+    __include_in_export__ = False
+
+    project_id = BoundedBigIntegerField(db_index=True)
+    release_name = models.CharField(max_length=250)
+    dist_name = models.CharField(max_length=64, default=NULL_STRING)
+    # This association is nullable since we need it for a correct durable implementation of the `FlatFileIndexState`.
+    flat_file_index = FlexibleForeignKey("sentry.File", null=True)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_artifactbundleflatfileindex"
+
+        index_together = (("project_id", "release_name", "dist_name"),)
+
+    def update_flat_file_index(self, file_contents: str):
+        from sentry.models import File
+
+        with atomic_transaction(
+            using=(router.db_for_write(File), router.db_for_write(ArtifactBundleFlatFileIndex))
+        ):
+            current_file = self.flat_file_index
+
+            updated_file = self._create_flat_file_index_object(file_contents)
+
+            # We have to update the new index file and also the date added, which is required for expiration.
+            self.update(flat_file_index=updated_file, date_added=timezone.now())
+
+            if current_file is not None:
+                # It's important to also delete the old file, otherwise we will end up with orphan files in the
+                # database.
+                current_file.delete()
+
+    def load_flat_file_index(self) -> Optional[str]:
+        if self.flat_file_index is None:
+            return None
+
+        return self.flat_file_index.getfile().read().decode()
+
+    @classmethod
+    def _create_flat_file_index_object(cls, file_contents: str):
+        from sentry.models import File
+
+        file = File.objects.create(
+            name="artifact_bundle_flat_file_index",
+            type="flat_file_index",
+        )
+        file.putfile(BytesIO(file_contents.encode()))
+
+        return file
+
+
+@region_silo_only_model
+class FlatFileIndexState(Model):
+    __include_in_export__ = False
+
+    flat_file_index = FlexibleForeignKey("sentry.ArtifactBundleFlatFileIndex")
+    artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
+    indexing_state = models.IntegerField(choices=ArtifactBundleIndexingState.choices())
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_flatfileindexstate"
+
+    @staticmethod
+    def compare_state_and_set(
+        flat_file_index_id: int,
+        artifact_bundle_id: int,
+        indexing_state: ArtifactBundleIndexingState,
+        new_indexing_state: ArtifactBundleIndexingState,
+    ) -> bool:
+        updated_rows = FlatFileIndexState.objects.filter(
+            flat_file_index_id=flat_file_index_id,
+            artifact_bundle_id=artifact_bundle_id,
+            indexing_state=indexing_state.value,
+        ).update(indexing_state=new_indexing_state.value, date_added=timezone.now())
+
+        # If we had one row being updated, it means that the cas operation succeeded.
+        return updated_rows == 1
 
 
 @region_silo_only_model
@@ -196,8 +284,12 @@ class ArtifactBundleArchive:
     def __init__(self, fileobj: IO, build_memory_map: bool = True):
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
+        self._entries_by_debug_id = {}
+        self._entries_by_url = {}
+
         self.manifest = self._read_manifest()
         self.artifact_count = len(self.manifest.get("files", {}))
+
         if build_memory_map:
             self._build_memory_maps()
 
@@ -236,9 +328,6 @@ class ArtifactBundleArchive:
             return None
 
     def _build_memory_maps(self):
-        self._entries_by_debug_id = {}
-        self._entries_by_url = {}
-
         files = self.manifest.get("files", {})
         for file_path, info in files.items():
             # Building the map for debug_id lookup.
@@ -260,6 +349,15 @@ class ArtifactBundleArchive:
 
             # Building the map for url lookup.
             self._entries_by_url[info.get("url")] = (file_path, info)
+
+    def get_all_urls(self):
+        return self._entries_by_url.keys()
+
+    def get_all_debug_ids(self):
+        return self._entries_by_debug_id.keys()
+
+    def has_debug_ids(self):
+        return len(self._entries_by_debug_id) > 0
 
     def extract_debug_ids_from_manifest(
         self,

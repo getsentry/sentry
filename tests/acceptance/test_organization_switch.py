@@ -1,7 +1,7 @@
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.retries import TimedRetryPolicy
 

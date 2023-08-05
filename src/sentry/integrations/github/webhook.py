@@ -3,12 +3,12 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+from datetime import timezone
 from typing import Any, Callable, Dict, List, Mapping, MutableMapping
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import HttpResponse
-from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -30,6 +30,7 @@ from sentry.services.hybrid_cloud.integration.model import (
     RpcOrganizationIntegration,
 )
 from sentry.services.hybrid_cloud.integration.service import integration_service
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json, metrics
@@ -105,9 +106,11 @@ class Webhook:
                 }
 
                 for org in orgs.values():
-                    if features.has("organizations:auto-repo-linking", org):
+                    rpc_org = serialize_rpc_organization(org)
+
+                    if features.has("organizations:integrations-auto-repo-linking", org):
                         try:
-                            provider.create_repository(config, org)
+                            provider.create_repository(repo_config=config, organization=rpc_org)
                         except RepoExistsError:
                             metrics.incr("sentry.integration_repo_provider.repo_exists")
                             continue
@@ -225,9 +228,7 @@ class PushEventWebhook(Webhook):
         host: str | None = None,
     ) -> None:
         authors = {}
-        client = integration_service.get_installation(
-            integration=integration, organization_id=organization.id
-        ).get_client()
+        client = integration.get_installation(organization_id=organization.id).get_client()
         gh_username_cache: MutableMapping[str, str | None] = {}
 
         for commit in event["commits"]:
@@ -333,7 +334,8 @@ class PushEventWebhook(Webhook):
             else:
                 author = authors[author_email]
 
-            author.preload_users()
+            if author:
+                author.preload_users()
             try:
                 with transaction.atomic(router.db_for_write(Commit)):
                     c = Commit.objects.create(

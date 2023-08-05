@@ -6,7 +6,7 @@ from requests import Request
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"

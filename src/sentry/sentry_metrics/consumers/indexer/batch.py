@@ -8,10 +8,12 @@ from typing import (
     Dict,
     Mapping,
     MutableMapping,
+    MutableSequence,
     NamedTuple,
     Optional,
     Sequence,
     Set,
+    Tuple,
     Union,
     cast,
 )
@@ -26,6 +28,8 @@ from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 
+from sentry import options
+from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_option
 from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH
 from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
 from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
@@ -44,6 +48,7 @@ ACCEPTED_METRIC_TYPES = {"s", "c", "d"}  # set, counter, distribution
 MRI_RE_PATTERN = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$")
 
 OrgId = int
+Headers = MutableSequence[Tuple[str, bytes]]
 
 
 class PartitionIdxOffset(NamedTuple):
@@ -98,6 +103,13 @@ class IndexerBatch:
 
         self._extract_messages()
 
+    def _extract_namespace(self, headers: Headers) -> Optional[str]:
+        for string, endcoded in headers:
+            if string == "namespace":
+                return endcoded.decode("utf-8")
+        metrics.incr("sentry-metrics.indexer.killswitch.no-namespace-in-header")
+        return None
+
     @metrics.wraps("process_messages.extract_messages")
     def _extract_messages(self) -> None:
         self.skipped_offsets: Set[PartitionIdxOffset] = set()
@@ -107,6 +119,12 @@ class IndexerBatch:
             assert isinstance(msg.value, BrokerValue)
             partition_offset = PartitionIdxOffset(msg.value.partition.index, msg.value.offset)
 
+            if namespace := self._extract_namespace(msg.payload.headers) in options.get(
+                "sentry-metrics.indexer.disabled-namespaces"
+            ):
+                self.skipped_offsets.add(partition_offset)
+                metrics.incr("process_messages.namespace_disabled", tags={"namespace": namespace})
+                continue
             try:
                 parsed_payload: ParsedMessage = json.loads(
                     msg.payload.value.decode("utf-8"), use_rapid_json=True
@@ -434,6 +452,9 @@ class IndexerBatch:
                     "value": old_payload_value["value"],
                     "sentry_received_timestamp": sentry_received_timestamp,
                 }
+                if aggregation_option := get_aggregation_option(old_payload_value["name"]):
+                    new_payload_v2["aggregation_option"] = aggregation_option.value
+
                 new_payload_value = new_payload_v2
 
             kafka_payload = KafkaPayload(

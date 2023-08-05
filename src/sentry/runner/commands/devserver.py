@@ -60,7 +60,10 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
 @click.option(
     "--watchers/--no-watchers", default=True, help="Watch static files and recompile on changes."
 )
-@click.option("--workers/--no-workers", default=False, help="Run asynchronous workers.")
+@click.option(
+    "--workers/--no-workers", default=False, help="Run celery workers (excluding celerybeat)."
+)
+@click.option("--crons/--no-crons", default=False, help="Run celerybeat workers.")
 @click.option("--ingest/--no-ingest", default=False, help="Run ingest services (including Relay).")
 @click.option(
     "--occurrence-ingest/--no-occurrence-ingest",
@@ -104,6 +107,7 @@ def devserver(
     reload: bool,
     watchers: bool,
     workers: bool,
+    crons: bool,
     ingest: bool,
     occurrence_ingest: bool,
     experimental_spa: bool,
@@ -253,6 +257,15 @@ def devserver(
         click.echo("--ingest was provided, implicitly enabling --workers")
         workers = True
 
+    if workers and not crons:
+        click.secho(
+            "If you want to run crons (celerybeat workers), you need to also pass --crons.",
+            fg="yellow",
+        )
+
+    if crons:
+        daemons.append(_get_daemon("cron"))
+
     if workers:
         kafka_consumers.update(settings.DEVSERVER_START_KAFKA_CONSUMERS)
 
@@ -261,7 +274,7 @@ def devserver(
                 "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
             )
 
-        daemons += [_get_daemon("worker"), _get_daemon("cron")]
+        daemons.append(_get_daemon("worker"))
 
         from sentry import eventstream
 
@@ -281,7 +294,7 @@ def devserver(
             kafka_consumers.add("billing-metrics-consumer")
 
         if settings.SENTRY_USE_RELAY:
-            daemons += [("relay", ["sentry", "devservices", "attach", "--fast", "relay"])]
+            daemons += [("relay", ["sentry", "devservices", "attach", "relay"])]
 
             kafka_consumers.add("ingest-events")
             kafka_consumers.add("ingest-attachments")
@@ -442,7 +455,9 @@ Alternatively, run without --workers.
         merged_env.update(control_environ)
         control_services = ["server"]
         if workers:
-            control_services.extend(["cron", "worker"])
+            control_services.append("worker")
+        if crons:
+            control_services.append("cron")
 
         for service in control_services:
             name, cmd = _get_daemon(service)

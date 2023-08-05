@@ -138,16 +138,7 @@ function Onboarding(props: Props) {
     props.location.pathname,
   ]);
 
-  const heartbeatFooter = !!organization?.features.includes(
-    'onboarding-heartbeat-footer'
-  );
-
-  const projectDeletionOnBackClick = !!organization?.features.includes(
-    'onboarding-project-deletion-on-back-click'
-  );
-
   const shallProjectBeDeleted =
-    projectDeletionOnBackClick &&
     onboardingSteps[stepIndex].id === 'setup-docs' &&
     recentCreatedProject &&
     // if the project has received a first error, we don't delete it
@@ -404,7 +395,7 @@ function Onboarding(props: Props) {
           />
         </UpsellWrapper>
       </Header>
-      <Container hasFooter={containerHasFooter} heartbeatFooter={heartbeatFooter}>
+      <Container hasFooter={containerHasFooter}>
         <Confirm bypass={!shallProjectBeDeleted} {...goBackDeletionAlertModalProps}>
           <Back animate={stepIndex > 0 ? 'visible' : 'hidden'} />
         </Confirm>
@@ -439,14 +430,13 @@ function Onboarding(props: Props) {
   );
 }
 
-const Container = styled('div')<{hasFooter: boolean; heartbeatFooter: boolean}>`
+const Container = styled('div')<{hasFooter: boolean}>`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
   position: relative;
   background: ${p => p.theme.background};
-  padding: ${p =>
-    p.heartbeatFooter ? `120px ${space(3)} 0 ${space(3)}` : `120px ${space(3)}`};
+  padding: 120px ${space(3)};
   width: 100%;
   margin: 0 auto;
   padding-bottom: ${p => p.hasFooter && '72px'};

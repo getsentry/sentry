@@ -1,10 +1,10 @@
 import ipaddress
 import logging
+from datetime import timezone
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import Http404, HttpResponse
-from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
@@ -77,7 +77,7 @@ class PushEventWebhook(Webhook):
                     pass
 
 
-class BitbucketWebhookEndpoint(View):
+class BitbucketPluginWebhookEndpoint(View):
     _handlers = {"repo:push": PushEventWebhook}
 
     def get_handler(self, event_type):
@@ -91,6 +91,10 @@ class BitbucketWebhookEndpoint(View):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: Request, organization_id):
+        logger.error(
+            "bitbucket_plugin.deprecation_check",
+            extra={"organization_id": organization_id, "meta": request.META},
+        )
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:

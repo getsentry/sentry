@@ -11,7 +11,12 @@ import {
 } from 'sentry/views/starfish/components/textAlign';
 import {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
 
-type Keys = 'transaction_id' | 'timestamp' | 'duration' | 'p95_comparison';
+type Keys =
+  | 'transaction_id'
+  | 'timestamp'
+  | 'duration'
+  | 'p95_comparison'
+  | 'avg_comparison';
 type TableColumnHeader = GridColumnHeader<Keys>;
 
 const COLUMN_ORDER: TableColumnHeader[] = [
@@ -26,8 +31,8 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: 200,
   },
   {
-    key: 'p95_comparison',
-    name: 'Compared to baseline',
+    key: 'avg_comparison',
+    name: 'Compared to Average',
     width: 200,
   },
 ];
@@ -43,9 +48,9 @@ type SpanTableRow = {
 } & SpanSample;
 
 type Props = {
+  avg: number;
   data: SpanTableRow[];
   isLoading: boolean;
-  p95: number;
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
@@ -54,7 +59,7 @@ type Props = {
 export function SpanSamplesTable({
   isLoading,
   data,
-  p95,
+  avg,
   highlightedSpanId,
   onMouseLeaveSample,
   onMouseOverSample,
@@ -74,7 +79,11 @@ export function SpanSamplesTable({
   }
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    if (column.key === 'p95_comparison' || column.key === 'duration') {
+    if (
+      column.key === 'p95_comparison' ||
+      column.key === 'avg_comparison' ||
+      column.key === 'duration'
+    ) {
       return (
         <TextAlignRight>
           <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
@@ -110,12 +119,12 @@ export function SpanSamplesTable({
       );
     }
 
-    if (column.key === 'p95_comparison') {
+    if (column.key === 'avg_comparison') {
       return (
         <DurationComparisonCell
           containerProps={commonProps}
           duration={row['span.self_time']}
-          p95={p95}
+          compareToDuration={avg}
         />
       );
     }

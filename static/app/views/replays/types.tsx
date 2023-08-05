@@ -1,8 +1,6 @@
-import type {eventWithTime} from '@sentry-internal/rrweb/typings/types';
 import type {Duration} from 'moment';
 
 import {Organization} from 'sentry/types';
-import type {RawCrumb} from 'sentry/types/breadcrumbs';
 
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
@@ -179,43 +177,6 @@ export type ReplaySegment = {
   replayId: string;
   segmentId: number;
 };
-
-/**
- * Highlight Replay Plugin types
- *
- * See also HighlightParams in static/app/components/replays/replayContext.tsx
- */
-export interface Highlight {
-  nodeId: number;
-  text: string;
-  color?: string;
-}
-
-export type RecordingEvent = eventWithTime;
-
-export interface ReplaySpan<T = Record<string, any>> {
-  data: T;
-  endTimestamp: number;
-  id: string;
-  op: string;
-  startTimestamp: number;
-  timestamp: number;
-  description?: string;
-}
-
-export type MemorySpan = ReplaySpan<{
-  memory: {
-    jsHeapSizeLimit: number;
-    totalJSHeapSize: number;
-    usedJSHeapSize: number;
-  };
-}>;
-
-export type NetworkSpan = ReplaySpan;
-
-type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
-
-export type ReplayCrumb = Overwrite<RawCrumb, {timestamp: number}>;
 
 /**
  * This is a result of a custom discover query

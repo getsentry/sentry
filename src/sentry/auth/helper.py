@@ -35,7 +35,7 @@ from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.locks import locks
-from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, User
+from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, User, outbox_context
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.pipeline.provider import PipelineProvider
 from sentry.services.hybrid_cloud.organization import (
@@ -108,11 +108,6 @@ class AuthIdentityHandler:
     request: HttpRequest
     identity: Mapping[str, Any]
 
-    def __post_init__(self) -> None:
-        # For debugging. TODO: Remove when tests are stable
-        if not isinstance(self.organization, RpcOrganization):
-            raise TypeError
-
     @cached_property
     def user(self) -> User | AnonymousUser:
         email = self.identity.get("email")
@@ -124,7 +119,11 @@ class AuthIdentityHandler:
                 self.warn_about_ambiguous_email(email, e.users, user)
             if user is not None:
                 return user
-        return self.request.user
+        return (
+            User.objects.get(id=self.request.user.id)
+            if self.request.user.is_authenticated
+            else self.request.user
+        )
 
     @staticmethod
     def warn_about_ambiguous_email(email: str, users: Collection[User], chosen_user: User) -> None:
@@ -298,65 +297,65 @@ class AuthIdentityHandler:
 
     def _get_auth_identity(self, **params: Any) -> AuthIdentity | None:
         try:
-            return AuthIdentity.objects.get(auth_provider=self.auth_provider, **params)
+            return AuthIdentity.objects.get(auth_provider_id=self.auth_provider.id, **params)
         except AuthIdentity.DoesNotExist:
             return None
 
-    @transaction.atomic
     def handle_attach_identity(self, member: RpcOrganizationMember | None = None) -> AuthIdentity:
         """
         Given an already authenticated user, attach or re-attach an identity.
         """
         # prioritize identifying by the SSO provider's user ID
-        auth_identity = self._get_auth_identity(ident=self.identity["id"])
-        if auth_identity is None:
-            # otherwise look for an already attached identity
-            # this can happen if the SSO provider's internal ID changes
-            auth_identity = self._get_auth_identity(user=self.user)
+        with transaction.atomic(router.db_for_write(AuthIdentity)):
+            auth_identity = self._get_auth_identity(ident=self.identity["id"])
+            if auth_identity is None:
+                # otherwise look for an already attached identity
+                # this can happen if the SSO provider's internal ID changes
+                auth_identity = self._get_auth_identity(user_id=self.user.id)
 
-        if auth_identity is None:
-            auth_is_new = True
-            auth_identity = AuthIdentity.objects.create(
-                auth_provider=self.auth_provider,
-                user=self.user,
-                ident=self.identity["id"],
-                data=self.identity.get("data", {}),
-            )
-        else:
-            auth_is_new = False
-
-            # TODO(dcramer): this might leave the user with duplicate accounts,
-            # and in that kind of situation its very reasonable that we could
-            # test email addresses + is_managed to determine if we can auto
-            # merge
-            if auth_identity.user != self.user:
-                wipe = self._wipe_existing_identity(auth_identity)
+            if auth_identity is None:
+                auth_is_new = True
+                auth_identity = AuthIdentity.objects.create(
+                    auth_provider=self.auth_provider,
+                    user_id=self.user.id,
+                    ident=self.identity["id"],
+                    data=self.identity.get("data", {}),
+                )
             else:
-                wipe = None
+                auth_is_new = False
 
-            now = timezone.now()
-            auth_identity.update(
-                user=self.user,
-                ident=self.identity["id"],
-                data=self.provider.update_identity(
-                    new_data=self.identity.get("data", {}), current_data=auth_identity.data
-                ),
-                last_verified=now,
-                last_synced=now,
-            )
+                # TODO(dcramer): this might leave the user with duplicate accounts,
+                # and in that kind of situation its very reasonable that we could
+                # test email addresses + is_managed to determine if we can auto
+                # merge
+                if auth_identity.user_id != self.user.id:
+                    wipe = self._wipe_existing_identity(auth_identity)
+                else:
+                    wipe = None
 
-            logger.info(
-                "sso.login-pipeline.attach-existing-identity",
-                extra={
-                    "wipe_result": repr(wipe),
-                    "organization_id": self.organization.id,
-                    "user_id": self.user.id,
-                    "auth_identity_user_id": auth_identity.user.id,
-                    "auth_provider_id": self.auth_provider.id,
-                    "idp_identity_id": self.identity["id"],
-                    "idp_identity_email": self.identity.get("email"),
-                },
-            )
+                now = timezone.now()
+                auth_identity.update(
+                    user_id=self.user.id,
+                    ident=self.identity["id"],
+                    data=self.provider.update_identity(
+                        new_data=self.identity.get("data", {}), current_data=auth_identity.data
+                    ),
+                    last_verified=now,
+                    last_synced=now,
+                )
+
+                logger.info(
+                    "sso.login-pipeline.attach-existing-identity",
+                    extra={
+                        "wipe_result": repr(wipe),
+                        "organization_id": self.organization.id,
+                        "user_id": self.user.id,
+                        "auth_identity_user_id": auth_identity.user.id,
+                        "auth_provider_id": self.auth_provider.id,
+                        "idp_identity_id": self.identity["id"],
+                        "idp_identity_email": self.identity.get("email"),
+                    },
+                )
 
         if member is None:
             member = self._get_organization_member(auth_identity)
@@ -386,23 +385,15 @@ class AuthIdentityHandler:
         # so that the new identifier gets used (other we'll hit a constraint)
         # violation since one might exist for (provider, user) as well as
         # (provider, ident)
-        deletion_result = (
-            AuthIdentity.objects.exclude(id=auth_identity.id)
-            .filter(auth_provider=self.auth_provider, user=self.user)
-            .delete()
-        )
+        with outbox_context(transaction.atomic(router.db_for_write(AuthIdentity))):
+            deletion_result = (
+                AuthIdentity.objects.exclude(id=auth_identity.id)
+                .filter(auth_provider=self.auth_provider, user_id=self.user.id)
+                .delete()
+            )
 
-        # since we've identified an identity which is no longer valid
-        # lets preemptively mark it as such
-        other_member = organization_service.check_membership_by_id(
-            user_id=auth_identity.user_id, organization_id=self.organization.id
-        )
-        if other_member is None:
-            return
-
-        other_member.flags.sso__invalid = True
-        other_member.flags.sso__linked = False
-        organization_service.update_membership_flags(organization_member=other_member)
+            for outbox in self.auth_provider.outboxes_for_mark_invalid_sso(auth_identity.user_id):
+                outbox.save()
 
         return deletion_result
 
@@ -785,7 +776,6 @@ class AuthHelper(Pipeline):
             self.provider_model, self.provider, self.organization, self.request, identity
         )
 
-    @transaction.atomic
     def _finish_login_pipeline(self, identity: Mapping[str, Any]) -> HttpResponse:
         """
         The login flow executes both with anonymous and authenticated users.
@@ -843,7 +833,6 @@ class AuthHelper(Pipeline):
 
             return auth_handler.handle_existing_identity(self.state, auth_identity)
 
-    @transaction.atomic
     def _finish_setup_pipeline(self, identity: Mapping[str, Any]) -> HttpResponseRedirect:
         """
         the setup flow here is configuring SSO for an organization.
@@ -877,20 +866,24 @@ class AuthHelper(Pipeline):
 
         auth.mark_sso_complete(request, self.organization.id)
 
-        sso_enabled.send_robust(
-            organization=self.organization,
-            user=request.user,
-            provider=self.provider.key,
-            sender=self.__class__,
+        organization_service.schedule_signal(
+            sso_enabled,
+            organization_id=self.organization.id,
+            args=dict(
+                user_id=request.user.id,
+                provider=self.provider.key,
+            ),
         )
 
-        AuditLogEntry.objects.create(
-            organization_id=self.organization.id,
-            actor=request.user,
-            ip_address=request.META["REMOTE_ADDR"],
-            target_object=self.provider_model.id,
-            event=audit_log.get_event_id("SSO_ENABLE"),
-            data=self.provider_model.get_audit_log_data(),
+        log_service.record_audit_log(
+            event=AuditLogEvent(
+                organization_id=self.organization.id,
+                actor_user_id=request.user.id,
+                ip_address=request.META["REMOTE_ADDR"],
+                target_object_id=self.provider_model.id,
+                event_id=audit_log.get_event_id("SSO_ENABLE"),
+                data=self.provider_model.get_audit_log_data(),
+            )
         )
 
         email_missing_links.delay(self.organization.id, request.user.id, self.provider.key)

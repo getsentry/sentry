@@ -134,11 +134,7 @@ export function normalizeQueries({
   const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(displayType);
   queries = cloneDeep(queries);
 
-  if (
-    [DisplayType.TABLE, DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(
-      displayType
-    )
-  ) {
+  if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(displayType)) {
     // Some display types may only support at most 1 query.
     queries = queries.slice(0, 1);
   } else if (isTimeseriesChart) {
@@ -219,7 +215,7 @@ export function normalizeQueries({
   queries = queries.map(query => {
     let aggregates = query.aggregates;
 
-    if (isTimeseriesChart || displayType === DisplayType.WORLD_MAP) {
+    if (isTimeseriesChart) {
       // Filter out fields that will not generate numeric output types
       aggregates = aggregates.filter(aggregate =>
         isLegalYAxisType(aggregateOutputType(aggregate))
@@ -274,7 +270,7 @@ export function normalizeQueries({
     });
   }
 
-  if ([DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(displayType)) {
+  if (DisplayType.BIG_NUMBER === displayType) {
     // For world map chart, cap fields of the queries to only one field.
     queries = queries.map(query => {
       return {
