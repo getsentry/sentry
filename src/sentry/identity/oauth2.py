@@ -85,9 +85,6 @@ class OAuth2Provider(Provider):
     def get_oauth_scopes(self):
         return self.config.get("oauth_scopes", self.oauth_scopes)
 
-    def get_refresh_token_headers(self):
-        return None
-
     def get_pipeline_views(self):
         return [
             OAuth2LoginView(
@@ -185,9 +182,7 @@ class OAuth2Provider(Provider):
         kwargs["identity"] = identity
         data = self.get_refresh_token_params(refresh_token, *args, **kwargs)
 
-        req = safe_urlopen(
-            url=self.get_refresh_token_url(), headers=self.get_refresh_token_headers(), data=data
-        )
+        req = safe_urlopen(url=self.get_refresh_token_url(), data=data)
 
         try:
             body = safe_urlread(req)
