@@ -30,20 +30,23 @@ from sentry.signals import (
     plugin_enabled,
     project_created,
 )
+from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.samples import load_data
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationOnboardingTaskTest(TestCase):
     def create_integration(self, provider, external_id=9999):
-        return Integration.objects.create(
-            provider=provider,
-            name="test",
-            external_id=external_id,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            return Integration.objects.create(
+                provider=provider,
+                name="test",
+                external_id=external_id,
+            )
 
     def test_no_existing_task(self):
         now = timezone.now()
@@ -290,7 +293,8 @@ class OrganizationOnboardingTaskTest(TestCase):
                 status=OnboardingTaskStatus.COMPLETE,
             )
 
-        helper.accept_invite(user=user)
+        with assume_test_silo_mode(SiloMode.CONTROL), self.tasks(), outbox_runner():
+            helper.accept_invite(user=user)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -313,7 +317,8 @@ class OrganizationOnboardingTaskTest(TestCase):
             None,
         )
 
-        helper.accept_invite(user=user2)
+        with assume_test_silo_mode(SiloMode.CONTROL), self.tasks(), outbox_runner():
+            helper.accept_invite(user=user2)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
