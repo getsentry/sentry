@@ -18,8 +18,7 @@ class ReactPageViewTest(TestCase):
         path = reverse("sentry-organization-home", args=[org.slug])
         resp = self.client.get(path)
 
-        with assume_test_silo_mode(SiloMode.REGION):
-            self.assertRedirects(resp, reverse("sentry-auth-organization", args=[org.slug]))
+        self.assertRedirects(resp, reverse("sentry-auth-organization", args=[org.slug]))
         assert resp["X-Robots-Tag"] == "noindex, nofollow"
 
     def test_superuser_can_load(self):
