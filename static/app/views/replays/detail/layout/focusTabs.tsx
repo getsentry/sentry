@@ -1,7 +1,6 @@
-import {Fragment, ReactNode} from 'react';
+import {ReactNode} from 'react';
 import queryString from 'query-string';
 
-import FeatureBadge from 'sentry/components/featureBadge';
 import ListLink from 'sentry/components/links/listLink';
 import ScrollableTabs from 'sentry/components/replays/scrollableTabs';
 import {t} from 'sentry/locale';
@@ -15,11 +14,7 @@ function getReplayTabs(): Record<TabKey, ReactNode> {
     [TabKey.CONSOLE]: t('Console'),
     [TabKey.NETWORK]: t('Network'),
     [TabKey.DOM]: t('DOM Events'),
-    [TabKey.ERRORS]: (
-      <Fragment>
-        {t('Errors')} <FeatureBadge type="new" />
-      </Fragment>
-    ),
+    [TabKey.ERRORS]: t('Errors'),
     [TabKey.MEMORY]: t('Memory'),
     [TabKey.TRACE]: t('Trace'),
   };
@@ -40,6 +35,7 @@ function FocusTabs({className}: Props) {
       {Object.entries(getReplayTabs()).map(([tab, label]) =>
         label ? (
           <ListLink
+            data-test-id={label}
             key={tab}
             isActive={() => tab === activeTab}
             to={`${pathname}?${queryString.stringify({...query, t_main: tab})}`}

@@ -93,7 +93,7 @@ function FeatureDisabled({
     const showDescription = hideHelpToggle || showHelp;
     return (
       <Fragment>
-        <FeatureDisabledMessage>
+        <FeatureDisabledMessage data-test-id="feature-disabled-message">
           {message}
           {!hideHelpToggle && (
             <ToggleButton
