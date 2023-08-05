@@ -83,3 +83,57 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
             self.browser.snapshot("replay detail")
+
+    def test_dom_events_tab(self):
+        with self.feature(FEATURE_NAME):
+            self.browser.get(self.path)
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+            self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+            self.browser.click('[data-test-id="DOM Events"]')
+            self.browser.wait_until_test_id("replay-details-dom-events-tab")
+            self.browser.snapshot("replay details - dom events tab")
+
+    def test_console_tab(self):
+        with self.feature(FEATURE_NAME):
+            self.browser.get(self.path)
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+            self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+            self.browser.click('[data-test-id="Console"]')
+            self.browser.wait_until_test_id("replay-details-console-tab")
+            self.browser.snapshot("replay details - console tab")
+
+    def test_network_tab(self):
+        with self.feature(FEATURE_NAME):
+            self.browser.get(self.path)
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+            self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+            self.browser.click('[data-test-id="Network"]')
+            self.browser.wait_until_test_id("replay-details-network-tab")
+            self.browser.snapshot("replay details - network tab")
+
+    def test_memory_tab(self):
+        with self.feature(FEATURE_NAME):
+            self.browser.get(self.path)
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+            self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+            self.browser.click('[data-test-id="Memory"]')
+            self.browser.wait_until_test_id("replay-details-memory-tab")
+            self.browser.snapshot("replay details - memory tab")
+
+    def test_errors_tab(self):
+        with self.feature(FEATURE_NAME):
+            self.browser.get(self.path)
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+            self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+            self.browser.click('[data-test-id="Errors"]')
+            self.browser.wait_until_test_id("replay-details-errors-tab")
+            self.browser.snapshot("replay details - errors tab")
+
+    def test_trace_tab(self):
+        with self.feature(FEATURE_NAME):
+            self.browser.get(self.path)
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+            self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+            self.browser.click('[data-test-id="Trace"]')
+            self.browser.wait_until_test_id("feature-disabled-message")
+            self.browser.snapshot("replay details - trace tab")
