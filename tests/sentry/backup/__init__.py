@@ -68,8 +68,6 @@ def targets(expected_models: list[Type]):
                     if isinstance(f, models.ManyToManyField):
                         continue
 
-                    # TODO(getsentry/team-ospo#156): Maybe make these checks recursive for models
-                    # that have POPOs for some of their field values?
                     if field_name not in data:
                         mistakes.append(f"Must include field: `{field_name}`")
                         continue
