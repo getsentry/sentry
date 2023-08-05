@@ -44,8 +44,7 @@ class ReactPageViewTest(TestCase):
 
         resp = self.client.get(path)
 
-        with assume_test_silo_mode(SiloMode.REGION):
-            self.assertRedirects(resp, reverse("sentry-auth-organization", args=[org.slug]))
+        self.assertRedirects(resp, reverse("sentry-auth-organization", args=[org.slug]))
 
         # ensure we don't redirect to auth if its not a valid org
         path = reverse("sentry-organization-home", args=["foobar"])
