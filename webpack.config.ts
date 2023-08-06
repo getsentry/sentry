@@ -15,6 +15,7 @@ import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
 import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
 import LastBuiltPlugin from './build-utils/last-built-plugin';
+import ListFilesPlugin from './build-utils/list-files-plugin';
 import SentryInstrumentation from './build-utils/sentry-instrumentation';
 import {extractIOSDeviceNames} from './scripts/extract-ios-device-names';
 import babelConfig from './babel.config';
@@ -350,6 +351,12 @@ const appConfig: Configuration = {
      * This removes empty js files for style only entries (e.g. sentry.less)
      */
     new FixStyleOnlyEntriesPlugin({verbose: false}),
+
+    new ListFilesPlugin({
+      cwd: staticPrefix,
+      pattern: 'app/components/**/*.stories.tsx',
+      output: path.join(staticPrefix, 'app', 'constants', 'ui-stories-list.tsx'),
+    }),
 
     ...(SHOULD_FORK_TS
       ? [

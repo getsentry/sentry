@@ -270,6 +270,11 @@ function buildRoutes() {
         <IndexRedirect to="welcome/" />
         <Route path=":step/" component={make(() => import('sentry/views/onboarding'))} />
       </Route>
+      <Route
+        path="/stories/"
+        component={make(() => import('sentry/views/stories/index'))}
+        key="orgless-stories"
+      />
     </Fragment>
   );
 
