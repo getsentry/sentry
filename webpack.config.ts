@@ -13,8 +13,10 @@ import webpack from 'webpack';
 import {Configuration as DevServerConfig} from 'webpack-dev-server';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
+// import ComponentPropsPlugin from './build-utils/component-props-plugin';
 import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
 import LastBuiltPlugin from './build-utils/last-built-plugin';
+import ListFilesPlugin from './build-utils/list-files-plugin';
 import SentryInstrumentation from './build-utils/sentry-instrumentation';
 import {extractIOSDeviceNames} from './scripts/extract-ios-device-names';
 import babelConfig from './babel.config';
@@ -350,6 +352,20 @@ const appConfig: Configuration = {
      * This removes empty js files for style only entries (e.g. sentry.less)
      */
     new FixStyleOnlyEntriesPlugin({verbose: false}),
+
+    /**
+     * List all story files, so we can render links to them at the /stories page
+     */
+    new ListFilesPlugin({
+      cwd: staticPrefix,
+      pattern: ['app/components/**/*.stories.tsx', 'app/icons/**/*.stories.tsx'],
+      output: path.join(
+        staticPrefix,
+        'app',
+        'constants',
+        'generated-ui-stories-list.tsx'
+      ),
+    }),
 
     ...(SHOULD_FORK_TS
       ? [
