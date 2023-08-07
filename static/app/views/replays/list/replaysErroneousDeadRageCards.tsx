@@ -98,14 +98,13 @@ function ReplaysErroneousDeadRageCards() {
   }, [newLocation]);
 
   const hasSessionReplay = organization.features.includes('session-replay');
-  const hasDeadRageCards = organization.features.includes('replay-error-click-cards');
   const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
 
   const deadCols = [ReplayColumn.MOST_DEAD_CLICKS, ReplayColumn.COUNT_DEAD_CLICKS];
 
   const rageCols = [ReplayColumn.MOST_RAGE_CLICKS, ReplayColumn.COUNT_RAGE_CLICKS];
 
-  return hasSessionReplay && hasDeadRageCards && hasSentOneReplay && !fetching ? (
+  return hasSessionReplay && hasSentOneReplay && !fetching ? (
     <SplitCardContainer>
       <CardTable
         eventView={eventViewDead}
