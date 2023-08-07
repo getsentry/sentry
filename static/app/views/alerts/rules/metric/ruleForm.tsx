@@ -630,7 +630,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       const [data, , resp] = await addOrUpdateRule(
         this.api,
         organization.slug,
-        project.slug,
         {
           ...rule,
           ...model.getTransformedData(),
