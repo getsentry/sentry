@@ -81,7 +81,7 @@ function DomMutations({replay, startTimestampMs}: Props) {
   return (
     <FluidHeight>
       <DomFilters actions={actions} {...filterProps} />
-      <TabItemContainer>
+      <TabItemContainer data-test-id="replay-details-dom-events-tab">
         {isLoading || !actions ? (
           <Placeholder height="100%" />
         ) : (

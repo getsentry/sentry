@@ -25,7 +25,7 @@ function TracesNotFound({performanceActive}: {performanceActive: boolean}) {
   useRouteAnalyticsParams(performanceActive ? {trace_status: 'trace missing'} : {});
 
   return (
-    <BorderedSection>
+    <BorderedSection data-test-id="replay-details-trace-tab">
       <EmptyState>
         <p>{t('No traces found')}</p>
       </EmptyState>
