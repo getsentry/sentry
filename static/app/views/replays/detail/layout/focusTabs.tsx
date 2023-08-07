@@ -28,7 +28,6 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
         {t('Perf')} <FeatureBadge type="alpha" />
       </Fragment>
     ) : null,
-
     [TabKey.DOM]: t('DOM Events'),
     [TabKey.MEMORY]: t('Memory'),
   };

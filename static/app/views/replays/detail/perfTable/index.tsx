@@ -4,11 +4,11 @@ import useReplayPerfData from 'sentry/views/replays/detail/perfTable/useReplayPe
 
 type Props = {};
 
-function Traces({}: Props) {
+function Perf({}: Props) {
   const {replay} = useReplayContext();
   const perfData = useReplayPerfData({replay});
 
   return <PerfTable perfData={perfData} />;
 }
 
-export default Traces;
+export default Perf;

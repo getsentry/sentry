@@ -28,14 +28,14 @@ interface Props {
 export default function PerfRow({
   currentHoverTime,
   currentTime,
-  eventView,
+  eventView: _eventView,
   startTimestampMs,
   style,
   traceRow,
 }: Props) {
   const frame = traceRow.replayFrame;
-  const location = useLocation();
-  const organization = useOrganization();
+  const _location = useLocation();
+  const _organization = useOrganization();
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
@@ -50,7 +50,11 @@ export default function PerfRow({
     [handleMouseLeave, frame]
   );
 
-  const {color, title, type} = getFrameDetails(frame);
+  if (frame.traces) {
+    console.log({frame});
+  }
+
+  const {color, description, title, type} = getFrameDetails(frame);
 
   const hasOccurred = frame ? currentTime >= frame.offsetMs : false;
   const isBeforeHover = frame
@@ -69,36 +73,30 @@ export default function PerfRow({
       onMouseLeave={onMouseLeave}
       style={style}
     >
-      <IconWrapper color={color} hasOccurred={hasOccurred}>
-        <BreadcrumbIcon type={type} />
-      </IconWrapper>
       <List>
-        <Row>
-          <Title>{title}</Title>
-          <TimestampButton
-            onClick={onClickTimestamp}
-            startTimestampMs={startTimestampMs}
-            timestampMs={frame.timestampMs}
-          />
+        <Row style={{gap: space(1)}}>
+          <IconWrapper color={color} hasOccurred={hasOccurred}>
+            <BreadcrumbIcon type={type} />
+          </IconWrapper>
+          <List>
+            <Row>
+              <Title hasOccurred={hasOccurred}>{title}</Title>
+              <TimestampButton
+                onClick={onClickTimestamp}
+                startTimestampMs={startTimestampMs}
+                timestampMs={frame.timestampMs}
+              />
+            </Row>
+            <Row>{description}</Row>
+          </List>
         </Row>
-        {traceRow.traces.length ? (
-          <StyledTraceView
-            meta={null}
-            traces={traceRow.traces ?? null}
-            location={location}
-            organization={organization}
-            traceEventView={eventView!}
-            traceSlug="Replay"
-          />
-        ) : null}
+        <Row />
       </List>
     </PerfListItem>
   );
 }
 
 const PerfListItem = styled('div')`
-  display: flex;
-  gap: ${space(1)};
   padding: ${space(1)} ${space(1.5)};
 
   /* Overridden in TabItemContainer, depending on *CurrentTime and *HoverTime classes */
@@ -109,14 +107,17 @@ const PerfListItem = styled('div')`
 const List = styled('div')`
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+
   width: 100%;
 `;
 
 const Row = styled('div')`
   display: flex;
+  flex: auto 1 1;
   flex-direction: row;
+
   font-size: ${p => p.theme.fontSizeSmall};
+  overflow: auto;
 `;
 
 const Title = styled('span')<{hasOccurred?: boolean}>`
