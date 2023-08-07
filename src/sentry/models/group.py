@@ -624,7 +624,7 @@ class Group(Model):
             )
 
         def _cache_key(issue_id):
-            return f"has_replays:{issue_id}"
+            return f"group:has_replays:{issue_id}"
 
         from sentry.replays.usecases.replay_counts import get_replay_counts
         from sentry.search.events.types import SnubaParams
