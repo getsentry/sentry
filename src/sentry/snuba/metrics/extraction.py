@@ -349,7 +349,7 @@ def _remove_on_demand_search_filters(tokens: Sequence[QueryToken]) -> Sequence[Q
     """
     removes tokens that contain filters that can only be handled by on demand metrics.
     """
-    ret_val = []
+    ret_val: List[QueryToken] = []
     for token in tokens:
         if isinstance(token, SearchFilter):
             if _is_standard_metrics_search_filter(token):
@@ -375,7 +375,7 @@ def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     tokens = list(tokens)
 
     # remove empty parens
-    removed_empty_parens = []
+    removed_empty_parens: List[QueryToken] = []
     for token in tokens:
         if not isinstance(token, ParenExpression):
             removed_empty_parens.append(token)
@@ -393,11 +393,12 @@ def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
 
     # remove AND and OR operators that are next to each other
     ret_val = []
-    previous_token = None
+    previous_token: Optional[QueryToken] = None
 
     for token in removed_empty_parens:
         # this loop takes care of removing consecutive AND/OR operators (keeping only one of them)
         if isinstance(token, str) and isinstance(previous_token, str):
+            token = cast(QueryOp, token.upper())
             # this handles two AND/OR operators next to each other, we must drop one of them
             # if we have an AND do nothing (AND will be merged in the previous token see comment below)
             # if we have an OR the resulting operator will be an OR

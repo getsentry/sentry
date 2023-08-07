@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import Dict, List, Optional, Sequence, TypedDict, Union
+from types import ModuleType
+from typing import Dict, List, Optional, Sequence, TypedDict, Union, cast
 
 import sentry_sdk
 from rest_framework.exceptions import ValidationError
@@ -19,9 +20,9 @@ class CountResult(TypedDict):
     count: float
 
 
-# Type returned by get_events_stats_data is actually a [int, CountResult] where the first
+# Type returned by get_events_stats_data is actually a [int, List[CountResult]] where the first
 # param is the timestamp
-MetricVolumeRow = List[Union[int, CountResult]]
+MetricVolumeRow = List[Union[int, List[CountResult]]]
 
 
 @region_silo_endpoint
@@ -48,7 +49,7 @@ class OrganizationMetricsEstimationStatsEndpoint(OrganizationEventsV2EndpointBas
                     organization,
                     get_stats_generator(use_discover=True, remove_on_demand=True),
                 )
-                # the closest we have to the stats in metrics
+                # the closest we have to the stats in metrics, with no on_demand metrics
                 base_metrics = self.get_event_stats_data(
                     request,
                     organization,
@@ -84,7 +85,7 @@ def get_stats_generator(use_discover: bool, remove_on_demand: bool):
     ) -> SnubaTSResult:
         # use discover or metrics_performance depending on the dataset
         if use_discover:
-            module = discover
+            module: ModuleType = discover
         else:
             module = metrics_performance
 
@@ -121,14 +122,14 @@ def estimate_volume(
     assert _is_data_aligned(indexed_data, base_index)
     assert _is_data_aligned(indexed_data, base_metrics)
 
-    index_total = 0
+    index_total = 0.0
     for elm in base_index:
         index_total += _get_value(elm)
-    metrics_total = 0
+    metrics_total = 0.0
     for elm in base_metrics:
         metrics_total += _get_value(elm)
 
-    if index_total == 0:
+    if index_total == 0.0:
         return indexed_data  # there is no way to estimate the volume
 
     avg_inverted_rate = metrics_total / index_total
@@ -148,11 +149,11 @@ def estimate_volume(
 
 
 def _get_value(elm: MetricVolumeRow) -> float:
-    return elm[1][0]["count"]
+    return cast(List[CountResult], elm[1])[0]["count"]
 
 
 def _set_value(elm: MetricVolumeRow, value: float) -> None:
-    elm[1][0]["count"] = value
+    cast(List[CountResult], elm[1])[0]["count"] = value
 
 
 def _is_data_aligned(left: List[MetricVolumeRow], right: List[MetricVolumeRow]) -> bool:

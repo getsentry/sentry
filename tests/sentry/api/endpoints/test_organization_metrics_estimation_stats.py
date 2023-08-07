@@ -1,12 +1,13 @@
 from datetime import timedelta
 from random import choice
+from typing import List, cast
 
 import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.api.endpoints.organization_metrics_estimation_stats import estimate_volume
-from sentry.snuba.metrics import TransactionMRI
+from sentry.api.endpoints.organization_metrics_estimation_stats import CountResult, estimate_volume
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
@@ -155,5 +156,5 @@ def test_estimate_volume(indexed, base_indexed, metrics, expected):
     actual = estimate_volume(indexed, base_indexed, metrics)
 
     for idx, val in enumerate(actual):
-        count = val[1][0]["count"]
+        count: float = cast(List[CountResult], val[1])[0]["count"]
         assert pytest.approx(count, 0.001) == expected[idx]
