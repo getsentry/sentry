@@ -284,7 +284,7 @@ export default withApi(AllTeamsRow);
 
 export const GRID_TEMPLATE = `
   display: grid;
-  grid-template-columns: minmax(150px, 4fr) minmax(0px, 100px) 125px 110px;
+  grid-template-columns: minmax(150px, 4fr) minmax(0px, 100px) 125px minmax(150px, 1fr);
   gap: ${space(1)};
 `;
 
