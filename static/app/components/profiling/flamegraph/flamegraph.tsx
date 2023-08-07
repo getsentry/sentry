@@ -213,6 +213,14 @@ function Flamegraph(): ReactElement {
     );
   }, [profileGroup.metadata.platform, organization.features]);
 
+  const hasMemoryChart = useMemo(() => {
+    const platform = profileGroup.metadata.platform;
+    return (
+      (platform === 'cocoa' || platform === 'android') &&
+      organization.features.includes('profiling-memory-chart')
+    );
+  }, [profileGroup.metadata.platform, organization.features]);
+
   const profile = useMemo(() => {
     return profileGroup.profiles.find(p => p.threadId === threadId);
   }, [profileGroup, threadId]);
@@ -1011,6 +1019,7 @@ function Flamegraph(): ReactElement {
             />
           ) : null
         }
+        memoryChart={hasMemoryChart ? null : null}
         cpuChart={
           hasCPUChart ? (
             <FlamegraphCpuChart
