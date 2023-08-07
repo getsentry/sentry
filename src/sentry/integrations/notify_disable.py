@@ -10,13 +10,13 @@ provider_types = {
 }
 
 
-def get_url(organization: Organization, provider_type: str, slug: str) -> str:
+def get_url(organization: Organization, provider_type: str, name: str) -> str:
     if provider_type:
         type_name = provider_types.get(provider_type, "")
         if type_name:
             return str(
                 organization.absolute_url(
-                    f"/settings/{organization.slug}/{type_name}/{slug}/",
+                    f"/settings/{organization.slug}/{type_name}/{name}/",
                 )
             )
 
