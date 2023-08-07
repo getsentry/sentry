@@ -10,13 +10,13 @@ provider_types = {
 }
 
 
-def get_url(organization: Organization, provider_type: str, provider: str) -> str:
+def get_url(organization: Organization, provider_type: str, name: str) -> str:
     if provider_type:
         type_name = provider_types.get(provider_type, "")
         if type_name:
             return str(
                 organization.absolute_url(
-                    f"/settings/{type_name}/{provider}/",
+                    f"/settings/{organization.slug}/{type_name}/{name}/",
                 )
             )
 
@@ -39,13 +39,14 @@ def notify_disable(
     organization: Organization,
     integration_name: str,
     redis_key: str,
+    integration_slug: Union[str, None] = None,
     project: Union[str, None] = None,
 ):
 
     integration_link = get_url(
         organization,
         get_provider_type(redis_key),
-        integration_name,
+        integration_slug if "sentry-app" in redis_key and integration_slug else integration_name,
     )
 
     for user in organization.get_owners():
