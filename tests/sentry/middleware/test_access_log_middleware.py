@@ -186,7 +186,7 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
 
 
 @override_settings(LOG_API_ACCESS=False)
-@control_silo_test
+@control_silo_test(stable=True)
 class TestAccessLogSuccessNotLoggedInDev(LogCaptureAPITestCase):
 
     endpoint = "dummy-endpoint"
@@ -206,7 +206,7 @@ class TestAccessLogFail(LogCaptureAPITestCase):
         self.assert_access_log_recorded()
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TestOrganizationIdPresent(LogCaptureAPITestCase):
     endpoint = "sentry-api-0-organization-stats-v2"
 
