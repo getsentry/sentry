@@ -274,7 +274,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
-      guide: 'explain_new_default_event_issue_details',
+      guide: 'explain_new_default_event_issue_detail',
       requiredTargets: ['issue_details_default_event'],
       dateThreshold: new Date('2023-07-05'),
       steps: [
@@ -282,9 +282,9 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           title: t('New Default Event'),
           target: 'issue_details_default_event',
           description: tct(
-            'Rather than the latest event, we now default to an event with the most context (replays, traces, and profiles). You can easily switch between events or configure your default [link:here].',
+            'Rather than the latest event, we now default to an event with the most context (replays, traces, and profiles). You can easily switch between events or [link:configure your default event] in settings.',
             {
-              link: <Link to="/settings/account/details/" />,
+              link: <Link to="/settings/account/details/#defaultIssueEvent" />,
             }
           ),
           dismissText: t('Got It'),
