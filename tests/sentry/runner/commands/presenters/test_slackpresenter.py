@@ -48,7 +48,6 @@ class TestSlackPresenter:
                 {"option_name": "option9", "option_value": "db_value9"},
                 {"option_name": "option10", "option_value": "db_value10"},
             ],
-            "channel_updated_options": ["option7", "option8"],
             "updated_options": [
                 {"option_name": "option5", "db_value": "db_value5", "value": "value5"},
                 {"option_name": "option6", "db_value": "db_value6", "value": "value6"},
