@@ -116,7 +116,7 @@ class GetChannelIdTest(TestCase):
         assert get_channel_id(self.organization, self.integration, "@fake-user")[1] is None
 
     def test_rate_limiting(self):
-        """Should handle 429 from Slack when searching for channels"""
+        """Should handle 429 from Slack when searching for users"""
         self.add_msg_response("channel_not_found")
         self.resp.add(
             method=responses.GET,
