@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import moment from 'moment';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {MissingMember} from 'sentry/types';
 import {DEFAULT_SNOOZE_PROMPT_DAYS} from 'sentry/utils/promptIsDismissed';
@@ -36,7 +36,7 @@ describe('inviteBanner', function () {
     (browserHistory.push as jest.Mock).mockReset();
   });
 
-  it('does not render banner if no missing members', function () {
+  it('does not render banner if no missing members', async function () {
     const org = TestStubs.Organization({
       features: ['integrations-gh-invite'],
     });
@@ -49,10 +49,12 @@ describe('inviteBanner', function () {
       />
     );
 
+    await act(tick);
+
     expect(screen.queryByTestId('invite-banner')).not.toBeInTheDocument();
   });
 
-  it('does not render banner if lacking org:write', function () {
+  it('does not render banner if lacking org:write', async function () {
     const org = TestStubs.Organization({
       features: ['integrations-gh-invite'],
       access: [],
@@ -66,10 +68,12 @@ describe('inviteBanner', function () {
       />
     );
 
+    await act(tick);
+
     expect(screen.queryByTestId('invite-banner')).not.toBeInTheDocument();
   });
 
-  it('renders banner if snoozed_ts days is longer than threshold', function () {
+  it('renders banner if snoozed_ts days is longer than threshold', async function () {
     const org = TestStubs.Organization({
       features: ['integrations-gh-invite'],
     });
@@ -94,10 +98,12 @@ describe('inviteBanner', function () {
       />
     );
 
+    await act(tick);
+
     expect(screen.queryByTestId('invite-banner')).toBeInTheDocument();
   });
 
-  it('renders banner if snoozed_ts days is shorter than threshold', async function () {
+  it('does not render banner if snoozed_ts days is shorter than threshold', async function () {
     const org = TestStubs.Organization({
       features: ['integrations-gh-invite'],
     });
@@ -114,8 +120,6 @@ describe('inviteBanner', function () {
       body: {data: promptResponse},
     });
 
-    jest.useFakeTimers();
-
     render(
       <InviteBanner
         missingMembers={missingMembers}
@@ -124,8 +128,8 @@ describe('inviteBanner', function () {
       />
     );
 
-    jest.runAllTimers();
+    await act(tick);
 
-    expect(await screen.findByTestId('invite-banner')).toBeInTheDocument();
+    expect(screen.queryByTestId('invite-banner')).not.toBeInTheDocument();
   });
 });
