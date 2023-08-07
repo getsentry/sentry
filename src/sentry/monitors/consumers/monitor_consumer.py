@@ -191,6 +191,13 @@ def _try_handle_high_volume_task_trigger(ts: datetime):
     try:
         lock = locks.get("sentry.monitors.task_trigger", duration=5)
         with lock.acquire():
+            # Track the delay from the true time, ideally this should be pretty
+            # close, but in the case of a backlog, this will be much higher
+            total_delay = reference_ts - datetime.now().timestamp()
+
+            metrics.incr("monitors.task.triggered_via_high_volume_clock")
+            metrics.gauge("monitors.task.high_volume_clock_delay", total_delay)
+
             # If more than exactly a minute has passed then we've skipped a
             # task run, report that to sentry, it is a problem.
             if last_ts is not None and last_ts + 60 != reference_ts:
@@ -200,7 +207,6 @@ def _try_handle_high_volume_task_trigger(ts: datetime):
                     sentry_sdk.capture_message("Monitor task dispatch minute skipped")
 
             _dispatch_tasks(ts)
-            metrics.incr("monitors.tassk.triggered_via_high_volume_clock")
             redis_client.set(HIGH_VOLUME_LAST_TRIGGER_TS_KEY, reference_ts)
     except UnableToAcquireLock:
         # Another message processor is handling this. Nothing to do
