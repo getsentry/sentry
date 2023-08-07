@@ -890,7 +890,10 @@ QUERY_ALIAS_COLUMN_MAP = {
         "sumIf",
         parameters=[
             Column("click_is_dead"),
-            Function("greaterOrEquals", [Column("timestamp"), "2023-07-24"]),
+            Function(
+                "greaterOrEquals",
+                [Column("timestamp"), datetime(year=2023, month=7, day=24)],
+            ),
         ],
         alias="count_dead_clicks",
     ),
@@ -898,7 +901,10 @@ QUERY_ALIAS_COLUMN_MAP = {
         "sumIf",
         parameters=[
             Column("click_is_rage"),
-            Function("greaterOrEquals", [Column("timestamp"), "2023-07-24"]),
+            Function(
+                "greaterOrEquals",
+                [Column("timestamp"), datetime(year=2023, month=7, day=24)],
+            ),
         ],
         alias="count_rage_clicks",
     ),
