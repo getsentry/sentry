@@ -48,6 +48,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import {FieldKey} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {isOnDemandMetricWidget} from 'sentry/views/dashboards/widgetBuilder/onDemandMetricWidget/utils';
 import {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -518,6 +519,13 @@ function getEventsSeriesRequest(
       organization.features.includes('mep-rollout-flag')) &&
     defined(mepSetting) &&
     mepSetting !== MEPState.TRANSACTIONS_ONLY;
+
+  const useOnDemandMetrics =
+    isOnDemandMetricWidget(widget) &&
+    organization.features.includes('on-demand-metrics-extraction') &&
+    organization.features.includes('on-demand-metrics-extraction-experimental');
+  const dataset = useOnDemandMetrics ? 'metricsEnhanced' : undefined;
+
   let requestData;
   if (displayType === DisplayType.TOP_N) {
     requestData = {
@@ -533,6 +541,8 @@ function getEventsSeriesRequest(
       includePrevious: false,
       referrer,
       partial: true,
+      useOnDemandMetrics,
+      dataset,
       field: [...widgetQuery.columns, ...widgetQuery.aggregates],
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
       includeAllArgs: true,
@@ -556,6 +566,8 @@ function getEventsSeriesRequest(
       includePrevious: false,
       referrer,
       partial: true,
+      useOnDemandMetrics,
+      dataset,
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
       includeAllArgs: true,
     };
