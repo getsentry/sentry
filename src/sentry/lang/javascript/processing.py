@@ -1,6 +1,5 @@
 import logging
 from typing import Any, Dict
-from urllib.parse import unquote
 
 from sentry.debug_files.artifact_bundles import maybe_renew_artifact_bundles_from_processing
 from sentry.lang.native.error import SymbolicationFailed, write_error
@@ -222,18 +221,6 @@ def generate_scraping_config(project: Project) -> Dict[str, Any]:
     }
 
 
-def _normalize_frame(frame: Any) -> dict:
-    frame = dict(frame)
-
-    if abs_path := frame.get("abs_path"):
-        frame["abs_path"] = unquote(abs_path)
-
-    # Symbolicator will *output* `data`, but never use it from the input
-    frame.pop("data", None)
-
-    return frame
-
-
 def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     project = symbolicator.project
     scraping_config = generate_scraping_config(project)
@@ -244,7 +231,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     stacktraces = [
         {
             "frames": [
-                _normalize_frame(frame)
+                dict(frame)
                 for frame in sinfo.stacktrace.get("frames") or ()
                 if _handles_frame(frame, data)
             ],
