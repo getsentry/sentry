@@ -456,7 +456,7 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
         ) as incr:
             assert group.has_replays() is True
             incr.assert_any_call(
-                "group.has_replays_cached",
+                "group.has_replays.cached",
                 tags={
                     "has_replays": True,
                 },
@@ -488,7 +488,7 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
         ) as incr:
             assert group.has_replays() is False
             incr.assert_any_call(
-                "group.has_replays_cached",
+                "group.has_replays.cached",
                 tags={
                     "has_replays": False,
                 },
