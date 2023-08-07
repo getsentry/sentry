@@ -1,3 +1,5 @@
+import {act} from 'react-dom/test-utils';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -92,17 +94,24 @@ describe('OrganizationMembersWrapper', function () {
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
-  it('renders member list', function () {
+  it('renders member list', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       method: 'GET',
       body: [member],
+    });
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      method: 'GET',
+      body: {},
     });
     render(
       <OrganizationMembersWrapper organization={organization} {...routerProps}>
         <OrganizationMembersList {...routerProps} />
       </OrganizationMembersWrapper>
     );
+
+    await act(tick);
 
     expect(screen.getByText('Members')).toBeInTheDocument();
     expect(screen.getByText(member.name)).toBeInTheDocument();

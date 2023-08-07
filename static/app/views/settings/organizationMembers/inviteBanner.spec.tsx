@@ -36,7 +36,7 @@ describe('inviteBanner', function () {
     (browserHistory.push as jest.Mock).mockReset();
   });
 
-  it('render banners with feature flag', function () {
+  it('render banners with feature flag', async function () {
     const org = TestStubs.Organization({
       features: ['integrations-gh-invite'],
     });
@@ -49,12 +49,14 @@ describe('inviteBanner', function () {
       />
     );
 
+    await act(tick);
+
     expect(screen.getByTestId('invite-banner')).toBeInTheDocument();
     expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(5);
     expect(screen.getByText('See all 5 missing members')).toBeInTheDocument();
   });
 
-  it('does not render banner if no feature flag', function () {
+  it('does not render banner if no feature flag', async function () {
     const org = TestStubs.Organization({
       features: [],
     });
@@ -66,6 +68,8 @@ describe('inviteBanner', function () {
         organization={org}
       />
     );
+
+    await act(tick);
 
     expect(screen.queryByTestId('invite-banner')).not.toBeInTheDocument();
   });
