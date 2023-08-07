@@ -171,14 +171,7 @@ class ConfigOptionsTest(CliTestCase):
             "sync",
         )
         assert rv.exit_code == 0, rv.output
-        set_output = "\n".join(
-            [
-                ConsolePresenter.SET_MSG % ("int_option", 40),
-                ConsolePresenter.SET_MSG % ("map_option", {"a": 1, "b": 2}),
-                ConsolePresenter.SET_MSG % ("list_option", [1, 2]),
-            ]
-        )
-        drift_output = "\n".join(
+        expected_output = "\n".join(
             [
                 ConsolePresenter.DRIFT_MSG % "drifted_option",
                 ConsolePresenter.DB_VALUE % "drifted_option",
@@ -186,25 +179,15 @@ class ConfigOptionsTest(CliTestCase):
                 "- 2",
                 "- 3",
                 "",
-            ]
-        )
-
-        channel_update_output = "\n".join(
-            [
                 ConsolePresenter.CHANNEL_UPDATE_MSG % "change_channel_option",
-            ]
-        )
-
-        update_output = "\n".join(
-            [
                 ConsolePresenter.UPDATE_MSG % ("str_option", "old value", "new value"),
+                ConsolePresenter.SET_MSG % ("int_option", 40),
+                ConsolePresenter.SET_MSG % ("map_option", {"a": 1, "b": 2}),
+                ConsolePresenter.SET_MSG % ("list_option", [1, 2]),
             ]
         )
 
-        assert drift_output in rv.output
-        assert set_output in rv.output
-        assert channel_update_output in rv.output
-        assert update_output in rv.output
+        assert expected_output in rv.output
 
         assert options.get("int_option") == 40
         assert options.get("str_option") == "new value"

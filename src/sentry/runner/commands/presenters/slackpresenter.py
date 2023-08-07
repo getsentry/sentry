@@ -29,7 +29,7 @@ class SlackPresenter(OptionsPresenter):
 
     @staticmethod
     def is_slack_enabled():
-        if OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL == "":
+        if not OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
             return False
 
         try:

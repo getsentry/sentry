@@ -142,10 +142,6 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
             opt = options.lookup_key(key)
             if not opt.type.test(value):
                 invalid_options.add(key)
-
-            opt = options.lookup_key(key)
-            if not opt.type.test(value):
-                invalid_options.add(key)
                 presenter_delegator.invalid_type(key, type(value), opt.type)
         except options.UnknownOption:
             invalid_options.add(key)
@@ -184,19 +180,13 @@ def patch(ctx) -> None:
                     dry_run,
                     bool(ctx.obj["hide_drift"]),
                 )
-
-            except Exception as e:
+            except Exception:
                 metrics.incr(
                     "options_automator.run",
                     amount=2,
                     tags={"status": "update_failed"},
                     sample_rate=1.0,
                 )
-
-                # Configoptions is already catching invalid option names
-                # and invalid type setting, this is catching whatever
-                # else could happen.
-                presenter_delegator.error(key, str(e))
                 presenter_delegator.flush()
                 raise
 
@@ -255,14 +245,13 @@ def sync(ctx):
                         dry_run,
                         bool(ctx.obj["hide_drift"]),
                     )
-                except Exception as e:
+                except Exception:
                     metrics.incr(
                         "options_automator.run",
                         amount=2,
                         tags={"status": "update_failed"},
                         sample_rate=1.0,
                     )
-                    presenter_delegator.error(opt.name, str(e))
                     presenter_delegator.flush()
                     raise
             else:
@@ -271,14 +260,13 @@ def sync(ctx):
                         if not dry_run:
                             try:
                                 options.delete(opt.name)
-                            except Exception as e:
+                            except Exception:
                                 metrics.incr(
                                     "options_automator.run",
                                     amount=2,
                                     tags={"status": "update_failed"},
                                     sample_rate=1.0,
                                 )
-                                presenter_delegator.error(opt.name, str(e))
                                 presenter_delegator.flush()
                                 raise
 

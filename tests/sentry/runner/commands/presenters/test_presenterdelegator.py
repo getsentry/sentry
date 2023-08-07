@@ -26,7 +26,6 @@ class TestPresenterDelegator:
             "update",
             "channel_update",
             "drift",
-            "error",
             "unregistered",
             "invalid_type",
             "flush",

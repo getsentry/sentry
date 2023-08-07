@@ -39,10 +39,6 @@ class OptionsPresenter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def error(self, key: str, not_writable_reason: str) -> None:
-        raise NotImplementedError
-
-    @abstractmethod
     def unregistered(self, key: str) -> None:
         raise NotImplementedError
 
