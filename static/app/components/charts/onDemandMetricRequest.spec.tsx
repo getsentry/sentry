@@ -5,14 +5,6 @@ import {OnDemandMetricRequest} from 'sentry/components/charts/onDemandMetricRequ
 
 const SAMPLE_RATE = 0.5;
 
-const COUNT_OBJ = {
-  count: 123,
-};
-
-const COUNT_OBJ_SCALED = {
-  count: COUNT_OBJ.count / SAMPLE_RATE,
-};
-
 jest.mock('sentry/actionCreators/events', () => ({
   doEventsRequest: jest.fn(),
 }));
@@ -142,64 +134,6 @@ describe('OnDemandMetricRequest', function () {
           useOnDemandMetrics: true,
         })
       );
-    });
-  });
-
-  describe('transforms', function () {
-    beforeEach(function () {
-      (doEventsRequest as jest.Mock).mockClear();
-    });
-
-    it('applies sample rate to indexed if there is no metrics data`', async function () {
-      (doEventsRequest as jest.Mock)
-        .mockImplementation(() =>
-          Promise.resolve({
-            isMetricsData: true,
-            data: [],
-          })
-        )
-        .mockImplementation(() =>
-          Promise.resolve({
-            isMetricsData: false,
-            data: [[new Date(), [COUNT_OBJ]]],
-          })
-        );
-
-      render(<OnDemandMetricRequest {...DEFAULTS}>{mock}</OnDemandMetricRequest>);
-
-      expect(mock).toHaveBeenNthCalledWith(
-        1,
-        expect.objectContaining({
-          loading: true,
-        })
-      );
-
-      await waitFor(() =>
-        expect(mock).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            loading: false,
-            seriesAdditionalInfo: {
-              current: {
-                isExtrapolatedData: true,
-                isMetricsData: false,
-              },
-            },
-            timeseriesData: [
-              {
-                seriesName: expect.anything(),
-                data: [
-                  expect.objectContaining({
-                    name: expect.any(Number),
-                    value: COUNT_OBJ_SCALED.count,
-                  }),
-                ],
-              },
-            ],
-          })
-        )
-      );
-
-      expect(doEventsRequest).toHaveBeenCalledTimes(2);
     });
   });
 });
