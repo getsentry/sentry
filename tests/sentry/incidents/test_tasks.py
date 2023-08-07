@@ -50,7 +50,6 @@ class BaseIncidentActivityTest:
         return self.create_incident(title="hello")
 
 
-@region_silo_test(stable=True)
 class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
     @pytest.fixture(autouse=True)
     def _setup_send_async_patch(self):
@@ -229,7 +228,6 @@ class HandleTriggerActionTest(TestCase):
             )
 
 
-@region_silo_test(stable=True)
 class TestHandleSubscriptionMetricsLogger(TestCase):
     @cached_property
     def subscription(self):

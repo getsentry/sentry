@@ -30,7 +30,6 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.cache import cache
 
 
-@region_silo_test(stable=True)
 class GithubCommentTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider
 

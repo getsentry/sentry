@@ -11,7 +11,6 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
 class DocIntegrationAvatarTest(APITestCase):
     endpoint = "sentry-api-0-doc-integration-avatar"
 

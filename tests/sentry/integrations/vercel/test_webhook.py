@@ -50,7 +50,6 @@ class SignatureVercelTest(APITestCase):
             assert response.status_code == 401
 
 
-@control_silo_test(stable=True)
 class VercelReleasesTest(APITestCase):
     webhook_url = "/extensions/vercel/webhook/"
     header = "VERCEL"

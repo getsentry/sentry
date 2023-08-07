@@ -13,7 +13,6 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils.json import JSONData
 
 
-@control_silo_test(stable=True)
 class DocIntegrationsTest(APITestCase):
     endpoint = "sentry-api-0-doc-integrations"
 
