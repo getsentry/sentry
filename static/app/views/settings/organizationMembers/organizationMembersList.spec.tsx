@@ -42,6 +42,39 @@ const roles = [
   },
 ];
 
+const missingMembers = [
+  {
+    integration: 'github',
+    users: [
+      {
+        commitCount: 6,
+        email: 'hello@sentry.io',
+        externalId: 'hello',
+      },
+      {
+        commitCount: 5,
+        email: 'abcd@sentry.io',
+        externalId: 'abcd',
+      },
+      {
+        commitCount: 4,
+        email: 'hola@sentry.io',
+        externalId: 'hola',
+      },
+      {
+        commitCount: 3,
+        email: 'test@sentry.io',
+        externalId: 'test',
+      },
+      {
+        commitCount: 2,
+        email: 'five@sentry.io',
+        externalId: 'five',
+      },
+    ],
+  },
+];
+
 describe('OrganizationMembersList', function () {
   const members = TestStubs.Members();
 
@@ -143,6 +176,11 @@ describe('OrganizationMembersList', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/invite-requests/',
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/missing-members/',
       method: 'GET',
       body: [],
     });
@@ -564,6 +602,95 @@ describe('OrganizationMembersList', function () {
         `/organizations/org-slug/invite-requests/${inviteRequest.id}/`,
         expect.objectContaining({data: expect.objectContaining({role: 'admin'})})
       );
+    });
+  });
+
+  describe('inviteBanner', function () {
+    it('renders banner with feature flag', function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/missing-members/',
+        method: 'GET',
+        body: missingMembers,
+      });
+
+      const org = TestStubs.Organization({
+        features: ['integrations-gh-invite'],
+      });
+
+      render(<OrganizationMembersList {...defaultProps} organization={org} />, {
+        context: TestStubs.routerContext([{organization: org}]),
+      });
+
+      expect(screen.getByTestId('invite-banner')).toBeInTheDocument();
+      expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(5);
+      expect(screen.getByText('See all 5 missing members')).toBeInTheDocument();
+    });
+
+    it('does not render banner if no missing members', function () {
+      const org = TestStubs.Organization({
+        features: ['integrations-gh-invite'],
+      });
+
+      render(<OrganizationMembersList {...defaultProps} organization={org} />, {
+        context: TestStubs.routerContext([{organization: org}]),
+      });
+
+      expect(screen.queryByTestId('invite-banner')).not.toBeInTheDocument();
+    });
+
+    it('does not render banner if lacking org:write', function () {
+      const org = TestStubs.Organization({
+        features: ['integrations-gh-invite'],
+        access: [],
+      });
+
+      render(<OrganizationMembersList {...defaultProps} organization={org} />, {
+        context: TestStubs.routerContext([{organization: org}]),
+      });
+
+      expect(screen.queryByTestId('invite-banner')).not.toBeInTheDocument();
+    });
+
+    it('invites member from banner', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/missing-members/',
+        method: 'GET',
+        body: missingMembers,
+      });
+
+      const newMember = TestStubs.Member({
+        id: '6',
+        email: 'hello@sentry.io',
+        teams: [],
+        teamRoles: [],
+        flags: {
+          'sso:linked': true,
+          'idp:provisioned': false,
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        method: 'POST',
+        body: newMember,
+      });
+
+      const org = TestStubs.Organization({
+        features: ['integrations-gh-invite'],
+      });
+
+      render(<OrganizationMembersList {...defaultProps} organization={org} />, {
+        context: TestStubs.routerContext([{organization: org}]),
+      });
+
+      expect(screen.getByTestId('invite-banner')).toBeInTheDocument();
+      expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(5);
+      expect(screen.getByText('See all 5 missing members')).toBeInTheDocument();
+
+      const inviteButton = screen.queryAllByTestId('invite-missing-member')[0];
+      await userEvent.click(inviteButton);
+      expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(4);
+      expect(screen.getByText('See all 4 missing members')).toBeInTheDocument();
     });
   });
 });

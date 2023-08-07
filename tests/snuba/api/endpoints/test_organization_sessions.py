@@ -74,7 +74,6 @@ def make_session(project, **kwargs):
     )
 
 
-@region_silo_test
 class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def adjust_start(self, date, interval):
         return date  # sessions do not adjust start & end intervals
