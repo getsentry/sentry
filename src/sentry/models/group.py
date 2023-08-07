@@ -240,22 +240,6 @@ def get_oldest_or_latest_event_for_environments(
     return None
 
 
-def get_replay_count_for_group(group: Group) -> int:
-    events = eventstore.backend.get_events(
-        filter=eventstore.Filter(
-            conditions=[["replay_id", "IS NOT NULL", None]],
-            project_ids=[group.project_id],
-            group_ids=[group.id],
-        ),
-        limit=1,
-        orderby=EventOrdering.MOST_HELPFUL.value,
-        referrer="Group.get_replay_count_for_group",
-        dataset=Dataset.Events,
-        tenant_ids={"organization_id": group.project.organization_id},
-    )
-    return len(events)
-
-
 def get_recommended_event_for_environments(
     environments: Sequence[Environment],
     group: Group,
