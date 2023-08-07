@@ -42,7 +42,7 @@ import {useFlamegraphZoomPosition} from 'sentry/utils/profiling/flamegraph/hooks
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
-  FlamegraphChart,
+  FlamegraphChart as FlamegraphChartModel,
   ProfileSerieMeasurement,
 } from 'sentry/utils/profiling/flamegraphChart';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
@@ -71,7 +71,7 @@ import {
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
 import {useViewKeyboardNavigation} from './interactions/useViewKeyboardNavigation';
-import {FlamegraphCpuChart} from './flamegraphCpuChart';
+import {FlamegraphChart} from './flamegraphChart';
 import {FlamegraphLayout} from './flamegraphLayout';
 import {FlamegraphSpans} from './flamegraphSpans';
 import {FlamegraphUIFrames} from './flamegraphUIFrames';
@@ -156,7 +156,7 @@ function findLongestMatchingFrame(
 const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
 const LOADING_OR_FALLBACK_SPAN_TREE = SpanTree.Empty;
 const LOADING_OR_FALLBACK_UIFRAMES = UIFrames.Empty;
-const LOADING_OR_FALLBACK_CPU_CHART = FlamegraphChart.Empty;
+const LOADING_OR_FALLBACK_CPU_CHART = FlamegraphChartModel.Empty;
 
 const noopFormatDuration = () => '';
 
@@ -322,7 +322,7 @@ function Flamegraph(): ReactElement {
       }
     }
 
-    return new FlamegraphChart(
+    return new FlamegraphChartModel(
       Rect.From(flamegraph.configSpace),
       measures.length > 0 ? measures : [],
       flamegraphTheme.COLORS.CPU_CHART_COLORS
@@ -506,7 +506,7 @@ function Flamegraph(): ReactElement {
     [flamegraphView, flamegraphCanvas, flamegraph, uiFrames]
   );
 
-  const cpuChartView = useMemoWithPrevious<CanvasView<FlamegraphChart> | null>(
+  const cpuChartView = useMemoWithPrevious<CanvasView<FlamegraphChartModel> | null>(
     _previousView => {
       if (!flamegraphView || !flamegraphCanvas || !CPUChart || !cpuChartCanvas) {
         return null;
@@ -1022,12 +1022,12 @@ function Flamegraph(): ReactElement {
         memoryChart={hasMemoryChart ? null : null}
         cpuChart={
           hasCPUChart ? (
-            <FlamegraphCpuChart
-              cpuChartCanvasRef={cpuChartCanvasRef}
-              cpuChartCanvas={cpuChartCanvas}
-              setCpuChartCanvasRef={setCpuChartCanvasRef}
+            <FlamegraphChart
+              chartCanvasRef={cpuChartCanvasRef}
+              chartCanvas={cpuChartCanvas}
+              setChartCanvasRef={setCpuChartCanvasRef}
               canvasBounds={cpuChartCanvasBounds}
-              cpuChartView={cpuChartView}
+              chartView={cpuChartView}
               canvasPoolManager={canvasPoolManager}
               chart={CPUChart}
             />
