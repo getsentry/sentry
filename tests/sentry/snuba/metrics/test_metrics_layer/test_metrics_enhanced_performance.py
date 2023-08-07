@@ -19,6 +19,7 @@ from sentry.models import (
     TransactionMetric,
 )
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
     MAX_POINTS,
@@ -1091,6 +1092,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
                     value=subvalue,
+                    aggregation_option=AggregationOption.HIST,
                 )
 
         metrics_query = self.build_metrics_query(

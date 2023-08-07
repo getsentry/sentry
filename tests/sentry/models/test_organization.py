@@ -5,7 +5,6 @@ from django.core import mail
 from django.db import models
 
 from sentry import audit_log
-from sentry.api.base import ONE_DAY
 from sentry.api.endpoints.organization_details import (
     flag_has_changed,
     has_changed,
@@ -28,7 +27,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test, region_silo_test
-from sentry.utils.audit import create_system_audit_entry
 
 
 @region_silo_test(stable=True)
@@ -380,23 +378,6 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         org = self.create_organization()
         result = org.get_audit_log_data()
         assert result["flags"] == int(org.flags)
-
-    def test_send_delete_confirmation_system_audit(self):
-        org = self.create_organization(owner=self.user)
-        user = self.create_user("bar@example.com")
-        owner_team = self.create_team(organization=org, org_role="owner")
-        self.create_member(organization=org, user=user, teams=[owner_team])
-        audit_entry = create_system_audit_entry(
-            organization=org,
-            target_object=org.id,
-            event=audit_log.get_event_id("ORG_REMOVE"),
-            data=org.get_audit_log_data(),
-        )
-        with self.tasks():
-            org.send_delete_confirmation(audit_entry, ONE_DAY)
-        assert len(mail.outbox) == 2
-        assert "User: Sentry" in mail.outbox[0].body
-        assert "User: Sentry" in mail.outbox[1].body
 
     def test_absolute_url_no_customer_domain(self):
         org = self.create_organization(owner=self.user, slug="acme")

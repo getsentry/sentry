@@ -9,6 +9,7 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleStatus,
@@ -20,6 +21,7 @@ from sentry.models import AuditLogEntry, Integration
 from sentry.models.actor import get_actor_for_user
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
@@ -90,27 +92,6 @@ class AlertRuleDetailsBase(APITestCase):
         self.method = original_method
         return serialized_alert_rule
 
-    def test_invalid_rule_id(self):
-        self.login_as(self.owner_user)
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(self.organization.slug, self.project.slug, 1234)
-
-        assert resp.status_code == 404
-
-    def test_permissions(self):
-        self.login_as(self.create_user())
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(self.organization.slug, self.project.slug, self.alert_rule.id)
-
-        assert resp.status_code == 403
-
-    def test_no_feature(self):
-        self.login_as(self.owner_user)
-        resp = self.get_response(self.organization.slug, self.project.slug, self.alert_rule.id)
-        # Without incidents feature flag, allow delete
-        status = 204 if self.method == "delete" else 404
-        assert resp.status_code == status
-
 
 @region_silo_test(stable=True)
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
@@ -120,18 +101,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             resp = self.get_success_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id
             )
-
-        assert resp.data == serialize(self.alert_rule)
-
-    def test_aggregate_translation(self):
-        self.login_as(self.owner_user)
-        alert_rule = self.create_alert_rule(aggregate="count_unique(tags[sentry:user])")
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, self.project.slug, alert_rule.id
-            )
-            assert resp.data["aggregate"] == "count_unique(user)"
-            assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
+        assert resp.data == serialize(self.alert_rule, serializer=DetailedAlertRuleSerializer())
 
 
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
@@ -146,7 +116,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         test_params["resolve_threshold"] = self.alert_rule.resolve_threshold
         test_params.update({"name": "what"})
 
-        with self.feature("organizations:incidents"):
+        with self.feature("organizations:incidents"), outbox_runner():
             resp = self.get_success_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
             )
@@ -684,7 +654,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         self.login_as(self.owner_user)
 
     def test_simple(self):
-        with self.feature("organizations:incidents"):
+        with self.feature("organizations:incidents"), outbox_runner():
             self.get_success_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
             )
