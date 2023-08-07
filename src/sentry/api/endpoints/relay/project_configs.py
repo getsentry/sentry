@@ -121,12 +121,12 @@ class RelayProjectConfigsEndpoint(Endpoint):
             reason = "noCache"
             version = "2"  # Downgrade to 2 for reporting metrics
 
-        if version == "3":
-            set_tag("relay_use_v3", use_v3_or_v4)
-            set_tag("relay_use_v3_rejected", reason)
-        elif version == "4":
+        if version == "4":
             set_tag("relay_use_v4", use_v3_or_v4)
             set_tag("relay_use_v4_rejected", reason)
+        elif version == "3":
+            set_tag("relay_use_v3", use_v3_or_v4)
+            set_tag("relay_use_v3_rejected", reason)
         if version == "2":
             metrics.incr(
                 "api.endpoints.relay.project_configs.post",
