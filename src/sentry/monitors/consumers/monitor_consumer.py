@@ -118,7 +118,7 @@ def _ensure_monitor_with_config(
     validator = ConfigValidator(data=config)
 
     if not validator.is_valid():
-        logger.debug("monitor_config for %s is not valid", monitor_slug)
+        logger.debug(f"invalid monitor_config: {monitor_slug}")
         return monitor
 
     validated_config = validator.validated_data
@@ -243,7 +243,9 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
             "monitors.checkin.dropped.blocked",
             tags={**metric_kwargs},
         )
-        logger.debug("monitor check in blocked: %s", monitor_slug)
+        logger.debug(
+            f"monitor check in blocked via killswitch: {project.organization_id} - {monitor_slug}"
+        )
         return
 
     if ratelimits.is_limited(
@@ -255,7 +257,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
             "monitors.checkin.dropped.ratelimited",
             tags={**metric_kwargs},
         )
-        logger.debug("monitor check in rate limited: %s", monitor_slug)
+        logger.debug(f"monitor check in rate limited: {monitor_slug}")
         return
 
     def update_existing_check_in(
@@ -274,10 +276,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                 tags={"source": "consumer", "status": "guid_mismatch"},
             )
             logger.debug(
-                "check-in guid %s already associated with %s not payload %s",
-                existing_check_in,
-                existing_check_in.monitor_id,
-                monitor.id,
+                f"check-in guid {existing_check_in} already associated with {existing_check_in.monitor_id} not payload monitor {monitor.id}"
             )
             return
 
@@ -287,9 +286,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                 tags={**metric_kwargs, "status": "checkin_finished"},
             )
             logger.debug(
-                "check-in was finished: attempted update from %s to %s",
-                existing_check_in.status,
-                updated_status,
+                f"check-in was finished: attempted update from {existing_check_in.status} to {updated_status}"
             )
             return
 
@@ -303,7 +300,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                 "monitors.checkin.result",
                 tags={**metric_kwargs, "status": "failed_duration_check"},
             )
-            logger.debug("check-in implicit duration is invalid: %s", project.organization_id)
+            logger.debug(f"check-in implicit duration is invalid: {updated_duration}")
             return
 
         # update date_added for heartbeat
@@ -393,7 +390,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_limits"},
                 )
-                logger.debug("monitor exceeds limits for organization: %s", project.organization_id)
+                logger.debug(f"monitor exceeds limits for organization: {project.organization_id}")
                 return
 
             try:
@@ -405,14 +402,14 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_environment_limits"},
                 )
-                logger.debug("monitor environment exceeds limits for monitor: %s", monitor_slug)
+                logger.debug(f"monitor environment exceeds limits for monitor: {monitor_slug}")
                 return
             except MonitorEnvironmentValidationFailed:
                 metrics.incr(
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_environment_name_length"},
                 )
-                logger.debug("monitor environment name too long: %s %s", monitor_slug, environment)
+                logger.debug(f"monitor environment name too long: {monitor_slug} - {environment}")
                 return
 
             status = getattr(CheckInStatus, validated_params["status"].upper())
@@ -441,9 +438,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                             },
                         )
                         logger.debug(
-                            "monitor environment does not match on existing guid: %s %s",
-                            environment,
-                            check_in_id,
+                            f"monitor environment does not match on existing guid: {environment} - {check_in_id}"
                         )
                         return
 
@@ -503,7 +498,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_checkin_creation_lock"},
         )
-        logger.debug("failed to acquire lock to create check-in: %s", guid)
+        logger.debug(f"failed to acquire lock to create check-in: {guid}")
     except Exception:
         # Skip this message and continue processing in the consumer.
         metrics.incr(
