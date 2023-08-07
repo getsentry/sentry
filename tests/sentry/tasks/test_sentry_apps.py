@@ -642,7 +642,7 @@ class TestWorkflowNotification(TestCase):
 
 class TestWebhookRequests(TestCase):
     def setUp(self):
-        self.organization = self.create_organization(id=1)
+        self.organization = self.create_organization(owner=self.user, id=1)
         self.sentry_app = self.create_sentry_app(
             name="Test App",
             organization=self.organization,
@@ -901,8 +901,9 @@ class TestWebhookRequests(TestCase):
         with self.tasks():
             notify_disable(
                 self.organization,
-                self.sentry_app,
+                self.sentry_app.name,
                 get_redis_key(self.sentry_app, self.organization.id),
+                self.sentry_app.slug,
             )
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
@@ -912,7 +913,7 @@ class TestWebhookRequests(TestCase):
         )
         assert (
             self.organization.absolute_url(
-                f"/settings/{self.organization.slug}/integrations/{self.sentry_app.slug}"
+                f"/settings/{self.organization.slug}/developer-settings/{self.sentry_app.slug}"
             )
             in msg.body
         )
