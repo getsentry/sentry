@@ -218,7 +218,10 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
     # clock_pulse task is not enabled). Instead we use each check-in message as
     # a means for triggering our tasks.
     if settings.SENTRY_MONITORS_HIGH_VOLUME_MODE:
-        _try_handle_high_volume_task_trigger(ts)
+        try:
+            _try_handle_high_volume_task_trigger(ts)
+        except Exception:
+            logger.exception("Failed try high-volume task trigger", exc_info=True)
 
     params: CheckinPayload = json.loads(wrapper["payload"])
     start_time = to_datetime(float(wrapper["start_time"]))

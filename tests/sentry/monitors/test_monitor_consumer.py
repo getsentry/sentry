@@ -552,9 +552,9 @@ class MonitorConsumerTest(TestCase):
         assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
 
     @override_settings(SENTRY_MONITORS_HIGH_VOLUME_MODE=True)
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.CHECKIN_QUOTA_LIMIT", 20)
     @mock.patch("sentry.monitors.consumers.monitor_consumer._dispatch_tasks")
-    @mock.patch("sentry_sdk.capture_message")
-    def test_high_volume_task_trigger(self, capture_message, dispatch_tasks):
+    def test_high_volume_task_trigger(self, dispatch_tasks):
         monitor = self._create_monitor(slug="my-monitor")
 
         assert dispatch_tasks.call_count == 0
@@ -578,7 +578,18 @@ class MonitorConsumerTest(TestCase):
         assert dispatch_tasks.call_count == 2
 
         # A skipped minute trigges the task AND captures an error
-        assert capture_message.call_count == 0
-        self.send_checkin(monitor.slug, ts=now + timedelta(minutes=3, seconds=5))
-        assert dispatch_tasks.call_count == 3
-        capture_message.assert_called_with("Monitor task dispatch minute skipped")
+        with mock.patch("sentry_sdk.capture_message") as capture_message:
+            assert capture_message.call_count == 0
+            self.send_checkin(monitor.slug, ts=now + timedelta(minutes=3, seconds=5))
+            assert dispatch_tasks.call_count == 3
+            capture_message.assert_called_with("Monitor task dispatch minute skipped")
+
+        # An exception dispatching the tasks does NOT cause ingestion to fail
+        with mock.patch("sentry.monitors.consumers.monitor_consumer.logger") as logger:
+            dispatch_tasks.side_effect = Exception()
+            self.send_checkin(monitor.slug, ts=now + timedelta(minutes=4))
+            assert MonitorCheckIn.objects.filter(guid=self.guid).exists()
+            logger.exception.assert_called_with(
+                "Failed try high-volume task trigger", exc_info=True
+            )
+            dispatch_tasks.side_effect = None
