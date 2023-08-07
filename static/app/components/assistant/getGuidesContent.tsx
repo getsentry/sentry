@@ -274,6 +274,24 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
+      guide: 'explain_new_default_event_issue_details',
+      requiredTargets: ['issue_details_default_event'],
+      dateThreshold: new Date('2023-07-05'),
+      steps: [
+        {
+          title: t('New Default Event'),
+          target: 'issue_details_default_event',
+          description: tct(
+            'Rather than the latest event, we now default to an event with the most context (replays, traces, and profiles). You can easily switch between events or configure your default [link:here].',
+            {
+              link: <Link to="/settings/account/details/" />,
+            }
+          ),
+          dismissText: t('Got It'),
+        },
+      ],
+    },
+    {
       guide: 'explain_archive_tab_issue_stream',
       requiredTargets: ['issue_stream_archive_tab'],
       dateThreshold: new Date('2023-07-05'),

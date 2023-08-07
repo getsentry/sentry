@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button, ButtonProps} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
@@ -418,11 +419,13 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             {!isHelpfulEventUiEnabled && 'JSON'}
           </Button>
         )}
-        <EventNavigationDropdown
-          isDisabled={!hasPreviousEvent && !hasNextEvent}
-          group={group}
-          relativeTime={event.dateCreated ?? event.dateReceived}
-        />
+        <GuideAnchor target="issue_details_default_event" position="bottom">
+          <EventNavigationDropdown
+            isDisabled={!hasPreviousEvent && !hasNextEvent}
+            group={group}
+            relativeTime={event.dateCreated ?? event.dateReceived}
+          />
+        </GuideAnchor>
         <NavButtons>
           {!isHelpfulEventUiEnabled && (
             <EventNavigationButton
