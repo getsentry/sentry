@@ -56,8 +56,14 @@ def notify_disable(
             context={
                 "integration_name": integration_name.title(),
                 "integration_link": integration_link,
+                "webhook_url": redis_key,
+                "dashboard_link": "hold",
             },
-            html_template="sentry/integrations/notify-disable.html",
-            template="sentry/integrations/notify-disable.txt",
+            html_template="sentry/integrations/sentry-app-notify-disable.html"
+            if "sentry-app" in redis_key and integration_slug
+            else "sentry/integrations/notify-disable.html",
+            template="sentry/integrations/sentry-app-notify-disable.txt"
+            if "sentry-app" in redis_key and integration_slug
+            else "sentry/integrations/notify-disable.txt",
         )
         msg.send_async([user.email])
