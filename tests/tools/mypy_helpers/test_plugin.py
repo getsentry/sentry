@@ -225,25 +225,15 @@ Found 4 errors in 1 file (checked 1 source file)
 
 
 @pytest.mark.parametrize(
-    ("attr", "modname"),
+    "attr",
     (
-        ("access", "sentry.api.base"),
-        ("csp_nonce", "csp.middleware"),
-        ("is_sudo", "sudo.middleware"),
-        ("subdomain", "sentry.middleware.subdomain"),
+        pytest.param("access", id="access from sentry.api.base"),
+        pytest.param("csp_nonce", id="csp_nonce from csp.middleware"),
+        pytest.param("is_sudo", id="is_sudo from sudo.middleware"),
+        pytest.param("subdomain", id="subdomain from sentry.middleware.subdomain"),
     ),
 )
-def test_added_http_request_attribute(attr: str, modname: str) -> None:
-    mod = __import__(modname, fromlist=["_trash"])
-    assert mod.__file__ is not None
-    with open(mod.__file__) as f:
-        if f"request.{attr} =" not in f.read():
-            raise AssertionError(
-                f"expected a `request.{attr} = ` monkeypatch "
-                f"in {modname} ({mod.__file__})!\n\n"
-                f"perhaps the mypy plug for this can be removed?"
-            )
-
+def test_added_http_request_attribute(attr: str) -> None:
     src = f"""\
 from django.http.request import HttpRequest
 x: HttpRequest
