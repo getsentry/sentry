@@ -3,6 +3,7 @@ import * as React from 'react';
 import {vec2} from 'gl-matrix';
 
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
+import {t} from 'sentry/locale';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
@@ -59,6 +60,9 @@ FlamegraphChartTooltipProps) {
           </React.Fragment>
         );
       })}
+      <FlamegraphTooltipTimelineInfo>
+        {t('at')} {chart.timelineFormatter(configSpaceCursor[0])}{' '}
+      </FlamegraphTooltipTimelineInfo>
     </BoundTooltip>
   ) : null;
 }

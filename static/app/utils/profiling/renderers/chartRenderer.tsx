@@ -47,6 +47,9 @@ function binaryFindNearest(
   target: number,
   tolerance: number
 ): number | null {
+  if (!serie.points.length) {
+    return null;
+  }
   if (target < serie.points[0].x) {
     return null;
   }
@@ -163,6 +166,7 @@ export class FlamegraphChartRenderer {
     const origin = vec3.fromValues(0, 0, 1);
     const space = vec3.fromValues(configView.width, configView.height, 1);
     vec3.transformMat3(origin, origin, configViewToPhysicalSpace);
+    vec3.transformMat3(space, space, configViewToPhysicalSpace);
 
     // Draw series
     for (let i = 0; i < this.chart.series.length; i++) {
@@ -251,6 +255,7 @@ export class FlamegraphChartRenderer {
         configSpaceCursorRef.current[1],
         1
       );
+
       vec3.transformMat3(cursor, cursor, configViewToPhysicalSpace);
       this.context.beginPath();
       this.context.strokeStyle = this.theme.COLORS.CHART_CURSOR_INDICATOR;

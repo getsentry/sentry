@@ -286,7 +286,7 @@ export function FlamegraphChart({
         <CollapsibleTimelineLoadingIndicator />
       ) : profiles.type === 'resolved' && !chart?.series.length ? (
         <CollapsibleTimelineMessage>
-          {t('Profile has no CPU measurements')}
+          {t('Profile has no measurements')}
         </CollapsibleTimelineMessage>
       ) : null}
     </Fragment>
