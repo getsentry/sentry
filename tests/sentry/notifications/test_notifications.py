@@ -8,7 +8,7 @@ import responses
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.utils import timezone
-from sentry_relay import parse_release
+from sentry_relay.processing import parse_release
 
 from sentry.event_manager import EventManager
 from sentry.models import (

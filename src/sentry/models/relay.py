@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
-from sentry_relay import PublicKey
+from sentry_relay.auth import PublicKey
 
 from sentry.db.models import Model, region_silo_only_model
 
