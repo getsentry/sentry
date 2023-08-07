@@ -320,36 +320,57 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
         return
 
     try:
-        with transaction.atomic(router.db_for_write(Monitor)):
-            monitor_config = params.pop("monitor_config", None)
+        check_in_id = uuid.UUID(params["check_in_id"])
+    except ValueError:
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "failed_guid_validation"},
+        )
+        logger.info("monitor_checkin.validation.failed", extra={**params})
+        return
 
-            params["duration"] = (
-                # Duration is specified in seconds from the client, it is
-                # stored in the checkin model as milliseconds
-                int(params["duration"] * 1000)
-                if params.get("duration") is not None
-                else None
-            )
+    # When the UUID is empty we will default to looking for the most
+    # recent check-in which is not in a terminal state.
+    use_latest_checkin = check_in_id.int == 0
 
-            validator = MonitorCheckInValidator(
-                data=params,
-                partial=True,
-                context={
-                    "project": project,
-                },
-            )
+    # If the UUID is unset (zero value) generate a new UUID
+    if check_in_id.int == 0:
+        guid = uuid.uuid4()
+    else:
+        guid = check_in_id
 
-            if not validator.is_valid():
-                metrics.incr(
-                    "monitors.checkin.result",
-                    tags={**metric_kwargs, "status": "failed_checkin_validation"},
-                )
-                logger.info("monitor_checkin.validation.failed", extra={**params})
-                return
-
-            validated_params = validator.validated_data
-
+    lock = locks.get(f"checkin-creation:{guid}", duration=2, name="checkin_creation")
+    try:
+        with lock.acquire(), transaction.atomic(router.db_for_write(Monitor)):
             try:
+                monitor_config = params.pop("monitor_config", None)
+
+                params["duration"] = (
+                    # Duration is specified in seconds from the client, it is
+                    # stored in the checkin model as milliseconds
+                    int(params["duration"] * 1000)
+                    if params.get("duration") is not None
+                    else None
+                )
+
+                validator = MonitorCheckInValidator(
+                    data=params,
+                    partial=True,
+                    context={
+                        "project": project,
+                    },
+                )
+
+                if not validator.is_valid():
+                    metrics.incr(
+                        "monitors.checkin.result",
+                        tags={**metric_kwargs, "status": "failed_checkin_validation"},
+                    )
+                    logger.info("monitor_checkin.validation.failed", extra={**params})
+                    return
+
+                validated_params = validator.validated_data
+
                 monitor = _ensure_monitor_with_config(
                     project,
                     monitor_slug,
@@ -393,13 +414,6 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
 
             status = getattr(CheckInStatus, validated_params["status"].upper())
             trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
-
-            # Invalid UUIDs will raise ValueError
-            check_in_id = uuid.UUID(params["check_in_id"])
-
-            # When the UUID is empty we will default to looking for the most
-            # recent check-in which is not in a terminal state.
-            use_latest_checkin = check_in_id.int == 0
 
             try:
                 if use_latest_checkin:
@@ -449,43 +463,26 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                 monitor_config = monitor.get_validated_config()
                 timeout_at = get_timeout_at(monitor_config, status, date_added)
 
-                # If the UUID is unset (zero value) generate a new UUID
-                if check_in_id.int == 0:
-                    guid = uuid.uuid4()
+                check_in, created = MonitorCheckIn.objects.get_or_create(
+                    defaults={
+                        "duration": duration,
+                        "status": status,
+                        "date_added": date_added,
+                        "date_updated": start_time,
+                        "expected_time": expected_time,
+                        "timeout_at": timeout_at,
+                        "monitor_config": monitor_config,
+                        "trace_id": trace_id,
+                    },
+                    project_id=project_id,
+                    monitor=monitor,
+                    monitor_environment=monitor_environment,
+                    guid=guid,
+                )
+                if not created:
+                    update_existing_check_in(check_in, status, duration, start_time)
                 else:
-                    guid = check_in_id
-
-                lock = locks.get(f"checkin-creation:{guid}", duration=2, name="checkin_creation")
-                try:
-                    with lock.acquire():
-                        check_in, created = MonitorCheckIn.objects.get_or_create(
-                            defaults={
-                                "duration": duration,
-                                "status": status,
-                                "date_added": date_added,
-                                "date_updated": start_time,
-                                "expected_time": expected_time,
-                                "timeout_at": timeout_at,
-                                "monitor_config": monitor_config,
-                                "trace_id": trace_id,
-                            },
-                            project_id=project_id,
-                            monitor=monitor,
-                            monitor_environment=monitor_environment,
-                            guid=guid,
-                        )
-                        if not created:
-                            update_existing_check_in(check_in, status, duration, start_time)
-                        else:
-                            signal_first_checkin(project, monitor)
-
-                except UnableToAcquireLock:
-                    metrics.incr(
-                        "monitors.checkin.result",
-                        tags={**metric_kwargs, "status": "failed_checkin_creation_lock"},
-                    )
-                    logger.debug("failed to acquire lock to create check-in: %s", guid)
-                    return
+                    signal_first_checkin(project, monitor)
 
             if check_in.status == CheckInStatus.ERROR:
                 monitor_environment.mark_failed(
@@ -498,6 +495,12 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                 "monitors.checkin.result",
                 tags={**metric_kwargs, "status": "complete"},
             )
+    except UnableToAcquireLock:
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "failed_checkin_creation_lock"},
+        )
+        logger.debug("failed to acquire lock to create check-in: %s", guid)
     except Exception:
         # Skip this message and continue processing in the consumer.
         metrics.incr(
