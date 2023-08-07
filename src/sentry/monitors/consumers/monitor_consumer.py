@@ -30,6 +30,7 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
     MonitorType,
 )
+from sentry.monitors.tasks import check_missing, check_timeout
 from sentry.monitors.utils import (
     get_new_timeout_at,
     get_timeout_at,
@@ -55,6 +56,12 @@ CHECKIN_QUOTA_WINDOW = 60
 # trigger the monitor tasks as a side-effect of check-ins coming in. It is used
 # to store he last timestamp that the tasks were triggered.
 HIGH_VOLUME_LAST_TRIGGER_TS_KEY = "sentry.monitors.last_tasks_ts"
+
+# This delay in seconds defines how long we wait after the minute before
+# running the monitor tasks. These tasks are responsible for creating missed
+# check-ins and marking timedout check-ins. Thus, having some delay after the
+# start of the minute is critical.
+MONITOR_TASK_DELAY = 15
 
 
 class CheckinMessage(TypedDict):
@@ -147,12 +154,14 @@ def _ensure_monitor_with_config(
 
 
 def _dispatch_tasks(ts: datetime):
-    # For now we're going to have this do nothing. We want to validate that
-    # we're not going to be skipping any check-ins
-    return
-
-    # check_missing.delay(current_datetime=ts)
-    # check_timeout.delay(current_datetime=ts)
+    """
+    Dispatch monitor tasks triggered by the consumer clock. These will run
+    after the MONITOR_TASK_DELAY (in seconds), This is to give some breathing
+    room for check-ins to start and not be EXACTLY on the minute
+    """
+    kwargs = {"current_datetime": ts}
+    check_missing.apply_async(countdown=MONITOR_TASK_DELAY, kwargs=kwargs)
+    check_timeout.apply_async(countdown=MONITOR_TASK_DELAY, kwargs=kwargs)
 
 
 def _handle_clock_pulse_task_trigger(ts: datetime):
