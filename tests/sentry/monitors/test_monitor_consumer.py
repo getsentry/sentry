@@ -9,7 +9,7 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.conf import settings
 from django.test.utils import override_settings
 
-from sentry import killswitches, options
+from sentry import killswitches
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.consumers.monitor_consumer import StoreMonitorCheckInStrategyFactory
@@ -542,12 +542,9 @@ class MonitorConsumerTest(TestCase):
         opt_val = killswitches.validate_user_input(
             "crons.organization.disable-check-in", [{"organization_id": self.organization.id}]
         )
-        options.set("crons.organization.disable-check-in", opt_val)
 
-        self.send_checkin(monitor.slug)
-
-        opt_val = killswitches.validate_user_input("crons.organization.disable-check-in", [])
-        options.set("crons.organization.disable-check-in", opt_val)
+        with self.options({"crons.organization.disable-check-in": opt_val}):
+            self.send_checkin(monitor.slug)
 
         assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
 
