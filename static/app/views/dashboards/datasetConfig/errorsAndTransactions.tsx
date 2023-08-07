@@ -1,7 +1,7 @@
 import trimStart from 'lodash/trimStart';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -605,7 +605,12 @@ function getEventsSeriesRequest(
   return doEventsRequest<true>(api, requestData);
 }
 
-async function doOnDemandMetricsRequest(api, requestData) {
+async function doOnDemandMetricsRequest(
+  api,
+  requestData
+): Promise<
+  [EventsStats | MultiSeriesEventsStats, string | undefined, ResponseMeta | undefined]
+> {
   const isEditing = location.pathname.endsWith('/edit/');
 
   const fetchEstimatedStats = () =>
@@ -619,7 +624,7 @@ async function doOnDemandMetricsRequest(api, requestData) {
 
   response[0] = {...response[0], isMetricsData: true, isExtrapolatedData: isEditing};
 
-  return response;
+  return [response[0], response[1], response[2]];
 }
 
 // Checks fieldValue to see what function is being used and only allow supported custom measurements
