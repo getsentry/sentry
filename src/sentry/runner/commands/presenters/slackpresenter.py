@@ -56,7 +56,7 @@ class SlackPresenter(OptionsPresenter):
     def flush(self) -> None:
         json_data = {
             "drifted_options": [
-                {"option_name": key, "option_value": self.truncate_value(value) + "..."}
+                {"option_name": key, "option_value": self.truncate_value(value)}
                 for key, value in self.drifted_options
             ],
             "channel_updated_options": self.channel_updated_options,
