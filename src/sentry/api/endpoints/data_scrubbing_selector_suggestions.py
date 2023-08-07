@@ -2,7 +2,7 @@ from typing import Any, Dict
 
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_relay import pii_selector_suggestions_from_event
+from sentry_relay.processing import pii_selector_suggestions_from_event
 
 from sentry import nodestore
 from sentry.api.base import region_silo_endpoint
