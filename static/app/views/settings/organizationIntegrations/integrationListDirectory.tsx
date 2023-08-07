@@ -237,7 +237,7 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
     return integrations?.find(i => i.provider.key === integration.key) ? 2 : 0;
   }
 
-  getInstallValues(integrations: Integration[]) {
+  getInstallStatuses(integrations: Integration[]) {
     const statusList = integrations?.map(getIntegrationStatus);
     // if we have conflicting statuses, we have a priority order
     if (statusList.includes('active')) {
@@ -411,7 +411,7 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
         type="firstParty"
         slug={provider.slug}
         displayName={provider.name}
-        status={this.getInstallValues(integrations)}
+        status={this.getInstallStatuses(integrations)}
         publishStatus="published"
         configurations={integrations.length}
         categories={getCategoriesForIntegration(provider)}
