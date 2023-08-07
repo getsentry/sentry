@@ -5,14 +5,14 @@ import {t} from 'sentry/locale';
 import {EventsStats, MultiSeriesEventsStats} from 'sentry/types';
 
 export class OnDemandMetricRequest extends EventsRequest {
-  fetchMetricsData = async (): Promise<EventsStats> => {
+  fetchExtrapolatedData = async (): Promise<EventsStats> => {
     const {api, organization, ...props} = this.props;
     return (await doEventsRequest(api, {
       ...props,
       organization,
       generatePathname: () =>
         `/organizations/${organization.slug}/metrics-estimation-stats/`,
-    })) as EventsStats;
+    }).then(data => ({...data, isExtrapolatedData: true}))) as EventsStats;
   };
 
   fetchData = async () => {
@@ -42,7 +42,7 @@ export class OnDemandMetricRequest extends EventsRequest {
       try {
         api.clear();
 
-        timeseriesData = await this.fetchMetricsData();
+        timeseriesData = await this.fetchExtrapolatedData();
       } catch (resp) {
         if (resp && resp.responseJSON && resp.responseJSON.detail) {
           errorMessage = resp.responseJSON.detail;
