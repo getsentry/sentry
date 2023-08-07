@@ -1,7 +1,6 @@
 from typing import Union
 
-from sentry.models import Organization, SentryApp
-from sentry.services.hybrid_cloud.integration import RpcIntegration
+from sentry.models import Organization
 from sentry.utils.email import MessageBuilder
 
 provider_types = {
@@ -38,19 +37,16 @@ def get_subject(integration_name: str) -> str:
 
 def notify_disable(
     organization: Organization,
-    integration: Union[SentryApp, RpcIntegration],
+    integration_name: str,
     redis_key: str,
+    integration_slug: Union[str, None] = None,
     project: Union[str, None] = None,
 ):
 
     integration_link = get_url(
         organization,
         get_provider_type(redis_key),
-        integration.provider if integration.get_provider() else integration.slug,
-    )
-
-    integration_name = (
-        integration.get_provider().name if integration.get_provider() else integration.name
+        str(integration_slug) if "sentry-app" in redis_key else integration_name,
     )
 
     for user in organization.get_owners():
