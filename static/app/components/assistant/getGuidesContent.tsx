@@ -282,7 +282,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           title: t('New Default Event'),
           target: 'issue_details_default_event',
           description: tct(
-            'Rather than the latest event, we now default to an event with the most context (replays, traces, and profiles). You can easily switch between events or [link:configure your default event] in settings.',
+            'Rather than the latest event, we now default to a recent event with the most context (replays, traces, and profiles). You can easily switch between events or [link:configure your default event] in settings.',
             {
               link: <Link to="/settings/account/details/#defaultIssueEvent" />,
             }
