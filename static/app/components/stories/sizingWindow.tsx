@@ -24,6 +24,9 @@ const SizingWindow = styled('div')`
       ${p => p.theme.gray100} 15px,
       ${p => p.theme.gray100} 16px
     );
+
+  border: 1px solid ${p => p.theme.yellow400};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 export default SizingWindow;

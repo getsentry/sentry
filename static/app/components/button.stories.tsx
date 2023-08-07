@@ -1,4 +1,6 @@
 import {Button} from 'sentry/components/button';
+// import Story from 'sentry/story';
+import KitchenSink from 'sentry/components/stories/kitchenSink';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 
 export default function Main() {
@@ -8,6 +10,12 @@ export default function Main() {
     </SizingWindow>
   );
 }
+
+export function Generic() {
+  return <KitchenSink component={Button} />;
+}
+
+// export default new Story('Default Button Render').render(Button);
 
 export function Priority() {
   return (

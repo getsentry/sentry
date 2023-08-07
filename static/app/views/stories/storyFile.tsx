@@ -1,28 +1,31 @@
-import {ComponentProps, ComponentType, useEffect, useState} from 'react';
+import {ComponentProps} from 'react';
+import styled from '@emotion/styled';
+
+import useStoriesLoader from 'sentry/views/stories/useStoriesLoader';
 
 interface Props extends ComponentProps<'div'> {
   filename: string;
 }
 
-export default function Story({filename, style}: Props) {
-  const match = filename.match(/app\/components\/(?<filename>.*).stories.tsx/);
-  const importName = match?.groups?.filename;
+export default function StoryFile({filename, style}: Props) {
+  const module = useStoriesLoader({filename});
 
-  const [mod, setMod] = useState<Record<string, ComponentType>>({});
-
-  useEffect(() => {
-    import(`sentry/components/${importName}.stories`).then(setMod);
-  }, [importName]);
+  const {default: DefaultExport, ...otherExports} = module;
+  const otherEntries = Object.entries(otherExports);
 
   return (
-    <div key={filename} style={style}>
+    <FlexColumn style={style}>
       <h2>{filename}</h2>
-
-      <div>
-        {Object.entries(mod).map(([field, Component]) => (
-          <Component key={field} />
-        ))}
-      </div>
-    </div>
+      {DefaultExport ? <DefaultExport /> : null}
+      {otherEntries.map(([field, Component]) => (
+        <Component key={field} />
+      ))}
+    </FlexColumn>
   );
 }
+
+const FlexColumn = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: var(--stories-grid-space);
+`;
