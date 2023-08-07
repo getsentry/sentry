@@ -596,7 +596,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert len(audit_log_entry) == 1
 
 
-@region_silo_test(stable=True)
 class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsPutEndpointTest):
     def _mock_slack_response(self, url: str, body: dict[str, Any], status: int = 200) -> None:
         responses.add(
@@ -928,7 +927,6 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsPutEndpointTest):
         )  # Did not increment from the last assertion because we early out on the validation error
 
 
-@region_silo_test(stable=True)
 class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsPutEndpointTest):
     def test_sentry_app(self):
         self.create_member(

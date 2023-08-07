@@ -84,7 +84,7 @@ def update_alert_rule(request: Request, organization, alert_rule):
                     "Must pass organizationId or projects in request data",
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-                organization_id = projects[0].organization_id
+            organization_id = projects[0].organization_id
     serializer = DrfAlertRuleSerializer(
         context={
             "organization": organization,
