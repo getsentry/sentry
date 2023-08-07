@@ -1429,8 +1429,6 @@ SENTRY_FEATURES = {
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
     "organizations:issue-search-use-cdc-secondary": False,
-    # Adds search suggestions to the issue search bar
-    "organizations:issue-search-shortcuts": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
@@ -1514,10 +1512,6 @@ SENTRY_FEATURES = {
     "organizations:issue-details-most-helpful-event": False,
     # Enable Issue details UI improvements related to highlighting the 'most helpful' event
     "organizations:issue-details-most-helpful-event-ui": False,
-    # Display if a release is using semver when resolving issues
-    "organizations:issue-release-semver": False,
-    # Display a prompt to setup releases in the resolve options dropdown
-    "organizations:issue-resolve-release-setup": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
