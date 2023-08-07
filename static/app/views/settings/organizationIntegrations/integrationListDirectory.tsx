@@ -34,6 +34,7 @@ import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import {
   getAlertText,
   getCategoriesForIntegration,
+  getIntegrationStatus,
   getSentryAppInstallStatus,
   isDocIntegration,
   isPlugin,
@@ -236,6 +237,21 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
     return integrations?.find(i => i.provider.key === integration.key) ? 2 : 0;
   }
 
+  getInstallValues(integrations: Integration[]) {
+    const statusList = integrations?.map(getIntegrationStatus);
+    // if we have conflicting statuses, we have a priority order
+    if (statusList.includes('active')) {
+      return 'Installed';
+    }
+    if (statusList.includes('disabled')) {
+      return 'Disabled';
+    }
+    if (statusList.includes('pending_deletion')) {
+      return 'Pending Deletion';
+    }
+    return 'Not Installed';
+  }
+
   getPopularityWeight = (integration: AppOrProviderOrPlugin) => {
     if (isSentryApp(integration) || isDocIntegration(integration)) {
       return integration?.popularity ?? 1;
@@ -395,7 +411,7 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
         type="firstParty"
         slug={provider.slug}
         displayName={provider.name}
-        status={integrations.length ? 'Installed' : 'Not Installed'}
+        status={this.getInstallValues(integrations)}
         publishStatus="published"
         configurations={integrations.length}
         categories={getCategoriesForIntegration(provider)}
