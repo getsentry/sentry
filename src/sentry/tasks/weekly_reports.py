@@ -654,8 +654,7 @@ def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
         }
 
         for user_id in user_set:
-            # We manually pick out user.options and use PickledObjectField to deserialize it. We get a list of organizations the user has unsubscribed from user reports
-            option = options_by_user_id.get(user_id, [])
+            option = list(options_by_user_id.get(user_id, []))
             user_subscribed_to_organization_reports = ctx.organization.id not in option
             if user_subscribed_to_organization_reports:
                 send_email(ctx, user_id, dry_run=dry_run)
