@@ -11,7 +11,7 @@ import {
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
-import {STANDARD_SEARCH_FIELD_KEYS} from 'sentry/utils/onDemandMetrics.const';
+import {STANDARD_SEARCH_FIELD_KEYS} from 'sentry/utils/onDemandMetrics/consts';
 import {
   Dataset,
   EventTypes,

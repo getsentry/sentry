@@ -3,7 +3,7 @@ import {FieldKey} from 'sentry/utils/fields';
 import {
   ON_DEMAND_METRICS_SUPPORTED_TAGS,
   STANDARD_SEARCH_FIELD_KEYS,
-} from 'sentry/utils/onDemandMetrics.const';
+} from 'sentry/utils/onDemandMetrics/consts';
 
 export function isOnDemandQueryString(query: string): boolean {
   const tokens = parseSearch(query);

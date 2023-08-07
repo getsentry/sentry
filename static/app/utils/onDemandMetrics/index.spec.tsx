@@ -1,4 +1,4 @@
-import {isOnDemandQueryString} from './onDemandMetrics';
+import {isOnDemandQueryString} from '.';
 
 describe('isOnDemandQueryString', () => {
   it('should return true for a query that contains non-standard query keys', () => {
