@@ -12,7 +12,7 @@ from sentry.replays.testutils import (
 )
 from sentry.testutils.cases import ReplaysAcceptanceTestCase
 
-FEATURE_NAME = ["organizations:session-replay"]
+FEATURE_NAME = ["organizations:session-replay", "organizations:performance-view"]
 
 
 class ReplayDetailTest(ReplaysAcceptanceTestCase):
@@ -89,7 +89,7 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.click('[data-test-id="DOM Events"]')
+            self.browser.click('[data-test-id="replay-details-dom-btn"]')
             self.browser.wait_until_test_id("replay-details-dom-events-tab")
             self.browser.snapshot("replay details - dom events tab")
 
@@ -98,7 +98,7 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.click('[data-test-id="Console"]')
+            self.browser.click('[data-test-id="replay-details-console-btn"]')
             self.browser.wait_until_test_id("replay-details-console-tab")
             self.browser.snapshot("replay details - console tab")
 
@@ -107,7 +107,7 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.click('[data-test-id="Network"]')
+            self.browser.click('[data-test-id="replay-details-network-btn"]')
             self.browser.wait_until_test_id("replay-details-network-tab")
             self.browser.snapshot("replay details - network tab")
 
@@ -116,7 +116,7 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.click('[data-test-id="Memory"]')
+            self.browser.click('[data-test-id="replay-details-memory-btn"]')
             self.browser.wait_until_test_id("replay-details-memory-tab")
             self.browser.snapshot("replay details - memory tab")
 
@@ -125,7 +125,7 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.click('[data-test-id="Errors"]')
+            self.browser.click('[data-test-id="replay-details-errors-btn"]')
             self.browser.wait_until_test_id("replay-details-errors-tab")
             self.browser.snapshot("replay details - errors tab")
 
@@ -134,6 +134,6 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.click('[data-test-id="Trace"]')
-            self.browser.wait_until_test_id("feature-disabled-message")
+            self.browser.click('[data-test-id="replay-details-trace-btn"]')
+            self.browser.wait_until_test_id("replay-details-trace-tab")
             self.browser.snapshot("replay details - trace tab")
