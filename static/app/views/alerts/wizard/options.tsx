@@ -260,7 +260,7 @@ export function datasetSupportedTags(
 
 function transactionSupportedTags(org: Organization) {
   if (org.features.includes('on-demand-metrics-extraction')) {
-    return STANDARD_SEARCH_FIELD_KEYS;
+    return [...STANDARD_SEARCH_FIELD_KEYS];
   }
   return TRANSACTION_SUPPORTED_TAGS;
 }
