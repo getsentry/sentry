@@ -21,7 +21,7 @@ import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPan
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
-import {getReplayListFields} from 'sentry/views/replays/types';
+import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
 function ReplaysList() {
   const location = useLocation<ReplayListLocationQuery>();
@@ -36,7 +36,7 @@ function ReplaysList() {
         id: '',
         name: '',
         version: 2,
-        fields: getReplayListFields(),
+        fields: REPLAY_LIST_FIELDS,
         projects: [],
         query: conditions.formatString(),
         orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
