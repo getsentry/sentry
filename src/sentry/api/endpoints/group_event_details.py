@@ -121,7 +121,7 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         elif event_id == "oldest":
             with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "oldest"}):
                 event = group.get_oldest_event_for_environments(environment_names)
-        elif event_id == "helpful":
+        elif event_id in ("helpful", "recommended"):
             if features.has(
                 "organizations:issue-details-most-helpful-event",
                 group.project.organization,
@@ -137,7 +137,7 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                             conditions = issue_search_query_to_conditions(
                                 query, group, request.user, environments
                             )
-                            event = group.get_helpful_event_for_environments(
+                            event = group.get_recommended_event_for_environments(
                                 environments, conditions
                             )
                         except ValidationError:
@@ -153,7 +153,7 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                         "api.endpoints.group_event_details.get",
                         tags={"type": "helpful", "query": False},
                     ):
-                        event = group.get_helpful_event_for_environments(environments)
+                        event = group.get_recommended_event_for_environments(environments)
             else:
                 return Response(status=404)
         else:
