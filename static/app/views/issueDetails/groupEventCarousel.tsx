@@ -41,6 +41,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
+import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 import QuickTrace from './quickTrace';
 
@@ -126,6 +127,7 @@ function EventNavigationDropdown({
   const theme = useTheme();
   const organization = useOrganization();
   const largeViewport = useMedia(`(min-width: ${theme.breakpoints.large})`);
+  const defaultIssueEvent = useDefaultIssueEvent();
 
   const isHelpfulEventUiEnabled =
     organization.features.includes('issue-details-most-helpful-event') &&
@@ -142,7 +144,7 @@ function EventNavigationDropdown({
       case EventNavDropdownOption.OLDEST:
         return params.eventId;
       case undefined:
-        return EventNavDropdownOption.RECOMMENDED;
+        return defaultIssueEvent;
       default:
         return undefined;
     }
