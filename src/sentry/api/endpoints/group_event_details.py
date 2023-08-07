@@ -121,7 +121,7 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         elif event_id == "oldest":
             with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "oldest"}):
                 event = group.get_oldest_event_for_environments(environment_names)
-        elif event_id == "helpful":
+        elif event_id in ("helpful", "recommended"):
             if features.has(
                 "organizations:issue-details-most-helpful-event",
                 group.project.organization,
@@ -152,41 +152,6 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                     with metrics.timer(
                         "api.endpoints.group_event_details.get",
                         tags={"type": "helpful", "query": False},
-                    ):
-                        event = group.get_helpful_event_for_environments(environments)
-            else:
-                return Response(status=404)
-        elif event_id == "recommended":
-            if features.has(
-                "organizations:issue-details-most-helpful-event",
-                group.project.organization,
-                actor=request.user,
-            ):
-                query = request.GET.get("query")
-                if query:
-                    with metrics.timer(
-                        "api.endpoints.group_event_details.get",
-                        tags={"type": "recommended", "query": True},
-                    ):
-                        try:
-                            conditions = issue_search_query_to_conditions(
-                                query, group, request.user, environments
-                            )
-                            event = group.get_helpful_event_for_environments(
-                                environments, conditions
-                            )
-                        except ValidationError:
-                            return Response(status=400)
-                        except Exception:
-                            logging.error(
-                                "group_event_details:get_recommended",
-                                exc_info=True,
-                            )
-                            return Response(status=500)
-                else:
-                    with metrics.timer(
-                        "api.endpoints.group_event_details.get",
-                        tags={"type": "recommended", "query": False},
                     ):
                         event = group.get_helpful_event_for_environments(environments)
             else:
