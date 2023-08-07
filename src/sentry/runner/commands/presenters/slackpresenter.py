@@ -2,7 +2,7 @@ from typing import List, Tuple
 
 import requests
 
-from sentry.conf.server import SLACK_WEBHOOK_URL
+from sentry.conf.server import OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL
 from sentry.runner.commands.presenters.optionspresenter import OptionsPresenter
 from sentry.utils import json
 
@@ -29,7 +29,7 @@ class SlackPresenter(OptionsPresenter):
 
     @staticmethod
     def is_slack_enabled():
-        if SLACK_WEBHOOK_URL == "":
+        if OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL == "":
             return False
 
         try:
@@ -43,7 +43,7 @@ class SlackPresenter(OptionsPresenter):
                 "invalid_type_options": [],
             }
 
-            response = requests.post(SLACK_WEBHOOK_URL, json=test_payload)
+            response = requests.post(OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL, json=test_payload)
             if response.status_code == 200:
                 return True
 
@@ -120,4 +120,6 @@ class SlackPresenter(OptionsPresenter):
 
     def _send_to_webhook(self, json_data: dict) -> None:
         headers = {"Content-Type": "application/json"}
-        requests.post(SLACK_WEBHOOK_URL, data=json.dumps(json_data), headers=headers)
+        requests.post(
+            OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL, data=json.dumps(json_data), headers=headers
+        )

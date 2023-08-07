@@ -12,7 +12,10 @@ class TestPresenterDelegator:
     """
 
     @pytest.fixture(autouse=True)
-    @patch("sentry.runner.commands.presenters.slackpresenter.SLACK_WEBHOOK_URL", "https://test/")
+    @patch(
+        "sentry.runner.commands.presenters.slackpresenter.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL",
+        "https://test/",
+    )
     def setup(self) -> None:
         self.presenterDelagator = PresenterDelegator()
 
