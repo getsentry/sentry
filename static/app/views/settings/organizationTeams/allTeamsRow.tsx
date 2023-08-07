@@ -284,13 +284,14 @@ export default withApi(AllTeamsRow);
 
 export const GRID_TEMPLATE = `
   display: grid;
-  grid-template-columns: minmax(150px, 4fr) minmax(0px, 100px) 125px 110px;
+  grid-template-columns: minmax(150px, 4fr) minmax(0px, 100px) 125px minmax(110px 1fr);
   gap: ${space(1)};
 `;
 
 const TeamPanelItem = styled(PanelItem)`
   ${GRID_TEMPLATE}
   align-items: center;
+  display: flex;
 
   > div:last-child {
     margin-left: auto;
