@@ -276,7 +276,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
     {
       guide: 'explain_new_default_event_issue_detail',
       requiredTargets: ['issue_details_default_event'],
-      dateThreshold: new Date('2023-07-05'),
+      dateThreshold: new Date('2023-08-22'),
       steps: [
         {
           title: t('New Default Event'),
