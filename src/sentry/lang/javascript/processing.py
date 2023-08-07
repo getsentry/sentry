@@ -221,6 +221,15 @@ def generate_scraping_config(project: Project) -> Dict[str, Any]:
     }
 
 
+def _normalize_frame(frame: Any) -> dict:
+    frame = dict(frame)
+
+    # Symbolicator will *output* `data`, but never use it from the input
+    frame.pop("data", None)
+
+    return frame
+
+
 def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     project = symbolicator.project
     scraping_config = generate_scraping_config(project)
@@ -231,7 +240,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     stacktraces = [
         {
             "frames": [
-                dict(frame)
+                _normalize_frame(frame)
                 for frame in sinfo.stacktrace.get("frames") or ()
                 if _handles_frame(frame, data)
             ],
