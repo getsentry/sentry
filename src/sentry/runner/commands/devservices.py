@@ -179,6 +179,9 @@ def attach(project: str, service: str) -> None:
             always_start=True,
         )
 
+        if container is None:
+            raise click.ClickException(f"No containers found for service `{service}`.")
+
         def exit_handler(*_: Any) -> None:
             try:
                 click.echo(f"Stopping {service}")
@@ -202,11 +205,15 @@ def attach(project: str, service: str) -> None:
 @click.option(
     "--skip-only-if", is_flag=True, default=False, help="Skip 'only_if' checks for services"
 )
+@click.option(
+    "--recreate", is_flag=True, default=False, help="Recreate containers that are already running."
+)
 def up(
     services: list[str],
     project: str,
     exclude: list[str],
     skip_only_if: bool,
+    recreate: bool,
 ) -> None:
     """
     Run/update all devservices in the background.
@@ -263,6 +270,8 @@ def up(
                         name,
                         containers,
                         project,
+                        False,
+                        recreate,
                     )
                 )
             for future in as_completed(futures):
@@ -321,7 +330,8 @@ def _start_service(
     name: str,
     containers: dict[str, Any],
     project: str,
-    always_start: Literal[True] = ...,
+    always_start: Literal[False] = ...,
+    recreate: bool = False,
 ) -> docker.models.containers.Container:
     ...
 
@@ -333,6 +343,7 @@ def _start_service(
     containers: dict[str, Any],
     project: str,
     always_start: bool = False,
+    recreate: bool = False,
 ) -> docker.models.containers.Container | None:
     ...
 
@@ -343,25 +354,11 @@ def _start_service(
     containers: dict[str, Any],
     project: str,
     always_start: bool = False,
+    recreate: bool = False,
 ) -> docker.models.containers.Container | None:
     from docker.errors import NotFound
 
     options = containers[name]
-
-    for key, value in list(options["environment"].items()):
-        options["environment"][key] = value.format(containers=containers)
-
-    click.secho(f"> Pulling image '{options['image']}'", fg="green")
-    retryable_pull(client, options["image"])
-
-    for mount in list(options.get("volumes", {}).keys()):
-        if "/" not in mount:
-            get_or_create(client, "volume", project + "_" + mount)
-            options["volumes"][project + "_" + mount] = options["volumes"].pop(mount)
-
-    listening = ""
-    if options["ports"]:
-        listening = "(listening: %s)" % ", ".join(map(str, options["ports"].values()))
 
     # If a service is associated with the devserver, then do not run the created container.
     # This was mainly added since it was not desirable for nginx to occupy port 8000 on the
@@ -390,10 +387,31 @@ def _start_service(
         pass
 
     if container is not None:
+        if not recreate:
+            click.secho(
+                f"> Container '{options['name']}' is already running, doing nothing", fg="yellow"
+            )
+            return container
+
         click.secho(f"> Stopping container '{container.name}'", fg="yellow")
         container.stop()
         click.secho(f"> Removing container '{container.name}'", fg="yellow")
         container.remove()
+
+    for key, value in list(options["environment"].items()):
+        options["environment"][key] = value.format(containers=containers)
+
+    click.secho(f"> Pulling image '{options['image']}'", fg="green")
+    retryable_pull(client, options["image"])
+
+    for mount in list(options.get("volumes", {}).keys()):
+        if "/" not in mount:
+            get_or_create(client, "volume", project + "_" + mount)
+            options["volumes"][project + "_" + mount] = options["volumes"].pop(mount)
+
+    listening = ""
+    if options["ports"]:
+        listening = "(listening: %s)" % ", ".join(map(str, options["ports"].values()))
 
     click.secho(f"> Creating container '{options['name']}'", fg="yellow")
     container = client.containers.create(**options)
