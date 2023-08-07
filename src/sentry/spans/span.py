@@ -9,21 +9,21 @@ from sentry import nodestore
 
 class SpanData(TypedDict):
     id: str
-    contexts: Mapping[str, object]
+    attributes: Mapping[str, object]
     project_id: int
     tags: Mapping[str, str]
 
 
 @dataclass(frozen=True)
 class Span:
-    contexts: Mapping[str, object]
+    attributes: Mapping[str, object]
     id: str
     project_id: int
     tags: Mapping[str, str]
 
     def to_dict(self) -> SpanData:
         return {
-            "contexts": self.contexts,
+            "attributes": self.attributes,
             "id": self.id,
             "project_id": self.project_id,
             "tags": self.tags,
@@ -32,7 +32,7 @@ class Span:
     @classmethod
     def from_dict(cls, data: SpanData) -> Span:
         return cls(
-            data["contexts"],
+            data["attributes"],
             data["id"],
             data["project_id"],
             data["tags"],
