@@ -8,6 +8,9 @@ from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_facets_stats_performance import (
     OrganizationEventsFacetsStatsPerformanceEndpoint,
 )
+from sentry.api.endpoints.organization_events_root_cause_analysis import (
+    OrganizationEventsRootCauseAnalysisEndpoint,
+)
 from sentry.api.endpoints.organization_events_starfish import OrganizationEventsStarfishEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_projects_experiment import (
@@ -106,6 +109,7 @@ from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, Organizatio
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
+from .endpoints.actionable_items import ActionableItemsEndpoint
 from .endpoints.admin_project_configs import AdminRelayProjectConfigsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_application_rotate_secret import ApiApplicationRotateSecretEndpoint
@@ -333,6 +337,9 @@ from .endpoints.organization_metrics import (
     OrganizationMetricsEndpoint,
     OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
+)
+from .endpoints.organization_metrics_estimation_stats import (
+    OrganizationMetricsEstimationStatsEndpoint,
 )
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
@@ -1166,6 +1173,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-events-stats",
     ),
     re_path(
+        r"^(?P<organization_slug>[^\/]+)/metrics-estimation-stats/$",
+        OrganizationMetricsEstimationStatsEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-estimation-stats",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/events-facets/$",
         OrganizationEventsFacetsEndpoint.as_view(),
         name="sentry-api-0-organization-events-facets",
@@ -1209,6 +1221,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/events-spans-stats/$",
         OrganizationEventsSpansStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-spans-stats",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/events-root-cause-analysis/$",
+        OrganizationEventsRootCauseAnalysisEndpoint.as_view(),
+        name="sentry-api-0-organization-events-root-cause-analysis",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/events-meta/$",
@@ -1934,6 +1951,11 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/source-map-debug/$",
         SourceMapDebugEndpoint.as_view(),
         name="sentry-api-0-event-source-map-debug",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/actionable-items/$",
+        ActionableItemsEndpoint.as_view(),
+        name="sentry-api-0-event-actionable-items",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$",

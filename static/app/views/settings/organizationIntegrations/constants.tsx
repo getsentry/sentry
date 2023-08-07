@@ -28,6 +28,7 @@ export const POPULARITY_WEIGHT: {
   github: 20,
   jira: 10,
   bitbucket: 10,
+  discord: 10,
   gitlab: 10,
   pagerduty: 10,
   vsts: 10,

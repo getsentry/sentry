@@ -35,7 +35,9 @@ from sentry.event_manager import (
     HashDiscarded,
     _get_event_instance,
     _save_grouphash_and_group,
+    get_event_type,
     has_pending_commit_resolution,
+    materialize_metadata,
 )
 from sentry.eventstore.models import Event
 from sentry.grouping.utils import hash_from_values
@@ -442,6 +444,34 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             event2 = manager.save(self.project.id)
 
         assert event.group_id != event2.group_id
+
+    def test_materialze_metadata_simple(self):
+        manager = EventManager(make_event(transaction="/dogs/are/great/"))
+        event = manager.save(self.project.id)
+
+        event_type = get_event_type(event.data)
+        event_metadata = event_type.get_metadata(event.data)
+
+        assert materialize_metadata(event.data, event_type, event_metadata) == {
+            "type": "default",
+            "culprit": "/dogs/are/great/",
+            "metadata": {"title": "<unlabeled event>"},
+            "title": "<unlabeled event>",
+            "location": None,
+        }
+
+    def test_materialze_metadata_preserves_existing_metadata(self):
+        manager = EventManager(make_event())
+        event = manager.save(self.project.id)
+
+        event.data.setdefault("metadata", {})
+        event.data["metadata"]["dogs"] = "are great"  # should not get clobbered
+
+        event_type = get_event_type(event.data)
+        event_metadata_from_type = event_type.get_metadata(event.data)
+        materialized = materialize_metadata(event.data, event_type, event_metadata_from_type)
+
+        assert materialized["metadata"] == {"title": "<unlabeled event>", "dogs": "are great"}
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolves_group(self, send_robust):
@@ -1736,7 +1766,23 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert event.message == "hello world"
 
-    def test_search_message(self):
+    def test_search_message_simple(self):
+        manager = EventManager(
+            make_event(
+                **{
+                    "message": "test",
+                    "transaction": "sentry.tasks.process",
+                }
+            )
+        )
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        search_message = event.search_message
+        assert "test" in search_message
+        assert "sentry.tasks.process" in search_message
+
+    def test_search_message_prefers_log_entry_message(self):
         manager = EventManager(
             make_event(
                 **{
@@ -1748,7 +1794,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         )
         manager.normalize()
         event = manager.save(self.project.id)
-        assert event.search_message == "hello world sentry.tasks.process"
+
+        search_message = event.search_message
+        assert "test" not in search_message
+        assert "hello world" in search_message
+        assert "sentry.tasks.process" in search_message
 
     def test_stringified_message(self):
         manager = EventManager(make_event(**{"message": 1234}))

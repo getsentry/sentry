@@ -291,6 +291,10 @@ class RpcService(abc.ABC):
                 yield attr
 
     @classmethod
+    def _get_abstract_rpc_methods(cls) -> Iterator[Callable[..., Any]]:
+        return (m for m in cls._get_all_rpc_methods() if getattr(m, "__isabstractmethod__", False))
+
+    @classmethod
     def _has_rpc_methods(cls) -> bool:
         for _ in cls._get_all_rpc_methods():
             return True
@@ -330,6 +334,41 @@ class RpcService(abc.ABC):
             else:
                 model_table[base_method.__name__] = signature
         return model_table
+
+    @classmethod
+    def _get_and_validate_local_implementation(cls) -> RpcService:
+        def get_parameters(method: Callable[..., Any]) -> set[str]:
+            """Get the expected set of parameter names.
+
+            The `inspect.signature` also gives us type annotations (on parameters and
+            the return value) but it's tricky to compare those, because of
+            semantically equivalent annotations represented with unequal type tokens,
+            such as `Optional[int]` versus `int | None`.
+            """
+            sig = inspect.signature(method)
+            param_names = list(sig.parameters.keys())
+            if param_names and param_names[0] == "self":
+                del param_names[0]
+            return set(param_names)
+
+        impl = cls.get_local_implementation()
+        for method_sig in cls._get_abstract_rpc_methods():
+            method_impl = getattr(impl, method_sig.__name__)
+
+            if getattr(method_impl, "__isabstractmethod__", False):
+                raise RpcServiceSetupException(
+                    f"{type(impl).__name__} must provide a concrete implementation of `{method_sig.__name__}`"
+                )
+
+            sig_params = get_parameters(method_sig)
+            impl_params = get_parameters(method_impl)
+            if not sig_params == impl_params:
+                raise RpcServiceSetupException(
+                    f"{type(impl).__name__}.{method_sig.__name__} does not match specified parameters "
+                    f"(expected: {sig_params!r}; actual: {impl_params!r})"
+                )
+
+        return impl
 
     @classmethod
     def _create_remote_implementation(cls) -> RpcService:
@@ -387,8 +426,7 @@ class RpcService(abc.ABC):
 
         overrides = {
             service_method.__name__: create_remote_method(service_method.__name__)
-            for service_method in cls._get_all_rpc_methods()
-            if getattr(service_method, "__isabstractmethod__", False)
+            for service_method in cls._get_abstract_rpc_methods()
         }
         remote_service_class = type(f"{cls.__name__}__RemoteDelegate", (cls,), overrides)
         return cast(RpcService, remote_service_class())
@@ -398,7 +436,7 @@ class RpcService(abc.ABC):
         """Instantiate a base service class for the current mode."""
         constructors = {
             mode: (
-                cls.get_local_implementation
+                cls._get_and_validate_local_implementation
                 if mode == SiloMode.MONOLITH or mode == cls.local_mode
                 else cls._create_remote_implementation
             )
