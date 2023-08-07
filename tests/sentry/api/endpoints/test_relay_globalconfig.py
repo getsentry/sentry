@@ -10,9 +10,9 @@ from sentry.utils import json
 @pytest.fixture
 def call_global_config(client, relay, private_key):
     def inner():
-        path = reverse("sentry-api-0-relay-projectconfigs")
+        path = reverse("sentry-api-0-relay-projectconfigs?version=4")
 
-        raw_json, signature = private_key.pack({"globalConfig": True})
+        raw_json, signature = private_key.pack({"global": True})
 
         resp = client.post(
             path,
@@ -31,7 +31,7 @@ def call_global_config(client, relay, private_key):
 def test_return_global_config(call_global_config):
     result, status_code = call_global_config()
     assert status_code < 400
-    assert result["global_config"] == {
+    assert result["global"] == {
         "measurements": {
             "builtinMeasurements": BUILTIN_MEASUREMENTS,
             "maxCustomMeasurements": CUSTOM_MEASUREMENT_LIMIT,
