@@ -10,7 +10,7 @@ from sentry.utils import json
 @pytest.fixture
 def call_global_config(client, relay, private_key):
     def inner():
-        path = reverse("sentry-api-0-relay-projectconfigs?version=4")
+        path = reverse("sentry-api-0-relay-projectconfigs") + "?version=4"
 
         raw_json, signature = private_key.pack({"global": True})
 
