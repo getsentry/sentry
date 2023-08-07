@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from typing import Mapping, Optional, Sequence, TypedDict
+from typing import Mapping, Optional, TypedDict
 
 from sentry import nodestore
 
@@ -54,9 +54,3 @@ class Span:
         if results:
             return Span.from_dict(results)
         return None
-
-    @classmethod
-    def fetch_multi(cls, ids: Sequence[str], project_id: int) -> Sequence[Optional[Span]]:
-        ids = [cls.build_storage_identifier(id, project_id) for id in ids]
-        results = nodestore.backend.get_multi(ids)
-        return [Span.from_dict(results[id]) if results.get(id) else None for id in ids]
