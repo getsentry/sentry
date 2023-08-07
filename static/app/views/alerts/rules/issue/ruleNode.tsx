@@ -314,8 +314,7 @@ function RuleNode({
 
     if (
       data.id === NOTIFY_EMAIL_ACTION &&
-      data.targetType !== MailActionTargetType.ISSUE_OWNERS &&
-      organization.features.includes('issue-alert-fallback-targeting')
+      data.targetType !== MailActionTargetType.ISSUE_OWNERS
     ) {
       // Hide the fallback options when targeting team or member
       label = 'Send a notification to {targetType}';
@@ -413,8 +412,7 @@ function RuleNode({
 
     if (
       data.id === NOTIFY_EMAIL_ACTION &&
-      data.targetType === MailActionTargetType.ISSUE_OWNERS &&
-      !organization.features.includes('issue-alert-fallback-targeting')
+      data.targetType === MailActionTargetType.ISSUE_OWNERS
     ) {
       return (
         <MarginlessAlert type="warning">

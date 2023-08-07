@@ -39,6 +39,7 @@ const ISSUE_ALERT_DEFAULT_ACTION: Omit<
 > = {
   id: 'sentry.mail.actions.NotifyEmailAction',
   targetType: 'IssueOwners',
+  fallthroughType: 'ActiveMembers',
 };
 
 const METRIC_CONDITION_MAP = {
@@ -231,14 +232,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
               ),
             ]
           : undefined,
-      actions: [
-        {
-          ...ISSUE_ALERT_DEFAULT_ACTION,
-          ...(this.props.organization.features.includes('issue-alert-fallback-targeting')
-            ? {fallthroughType: 'ActiveMembers'}
-            : {}),
-        },
-      ],
+      actions: [ISSUE_ALERT_DEFAULT_ACTION],
       actionMatch: 'all',
       frequency: 5,
     };
