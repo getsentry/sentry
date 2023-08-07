@@ -153,8 +153,9 @@ class OrganizationMemberSerializer(Serializer):
             "inviterName": inviter_name,
         }
 
-        if "groupOrgRoles" in attrs:
-            data["groupOrgRoles"] = attrs.get("groupOrgRoles", [])
+        groupOrgRoles = attrs.get("groupOrgRoles")
+        if groupOrgRoles:
+            data["groupOrgRoles"] = groupOrgRoles
 
         if "externalUsers" in self.expand:
             data["externalUsers"] = attrs.get("externalUsers", [])
