@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from requests import Response
 from requests.exceptions import ConnectionError, Timeout
 from rest_framework import status
 
-from sentry import options
+from sentry import features, options
 from sentry.http import safe_urlopen
+from sentry.integrations.notify_disable import notify_disable
+from sentry.integrations.request_buffer import IntegrationRequestBuffer
+from sentry.models import Organization
 from sentry.models.integrations.sentry_app import track_response_code
+from sentry.models.integrations.utils import get_redis_key, is_response_error, is_response_success
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
@@ -34,6 +38,58 @@ def ignore_unpublished_app_errors(func):
                 return
 
     return wrapper
+
+
+def check_broken(sentryapp: SentryApp, org_id: str):
+    redis_key = get_redis_key(sentryapp, org_id)
+    buffer = IntegrationRequestBuffer(redis_key)
+    if buffer.is_integration_broken():
+        org = Organization.objects.get(id=org_id)
+        if features.has("organizations:disable-sentryapps-on-broken", org):
+            sentryapp._disable()
+            notify_disable(org, sentryapp.slug, redis_key)
+            buffer.clear()
+
+        extra = {
+            "sentryapp_webhook": sentryapp.webhook_url,
+            "sentryapp_slug": sentryapp.slug,
+            "sentryapp_uuid": sentryapp.uuid,
+            "org_id": org_id,
+            "buffer_record": buffer._get_all_from_buffer(),
+        }
+        logger.info(
+            "sentryapp.disabled",
+            extra=extra,
+        )
+
+
+def record_timeout(sentryapp: SentryApp, org_id: str, e: Union[ConnectionError, Timeout]):
+    """
+    Record Unpublished Sentry App timeout or connection error in integration buffer to check if it is broken and should be disabled
+    """
+    if not sentryapp.is_internal:
+        return
+    redis_key = get_redis_key(sentryapp, org_id)
+    if not len(redis_key):
+        return
+    buffer = IntegrationRequestBuffer(redis_key)
+    buffer.record_timeout()
+    check_broken(sentryapp, org_id)
+
+
+def record_response(sentryapp: SentryApp, org_id: str, response: Response):
+    if not sentryapp.is_internal:
+        return
+    redis_key = get_redis_key(sentryapp, org_id)
+    if not len(redis_key):
+        return
+    buffer = IntegrationRequestBuffer(redis_key)
+    if is_response_success(response):
+        buffer.record_success()
+        return
+    if is_response_error(response):
+        buffer.record_error()
+        check_broken(sentryapp, org_id)
 
 
 @ignore_unpublished_app_errors
@@ -82,6 +138,7 @@ def send_and_save_webhook_request(
             url=url,
             headers=app_platform_event.headers,
         )
+        record_timeout(sentry_app, org_id, e)
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
 
@@ -96,6 +153,7 @@ def send_and_save_webhook_request(
         response=response,
         headers=app_platform_event.headers,
     )
+    record_response(sentry_app, org_id, response)
 
     if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
         raise ApiHostError.from_request(response.request)
