@@ -1480,7 +1480,7 @@ EventMetadata = Dict[str, Any]
 
 
 def materialize_metadata(
-    data: Mapping[str, Any], event_type: EventType, event_metadata: Mapping[str, Any]
+    data: Mapping[str, Any], event_type: EventType, event_metadata: dict[str, Any]
 ) -> EventMetadata:
     """Returns the materialized metadata to be merged with group or
     event data.  This currently produces the keys `type`, `culprit`,
@@ -1489,6 +1489,9 @@ def materialize_metadata(
 
     # XXX(markus): Ideally this wouldn't take data or event_type, and instead
     # calculate culprit + type from event_metadata
+
+    # Don't clobber existing metadata
+    event_metadata.update(data.get("metadata", {}))
 
     return {
         "type": event_type.key,
