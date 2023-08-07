@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -456,7 +457,7 @@ describe('OrganizationMembersList', function () {
       teams: [],
     });
 
-    it('disable buttons for no access', function () {
+    it('disable buttons for no access', async function () {
       const org = TestStubs.Organization({
         status: {
           id: 'active',
@@ -475,6 +476,8 @@ describe('OrganizationMembersList', function () {
       render(<OrganizationMembersList {...defaultProps} organization={org} />, {
         context: TestStubs.routerContext([{organization: org}]),
       });
+
+      await act(tick);
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
@@ -588,26 +591,6 @@ describe('OrganizationMembersList', function () {
   });
 
   describe('inviteBanner', function () {
-    it('renders banner with feature flag', function () {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/missing-members/',
-        method: 'GET',
-        body: missingMembers,
-      });
-
-      const org = TestStubs.Organization({
-        features: ['integrations-gh-invite'],
-      });
-
-      render(<OrganizationMembersList {...defaultProps} organization={org} />, {
-        context: TestStubs.routerContext([{organization: org}]),
-      });
-
-      expect(screen.getByTestId('invite-banner')).toBeInTheDocument();
-      expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(5);
-      expect(screen.getByText('See all 5 missing members')).toBeInTheDocument();
-    });
-
     it('invites member from banner', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/missing-members/',
@@ -639,6 +622,8 @@ describe('OrganizationMembersList', function () {
       render(<OrganizationMembersList {...defaultProps} organization={org} />, {
         context: TestStubs.routerContext([{organization: org}]),
       });
+
+      await act(tick);
 
       expect(screen.getByTestId('invite-banner')).toBeInTheDocument();
       expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(5);

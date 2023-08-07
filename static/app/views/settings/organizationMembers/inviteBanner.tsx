@@ -2,6 +2,7 @@ import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -125,44 +126,49 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
   cards.push(<SeeMoreCard key="see-more" missingUsers={users} />);
 
   return (
-    <StyledCard data-test-id="invite-banner">
-      <CardTitleContainer>
-        <CardTitleContent>
-          <CardTitle>{t('Bring your full GitHub team on board in Sentry')}</CardTitle>
-          <Subtitle>
-            {tct('[missingMemberCount] missing members that are active in your GitHub', {
-              missingMemberCount: users.length,
-            })}
-            <Tooltip title="Based on the last 30 days of commit data">
-              <IconInfo size="xs" />
-            </Tooltip>
-          </Subtitle>
-        </CardTitleContent>
-        <ButtonContainer>
-          <Button
-            priority="primary"
-            size="xs"
-            // TODO(cathy): open up invite modal
-            data-test-id="view-all-missing-members"
-          >
-            {t('View All')}
-          </Button>
-          <DropdownMenu
-            items={menuItems}
-            trigger={triggerProps => (
-              <Button
-                {...triggerProps}
-                aria-label={t('Actions')}
-                size="xs"
-                icon={<IconEllipsis direction="down" size="sm" />}
-                data-test-id="banner-edit-dropdown"
-              />
-            )}
-          />
-        </ButtonContainer>
-      </CardTitleContainer>
-      <MemberCardsContainer>{cards}</MemberCardsContainer>
-    </StyledCard>
+    <Feature organization={organization} features={['integrations-gh-invite']}>
+      <StyledCard data-test-id="invite-banner">
+        <CardTitleContainer>
+          <CardTitleContent>
+            <CardTitle>{t('Bring your full GitHub team on board in Sentry')}</CardTitle>
+            <Subtitle>
+              {tct(
+                '[missingMemberCount] missing members that are active in your GitHub',
+                {
+                  missingMemberCount: users.length,
+                }
+              )}
+              <Tooltip title="Based on the last 30 days of commit data">
+                <IconInfo size="xs" />
+              </Tooltip>
+            </Subtitle>
+          </CardTitleContent>
+          <ButtonContainer>
+            <Button
+              priority="primary"
+              size="xs"
+              // TODO(cathy): open up invite modal
+              data-test-id="view-all-missing-members"
+            >
+              {t('View All')}
+            </Button>
+            <DropdownMenu
+              items={menuItems}
+              trigger={triggerProps => (
+                <Button
+                  {...triggerProps}
+                  aria-label={t('Actions')}
+                  size="xs"
+                  icon={<IconEllipsis direction="down" size="sm" />}
+                  data-test-id="banner-edit-dropdown"
+                />
+              )}
+            />
+          </ButtonContainer>
+        </CardTitleContainer>
+        <MemberCardsContainer>{cards}</MemberCardsContainer>
+      </StyledCard>
+    </Feature>
   );
 }
 
