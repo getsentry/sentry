@@ -11,12 +11,15 @@ class TestSlackPresenter:
     @pytest.fixture(autouse=True)
     def setup(self):
         self.slackPresenter = SlackPresenter()
-        self.TEST_SLACK_WEBHOOK_URL = "https://test/"
+        self.TEST_OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL = "https://test/"
 
-    @patch("sentry.runner.commands.presenters.slackpresenter.SLACK_WEBHOOK_URL", "https://test/")
+    @patch(
+        "sentry.runner.commands.presenters.slackpresenter.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL",
+        "https://test/",
+    )
     @responses.activate
     def test_is_slack_enabled(self):
-        responses.add(responses.POST, self.TEST_SLACK_WEBHOOK_URL, status=200)
+        responses.add(responses.POST, self.TEST_OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL, status=200)
         self.slackPresenter.set("option1", "value1")
         self.slackPresenter.set("option2", "value2")
 
