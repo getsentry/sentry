@@ -11,4 +11,6 @@ export enum ReplayColumn {
   OS = 'os',
   REPLAY = 'replay',
   SLOWEST_TRANSACTION = 'slowestTransaction',
+  COUNT_DEAD_CLICKS_NO_HEADER = 'countDeadClicksNoHeader',
+  COUNT_RAGE_CLICKS_NO_HEADER = 'countRageClicksNoHeader',
 }
