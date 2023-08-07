@@ -2,6 +2,7 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
+import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -57,14 +58,19 @@ export function OverviewTimeline({monitorList}: Props) {
 
   return (
     <MonitorListPanel>
-      <StyledResolutionSelector />
       <TimelineWidthTracker ref={elementRef} />
-      <GridLineTimeLabels
-        timeWindow={timeWindow}
-        end={nowRef.current}
-        width={timelineWidth}
-      />
+      <StickyResolutionSelector>
+        <ResolutionSelector />
+      </StickyResolutionSelector>
+      <StickyGridLineTimeLabels>
+        <GridLineTimeLabels
+          timeWindow={timeWindow}
+          end={nowRef.current}
+          width={timelineWidth}
+        />
+      </StickyGridLineTimeLabels>
       <GridLineOverlay
+        stickyCursor
         showCursor={!isLoading}
         timeWindow={timeWindow}
         end={nowRef.current}
@@ -91,10 +97,34 @@ const MonitorListPanel = styled(Panel)`
   grid-template-columns: 350px 135px 1fr;
 `;
 
-const StyledResolutionSelector = styled(ResolutionSelector)`
+const StickyResolutionSelector = styled(Sticky)`
+  z-index: 1;
   padding: ${space(1.5)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
   grid-column: 1/3;
+  background: ${p => p.theme.background};
+  border-top-left-radius: ${p => p.theme.panelBorderRadius};
+
+  &[data-stuck] {
+    border-radius: 0;
+    border-left: 1px solid ${p => p.theme.border};
+    margin-left: -1px;
+  }
+`;
+
+const StickyGridLineTimeLabels = styled(Sticky)`
+  > * {
+    height: 100%;
+  }
+  z-index: 1;
+  background: ${p => p.theme.background};
+  border-top-right-radius: ${p => p.theme.panelBorderRadius};
+
+  &[data-stuck] {
+    border-radius: 0;
+    border-right: 1px solid ${p => p.theme.border};
+    margin-right: -1px;
+  }
 `;
 
 const TimelineWidthTracker = styled('div')`
