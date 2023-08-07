@@ -640,7 +640,7 @@ class Group(Model):
         cached_has_replays = cache.get(_cache_key(self.id))
         if cached_has_replays is not None:
             metrics.incr(
-                "group.has_replays_cached",
+                "group.has_replays.cached",
                 tags={
                     "has_replays": cached_has_replays,
                 },
