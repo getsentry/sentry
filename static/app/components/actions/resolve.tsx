@@ -217,13 +217,10 @@ function ResolveActions({
     ];
 
     const isDisabled = !projectSlug ? disabled : disableDropdown;
-    const hasResolveReleaseSetup = organization.features.includes(
-      'issue-resolve-release-setup'
-    );
 
     return (
       <StyledDropdownMenu
-        itemsHidden={hasResolveReleaseSetup && !hasRelease}
+        itemsHidden={!hasRelease}
         items={items}
         trigger={triggerProps => (
           <DropdownTrigger
@@ -240,13 +237,7 @@ function ResolveActions({
             ? ['next-release', 'current-release', 'another-release']
             : []
         }
-        menuTitle={
-          hasRelease || !hasResolveReleaseSetup ? (
-            t('Resolved In')
-          ) : (
-            <SetupReleasesPrompt />
-          )
-        }
+        menuTitle={hasRelease ? t('Resolved In') : <SetupReleasesPrompt />}
         isDisabled={isDisabled}
       />
     );
