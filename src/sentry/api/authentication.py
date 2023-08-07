@@ -11,7 +11,7 @@ from rest_framework.authentication import (
 )
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
-from sentry_relay import UnpackError
+from sentry_relay.exceptions import UnpackError
 
 from sentry import options
 from sentry.auth.system import SystemToken, is_internal_ip

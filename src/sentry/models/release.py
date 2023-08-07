@@ -14,7 +14,8 @@ from django.db.models.signals import pre_save
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
-from sentry_relay import RelayError, parse_release
+from sentry_relay.exceptions import RelayError
+from sentry_relay.processing import parse_release
 
 from sentry import features
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER

@@ -5,7 +5,7 @@ from unittest.mock import ANY, patch
 
 import pytest
 from freezegun import freeze_time
-from sentry_relay import validate_project_config
+from sentry_relay.processing import validate_project_config
 
 from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.discover.models import TeamKeyTransaction

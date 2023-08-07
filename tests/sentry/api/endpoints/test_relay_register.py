@@ -3,7 +3,7 @@ from uuid import uuid4
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
-from sentry_relay import generate_key_pair
+from sentry_relay.auth import generate_key_pair
 
 from sentry.models import Relay, RelayUsage
 from sentry.testutils.cases import APITestCase

@@ -1,7 +1,18 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+)
 
 from django.http import QueryDict
 from snuba_sdk import Request
@@ -56,6 +67,8 @@ by these fields
 ResultSet = List[Dict[str, Any]]
 QueryCondition = Tuple[str, str, List[Any]]
 
+T = TypeVar("T")
+
 
 class Field(ABC):
     @abstractmethod
@@ -107,9 +120,9 @@ class TimesSeenField(Field):
             return Function("count()", [Column("times_seen")], "times_seen")
 
 
-class Dimension(SimpleGroupBy, ABC):
+class Dimension(SimpleGroupBy, ABC, Generic[T]):
     @abstractmethod
-    def resolve_filter(self, raw_filter: Sequence[str]) -> List[DataCategory]:
+    def resolve_filter(self, raw_filter: Sequence[str]) -> List[T]:
         """
         Based on the input filter, map it back to the clickhouse representation
         """
@@ -123,7 +136,7 @@ class Dimension(SimpleGroupBy, ABC):
         raise NotImplementedError()
 
 
-class CategoryDimension(Dimension):
+class CategoryDimension(Dimension[DataCategory]):
     def resolve_filter(self, raw_filter: Sequence[str]) -> List[DataCategory]:
         resolved_categories = set()
         for category in raw_filter:
@@ -150,7 +163,7 @@ class CategoryDimension(Dimension):
             row["category"] = category.api_name()
 
 
-class OutcomeDimension(Dimension):
+class OutcomeDimension(Dimension[Outcome]):
     def resolve_filter(self, raw_filter: Sequence[str]) -> List[Outcome]:
         def _parse_outcome(outcome: str) -> Outcome:
             try:
@@ -165,7 +178,7 @@ class OutcomeDimension(Dimension):
             row["outcome"] = Outcome(row["outcome"]).api_name()
 
 
-class KeyDimension(Dimension):
+class KeyDimension(Dimension[int]):
     def resolve_filter(self, raw_filter: Sequence[str]) -> List[int]:
         def _parse_value(key_id: str) -> int:
             try:

@@ -3,7 +3,7 @@ from datetime import timezone
 
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
-from sentry_relay import parse_release
+from sentry_relay.processing import parse_release
 
 from sentry.models import Commit, CommitAuthor, Deploy, Organization, Project, Release, User
 from sentry.notifications.types import GroupSubscriptionReason

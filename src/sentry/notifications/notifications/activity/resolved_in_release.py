@@ -3,7 +3,7 @@ from __future__ import annotations
 from html import escape
 from typing import Any, Mapping
 
-from sentry_relay import parse_release
+from sentry_relay.processing import parse_release
 
 from sentry.models import Activity
 from sentry.types.integrations import ExternalProviders

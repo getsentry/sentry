@@ -3,8 +3,12 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-import sentry_relay
 from rest_framework import serializers
+from sentry_relay.processing import (
+    convert_datascrubbing_config,
+    pii_strip_event,
+    validate_pii_config,
+)
 
 from sentry.utils import json, metrics
 from sentry.utils.safe import safe_execute
@@ -82,7 +86,7 @@ def get_all_pii_configs(project):
     if pii_config:
         yield pii_config
 
-    yield sentry_relay.convert_datascrubbing_config(get_datascrubbing_settings(project))
+    yield convert_datascrubbing_config(get_datascrubbing_settings(project))
 
 
 def scrub_data(project, event):
@@ -98,7 +102,7 @@ def scrub_data(project, event):
 
         metrics.timing("datascrubbing.config.rules.size", total_rules)
 
-        event = sentry_relay.pii_strip_event(config, event)
+        event = pii_strip_event(config, event)
 
     return event
 
@@ -143,7 +147,7 @@ def validate_pii_config_update(organization, value):
         return value
 
     try:
-        sentry_relay.validate_pii_config(value)
+        validate_pii_config(value)
     except ValueError as e:
         raise serializers.ValidationError(str(e))
 

@@ -4,8 +4,8 @@ from datetime import datetime
 from functools import reduce
 from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
 
-from sentry_relay import parse_release as parse_release_relay
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from sentry_relay.processing import parse_release as parse_release_relay
 
 from sentry.api.event_search import (
     AggregateFilter,
