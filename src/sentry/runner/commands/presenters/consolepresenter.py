@@ -30,7 +30,7 @@ class ConsolePresenter(OptionsPresenter):
         self.updated_options: List[Tuple[str, str, str]] = []
         self.set_options: List[Tuple[str, str]] = []
         self.unset_options: List[str] = []
-        self.error_options: List[Tuple[str, str]] = []
+        self.not_writable_options: List[Tuple[str, str]] = []
         self.unregistered_options: List[str] = []
         self.invalid_type_options: List[Tuple[str, str, str]] = []
 
@@ -61,7 +61,7 @@ class ConsolePresenter(OptionsPresenter):
         for key in self.unset_options:
             click.echo(self.UNSET_MSG % key)
 
-        for key, reason in self.error_options:
+        for key, reason in self.not_writable_options:
             click.echo(self.ERROR_MSG % (key, reason))
 
         for key in self.unregistered_options:
@@ -87,8 +87,8 @@ class ConsolePresenter(OptionsPresenter):
     def drift(self, key: str, db_value: str) -> None:
         self.drifted_options.append((key, db_value))
 
-    def error(self, key: str, not_writable_reason: str) -> None:
-        self.error_options.append((key, not_writable_reason))
+    def not_writable(self, key: str, not_writable_reason: str) -> None:
+        self.not_writable_options.append((key, not_writable_reason))
 
     def unregistered(self, key: str) -> None:
         self.unregistered_options.append(key)

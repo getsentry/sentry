@@ -35,8 +35,8 @@ class TestSlackPresenter:
         self.slackPresenter.drift("option9", "db_value9")
         self.slackPresenter.drift("option10", "db_value10")
 
-        self.slackPresenter.error("option11", "error_reason11")
-        self.slackPresenter.error("option12", "error_reason12")
+        self.slackPresenter.not_writable("option11", "error_reason11")
+        self.slackPresenter.not_writable("option12", "error_reason12")
 
         self.slackPresenter.unregistered("option13")
         self.slackPresenter.unregistered("option14")
@@ -60,7 +60,7 @@ class TestSlackPresenter:
                 {"option_name": "option2", "option_value": "value2"},
             ],
             "unset_options": ["option3", "option4"],
-            "error_options": [
+            "not_writable_options": [
                 {"option_name": "option11", "error_msg": "error_reason11"},
                 {"option_name": "option12", "error_msg": "error_reason12"},
             ],

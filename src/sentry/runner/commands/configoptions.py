@@ -134,7 +134,7 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
             not_writable_reason = options.can_update(key, value, options.UpdateChannel.AUTOMATOR)
 
             if not_writable_reason and not_writable_reason != options.NotWritableReason.DRIFTED:
-                presenter_delegator.error(key, not_writable_reason.value)
+                presenter_delegator.not_writable(key, not_writable_reason.value)
                 invalid_options.add(key)
             elif not_writable_reason == options.NotWritableReason.DRIFTED:
                 drifted_options.add(key)

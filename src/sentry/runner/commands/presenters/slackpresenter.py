@@ -23,7 +23,7 @@ class SlackPresenter(OptionsPresenter):
         self.updated_options: List[Tuple[str, str, str]] = []
         self.set_options: List[Tuple[str, str]] = []
         self.unset_options: List[str] = []
-        self.error_options: List[Tuple[str, str]] = []
+        self.not_writable_options: List[Tuple[str, str]] = []
         self.unregistered_options: List[str] = []
         self.invalid_type_options: List[Tuple[str, str, str]] = []
 
@@ -38,7 +38,7 @@ class SlackPresenter(OptionsPresenter):
                 "updated_options": [],
                 "set_options": [],
                 "unset_options": [],
-                "error_options": [],
+                "not_writable": [],
                 "unregistered_options": [],
                 "invalid_type_options": [],
             }
@@ -71,8 +71,8 @@ class SlackPresenter(OptionsPresenter):
                 for key, value in self.set_options
             ],
             "unset_options": self.unset_options,
-            "error_options": [
-                {"option_name": key, "error_msg": msg} for key, msg in self.error_options
+            "not_writable_options": [
+                {"option_name": key, "error_msg": msg} for key, msg in self.not_writable_options
             ],
             "unregistered_options": [key for key in self.unregistered_options],
             "invalid_type_options": [
@@ -104,8 +104,8 @@ class SlackPresenter(OptionsPresenter):
     def drift(self, key: str, db_value: str) -> None:
         self.drifted_options.append((key, db_value))
 
-    def error(self, key: str, not_writable_reason: str) -> None:
-        self.error_options.append((key, not_writable_reason))
+    def not_writable(self, key: str, not_writable_reason: str) -> None:
+        self.not_writable_options.append((key, not_writable_reason))
 
     def unregistered(self, key: str) -> None:
         self.unregistered_options.append(key)
