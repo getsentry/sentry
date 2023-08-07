@@ -40,6 +40,7 @@ function FocusTabs({className}: Props) {
       {Object.entries(getReplayTabs()).map(([tab, label]) =>
         label ? (
           <ListLink
+            data-test-id={`replay-details-${tab}-btn`}
             key={tab}
             isActive={() => tab === activeTab}
             to={`${pathname}?${queryString.stringify({...query, t_main: tab})}`}
