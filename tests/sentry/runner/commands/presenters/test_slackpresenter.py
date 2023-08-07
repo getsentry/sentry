@@ -41,8 +41,8 @@ class TestSlackPresenter:
         self.slackPresenter.unregistered("option13")
         self.slackPresenter.unregistered("option14")
 
-        self.slackPresenter.invalid_type("option15", "got_type15", "expected_type15")
-        self.slackPresenter.invalid_type("option16", "got_type16", "expected_type16")
+        self.slackPresenter.invalid_type("option15", str, int)
+        self.slackPresenter.invalid_type("option16", float, int)
 
         self.slackPresenter.flush()
 
@@ -68,13 +68,13 @@ class TestSlackPresenter:
             "invalid_type_options": [
                 {
                     "option_name": "option15",
-                    "got_type": "got_type15",
-                    "expected_type": "expected_type15",
+                    "got_type": "<class 'str'>",
+                    "expected_type": "<class 'int'>",
                 },
                 {
                     "option_name": "option16",
-                    "got_type": "got_type16",
-                    "expected_type": "expected_type16",
+                    "got_type": "<class 'float'>",
+                    "expected_type": "<class 'int'>",
                 },
             ],
         }

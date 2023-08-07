@@ -25,13 +25,12 @@ class SlackPresenter(OptionsPresenter):
         self.unset_options: List[str] = []
         self.not_writable_options: List[Tuple[str, str]] = []
         self.unregistered_options: List[str] = []
-        self.invalid_type_options: List[Tuple[str, str, str]] = []
+        self.invalid_type_options: List[Tuple[str, type, type]] = []
 
     @staticmethod
     def is_slack_enabled():
         if not OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
             return False
-
         try:
             test_payload: dict = {
                 "drifted_options": [],
@@ -47,10 +46,13 @@ class SlackPresenter(OptionsPresenter):
             if response.status_code == 200:
                 return True
 
-            return False
-
+            # Retry the call once to ensure reliability
+            response = requests.post(OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL, json=test_payload)
+            if response.status_code == 200:
+                return True
+            raise
         except Exception:
-            return False
+            raise
 
     def flush(self) -> None:
         json_data = {
@@ -76,7 +78,7 @@ class SlackPresenter(OptionsPresenter):
             ],
             "unregistered_options": [key for key in self.unregistered_options],
             "invalid_type_options": [
-                {"option_name": key, "got_type": got_type, "expected_type": expected_type}
+                {"option_name": key, "got_type": str(got_type), "expected_type": str(expected_type)}
                 for key, got_type, expected_type in self.invalid_type_options
             ],
         }

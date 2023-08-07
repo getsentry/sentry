@@ -167,6 +167,7 @@ class ConfigOptionsTest(CliTestCase):
                 ConsolePresenter.SET_MSG % ("int_option", 40),
                 ConsolePresenter.SET_MSG % ("map_option", {"a": 1, "b": 2}),
                 ConsolePresenter.SET_MSG % ("list_option", [1, 2]),
+                ConsolePresenter.UNSET_MSG % "to_unset_option",
             ]
         )
 
