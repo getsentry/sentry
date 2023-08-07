@@ -111,7 +111,7 @@ class MonitorConsumerTest(TestCase):
 
         # Process another check-in to verify we set an expected time for the next check-in
         expected_time = monitor_environment.next_checkin
-        self.send_message(monitor.slug)
+        self.send_checkin(monitor.slug)
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.expected_time == monitor_environment.next_checkin
         assert checkin.trace_id.hex == self.trace_id
@@ -137,7 +137,7 @@ class MonitorConsumerTest(TestCase):
 
         # Process another check-in to verify we set an expected time for the next check-in
         expected_time = monitor_environment.next_checkin
-        self.send_message(monitor.slug)
+        self.send_checkin(monitor.slug)
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         # the expected time should not include the margin of 5 minutes
         assert checkin.expected_time == monitor_environment.next_checkin
