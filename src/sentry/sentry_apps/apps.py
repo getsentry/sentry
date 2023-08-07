@@ -7,9 +7,9 @@ from typing import Any, Iterable, List, Mapping, Set
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from django.http.request import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
-from rest_framework.request import Request
 from sentry_sdk.api import push_scope
 
 from sentry import analytics, audit_log
@@ -273,7 +273,7 @@ class SentryAppCreator:
                 not self.verify_install
             ), "Internal apps should not require installation verification"
 
-    def run(self, *, user: User, request: Request | None = None) -> SentryApp:
+    def run(self, *, user: User, request: HttpRequest | None = None) -> SentryApp:
         with transaction.atomic(router.db_for_write(User)), in_test_hide_transaction_boundary():
             slug = self._generate_and_validate_slug()
             proxy = self._create_proxy_user(slug=slug)
@@ -365,7 +365,9 @@ class SentryAppCreator:
                 scope.set_tag("sentry_app", sentry_app.slug)
                 sentry_sdk.capture_message("IntegrityError while creating IntegrationFeature")
 
-    def _install(self, *, slug: str, user: User, request: Request | None) -> SentryAppInstallation:
+    def _install(
+        self, *, slug: str, user: User, request: HttpRequest | None
+    ) -> SentryAppInstallation:
         return SentryAppInstallationCreator(
             organization_id=self.organization_id,
             slug=slug,
@@ -373,14 +375,14 @@ class SentryAppCreator:
         ).run(user=user, request=request)
 
     def _create_access_token(
-        self, user: User, install: SentryAppInstallation, request: Request
+        self, user: User, install: SentryAppInstallation, request: HttpRequest
     ) -> None:
         install.api_token = SentryAppInstallationTokenCreator(sentry_app_installation=install).run(
             request=request, user=user
         )
         install.save()
 
-    def audit(self, request: Request | None, sentry_app: SentryApp) -> None:
+    def audit(self, request: HttpRequest | None, sentry_app: SentryApp) -> None:
         from sentry.utils.audit import create_audit_entry
 
         if request:

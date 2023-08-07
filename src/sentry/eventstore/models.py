@@ -6,7 +6,17 @@ import string
 from copy import deepcopy
 from datetime import datetime, timezone
 from hashlib import md5
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Tuple, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generator,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    cast,
+)
 
 import sentry_sdk
 from dateutil.parser import parse as parse_date
@@ -671,7 +681,7 @@ class Event(BaseEvent):
         self._groups_cache = values
         self._group_ids = [group.id for group in values] if values else None
 
-    def build_group_events(self):
+    def build_group_events(self) -> Generator[GroupEvent, None, None]:
         """
         Yields a GroupEvent for each Group associated with this Event.
         """

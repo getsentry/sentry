@@ -762,7 +762,7 @@ def _do_save_event(
 
 
 def time_synthetic_monitoring_event(
-    data: Event, project_id: int, start_time: Optional[int]
+    data: Event, project_id: int, start_time: Optional[float]
 ) -> bool:
     """
     For special events produced by the recurring synthetic monitoring
