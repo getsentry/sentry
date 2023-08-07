@@ -10,14 +10,13 @@ from arroyo.types import Commit, Message, Partition, Topic
 from confluent_kafka import Producer
 
 from sentry.spans.span import Span
-from sentry.utils import json, kafka_config
+from sentry.utils import kafka_config
 
 
 def process_message(message: Message[KafkaPayload]) -> None:
     payload = msgpack.unpackb(message.payload.value)
-    span_dict = json.loads(payload["span"])
-    span_dict["project_id"] = payload["project_id"]
-    Span.from_dict(span_dict).save()
+    payload["span"]["project_id"] = payload["project_id"]
+    Span.from_dict(payload).save()
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
