@@ -337,6 +337,9 @@ from .endpoints.organization_metrics import (
     OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
 )
+from .endpoints.organization_metrics_estimation_stats import (
+    OrganizationMetricsEstimationStatsEndpoint,
+)
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
@@ -1167,6 +1170,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/events-stats/$",
         OrganizationEventsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-stats",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/metrics-estimation-stats/$",
+        OrganizationMetricsEstimationStatsEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-estimation-stats",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/events-facets/$",
