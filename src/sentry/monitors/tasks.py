@@ -56,7 +56,7 @@ def check_missing(current_datetime=None):
 
     qs = (
         MonitorEnvironment.objects.filter(
-            monitor__type__in=[MonitorType.CRON_JOB], next_checkin__lt=current_datetime
+            monitor__type__in=[MonitorType.CRON_JOB], next_checkin_latest__lt=current_datetime
         )
         .exclude(
             status__in=[
