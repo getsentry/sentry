@@ -1,7 +1,5 @@
 import type {Duration} from 'moment';
 
-import {Organization} from 'sentry/types';
-
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
 export type ReplayRecord = {
@@ -111,45 +109,25 @@ export type ReplayListLocationQuery = {
 };
 
 // Sync with ReplayListRecord above
-export function getReplayListFields(organization: Organization) {
-  const hasDeadRageCols = organization.features.includes(
-    'replay-rage-click-dead-click-columns'
-  );
-  return hasDeadRageCols
-    ? [
-        'activity',
-        'browser.name',
-        'browser.version',
-        'count_dead_clicks',
-        'count_errors',
-        'count_rage_clicks',
-        'duration',
-        'finished_at',
-        'id',
-        'is_archived',
-        'os.name',
-        'os.version',
-        'project_id',
-        'started_at',
-        'urls',
-        'user',
-      ]
-    : [
-        'activity',
-        'browser.name',
-        'browser.version',
-        'count_errors',
-        'duration',
-        'finished_at',
-        'id',
-        'is_archived',
-        'os.name',
-        'os.version',
-        'project_id',
-        'started_at',
-        'urls',
-        'user',
-      ];
+export function getReplayListFields() {
+  return [
+    'activity',
+    'browser.name',
+    'browser.version',
+    'count_dead_clicks',
+    'count_errors',
+    'count_rage_clicks',
+    'duration',
+    'finished_at',
+    'id',
+    'is_archived',
+    'os.name',
+    'os.version',
+    'project_id',
+    'started_at',
+    'urls',
+    'user',
+  ];
 }
 
 // Sync with REPLAY_LIST_FIELDS below
