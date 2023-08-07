@@ -173,6 +173,17 @@ export interface TeamMember extends Member {
 }
 
 /**
+ * Users that exist in CommitAuthors but are not members of the organization.
+ * These users commit to repos installed for the organization.
+ */
+export interface MissingMember {
+  commitCount: number;
+  email: string;
+  // The user's ID in the repository provider (e.g. Github username)
+  externalId: string;
+}
+
+/**
  * Minimal organization shape used on shared issue views.
  */
 export type SharedViewOrganization = {

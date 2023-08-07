@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import * as useMedia from 'sentry/utils/useMedia';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
 
@@ -43,6 +44,21 @@ describe('GroupEventCarousel', () => {
         'issue-details-most-helpful-event',
         'issue-details-most-helpful-event-ui',
       ],
+    });
+    const recommendedUser = TestStubs.User({
+      options: {
+        defaultIssueEvent: 'recommended',
+      },
+    });
+    const latestUser = TestStubs.User({
+      options: {
+        defaultIssueEvent: 'latest',
+      },
+    });
+    const oldestUser = TestStubs.User({
+      options: {
+        defaultIssueEvent: 'oldest',
+      },
     });
 
     it('can navigate to the oldest event', async () => {
@@ -104,6 +120,39 @@ describe('GroupEventCarousel', () => {
       });
 
       expect(await screen.getByRole('button', {name: 'Recommended'})).toBeDisabled();
+    });
+
+    it('if user default is recommended, it will show it as default', async () => {
+      ConfigStore.loadInitialData(TestStubs.Config({user: recommendedUser}));
+      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+
+      render(<GroupEventCarousel {...singleEventProps} />, {
+        organization: orgWithRecommendedEvent,
+      });
+
+      expect(await screen.getByText('Recommended')).toBeInTheDocument();
+    });
+
+    it('if user default is latest, it will show it as default', async () => {
+      ConfigStore.loadInitialData(TestStubs.Config({user: latestUser}));
+      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+
+      render(<GroupEventCarousel {...singleEventProps} />, {
+        organization: orgWithRecommendedEvent,
+      });
+
+      expect(await screen.getByText('Latest')).toBeInTheDocument();
+    });
+
+    it('if user default is oldest, it will show it as default', async () => {
+      ConfigStore.loadInitialData(TestStubs.Config({user: oldestUser}));
+      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+
+      render(<GroupEventCarousel {...singleEventProps} />, {
+        organization: orgWithRecommendedEvent,
+      });
+
+      expect(await screen.getByText('Oldest')).toBeInTheDocument();
     });
   });
 

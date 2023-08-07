@@ -97,10 +97,6 @@ class Webhook:
             )
 
             if not repos.exists():
-                logger.info(
-                    "github.auto-repo-linking", extra={"organization_ids": list(orgs.keys())}
-                )
-
                 provider = get_integration_repository_provider(integration)
 
                 config = {
@@ -112,24 +108,12 @@ class Webhook:
                 for org in orgs.values():
                     rpc_org = serialize_rpc_organization(org)
 
-                    if features.has("organizations:auto-repo-linking", rpc_org):
-                        logger.info(
-                            "github.auto-repo-linking.create_repository",
-                            extra={"organization_id": rpc_org.id},
-                        )
+                    if features.has("organizations:integrations-auto-repo-linking", org):
                         try:
                             provider.create_repository(repo_config=config, organization=rpc_org)
                         except RepoExistsError:
-                            logger.info(
-                                "github.auto-repo-linking.repo_exists",
-                                extra={"organization_id": rpc_org.id},
-                            )
                             metrics.incr("sentry.integration_repo_provider.repo_exists")
                             continue
-                        logger.info(
-                            "github.auto-repo-linking.create_repository",
-                            extra={"organization_id": rpc_org.id},
-                        )
                         metrics.incr("github.webhook.create_repository")
 
                 repos = repos.all()
