@@ -46,13 +46,16 @@ class MonitorConsumerTest(TestCase):
             **kwargs,
         )
 
-    def send_message(
+    def send_checkin(
         self,
         monitor_slug: str,
         guid: Optional[str] = None,
+        ts: Optional[datetime] = None,
         **overrides: Any,
     ) -> None:
-        now = datetime.now()
+        if ts is None:
+            ts = datetime.now()
+
         self.guid = uuid.uuid4().hex if not guid else guid
         self.trace_id = uuid.uuid4().hex
 
@@ -67,7 +70,7 @@ class MonitorConsumerTest(TestCase):
         payload.update(overrides)
 
         wrapper = {
-            "start_time": now.timestamp(),
+            "start_time": ts.timestamp(),
             "project_id": self.project.id,
             "payload": json.dumps(payload),
             "sdk": "test/1.0",
@@ -81,7 +84,7 @@ class MonitorConsumerTest(TestCase):
                     KafkaPayload(b"fake-key", msgpack.packb(wrapper), []),
                     partition,
                     1,
-                    datetime.now(),
+                    ts,
                 )
             )
         )
@@ -89,7 +92,7 @@ class MonitorConsumerTest(TestCase):
     def test_payload(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
 
-        self.send_message(monitor.slug)
+        self.send_checkin(monitor.slug)
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
@@ -108,7 +111,7 @@ class MonitorConsumerTest(TestCase):
 
         # Process another check-in to verify we set an expected time for the next check-in
         expected_time = monitor_environment.next_checkin
-        self.send_message(monitor.slug)
+        self.send_checkin(monitor.slug)
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         # the expected time should not include the margin of 5 minutes
         assert checkin.expected_time == expected_time - timedelta(minutes=5)
@@ -116,7 +119,7 @@ class MonitorConsumerTest(TestCase):
 
     def test_passing(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
-        self.send_message(monitor.slug)
+        self.send_checkin(monitor.slug)
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
@@ -135,14 +138,14 @@ class MonitorConsumerTest(TestCase):
 
         # Process another check-in to verify we set an expected time for the next check-in
         expected_time = monitor_environment.next_checkin
-        self.send_message(monitor.slug)
+        self.send_checkin(monitor.slug)
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         # the expected time should not include the margin of 5 minutes
         assert checkin.expected_time == expected_time - timedelta(minutes=5)
 
     def test_failing(self):
         monitor = self._create_monitor(slug="my-monitor")
-        self.send_message(monitor.slug, status="error")
+        self.send_checkin(monitor.slug, status="error")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.ERROR
@@ -160,7 +163,7 @@ class MonitorConsumerTest(TestCase):
 
     def test_disabled(self):
         monitor = self._create_monitor(status=ObjectStatus.DISABLED)
-        self.send_message(monitor.slug, status="error")
+        self.send_checkin(monitor.slug, status="error")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.ERROR
@@ -186,14 +189,14 @@ class MonitorConsumerTest(TestCase):
         lock = locks.get(f"checkin-creation:{uuid.UUID(guid)}", duration=2, name="checkin_creation")
         lock.acquire()
 
-        self.send_message(monitor.slug, guid=guid)
+        self.send_checkin(monitor.slug, guid=guid)
 
         # Lock should prevent creation of new check-in
         assert len(MonitorCheckIn.objects.filter(monitor=monitor)) == 0
 
     def test_check_in_timeout_at(self):
         monitor = self._create_monitor(slug="my-monitor")
-        self.send_message(monitor.slug, status="in_progress")
+        self.send_checkin(monitor.slug, status="in_progress")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         timeout_at = checkin.date_added.replace(second=0, microsecond=0) + timedelta(
@@ -201,13 +204,13 @@ class MonitorConsumerTest(TestCase):
         )
         assert checkin.timeout_at == timeout_at
 
-        self.send_message(monitor.slug, guid=self.guid)
+        self.send_checkin(monitor.slug, guid=self.guid)
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
         assert checkin.timeout_at is None
 
         new_guid = uuid.uuid4().hex
-        self.send_message(
+        self.send_checkin(
             "my-other-monitor",
             guid=new_guid,
             status="in_progress",
@@ -224,8 +227,8 @@ class MonitorConsumerTest(TestCase):
 
     def test_check_in_update(self):
         monitor = self._create_monitor(slug="my-monitor")
-        self.send_message(monitor.slug, status="in_progress")
-        self.send_message(monitor.slug, guid=self.guid)
+        self.send_checkin(monitor.slug, status="in_progress")
+        self.send_checkin(monitor.slug, guid=self.guid)
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.duration is not None
@@ -234,11 +237,11 @@ class MonitorConsumerTest(TestCase):
         monitor = self._create_monitor(slug="my-monitor")
         other_monitor = self._create_monitor(slug="other-monitor")
 
-        self.send_message(monitor.slug, status="in_progress")
-        self.send_message(
+        self.send_checkin(monitor.slug, status="in_progress")
+        self.send_checkin(
             monitor.slug, guid=self.guid, status="done", enviroment="other-environment"
         )
-        self.send_message(other_monitor.slug, guid=self.guid, status="done")
+        self.send_checkin(other_monitor.slug, guid=self.guid, status="done")
 
         # Assert check-in was not modified
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
@@ -246,21 +249,21 @@ class MonitorConsumerTest(TestCase):
 
     def test_check_in_update_terminal(self):
         monitor = self._create_monitor(slug="my-monitor")
-        self.send_message(monitor.slug, duration=10.0)
-        self.send_message(monitor.slug, guid=self.guid, status="in_progress")
+        self.send_checkin(monitor.slug, duration=10.0)
+        self.send_checkin(monitor.slug, guid=self.guid, status="in_progress")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.duration == int(10.0 * 1000)
 
-        self.send_message(monitor.slug, duration=20.0, status="error")
-        self.send_message(monitor.slug, guid=self.guid, status="in_progress")
+        self.send_checkin(monitor.slug, duration=20.0, status="error")
+        self.send_checkin(monitor.slug, guid=self.guid, status="in_progress")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.duration == int(20.0 * 1000)
 
     def test_monitor_environment(self):
         monitor = self._create_monitor(slug="my-monitor")
-        self.send_message(monitor.slug, environment="jungle")
+        self.send_checkin(monitor.slug, environment="jungle")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
@@ -278,7 +281,7 @@ class MonitorConsumerTest(TestCase):
         )
 
     def test_monitor_create(self):
-        self.send_message(
+        self.send_checkin(
             "my-new-monitor",
             monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
         )
@@ -306,7 +309,7 @@ class MonitorConsumerTest(TestCase):
 
     def test_monitor_update(self):
         monitor = self._create_monitor(slug="my-monitor")
-        self.send_message(
+        self.send_checkin(
             "my-monitor",
             monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
         )
@@ -337,7 +340,7 @@ class MonitorConsumerTest(TestCase):
 
     def test_check_in_empty_id(self):
         monitor = self._create_monitor(slug="my-monitor")
-        self.send_message(
+        self.send_checkin(
             "my-monitor",
             guid=str(uuid.UUID(int=0)),
         )
@@ -348,7 +351,7 @@ class MonitorConsumerTest(TestCase):
 
     def test_check_in_empty_id_update(self):
         monitor = self._create_monitor(slug="my-monitor")
-        self.send_message(
+        self.send_checkin(
             "my-monitor",
             status="in_progress",
             guid=str(uuid.UUID(int=0)),
@@ -361,9 +364,9 @@ class MonitorConsumerTest(TestCase):
         # Send an event to a different monitor environment, tests that when we
         # use the empty UUID "latest" we properly scope to the latest of the
         # same monitor environment
-        self.send_message("my-monitor", status="in_progress", environment="dev")
+        self.send_checkin("my-monitor", status="in_progress", environment="dev")
 
-        self.send_message(
+        self.send_checkin(
             "my-monitor",
             status="ok",
             guid=str(uuid.UUID(int=0)),
@@ -378,35 +381,48 @@ class MonitorConsumerTest(TestCase):
 
         with mock.patch("sentry.monitors.consumers.monitor_consumer.CHECKIN_QUOTA_LIMIT", 1):
             # Try to ingest two the second will be rate limited
-            self.send_message("my-monitor")
-            self.send_message("my-monitor")
+            self.send_checkin("my-monitor")
+            self.send_checkin("my-monitor")
 
             checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
             assert len(checkins) == 1
 
             # Same monitor, diff environments
-            self.send_message("my-monitor", environment="dev")
+            self.send_checkin("my-monitor", environment="dev")
 
             checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
             assert len(checkins) == 2
+
+    def test_invalid_guid_environment_match(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug, status="in_progress")
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.monitor_environment.environment.name == "production"
+
+        self.send_checkin(monitor.slug, guid=self.guid, status="ok", environment="test")
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.IN_PROGRESS
+        assert checkin.monitor_environment.environment.name != "test"
 
     def test_invalid_duration(self):
         monitor = self._create_monitor(slug="my-monitor")
 
         # Test invalid explicit durations
-        self.send_message("my-monitor", status="in_progress")
+        self.send_checkin("my-monitor", status="in_progress")
 
         # Invalid check-in updates
-        self.send_message("my-monitor", guid=self.guid, duration=-(1.0 / 1000))
-        self.send_message(
+        self.send_checkin("my-monitor", guid=self.guid, duration=-(1.0 / 1000))
+        self.send_checkin(
             "my-monitor",
             guid=self.guid,
             duration=((BoundedPositiveIntegerField.MAX_VALUE + 1.0) / 1000),
         )
 
         # Invalid check-in creations
-        self.send_message("my-monitor", duration=-(1.0 / 1000))
-        self.send_message(
+        self.send_checkin("my-monitor", duration=-(1.0 / 1000))
+        self.send_checkin(
             "my-monitor", duration=(BoundedPositiveIntegerField.MAX_VALUE + 1.0) / 1000
         )
 
@@ -424,14 +440,14 @@ class MonitorConsumerTest(TestCase):
             date_added=monitor.date_added - timedelta(weeks=52),
         )
 
-        self.send_message("my-monitor", guid=old_checkin.guid)
+        self.send_checkin("my-monitor", guid=old_checkin.guid)
 
         checkin = MonitorCheckIn.objects.get(guid=old_checkin.guid)
         assert checkin.status == CheckInStatus.IN_PROGRESS
         assert checkin.duration is None
 
     def test_monitor_upsert(self):
-        self.send_message(
+        self.send_checkin(
             "my-monitor",
             monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
             environment="my-environment",
@@ -449,7 +465,7 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment is not None
 
     def test_monitor_upsert_invalid_slug(self):
-        self.send_message(
+        self.send_checkin(
             "some/slug@with-weird|stuff",
             monitor_config={"schedule": {"type": "crontab", "value": "0 * * * *"}},
         )
@@ -461,7 +477,7 @@ class MonitorConsumerTest(TestCase):
     def test_monitor_upsert_temp_dual_read_invalid_slug(self):
         monitor = self._create_monitor(slug="my/monitor/invalid-slug")
 
-        self.send_message(
+        self.send_checkin(
             "my/monitor/invalid-slug",
             monitor_config={"schedule": {"type": "crontab", "value": "0 * * * *"}},
         )
@@ -471,7 +487,7 @@ class MonitorConsumerTest(TestCase):
         assert checkin.monitor_id == monitor.id
 
     def test_monitor_invalid_config(self):
-        self.send_message(
+        self.send_checkin(
             "my-invalid-monitor",
             monitor_config={"schedule": {"type": "crontab", "value": "13 * * * * *"}},
             environment="my-environment",
@@ -482,7 +498,7 @@ class MonitorConsumerTest(TestCase):
     @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_limits(self):
         for i in range(settings.MAX_MONITORS_PER_ORG + 2):
-            self.send_message(
+            self.send_checkin(
                 f"my-monitor-{i}",
                 monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
             )
@@ -493,7 +509,7 @@ class MonitorConsumerTest(TestCase):
     @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=2)
     def test_monitor_environment_limits(self):
         for i in range(settings.MAX_ENVIRONMENTS_PER_MONITOR + 2):
-            self.send_message(
+            self.send_checkin(
                 "my-monitor",
                 monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
                 environment=f"my-environment-{i}",
@@ -508,7 +524,7 @@ class MonitorConsumerTest(TestCase):
     def test_monitor_environment_validation(self):
         invalid_name = "x" * 65
 
-        self.send_message(
+        self.send_checkin(
             "my-monitor",
             monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
             environment=f"my-environment-{invalid_name}",
@@ -528,9 +544,41 @@ class MonitorConsumerTest(TestCase):
         )
         options.set("crons.organization.disable-check-in", opt_val)
 
-        self.send_message(monitor.slug)
+        self.send_checkin(monitor.slug)
 
         opt_val = killswitches.validate_user_input("crons.organization.disable-check-in", [])
         options.set("crons.organization.disable-check-in", opt_val)
 
         assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
+
+    @override_settings(SENTRY_MONITORS_HIGH_VOLUME_MODE=True)
+    @mock.patch("sentry.monitors.consumers.monitor_consumer._dispatch_tasks")
+    @mock.patch("sentry_sdk.capture_message")
+    def test_high_volume_task_trigger(self, capture_message, dispatch_tasks):
+        monitor = self._create_monitor(slug="my-monitor")
+
+        assert dispatch_tasks.call_count == 0
+
+        now = datetime.now().replace(second=0, microsecond=0)
+
+        # First checkin triggers tasks
+        self.send_checkin(monitor.slug, ts=now)
+        assert dispatch_tasks.call_count == 1
+
+        # 5 seconds later does NOT trigger the task
+        self.send_checkin(monitor.slug, ts=now + timedelta(seconds=5))
+        assert dispatch_tasks.call_count == 1
+
+        # a minute later DOES trigger the task
+        self.send_checkin(monitor.slug, ts=now + timedelta(minutes=1))
+        assert dispatch_tasks.call_count == 2
+
+        # Same time does NOT trigger the task
+        self.send_checkin(monitor.slug, ts=now + timedelta(minutes=1))
+        assert dispatch_tasks.call_count == 2
+
+        # A skipped minute trigges the task AND captures an error
+        assert capture_message.call_count == 0
+        self.send_checkin(monitor.slug, ts=now + timedelta(minutes=3, seconds=5))
+        assert dispatch_tasks.call_count == 3
+        capture_message.assert_called_with("Monitor task dispatch minute skipped")
