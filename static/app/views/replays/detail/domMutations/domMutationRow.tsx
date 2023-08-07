@@ -95,40 +95,6 @@ const MutationListItem = styled('div')`
   /* Overridden in TabItemContainer, depending on *CurrentTime and *HoverTime classes */
   border-top: 1px solid transparent;
   border-bottom: 1px solid transparent;
-
-  &:hover {
-    background-color: ${p => p.theme.hover};
-  }
-
-  /*
-  Draw a vertical line behind the breadcrumb icon.
-  The line connects each row together, but is truncated for the first and last items.
-  */
-  position: relative;
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    /* $padding + $half_icon_width - $space_for_the_line */
-    left: calc(${space(1.5)} + (24px / 2) - 1px);
-    width: 1px;
-    height: 100%;
-    background: ${p => p.theme.gray200};
-  }
-
-  &:first-of-type::after {
-    top: ${space(1)};
-    bottom: 0;
-  }
-
-  &:last-of-type::after {
-    top: 0;
-    height: ${space(1)};
-  }
-
-  &:only-of-type::after {
-    height: 0;
-  }
 `;
 
 const List = styled('div')`
