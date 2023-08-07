@@ -5,9 +5,9 @@ from typing import Callable
 from django.conf import settings
 from django.contrib.auth import logout
 from django.http import HttpResponseRedirect
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.urls import resolve, reverse
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.api.base import resolve_region
 from sentry.api.utils import generate_organization_url
@@ -70,10 +70,10 @@ class CustomerDomainMiddleware:
     Set active organization from request.domain.
     """
 
-    def __init__(self, get_response: Callable[[Request], Response]):
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponseBase]) -> None:
         self.get_response = get_response
 
-    def __call__(self, request: Request) -> Response:
+    def __call__(self, request: HttpRequest) -> HttpResponseBase:
         if (
             request.method != "GET"
             or not getattr(settings, "SENTRY_USE_CUSTOMER_DOMAINS", False)
