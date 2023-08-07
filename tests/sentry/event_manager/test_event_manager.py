@@ -35,7 +35,9 @@ from sentry.event_manager import (
     HashDiscarded,
     _get_event_instance,
     _save_grouphash_and_group,
+    get_event_type,
     has_pending_commit_resolution,
+    materialize_metadata,
 )
 from sentry.eventstore.models import Event
 from sentry.grouping.utils import hash_from_values
@@ -442,6 +444,34 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             event2 = manager.save(self.project.id)
 
         assert event.group_id != event2.group_id
+
+    def test_materialze_metadata_simple(self):
+        manager = EventManager(make_event(transaction="/dogs/are/great/"))
+        event = manager.save(self.project.id)
+
+        event_type = get_event_type(event.data)
+        event_metadata = event_type.get_metadata(event.data)
+
+        assert materialize_metadata(event.data, event_type, event_metadata) == {
+            "type": "default",
+            "culprit": "/dogs/are/great/",
+            "metadata": {"title": "<unlabeled event>"},
+            "title": "<unlabeled event>",
+            "location": None,
+        }
+
+    def test_materialze_metadata_preserves_existing_metadata(self):
+        manager = EventManager(make_event())
+        event = manager.save(self.project.id)
+
+        event.data.setdefault("metadata", {})
+        event.data["metadata"]["dogs"] = "are great"  # should not get clobbered
+
+        event_type = get_event_type(event.data)
+        event_metadata_from_type = event_type.get_metadata(event.data)
+        materialized = materialize_metadata(event.data, event_type, event_metadata_from_type)
+
+        assert materialized["metadata"] == {"title": "<unlabeled event>", "dogs": "are great"}
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolves_group(self, send_robust):
