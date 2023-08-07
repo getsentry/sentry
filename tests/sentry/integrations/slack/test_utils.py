@@ -10,6 +10,15 @@ from sentry.utils import json
 
 
 class GetChannelIdTest(TestCase):
+    def setUp(self):
+        self.resp = responses.mock
+        self.resp.__enter__()
+
+        self.integration = install_slack(self.event.project.organization)
+
+    def tearDown(self):
+        self.resp.__exit__(None, None, None)
+
     def add_list_response(self, list_type, channels, result_name="channels"):
         self.resp = responses.mock
         self.resp.add(
@@ -20,19 +29,7 @@ class GetChannelIdTest(TestCase):
             body=json.dumps({"ok": "true", result_name: channels}),
         )
 
-
-class GetChannelIdTest(GetChannelIdTest):
-    def setUp(self):
-        self.resp = responses.mock
-        self.resp.__enter__()
-
-        self.integration = install_slack(self.event.project.organization)
-
-    def tearDown(self):
-        self.resp.__exit__(None, None, None)
-
     def add_msg_response(self, channel_id, result_name="channel"):
-
         if channel_id == "channel_not_found":
             bodydict = {"ok": False, "error": "channel_not_found"}
         else:
