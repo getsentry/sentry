@@ -1,8 +1,14 @@
+import pytest
+
+from sentry.api.event_search import ParenExpression, parse_search_query
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OndemandMetricSpec,
+    cleanup_query,
     is_on_demand_metric_query,
     is_standard_metrics_compatible,
+    query_tokens_to_string,
+    to_standard_metrics_query,
 )
 
 
@@ -293,3 +299,83 @@ def test_ignore_fields():
     without_ignored_field = OndemandMetricSpec("count()", "transaction.duration:>=1")
 
     assert with_ignored_field.condition() == without_ignored_field.condition()
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "release:initial OR os.name:android",
+        "browser.version:1 os.name:android",
+        "(release:a OR (transaction.op:b and browser.version:1)) transaction.duration:>1s",
+    ],
+)
+def test_query_tokens_to_string(query):
+    tokens = parse_search_query(query)
+    new_query = query_tokens_to_string(tokens)
+    new_tokens = parse_search_query(new_query)
+
+    assert tokens == new_tokens
+
+
+@pytest.mark.parametrize(
+    "dirty, clean",
+    [
+        ("release:initial OR os.name:android", "release:initial OR os.name:android"),
+        ("OR AND OR release:initial OR os.name:android", "release:initial OR os.name:android"),
+        ("release:initial OR os.name:android AND OR AND ", "release:initial OR os.name:android"),
+        (
+            "release:initial AND (AND OR) (OR )os.name:android ",
+            "release:initial AND os.name:android",
+        ),
+        (
+            " AND ((AND OR (OR ))) release:initial (((AND OR  (AND)))) AND os.name:android  (AND OR) ",
+            "release:initial AND os.name:android",
+        ),
+        (" (AND) And (And) Or release:initial or (and) or", "release:initial"),
+    ],
+)
+def test_cleanup_query(dirty, clean):
+    dirty_tokens = parse_search_query(dirty)
+    clean_tokens = parse_search_query(clean)
+    actual_clean = cleanup_query(dirty_tokens)
+
+    assert actual_clean == clean_tokens
+
+
+def test_cleanup_query_with_empty_parens():
+    """
+    Separate test with empty parens because we can't parse a string with empty parens correctly
+    """
+
+    paren = ParenExpression
+    dirty_tokens = (
+        [paren([paren(["AND", "OR", paren([])])])]
+        + parse_search_query("release:initial AND (AND OR) (OR)")  # ((AND OR (OR ())))
+        + [paren([])]
+        + parse_search_query("os.name:android")  # ()
+        + [paren([paren([paren(["AND", "OR", paren([])])])])]  # ((()))
+    )
+    clean_tokens = parse_search_query("release:initial AND os.name:android")
+    actual_clean = cleanup_query(dirty_tokens)
+    assert actual_clean == clean_tokens
+
+
+@pytest.mark.parametrize(
+    "dirty, clean",
+    [
+        ("transaction.duration:>=1 ", ""),
+        ("transaction.duration:>=1 and geo.city:Vienna ", ""),
+        ("transaction.duration:>=1 and geo.city:Vienna or os.name:android", "os.name:android"),
+        ("(transaction.duration:>=1 and geo.city:Vienna) or os.name:android", "os.name:android"),
+        (
+            "release:initial OR (os.name:android AND transaction.duration:>=1 OR environment:dev)",
+            "release:initial OR (os.name:android or environment:dev)",
+        ),
+    ],
+)
+def test_to_standard_metrics_query(dirty, clean):
+    cleaned_up_query = to_standard_metrics_query(dirty)
+    cleaned_up_tokens = parse_search_query(cleaned_up_query)
+    clean_tokens = parse_search_query(clean)
+
+    assert cleaned_up_tokens == clean_tokens
