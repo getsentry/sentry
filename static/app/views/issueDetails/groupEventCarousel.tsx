@@ -188,45 +188,47 @@ function EventNavigationDropdown({
   ];
 
   return (
-    <CompactSelect
-      size="sm"
-      disabled={isDisabled}
-      options={eventNavDropdownOptions}
-      value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
-      triggerLabel={
-        !selectedValue ? (
-          <TimeSince date={relativeTime} disabledAbsoluteTooltip />
-        ) : selectedValue === EventNavDropdownOption.RECOMMENDED ? (
-          t('Recommended')
-        ) : undefined
-      }
-      menuWidth={232}
-      onChange={selectedOption => {
-        switch (selectedOption.value) {
-          case EventNavDropdownOption.RECOMMENDED:
-          case EventNavDropdownOption.LATEST:
-          case EventNavDropdownOption.OLDEST:
-            browserHistory.push({
-              pathname: normalizeUrl(
-                makeBaseEventsPath({organization, group}) + selectedOption.value + '/'
-              ),
-              query: {...location.query, referrer: `${selectedOption.value}-event`},
-            });
-            break;
-          case EventNavDropdownOption.ALL:
-            const searchTermWithoutQuery = omit(location.query, 'query');
-            browserHistory.push({
-              pathname: normalizeUrl(
-                `/organizations/${organization.slug}/issues/${group.id}/events/`
-              ),
-              query: searchTermWithoutQuery,
-            });
-            break;
-          default:
-            break;
+    <GuideAnchor target="issue_details_default_event" position="bottom">
+      <CompactSelect
+        size="sm"
+        disabled={isDisabled}
+        options={eventNavDropdownOptions}
+        value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
+        triggerLabel={
+          !selectedValue ? (
+            <TimeSince date={relativeTime} disabledAbsoluteTooltip />
+          ) : selectedValue === EventNavDropdownOption.RECOMMENDED ? (
+            t('Recommended')
+          ) : undefined
         }
-      }}
-    />
+        menuWidth={232}
+        onChange={selectedOption => {
+          switch (selectedOption.value) {
+            case EventNavDropdownOption.RECOMMENDED:
+            case EventNavDropdownOption.LATEST:
+            case EventNavDropdownOption.OLDEST:
+              browserHistory.push({
+                pathname: normalizeUrl(
+                  makeBaseEventsPath({organization, group}) + selectedOption.value + '/'
+                ),
+                query: {...location.query, referrer: `${selectedOption.value}-event`},
+              });
+              break;
+            case EventNavDropdownOption.ALL:
+              const searchTermWithoutQuery = omit(location.query, 'query');
+              browserHistory.push({
+                pathname: normalizeUrl(
+                  `/organizations/${organization.slug}/issues/${group.id}/events/`
+                ),
+                query: searchTermWithoutQuery,
+              });
+              break;
+            default:
+              break;
+          }
+        }}
+      />
+    </GuideAnchor>
   );
 }
 
@@ -419,13 +421,11 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             {!isHelpfulEventUiEnabled && 'JSON'}
           </Button>
         )}
-        <GuideAnchor target="issue_details_default_event" position="bottom">
-          <EventNavigationDropdown
-            isDisabled={!hasPreviousEvent && !hasNextEvent}
-            group={group}
-            relativeTime={event.dateCreated ?? event.dateReceived}
-          />
-        </GuideAnchor>
+        <EventNavigationDropdown
+          isDisabled={!hasPreviousEvent && !hasNextEvent}
+          group={group}
+          relativeTime={event.dateCreated ?? event.dateReceived}
+        />
         <NavButtons>
           {!isHelpfulEventUiEnabled && (
             <EventNavigationButton
