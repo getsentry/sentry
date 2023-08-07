@@ -308,7 +308,7 @@ class BaseView(View, OrganizationMixin):
         if self.is_auth_required(request, *args, **kwargs):
             return self.handle_auth_required(request, *args, **kwargs)
 
-        if self.is_sudo_required(request, *args, **kwargs):
+        if self.is_sudo_required(request):
             return self.handle_sudo_required(request, *args, **kwargs)
 
         if (
@@ -340,7 +340,7 @@ class BaseView(View, OrganizationMixin):
 
     def test_csrf(self, request: HttpRequest) -> HttpResponse:
         middleware = CsrfViewMiddleware(placeholder_get_response)
-        return middleware.process_view(request, self.dispatch, [request], {})
+        return middleware.process_view(request, self.dispatch, (request,), {})
 
     def get_access(self, request: HttpRequest, *args: Any, **kwargs: Any) -> access.Access:
         return access.DEFAULT
@@ -350,7 +350,7 @@ class BaseView(View, OrganizationMixin):
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         return (args, kwargs)
 
-    def handle(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+    def handle(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
         return super().dispatch(request, *args, **kwargs)
 
     def is_auth_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> bool:
@@ -364,7 +364,7 @@ class BaseView(View, OrganizationMixin):
             redirect_to = auth.get_login_url()
         return self.redirect(redirect_to, headers={"X-Robots-Tag": "noindex, nofollow"})
 
-    def is_sudo_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> bool:
+    def is_sudo_required(self, request: HttpRequest) -> bool:
         return self.sudo_required and not request.is_sudo()
 
     def handle_sudo_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
@@ -660,11 +660,11 @@ class AvatarPhotoView(View):
         if not photo:
             return HttpResponseNotFound()
 
-        size = request.GET.get("s")
+        size_s = request.GET.get("s")
         photo_file = photo.getfile()
-        if size:
+        if size_s:
             try:
-                size = int(size)
+                size = int(size_s)
             except ValueError:
                 return HttpResponseBadRequest()
             else:
