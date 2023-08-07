@@ -40,7 +40,7 @@ class BaseRequestParser(abc.ABC):
             "'webhook_identifier' property is required for outboxing. Refer to WebhookProviderIdentifier enum."
         )
 
-    def __init__(self, request: HttpRequest, response_handler: Callable):
+    def __init__(self, request: HttpRequest, response_handler: Callable[[], HttpResponse]):
         self.request = request
         self.match: ResolverMatch = resolve(self.request.path)
         self.view_class = self.match.func.view_class  # type:ignore
