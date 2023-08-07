@@ -184,6 +184,7 @@ def patch(ctx) -> None:
                     dry_run,
                     bool(ctx.obj["hide_drift"]),
                 )
+
             except Exception as e:
                 metrics.incr(
                     "options_automator.run",
@@ -199,6 +200,8 @@ def patch(ctx) -> None:
                 presenter_delegator.flush()
                 raise
 
+    presenter_delegator.flush()
+
     if invalid_options:
         status = "update_failed"
         amount = 2
@@ -208,8 +211,6 @@ def patch(ctx) -> None:
     else:
         status = "success"
         amount = 1
-
-    presenter_delegator.flush()
 
     metrics.incr(
         "options_automator.run",

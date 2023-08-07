@@ -45,8 +45,8 @@ class TestSlackPresenter:
 
         expected_json_data = {
             "drifted_options": [
-                {"option_name": "option9", "option_value": "db_value9..."},
-                {"option_name": "option10", "option_value": "db_value10..."},
+                {"option_name": "option9", "option_value": "db_value9"},
+                {"option_name": "option10", "option_value": "db_value10"},
             ],
             "channel_updated_options": ["option7", "option8"],
             "updated_options": [

@@ -35,7 +35,6 @@ class SlackPresenter(OptionsPresenter):
         try:
             test_payload: dict = {
                 "drifted_options": [],
-                "channel_updated_options": [],
                 "updated_options": [],
                 "set_options": [],
                 "unset_options": [],
@@ -59,7 +58,6 @@ class SlackPresenter(OptionsPresenter):
                 {"option_name": key, "option_value": self.truncate_value(value)}
                 for key, value in self.drifted_options
             ],
-            "channel_updated_options": self.channel_updated_options,
             "updated_options": [
                 {
                     "option_name": key,

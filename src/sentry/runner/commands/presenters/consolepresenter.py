@@ -21,7 +21,7 @@ class ConsolePresenter(OptionsPresenter):
     UNSET_MSG = "[UNSET] Option %s unset."
     DRY_RUN_MSG = "!!! Dry-run flag on. No update will be performed."
     ERROR_MSG = "Invalid option. %s cannot be updated. Reason %s"
-    UNREGISTERED_OPTION_ERROR = "Option %s is not registered. and cannot be updated."
+    UNREGISTERED_OPTION_ERROR = "Option %s is not registered, and cannot be updated."
     INVALID_TYPE_ERROR = "Option %s has invalid type. got %s, expected %s."
 
     def __init__(self) -> None:
