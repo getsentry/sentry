@@ -46,7 +46,7 @@ def notify_disable(
     integration_link = get_url(
         organization,
         get_provider_type(redis_key),
-        str(integration_slug) if "sentry-app" in redis_key else integration_name,
+        integration_slug if "sentry-app" in redis_key and integration_slug else integration_name,
     )
 
     for user in organization.get_owners():
