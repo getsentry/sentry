@@ -887,10 +887,20 @@ QUERY_ALIAS_COLUMN_MAP = {
         alias="count_urls",
     ),
     "count_dead_clicks": Function(
-        "sum", parameters=[Column("click_is_dead")], alias="count_dead_clicks"
+        "sumIf",
+        parameters=[
+            Column("click_is_dead"),
+            Function("greaterOrEquals", [Column("timestamp"), "2023-07-24"]),
+        ],
+        alias="count_dead_clicks",
     ),
     "count_rage_clicks": Function(
-        "sum", parameters=[Column("click_is_rage")], alias="count_rage_clicks"
+        "sumIf",
+        parameters=[
+            Column("click_is_rage"),
+            Function("greaterOrEquals", [Column("timestamp"), "2023-07-24"]),
+        ],
+        alias="count_rage_clicks",
     ),
     "is_archived": Function(
         "ifNull",
