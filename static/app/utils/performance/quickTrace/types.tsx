@@ -25,6 +25,8 @@ export type EventLite = {
 
 export type TraceError = {
   event_id: string;
+  event_type: string;
+  generation: number;
   issue: string;
   issue_id: number;
   level: keyof Theme['level'];
@@ -78,7 +80,7 @@ export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
   measurements?: Record<string, Measurement>;
   profile_id?: string;
   tags?: EventTag[];
-};
+} & TraceError;
 
 export type TraceProps = {
   traceId: string;

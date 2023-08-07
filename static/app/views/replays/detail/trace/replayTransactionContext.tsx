@@ -116,6 +116,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
           `/organizations/${orgSlug}/events-trace/${traceId}/`,
           singleTracePayload
         );
+        // console.log('REPLAY', trace);
 
         setState(prev => ({
           ...prev,

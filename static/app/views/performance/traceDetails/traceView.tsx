@@ -117,6 +117,8 @@ export default function TraceView({
     });
   }, [organization]);
 
+  const hasOrphanErrors = true;
+
   function renderTransaction(
     transaction: TraceFullDetailed,
     {
@@ -150,7 +152,7 @@ export default function TraceView({
 
         const result = renderTransaction(child, {
           continuingDepths:
-            !isLastChild && hasChildren
+            (!isLastChild && hasChildren) || hasOrphanErrors
               ? [...continuingDepths, {depth: generation, isOrphanDepth: isOrphan}]
               : continuingDepths,
           isOrphan,
@@ -229,6 +231,7 @@ export default function TraceView({
   }
 
   const traceInfo = props.traceInfo || getTraceInfo(traces);
+  // console.log('TraceInfo', traceInfo);
 
   const accumulator: {
     index: number;
@@ -242,20 +245,32 @@ export default function TraceView({
     transactionGroups: [],
   };
 
-  const {transactionGroups, numberOfHiddenTransactionsAbove} = traces.reduce(
+  const transactions: TraceFullDetailed[] = [];
+  const orphanErrors: TraceFullDetailed[] = [];
+
+  for (const trace of traces) {
+    if (trace.event_type === 'error') {
+      orphanErrors.push(trace);
+    } else {
+      transactions.push(trace);
+    }
+  }
+
+  const {transactionGroups, numberOfHiddenTransactionsAbove} = transactions.reduce(
     (acc, trace, index) => {
-      const isLastTransaction = index === traces.length - 1;
+      const isLastTransaction = index === transactions.length - 1;
       const hasChildren = trace.children.length > 0;
       const isNextChildOrphaned =
-        !isLastTransaction && traces[index + 1].parent_span_id !== null;
+        (!isLastTransaction && transactions[index + 1].parent_span_id !== null) ||
+        (isLastTransaction && hasOrphanErrors);
 
       const result = renderTransaction(trace, {
         ...acc,
         // if the root of a subtrace has a parent_span_id, then it must be an orphan
         isOrphan: !isRootTransaction(trace),
-        isLast: isLastTransaction,
+        isLast: isLastTransaction && !hasOrphanErrors,
         continuingDepths:
-          !isLastTransaction && hasChildren
+          (!isLastTransaction && hasChildren) || hasOrphanErrors
             ? [{depth: 0, isOrphanDepth: isNextChildOrphaned}]
             : [],
         hasGuideAnchor: index === 0,
@@ -268,6 +283,48 @@ export default function TraceView({
     },
     accumulator
   );
+
+  transactionGroups.push(
+    <TransactionGroup
+      key={1231}
+      location={location}
+      organization={organization}
+      traceInfo={traceInfo}
+      transaction={{
+        traceSlug,
+        generation: 1,
+        'transaction.duration': traceInfo.endTimestamp - traceInfo.startTimestamp,
+        children: [],
+        start_timestamp: traceInfo.startTimestamp,
+        timestamp: traceInfo.endTimestamp,
+        parent_event_id: null,
+        parent_span_id: null,
+      }}
+      measurements={
+        traces && traces.length > 0
+          ? getMeasurements(traces[0], generateBounds(traceInfo))
+          : undefined
+      }
+      generateBounds={generateBounds(traceInfo)}
+      continuingDepths={[
+        {
+          depth: 1,
+          isOrphanDepth: true,
+        },
+      ]}
+      isOrphan
+      isLast
+      index={9}
+      isVisible
+      hasGuideAnchor
+      renderedChildren={[]}
+      barColor={pickBarColor('')}
+    />
+  );
+
+  // console.log();
+  // console.log('Transaction Groups', transactionGroups);
+  // console.log('Num of Hidden above', numberOfHiddenTransactionsAbove);
 
   const bounds = generateBounds(traceInfo);
   const measurements =
