@@ -105,6 +105,9 @@ SENTRY_DISALLOWED_IPS = ()
 # search domains.
 SENTRY_ENSURE_FQDN = False
 
+# XXX [!!]: When adding a new key here BE SURE to configure it in getsentry, as
+#           it can not be `default`. The default cluster in sentry.io
+#           production is NOT a true redis cluster and WILL error in prod.
 SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER = "default"
 SENTRY_INCIDENT_RULES_REDIS_CLUSTER = "default"
 SENTRY_RATE_LIMIT_REDIS_CLUSTER = "default"
