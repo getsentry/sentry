@@ -163,6 +163,11 @@ class GithubProxyClient(IntegrationProxyClient):
 
         return prepared_request
 
+    def is_error_fatal(self, error: Exception) -> bool:
+        if error.response:
+            return error.response.message in ["Not Found", "This installation has been suspended"]
+        return super().is_error_fatal(error)
+
 
 class GitHubClientMixin(GithubProxyClient):
     allow_redirects = True

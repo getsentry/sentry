@@ -116,6 +116,9 @@ class BaseApiClient(TrackResponseMixin):
                 return True
         return False
 
+    def is_error_fatal(self, error: Exception) -> bool:
+        return False
+
     @overload
     def _request(
         self,
@@ -389,7 +392,7 @@ class BaseApiClient(TrackResponseMixin):
         random_value = randint(0, 99)
         if not len(redis_key):
             return
-        if not self.is_considered_error(error):
+        if not self.is_considered_error(error) or self.is_error_fatal(error):
             return
         try:
             buffer = IntegrationRequestBuffer(redis_key)
