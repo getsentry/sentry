@@ -176,16 +176,6 @@ export type TagWithTopValues = {
   canDelete?: boolean;
 };
 
-export const enum GroupSubstatus {
-  ARCHIVED_UNTIL_ESCALATING = 'archived_until_escalating',
-  ARCHIVED_UNTIL_CONDITION_MET = 'archived_until_condition_met',
-  ARCHIVED_FOREVER = 'archived_forever',
-  ESCALATING = 'escalating',
-  ONGOING = 'ongoing',
-  REGRESSED = 'regressed',
-  NEW = 'new',
-}
-
 /**
  * Inbox, issue owners and Activity
  */
@@ -515,28 +505,8 @@ export interface GroupStats extends GroupFiltered {
   sessionCount?: string | null;
 }
 
-export interface BaseGroupStatusReprocessing {
-  status: 'reprocessing';
-  statusDetails: {
-    info: {
-      dateCreated: string;
-      totalEvents: number;
-    } | null;
-    pendingEvents: number;
-  };
-}
-
-/**
- * Issue Resolution
- */
-export enum ResolutionStatus {
-  RESOLVED = 'resolved',
-  UNRESOLVED = 'unresolved',
-  IGNORED = 'ignored',
-}
-export type ResolutionStatusDetails = {
+export interface IgnoredStatusDetails {
   actor?: AvatarUser;
-  autoResolved?: boolean;
   ignoreCount?: number;
   // Sent in requests. ignoreUntil is used in responses.
   ignoreDuration?: number;
@@ -545,6 +515,10 @@ export type ResolutionStatusDetails = {
   ignoreUserCount?: number;
   ignoreUserWindow?: number;
   ignoreWindow?: number;
+}
+export interface ResolvedStatusDetails {
+  actor?: AvatarUser;
+  autoResolved?: boolean;
   inCommit?: {
     commit?: string;
     dateCreated?: string;
@@ -554,13 +528,46 @@ export type ResolutionStatusDetails = {
   inNextRelease?: boolean;
   inRelease?: string;
   repository?: string;
-};
+}
+interface ReprocessingStatusDetails {
+  info: {
+    dateCreated: string;
+    totalEvents: number;
+  } | null;
+  pendingEvents: number;
+}
 
-export type GroupStatusResolution = {
-  status: ResolutionStatus;
-  statusDetails: ResolutionStatusDetails;
-  substatus: GroupSubstatus | null;
-};
+/**
+ * The payload sent when marking reviewed
+ */
+export interface MarkReviewed {
+  inbox: false;
+}
+/**
+ * The payload sent when updating a group's status
+ */
+export interface GroupStatusResolution {
+  status: GroupStatus.RESOLVED | GroupStatus.UNRESOLVED | GroupStatus.IGNORED;
+  statusDetails: ResolvedStatusDetails | IgnoredStatusDetails | {};
+  substatus?: GroupSubstatus | null;
+}
+
+export const enum GroupStatus {
+  RESOLVED = 'resolved',
+  UNRESOLVED = 'unresolved',
+  IGNORED = 'ignored',
+  REPROCESSING = 'reprocessing',
+}
+
+export const enum GroupSubstatus {
+  ARCHIVED_UNTIL_ESCALATING = 'archived_until_escalating',
+  ARCHIVED_UNTIL_CONDITION_MET = 'archived_until_condition_met',
+  ARCHIVED_FOREVER = 'archived_forever',
+  ESCALATING = 'escalating',
+  ONGOING = 'ongoing',
+  REGRESSED = 'regressed',
+  NEW = 'new',
+}
 
 // TODO(ts): incomplete
 export interface BaseGroup {
@@ -593,31 +600,38 @@ export interface BaseGroup {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  status: string;
+  status: GroupStatus;
+  statusDetails: IgnoredStatusDetails | ResolvedStatusDetails | ReprocessingStatusDetails;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
   inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
-  substatus?: GroupSubstatus;
+  substatus?: GroupSubstatus | null;
 }
 
-export interface GroupReprocessing
-  // BaseGroupStatusReprocessing status field (enum) incorrectly extends the BaseGroup status field (string) so we omit it.
-  // A proper fix for this would be to make the status field an enum or string and correctly extend it.
-  extends Omit<BaseGroup, 'status'>,
-    GroupStats,
-    BaseGroupStatusReprocessing {}
+export interface GroupReprocessing extends BaseGroup, GroupStats {
+  status: GroupStatus.REPROCESSING;
+  statusDetails: ReprocessingStatusDetails;
+}
 
-export interface GroupResolution
-  // GroupStatusResolution status field (enum) incorrectly extends the BaseGroup status field (string) so we omit it.
-  // A proper fix for this would be to make the status field an enum or string and correctly extend it.
-  extends Omit<BaseGroup, 'status'>,
-    GroupStats,
-    Omit<GroupStatusResolution, 'substatus'> {}
+export interface GroupResolved extends BaseGroup, GroupStats {
+  status: GroupStatus.RESOLVED;
+  statusDetails: ResolvedStatusDetails;
+}
 
-export type Group = GroupResolution | GroupReprocessing;
+export interface GroupIgnored extends BaseGroup, GroupStats {
+  status: GroupStatus.IGNORED;
+  statusDetails: IgnoredStatusDetails;
+}
+
+export interface GroupUnresolved extends BaseGroup, GroupStats {
+  status: GroupStatus.UNRESOLVED;
+  statusDetails: {};
+}
+
+export type Group = GroupUnresolved | GroupResolved | GroupIgnored | GroupReprocessing;
 
 export interface GroupTombstone {
   actor: AvatarUser;

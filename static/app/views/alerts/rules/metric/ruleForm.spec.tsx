@@ -74,6 +74,10 @@ describe('Incident Rules Form', () => {
         },
       ],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics-estimation-stats/',
+      body: TestStubs.EventsStats(),
+    });
   });
 
   afterEach(() => {

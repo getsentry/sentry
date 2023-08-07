@@ -74,7 +74,7 @@ def can_admin_team(access: Access, team: Team) -> bool:
         return True
     if not access.has_team_membership(team):
         return False
-    return access.has_team_scope(team, "team:write")
+    return access.has_team_scope(team, "team:write") or access.has_team_scope(team, "team:admin")
 
 
 def get_allowed_org_roles(

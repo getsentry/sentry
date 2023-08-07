@@ -50,17 +50,10 @@ describe('Docs Search Modal', function () {
   });
 
   it('can open help search modal', async function () {
-    const {routerContext, router, route} = initializeOrg();
+    const {routerContext, routerProps} = initializeOrg();
 
     render(
-      <App
-        location={router.location}
-        routes={router.routes}
-        route={route}
-        router={router}
-        params={{}}
-        routeParams={router.params}
-      >
+      <App {...routerProps}>
         <div>placeholder content</div>
       </App>,
       {

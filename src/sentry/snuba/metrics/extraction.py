@@ -295,6 +295,130 @@ def _is_standard_metrics_search_filter(token: QueryToken) -> bool:
     return True
 
 
+def to_standard_metrics_query(query: str) -> str:
+    """
+    Converts a query containing on demand search fields to a query that can be
+    run using only standard metrics.
+
+    This is done by removing conditions requiring on-demand metrics.
+
+    NOTE: This does **NOT** create an equivalent query. It only creates the best
+    approximation available using only standard metrics. It is used for approximating
+    the volume of an on-demand metrics query using a combination of indexed and metrics data.
+
+    Examples:
+        "enviroment:dev AND transaction.duration:>=1s" -> "enviroment:dev"
+        "enviroment:dev OR transaction.duration:>=1s" -> "enviroment:dev"
+        "transaction.duration:>=1s OR browser.version:1" -> ""
+        "transaction.duration:>=1s AND browser.version:1" -> ""
+    """
+    try:
+        tokens = event_search.parse_search_query(query)
+    except InvalidSearchQuery:
+        logger.error(f"Failed to parse search query: {query}", exc_info=True)
+        raise
+
+    cleaned_query = to_standard_metrics_tokens(tokens)
+    return query_tokens_to_string(cleaned_query)
+
+
+def to_standard_metrics_tokens(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+    """
+    Converts a query in token form containing on-demand search fields to a query
+    that has all on-demand filters removed and can be run using only standard metrics.
+    """
+    remaining_tokens = _remove_on_demand_search_filters(tokens)
+    cleaned_query = cleanup_query(remaining_tokens)
+    return cleaned_query
+
+
+def query_tokens_to_string(tokens: Sequence[QueryToken]) -> str:
+    """
+    Converts a list of tokens into a query string.
+    """
+    ret_val = ""
+    for token in tokens:
+        if isinstance(token, str):
+            ret_val += f" {token}"
+        else:
+            ret_val += f" {token.to_query_string()}"
+    return ret_val.strip()
+
+
+def _remove_on_demand_search_filters(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+    """
+    removes tokens that contain filters that can only be handled by on demand metrics.
+    """
+    ret_val: List[QueryToken] = []
+    for token in tokens:
+        if isinstance(token, SearchFilter):
+            if _is_standard_metrics_search_filter(token):
+                ret_val.append(token)
+        elif isinstance(token, ParenExpression):
+            ret_val.append(ParenExpression(_remove_on_demand_search_filters(token.children)))
+        else:
+            ret_val.append(token)
+    return ret_val
+
+
+def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+    """
+    Recreates a valid query from an original query that has had on demand search filters removed.
+
+    When removing filters from a query it is possible to create invalid queries.
+    For example removing the on demand filters from "transaction.duration:>=1s OR browser.version:1 AND environment:dev"
+    would result in "OR AND environment:dev" which is not a valid query this should be cleaned to "environment:dev.
+
+    "release:internal and browser.version:1 or os.name:android" => "release:internal or and os.name:android" which would be
+    cleaned to "release:internal or os.name:android"
+    """
+    tokens = list(tokens)
+
+    # remove empty parens
+    removed_empty_parens: List[QueryToken] = []
+    for token in tokens:
+        if not isinstance(token, ParenExpression):
+            removed_empty_parens.append(token)
+        else:
+            children = cleanup_query(token.children)
+            if len(children) > 0:
+                removed_empty_parens.append(ParenExpression(children))
+    # remove AND and OR operators at the start of the query
+    while len(removed_empty_parens) > 0 and isinstance(removed_empty_parens[0], str):
+        removed_empty_parens.pop(0)
+
+    # remove AND and OR operators at the end of the query
+    while len(removed_empty_parens) > 0 and isinstance(removed_empty_parens[-1], str):
+        removed_empty_parens.pop()
+
+    # remove AND and OR operators that are next to each other
+    ret_val = []
+    previous_token: Optional[QueryToken] = None
+
+    for token in removed_empty_parens:
+        # this loop takes care of removing consecutive AND/OR operators (keeping only one of them)
+        if isinstance(token, str) and isinstance(previous_token, str):
+            token = cast(QueryOp, token.upper())
+            # this handles two AND/OR operators next to each other, we must drop one of them
+            # if we have an AND do nothing (AND will be merged in the previous token see comment below)
+            # if we have an OR the resulting operator will be an OR
+            # AND OR => OR
+            # OR OR => OR
+            # OR AND => OR
+            # AND AND => AND
+            if token == "OR":
+                previous_token = "OR"
+            continue
+        elif previous_token is not None:
+            ret_val.append(previous_token)
+        previous_token = token
+    # take care of the last token (if any)
+    if previous_token is not None:
+        ret_val.append(previous_token)
+
+    return ret_val
+
+
 def _is_on_demand_supported_query(tokens: Sequence[QueryToken]) -> bool:
     """
     Recursively checks if any of the supplied token contain search filters that can't be handled by standard metrics.

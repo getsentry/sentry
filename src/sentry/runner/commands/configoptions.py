@@ -138,6 +138,10 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
                 invalid_options.add(key)
             elif not_writable_reason == options.NotWritableReason.DRIFTED:
                 drifted_options.add(key)
+
+            opt = options.lookup_key(key)
+            if not opt.type.test(value):
+                invalid_options.add(key)
         except options.UnknownOption:
             invalid_options.add(key)
             presenter_delegator.unregistered(key)
