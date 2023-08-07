@@ -222,9 +222,9 @@ export class FlamegraphChartRenderer {
 
       if (i === 0) {
         this.context.textAlign = 'left';
-        this.context.fillText(text, left + textOffsetLeft, interval.y - textOffset);
+        this.context.fillText(text, left + textOffsetLeft, interval[1] - textOffset);
         this.context.textAlign = 'end';
-        this.context.fillText(text, right - textOffsetLeft, interval.y - textOffset);
+        this.context.fillText(text, right - textOffsetLeft, interval[1] - textOffset);
         continue;
       }
 

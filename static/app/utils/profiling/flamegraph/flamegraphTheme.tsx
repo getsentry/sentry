@@ -241,7 +241,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
       'by frequency': makeColorMapByFrequency,
       'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
     },
-    CPU_CHART_COLORS: [[0.96, 0.69, 0.0, 0.6]],
+    CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
     CHART_CURSOR_INDICATOR: 'rgba(255, 255, 255, 0.5)',
     CPU_CHART_LABEL_COLOR: 'rgba(255, 255, 255, 0.5)',
     CURSOR_CROSSHAIR: '#828285',
