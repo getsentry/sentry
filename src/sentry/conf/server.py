@@ -1354,6 +1354,8 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Allow disabling integrations when broken is detected
     "organizations:slack-disable-on-broken": False,
+    # Allow disabling sentryapps when broken is detected
+    "organizations:disable-sentryapps-on-broken": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -3651,6 +3653,8 @@ SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
 # Feature flag to turn off role-swapping to help bridge getsentry transition.
 USE_ROLE_SWAPPING_IN_TESTS = True
 
+# Threshold for the number of timeouts needed in a day to disable an integration
+BROKEN_TIMEOUT_THRESHOLD = 1000
 
 SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
 SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}

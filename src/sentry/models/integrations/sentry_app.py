@@ -215,3 +215,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
 
         SentryAppAvatar.objects.filter(sentry_app=self).delete()
         return super().delete()
+
+    def _disable(self):
+        self.events = []
+        self.save(update_fields=["events"])
