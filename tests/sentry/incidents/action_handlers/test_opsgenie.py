@@ -95,21 +95,36 @@ class OpsgenieActionHandlerTest(FireTest, TestCase):
     def run_test(self, incident, method):
         from sentry.integrations.opsgenie.utils import build_incident_attachment
 
-        responses.add(
-            responses.POST,
-            url="https://api.opsgenie.com/v2/alerts",
-            json={},
-            status=202,
-        )
+        alias = f"incident_{incident.organization_id}_{incident.identifier}"
+
+        if method == "resolve":
+            responses.add(
+                responses.POST,
+                url=f"https://api.opsgenie.com/v2/alerts/{alias}/acknowledge?identifierType=alias",
+                json={},
+                status=202,
+            )
+            expected_payload = {}
+        else:
+            update_incident_status(
+                incident, IncidentStatus.CRITICAL, status_method=IncidentStatusMethod.RULE_TRIGGERED
+            )
+            responses.add(
+                responses.POST,
+                url="https://api.opsgenie.com/v2/alerts",
+                json={},
+                status=202,
+            )
+            expected_payload = build_incident_attachment(
+                incident, IncidentStatus(incident.status), metric_value=1000
+            )
         handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
             getattr(handler, method)(metric_value, IncidentStatus(incident.status))
         data = responses.calls[0].request.body
 
-        assert json.loads(data) == build_incident_attachment(
-            incident, IncidentStatus(incident.status), metric_value
-        )
+        assert json.loads(data) == expected_payload
 
     @responses.activate
     def test_fire_metric_alert(self):
