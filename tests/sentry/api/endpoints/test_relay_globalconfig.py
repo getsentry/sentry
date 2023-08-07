@@ -12,7 +12,9 @@ def call_global_config(client, relay, private_key):
     def inner():
         path = reverse("sentry-api-0-relay-projectconfigs") + "?version=4"
 
-        raw_json, signature = private_key.pack({"global": True})
+        raw_json, signature = private_key.pack(
+            {"publicKeys": [], "no_cache": False, "global": True, "fullConfig": True}
+        )
 
         resp = client.post(
             path,
