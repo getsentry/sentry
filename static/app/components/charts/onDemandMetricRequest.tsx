@@ -7,12 +7,16 @@ import {EventsStats, MultiSeriesEventsStats} from 'sentry/types';
 export class OnDemandMetricRequest extends EventsRequest {
   fetchExtrapolatedData = async (): Promise<EventsStats> => {
     const {api, organization, ...props} = this.props;
-    return (await doEventsRequest(api, {
+    const retVal = await doEventsRequest(api, {
       ...props,
       organization,
       generatePathname: () =>
         `/organizations/${organization.slug}/metrics-estimation-stats/`,
-    }).then(data => ({...data, isExtrapolatedData: true}))) as EventsStats;
+    });
+    return {
+      ...retVal,
+      isExtrapolatedData: true,
+    } as EventsStats;
   };
 
   fetchData = async () => {

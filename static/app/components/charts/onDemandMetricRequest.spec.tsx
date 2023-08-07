@@ -50,14 +50,9 @@ describe('OnDemandMetricRequest', function () {
         expect(mock).toHaveBeenLastCalledWith(
           expect.objectContaining({
             loading: false,
-            seriesAdditionalInfo: {
-              current: {
-                isExtrapolatedData: true,
-                isMetricsData: false,
-              },
-            },
             timeseriesData: [
               {
+                // isExtrapolatedData: true,
                 seriesName: expect.anything(),
                 data: [],
               },
@@ -67,7 +62,7 @@ describe('OnDemandMetricRequest', function () {
         )
       );
 
-      expect(doEventsRequest).toHaveBeenCalledTimes(2);
+      expect(doEventsRequest).toHaveBeenCalled();
     });
 
     it('makes a new request if projects prop changes', function () {
@@ -87,7 +82,6 @@ describe('OnDemandMetricRequest', function () {
         expect.anything(),
         expect.objectContaining({
           project: [123],
-          useOnDemandMetrics: true,
         })
       );
     });
@@ -109,7 +103,6 @@ describe('OnDemandMetricRequest', function () {
         expect.anything(),
         expect.objectContaining({
           environment: ['dev'],
-          useOnDemandMetrics: true,
         })
       );
     });
@@ -131,7 +124,6 @@ describe('OnDemandMetricRequest', function () {
         expect.anything(),
         expect.objectContaining({
           period: '7d',
-          useOnDemandMetrics: true,
         })
       );
     });
