@@ -1,4 +1,10 @@
+from __future__ import annotations
+
+from typing import Any
+from unittest import mock
+
 from django.conf import settings
+from django.contrib.sessions.backends.base import SessionBase
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import re_path, reverse
@@ -14,6 +20,12 @@ from sentry.types.region import RegionCategory, clear_global_regions
 from sentry.web.frontend.auth_logout import AuthLogoutView
 
 
+def _session(d: dict[str, str]) -> SessionBase:
+    ret = SessionBase()
+    ret.update(d)
+    return ret
+
+
 @override_settings(
     SENTRY_USE_CUSTOMER_DOMAINS=True,
 )
@@ -23,11 +35,11 @@ class CustomerDomainMiddlewareTest(TestCase):
 
         request = RequestFactory().get("/")
         request.subdomain = "test"
-        request.session = {"activeorg": "albertos-apples"}
-        response = CustomerDomainMiddleware(lambda request: request)(request)
+        request.session = _session({"activeorg": "albertos-apples"})
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert request.session == {"activeorg": "test"}
-        assert response == request
+        assert dict(request.session) == {"activeorg": "test"}
+        assert response == mock.sentinel.response
 
     def test_noop_if_customer_domain_is_off(self):
 
@@ -36,21 +48,21 @@ class CustomerDomainMiddlewareTest(TestCase):
 
             request = RequestFactory().get("/")
             request.subdomain = "test"
-            request.session = {"activeorg": "albertos-apples"}
-            response = CustomerDomainMiddleware(lambda request: request)(request)
+            request.session = _session({"activeorg": "albertos-apples"})
+            response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-            assert request.session == {"activeorg": "albertos-apples"}
-            assert response == request
+            assert dict(request.session) == {"activeorg": "albertos-apples"}
+            assert response == mock.sentinel.response
 
     def test_recycles_last_active_org(self):
         self.create_organization(name="test")
 
         request = RequestFactory().get("/organizations/test/issues/")
         request.subdomain = "does-not-exist"
-        request.session = {"activeorg": "test"}
-        response = CustomerDomainMiddleware(lambda request: request)(request)
+        request.session = _session({"activeorg": "test"})
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert request.session == {"activeorg": "test"}
+        assert dict(request.session) == {"activeorg": "test"}
         assert response.status_code == 302
         assert response["Location"] == "http://test.testserver/organizations/test/issues/"
 
@@ -59,64 +71,64 @@ class CustomerDomainMiddlewareTest(TestCase):
 
         request = RequestFactory().get("/organizations/albertos-apples/issues/")
         request.subdomain = "does-not-exist"
-        request.session = {"activeorg": "test"}
-        response = CustomerDomainMiddleware(lambda request: request)(request)
+        request.session = _session({"activeorg": "test"})
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert request.session == {"activeorg": "test"}
+        assert dict(request.session) == {"activeorg": "test"}
         assert response.status_code == 302
         assert response["Location"] == "http://test.testserver/organizations/test/issues/"
 
     def test_removes_active_organization(self):
         request = RequestFactory().get("/")
         request.subdomain = "does-not-exist"
-        request.session = {"activeorg": "test"}
-        response = CustomerDomainMiddleware(lambda request: request)(request)
+        request.session = _session({"activeorg": "test"})
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert request.session == {}
-        assert response == request
+        assert dict(request.session) == {}
+        assert response == mock.sentinel.response
 
     def test_no_session_dict(self):
         request = RequestFactory().get("/")
         request.subdomain = "test"
-        CustomerDomainMiddleware(lambda request: request)(request)
+        CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert "session" not in request
+        assert not hasattr(request, "session")
 
         self.create_organization(name="test")
         request = RequestFactory().get("/")
         request.subdomain = "test"
-        response = CustomerDomainMiddleware(lambda request: request)(request)
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert "session" not in request
-        assert response == request
+        assert not hasattr(request, "session")
+        assert response == mock.sentinel.response
 
     def test_no_subdomain(self):
         request = RequestFactory().get("/")
-        request.session = {"activeorg": "test"}
-        response = CustomerDomainMiddleware(lambda request: request)(request)
+        request.session = _session({"activeorg": "test"})
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert request.session == {"activeorg": "test"}
-        assert response == request
+        assert dict(request.session) == {"activeorg": "test"}
+        assert response == mock.sentinel.response
 
     def test_no_activeorg(self):
         request = RequestFactory().get("/")
-        request.session = {}
-        response = CustomerDomainMiddleware(lambda request: request)(request)
+        request.session = _session({})
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert request.session == {}
-        assert response == request
+        assert dict(request.session) == {}
+        assert response == mock.sentinel.response
 
     def test_no_op(self):
         request = RequestFactory().get("/")
-        response = CustomerDomainMiddleware(lambda request: request)(request)
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert "session" not in request
-        assert "subdomain" not in request
-        assert response == request
+        assert not hasattr(request, "session")
+        assert not hasattr(request, "subdomain")
+        assert response == mock.sentinel.response
 
     def test_ignores_region_subdomains(self):
         clear_global_regions()
-        region_configs = [
+        region_configs: list[dict[str, Any]] = [
             {
                 "name": "na",
                 "snowflake_id": 1,
@@ -134,24 +146,24 @@ class CustomerDomainMiddlewareTest(TestCase):
             for region in region_configs:
                 request = RequestFactory().get("/")
                 request.subdomain = region["name"]
-                request.session = {"activeorg": "test"}
-                response = CustomerDomainMiddleware(lambda request: request)(request)
+                request.session = _session({"activeorg": "test"})
+                response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-                assert request.session == {"activeorg": "test"}
-                assert response == request
+                assert dict(request.session) == {"activeorg": "test"}
+                assert response == mock.sentinel.response
 
     def test_handles_redirects(self):
         self.create_organization(name="sentry")
         request = RequestFactory().get("/organizations/albertos-apples/issues/")
         request.subdomain = "sentry"
-        request.session = {"activeorg": "test"}
+        request.session = _session({"activeorg": "test"})
 
         def ignore_request(request: HttpRequest) -> HttpResponse:
             raise NotImplementedError
 
         response = CustomerDomainMiddleware(ignore_request)(request)
 
-        assert request.session == {"activeorg": "sentry"}
+        assert dict(request.session) == {"activeorg": "sentry"}
         assert response.status_code == 302
         assert response["Location"] == "/organizations/sentry/issues/"
 
