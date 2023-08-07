@@ -47,5 +47,5 @@ class OptionsPresenter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def invalid_type(self, key: str, got_type: str, expected_type: str) -> None:
+    def invalid_type(self, key: str, got_type: type, expected_type: type) -> None:
         raise NotImplementedError

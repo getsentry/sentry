@@ -209,8 +209,11 @@ class ConfigOptionsTest(CliTestCase):
         assert rv.exit_code == 0, rv.output
 
         assert ConsolePresenter.SET_MSG % ("int_option", 50) in rv.output
-        assert "Option invalid_type has invalid type." in rv.output
-        assert "Option inexistent_option is not registered, and cannot be updated." in rv.output
+        assert (
+            ConsolePresenter.INVALID_TYPE_ERROR % ("invalid_type", "<class 'list'>", "integer")
+            in rv.output
+        )
+        assert ConsolePresenter.UNREGISTERED_OPTION_ERROR % "inexistent_option" in rv.output
 
         assert not options.isset("readonly_option")
         assert not options.isset("invalid_type")

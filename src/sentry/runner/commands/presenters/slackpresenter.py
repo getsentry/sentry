@@ -113,8 +113,8 @@ class SlackPresenter(OptionsPresenter):
     def invalid_type(
         self,
         key: str,
-        got_type: str,
-        expected_type: str,
+        got_type: type,
+        expected_type: type,
     ) -> None:
         self.invalid_type_options.append((key, got_type, expected_type))
 
