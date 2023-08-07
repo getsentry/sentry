@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Overlay} from 'sentry/components/overlay';
+import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 
@@ -18,9 +19,17 @@ interface Options {
    * May be set to false to disable rendering the timeline cursor
    */
   enabled?: boolean;
+  /**
+   * Should the label stick to teh top of the screen?
+   */
+  sticky?: boolean;
 }
 
-function useTimelineCursor<E extends HTMLElement>({enabled = true, labelText}: Options) {
+function useTimelineCursor<E extends HTMLElement>({
+  enabled = true,
+  sticky,
+  labelText,
+}: Options) {
   const rafIdRef = useRef<number | null>(null);
 
   const containerRef = useRef<E>(null);
@@ -82,12 +91,20 @@ function useTimelineCursor<E extends HTMLElement>({enabled = true, labelText}: O
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [enabled, handleMouseMove]);
 
+  const cursorLabel = sticky ? (
+    <StickyLabel>
+      <CursorLabel ref={labelRef} animated placement="right" />
+    </StickyLabel>
+  ) : (
+    <CursorLabel ref={labelRef} animated placement="right" />
+  );
+
   const timelineCursor = (
     <AnimatePresence>
       {isVisible && (
         <Fragment>
           <Cursor role="presentation" />
-          <CursorLabel ref={labelRef} animated placement="right" />
+          {cursorLabel}
         </Fragment>
       )}
     </AnimatePresence>
@@ -134,6 +151,10 @@ const CursorLabel = styled(Overlay)`
     calc(var(--cursorOffset) + ${TOOLTIP_OFFSET}px),
     calc(var(--cursorMax) - var(--cursorLabelWidth) - ${TOOLTIP_OFFSET}px)
   );
+`;
+
+const StickyLabel = styled(Sticky)`
+  z-index: 2;
 `;
 
 export {useTimelineCursor};

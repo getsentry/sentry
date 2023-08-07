@@ -18,6 +18,7 @@ interface Props {
   width: number;
   className?: string;
   showCursor?: boolean;
+  stickyCursor?: boolean;
 }
 
 function clampTimeBasedOnResolution(date: moment.Moment, resolution: string) {
@@ -67,7 +68,13 @@ export function GridLineTimeLabels({end, timeWindow, width}: Props) {
   );
 }
 
-export function GridLineOverlay({end, timeWindow, width, showCursor}: Props) {
+export function GridLineOverlay({
+  end,
+  timeWindow,
+  width,
+  showCursor,
+  stickyCursor,
+}: Props) {
   const {cursorLabelFormat} = timeWindowConfig[timeWindow];
 
   const makeCursorText = useCallback(
@@ -82,6 +89,7 @@ export function GridLineOverlay({end, timeWindow, width, showCursor}: Props) {
 
   const {cursorContainerRef, timelineCursor} = useTimelineCursor<HTMLDivElement>({
     enabled: showCursor,
+    sticky: stickyCursor,
     labelText: makeCursorText,
   });
 
