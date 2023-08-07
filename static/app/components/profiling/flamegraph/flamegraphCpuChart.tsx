@@ -1,4 +1,12 @@
-import {CSSProperties, Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {
+  CSSProperties,
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
@@ -28,6 +36,7 @@ import {
   CollapsibleTimelineLoadingIndicator,
   CollapsibleTimelineMessage,
 } from './collapsibleTimeline';
+import {FlamegraphCpuChartTooltip} from './flamegraphCpuChartTooltip';
 
 interface FlamegraphChartProps {
   canvasBounds: Rect;
@@ -46,6 +55,7 @@ export function FlamegraphCpuChart({
   cpuChartCanvas,
   cpuChartCanvasRef,
   setCpuChartCanvasRef,
+  canvasBounds,
 }: FlamegraphChartProps) {
   const profiles = useProfiles();
   const scheduler = useCanvasScheduler(canvasPoolManager);
@@ -57,6 +67,9 @@ export function FlamegraphCpuChart({
     'pan' | 'click' | 'zoom' | 'scroll' | 'select' | 'resize' | null
   >(null);
 
+  const configSpaceCursorRef = useRef<vec2 | null>(null);
+  configSpaceCursorRef.current = configSpaceCursor;
+
   const cpuChartRenderer = useMemo(() => {
     if (!cpuChartCanvasRef || !chart) {
       return null;
@@ -65,54 +78,57 @@ export function FlamegraphCpuChart({
     return new FlamegraphChartRenderer(cpuChartCanvasRef, chart, theme);
   }, [cpuChartCanvasRef, chart, theme]);
 
-  useEffect(() => {
+  const drawCpuChart = useCallback(() => {
     if (!cpuChartCanvas || !chart || !cpuChartView || !cpuChartRenderer) {
-      return undefined;
+      return;
     }
 
-    const drawCpuChart = () => {
-      const configViewToPhysicalSpaceTransform = transformMatrixBetweenRect(
-        cpuChartView.configView,
-        cpuChartCanvas.physicalSpace
-      );
+    const configViewToPhysicalSpaceTransform = transformMatrixBetweenRect(
+      cpuChartView.configView,
+      cpuChartCanvas.physicalSpace
+    );
 
-      const offsetPhysicalSpace = cpuChartCanvas.physicalSpace
-        // shrink the chart height by the padding to pad the top of chart
-        .withHeight(cpuChartCanvas.physicalSpace.height - theme.SIZES.CHART_PX_PADDING);
+    const offsetPhysicalSpace = cpuChartCanvas.physicalSpace
+      // shrink the chart height by the padding to pad the top of chart
+      .withHeight(cpuChartCanvas.physicalSpace.height - theme.SIZES.CHART_PX_PADDING);
 
-      const physicalSpaceToOffsetPhysicalSpaceTransform = transformMatrixBetweenRect(
-        cpuChartCanvas.physicalSpace,
-        offsetPhysicalSpace
-      );
+    const physicalSpaceToOffsetPhysicalSpaceTransform = transformMatrixBetweenRect(
+      cpuChartCanvas.physicalSpace,
+      offsetPhysicalSpace
+    );
 
-      const fromConfigView = mat3.create();
-      mat3.multiply(
-        fromConfigView,
-        physicalSpaceToOffsetPhysicalSpaceTransform,
-        configViewToPhysicalSpaceTransform
-      );
-      mat3.multiply(
-        fromConfigView,
-        cpuChartCanvas.physicalSpace.invertYTransform(),
-        fromConfigView
-      );
+    const fromConfigView = mat3.create();
+    mat3.multiply(
+      fromConfigView,
+      physicalSpaceToOffsetPhysicalSpaceTransform,
+      configViewToPhysicalSpaceTransform
+    );
+    mat3.multiply(
+      fromConfigView,
+      cpuChartCanvas.physicalSpace.invertYTransform(),
+      fromConfigView
+    );
 
-      cpuChartRenderer.draw(
-        cpuChartView.configView,
-        cpuChartView.configSpace,
-        cpuChartCanvas.physicalSpace,
-        fromConfigView,
-        cpuChartView.toConfigView(cpuChartCanvas.logicalSpace)
-      );
-    };
+    cpuChartRenderer.draw(
+      cpuChartView.configView,
+      fromConfigView,
+      cpuChartView.toConfigView(cpuChartCanvas.logicalSpace),
+      configSpaceCursorRef
+    );
+  }, [chart, cpuChartCanvas, cpuChartRenderer, cpuChartView, theme]);
 
+  useEffect(() => {
+    drawCpuChart();
+  }, [drawCpuChart, configSpaceCursor]);
+
+  useEffect(() => {
     scheduler.registerBeforeFrameCallback(drawCpuChart);
     scheduler.draw();
 
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawCpuChart);
     };
-  }, [scheduler, chart, cpuChartCanvas, cpuChartRenderer, cpuChartView, theme]);
+  }, [drawCpuChart, scheduler]);
 
   const onMouseDrag = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
@@ -259,6 +275,20 @@ export function FlamegraphCpuChart({
         onMouseDown={onCanvasMouseDown}
         cursor={lastInteraction === 'pan' ? 'grabbing' : 'default'}
       />
+      {configSpaceCursor &&
+      cpuChartRenderer &&
+      cpuChartCanvas &&
+      cpuChartView &&
+      chart ? (
+        <FlamegraphCpuChartTooltip
+          cpuChart={chart}
+          configSpaceCursor={configSpaceCursor}
+          cpuChartCanvas={cpuChartCanvas}
+          cpuChartView={cpuChartView}
+          cpuChartRenderer={cpuChartRenderer}
+          canvasBounds={canvasBounds}
+        />
+      ) : null}
       {/* transaction loads after profile, so we want to show loading even if it's in initial state */}
       {profiles.type === 'loading' || profiles.type === 'initial' ? (
         <CollapsibleTimelineLoadingIndicator />

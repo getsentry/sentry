@@ -41,7 +41,10 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import {useFlamegraphZoomPosition} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphZoomPosition';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
+import {
+  FlamegraphChart,
+  ProfileSerieMeasurement,
+} from 'sentry/utils/profiling/flamegraphChart';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   computeConfigViewWithStrategy,
@@ -299,11 +302,15 @@ function Flamegraph(): ReactElement {
       return LOADING_OR_FALLBACK_CPU_CHART;
     }
 
-    const measures: Profiling.Measurement[] = [];
+    const measures: ProfileSerieMeasurement[] = [];
 
     for (const key in profileGroup.measurements) {
       if (key.startsWith('cpu_usage')) {
-        measures.push(profileGroup.measurements[key]!);
+        const name =
+          key === 'cpu_usage'
+            ? 'Average CPU usage'
+            : `CPU Core ${key.replace('cpu_usage_', '')}`;
+        measures.push({...profileGroup.measurements[key]!, name});
       }
     }
 

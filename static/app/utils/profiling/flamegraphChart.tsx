@@ -7,13 +7,19 @@ import {makeFormatter} from './units/units';
 interface Series {
   fillColor: string;
   lineColor: string;
+  name: string;
   points: {x: number; y: number}[];
   type: 'line' | 'area';
+}
+
+export interface ProfileSerieMeasurement extends Profiling.Measurement {
+  name: string;
 }
 
 export class FlamegraphChart {
   configSpace: Rect;
   formatter: ReturnType<typeof makeFormatter>;
+  tooltipFormatter: ReturnType<typeof makeFormatter>;
   series: Series[];
   domains: {
     x: [number, number];
@@ -27,23 +33,25 @@ export class FlamegraphChart {
 
   constructor(
     configSpace: Rect,
-    measurements: Profiling.Measurement[],
+    measurements: ProfileSerieMeasurement[],
     colors: ColorChannels[]
   ) {
     this.series = new Array<Series>();
 
     if (!measurements || !measurements.length) {
       this.formatter = makeFormatter('percent');
+      this.tooltipFormatter = makeFormatter('percent');
       this.configSpace = configSpace.clone();
       return;
     }
 
-    const type = measurements.length > 0 ? 'line' : 'area';
+    const type = measurements.length > 1 ? 'line' : 'area';
 
     for (let j = 0; j < measurements.length; j++) {
       const measurement = measurements[j];
       this.series[j] = {
         type,
+        name: measurement.name,
         lineColor: colorComponentsToRGBA(colors[j]),
         fillColor: colorComponentsToRGBA(colors[j]),
         points: new Array(measurement.values.length).fill(0),
@@ -78,8 +86,9 @@ export class FlamegraphChart {
       return bAvg - aAvg;
     });
 
-    this.domains.y[1] = 100;
+    this.domains.y[1] = this.domains.y[1] + 5;
     this.configSpace = configSpace.withHeight(this.domains.y[1] - this.domains.y[0]);
     this.formatter = makeFormatter(measurements[0].unit, 0);
+    this.tooltipFormatter = makeFormatter(measurements[0].unit, 2);
   }
 }

@@ -46,6 +46,7 @@ export interface FlamegraphTheme {
   // They should instead be defined as arrays of numbers so we can use them with glsl and avoid unnecessary parsing
   COLORS: {
     BAR_LABEL_FONT_COLOR: string;
+    CHART_CURSOR_INDICATOR: string;
     COLOR_BUCKET: (t: number) => ColorChannels;
     COLOR_MAPS: Record<FlamegraphColorCodings[number], ColorMapFn>;
     CPU_CHART_COLORS: ColorChannels[];
@@ -192,6 +193,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
       'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
     },
     CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
+    CHART_CURSOR_INDICATOR: 'rgba(31,35,58,.75)',
     CPU_CHART_LABEL_COLOR: 'rgba(31,35,58,.75)',
     CURSOR_CROSSHAIR: '#bbbbbb',
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
@@ -240,6 +242,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
       'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
     },
     CPU_CHART_COLORS: [[0.96, 0.69, 0.0, 0.6]],
+    CHART_CURSOR_INDICATOR: 'rgba(255, 255, 255, 0.5)',
     CPU_CHART_LABEL_COLOR: 'rgba(255, 255, 255, 0.5)',
     CURSOR_CROSSHAIR: '#828285',
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
