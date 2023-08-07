@@ -2,6 +2,7 @@ import logging
 
 from django.utils import timezone
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -39,6 +40,19 @@ CHECKINS_LIMIT = 10_000
 
 # Format to use in the issue subtitle for the missed check-in timestamp
 SUBTITLE_DATETIME_FORMAT = "%b %d, %I:%M %p"
+
+
+@instrumented_task(name="sentry.monitors.tasks.temp_task_dispatcher", silo_mode=SiloMode.REGION)
+def temp_task_dispatcher():
+    """
+    Temporary task used to dispatch the monitor tasks. This is used to allow
+    for a clean switchover to the consumer driven clock pulse.
+    """
+    if options.get("monitors.use_consumer_clock_task_triggers"):
+        return
+
+    check_missing.delay()
+    check_timeout.delay()
 
 
 @instrumented_task(

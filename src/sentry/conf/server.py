@@ -961,14 +961,8 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": timedelta(seconds=30),
         "options": {"expires": 30},
     },
-    "check-monitors-missing": {
-        "task": "sentry.monitors.tasks.check_missing",
-        # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
-        "options": {"expires": 60},
-    },
-    "check-monitors-timeout": {
-        "task": "sentry.monitors.tasks.check_timeout",
+    "monitors-temp-task-dispatcher": {
+        "task": "sentry.monitors.tasks.temp_task_dispatcher",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
