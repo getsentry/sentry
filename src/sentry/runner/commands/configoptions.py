@@ -142,14 +142,14 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
             opt = options.lookup_key(key)
             if not opt.type.test(value):
                 invalid_options.add(key)
+
+            opt = options.lookup_key(key)
+            if not opt.type.test(value):
+                invalid_options.add(key)
+                presenter_delegator.invalid_type(key, type(value), opt.type)
         except options.UnknownOption:
             invalid_options.add(key)
             presenter_delegator.unregistered(key)
-
-        opt = options.lookup_key(key)
-        if not opt.type.test(value):
-            invalid_options.add(key)
-            presenter_delegator.invalid_type(key, type(value), opt.type)
 
     ctx.obj["invalid_options"] = invalid_options
     ctx.obj["drifted_options"] = drifted_options
