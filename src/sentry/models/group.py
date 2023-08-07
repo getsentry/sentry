@@ -240,7 +240,7 @@ def get_oldest_or_latest_event_for_environments(
     return None
 
 
-def get_helpful_event_for_environments(
+def get_recommended_event_for_environments(
     environments: Sequence[Environment],
     group: Group,
     conditions: Optional[Sequence[Condition]] = None,
@@ -721,12 +721,12 @@ class Group(Model):
             self,
         )
 
-    def get_helpful_event_for_environments(
+    def get_recommended_event_for_environments(
         self,
         environments: Sequence[Environment] = (),
         conditions: Optional[Sequence[Condition]] = None,
     ) -> GroupEvent | None:
-        maybe_event = get_helpful_event_for_environments(
+        maybe_event = get_recommended_event_for_environments(
             environments,
             self,
             conditions,
