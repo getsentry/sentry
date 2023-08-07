@@ -121,7 +121,8 @@ class SlackPresenter(OptionsPresenter):
         self.invalid_type_options.append((key, got_type, expected_type))
 
     def _send_to_webhook(self, json_data: dict) -> None:
-        headers = {"Content-Type": "application/json"}
-        requests.post(
-            OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL, data=json.dumps(json_data), headers=headers
-        )
+        if OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
+            headers = {"Content-Type": "application/json"}
+            requests.post(
+                OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL, data=json.dumps(json_data), headers=headers
+            )
