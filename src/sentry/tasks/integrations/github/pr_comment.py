@@ -356,6 +356,11 @@ def safe_for_comment(
         return False
 
     safe_to_comment = True
+    if pullrequest_resp["state"] != "open":
+        metrics.incr(
+            OPEN_PR_METRIC_BASE.format(key="rejected_comment"), tags={"reason": "incorrect_state"}
+        )
+        safe_to_comment = False
     if pullrequest_resp["changed_files"] > OPEN_PR_MAX_FILES_CHANGED:
         metrics.incr(
             OPEN_PR_METRIC_BASE.format(key="rejected_comment"), tags={"reason": "too_many_files"}

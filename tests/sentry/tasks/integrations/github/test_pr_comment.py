@@ -810,7 +810,7 @@ class TestSafeForComment(GithubCommentTestCase):
             responses.GET,
             self.gh_path.format(pull_number=self.pr.key),
             status=200,
-            json={"changed_files": 5, "additions": 100, "deletions": 100},
+            json={"changed_files": 5, "additions": 100, "deletions": 100, "state": "open"},
         )
 
         assert safe_for_comment(self.gh_client, self.gh_repo, self.pr)
@@ -827,8 +827,7 @@ class TestSafeForComment(GithubCommentTestCase):
             },
         )
 
-        with pytest.raises(ApiError):
-            safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
         self.mock_metrics.incr.assert_called_with(
             "github_open_pr_comment.api_error", tags={"type": "gh_rate_limited", "code": 429}
         )
@@ -857,12 +856,26 @@ class TestSafeForComment(GithubCommentTestCase):
         )
 
     @responses.activate
+    def test_not_open_pr(self):
+        responses.add(
+            responses.GET,
+            self.gh_path.format(pull_number=self.pr.key),
+            status=200,
+            json={"changed_files": 10, "additions": 100, "deletions": 100, "state": "closed"},
+        )
+
+        assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        self.mock_metrics.incr.assert_called_with(
+            "github_open_pr_comment.rejected_comment", tags={"reason": "incorrect_state"}
+        )
+
+    @responses.activate
     def test_too_many_files(self):
         responses.add(
             responses.GET,
             self.gh_path.format(pull_number=self.pr.key),
             status=200,
-            json={"changed_files": 11, "additions": 100, "deletions": 100},
+            json={"changed_files": 11, "additions": 100, "deletions": 100, "state": "open"},
         )
 
         assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
@@ -876,7 +889,7 @@ class TestSafeForComment(GithubCommentTestCase):
             responses.GET,
             self.gh_path.format(pull_number=self.pr.key),
             status=200,
-            json={"changed_files": 5, "additions": 300, "deletions": 300},
+            json={"changed_files": 5, "additions": 300, "deletions": 300, "state": "open"},
         )
 
         assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
@@ -890,7 +903,7 @@ class TestSafeForComment(GithubCommentTestCase):
             responses.GET,
             self.gh_path.format(pull_number=self.pr.key),
             status=200,
-            json={"changed_files": 11, "additions": 300, "deletions": 300},
+            json={"changed_files": 11, "additions": 300, "deletions": 300, "state": "open"},
         )
 
         assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
