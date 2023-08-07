@@ -11,125 +11,114 @@ import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import teamSettingsFields from 'sentry/data/forms/teamSettingsFields';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {Organization, Team} from 'sentry/types';
+import {Team} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
-type Props = RouteComponentProps<{teamId: string}, {}> & {
-  organization: Organization;
+interface TeamSettingsProps extends RouteComponentProps<{teamId: string}, {}> {
   team: Team;
-};
+}
 
-type State = DeprecatedAsyncView['state'];
+function TeamSettings({team, params}: TeamSettingsProps) {
+  const organization = useOrganization();
+  const api = useApi();
 
-class TeamSettings extends DeprecatedAsyncView<Props, State> {
-  getTitle() {
-    return 'Team Settings';
-  }
-
-  getEndpoints() {
-    return [];
-  }
-
-  handleSubmitSuccess: FormProps['onSubmitSuccess'] = (resp, _model, id) => {
-    const {organization} = this.props;
-
+  const handleSubmitSuccess: FormProps['onSubmitSuccess'] = (resp: Team, _model, id) => {
     // Use the old slug when triggering the update so we correctly replace the
     // previous team in the store
-    updateTeamSuccess(this.props.team.slug, resp);
+    updateTeamSuccess(team.slug, resp);
     if (id === 'slug') {
       addSuccessMessage(t('Team name changed'));
       browserHistory.replace(
         normalizeUrl(`/settings/${organization.slug}/teams/${resp.slug}/settings/`)
       );
-      this.setState({loading: true});
     }
   };
 
-  handleRemoveTeam = async () => {
-    const {organization, params} = this.props;
+  const handleRemoveTeam = async () => {
     try {
-      await removeTeam(this.api, {orgId: organization.slug, teamId: params.teamId});
+      await removeTeam(api, {orgId: organization.slug, teamId: params.teamId});
       browserHistory.replace(normalizeUrl(`/settings/${organization.slug}/teams/`));
     } catch {
       // removeTeam already displays an error message
     }
   };
 
-  renderBody() {
-    const {organization, team} = this.props;
-    const idpProvisioned = team.flags['idp:provisioned'];
-    const orgRoleList = organization.orgRoleList;
-    const hasOrgRoleFlag = organization.features.includes('org-roles-for-teams');
+  const idpProvisioned = team.flags['idp:provisioned'];
+  const orgRoleList = organization.orgRoleList;
+  const hasOrgRoleFlag = organization.features.includes('org-roles-for-teams');
 
-    const hasTeamWrite = hasEveryAccess(['team:write'], {organization, team});
-    const hasTeamAdmin = hasEveryAccess(['team:admin'], {organization, team});
-    const hasOrgAdmin = hasEveryAccess(['org:admin'], {organization});
+  const hasTeamWrite = hasEveryAccess(['team:write'], {organization, team});
+  const hasTeamAdmin = hasEveryAccess(['team:admin'], {organization, team});
+  const hasOrgAdmin = hasEveryAccess(['org:admin'], {organization});
 
-    return (
-      <Fragment>
-        <PermissionAlert access={['team:write']} team={team} />
+  return (
+    <Fragment>
+      <SentryDocumentTitle title={t('Team Settings')} orgSlug={organization.slug} />
 
-        <Form
-          apiMethod="PUT"
-          apiEndpoint={`/teams/${organization.slug}/${team.slug}/`}
-          saveOnBlur
-          allowUndo
-          onSubmitSuccess={this.handleSubmitSuccess}
-          onSubmitError={() => addErrorMessage(t('Unable to save change'))}
-          initialData={{
-            name: team.name,
-            slug: team.slug,
-            orgRole: team.orgRole,
+      <PermissionAlert access={['team:write']} team={team} />
+
+      <Form
+        apiMethod="PUT"
+        apiEndpoint={`/teams/${organization.slug}/${team.slug}/`}
+        saveOnBlur
+        allowUndo
+        onSubmitSuccess={handleSubmitSuccess}
+        onSubmitError={() => addErrorMessage(t('Unable to save change'))}
+        initialData={{
+          name: team.name,
+          slug: team.slug,
+          orgRole: team.orgRole,
+        }}
+      >
+        <JsonForm
+          additionalFieldProps={{
+            idpProvisioned,
+            hasOrgRoleFlag,
+            hasTeamWrite,
+            hasOrgAdmin,
+            orgRoleList,
           }}
-        >
-          <JsonForm
-            additionalFieldProps={{
-              idpProvisioned,
-              hasOrgRoleFlag,
-              hasTeamWrite,
-              hasOrgAdmin,
-              orgRoleList,
-            }}
-            forms={teamSettingsFields}
-          />
-        </Form>
+          forms={teamSettingsFields}
+        />
+      </Form>
 
-        <Panel>
-          <PanelHeader>{t('Team Administration')}</PanelHeader>
-          <FieldGroup
-            label={t('Remove Team')}
-            help={t(
-              "This may affect team members' access to projects and associated alert delivery."
-            )}
-          >
-            <div>
-              <Confirm
-                disabled={!hasTeamAdmin}
-                onConfirm={this.handleRemoveTeam}
+      <Panel>
+        <PanelHeader>{t('Team Administration')}</PanelHeader>
+        <FieldGroup
+          label={t('Remove Team')}
+          help={t(
+            "This may affect team members' access to projects and associated alert delivery."
+          )}
+        >
+          <div>
+            <Confirm
+              disabled={!hasTeamAdmin}
+              onConfirm={handleRemoveTeam}
+              priority="danger"
+              message={tct('Are you sure you want to remove the team [team]?', {
+                team: `#${team.slug}`,
+              })}
+            >
+              <Button
+                icon={<IconDelete />}
                 priority="danger"
-                message={tct('Are you sure you want to remove the team [team]?', {
-                  team: `#${team.slug}`,
-                })}
+                data-test-id="button-remove-team"
               >
-                <Button
-                  icon={<IconDelete />}
-                  priority="danger"
-                  data-test-id="button-remove-team"
-                >
-                  {t('Remove Team')}
-                </Button>
-              </Confirm>
-            </div>
-          </FieldGroup>
-        </Panel>
-      </Fragment>
-    );
-  }
+                {t('Remove Team')}
+              </Button>
+            </Confirm>
+          </div>
+        </FieldGroup>
+      </Panel>
+    </Fragment>
+  );
 }
-export default withOrganization(TeamSettings);
+
+export default TeamSettings;

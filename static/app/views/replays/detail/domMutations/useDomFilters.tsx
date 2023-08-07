@@ -28,7 +28,7 @@ type Return = {
 const TYPE_TO_LABEL: Record<string, string> = {
   'ui.slowClickDetected': 'Rage & Dead Click',
   'largest-contentful-paint': 'LCP',
-  'ui.click': 'Click',
+  'ui.click': 'User Click',
   'ui.keyDown': 'KeyDown',
   'ui.input': 'Input',
 };

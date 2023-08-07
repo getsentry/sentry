@@ -81,7 +81,12 @@ class SlackClientDisable(TestCase):
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
         assert msg.subject == "Action required: re-authenticate or fix your Slack integration"
-        assert (f"/settings/integrations/{self.integration.provider}") in msg.body
+        assert (
+            self.organization.absolute_url(
+                f"/settings/{self.organization.slug}/integrations/{self.integration.provider}"
+            )
+            in msg.body
+        )
 
     @responses.activate
     def test_fatal_integration(self):
