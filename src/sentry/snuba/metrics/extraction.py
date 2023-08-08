@@ -1,15 +1,13 @@
 import hashlib
 import logging
 import re
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import (
     Any,
+    Callable,
     Dict,
-    Generic,
     List,
     Literal,
-    NamedTuple,
     Optional,
     Sequence,
     Tuple,
@@ -20,6 +18,7 @@ from typing import (
     cast,
 )
 
+from django.utils.functional import cached_property
 from typing_extensions import NotRequired
 
 from sentry.api import event_search
@@ -476,177 +475,64 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
         return value
 
 
-class OndemandMetricSpec(NamedTuple):
-    op: Optional[MetricOperationType]
-    metric_type: str
-    field: Optional[str]
-    condition: RuleCondition
-    tags_conditions: List[TagSpec]
+TagsSpecsGenerator = Callable[[Project, Optional[str]], List[TagSpec]]
 
-    original_query: str
 
-    @property
-    def mri(self) -> str:
-        """The unique identifier of the on-demand metric."""
-        return f"{self.metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none"
-
-    def query_hash(self) -> str:
-        """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
-        sorted_conditions = str(_deep_sorted(self.condition))
-        str_to_hash = f"{self.field};{sorted_conditions}"
-        return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
-
-    def to_metric_spec(self) -> MetricSpec:
-        extended_tags_conditions = self.tags_conditions.copy()
-        extended_tags_conditions.append({"key": QUERY_HASH_KEY, "value": self.query_hash()})
-
-        return {
-            "category": DataCategory.TRANSACTION.api_name(),
-            "mri": self.mri,
-            "field": self.field,
-            "condition": self.condition,
-            "tags": extended_tags_conditions,
+def failure_rate_tag_spec(_1: Project, _2: Optional[str]) -> List[TagSpec]:
+    return [
+        {
+            "key": "failure",
+            "value": "true",
+            "condition": {
+                "inner": {
+                    "name": "event.contexts.trace.status",
+                    "op": "eq",
+                    "value": ["ok", "cancelled", "unknown"],
+                },
+                "op": "not",
+            },
         }
+    ]
 
 
-@dataclass(frozen=True)
-class DerivedMetricParams:
-    params: Dict[str, Any]
+def apdex_tag_spec(project: Project, argument: Optional[str]) -> List[TagSpec]:
+    _, metric = _get_apdex_project_transaction_threshold(project)
 
-    @staticmethod
-    def empty():
-        return DerivedMetricParams({})
+    if argument is None:
+        raise Exception("apdex requires a threshold parameter.")
 
-    def add_param(self, param_key: str, param_value: Any):
-        self.params[param_key] = param_value
+    field = _map_field_name(metric)
+    apdex_threshold = int(argument)
 
-    def consume(self, consumer: str) -> "DerivedMetricParamsConsumer":
-        return DerivedMetricParamsConsumer(consumer=consumer, params=self)
-
-
-class DerivedMetricParamsConsumer:
-    def __init__(self, consumer: str, params: DerivedMetricParams):
-        self.consumer = consumer
-        self.params = params
-
-        self._fetched_params: List[Any] = []
-
-    def param(self, param_name: str) -> "DerivedMetricParamsConsumer":
-        param_value = self.params.params.get(param_name)
-        if param_value is None:
-            raise Exception(
-                f"Derived metric {self.consumer} requires parameter '{param_name}' but it was not supplied"
-            )
-
-        self._fetched_params.append(param_value)
-
-        return self
-
-    def get_all(self) -> List[Any]:
-        return self._fetched_params
+    return [
+        {
+            "key": "satisfaction",
+            "value": "satisfactory",
+            "condition": {"name": field, "op": "lte", "value": apdex_threshold},
+        },
+        {
+            "key": "satisfaction",
+            "value": "tolerable",
+            "condition": {
+                "inner": [
+                    {"name": field, "op": "gt", "value": apdex_threshold},
+                    {"name": field, "op": "lte", "value": apdex_threshold * 4},
+                ],
+                "op": "and",
+            },
+        },
+        {
+            "key": "satisfaction",
+            "value": "frustrated",
+            "condition": {"name": field, "op": "gt", "value": apdex_threshold * 4},
+        },
+    ]
 
 
-@dataclass(frozen=True)
-class DerivedMetricComponent:
-    tag_key: str
-    tag_value: str
-    condition: RuleCondition
-
-
-class DerivedMetric(ABC):
-    @abstractmethod
-    def get_operation_type(self) -> MetricOperationType:
-        pass
-
-    @abstractmethod
-    def get_components(
-        self, derived_metric_params: DerivedMetricParams
-    ) -> List[DerivedMetricComponent]:
-        pass
-
-
-class FailureRate(DerivedMetric):
-    def get_operation_type(self) -> MetricOperationType:
-        return "on_demand_failure_rate"
-
-    def get_components(
-        self, derived_metric_params: DerivedMetricParams
-    ) -> List[DerivedMetricComponent]:
-        return [
-            DerivedMetricComponent(
-                tag_key="failure",
-                tag_value="true",
-                condition={
-                    "inner": {
-                        "name": "event.contexts.trace.status",
-                        "op": "eq",
-                        "value": ["ok", "cancelled", "unknown"],
-                    },
-                    "op": "not",
-                },
-            ),
-        ]
-
-
-class Apdex(DerivedMetric):
-    def get_operation_type(self) -> MetricOperationType:
-        return "on_demand_apdex"
-
-    def get_components(
-        self, derived_metric_params: DerivedMetricParams
-    ) -> List[DerivedMetricComponent]:
-        apdex_threshold, field_to_extract = (
-            derived_metric_params.consume(consumer=self.get_operation_type())
-            .param("apdex_threshold")
-            .param("field_to_extract")
-            .get_all()
-        )
-
-        field = _map_field_name(field_to_extract)
-
-        return [
-            # Satisfactory.
-            DerivedMetricComponent(
-                tag_key="satisfaction",
-                tag_value="satisfactory",
-                condition={"name": field, "op": "lte", "value": apdex_threshold},
-            ),
-            # Tolerable.
-            DerivedMetricComponent(
-                tag_key="satisfaction",
-                tag_value="tolerable",
-                condition={
-                    "inner": [
-                        {"name": field, "op": "gt", "value": apdex_threshold},
-                        {"name": field, "op": "lte", "value": apdex_threshold * 4},
-                    ],
-                    "op": "and",
-                },
-            ),
-            # Frustrated.
-            DerivedMetricComponent(
-                tag_key="satisfaction",
-                tag_value="frustrated",
-                condition={"name": field, "op": "gt", "value": apdex_threshold * 4},
-            ),
-        ]
-
-
-# Dynamic mapping between derived metric field name and derived metric definition.
-_DERIVED_METRICS: Dict[MetricOperationType, DerivedMetric] = {
-    derived_metric.get_operation_type(): derived_metric
-    for derived_metric in [FailureRate(), Apdex()]
+_DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator] = {
+    "on_demand_failure_rate": failure_rate_tag_spec,
+    "on_demand_apdex": apdex_tag_spec,
 }
-
-
-Input = TypeVar("Input")
-Output = TypeVar("Output")
-
-
-class OndemandParser(ABC, Generic[Input, Output]):
-    @abstractmethod
-    def parse(self, value: Input) -> Optional[Output]:
-        pass
 
 
 @dataclass(frozen=True)
@@ -656,100 +542,95 @@ class FieldParsingResult:
     alias: str
 
 
-class FieldParser(OndemandParser[str, FieldParsingResult]):
-    def parse(self, value: str) -> Optional[FieldParsingResult]:
-        try:
-            function, arguments, alias = fields.parse_function(value)
-            return FieldParsingResult(function=function, arguments=arguments, alias=alias)
-        except InvalidSearchQuery:
-            return None
-
-
 @dataclass(frozen=True)
 class QueryParsingResult:
     conditions: Sequence[QueryToken]
 
 
-class QueryParser(OndemandParser[str, QueryParsingResult]):
-    def parse(self, value: str) -> Optional[QueryParsingResult]:
-        try:
-            conditions = event_search.parse_search_query(value)
-            return QueryParsingResult(conditions=conditions)
-        except InvalidSearchQuery:
+@dataclass
+class OndemandMetricSpec:
+    # Base fields from outside.
+    field: Optional[str]
+    query: str
+
+    # Public fields.
+    op: MetricOperationType
+
+    # Private fields.
+    _metric_type: str
+    _argument: Optional[str]
+
+    def __init__(self, field: str, query: str):
+        self.field = field
+        self.query = self._cleanup_query(query)
+
+        self._eager_process()
+
+    def _eager_process(self):
+        op, metric_type, argument = self._process_field()
+
+        self.op = op
+        self._metric_type = metric_type
+        self._argument = argument
+
+    @property
+    def field_to_extract(self):
+        if self.op == "on_demand_apdex":
             return None
 
+        return self._argument
 
-class OndemandMetricSpecBuilder:
-    def __init__(
-        self,
-        field_parser: OndemandParser[str, FieldParsingResult],
-        query_parser: OndemandParser[str, QueryParsingResult],
-    ):
-        self._field_parser = field_parser
-        self._query_parser = query_parser
+    @cached_property
+    def mri(self) -> str:
+        """The unique identifier of the on-demand metric."""
+        return f"{self._metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none"
 
-    @staticmethod
-    def default() -> "OndemandMetricSpecBuilder":
-        return OndemandMetricSpecBuilder(field_parser=FieldParser(), query_parser=QueryParser())
+    @cached_property
+    def query_hash(self) -> str:
+        """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
+        sorted_conditions = str(_deep_sorted(self.condition))
+        str_to_hash = f"{self.field};{sorted_conditions}"
+        return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
 
-    def build_spec(
-        self,
-        field: str,
-        query: str,
-        derived_metric_params: Optional[DerivedMetricParams] = None,
-    ) -> OndemandMetricSpec:
-        # First we clean up the query from unnecessary filters.
-        query = self._cleanup_query(query)
+    @cached_property
+    def condition(self) -> RuleCondition:
+        """Returns a parent condition containing a list of other conditions which determine whether of not the metric
+        is extracted."""
+        return self._process_query()
 
-        # Second we process all the necessary components.
-        op, metric_type, argument = self._process_field(field=field)
-        rule_condition = self._process_query(field=field, query=query)
-        tags_conditions = []
+    def tags_conditions(self, project: Project) -> List[TagSpec]:
+        tags_specs_generator = _DERIVED_METRICS.get(self.op)
+        if tags_specs_generator is None:
+            return []
 
-        # In case this is a derived metric, we also compute the list of tags conditions that will characterize the
-        # metric.
-        if (derived_metric := _DERIVED_METRICS.get(op)) is not None:
-            if derived_metric_params is None:
-                derived_metric_params = DerivedMetricParams.empty()
+        return tags_specs_generator(project, self._argument)
 
-            if argument is not None:
-                self._extend_derived_metric_params(
-                    op=op, argument=argument, derived_metric_params=derived_metric_params
-                )
+    def to_metric_spec(self, project: Project) -> MetricSpec:
+        extended_tags_conditions = self.tags_conditions(project).copy()
+        extended_tags_conditions.append({"key": QUERY_HASH_KEY, "value": self.query_hash})
 
-                # For now if we have an argument for a derived metric, it implies it is the argument for apdex(x) thus
-                # we want to scrape it, since Relay will not need that. However, we need to better define this behavior
-                # since right now it's very hacky.
-                argument = None
+        return {
+            "category": DataCategory.TRANSACTION.api_name(),
+            "mri": self.mri,
+            "field": self.field,
+            "condition": self.condition,
+            "tags": extended_tags_conditions,
+        }
 
-            tags_conditions = self._process_components(
-                derived_metric=derived_metric, derived_metric_params=derived_metric_params
-            )
-
-        # Third we build the actual spec.
-        return OndemandMetricSpec(
-            op=op,
-            metric_type=metric_type,
-            field=argument,
-            condition=rule_condition,
-            tags_conditions=tags_conditions,
-            original_query=query,
-        )
-
-    def _process_field(self, field: str) -> Tuple[MetricOperationType, str, Optional[str]]:
-        parsed_field = self._field_parser.parse(field)
+    def _process_field(self) -> Tuple[MetricOperationType, str, Optional[str]]:
+        parsed_field = self.parse_field(self.field)
         if parsed_field is None:
-            raise Exception(f"Unable to parse the field {field}")
+            raise Exception(f"Unable to parse the field {self.field}")
 
         op = self._get_op(parsed_field.function)
         metric_type = self._get_metric_type(parsed_field.function)
 
         return op, metric_type, self._parse_argument(op, metric_type, parsed_field)
 
-    def _process_query(self, field: str, query: str) -> RuleCondition:
-        parsed_field = self._field_parser.parse(field)
+    def _process_query(self) -> RuleCondition:
+        parsed_field = self.parse_field(self.field)
         if parsed_field is None:
-            raise Exception(f"Unable to parse the field {field}")
+            raise Exception(f"Unable to parse the field {self.field}")
 
         # We have to handle the special case for the "count_if" function, however it may be better to build some
         # better abstracted code to handle third-party rule conditions injection.
@@ -759,7 +640,7 @@ class OndemandMetricSpecBuilder:
             count_if_rule_condition = _convert_countif_filter(key, op, value)
 
         # First step is to parse the query string into our internal AST format.
-        parsed_query = self._query_parser.parse(query)
+        parsed_query = self.parse_query(self.query)
         # An on demand metric must have at least a condition, otherwise we can just use a classic metric.
         if parsed_query is None or len(parsed_query.conditions) == 0:
             if count_if_rule_condition is None:
@@ -781,22 +662,6 @@ class OndemandMetricSpecBuilder:
         return rule_condition
 
     @staticmethod
-    def _process_components(
-        derived_metric: DerivedMetric, derived_metric_params: DerivedMetricParams
-    ) -> List[TagSpec]:
-        tags_conditions: List[TagSpec] = []
-        for component in derived_metric.get_components(derived_metric_params):
-            tags_conditions.append(
-                {
-                    "key": component.tag_key,
-                    "value": component.tag_value,
-                    "condition": component.condition,
-                }
-            )
-
-        return tags_conditions
-
-    @staticmethod
     def _parse_argument(
         op: MetricOperationType, metric_type: str, parsed_field: FieldParsingResult
     ) -> Optional[str]:
@@ -811,13 +676,6 @@ class OndemandMetricSpecBuilder:
         map_argument = op not in ["on_demand_apdex"]
 
         return _map_field_name(argument) if map_argument else argument
-
-    @staticmethod
-    def _extend_derived_metric_params(
-        op: MetricOperationType, argument: str, derived_metric_params: DerivedMetricParams
-    ):
-        if op == "on_demand_apdex":
-            derived_metric_params.add_param("apdex_threshold", int(argument))
 
     @staticmethod
     def _get_op(function: str) -> MetricOperationType:
@@ -844,6 +702,22 @@ class OndemandMetricSpecBuilder:
             new_query = re.sub(regex, "", new_query)
 
         return new_query
+
+    @staticmethod
+    def parse_field(value: str) -> Optional[FieldParsingResult]:
+        try:
+            function, arguments, alias = fields.parse_function(value)
+            return FieldParsingResult(function=function, arguments=arguments, alias=alias)
+        except InvalidSearchQuery:
+            return None
+
+    @staticmethod
+    def parse_query(value: str) -> Optional[QueryParsingResult]:
+        try:
+            conditions = event_search.parse_search_query(value)
+            return QueryParsingResult(conditions=conditions)
+        except InvalidSearchQuery:
+            return None
 
 
 def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
@@ -889,28 +763,25 @@ def _map_field_name(search_key: str) -> str:
     raise ValueError(f"Unsupported query field {search_key}")
 
 
-def _get_derived_metric_params(project: Project, field: str) -> DerivedMetricParams:
-    if field.startswith("apdex"):
-        result = ProjectTransactionThreshold.filter(
-            organization_id=project.organization.id,
-            project_ids=[project.id],
-            order_by=[],
-            value_list=["threshold", "metric"],
-        )
+def _get_apdex_project_transaction_threshold(project: Project) -> Tuple[int, str]:
+    result = ProjectTransactionThreshold.filter(
+        organization_id=project.organization.id,
+        project_ids=[project.id],
+        order_by=[],
+        value_list=["threshold", "metric"],
+    )
 
-        # We expect to find only 1 entry, if we find many or none, we throw an error.
-        if len(result) == 0:
-            raise Exception(f"No apdex threshold found for apdex in project {project.id}")
-        elif len(result) > 1:
-            raise Exception(f"Multiple thresholds found for apdex in project {project.id}")
+    # We expect to find only 1 entry, if we find many or none, we throw an error.
+    if len(result) == 0:
+        raise Exception(f"No apdex threshold found for apdex in project {project.id}")
+    elif len(result) > 1:
+        raise Exception(f"Multiple thresholds found for apdex in project {project.id}")
 
-        # We will extract the threshold from the apdex(x) field where x is the threshold.
-        _threshold, metric = result[0]
-        metric_op = TRANSACTION_METRICS[metric]
+    # We will extract the threshold from the apdex(x) field where x is the threshold.
+    threshold, metric = result[0]
+    metric_id = TRANSACTION_METRICS[metric]
 
-        return DerivedMetricParams({"field_to_extract": f"transaction.{metric_op}"})
-
-    return DerivedMetricParams.empty()
+    return threshold, f"transaction.{metric_id}"
 
 
 T = TypeVar("T")

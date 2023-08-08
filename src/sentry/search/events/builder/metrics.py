@@ -44,8 +44,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
     OndemandMetricSpec,
-    OndemandMetricSpecBuilder,
-    _get_derived_metric_params,
     is_on_demand_metric_query,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
@@ -114,12 +112,9 @@ class MetricsQueryBuilder(QueryBuilder):
             return None
 
         try:
-            project = self.params.projects[0]
-            builder = OndemandMetricSpecBuilder.default()
-            return builder.build_spec(
+            return OndemandMetricSpec(
                 field=field,
                 query=self.query,
-                derived_metric_params=_get_derived_metric_params(project=project, field=field),
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -143,7 +138,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 Condition(
                     lhs=Column(QUERY_HASH_KEY),
                     op=Op.EQ,
-                    rhs=spec.query_hash(),
+                    rhs=spec.query_hash,
                 ),
             ],
             limit=limit,

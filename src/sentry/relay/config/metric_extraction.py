@@ -16,9 +16,8 @@ from sentry.models import (
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     MetricSpec,
-    OndemandMetricSpecBuilder,
+    OndemandMetricSpec,
     RuleCondition,
-    _get_derived_metric_params,
     is_on_demand_metric_query,
 )
 from sentry.snuba.models import SnubaQuery
@@ -186,15 +185,13 @@ def _convert_aggregate_and_query_to_metric(
         if not is_on_demand_metric_query(dataset, aggregate, query):
             return None
 
-        builder = OndemandMetricSpecBuilder.default()
-        on_demand_spec = builder.build_spec(
+        on_demand_spec = OndemandMetricSpec(
             field=aggregate,
             query=query,
-            derived_metric_params=_get_derived_metric_params(project=project, field=aggregate),
         )
 
         return HashedMetricSpec(
-            metric_spec=on_demand_spec.to_metric_spec(), query_hash=on_demand_spec.query_hash()
+            metric_spec=on_demand_spec.to_metric_spec(project), query_hash=on_demand_spec.query_hash
         )
     except Exception as e:
         logger.error(e, exc_info=True)

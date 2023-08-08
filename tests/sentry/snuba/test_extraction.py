@@ -1,12 +1,11 @@
+from unittest.mock import patch
+
 import pytest
 
 from sentry.api.event_search import ParenExpression, parse_search_query
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
-    DerivedMetricParams,
-    FieldParser,
-    OndemandMetricSpecBuilder,
-    QueryParser,
+    OndemandMetricSpec,
     cleanup_query,
     is_on_demand_metric_query,
     is_standard_metrics_compatible,
@@ -199,35 +198,28 @@ class TestIsStandardMetricsCompatible(TestCase):
 
 
 class TestBuildSpec(TestCase):
-    def setUp(self) -> None:
-        self.builder = OndemandMetricSpecBuilder(
-            field_parser=FieldParser(), query_parser=QueryParser()
-        )
-
     def test_spec_simple_query_count(self):
-        spec = self.builder.build_spec(field="count()", query="transaction.duration:>1s")
+        spec = OndemandMetricSpec(field="count()", query="transaction.duration:>1s")
 
-        assert spec.metric_type == "c"
+        assert spec._metric_type == "c"
         assert spec.field is None
         assert spec.op == "sum"
         assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
 
     def test_spec_simple_query_distribution(self):
-        spec = self.builder.build_spec(
-            field="p75(measurements.fp)", query="transaction.duration:>1s"
-        )
+        spec = OndemandMetricSpec(field="p75(measurements.fp)", query="transaction.duration:>1s")
 
-        assert spec.metric_type == "d"
+        assert spec._metric_type == "d"
         assert spec.field == "event.measurements.fp"
         assert spec.op == "p75"
         assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
 
     def test_spec_or_condition(self):
-        spec = self.builder.build_spec(
+        spec = OndemandMetricSpec(
             field="count()", query="transaction.duration:>=100 OR transaction.duration:<1000"
         )
 
-        assert spec.metric_type == "c"
+        assert spec._metric_type == "c"
         assert spec.field is None
         assert spec.op == "sum"
         assert spec.condition == {
@@ -239,11 +231,9 @@ class TestBuildSpec(TestCase):
         }
 
     def test_spec_and_condition(self):
-        spec = self.builder.build_spec(
-            field="count()", query="release:foo transaction.duration:<10s"
-        )
+        spec = OndemandMetricSpec(field="count()", query="release:foo transaction.duration:<10s")
 
-        assert spec.metric_type == "c"
+        assert spec._metric_type == "c"
         assert spec.field is None
         assert spec.op == "sum"
         assert spec.condition == {
@@ -255,11 +245,11 @@ class TestBuildSpec(TestCase):
         }
 
     def test_spec_nested_condition(self):
-        spec = self.builder.build_spec(
+        spec = OndemandMetricSpec(
             field="count()", query="(release:a OR transaction.op:b) transaction.duration:>1s"
         )
 
-        assert spec.metric_type == "c"
+        assert spec._metric_type == "c"
         assert spec.field is None
         assert spec.op == "sum"
         assert spec.condition == {
@@ -277,11 +267,11 @@ class TestBuildSpec(TestCase):
         }
 
     def test_spec_boolean_precedence(self):
-        spec = self.builder.build_spec(
+        spec = OndemandMetricSpec(
             field="count()", query="release:a OR transaction.op:b transaction.duration:>1s"
         )
 
-        assert spec.metric_type == "c"
+        assert spec._metric_type == "c"
         assert spec.field is None
         assert spec.op == "sum"
         assert spec.condition == {
@@ -299,9 +289,9 @@ class TestBuildSpec(TestCase):
         }
 
     def test_spec_wildcard(self):
-        spec = self.builder.build_spec(field="count()", query="release.version:1.*")
+        spec = OndemandMetricSpec(field="count()", query="release.version:1.*")
 
-        assert spec.metric_type == "c"
+        assert spec._metric_type == "c"
         assert spec.field is None
         assert spec.op == "sum"
         assert spec.condition == {
@@ -311,9 +301,9 @@ class TestBuildSpec(TestCase):
         }
 
     def test_spec_countif(self):
-        spec = self.builder.build_spec(field="count_if(transaction.duration,equals,300)", query="")
+        spec = OndemandMetricSpec(field="count_if(transaction.duration,equals,300)", query="")
 
-        assert spec.metric_type == "c"
+        assert spec._metric_type == "c"
         assert spec.field is None
         assert spec.op == "sum"
         assert spec.condition == {
@@ -323,11 +313,11 @@ class TestBuildSpec(TestCase):
         }
 
     def test_spec_countif_with_query(self):
-        spec = self.builder.build_spec(
+        spec = OndemandMetricSpec(
             field="count_if(transaction.duration,equals,300)", query="release:a OR transaction.op:b"
         )
 
-        assert spec.metric_type == "c"
+        assert spec._metric_type == "c"
         assert spec.field is None
         assert spec.op == "sum"
         assert spec.condition == {
@@ -345,19 +335,19 @@ class TestBuildSpec(TestCase):
         }
 
     def test_spec_ignore_fields(self):
-        with_ignored_field_spec = self.builder.build_spec(
+        with_ignored_field_spec = OndemandMetricSpec(
             field="count()", query="transaction.duration:>=1 project:sentry"
         )
-        without_ignored_field_spec = self.builder.build_spec(
+        without_ignored_field_spec = OndemandMetricSpec(
             field="count()", query="transaction.duration:>=1"
         )
 
         assert with_ignored_field_spec.condition == without_ignored_field_spec.condition
 
     def test_spec_failure_rate(self):
-        spec = self.builder.build_spec(field="failure_rate()", query="transaction.duration:>1s")
+        spec = OndemandMetricSpec(field="failure_rate()", query="transaction.duration:>1s")
 
-        assert spec.metric_type == "e"
+        assert spec._metric_type == "c"
         assert spec.field is None
         assert spec.op == "on_demand_failure_rate"
         assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
@@ -376,18 +366,17 @@ class TestBuildSpec(TestCase):
             },
         ]
 
-    def test_spec_apdex(self):
-        spec = self.builder.build_spec(
-            field="apdex(10)",
-            query="release:a",
-            derived_metric_params=DerivedMetricParams({"field_to_extract": "transaction.duration"}),
-        )
+    @patch("sentry.snuba.metrics.extraction._get_apdex_project_transaction_threshold")
+    def test_spec_apdex(self, _get_apdex_project_transaction_threshold):
+        _get_apdex_project_transaction_threshold.return_value = 100, "transaction.duration"
 
-        assert spec.metric_type == "e"
-        assert spec.field is None
+        spec = OndemandMetricSpec(field="apdex(10)", query="release:a")
+
+        assert spec._metric_type == "c"
+        assert spec.field_to_extract is None
         assert spec.op == "on_demand_apdex"
         assert spec.condition == {"name": "event.release", "op": "eq", "value": "a"}
-        assert spec.tags_conditions == [
+        assert spec.tags_conditions(self.project) == [
             {
                 "condition": {"name": "event.duration", "op": "lte", "value": 10},
                 "key": "satisfaction",
