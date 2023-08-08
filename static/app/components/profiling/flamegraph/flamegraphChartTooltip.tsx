@@ -3,6 +3,7 @@ import * as React from 'react';
 import {vec2} from 'gl-matrix';
 
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
+import {t} from 'sentry/locale';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
@@ -15,34 +16,34 @@ import {
   FlamegraphTooltipTimelineInfo,
 } from './flamegraphTooltip';
 
-export interface FlamegraphCpuChartTooltipProps {
+export interface FlamegraphChartTooltipProps {
   canvasBounds: Rect;
+  chart: FlamegraphChart;
+  chartCanvas: FlamegraphCanvas;
+  chartRenderer: FlamegraphChartRenderer;
+  chartView: CanvasView<FlamegraphChart>;
   configSpaceCursor: vec2;
-  cpuChart: FlamegraphChart;
-  cpuChartCanvas: FlamegraphCanvas;
-  cpuChartRenderer: FlamegraphChartRenderer;
-  cpuChartView: CanvasView<FlamegraphChart>;
 }
 
-export function FlamegraphCpuChartTooltip({
+export function FlamegraphChartTooltip({
   canvasBounds,
   configSpaceCursor,
-  cpuChartCanvas,
-  cpuChart,
-  cpuChartRenderer,
-  cpuChartView,
-}: // cpuChartRenderer,
-FlamegraphCpuChartTooltipProps) {
+  chartCanvas,
+  chart,
+  chartRenderer,
+  chartView,
+}: // chartRenderer,
+FlamegraphChartTooltipProps) {
   const series = useMemo(() => {
-    return cpuChartRenderer.findHoveredSeries(configSpaceCursor, 6e7);
-  }, [cpuChartRenderer, configSpaceCursor]);
+    return chartRenderer.findHoveredSeries(configSpaceCursor, 6e7);
+  }, [chartRenderer, configSpaceCursor]);
 
   return series.length > 0 ? (
     <BoundTooltip
       bounds={canvasBounds}
       cursor={configSpaceCursor}
-      canvas={cpuChartCanvas}
-      canvasView={cpuChartView}
+      canvas={chartCanvas}
+      canvasView={chartView}
     >
       {series.map((p, i) => {
         return (
@@ -53,12 +54,15 @@ FlamegraphCpuChartTooltipProps) {
               />
               {p.name}:&nbsp;
               <FlamegraphTooltipTimelineInfo>
-                {cpuChart.tooltipFormatter(p.points[0].y)}
+                {chart.tooltipFormatter(p.points[0].y)}
               </FlamegraphTooltipTimelineInfo>
             </FlamegraphTooltipFrameMainInfo>
           </React.Fragment>
         );
       })}
+      <FlamegraphTooltipTimelineInfo>
+        {t('at')} {chart.timelineFormatter(configSpaceCursor[0])}{' '}
+      </FlamegraphTooltipTimelineInfo>
     </BoundTooltip>
   ) : null;
 }
