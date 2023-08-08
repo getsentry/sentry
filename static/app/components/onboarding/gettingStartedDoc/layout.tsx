@@ -30,6 +30,14 @@ type NextStep = {
 export type LayoutProps = {
   steps: StepProps[];
   /**
+   * Whether to hide the session replay product in the product selection
+   */
+  hideSessionReplay?: boolean;
+  /**
+   * Whether to include the profiling product in the product selection
+   */
+  includeProfiling?: boolean;
+  /**
    * An introduction displayed before the steps
    */
   introduction?: React.ReactNode;
@@ -44,6 +52,8 @@ export function Layout({
   nextSteps = [],
   newOrg,
   introduction,
+  includeProfiling,
+  hideSessionReplay,
 }: LayoutProps) {
   const organization = useOrganization();
   const {isSelfHosted} = useLegacyStore(ConfigStore);
@@ -51,7 +61,8 @@ export function Layout({
   const isJavaScriptPlatform =
     platformKey === 'javascript' || !!platformKey?.match('^javascript-([A-Za-z]+)$');
 
-  const displayProductSelection = !isSelfHosted && isJavaScriptPlatform;
+  const displayProductSelection =
+    !isSelfHosted && (isJavaScriptPlatform || includeProfiling);
 
   return (
     <Wrapper>
@@ -63,14 +74,21 @@ export function Layout({
       )}
       {displayProductSelection && newOrg && (
         <ProductSelection
-          defaultSelectedProducts={[
-            ProductSolution.PERFORMANCE_MONITORING,
-            ProductSolution.SESSION_REPLAY,
-          ]}
+          defaultSelectedProducts={
+            includeProfiling
+              ? [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING]
+              : [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY]
+          }
+          includeProfiling={includeProfiling}
+          hideSessionReplay={hideSessionReplay}
         />
       )}
       {displayProductSelection && !newOrg && (
-        <ProductSelectionAvailabilityHook organization={organization} />
+        <ProductSelectionAvailabilityHook
+          organization={organization}
+          includeProfiling={includeProfiling}
+          hideSessionReplay={hideSessionReplay}
+        />
       )}
       <Steps withTopSpacing={!displayProductSelection && newOrg}>
         {steps.map(step => (
