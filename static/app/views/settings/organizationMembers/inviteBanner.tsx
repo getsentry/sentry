@@ -2,14 +2,13 @@ import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
-import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconCommit, IconEllipsis, IconGithub, IconInfo, IconMail} from 'sentry/icons';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MissingMember, Organization} from 'sentry/types';
@@ -30,7 +29,7 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
 
   const api = useApi();
   const integrationName = missingMembers?.integration;
-  const promptsFeature = integrationName + '_missing_members';
+  const promptsFeature = `${integrationName}_missing_members`;
 
   const snoozePrompt = useCallback(async () => {
     await promptsUpdate(api, {
@@ -43,25 +42,16 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
   }, [api, organization, promptsFeature]);
 
   useEffect(() => {
-    let isUnmounted = false;
-
     promptsCheck(api, {
       organizationId: organization.id,
       feature: promptsFeature,
     }).then(prompt => {
-      if (isUnmounted) {
-        return;
-      }
-
       setShowBanner(!promptIsDismissed(prompt));
     });
-
-    return () => {
-      isUnmounted = true;
-    };
   });
 
   if (
+    !organization.features.includes('integrations-gh-invite') ||
     !showBanner ||
     !organization.access.includes('org:write') ||
     !missingMembers?.users ||
@@ -75,7 +65,6 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
     {
       key: 'invite-banner-snooze',
       label: t('Hide Missing Members'),
-      priority: 'default',
       onAction: () => {
         openConfirmModal({
           message: t('Are you sure you want to snooze this banner?'),
@@ -126,49 +115,41 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
   cards.push(<SeeMoreCard key="see-more" missingUsers={users} />);
 
   return (
-    <Feature organization={organization} features={['integrations-gh-invite']}>
-      <StyledCard data-test-id="invite-banner">
-        <CardTitleContainer>
-          <CardTitleContent>
-            <CardTitle>{t('Bring your full GitHub team on board in Sentry')}</CardTitle>
-            <Subtitle>
-              {tct(
-                '[missingMemberCount] missing members that are active in your GitHub',
-                {
-                  missingMemberCount: users.length,
-                }
-              )}
-              <Tooltip title="Based on the last 30 days of commit data">
-                <IconInfo size="xs" />
-              </Tooltip>
-            </Subtitle>
-          </CardTitleContent>
-          <ButtonContainer>
-            <Button
-              priority="primary"
+    <StyledCard>
+      <CardTitleContainer>
+        <CardTitleContent>
+          <CardTitle>{t('Bring your full GitHub team on board in Sentry')}</CardTitle>
+          <Subtitle>
+            {tct('[missingMemberCount] missing members that are active in your GitHub', {
+              missingMemberCount: users.length,
+            })}
+            <QuestionTooltip
+              title={t('Based on the last 30 days of commit data')}
               size="xs"
-              // TODO(cathy): open up invite modal
-              data-test-id="view-all-missing-members"
-            >
-              {t('View All')}
-            </Button>
-            <DropdownMenu
-              items={menuItems}
-              trigger={triggerProps => (
-                <Button
-                  {...triggerProps}
-                  aria-label={t('Actions')}
-                  size="xs"
-                  icon={<IconEllipsis direction="down" size="sm" />}
-                  data-test-id="banner-edit-dropdown"
-                />
-              )}
             />
-          </ButtonContainer>
-        </CardTitleContainer>
-        <MemberCardsContainer>{cards}</MemberCardsContainer>
-      </StyledCard>
-    </Feature>
+          </Subtitle>
+        </CardTitleContent>
+        <ButtonContainer>
+          <Button
+            priority="primary"
+            size="xs"
+            // TODO(cathy): open up invite modal
+          >
+            {t('View All')}
+          </Button>
+          <DropdownMenu
+            items={menuItems}
+            triggerProps={{
+              size: 'xs',
+              showChevron: false,
+              icon: <IconEllipsis direction="down" size="sm" />,
+              'aria-label': t('Actions'),
+            }}
+          />
+        </ButtonContainer>
+      </CardTitleContainer>
+      <MemberCardsContainer>{cards}</MemberCardsContainer>
+    </StyledCard>
   );
 }
 
@@ -199,7 +180,6 @@ function SeeMoreCard({missingUsers}: SeeMoreCardProps) {
         size="sm"
         priority="primary"
         // TODO(cathy): open up invite modal
-        data-test-id="view-all-missing-members"
       >
         {t('View All')}
       </Button>

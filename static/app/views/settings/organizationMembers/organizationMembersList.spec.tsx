@@ -625,7 +625,9 @@ describe('OrganizationMembersList', function () {
 
       await act(tick);
 
-      expect(screen.getByTestId('invite-banner')).toBeInTheDocument();
+      expect(
+        screen.getByText('Bring your full GitHub team on board in Sentry')
+      ).toBeInTheDocument();
       expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(5);
       expect(screen.getByText('See all 5 missing members')).toBeInTheDocument();
 

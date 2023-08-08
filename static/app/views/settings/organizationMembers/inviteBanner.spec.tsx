@@ -1,20 +1,18 @@
-import {browserHistory} from 'react-router';
 import moment from 'moment';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {MissingMember} from 'sentry/types';
 import {DEFAULT_SNOOZE_PROMPT_DAYS} from 'sentry/utils/promptIsDismissed';
 import {InviteBanner} from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 const missingMembers = {
   integration: 'github',
-  users: TestStubs.MissingMembers() as MissingMember[],
+  users: TestStubs.MissingMembers(),
 };
 
 const noMissingMembers = {
   integration: 'github',
-  users: [] as MissingMember[],
+  users: [],
 };
 
 describe('inviteBanner', function () {
@@ -33,7 +31,6 @@ describe('inviteBanner', function () {
         snoozed_ts: undefined,
       },
     });
-    (browserHistory.push as jest.Mock).mockReset();
   });
 
   it('render banners with feature flag', async function () {
@@ -51,7 +48,9 @@ describe('inviteBanner', function () {
 
     await act(tick);
 
-    expect(screen.getByTestId('invite-banner')).toBeInTheDocument();
+    expect(
+      screen.getByText('Bring your full GitHub team on board in Sentry')
+    ).toBeInTheDocument();
     expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(5);
     expect(screen.getByText('See all 5 missing members')).toBeInTheDocument();
   });
@@ -71,7 +70,9 @@ describe('inviteBanner', function () {
 
     await act(tick);
 
-    expect(screen.queryByTestId('invite-banner')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Bring your full GitHub team on board in Sentry')
+    ).not.toBeInTheDocument();
   });
 
   it('does not render banner if no missing members', async function () {
@@ -89,7 +90,9 @@ describe('inviteBanner', function () {
 
     await act(tick);
 
-    expect(screen.queryByTestId('invite-banner')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Bring your full GitHub team on board in Sentry')
+    ).not.toBeInTheDocument();
   });
 
   it('does not render banner if lacking org:write', async function () {
@@ -108,7 +111,9 @@ describe('inviteBanner', function () {
 
     await act(tick);
 
-    expect(screen.queryByTestId('invite-banner')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Bring your full GitHub team on board in Sentry')
+    ).not.toBeInTheDocument();
   });
 
   it('renders banner if snoozed_ts days is longer than threshold', async function () {
@@ -138,7 +143,9 @@ describe('inviteBanner', function () {
 
     await act(tick);
 
-    expect(screen.queryByTestId('invite-banner')).toBeInTheDocument();
+    expect(
+      screen.getByText('Bring your full GitHub team on board in Sentry')
+    ).toBeInTheDocument();
   });
 
   it('does not render banner if snoozed_ts days is shorter than threshold', async function () {
@@ -168,6 +175,8 @@ describe('inviteBanner', function () {
 
     await act(tick);
 
-    expect(screen.queryByTestId('invite-banner')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Bring your full GitHub team on board in Sentry')
+    ).not.toBeInTheDocument();
   });
 });
