@@ -1049,6 +1049,7 @@ module = [
     "tests.sentry.release_health.release_monitor.test_sessions",
     "tests.sentry.release_health.test_tasks",
     "tests.sentry.replays.consumers.test_recording",
+    "tests.sentry.replays.test_project_replay_recording_segment_index",
     "tests.sentry.replays.test_project_replay_recording_segment_details",
     "tests.sentry.replays.unit.test_dead_click_issue",
     "tests.sentry.search.events.builder.test_metrics",
