@@ -100,10 +100,10 @@ const MonitorListPanel = styled(Panel)`
 const StickyResolutionSelector = styled(Sticky)`
   z-index: 1;
   padding: ${space(1.5)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
   grid-column: 1/3;
   background: ${p => p.theme.background};
   border-top-left-radius: ${p => p.theme.panelBorderRadius};
+  box-shadow: 0 1px ${p => p.theme.translucentBorder};
 
   &[data-stuck] {
     border-radius: 0;
@@ -119,6 +119,7 @@ const StickyGridLineTimeLabels = styled(Sticky)`
   z-index: 1;
   background: ${p => p.theme.background};
   border-top-right-radius: ${p => p.theme.panelBorderRadius};
+  box-shadow: 0 1px ${p => p.theme.translucentBorder};
 
   &[data-stuck] {
     border-radius: 0;
