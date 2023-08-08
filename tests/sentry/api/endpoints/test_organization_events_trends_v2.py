@@ -252,7 +252,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
                     "project": self.project.id,
-                    "trendFunction": "p75(transaction.duration)",
+                    "trendFunction": "p95(transaction.duration)",
                 },
             )
 
