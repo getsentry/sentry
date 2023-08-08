@@ -13,6 +13,7 @@ from freezegun import freeze_time
 
 from sentry.constants import DataCategory
 from sentry.models import GroupHistoryStatus, GroupStatus, OrganizationMember, Project, UserOption
+from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode, unguarded_write
 from sentry.tasks.weekly_reports import (
     ONE_DAY,
@@ -58,6 +59,28 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         )
 
         member_set = set(project.teams.first().member_set.all())
+
+        with self.tasks():
+            schedule_organizations(timestamp=to_timestamp(now))
+            assert len(mail.outbox) == len(member_set) == 1
+
+            message = mail.outbox[0]
+            assert self.organization.name in message.subject
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_with_empty_string_user_option(self):
+        now = datetime.now().replace(tzinfo=pytz.utc)
+
+        project = self.create_project(
+            organization=self.organization, teams=[self.team], date_added=now - timedelta(days=90)
+        )
+        self.store_event(data={"timestamp": iso_format(before_now(days=1))}, project_id=project.id)
+        member_set = set(project.teams.first().member_set.all())
+        for member in member_set:
+            # some users have an empty string value set for this key, presumably cleared.
+            user_option_service.set_option(
+                user_id=member.user_id, key="reports:disabled-organizations", value=""
+            )
 
         with self.tasks():
             schedule_organizations(timestamp=to_timestamp(now))
