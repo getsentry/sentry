@@ -74,7 +74,7 @@ class PushEventWebhookTest(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(project.organization, self.user)
+            integration.add_organization(project.organization.id, self.user)
 
         response = self.client.post(
             path=self.url,
@@ -231,7 +231,7 @@ class PushEventWebhookTest(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(project.organization, self.user)
+            integration.add_organization(project.organization.id, self.user)
 
         org2 = self.create_organization()
         project2 = self.create_project(organization=org2, name="bar")
@@ -250,7 +250,7 @@ class PushEventWebhookTest(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(org2, self.user)
+            integration.add_organization(org2.id, self.user)
 
         response = self.client.post(
             path=self.url,
@@ -293,8 +293,8 @@ class PushEventWebhookTest(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(project.organization, self.user)
-            integration.add_organization(org2, self.user)
+            integration.add_organization(project.organization.id, self.user)
+            integration.add_organization(org2.id, self.user)
 
         response = self.client.post(
             path=self.url,
@@ -332,8 +332,8 @@ class PushEventWebhookTest(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(project.organization, self.user)
-            integration.add_organization(org2, self.user)
+            integration.add_organization(project.organization.id, self.user)
+            integration.add_organization(org2.id, self.user)
 
         repo = self.create_repo(
             project=project,
@@ -377,7 +377,7 @@ class PullRequestEventWebhook(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(project.organization, self.user)
+            integration.add_organization(project.organization.id, self.user)
 
         response = self.client.post(
             path=self.url,
@@ -476,8 +476,8 @@ class PullRequestEventWebhook(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(project.organization, self.user)
-            integration.add_organization(org2, self.user)
+            integration.add_organization(project.organization.id, self.user)
+            integration.add_organization(org2.id, self.user)
 
         response = self.client.post(
             path=self.url,
@@ -515,8 +515,8 @@ class PullRequestEventWebhook(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(project.organization, self.user)
-            integration.add_organization(org2, self.user)
+            integration.add_organization(project.organization.id, self.user)
+            integration.add_organization(org2.id, self.user)
 
         repo = self.create_repo(
             project=project,
@@ -559,7 +559,7 @@ class PullRequestEventWebhook(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(project.organization, self.user)
+            integration.add_organization(project.organization.id, self.user)
 
         repo = Repository.objects.create(
             organization_id=project.organization.id,
@@ -603,7 +603,7 @@ class PullRequestEventWebhook(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(project.organization, self.user)
+            integration.add_organization(project.organization.id, self.user)
 
         repo = Repository.objects.create(
             organization_id=project.organization.id,

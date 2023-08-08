@@ -21,7 +21,7 @@ class DiscoverSavedQuerySerializer(Serializer):
                     if discover_saved_query.created_by_id
                 ]
             },
-            as_user=user,
+            as_user=user if user.id else None,
         )
         serialized_users = {user["id"]: user for user in service_serialized}
 

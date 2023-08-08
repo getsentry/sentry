@@ -4,12 +4,12 @@ from urllib.parse import urlencode
 from botocore.exceptions import ClientError
 from django.http import HttpResponse
 
-from sentry.api.serializers import serialize
 from sentry.integrations.aws_lambda import AwsLambdaIntegrationProvider
 from sentry.integrations.aws_lambda.utils import ALL_AWS_REGIONS
 from sentry.models import Integration, OrganizationIntegration, ProjectKey
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.project import project_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.silo import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
@@ -37,8 +37,10 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
     def test_project_select(self, mock_react_view):
         resp = self.client.get(self.setup_path)
         assert resp.status_code == 200
-        with assume_test_silo_mode(SiloMode.REGION):
-            serialized_projects = serialize([self.projectA, self.projectB])
+        serialized_projects = project_service.serialize_many(
+            organization_id=self.projectA.organization_id,
+            filter=dict(project_ids=[self.projectA.id, self.projectB.id]),
+        )
         mock_react_view.assert_called_with(
             ANY, "awsLambdaProjectSelect", {"projects": serialized_projects}
         )

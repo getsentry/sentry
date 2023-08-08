@@ -12,6 +12,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.endpoints.rpc import RpcServiceEndpoint
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory, clear_global_regions
@@ -44,6 +45,11 @@ urlpatterns = [
         r"^organizations/(?P<organization_slug>[^\/]+)/region/$",
         RegionEndpoint.as_view(),
         name="region-endpoint",
+    ),
+    re_path(
+        r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",
+        RpcServiceEndpoint.as_view(),
+        name="sentry-api-0-rpc-service",
     ),
 ]
 

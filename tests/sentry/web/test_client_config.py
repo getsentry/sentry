@@ -37,7 +37,7 @@ def request_factory(f):
             env.request = request
             cache.clear()
         else:
-            env.request = None
+            env.clear()
         return result
 
     return wrapper
@@ -98,9 +98,9 @@ def none_request() -> None:
 
 @pytest.fixture(autouse=True)
 def clear_env_request():
-    env.request = None
+    env.clear()
     yield
-    env.request = None
+    env.clear()
 
 
 @pytest.mark.parametrize(

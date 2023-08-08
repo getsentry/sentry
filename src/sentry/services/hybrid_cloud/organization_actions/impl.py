@@ -1,7 +1,8 @@
-from typing import Optional, Tuple, TypedDict
+from typing import Optional, Tuple
 
 from django.db import router, transaction
 from django.db.models.expressions import CombinedExpression
+from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.models import (

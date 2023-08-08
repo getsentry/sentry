@@ -237,7 +237,7 @@ def create_incident_activity(
     comment=None,
     mentioned_user_ids=None,
     date_added=None,
-):
+) -> IncidentActivity:
     if activity_type == IncidentActivityType.COMMENT and user:
         subscribe_to_incident(incident, user.id)
     value = str(value) if value is not None else value

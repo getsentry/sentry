@@ -8,6 +8,7 @@ import pytz
 from fixtures.page_objects.base import BasePage
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
 FEATURES = {
@@ -16,6 +17,7 @@ FEATURES = {
 }
 
 
+@no_silo_test(stable=True)
 class PerformanceSpanSummaryTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

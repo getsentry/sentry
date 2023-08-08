@@ -161,6 +161,7 @@ class SentryAppUpdater:
 
     def _update_service_hooks(self) -> None:
         hooks = hook_service.update_webhook_and_events(
+            organization_id=self.sentry_app.owner_id,
             application_id=self.sentry_app.application_id,
             webhook_url=self.sentry_app.webhook_url,
             events=self.sentry_app.events,

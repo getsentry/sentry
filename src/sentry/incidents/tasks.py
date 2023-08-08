@@ -47,6 +47,9 @@ def send_subscriber_notifications(activity_id: int) -> None:
     except IncidentActivity.DoesNotExist:
         return
 
+    if activity.user_id is None:
+        return
+
     activity_user = user_service.get_user(user_id=activity.user_id)
 
     # Only send notifications for specific activity types.

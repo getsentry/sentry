@@ -14,7 +14,6 @@ from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.plugins.providers import RepositoryProvider
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.integration.service import integration_service
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.usersocialauth.service import usersocialauth_service
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
@@ -483,9 +482,8 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
         if int(integration.external_id) not in allowed_gh_installations:
             raise PluginError("You do not have access to that integration")
 
-        rpc_organization = serialize_rpc_organization(organization)
         integration_service.add_organization(
-            integration_id=integration.id, rpc_organizations=[rpc_organization]
+            integration_id=integration.id, org_ids=[organization.id]
         )
 
         for repo in self.get_repositories(integration):

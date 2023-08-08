@@ -8,11 +8,13 @@ from fixtures.page_objects.base import BasePage
 from sentry.models import Project
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
 FEATURE_NAMES = ("organizations:performance-view",)
 
 
+@no_silo_test(stable=True)
 class PerformanceVitalDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

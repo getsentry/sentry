@@ -289,7 +289,7 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
     def test_get_organization_context(self):
         new_org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            org_integration = self.integration3.add_organization(new_org)
+            org_integration = self.integration3.add_organization(new_org.id)
 
         result_integration, result_org_integration = integration_service.get_organization_context(
             organization_id=new_org.id,

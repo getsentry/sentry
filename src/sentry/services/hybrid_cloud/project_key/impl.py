@@ -10,7 +10,7 @@ from sentry.services.hybrid_cloud.project_key import (
 
 
 class DatabaseBackedProjectKeyService(ProjectKeyService):
-    def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[RpcProjectKey]:
+    def _get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[RpcProjectKey]:
         from sentry.models import ProjectKey
 
         project_keys = ProjectKey.objects.filter(
@@ -21,3 +21,13 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
             return RpcProjectKey(dsn_public=project_keys[0].dsn_public)
 
         return None
+
+    def get_project_key(
+        self, organization_id: int, project_id: str, role: ProjectKeyRole
+    ) -> Optional[RpcProjectKey]:
+        return self._get_project_key(project_id=project_id, role=role)
+
+    def get_project_key_by_region(
+        self, *, region_name: str, project_id: str, role: ProjectKeyRole
+    ) -> Optional[RpcProjectKey]:
+        return self._get_project_key(project_id=project_id, role=role)

@@ -66,7 +66,7 @@ from sentry.notifications.types import NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
-from sentry.services.hybrid_cloud.auth import AuthenticatedToken, auth_service
+from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
@@ -713,9 +713,7 @@ class GroupSerializerBase(Serializer, ABC):
             and is_api_token_auth(request.auth)
         ):
 
-            if auth_service.token_has_org_access(
-                token=AuthenticatedToken.from_token(request.auth), organization_id=organization_id
-            ):
+            if AuthenticatedToken.from_token(request.auth).token_has_org_access(organization_id):
                 return True
 
         if (
