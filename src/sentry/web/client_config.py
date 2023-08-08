@@ -11,13 +11,13 @@ from sentry import features, options
 from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.auth import superuser
 from sentry.auth.superuser import is_active_superuser
-from sentry.services.hybrid_cloud.auth import AuthenticationContext
+from sentry.services.hybrid_cloud.auth import AuthenticatedToken, AuthenticationContext
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
 from sentry.services.hybrid_cloud.user import UserSerializeType
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.utils import auth
+from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.http import is_using_customer_domain
@@ -89,7 +89,11 @@ def _get_public_dsn() -> str | None:
 
     result = cache.get(cache_key)
     if result is None:
-        key = project_key_service.get_project_key(project_id=project_id, role=ProjectKeyRole.store)
+        key = project_key_service.get_project_key_by_region(
+            region_name=settings.SENTRY_MONOLITH_REGION,
+            project_id=project_id,
+            role=ProjectKeyRole.store,
+        )
         if key:
             result = key.dsn_public
         else:
@@ -250,14 +254,14 @@ def get_client_config(request=None):
             filter={"user_ids": [user.id]},
             serializer=UserSerializeType.SELF_DETAILED,
             auth_context=AuthenticationContext(
-                auth=getattr(request, "auth", None),
+                auth=AuthenticatedToken.from_token(getattr(request, "auth", None)),
                 user=serialize_generic_user(request.user),
             ),
         )
 
     if user and user.is_authenticated and user_details:
         context["isAuthenticated"] = True
-        context["user"] = user_details[0]
+        context["user"] = json.loads(json.dumps(user_details[0]))
 
         if request.user.is_superuser:
             # Note: This intentionally does not use the "active" superuser flag as

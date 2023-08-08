@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import patch
 
 from sentry.api.serializers import serialize
@@ -15,6 +16,15 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 # This testcase needs to be an APITestCase because all of the logic to resolve
 # Issues and kick off side effects are just chillin in the endpoint code -_-
 from sentry.types.activity import ActivityType
+from sentry.utils import json
+
+
+def _as_serialized(a: Any) -> Any:
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        return a
+    if "user" in a:
+        a["user"] = json.loads(json.dumps(a["user"]))
+    return a
 
 
 @region_silo_test(stable=True)
@@ -195,7 +205,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "issue.resolved",
                 self.issue.id,
-                sub_data,
+                _as_serialized(sub_data),
             )
 
     def test_notify_after_resolve_in_commit(self, delay):
@@ -213,7 +223,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "issue.resolved",
                 self.issue.id,
-                sub_data,
+                _as_serialized(sub_data),
             )
 
     def test_notify_after_resolve_in_specific_release(self, delay):
@@ -228,7 +238,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "issue.resolved",
                 self.issue.id,
-                sub_data,
+                _as_serialized(sub_data),
             )
 
     def test_notify_after_resolve_in_latest_release(self, delay):
@@ -244,7 +254,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "issue.resolved",
                 self.issue.id,
-                sub_data,
+                _as_serialized(sub_data),
             )
 
     def test_notify_after_resolve_in_next_release(self, delay):
@@ -261,7 +271,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "issue.resolved",
                 self.issue.id,
-                sub_data,
+                _as_serialized(sub_data),
             )
 
     def test_notify_after_resolve_from_set_commits(self, delay):
@@ -298,7 +308,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "issue.resolved",
                 self.issue.id,
-                sub_data,
+                _as_serialized(sub_data),
             )
 
     def test_notify_after_issue_ignored(self, delay):
@@ -312,7 +322,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "issue.ignored",
                 self.issue.id,
-                sub_data,
+                _as_serialized(sub_data),
             )
 
     def test_notify_after_issue_archived(self, delay):
@@ -330,13 +340,13 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "issue.ignored",
                 self.issue.id,
-                sub_data,
+                _as_serialized(sub_data),
             )
             delay.assert_any_call(
                 self.sentryFunction.external_id,
                 "issue.archived",
                 self.issue.id,
-                sub_data,
+                _as_serialized(sub_data),
             )
 
 
@@ -447,7 +457,7 @@ class TestIssueAssignedSentryFunctions(APITestCase):
             self.sentryFunction.external_id,
             "issue.assigned",
             self.issue.id,
-            sub_data,
+            _as_serialized(sub_data),
         )
 
     @with_feature("organizations:sentry-functions")
@@ -472,7 +482,7 @@ class TestIssueAssignedSentryFunctions(APITestCase):
             self.sentryFunction.external_id,
             "issue.assigned",
             self.issue.id,
-            sub_data,
+            _as_serialized(sub_data),
         )
 
 
@@ -586,7 +596,7 @@ class TestCommentsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "comment.created",
                 self.issue.id,
-                data,
+                _as_serialized(data),
             )
 
     def test_comment_updated(self, delay):
@@ -608,7 +618,7 @@ class TestCommentsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "comment.updated",
                 self.issue.id,
-                data,
+                _as_serialized(data),
             )
 
     def test_comment_deleted(self, delay):
@@ -628,5 +638,5 @@ class TestCommentsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "comment.deleted",
                 self.issue.id,
-                data,
+                _as_serialized(data),
             )

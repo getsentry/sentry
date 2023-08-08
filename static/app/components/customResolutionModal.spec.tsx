@@ -101,7 +101,7 @@ describe('CustomResolutionModal', () => {
         Header={p => <span>{p.children}</span>}
         Body={wrapper()}
         Footer={wrapper()}
-        organization={{...organization, features: ['issue-release-semver']}}
+        organization={organization}
         projectSlug="project-slug"
         onSelected={jest.fn()}
         closeModal={jest.fn()}

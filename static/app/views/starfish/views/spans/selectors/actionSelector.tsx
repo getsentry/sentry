@@ -59,7 +59,7 @@ export function ActionSelector({
           value: EMPTY_OPTION_VALUE,
           label: (
             <EmptyContainer>
-              {t('(No %s)', LABEL_FOR_MODULE_NAME[moduleName])}
+              {t('(No Detected %s)', LABEL_FOR_MODULE_NAME[moduleName])}
             </EmptyContainer>
           ),
         },

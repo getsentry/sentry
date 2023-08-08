@@ -335,7 +335,7 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
     );
     return (
       <Fragment>
-        <Fragment>{backButton}</Fragment>
+        {backButton}
         {header}
         {this.renderMainContent(provider)}
         <BreadcrumbTitle
