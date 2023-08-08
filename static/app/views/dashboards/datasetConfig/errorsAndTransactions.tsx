@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import trimStart from 'lodash/trimStart';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
@@ -611,20 +612,25 @@ async function doOnDemandMetricsRequest(
 ): Promise<
   [EventsStats | MultiSeriesEventsStats, string | undefined, ResponseMeta | undefined]
 > {
-  const isEditing = location.pathname.endsWith('/edit/');
+  try {
+    const isEditing = location.pathname.endsWith('/edit/');
 
-  const fetchEstimatedStats = () =>
-    `/organizations/${requestData.organization.slug}/metrics-estimation-stats/`;
+    const fetchEstimatedStats = () =>
+      `/organizations/${requestData.organization.slug}/metrics-estimation-stats/`;
 
-  const response = await doEventsRequest<false>(api, {
-    ...requestData,
-    dataset: 'metricsEnhanced',
-    generatePathname: isEditing ? fetchEstimatedStats : undefined,
-  });
+    const response = await doEventsRequest<false>(api, {
+      ...requestData,
+      dataset: 'metricsEnhanced',
+      generatePathname: isEditing ? fetchEstimatedStats : undefined,
+    });
 
-  response[0] = {...response[0], isMetricsData: true, isExtrapolatedData: isEditing};
+    response[0] = {...response[0], isMetricsData: true, isExtrapolatedData: isEditing};
 
-  return [response[0], response[1], response[2]];
+    return [response[0], response[1], response[2]];
+  } catch (err) {
+    Sentry.captureMessage('Failed to fetch metrics estimation stats', {extra: err});
+    return doEventsRequest<true>(api, requestData);
+  }
 }
 
 // Checks fieldValue to see what function is being used and only allow supported custom measurements

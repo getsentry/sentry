@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -195,14 +195,10 @@ export function FilterResultsStep({
 function OnDemandWarningIcon() {
   return (
     <Tooltip
-      title={
-        <React.Fragment>
-          {t(
-            'We don’t routinely collect metrics from this property. However, we’ll do so '
-          )}
-          <b> {t('once this widget has been saved.')}</b>
-        </React.Fragment>
-      }
+      title={tct(
+        'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
+        {strong: <strong />}
+      )}
     >
       <IconWarning size="sm" />
     </Tooltip>
