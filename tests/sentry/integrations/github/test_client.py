@@ -243,7 +243,7 @@ class GitHubAppsClientTest(TestCase):
         responses.add(
             method=responses.POST,
             url="https://api.github.com/graphql",
-            json={"query": query},
+            json={"query": query, "data": {"repository": {"ref": {"target": {}}}}},
             content_type="application/json",
         )
         resp = self.client.get_blame_for_file(self.repo, path, ref, 1)
@@ -253,6 +253,34 @@ class GitHubAppsClientTest(TestCase):
         )
 
         assert resp == []
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_get_blame_for_file_graphql_errors(self, get_jwt):
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={"errors": [{"message": "something"}, {"message": "went wrong"}]},
+            content_type="application/json",
+        )
+        with pytest.raises(ApiError) as excinfo:
+            self.client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+        (msg,) = excinfo.value.args
+        assert msg == "something, went wrong"
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_get_blame_for_file_graphql_no_branch(self, get_jwt):
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={},
+            content_type="application/json",
+        )
+        with pytest.raises(ApiError) as excinfo:
+            self.client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+        (msg,) = excinfo.value.args
+        assert msg == "Branch does not exist in GitHub."
 
     @responses.activate
     def test_get_cached_repo_files_caching_functionality(self):

@@ -285,7 +285,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
   }),
 };
 
-const MAPPER_DEFAULT = frame => ({
+const MAPPER_DEFAULT = (frame): Details => ({
   color: 'gray300',
   description: frame.message ?? '',
   tabKey: TabKey.CONSOLE,
@@ -296,7 +296,11 @@ const MAPPER_DEFAULT = frame => ({
 export default function getFrameDetails(frame: ReplayFrame): Details {
   const key = getFrameOpOrCategory(frame);
   const fn = MAPPER_FOR_FRAME[key] ?? MAPPER_DEFAULT;
-  return fn(frame);
+  try {
+    return fn(frame);
+  } catch (error) {
+    return MAPPER_DEFAULT(frame);
+  }
 }
 
 function defaultTitle(frame: ReplayFrame) {
@@ -307,7 +311,7 @@ function defaultTitle(frame: ReplayFrame) {
   if ('message' in frame) {
     return frame.message as string; // TODO(replay): Included for backwards compat
   }
-  return frame.description;
+  return frame.description ?? '';
 }
 
 function stringifyNodeAttributes(node: SlowClickFrame['data']['node']) {

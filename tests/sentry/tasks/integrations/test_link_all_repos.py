@@ -9,13 +9,14 @@ from django.utils import timezone
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.silo import SiloMode
 from sentry.snuba.sessions_v2 import isoformat_z
 from sentry.tasks.integrations.link_all_repos import link_all_repos
 from sentry.testutils.cases import IntegrationTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@region_silo_test(stable=True)
+@control_silo_test(stable=True)
 @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
 class LinkAllReposTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider
@@ -65,7 +66,8 @@ class LinkAllReposTestCase(IntegrationTestCase):
             organization_id=self.organization.id,
         )
 
-        repos = Repository.objects.all()
+        with assume_test_silo_mode(SiloMode.REGION):
+            repos = Repository.objects.all()
         assert len(repos) == 2
 
         for repo in repos:
@@ -106,7 +108,8 @@ class LinkAllReposTestCase(IntegrationTestCase):
             organization_id=self.organization.id,
         )
 
-        repos = Repository.objects.all()
+        with assume_test_silo_mode(SiloMode.REGION):
+            repos = Repository.objects.all()
         assert len(repos) == 1
 
         assert repos[0].organization_id == self.organization.id
