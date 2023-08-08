@@ -7,6 +7,7 @@ from sentry.plugins.providers.integration_repository import (
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
 
@@ -25,6 +26,7 @@ def get_repo_config(repo, integration_id):
     name="sentry.integrations.github.link_all_repos",
     queue="integrations",
     max_retries=3,
+    silo_mode=SiloMode.CONTROL,
 )
 @retry(
     exclude=(
