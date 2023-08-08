@@ -1,7 +1,6 @@
-from unittest.mock import patch
-
 import pytest
 import responses
+from django.conf import settings
 
 from sentry.runner.commands.presenters.slackpresenter import SlackPresenter
 from sentry.utils import json
@@ -11,15 +10,12 @@ class TestSlackPresenter:
     @pytest.fixture(autouse=True)
     def setup(self):
         self.slackPresenter = SlackPresenter()
-        self.TEST_OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL = "https://test/"
+        settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL = "https://test/"
 
-    @patch(
-        "sentry.runner.commands.presenters.slackpresenter.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL",
-        "https://test/",
-    )
     @responses.activate
     def test_is_slack_enabled(self):
-        responses.add(responses.POST, self.TEST_OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL, status=200)
+        responses.add(responses.POST, "https://test/", status=200)
+
         self.slackPresenter.set("option1", "value1")
         self.slackPresenter.set("option2", "value2")
 

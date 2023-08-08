@@ -1,8 +1,8 @@
 from typing import List, Tuple
 
 import requests
+from django.conf import settings
 
-from sentry.conf.server import OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL
 from sentry.runner.commands.presenters.optionspresenter import OptionsPresenter
 from sentry.utils import json
 
@@ -29,7 +29,7 @@ class SlackPresenter(OptionsPresenter):
 
     @staticmethod
     def is_slack_enabled():
-        if not OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
+        if not settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
             return False
         try:
             test_payload: dict = {
@@ -42,12 +42,16 @@ class SlackPresenter(OptionsPresenter):
                 "invalid_type_options": [],
             }
 
-            response = requests.post(OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL, json=test_payload)
+            response = requests.post(
+                settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL, json=test_payload
+            )
             if response.status_code == 200:
                 return True
 
             # Retry the call once to ensure reliability
-            response = requests.post(OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL, json=test_payload)
+            response = requests.post(
+                settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL, json=test_payload
+            )
             if response.status_code == 200:
                 return True
             raise
@@ -121,8 +125,10 @@ class SlackPresenter(OptionsPresenter):
         self.invalid_type_options.append((key, got_type, expected_type))
 
     def _send_to_webhook(self, json_data: dict) -> None:
-        if OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
+        if settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
             headers = {"Content-Type": "application/json"}
             requests.post(
-                OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL, data=json.dumps(json_data), headers=headers
+                settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL,
+                data=json.dumps(json_data),
+                headers=headers,
             )
