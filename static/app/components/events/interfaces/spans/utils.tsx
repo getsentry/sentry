@@ -87,6 +87,12 @@ export enum SpanSubTimingMark {
   HTTP_RESPONSE_START = 'http.request.response_start',
 }
 
+export enum SpanSubTimingName {
+  WAIT_TIME = 'Wait Time',
+  REQUEST_TIME = 'Request Time',
+  RESPONSE_TIME = 'Response Time',
+}
+
 const HTTP_DATA_KEYS = [
   'http.request.redirect_start',
   'http.request.fetch_start',
@@ -345,19 +351,19 @@ const SPAN_SUB_TIMINGS: Record<string, SubTimingDefinition[]> = {
     {
       startMark: SpanSubTimingMark.SPAN_START,
       endMark: SpanSubTimingMark.HTTP_REQUEST_START,
-      name: 'Wait Time',
+      name: SpanSubTimingName.WAIT_TIME,
       colorLighten: 0.5,
     },
     {
       startMark: SpanSubTimingMark.HTTP_REQUEST_START,
       endMark: SpanSubTimingMark.HTTP_RESPONSE_START,
-      name: 'Request Time',
+      name: SpanSubTimingName.REQUEST_TIME,
       colorLighten: 0.25,
     },
     {
       startMark: SpanSubTimingMark.HTTP_RESPONSE_START,
       endMark: SpanSubTimingMark.SPAN_END,
-      name: 'Response Time',
+      name: SpanSubTimingName.RESPONSE_TIME,
       colorLighten: 0,
     },
   ],

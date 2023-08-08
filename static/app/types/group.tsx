@@ -71,6 +71,7 @@ export enum IssueType {
   PERFORMANCE_RENDER_BLOCKING_ASSET = 'performance_render_blocking_asset_span',
   PERFORMANCE_UNCOMPRESSED_ASSET = 'performance_uncompressed_assets',
   PERFORMANCE_LARGE_HTTP_PAYLOAD = 'performance_large_http_payload',
+  PERFORMANCE_HTTP_OVERHEAD = 'performance_http_overhead',
 
   // Profile
   PROFILE_FILE_IO_MAIN_THREAD = 'profile_file_io_main_thread',
@@ -93,6 +94,7 @@ export const getIssueTypeFromOccurenceType = (
     1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
     1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
     1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
+    1016: IssueType.PERFORMANCE_HTTP_OVERHEAD,
   };
   if (!typeId) {
     return null;
