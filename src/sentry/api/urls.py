@@ -4,6 +4,7 @@ from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
+from sentry.api.endpoints.internal.feature_flags import InternalFeatureFlagsEndpoint
 from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
 from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
 from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
@@ -2826,6 +2827,11 @@ INTERNAL_URLS = [
         r"^check-am2-compatibility/$",
         CheckAM2CompatibilityEndpoint.as_view(),
         name="sentry-api-0-internal-check-am2-compatibility",
+    ),
+    re_path(
+        r"^feature-flags/$",
+        InternalFeatureFlagsEndpoint.as_view(),
+        name="sentry-api-0-internal-feature-flags",
     ),
 ]
 

@@ -1386,6 +1386,14 @@ if os.environ.get("OPENAPIGENERATE", False):
 CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
+
+SENTRY_FEATURES_DESCRIPTIONS = {
+    "organizations:integrations-codeowners": "Enable the API to importing CODEOWNERS for a project",
+    "organizations:integrations-event-hooks": "Enable interface functionality to receive event hooks",
+    "organizations:integrations-ticket-rules": "Allow orgs to automatically create Tickets in Issue Alerts",
+    "organizations:issue-stream-performance-cache": "Enable issue stream performance improvements (cache)",
+}
+
 SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables user registration.
     "auth:register": True,
