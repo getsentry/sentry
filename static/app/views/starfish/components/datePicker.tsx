@@ -8,6 +8,7 @@ function StarfishDatePicker() {
     <DatePageFilter
       defaultPeriod="24h"
       alignDropdown="left"
+      storageNamespace="starfish"
       onChange={({start, end, relative}) => {
         trackAnalytics('starfish.page_filter.data_change', {
           organization,

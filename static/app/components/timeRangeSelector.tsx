@@ -120,6 +120,10 @@ export interface TimeRangeSelectorProps
    */
   start?: DateString;
   /**
+   * Optional prefix for the storage key, for areas of the app that need separate pagefilters (i.e Starfish)
+   */
+  storageNamespace?: string;
+  /**
    * Default initial value for using UTC
    */
   utc?: boolean | null;
