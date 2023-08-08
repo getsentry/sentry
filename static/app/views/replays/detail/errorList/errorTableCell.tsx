@@ -6,8 +6,8 @@ import Avatar from 'sentry/components/avatar';
 import Link from 'sentry/components/links/link';
 import {
   AvatarWrapper,
+  ButtonWrapper,
   Cell,
-  StyledTimestampButton,
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {getShortEventId} from 'sentry/utils/events';
@@ -19,6 +19,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
+import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 const EMPTY_CELL = '--';
 
@@ -202,15 +203,17 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
       ),
       () => (
         <Cell {...columnProps} numeric>
-          <StyledTimestampButton
-            format="mm:ss.SSS"
-            onClick={event => {
-              event.stopPropagation();
-              onClickTimestamp(frame);
-            }}
-            startTimestampMs={startTimestampMs}
-            timestampMs={frame.timestampMs}
-          />
+          <ButtonWrapper>
+            <TimestampButton
+              format="mm:ss.SSS"
+              onClick={event => {
+                event.stopPropagation();
+                onClickTimestamp(frame);
+              }}
+              startTimestampMs={startTimestampMs}
+              timestampMs={frame.timestampMs}
+            />
+          </ButtonWrapper>
         </Cell>
       ),
     ];

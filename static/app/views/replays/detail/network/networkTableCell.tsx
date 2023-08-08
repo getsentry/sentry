@@ -3,8 +3,8 @@ import classNames from 'classnames';
 
 import FileSize from 'sentry/components/fileSize';
 import {
+  ButtonWrapper,
   Cell,
-  StyledTimestampButton,
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -17,6 +17,7 @@ import {
 import type {SpanFrame} from 'sentry/utils/replays/types';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
+import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import {operationName} from 'sentry/views/replays/detail/utils';
 
 const EMPTY_CELL = '--';
@@ -146,15 +147,17 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       ),
       () => (
         <Cell {...columnProps} numeric>
-          <StyledTimestampButton
-            format="mm:ss.SSS"
-            onClick={event => {
-              event.stopPropagation();
-              onClickTimestamp(frame);
-            }}
-            startTimestampMs={startTimestampMs}
-            timestampMs={frame.timestampMs}
-          />
+          <ButtonWrapper>
+            <TimestampButton
+              format="mm:ss.SSS"
+              onClick={event => {
+                event.stopPropagation();
+                onClickTimestamp(frame);
+              }}
+              startTimestampMs={startTimestampMs}
+              timestampMs={frame.timestampMs}
+            />
+          </ButtonWrapper>
         </Cell>
       ),
     ];

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 from random import randrange
-from typing import Any, Callable, Iterable, List, Mapping, MutableMapping, Sequence, Set, Tuple
+from typing import Any, Callable, Collection, List, Mapping, MutableMapping, Sequence, Set, Tuple
 
 from django.core.cache import cache
 from django.utils import timezone
@@ -13,6 +13,7 @@ from sentry.eventstore.models import GroupEvent
 from sentry.models import Environment, GroupRuleStatus, Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
+from sentry.rules.conditions.base import EventCondition
 from sentry.types.rules import RuleFuture
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
@@ -135,7 +136,7 @@ class RuleProcessor:
             self.logger.warning("Unregistered condition %r", condition["id"])
             return None
 
-        condition_inst = condition_cls(self.project, data=condition, rule=rule)
+        condition_inst: EventCondition = condition_cls(self.project, data=condition, rule=rule)
         passes: bool = safe_execute(
             condition_inst.passes, self.event, state, _with_transaction=False
         )
@@ -173,6 +174,7 @@ class RuleProcessor:
             "rule_id": rule.id,
             "group_id": self.group.id,
             "event_id": self.event.event_id,
+            "project_id": self.project.id,
             "is_new": self.is_new,
             "is_regression": self.is_regression,
             "has_reappeared": self.has_reappeared,
@@ -314,7 +316,7 @@ class RuleProcessor:
 
     def apply(
         self,
-    ) -> Iterable[Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]]:
+    ) -> Collection[Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]]:
         # we should only apply rules on unresolved issues
         if not self.event.group.is_unresolved():
             return {}.values()

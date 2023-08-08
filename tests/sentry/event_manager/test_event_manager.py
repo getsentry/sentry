@@ -35,7 +35,9 @@ from sentry.event_manager import (
     HashDiscarded,
     _get_event_instance,
     _save_grouphash_and_group,
+    get_event_type,
     has_pending_commit_resolution,
+    materialize_metadata,
 )
 from sentry.eventstore.models import Event
 from sentry.grouping.utils import hash_from_values
@@ -442,6 +444,34 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             event2 = manager.save(self.project.id)
 
         assert event.group_id != event2.group_id
+
+    def test_materialze_metadata_simple(self):
+        manager = EventManager(make_event(transaction="/dogs/are/great/"))
+        event = manager.save(self.project.id)
+
+        event_type = get_event_type(event.data)
+        event_metadata = event_type.get_metadata(event.data)
+
+        assert materialize_metadata(event.data, event_type, event_metadata) == {
+            "type": "default",
+            "culprit": "/dogs/are/great/",
+            "metadata": {"title": "<unlabeled event>"},
+            "title": "<unlabeled event>",
+            "location": None,
+        }
+
+    def test_materialze_metadata_preserves_existing_metadata(self):
+        manager = EventManager(make_event())
+        event = manager.save(self.project.id)
+
+        event.data.setdefault("metadata", {})
+        event.data["metadata"]["dogs"] = "are great"  # should not get clobbered
+
+        event_type = get_event_type(event.data)
+        event_metadata_from_type = event_type.get_metadata(event.data)
+        materialized = materialize_metadata(event.data, event_type, event_metadata_from_type)
+
+        assert materialized["metadata"] == {"title": "<unlabeled event>", "dogs": "are great"}
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolves_group(self, send_robust):
@@ -1769,6 +1799,68 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert "test" not in search_message
         assert "hello world" in search_message
         assert "sentry.tasks.process" in search_message
+
+    def test_search_message_skips_requested_keys(self):
+        from sentry.eventstore import models
+
+        with patch.object(models, "SEARCH_MESSAGE_SKIPPED_KEYS", ("dogs",)):
+            manager = EventManager(
+                make_event(
+                    **{
+                        "logentry": {"message": "hello world"},
+                        "transaction": "sentry.tasks.process",
+                    }
+                )
+            )
+            manager.normalize()
+            # Normalizing nukes any metadata we might pass when creating the event and event
+            # manager, so we have to add it in here
+            manager._data["metadata"] = {"dogs": "are great", "maisey": "silly", "charlie": "goofy"}
+
+            event = manager.save(
+                self.project.id,
+            )
+
+            search_message = event.search_message
+            assert "hello world" in search_message
+            assert "sentry.tasks.process" in search_message
+            assert "silly" in search_message
+            assert "goofy" in search_message
+            assert "are great" not in search_message  # "dogs" key is skipped
+
+    def test_search_message_skips_bools_and_numbers(self):
+        from sentry.eventstore import models
+
+        with patch.object(models, "SEARCH_MESSAGE_SKIPPED_KEYS", ("dogs",)):
+            manager = EventManager(
+                make_event(
+                    **{
+                        "logentry": {"message": "hello world"},
+                        "transaction": "sentry.tasks.process",
+                    }
+                )
+            )
+            manager.normalize()
+            # Normalizing nukes any metadata we might pass when creating the event and event
+            # manager, so we have to add it in here
+            manager._data["metadata"] = {
+                "dogs are great": True,
+                "maisey": 12312012,
+                "charlie": 1121.2012,
+                "adopt": "don't shop",
+            }
+
+            event = manager.save(
+                self.project.id,
+            )
+
+            search_message = event.search_message
+            assert "hello world" in search_message
+            assert "sentry.tasks.process" in search_message
+            assert "True" not in search_message  # skipped because it's a boolean
+            assert "12312012" not in search_message  # skipped because it's an int
+            assert "1121.2012" not in search_message  # skipped because it's a float
+            assert "don't shop" in search_message
 
     def test_stringified_message(self):
         manager = EventManager(make_event(**{"message": 1234}))

@@ -173,7 +173,7 @@ function NetworkList({
     <FluidHeight>
       <NetworkFilters networkFrames={networkFrames} {...filterProps} />
       <ReqRespBodiesAlert isNetworkDetailsSetup={isNetworkDetailsSetup} />
-      <NetworkTable ref={containerRef}>
+      <NetworkTable ref={containerRef} data-test-id="replay-details-network-tab">
         <SplitPanel
           style={{
             gridTemplateRows: splitSize !== undefined ? `1fr auto ${splitSize}px` : '1fr',

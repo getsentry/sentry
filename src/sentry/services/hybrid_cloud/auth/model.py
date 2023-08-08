@@ -190,6 +190,9 @@ class AuthenticatedToken(RpcModel):
     organization_id: Optional[int] = None
     application_id: Optional[int] = None  # only relevant for ApiToken
 
+    def token_has_org_access(self, organization_id: int) -> bool:
+        return self.kind == "api_token" and self.organization_id == organization_id
+
     @classmethod
     def from_token(cls, token: Any) -> Optional["AuthenticatedToken"]:
         if token is None:

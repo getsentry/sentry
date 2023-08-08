@@ -102,7 +102,7 @@ function ErrorList({errorFrames, startTimestampMs}: Props) {
   return (
     <FluidHeight>
       <ErrorFilters errorFrames={errorFrames} {...filterProps} />
-      <ErrorTable>
+      <ErrorTable data-test-id="replay-details-errors-tab">
         {errorFrames ? (
           <OverflowHidden>
             <AutoSizer onResize={onWrapperResize}>
