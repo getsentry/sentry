@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import Type
 
 # Django apps we take care to never import or export from.
@@ -31,3 +32,8 @@ def get_exportable_final_derivations_of(model: Type) -> set[Type]:
             get_final_derivations_of(model),
         )
     )
+
+
+class Side(Enum):
+    left = 1
+    right = 2
