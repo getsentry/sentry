@@ -131,8 +131,9 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "p75": "d",
     "p95": "d",
     "p99": "d",
-    "failure_rate": "e",
-    "apdex": "e",
+    # With on demand metrics, evaluated metrics are actually stored, thus we have to choose a concrete metric type.
+    "failure_rate": "c",
+    "apdex": "c",
 }
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
@@ -554,7 +555,7 @@ class DerivedMetricComponent:
 
 class DerivedMetric(ABC):
     @abstractmethod
-    def get_name(self) -> MetricOperationType:
+    def get_operation_type(self) -> MetricOperationType:
         pass
 
     @abstractmethod
@@ -565,7 +566,7 @@ class DerivedMetric(ABC):
 
 
 class FailureRate(DerivedMetric):
-    def get_name(self) -> MetricOperationType:
+    def get_operation_type(self) -> MetricOperationType:
         return "on_demand_failure_rate"
 
     def get_components(
@@ -588,14 +589,14 @@ class FailureRate(DerivedMetric):
 
 
 class Apdex(DerivedMetric):
-    def get_name(self) -> MetricOperationType:
+    def get_operation_type(self) -> MetricOperationType:
         return "on_demand_apdex"
 
     def get_components(
         self, derived_metric_params: DerivedMetricParams
     ) -> List[DerivedMetricComponent]:
         apdex_threshold, field_to_extract = (
-            derived_metric_params.consume(consumer=self.get_name())
+            derived_metric_params.consume(consumer=self.get_operation_type())
             .param("apdex_threshold")
             .param("field_to_extract")
             .get_all()
@@ -633,7 +634,8 @@ class Apdex(DerivedMetric):
 
 # Dynamic mapping between derived metric field name and derived metric definition.
 _DERIVED_METRICS: Dict[MetricOperationType, DerivedMetric] = {
-    derived_metric.get_name(): derived_metric for derived_metric in [FailureRate(), Apdex()]
+    derived_metric.get_operation_type(): derived_metric
+    for derived_metric in [FailureRate(), Apdex()]
 }
 
 
@@ -798,7 +800,7 @@ class OndemandMetricSpecBuilder:
     def _parse_argument(
         op: MetricOperationType, metric_type: str, parsed_field: FieldParsingResult
     ) -> Optional[str]:
-        requires_single_argument = metric_type != "c" and op != "on_demand_failure_rate"
+        requires_single_argument = metric_type in ["s", "d"] or op in ["on_demand_apdex"]
         if not requires_single_argument:
             return None
 
@@ -806,13 +808,9 @@ class OndemandMetricSpecBuilder:
             raise Exception(f"The operation {op} supports only a single parameter")
 
         argument = parsed_field.arguments[0]
-        # TODO: abstract better this handling with a possible declarative approach to argument definition, which will
-        #  also support the definition of arguments that are not directly referring to fields that Relay will have to
-        #  extract.
-        if op == "on_demand_apdex":
-            return argument
+        map_argument = op not in ["on_demand_apdex"]
 
-        return _map_field_name(argument)
+        return _map_field_name(argument) if map_argument else argument
 
     @staticmethod
     def _extend_derived_metric_params(

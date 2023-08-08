@@ -783,6 +783,25 @@ def on_demand_failure_rate_snql_factory(aggregate_filter, org_id, use_case_id, a
 def on_demand_apdex_snql_factory(aggregate_filter, org_id, use_case_id, alias=None):
     # For more information about the formula, check https://docs.sentry.io/product/performance/metrics/#apdex.
 
+    satisfactory = Function(
+        "countIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    Function(
+                        "equals",
+                        [
+                            Column(resolve_tag_key(use_case_id, org_id, "satisfaction")),
+                            resolve_tag_value(use_case_id, org_id, "satisfactory"),
+                        ],
+                    ),
+                    aggregate_filter,
+                ],
+            ),
+        ],
+    )
     tolerable_divided_by_2 = Function(
         "divide",
         [
@@ -808,29 +827,10 @@ def on_demand_apdex_snql_factory(aggregate_filter, org_id, use_case_id, alias=No
             2,
         ],
     )
-    satisfactory = Function(
-        "countIf",
-        [
-            Column("value"),
-            Function(
-                "and",
-                [
-                    Function(
-                        "equals",
-                        [
-                            Column(resolve_tag_key(use_case_id, org_id, "satisfaction")),
-                            resolve_tag_value(use_case_id, org_id, "satisfactory"),
-                        ],
-                    ),
-                    aggregate_filter,
-                ],
-            ),
-        ],
-    )
     total = Function("countIf", [Column("value"), aggregate_filter])
 
     return Function(
         "divide",
-        [Function("sum", [satisfactory, tolerable_divided_by_2]), total],
+        [Function("plus", [satisfactory, tolerable_divided_by_2]), total],
         alias=alias,
     )

@@ -2121,6 +2121,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert meta[0]["name"] == "d:transactions/on_demand@none"
 
     def test_run_on_demand_query_with_derived_metric(self):
+        # We create the threshold for the apdex, which will contain also the metric type.
         ProjectTransactionThreshold.objects.create(
             project=self.project, organization=self.project.organization, threshold=100, metric=1
         )

@@ -107,7 +107,6 @@ class TransactionMetricKey(Enum):
     COUNT_ON_DEMAND = "count.on_demand"
     DIST_ON_DEMAND = "dist.on_demand"
     SET_ON_DEMAND = "set.on_demand"
-    EVALUATED_ON_DEMAND = "evaluated.on_demand"
 
 
 # TODO: these tag keys and values below probably don't belong here, and should
