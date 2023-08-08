@@ -66,7 +66,7 @@ class TestIsOnDemandMetricQuery:
             is True
         )
 
-    def test_standard_comaptible_queries(self):
+    def test_standard_compatible_queries(self):
         assert is_on_demand_metric_query(self.perf_metrics, "count()", "") is False
         assert is_on_demand_metric_query(self.perf_metrics, "count()", "environment:dev") is False
         assert (
@@ -86,7 +86,7 @@ class TestIsOnDemandMetricQuery:
         assert is_on_demand_metric_query(self.perf_metrics, "foo.bar", "") is False
         assert is_on_demand_metric_query(self.perf_metrics, "count()", "foo.bar") is False
 
-    def test_countif(self):
+    def test_count_if(self):
         assert (
             is_on_demand_metric_query(
                 self.perf_metrics, "count_if(transaction.duration,equals,300)", ""
@@ -95,6 +95,63 @@ class TestIsOnDemandMetricQuery:
         )
         assert (
             is_on_demand_metric_query(self.perf_metrics, 'count_if(release,equals,"foo")', "")
+            is False
+        )
+
+    def test_unsupported_aggregate_functions(self):
+        assert (
+            is_on_demand_metric_query(
+                self.perf_metrics, "count_unique(transaction.duration)", "transaction.duration:>=1"
+            )
+            is False
+        )
+        assert (
+            is_on_demand_metric_query(
+                self.perf_metrics, "min(transaction.duration)", "transaction.duration:>=1"
+            )
+            is False
+        )
+        assert (
+            is_on_demand_metric_query(
+                self.perf_metrics, "any(transaction.duration)", "transaction.duration:>=1"
+            )
+            is False
+        )
+
+    def test_unsupported_aggregate_fields(self):
+        assert (
+            is_on_demand_metric_query(self.perf_metrics, "message", "transaction.duration:>=1")
+            is False
+        )
+        assert (
+            is_on_demand_metric_query(self.perf_metrics, "title", "transaction.duration:>=1")
+            is False
+        )
+
+    def test_unsupported_operators(self):
+        assert (
+            is_on_demand_metric_query(self.perf_metrics, "count()", "transaction.duration:[1,2,3]")
+            is False
+        )
+        assert (
+            is_on_demand_metric_query(self.perf_metrics, "count()", "!transaction.duration:[1,2,3]")
+            is False
+        )
+
+    def test_unsupported_equations(self):
+        assert (
+            is_on_demand_metric_query(
+                self.perf_metrics, "equation|count() / count()", "transaction.duration:>0"
+            )
+            is False
+        )
+        assert (
+            is_on_demand_metric_query(self.perf_metrics, "equation|count() / count()", "") is False
+        )
+
+    def test_unsupported_aggregate_filter(self):
+        assert (
+            is_on_demand_metric_query(self.perf_metrics, "count()", "p75(measurements.fcp):>100")
             is False
         )
 
