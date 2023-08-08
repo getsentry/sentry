@@ -3,7 +3,7 @@ from django.views.generic import View
 
 from sentry.constants import SentryAppStatus
 from sentry.integrations.notify_disable import get_provider_type, get_url
-from sentry.models import Organization, SentryApp
+from sentry.models import Organization, SentryApp, SentryAppInstallation
 
 from .mail import MailPreview
 
@@ -11,22 +11,25 @@ from .mail import MailPreview
 class DebugSentryAppNotifyDisableView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
 
-        self.organization = Organization(id=1, slug="organization", name="My Company")
+        self.organization = Organization(id=1, slug="sentry", name="My Company")
         self.sentry_app = SentryApp(
             name="Test App",
             events=["issue.resolved", "issue.ignored", "issue.assigned"],
             status=SentryAppStatus.INTERNAL,
             webhook_url="https://broken-example.com/webhook",
+            slug="internal-35e455",
+        )
+        self.install = SentryAppInstallation(
+            organization_id=self.organization.id, sentry_app=self.sentry_app
         )
 
+        redis_key = f"sentry-app-error:{self.install.uuid}"
         integration_name = self.sentry_app.name
         integration_link = get_url(
             self.organization,
-            get_provider_type(f"sentry-app-error:{self.sentry_app.uuid}"),
+            get_provider_type(redis_key),
             self.sentry_app.slug,
         )
-        redis_key = f"sentry-app-error:{self.sentry_app.uuid}"
-
         return MailPreview(
             html_template="sentry/integrations/sentry-app-notify-disable.html",
             text_template="sentry/integrations/sentry-app-notify-disable.txt",
