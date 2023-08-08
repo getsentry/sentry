@@ -253,7 +253,7 @@ delete projects and members, as well as make billing and plan changes.
         type=build_typed_list(OpenApiTypes.OBJECT),
         description="""
 Configures the team role of the member. The two roles are:
-- `contributor`: Can view and act on issues. Depending on the organization rules, they can also team members.
+- `contributor`: Can view and act on issues. Depending on organization settings, they can also add team members.
 - `admin`: Has full management access to their team's membership and projects.
 ```json
 {
