@@ -13,14 +13,10 @@ from sentry.snuba.metrics.extraction import (
     query_tokens_to_string,
     to_standard_metrics_query,
 )
+from sentry.testutils.cases import TestCase
 
 
-@pytest.fixture
-def on_demand_spec_builder():
-    return OndemandMetricSpecBuilder(field_parser=FieldParser(), query_parser=QueryParser())
-
-
-class TestIsOnDemandMetricQuery:
+class TestIsOnDemandMetricQuery(TestCase):
     perf_metrics = Dataset.PerformanceMetrics
 
     def test_wrong_dataset(self):
@@ -124,7 +120,7 @@ class TestIsOnDemandMetricQuery:
         assert is_on_demand_metric_query(dataset, "apdex()", "transaction.duration:1000") is True
 
 
-class TestIsStandardMetricsCompatible:
+class TestIsStandardMetricsCompatible(TestCase):
     perf_metrics = Dataset.PerformanceMetrics
 
     def test_wrong_dataset(self):
@@ -202,227 +198,218 @@ class TestIsStandardMetricsCompatible:
         )
 
 
-def test_spec_simple_query_count(on_demand_spec_builder):
-    spec = on_demand_spec_builder.build_spec(field="count()", query="transaction.duration:>1s")
+class TestBuildSpec(TestCase):
+    def setUp(self) -> None:
+        self.builder = OndemandMetricSpecBuilder(
+            field_parser=FieldParser(), query_parser=QueryParser()
+        )
 
-    assert spec.metric_type == "c"
-    assert spec.field is None
-    assert spec.op == "sum"
-    assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
+    def test_spec_simple_query_count(self):
+        spec = self.builder.build_spec(field="count()", query="transaction.duration:>1s")
 
+        assert spec.metric_type == "c"
+        assert spec.field is None
+        assert spec.op == "sum"
+        assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
 
-def test_spec_simple_query_distribution(on_demand_spec_builder):
-    spec = on_demand_spec_builder.build_spec(
-        field="p75(measurements.fp)", query="transaction.duration:>1s"
-    )
+    def test_spec_simple_query_distribution(self):
+        spec = self.builder.build_spec(
+            field="p75(measurements.fp)", query="transaction.duration:>1s"
+        )
 
-    assert spec.metric_type == "d"
-    assert spec.field == "event.measurements.fp"
-    assert spec.op == "p75"
-    assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
+        assert spec.metric_type == "d"
+        assert spec.field == "event.measurements.fp"
+        assert spec.op == "p75"
+        assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
 
+    def test_spec_or_condition(self):
+        spec = self.builder.build_spec(
+            field="count()", query="transaction.duration:>=100 OR transaction.duration:<1000"
+        )
 
-def test_spec_or_condition(on_demand_spec_builder):
-    spec = on_demand_spec_builder.build_spec(
-        field="count()", query="transaction.duration:>=100 OR transaction.duration:<1000"
-    )
+        assert spec.metric_type == "c"
+        assert spec.field is None
+        assert spec.op == "sum"
+        assert spec.condition == {
+            "inner": [
+                {"name": "event.duration", "op": "gte", "value": 100.0},
+                {"name": "event.duration", "op": "lt", "value": 1000.0},
+            ],
+            "op": "or",
+        }
 
-    assert spec.metric_type == "c"
-    assert spec.field is None
-    assert spec.op == "sum"
-    assert spec.condition == {
-        "inner": [
-            {"name": "event.duration", "op": "gte", "value": 100.0},
-            {"name": "event.duration", "op": "lt", "value": 1000.0},
-        ],
-        "op": "or",
-    }
+    def test_spec_and_condition(self):
+        spec = self.builder.build_spec(
+            field="count()", query="release:foo transaction.duration:<10s"
+        )
 
+        assert spec.metric_type == "c"
+        assert spec.field is None
+        assert spec.op == "sum"
+        assert spec.condition == {
+            "inner": [
+                {"name": "event.release", "op": "eq", "value": "foo"},
+                {"name": "event.duration", "op": "lt", "value": 10000.0},
+            ],
+            "op": "and",
+        }
 
-def test_spec_and_condition(on_demand_spec_builder):
-    spec = on_demand_spec_builder.build_spec(
-        field="count()", query="release:foo transaction.duration:<10s"
-    )
+    def test_spec_nested_condition(self):
+        spec = self.builder.build_spec(
+            field="count()", query="(release:a OR transaction.op:b) transaction.duration:>1s"
+        )
 
-    assert spec.metric_type == "c"
-    assert spec.field is None
-    assert spec.op == "sum"
-    assert spec.condition == {
-        "inner": [
-            {"name": "event.release", "op": "eq", "value": "foo"},
-            {"name": "event.duration", "op": "lt", "value": 10000.0},
-        ],
-        "op": "and",
-    }
-
-
-def test_spec_nested_condition(on_demand_spec_builder):
-    spec = on_demand_spec_builder.build_spec(
-        field="count()", query="(release:a OR transaction.op:b) transaction.duration:>1s"
-    )
-
-    assert spec.metric_type == "c"
-    assert spec.field is None
-    assert spec.op == "sum"
-    assert spec.condition == {
-        "op": "and",
-        "inner": [
-            {
-                "op": "or",
-                "inner": [
-                    {"name": "event.release", "op": "eq", "value": "a"},
-                    {"name": "event.contexts.trace.op", "op": "eq", "value": "b"},
-                ],
-            },
-            {"name": "event.duration", "op": "gt", "value": 1000.0},
-        ],
-    }
-
-
-def test_spec_boolean_precedence(on_demand_spec_builder):
-    spec = on_demand_spec_builder.build_spec(
-        field="count()", query="release:a OR transaction.op:b transaction.duration:>1s"
-    )
-
-    assert spec.metric_type == "c"
-    assert spec.field is None
-    assert spec.op == "sum"
-    assert spec.condition == {
-        "op": "or",
-        "inner": [
-            {"name": "event.release", "op": "eq", "value": "a"},
-            {
-                "op": "and",
-                "inner": [
-                    {"name": "event.contexts.trace.op", "op": "eq", "value": "b"},
-                    {"name": "event.duration", "op": "gt", "value": 1000.0},
-                ],
-            },
-        ],
-    }
-
-
-def test_spec_wildcard(on_demand_spec_builder):
-    spec = on_demand_spec_builder.build_spec(field="count()", query="release.version:1.*")
-
-    assert spec.metric_type == "c"
-    assert spec.field is None
-    assert spec.op == "sum"
-    assert spec.condition == {
-        "name": "event.release.version.short",
-        "op": "glob",
-        "value": ["1.*"],
-    }
-
-
-def test_spec_countif(on_demand_spec_builder):
-    spec = on_demand_spec_builder.build_spec(
-        field="count_if(transaction.duration,equals,300)", query=""
-    )
-
-    assert spec.metric_type == "c"
-    assert spec.field is None
-    assert spec.op == "sum"
-    assert spec.condition == {
-        "name": "event.duration",
-        "op": "eq",
-        "value": 300.0,
-    }
-
-
-def test_spec_countif_with_query(on_demand_spec_builder):
-    spec = on_demand_spec_builder.build_spec(
-        field="count_if(transaction.duration,equals,300)", query="release:a OR transaction.op:b"
-    )
-
-    assert spec.metric_type == "c"
-    assert spec.field is None
-    assert spec.op == "sum"
-    assert spec.condition == {
-        "op": "and",
-        "inner": [
-            {
-                "op": "or",
-                "inner": [
-                    {"name": "event.release", "op": "eq", "value": "a"},
-                    {"name": "event.contexts.trace.op", "op": "eq", "value": "b"},
-                ],
-            },
-            {"name": "event.duration", "op": "eq", "value": 300.0},
-        ],
-    }
-
-
-def test_spec_ignore_fields(on_demand_spec_builder):
-    with_ignored_field_spec = on_demand_spec_builder.build_spec(
-        field="count()", query="transaction.duration:>=1 project:sentry"
-    )
-    without_ignored_field_spec = on_demand_spec_builder.build_spec(
-        field="count()", query="transaction.duration:>=1"
-    )
-
-    assert with_ignored_field_spec.condition == without_ignored_field_spec.condition
-
-
-def test_spec_failure_rate(on_demand_spec_builder):
-    spec = on_demand_spec_builder.build_spec(
-        field="failure_rate()", query="transaction.duration:>1s"
-    )
-
-    assert spec.metric_type == "e"
-    assert spec.field is None
-    assert spec.op == "on_demand_failure_rate"
-    assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
-    assert spec.tags_conditions == [
-        {
-            "condition": {
-                "inner": {
-                    "name": "event.contexts.trace.status",
-                    "op": "eq",
-                    "value": ["ok", "cancelled", "unknown"],
+        assert spec.metric_type == "c"
+        assert spec.field is None
+        assert spec.op == "sum"
+        assert spec.condition == {
+            "op": "and",
+            "inner": [
+                {
+                    "op": "or",
+                    "inner": [
+                        {"name": "event.release", "op": "eq", "value": "a"},
+                        {"name": "event.contexts.trace.op", "op": "eq", "value": "b"},
+                    ],
                 },
-                "op": "not",
+                {"name": "event.duration", "op": "gt", "value": 1000.0},
+            ],
+        }
+
+    def test_spec_boolean_precedence(self):
+        spec = self.builder.build_spec(
+            field="count()", query="release:a OR transaction.op:b transaction.duration:>1s"
+        )
+
+        assert spec.metric_type == "c"
+        assert spec.field is None
+        assert spec.op == "sum"
+        assert spec.condition == {
+            "op": "or",
+            "inner": [
+                {"name": "event.release", "op": "eq", "value": "a"},
+                {
+                    "op": "and",
+                    "inner": [
+                        {"name": "event.contexts.trace.op", "op": "eq", "value": "b"},
+                        {"name": "event.duration", "op": "gt", "value": 1000.0},
+                    ],
+                },
+            ],
+        }
+
+    def test_spec_wildcard(self):
+        spec = self.builder.build_spec(field="count()", query="release.version:1.*")
+
+        assert spec.metric_type == "c"
+        assert spec.field is None
+        assert spec.op == "sum"
+        assert spec.condition == {
+            "name": "event.release.version.short",
+            "op": "glob",
+            "value": ["1.*"],
+        }
+
+    def test_spec_countif(self):
+        spec = self.builder.build_spec(field="count_if(transaction.duration,equals,300)", query="")
+
+        assert spec.metric_type == "c"
+        assert spec.field is None
+        assert spec.op == "sum"
+        assert spec.condition == {
+            "name": "event.duration",
+            "op": "eq",
+            "value": 300.0,
+        }
+
+    def test_spec_countif_with_query(self):
+        spec = self.builder.build_spec(
+            field="count_if(transaction.duration,equals,300)", query="release:a OR transaction.op:b"
+        )
+
+        assert spec.metric_type == "c"
+        assert spec.field is None
+        assert spec.op == "sum"
+        assert spec.condition == {
+            "op": "and",
+            "inner": [
+                {
+                    "op": "or",
+                    "inner": [
+                        {"name": "event.release", "op": "eq", "value": "a"},
+                        {"name": "event.contexts.trace.op", "op": "eq", "value": "b"},
+                    ],
+                },
+                {"name": "event.duration", "op": "eq", "value": 300.0},
+            ],
+        }
+
+    def test_spec_ignore_fields(self):
+        with_ignored_field_spec = self.builder.build_spec(
+            field="count()", query="transaction.duration:>=1 project:sentry"
+        )
+        without_ignored_field_spec = self.builder.build_spec(
+            field="count()", query="transaction.duration:>=1"
+        )
+
+        assert with_ignored_field_spec.condition == without_ignored_field_spec.condition
+
+    def test_spec_failure_rate(self):
+        spec = self.builder.build_spec(field="failure_rate()", query="transaction.duration:>1s")
+
+        assert spec.metric_type == "e"
+        assert spec.field is None
+        assert spec.op == "on_demand_failure_rate"
+        assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
+        assert spec.tags_conditions == [
+            {
+                "condition": {
+                    "inner": {
+                        "name": "event.contexts.trace.status",
+                        "op": "eq",
+                        "value": ["ok", "cancelled", "unknown"],
+                    },
+                    "op": "not",
+                },
+                "key": "failure",
+                "value": "true",
             },
-            "key": "failure",
-            "value": "true",
-        },
-    ]
+        ]
 
+    def test_spec_apdex(self):
+        spec = self.builder.build_spec(
+            field="apdex(10)",
+            query="release:a",
+            derived_metric_params=DerivedMetricParams({"field_to_extract": "transaction.duration"}),
+        )
 
-def test_spec_apdex(on_demand_spec_builder):
-    spec = on_demand_spec_builder.build_spec(
-        field="apdex(10)",
-        query="release:a",
-        derived_metric_params=DerivedMetricParams({"field_to_extract": "transaction.duration"}),
-    )
-
-    assert spec.metric_type == "e"
-    assert spec.field == "10"
-    assert spec.op == "on_demand_apdex"
-    assert spec.condition == {"name": "event.release", "op": "eq", "value": "a"}
-    assert spec.tags_conditions == [
-        {
-            "condition": {"name": "event.duration", "op": "lte", "value": 10},
-            "key": "satisfaction",
-            "value": "satisfactory",
-        },
-        {
-            "condition": {
-                "inner": [
-                    {"name": "event.duration", "op": "gt", "value": 10},
-                    {"name": "event.duration", "op": "lte", "value": 40},
-                ],
-                "op": "and",
+        assert spec.metric_type == "e"
+        assert spec.field is None
+        assert spec.op == "on_demand_apdex"
+        assert spec.condition == {"name": "event.release", "op": "eq", "value": "a"}
+        assert spec.tags_conditions == [
+            {
+                "condition": {"name": "event.duration", "op": "lte", "value": 10},
+                "key": "satisfaction",
+                "value": "satisfactory",
             },
-            "key": "satisfaction",
-            "value": "tolerable",
-        },
-        {
-            "condition": {"name": "event.duration", "op": "gt", "value": 40},
-            "key": "satisfaction",
-            "value": "frustrated",
-        },
-    ]
+            {
+                "condition": {
+                    "inner": [
+                        {"name": "event.duration", "op": "gt", "value": 10},
+                        {"name": "event.duration", "op": "lte", "value": 40},
+                    ],
+                    "op": "and",
+                },
+                "key": "satisfaction",
+                "value": "tolerable",
+            },
+            {
+                "condition": {"name": "event.duration", "op": "gt", "value": 40},
+                "key": "satisfaction",
+                "value": "frustrated",
+            },
+        ]
 
 
 @pytest.mark.parametrize(

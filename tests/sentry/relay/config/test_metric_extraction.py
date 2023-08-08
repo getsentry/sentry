@@ -35,9 +35,16 @@ def mock_alert(aggregate: str, query: str, project: Project) -> AlertRule:
         type=SnubaQuery.Type.PERFORMANCE.value,
     )
 
-    QuerySubscription(project=project, snuba_query=snuba_query, type="")
+    QuerySubscription.objects.create(
+        snuba_query=snuba_query,
+        project=project,
+    )
 
-    return AlertRule(snuba_query=snuba_query)
+    alert_rule = AlertRule.objects.create(
+        snuba_query=snuba_query, threshold_period=1, organization=project.organization
+    )
+
+    return alert_rule
 
 
 def mock_widget(

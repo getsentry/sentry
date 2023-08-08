@@ -117,18 +117,19 @@ def _merge_metric_specs(
 ) -> List[MetricSpec]:
     # We use a dict so that we can deduplicate metrics with the same hash.
     metrics: Dict[str, MetricSpec] = {}
-    for query_hash, spec in alert_specs + widget_specs:
-        already_present = metrics.get(query_hash)
-        if already_present and already_present != spec:
+
+    for hashed_spec in alert_specs + widget_specs:
+        existing_spec = metrics.get(hashed_spec.query_hash)
+        if existing_spec is not None and existing_spec != hashed_spec.metric_spec:
             logger.error(
                 "Duplicate metric spec found for hash %s with different specs: %s != %s",
-                query_hash,
-                already_present,
-                spec,
+                hashed_spec.query_hash,
+                existing_spec,
+                hashed_spec.metric_spec,
             )
             continue
 
-        metrics[query_hash] = spec
+        metrics[hashed_spec.query_hash] = hashed_spec.metric_spec
 
     return [metric for metric in metrics.values()]
 

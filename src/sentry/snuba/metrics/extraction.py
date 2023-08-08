@@ -492,7 +492,7 @@ class OndemandMetricSpec(NamedTuple):
 
     def query_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
-        sorted_conditions = str(_deep_sorted(self.condition()))
+        sorted_conditions = str(_deep_sorted(self.condition))
         str_to_hash = f"{self.field};{sorted_conditions}"
         return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
 
@@ -555,7 +555,7 @@ class DerivedMetricComponent:
 
 class DerivedMetric(ABC):
     @abstractmethod
-    def get_name(self) -> str:
+    def get_name(self) -> MetricOperationType:
         pass
 
     @abstractmethod
@@ -566,7 +566,7 @@ class DerivedMetric(ABC):
 
 
 class FailureRate(DerivedMetric):
-    def get_name(self) -> str:
+    def get_name(self) -> MetricOperationType:
         return "on_demand_failure_rate"
 
     def get_components(
@@ -589,7 +589,7 @@ class FailureRate(DerivedMetric):
 
 
 class Apdex(DerivedMetric):
-    def get_name(self) -> str:
+    def get_name(self) -> MetricOperationType:
         return "on_demand_apdex"
 
     def get_components(
