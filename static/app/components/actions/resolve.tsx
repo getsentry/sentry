@@ -185,7 +185,6 @@ function ResolveActions({
     };
 
     const isSemver = latestRelease ? isSemverRelease(latestRelease.version) : false;
-    const hasIssueReleaseSemver = organization.features.includes('issue-release-semver');
     const items: MenuItemProps[] = [
       {
         key: 'next-release',
@@ -195,13 +194,10 @@ function ResolveActions({
       },
       {
         key: 'current-release',
-        label:
-          hasIssueReleaseSemver || !latestRelease
-            ? t('The current release')
-            : t('The current release (%s)', formatVersion(latestRelease.version)),
+        label: t('The current release'),
         details: actionTitle
           ? actionTitle
-          : hasIssueReleaseSemver && latestRelease
+          : latestRelease
           ? `${formatVersion(latestRelease.version)} (${
               isSemver ? t('semver') : t('non-semver')
             })`
@@ -221,13 +217,10 @@ function ResolveActions({
     ];
 
     const isDisabled = !projectSlug ? disabled : disableDropdown;
-    const hasResolveReleaseSetup = organization.features.includes(
-      'issue-resolve-release-setup'
-    );
 
     return (
       <StyledDropdownMenu
-        itemsHidden={hasResolveReleaseSetup && !hasRelease}
+        itemsHidden={!hasRelease}
         items={items}
         trigger={triggerProps => (
           <DropdownTrigger
@@ -244,13 +237,7 @@ function ResolveActions({
             ? ['next-release', 'current-release', 'another-release']
             : []
         }
-        menuTitle={
-          hasRelease || !hasResolveReleaseSetup ? (
-            t('Resolved In')
-          ) : (
-            <SetupReleasesPrompt />
-          )
-        }
+        menuTitle={hasRelease ? t('Resolved In') : <SetupReleasesPrompt />}
         isDisabled={isDisabled}
       />
     );

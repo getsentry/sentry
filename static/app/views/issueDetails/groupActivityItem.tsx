@@ -248,11 +248,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
                   tooltipRawVersion
                 />
               ),
-              semver: organization.features.includes('issue-release-semver')
-                ? isSemverRelease(currentVersion)
-                  ? t('(semver)')
-                  : t('(non-semver)')
-                : '',
+              semver: isSemverRelease(currentVersion) ? t('(semver)') : t('(non-semver)'),
             }
           );
         }
@@ -264,11 +260,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
               version: (
                 <Version version={version} projectId={projectId} tooltipRawVersion />
               ),
-              semver: organization.features.includes('issue-release-semver')
-                ? isSemverRelease(version)
-                  ? t('(semver)')
-                  : t('(non-semver)')
-                : '',
+              semver: isSemverRelease(version) ? t('(semver)') : t('(non-semver)'),
             })
           : tct('[author] marked this issue as resolved in the upcoming release', {
               author,
@@ -381,12 +373,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
       case GroupActivityType.SET_REGRESSION: {
         const {data} = activity;
         let subtext: React.ReactNode = null;
-        if (
-          organization.features.includes('issue-release-semver') &&
-          data.version &&
-          data.resolved_in_version &&
-          'follows_semver' in data
-        ) {
+        if (data.version && data.resolved_in_version && 'follows_semver' in data) {
           subtext = (
             <Subtext>
               {tct(
