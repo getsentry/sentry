@@ -101,6 +101,12 @@ class TestIsOnDemandMetricQuery:
     def test_unsupported_aggregate_functions(self):
         assert (
             is_on_demand_metric_query(
+                self.perf_metrics, "failure_rate()", "transaction.duration:>=1"
+            )
+            is False
+        )
+        assert (
+            is_on_demand_metric_query(
                 self.perf_metrics, "count_unique(transaction.duration)", "transaction.duration:>=1"
             )
             is False

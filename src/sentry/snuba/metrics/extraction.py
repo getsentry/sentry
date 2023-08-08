@@ -248,6 +248,9 @@ def _is_on_demand_supported_aggregate(aggregate: str) -> bool:
     if function == "count":
         return True
 
+    if len(arguments) == 0:
+        return False
+
     return _is_on_demand_supported_field(arguments[0])
 
 
@@ -258,6 +261,9 @@ def _is_standard_metric_compatible_aggregate(aggregate: str) -> bool:
     # count() has no arguments
     if function == "count":
         return True
+
+    if len(arguments) == 0:
+        return False
 
     return _is_standard_metrics_field(arguments[0])
 
