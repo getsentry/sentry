@@ -85,7 +85,6 @@ def dependencies() -> dict[str, ModelRelations]:
     from sentry.db.models.fields.onetoone import OneToOneCascadeDeletes
     from sentry.models.actor import Actor
     from sentry.models.team import Team
-    from sentry.models.user import User
 
     # Process the list of models, and get the list of dependencies
     model_dependencies_list: dict[str, ModelRelations] = {}
@@ -105,7 +104,7 @@ def dependencies() -> dict[str, ModelRelations]:
                     # TODO(hybrid-cloud): actor refactor.
                     # Add cludgy conditional preventing walking actor.team_id, actor.user_id
                     # Which avoids circular imports
-                    if model == Actor and (rel_model == Team or rel_model == User):
+                    if model == Actor and rel_model == Team:
                         continue
 
                     if isinstance(field, FlexibleForeignKey):
