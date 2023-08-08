@@ -49,4 +49,4 @@ jobs:
 
       - name: Run test
         run: |
-          pytest tests/relay_integration/lang/java/test_plugin.py::BasicResolvingIntegrationTest::test_basic_resolving
+          pytest -s tests/relay_integration/lang/java/test_plugin.py::BasicResolvingIntegrationTest::test_basic_resolving
