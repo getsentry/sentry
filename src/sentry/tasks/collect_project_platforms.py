@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from sentry.constants import VALID_PLATFORMS
 from sentry.models import Group, Project, ProjectPlatform
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 
 
@@ -20,7 +21,11 @@ def paginate_project_ids(paginate):
         id_cursor = page[-1]
 
 
-@instrumented_task(name="sentry.tasks.collect_project_platforms", queue="stats")
+@instrumented_task(
+    name="sentry.tasks.collect_project_platforms",
+    queue="stats",
+    silo_mode=SiloMode.REGION,
+)
 def collect_project_platforms(paginate=1000, **kwargs):
     now = timezone.now()
 
