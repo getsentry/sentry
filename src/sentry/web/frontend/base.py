@@ -358,7 +358,6 @@ class BaseView(View, OrganizationMixin):
         return self.auth_required and not (request.user.is_authenticated and request.user.is_active)
 
     def handle_auth_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
-        # NOTE: initiate_login simply clears session cache
         auth.initiate_login(request, next_url=request.get_full_path())
         if "organization_slug" in kwargs:
             redirect_to = reverse("sentry-auth-organization", args=[kwargs["organization_slug"]])

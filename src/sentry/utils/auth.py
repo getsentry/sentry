@@ -128,6 +128,10 @@ def get_login_url(reset: bool = False) -> str:
 
 
 def initiate_login(request: HttpRequest, next_url: str | None = None) -> None:
+    """
+    initiate_login simply clears session cache
+    if provided a `next_url` will append to the session after clearing previous keys
+    """
     for key in ("_next", "_after_2fa", "_pending_2fa"):
         try:
             del request.session[key]
@@ -414,8 +418,7 @@ class EmailAuthBackend(ModelBackend):
 
 def construct_link_with_query(path: str, query_params: dict[str, str]) -> str:
     """
-    append an after login redirect to a path.
-    note: this function assumes that the redirect has been validated
+    constructs a link with url encoded query params given a base path
     """
     query_string = urlencode({k: v for k, v in query_params.items() if v})
     redirect_uri = f"{path}"

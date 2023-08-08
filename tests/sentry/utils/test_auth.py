@@ -179,12 +179,14 @@ def test_sso_expiry_from_env():
 
 
 def test_construct_link_with_query():
+    # testing basic query param construction
     path = "foobar"
     query_params = {"biz": "baz"}
     expected_path = "foobar?biz=baz"
 
     assert construct_link_with_query(path=path, query_params=query_params) == expected_path
 
+    # testing no excess '?' appended if query params are empty
     path = "foobar"
     query_params = {}
     expected_path = "foobar"
