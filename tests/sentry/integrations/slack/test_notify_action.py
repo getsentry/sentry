@@ -109,20 +109,21 @@ class SlackNotifyActionTest(RuleTestCase):
             data={"workspace": integration.id, "channel": "#my-channel", "tags": ""}
         )
 
-        channels = {
-            "ok": "true",
-            "channels": [
-                {"name": "my-channel", "id": "chan-id"},
-                {"name": "other-chann", "id": "chan-id"},
-            ],
-        }
-
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps(channels),
+            body=json.dumps(
+                {"ok": "true", "channel": "chan-id", "scheduled_message_id": "Q1298393284"}
+            ),
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.deleteScheduledMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": True}),
         )
 
         form = rule.get_form_instance()
@@ -135,20 +136,12 @@ class SlackNotifyActionTest(RuleTestCase):
             data={"workspace": self.integration.id, "channel": "@morty", "tags": ""}
         )
 
-        channels = {
-            "ok": "true",
-            "channels": [
-                {"name": "my-channel", "id": "chan-id"},
-                {"name": "other-chann", "id": "chan-id"},
-            ],
-        }
-
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps(channels),
+            body=json.dumps({"ok": False, "error": "channel_not_found"}),
         )
 
         members = {
@@ -176,14 +169,12 @@ class SlackNotifyActionTest(RuleTestCase):
             data={"workspace": self.integration.id, "channel": "#my-channel", "tags": ""}
         )
 
-        channels = {"ok": "true", "channels": [{"name": "other-chann", "id": "chan-id"}]}
-
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps(channels),
+            body=json.dumps({"ok": False, "error": "channel_not_found"}),
         )
 
         members = {"ok": "true", "members": [{"name": "other-member", "id": "member-id"}]}
@@ -205,25 +196,20 @@ class SlackNotifyActionTest(RuleTestCase):
     def test_rate_limited_response(self):
         """Should surface a 429 from Slack to the frontend form"""
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.info",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": "true", "channel": {"name": "my-channel", "id": "C2349874"}}),
-        )
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
-            status=429,
-            content_type="application/json",
-            body=json.dumps(
-                {
-                    "ok": "false",
-                    "error": "ratelimited",
-                }
-            ),
+            body=json.dumps({"ok": False, "error": "channel_not_found"}),
         )
 
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/users.list",
+            status=429,
+            content_type="application/json",
+            body=json.dumps({"ok": False, "error": "ratelimited"}),
+        )
         rule = self.get_rule(
             data={
                 "workspace": self.integration.id,
@@ -321,11 +307,11 @@ class SlackNotifyActionTest(RuleTestCase):
         )
 
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": "true", "channels": []}),
+            body=json.dumps({"ok": False, "error": "channel_not_found"}),
         )
 
         members = {
