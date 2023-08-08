@@ -13,7 +13,7 @@ class DebugNotifyDisableView(View):
         self.integration = Integration.objects.create(
             provider="slack",
             name="Awesome Team",
-            external_id="TXXXXXXXZ",
+            external_id="TXXXXXXX",
             metadata={
                 "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
                 "installation_type": "born_as_bot",
