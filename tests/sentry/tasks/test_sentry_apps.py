@@ -647,6 +647,7 @@ class TestWebhookRequests(TestCase):
             name="Test App",
             organization=self.organization,
             events=["issue.resolved", "issue.ignored", "issue.assigned"],
+            webhook_url="https://example.com",
         )
         self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
 
@@ -904,6 +905,7 @@ class TestWebhookRequests(TestCase):
                 self.sentry_app.name,
                 get_redis_key(self.sentry_app, self.organization.id),
                 self.sentry_app.slug,
+                self.sentry_app.webhook_url,
             )
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
@@ -917,3 +919,10 @@ class TestWebhookRequests(TestCase):
             )
             in msg.body
         )
+        assert (
+            self.organization.absolute_url(
+                f"/settings/{self.organization.slug}/developer-settings/{self.sentry_app.slug}/dashboard"
+            )
+            in msg.body
+        )
+        assert (self.sentry_app.webhook_url) in msg.body

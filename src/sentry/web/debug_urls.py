@@ -57,6 +57,9 @@ from sentry.web.frontend.debug.debug_resolved_in_release_email import (
     DebugResolvedInReleaseEmailView,
     DebugResolvedInReleaseUpcomingEmailView,
 )
+from sentry.web.frontend.debug.debug_sentry_app_notify_disable import (
+    DebugSentryAppNotifyDisableView,
+)
 from sentry.web.frontend.debug.debug_setup_2fa_email import DebugSetup2faEmailView
 from sentry.web.frontend.debug.debug_sso_link_email import (
     DebugSsoLinkedEmailView,
@@ -151,4 +154,5 @@ urlpatterns = [
     re_path(r"^debug/oauth/authorize/error/$", DebugOAuthAuthorizeErrorView.as_view()),
     re_path(r"^debug/chart-renderer/$", DebugChartRendererView.as_view()),
     re_path(r"^debug/mail/notify-disable/$", DebugNotifyDisableView.as_view()),
+    re_path(r"^debug/mail/sentry-app-notify-disable/$", DebugSentryAppNotifyDisableView.as_view()),
 ]
