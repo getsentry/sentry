@@ -2,7 +2,13 @@ Expression
    = tokens:Token*
 
 Token
-   = Whitespace / Keyword / Parameter / CollapsedColumns / GenericToken
+   = LeftParenthesis / RightParenthesis / Whitespace / Keyword / Parameter / CollapsedColumns / GenericToken
+
+LeftParenthesis
+  = "(" { return { type: 'LeftParenthesis', content: '(' } }
+
+RightParenthesis
+  = ")" { return { type: 'RightParenthesis', content: ')' } }
 
 Keyword
   = Keyword:("SELECT"i / "INSERT"i / "DELETE"i / "FROM"i / "ON"i / "WHERE"i / "AND"i / "ORDER BY"i / "LIMIT"i / "GROUP BY"i / "OFFSET"i / "VALUES"i / "RETURNING"i / JoinKeyword) {
@@ -30,4 +36,4 @@ Whitespace
   = Whitespace:[\n\t ]+ { return { type: 'Whitespace', content: Whitespace.join("") } }
 
 GenericToken
-  = GenericToken:[a-zA-Z0-9"'`_\-.()=><:,*;!\[\]?$%|/]+ { return { type: 'GenericToken', content: GenericToken.join('') } }
+  = GenericToken:[a-zA-Z0-9"'`_\-.=><:,*;!\[\]?$%|/]+ { return { type: 'GenericToken', content: GenericToken.join('') } }
