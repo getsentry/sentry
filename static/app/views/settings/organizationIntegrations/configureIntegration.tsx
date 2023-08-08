@@ -230,6 +230,7 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
         <LinkButton
           aria-label="Open this server in the Discord app"
           size="sm"
+          // @ts-ignore - the type of integration here is weird.
           href={`discord://discord.com/channels/${integration.externalId}`}
         >
           Open in Discord
