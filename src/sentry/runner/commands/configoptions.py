@@ -124,8 +124,11 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
     to apply changes is UpdateChannel.AUTOMATOR.
     """
 
+    import logging
+
     from sentry import options
-    from sentry.utils import metrics
+
+    logger = logging.getLogger("sentry.options_automator")
 
     ctx.obj["dry_run"] = dry_run
 
@@ -136,20 +139,38 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
     ctx.obj["options_to_update"] = options_to_update
 
     drifted_options = set()
+    invalid_options = set()
     for key, value in options_to_update.items():
-        not_writable_reason = options.can_update(key, value, options.UpdateChannel.AUTOMATOR)
+        try:
+            not_writable_reason = options.can_update(key, value, options.UpdateChannel.AUTOMATOR)
 
-        if not_writable_reason and not_writable_reason != options.NotWritableReason.DRIFTED:
-            click.echo(
-                f"Invalid option. {key} cannot be updated. Reason {not_writable_reason.value}"
-            )
-            metrics.incr(
-                "options_automator.run", tags={"status": "invalid_option"}, sample_rate=1.0
-            )
-            exit(-1)
-        elif not_writable_reason == options.NotWritableReason.DRIFTED:
-            drifted_options.add(key)
+            if not_writable_reason and not_writable_reason != options.NotWritableReason.DRIFTED:
+                logger.error(
+                    "Option %s is invalid. and cannot be updated. Reason: %s",
+                    key,
+                    not_writable_reason.value,
+                )
+                click.echo(
+                    f"Invalid option. {key} cannot be updated. Reason {not_writable_reason.value}"
+                )
+                invalid_options.add(key)
+            elif not_writable_reason == options.NotWritableReason.DRIFTED:
+                drifted_options.add(key)
 
+            opt = options.lookup_key(key)
+            if not opt.type.test(value):
+                invalid_options.add(key)
+                logger.error(
+                    "Option %s has invalid type. got %s, expected %s.", key, type(value), opt.type
+                )
+        except options.UnknownOption:
+            invalid_options.add(key)
+            logger.error(
+                "Option %s is not registered. and cannot be updated.",
+                key,
+            )
+
+    ctx.obj["invalid_options"] = invalid_options
     ctx.obj["drifted_options"] = drifted_options
     ctx.obj["hide_drift"] = hide_drift
 
@@ -169,22 +190,36 @@ def patch(ctx) -> None:
     if dry_run:
         click.echo("!!! Dry-run flag on. No update will be performed.")
 
+    invalid_options = ctx.obj["invalid_options"]
     for key, value in ctx.obj["options_to_update"].items():
-        try:
-            _attempt_update(
-                key, value, ctx.obj["drifted_options"], dry_run, bool(ctx.obj["hide_drift"])
-            )
-        except Exception:
-            metrics.incr(
-                "options_automator.run",
-                tags={"status": "update_failed"},
-                sample_rate=1.0,
-            )
-            raise
+        if key not in invalid_options:
+            try:
+                _attempt_update(
+                    key, value, ctx.obj["drifted_options"], dry_run, bool(ctx.obj["hide_drift"])
+                )
+            except Exception:
+                metrics.incr(
+                    "options_automator.run",
+                    amount=2,
+                    tags={"status": "update_failed"},
+                    sample_rate=1.0,
+                )
+                raise
+
+    if invalid_options:
+        status = "update_failed"
+        amount = 2
+    elif ctx.obj["drifted_options"]:
+        status = "drift"
+        amount = 2
+    else:
+        status = "success"
+        amount = 1
 
     metrics.incr(
         "options_automator.run",
-        tags={"status": "drift" if not ctx.obj["drifted_options"] else "success"},
+        amount=amount,
+        tags={"status": status},
         sample_rate=1.0,
     )
 
@@ -209,44 +244,59 @@ def sync(ctx):
     all_options = options.filter(options.FLAG_AUTOMATOR_MODIFIABLE)
 
     options_to_update = ctx.obj["options_to_update"]
+    invalid_options = ctx.obj["invalid_options"]
     drift_found = bool(ctx.obj["drifted_options"])
     for opt in all_options:
-        if opt.name in options_to_update:
-            try:
-                _attempt_update(
-                    opt.name,
-                    options_to_update[opt.name],
-                    ctx.obj["drifted_options"],
-                    dry_run,
-                    bool(ctx.obj["hide_drift"]),
-                )
-            except Exception:
-                metrics.incr(
-                    "options_automator.run",
-                    tags={"status": "update_failed"},
-                    sample_rate=1.0,
-                )
-                raise
-        else:
-            if options.isset(opt.name):
-                if options.get_last_update_channel(opt.name) == options.UpdateChannel.AUTOMATOR:
-                    if not dry_run:
-                        try:
-                            options.delete(opt.name)
-                        except Exception:
-                            metrics.incr(
-                                "options_automator.run",
-                                tags={"status": "update_failed"},
-                                sample_rate=1.0,
-                            )
-                            raise
-                    click.echo(UNSET_MSG % opt.name)
-                else:
-                    click.echo(DRIFT_MSG % opt.name)
-                    drift_found = True
+        if opt.name not in invalid_options:
+            if opt.name in options_to_update:
+                try:
+                    _attempt_update(
+                        opt.name,
+                        options_to_update[opt.name],
+                        ctx.obj["drifted_options"],
+                        dry_run,
+                        bool(ctx.obj["hide_drift"]),
+                    )
+                except Exception:
+                    metrics.incr(
+                        "options_automator.run",
+                        amount=2,
+                        tags={"status": "update_failed"},
+                        sample_rate=1.0,
+                    )
+                    raise
+            else:
+                if options.isset(opt.name):
+                    if options.get_last_update_channel(opt.name) == options.UpdateChannel.AUTOMATOR:
+                        if not dry_run:
+                            try:
+                                options.delete(opt.name)
+                            except Exception:
+                                metrics.incr(
+                                    "options_automator.run",
+                                    amount=2,
+                                    tags={"status": "update_failed"},
+                                    sample_rate=1.0,
+                                )
+                                raise
+                        click.echo(UNSET_MSG % opt.name)
+                    else:
+                        click.echo(DRIFT_MSG % opt.name)
+                        drift_found = True
+
+    if invalid_options:
+        status = "update_failed"
+        amount = 2
+    elif drift_found:
+        status = "drift"
+        amount = 2
+    else:
+        status = "success"
+        amount = 1
 
     metrics.incr(
         "options_automator.run",
-        tags={"status": "drift" if not drift_found else "success"},
+        amount=amount,
+        tags={"status": status},
         sample_rate=1.0,
     )

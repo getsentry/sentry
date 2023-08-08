@@ -1,24 +1,66 @@
+from typing import Sequence
 from unittest.mock import ANY
 
 import pytest
 
-import sentry.relay.config.metric_extraction as extraction
 from sentry.incidents.models import AlertRule
-from sentry.models import Project, ProjectTransactionThreshold, TransactionMetric
+from sentry.models import (
+    Dashboard,
+    DashboardWidget,
+    DashboardWidgetDisplayTypes,
+    DashboardWidgetQuery,
+    DashboardWidgetTypes,
+    Project,
+    ProjectTransactionThreshold,
+    TransactionMetric,
+)
+from sentry.relay.config.metric_extraction import get_metric_extraction_config
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.testutils.helpers import Feature
+from sentry.testutils.pytest.fixtures import django_db_all
+
+ON_DEMAND_METRICS = "organizations:on-demand-metrics-extraction"
+ON_DEMAND_METRICS_WIDGETS = "organizations:on-demand-metrics-extraction-experimental"
 
 
-def mock_alert(project: Project, aggregate: str, query: str) -> AlertRule:
-    snuba_query = SnubaQuery(
+def mock_alert(aggregate: str, query: str, project: Project) -> AlertRule:
+    snuba_query = SnubaQuery.objects.create(
         aggregate=aggregate,
         query=query,
         dataset=Dataset.PerformanceMetrics.value,
+        time_window=300,
+        resolution=60,
+        environment=None,
+        type=SnubaQuery.Type.PERFORMANCE.value,
     )
 
     QuerySubscription(project=project, snuba_query=snuba_query, type="")
 
     return AlertRule(snuba_query=snuba_query)
+
+
+def mock_widget(
+    aggregates: Sequence[str], query: str, project: Project, title="Dashboard"
+) -> DashboardWidgetQuery:
+    dashboard = Dashboard.objects.create(
+        organization=project.organization,
+        created_by_id=1,
+        title=title,
+    )
+
+    widget = DashboardWidget.objects.create(
+        dashboard=dashboard,
+        order=0,
+        widget_type=DashboardWidgetTypes.DISCOVER,
+        display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+    )
+
+    widget_query = DashboardWidgetQuery.objects.create(
+        aggregates=aggregates, conditions=query, order=0, widget=widget
+    )
+
+    return widget_query
 
 
 def mock_project_threshold(
@@ -29,120 +71,320 @@ def mock_project_threshold(
     )
 
 
-@pytest.mark.django_db
-def test_empty_query(default_project):
-    alert = mock_alert(default_project, "count()", "")
-
-    assert extraction.convert_query_to_metric(default_project, alert.snuba_query) is None
-
-
-@pytest.mark.django_db
-def test_simple_query_count(default_project):
-    alert = mock_alert(default_project, "count()", "transaction.duration:>=1000")
-
-    metric = extraction.convert_query_to_metric(default_project, alert.snuba_query)
-
-    assert metric is not None
-    assert metric.metric_spec == {
-        "category": "transaction",
-        "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-        "field": None,
-        "mri": "c:transactions/on_demand@none",
-        "tags": [{"key": "query_hash", "value": ANY}],
-    }
+@django_db_all
+def test_get_metric_extraction_config_empty_no_alerts(default_project):
+    with Feature(ON_DEMAND_METRICS):
+        assert not get_metric_extraction_config(default_project)
 
 
-@pytest.mark.django_db
-def test_get_metric_specs_empty(default_project):
-    assert len(extraction._get_metric_specs(default_project, [])) == 0
+@django_db_all
+def test_get_metric_extraction_config_empty_feature_flag_off(default_project):
+    mock_alert("count()", "transaction.duration:>=1000", default_project)
+
+    assert not get_metric_extraction_config(default_project)
 
 
-@pytest.mark.django_db
-def test_get_metric_specs_single(default_project):
-    alert = mock_alert(default_project, "count()", "transaction.duration:>=1000")
+@django_db_all
+def test_get_metric_extraction_config_empty_standard_alerts(default_project):
+    with Feature(ON_DEMAND_METRICS):
+        # standard alerts are not included in the config
+        mock_alert("count()", "", default_project)
 
-    specs = extraction._get_metric_specs(default_project, [alert])
-
-    assert len(specs) == 1
-    assert specs[0] == {
-        "category": "transaction",
-        "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-        "field": None,
-        "mri": "c:transactions/on_demand@none",
-        "tags": [{"key": "query_hash", "value": ANY}],
-    }
+        assert not get_metric_extraction_config(default_project)
 
 
-@pytest.mark.django_db
-def test_get_metric_specs_multiple(default_project):
-    alert_1 = mock_alert(default_project, "count()", "transaction.duration:>=1")
-    alert_2 = mock_alert(default_project, "count()", "transaction.duration:>=2")
+@django_db_all
+def test_get_metric_extraction_config_single_alert(default_project):
+    with Feature(ON_DEMAND_METRICS):
+        mock_alert("count()", "transaction.duration:>=1000", default_project)
 
-    specs = extraction._get_metric_specs(default_project, [alert_1, alert_2])
+        config = get_metric_extraction_config(default_project)
 
-    assert len(specs) == 2
-
-    first_hash = specs[0]["tags"][0]["value"]
-    second_hash = specs[1]["tags"][0]["value"]
-
-    assert first_hash != second_hash
-
-
-@pytest.mark.django_db
-def test_get_metric_specs_multiple_duplicated(default_project):
-    alert_1 = mock_alert(default_project, "count()", "transaction.duration:>=1000")
-    alert_2 = mock_alert(default_project, "count()", "transaction.duration:>=1000")
-    alert_3 = mock_alert(default_project, "count()", "transaction.duration:>=1000")
-
-    specs = extraction._get_metric_specs(default_project, [alert_1, alert_2, alert_3])
-
-    assert len(specs) == 1
-    assert specs[0] == {
-        "category": "transaction",
-        "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-        "field": None,
-        "mri": "c:transactions/on_demand@none",
-        "tags": [{"key": "query_hash", "value": ANY}],
-    }
+        assert config
+        assert len(config["metrics"]) == 1
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
 
 
-@pytest.mark.django_db
-def test_get_metric_specs_with_apdex(default_project):
-    alert = mock_alert(default_project, "apdex(10)", "transaction.duration:>=1000")
-    # The threshold stored in the database will not be considered and rather the one from the parameter will be
-    # preferred.
-    mock_project_threshold(default_project, 200, TransactionMetric.DURATION.value)
+@django_db_all
+def test_get_metric_extraction_config_multiple_alerts(default_project):
+    with Feature(ON_DEMAND_METRICS):
+        mock_alert("count()", "transaction.duration:>=1000", default_project)
+        mock_alert("count()", "transaction.duration:>=2000", default_project)
 
-    specs = extraction._get_metric_specs(default_project, [alert])
+        config = get_metric_extraction_config(default_project)
 
-    assert len(specs) == 1
-    assert specs[0] == {
-        "category": "transaction",
-        "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-        "field": None,
-        "mri": "e:transactions/on_demand@none",
-        "tags": [
-            {
-                "condition": {"name": "event.duration", "op": "lte", "value": 10},
-                "key": "satisfaction",
-                "value": "satisfactory",
+        assert config
+        assert len(config["metrics"]) == 2
+
+        first_hash = config["metrics"][0]["tags"][0]["value"]
+        second_hash = config["metrics"][1]["tags"][0]["value"]
+
+        assert first_hash != second_hash
+
+
+@django_db_all
+def test_get_metric_extraction_config_multiple_alerts_duplicated(default_project):
+    # alerts with the same query should be deduplicated
+    with Feature(ON_DEMAND_METRICS):
+        mock_alert("count()", "transaction.duration:>=1000", default_project)
+        mock_alert("count()", "transaction.duration:>=1000", default_project)
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 1
+
+
+@django_db_all
+def test_get_metric_extraction_config_single_standard_widget(default_project):
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+        mock_widget(["count()"], "", default_project)
+
+        assert not get_metric_extraction_config(default_project)
+
+
+@django_db_all
+def test_get_metric_extraction_config_single_widget(default_project):
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+        mock_widget(["count()"], "transaction.duration:>=1000", default_project)
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 1
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+
+
+@django_db_all
+def test_get_metric_extraction_config_single_widget_multiple_aggregates(default_project):
+    # widget with multiple fields should result in multiple metrics
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+        mock_widget(
+            ["count()", "avg(transaction.duration)"], "transaction.duration:>=1000", default_project
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 2
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+        assert config["metrics"][1] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+            "field": "event.duration",
+            "mri": "d:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+
+
+@django_db_all
+def test_get_metric_extraction_config_single_widget_multiple_count_if(default_project):
+    # widget with multiple fields should result in multiple metrics
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+        aggregates = [
+            "count()",
+            "count_if(transaction.duration, greater, 2000)",
+            "count_if(transaction.duration, greaterOrEquals, 1000)",
+        ]
+        mock_widget(aggregates, "transaction.duration:>=1000", default_project)
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 3
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+        assert config["metrics"][1] == {
+            "category": "transaction",
+            "condition": {
+                "inner": [
+                    {"name": "event.duration", "op": "gte", "value": 1000.0},
+                    {"name": "event.duration", "op": "gt", "value": 2000.0},
+                ],
+                "op": "and",
             },
-            {
-                "condition": {
-                    "inner": [
-                        {"name": "event.duration", "op": "gt", "value": 10},
-                        {"name": "event.duration", "op": "lte", "value": 40},
-                    ],
-                    "op": "and",
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+        assert config["metrics"][2] == {
+            "category": "transaction",
+            "condition": {
+                "inner": [
+                    {"name": "event.duration", "op": "gte", "value": 1000.0},
+                    {"name": "event.duration", "op": "gte", "value": 1000.0},
+                ],
+                "op": "and",
+            },
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+
+
+@django_db_all
+def test_get_metric_extraction_config_multiple_aggregates_single_field(default_project):
+    # widget with multiple aggregates on the same field in a single metric
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+        mock_widget(
+            ["sum(transaction.duration)", "avg(transaction.duration)"],
+            "transaction.duration:>=1000",
+            default_project,
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 1
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+            "field": "event.duration",
+            "mri": "d:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+
+
+@django_db_all
+def test_get_metric_extraction_config_multiple_widgets_duplicated(default_project):
+    # metrics should be deduplicated across widgets
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+        mock_widget(
+            ["count()", "avg(transaction.duration)"], "transaction.duration:>=1000", default_project
+        )
+        mock_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 2
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+        assert config["metrics"][1] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+            "field": "event.duration",
+            "mri": "d:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+
+
+@django_db_all
+def test_get_metric_extraction_config_alerts_and_widgets_off(default_project):
+    # widgets should be skipped if the feature is off
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: False}):
+        mock_alert("count()", "transaction.duration:>=1000", default_project)
+        mock_widget(["count()"], "transaction.duration:>=1000", default_project)
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 1
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+
+
+@django_db_all
+def test_get_metric_extraction_config_alerts_and_widgets(default_project):
+    # deduplication should work across alerts and widgets
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+        mock_alert("count()", "transaction.duration:>=1000", default_project)
+        mock_widget(
+            ["count()", "avg(transaction.duration)"], "transaction.duration:>=1000", default_project
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 2
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+        assert config["metrics"][1] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+            "field": "event.duration",
+            "mri": "d:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+
+
+@pytest.mark.django_db
+def test_get_metric_extraction_config_with_apdex(default_project):
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+        mock_alert("apdex(10)", "transaction.duration:>=1000", default_project)
+        # The threshold stored in the database will not be considered and rather the one from the parameter will be
+        # preferred.
+        mock_project_threshold(default_project, 200, TransactionMetric.DURATION.value)
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 1
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+            "field": None,
+            "mri": "e:transactions/on_demand@none",
+            "tags": [
+                {
+                    "condition": {"name": "event.duration", "op": "lte", "value": 10},
+                    "key": "satisfaction",
+                    "value": "satisfactory",
                 },
-                "key": "satisfaction",
-                "value": "tolerable",
-            },
-            {
-                "condition": {"name": "event.duration", "op": "gt", "value": 40},
-                "key": "satisfaction",
-                "value": "frustrated",
-            },
-            {"key": "query_hash", "value": ANY},
-        ],
-    }
+                {
+                    "condition": {
+                        "inner": [
+                            {"name": "event.duration", "op": "gt", "value": 10},
+                            {"name": "event.duration", "op": "lte", "value": 40},
+                        ],
+                        "op": "and",
+                    },
+                    "key": "satisfaction",
+                    "value": "tolerable",
+                },
+                {
+                    "condition": {"name": "event.duration", "op": "gt", "value": 40},
+                    "key": "satisfaction",
+                    "value": "frustrated",
+                },
+                {"key": "query_hash", "value": ANY},
+            ],
+        }

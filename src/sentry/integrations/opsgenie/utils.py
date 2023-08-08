@@ -17,6 +17,8 @@ def build_incident_attachment(incident: Incident, new_status: IncidentStatus, me
     alert_key = f"incident_{incident.organization_id}_{incident.identifier}"
     if new_status == IncidentStatus.CLOSED:
         payload = {"identifier": alert_key}
+        return payload
+
     priority = "P1"
     if new_status == IncidentStatus.WARNING:
         priority = "P2"

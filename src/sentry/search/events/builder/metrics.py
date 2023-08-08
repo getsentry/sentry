@@ -45,7 +45,7 @@ from sentry.snuba.metrics.extraction import (
     OndemandMetricSpec,
     OndemandMetricSpecBuilder,
     _get_derived_metric_params,
-    is_on_demand_query,
+    is_on_demand_metric_query,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.query import MetricField, MetricsQuery
@@ -123,7 +123,7 @@ class MetricsQueryBuilder(QueryBuilder):
         if not field:
             return None
 
-        if not is_on_demand_query(dataset, field, query):
+        if not is_on_demand_metric_query(dataset, field, query):
             return None
 
         try:
@@ -1123,6 +1123,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         use_metrics_layer: Optional[bool] = False,
         groupby: Optional[Column] = None,
         on_demand_metrics_enabled: Optional[bool] = False,
+        parser_config_overrides: Optional[Mapping[str, Any]] = None,
     ):
         super().__init__(
             params=params,
@@ -1134,6 +1135,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             functions_acl=functions_acl,
             use_metrics_layer=use_metrics_layer,
             on_demand_metrics_enabled=on_demand_metrics_enabled,
+            parser_config_overrides=parser_config_overrides,
         )
         if self.granularity.granularity > interval:
             for granularity in constants.METRICS_GRANULARITIES:

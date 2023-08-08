@@ -15,6 +15,7 @@ import pytest
 from django.conf import settings
 from sentry_sdk import Hub
 
+from sentry.runner.importer import install_plugin_apps
 from sentry.utils.warnings import UnsupportedBackend
 
 K = TypeVar("K")
@@ -87,6 +88,7 @@ def pytest_configure(config):
     settings.STATIC_BUNDLES = {}
 
     # override a few things with our test specifics
+    install_plugin_apps("sentry.apps", settings)
     settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + ("fixtures",)
     # Need a predictable key for tests that involve checking signatures
     settings.SENTRY_PUBLIC = False
@@ -216,6 +218,9 @@ def pytest_configure(config):
 
     # For now, multiprocessing does not work in tests.
     settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = True
+
+    # Assume this is always configured (not the real secret)
+    settings.RPC_SHARED_SECRET = ("215b1f0d",)
 
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable

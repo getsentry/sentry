@@ -1,9 +1,5 @@
-import {Fragment} from 'react';
-
-import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 
 export type DataKey =
   | 'change'
@@ -24,7 +20,7 @@ export const DataTitles: Record<DataKey, string> = {
   p50p95: t('Duration (P50, P95)'),
   p50: t('Duration (P50)'),
   p95: t('Duration (P95)'),
-  avg: t('Average Duration'),
+  avg: t('Avg Duration'),
   duration: t('Duration'),
   errorCount: t('5XX Responses'),
   throughput: t('Throughput'),
@@ -32,30 +28,21 @@ export const DataTitles: Record<DataKey, string> = {
   ttid: t('Time To Initial Display'),
 };
 
-export const getTooltip = (
-  key: DataKey,
-  ...options: (string | number)[]
-): React.ReactNode => {
-  if (key === 'timeSpent') {
-    return (
-      <Fragment>
-        <div>
-          <DurationCell milliseconds={options[0] as number} />
-        </div>
-        <Link to="/starfish/definitions/">{t('How was this calculated?')}</Link>
-      </Fragment>
-    );
-  }
-  return '';
-};
-
 export const getThroughputTitle = (spanOp?: string) => {
   if (spanOp?.startsWith('db')) {
-    return t('Queries');
+    return t('Queries Per Min');
   }
   if (defined(spanOp)) {
     return t('Requests');
   }
+  return '--';
+};
+
+export const getDurationChartTitle = (spanOp?: string) => {
+  if (spanOp) {
+    return t('Average Duration');
+  }
+
   return '--';
 };
 

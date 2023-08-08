@@ -6,17 +6,20 @@ from sentry import features
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models import (
+    DashboardWidgetQuery,
+    DashboardWidgetTypes,
     Project,
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     MetricSpec,
     OndemandMetricSpecBuilder,
     RuleCondition,
     _get_derived_metric_params,
-    is_on_demand_snuba_query,
+    is_on_demand_metric_query,
 )
 from sentry.snuba.models import SnubaQuery
 
@@ -27,9 +30,15 @@ logger = logging.getLogger(__name__)
 # Version of the metric extraction config.
 _METRIC_EXTRACTION_VERSION = 1
 
-# Maximum number of custom metrics that can be extracted for alert rules with
+# Maximum number of custom metrics that can be extracted for alerts and widgets with
 # advanced filter expressions.
-_MAX_ALERT_METRICS = 100
+# TODO(Ogi): remove this, or enforce limits for alerts and widgets separately.
+_MAX_ON_DEMAND_METRICS = 100
+
+
+class HashedMetricSpec(NamedTuple):
+    metric_spec: MetricSpec
+    query_hash: str
 
 
 class MetricExtractionConfig(TypedDict):
@@ -45,26 +54,23 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
 
     This requires respective feature flags to be enabled. At the moment, metrics
     for the following models are extracted:
-     - Performance alert rules which advanced filter expressions.
+     - Performance alert rules with advanced filter expressions.
+     - On-demand metrics widgets.
     """
-
     if not features.has("organizations:on-demand-metrics-extraction", project.organization):
         return None
 
-    alerts = (
-        AlertRule.objects.fetch_for_project(project)
-        .filter(status=AlertRuleStatus.PENDING.value)
-        .select_related("snuba_query")
-    )
+    alert_specs = _get_alert_metric_specs(project)
+    widget_specs = _get_widget_metric_specs(project)
 
-    metrics = _get_metric_specs(project, alerts)
+    metrics = _merge_metric_specs(alert_specs, widget_specs)
 
     if not metrics:
         return None
 
-    if len(metrics) > _MAX_ALERT_METRICS:
-        logger.error("Too many custom alert metrics for project")
-        metrics = metrics[:_MAX_ALERT_METRICS]
+    if len(metrics) > _MAX_ON_DEMAND_METRICS:
+        logger.error("Too many on demand metrics for project")
+        metrics = metrics[:_MAX_ON_DEMAND_METRICS]
 
     return {
         "version": _METRIC_EXTRACTION_VERSION,
@@ -72,42 +78,118 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     }
 
 
-def _get_metric_specs(project: Project, alert_rules: Sequence[AlertRule]) -> List[MetricSpec]:
-    # We use a dict so that we can deduplicate metrics with the same query.
-    metrics: Dict[str, MetricSpec] = {}
+def _get_alert_metric_specs(project: Project) -> List[HashedMetricSpec]:
+    alert_rules = AlertRule.objects.fetch_for_project(project).filter(
+        status=AlertRuleStatus.PENDING.value,
+        snuba_query__dataset=Dataset.PerformanceMetrics.value,
+    )
 
+    specs = []
     for alert in alert_rules:
-        hashed_metric_spec = convert_query_to_metric(project, alert.snuba_query)
-        if hashed_metric_spec is not None:
-            metrics[hashed_metric_spec.query_hash] = hashed_metric_spec.metric_spec
+        if result := _convert_snuba_query_to_metric(project, alert.snuba_query):
+            specs.append(result)
 
-    return [spec for spec in metrics.values()]
-
-
-class HashedMetricSpec(NamedTuple):
-    metric_spec: MetricSpec
-    query_hash: str
+    return specs
 
 
-def convert_query_to_metric(
+def _get_widget_metric_specs(project: Project) -> List[HashedMetricSpec]:
+    if not features.has(
+        "organizations:on-demand-metrics-extraction-experimental", project.organization
+    ):
+        return []
+
+    # fetch all queries of all on demand metrics widgets of this organization
+    widget_queries = DashboardWidgetQuery.objects.filter(
+        widget__dashboard__organization=project.organization,
+        widget__widget_type=DashboardWidgetTypes.DISCOVER,
+    )
+
+    specs = []
+    for widget in widget_queries:
+        for result in _convert_widget_query_to_metric(project, widget):
+            specs.append(result)
+
+    return specs
+
+
+def _merge_metric_specs(
+    alert_specs: List[HashedMetricSpec], widget_specs: List[HashedMetricSpec]
+) -> List[MetricSpec]:
+    # We use a dict so that we can deduplicate metrics with the same hash.
+    metrics: Dict[str, MetricSpec] = {}
+    for query_hash, spec in alert_specs + widget_specs:
+        already_present = metrics.get(query_hash)
+        if already_present and already_present != spec:
+            logger.error(
+                "Duplicate metric spec found for hash %s with different specs: %s != %s",
+                query_hash,
+                already_present,
+                spec,
+            )
+            continue
+
+        metrics[query_hash] = spec
+
+    return [metric for metric in metrics.values()]
+
+
+def _convert_snuba_query_to_metric(
     project: Project, snuba_query: SnubaQuery
 ) -> Optional[HashedMetricSpec]:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
-    returns a MetricSpec for the query. Otherwise, returns None.
+    returns a tuple of (hash, MetricSpec) for the query. Otherwise, returns None.
+    """
+    return _convert_aggregate_and_query_to_metric(
+        project,
+        snuba_query.dataset,
+        snuba_query.aggregate,
+        snuba_query.query,
+    )
+
+
+def _convert_widget_query_to_metric(
+    project: Project,
+    widget_query: DashboardWidgetQuery,
+) -> Sequence[HashedMetricSpec]:
+    """
+    Converts a passed metrics widget query to one or more MetricSpecs.
+    Widget query can result in multiple metric specs if it selects multiple fields
+    """
+    metrics_specs: List[HashedMetricSpec] = []
+
+    if not widget_query.aggregates:
+        return metrics_specs
+
+    for aggregate in widget_query.aggregates:
+        if result := _convert_aggregate_and_query_to_metric(
+            project,
+            # there is an internal check to make sure we extract metrics oly for performance dataset
+            # however widgets do not have a dataset field, so we need to pass it explicitly
+            Dataset.PerformanceMetrics.value,
+            aggregate,
+            widget_query.conditions,
+        ):
+            metrics_specs.append(result)
+
+    return metrics_specs
+
+
+def _convert_aggregate_and_query_to_metric(
+    project: Project, dataset: str, aggregate: str, query: str
+) -> Optional[HashedMetricSpec]:
+    """
+    Converts an aggregate and a query to a metric spec with its hash value.
     """
     try:
-        if not is_on_demand_snuba_query(snuba_query):
+        if not is_on_demand_metric_query(dataset, aggregate, query):
             return None
-
-        field = snuba_query.aggregate
-        query = snuba_query.query
 
         builder = OndemandMetricSpecBuilder.default()
         on_demand_spec = builder.build_spec(
-            field=field,
+            field=aggregate,
             query=query,
-            derived_metric_params=_get_derived_metric_params(project=project, field=field),
+            derived_metric_params=_get_derived_metric_params(project=project, field=aggregate),
         )
 
         return HashedMetricSpec(

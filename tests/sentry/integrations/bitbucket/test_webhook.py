@@ -14,7 +14,6 @@ BITBUCKET_IP_IN_RANGE = "104.192.143.10"
 BITBUCKET_IP = "34.198.178.64"
 
 
-@region_silo_test(stable=True)
 class WebhookBaseTest(APITestCase):
     endpoint = "sentry-extensions-bitbucket-webhook"
 

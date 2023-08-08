@@ -1165,7 +1165,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     // the form with a loading mask on top of it, but force a re-render by using
     // a different key when we have fetched the rule so that form inputs are filled in
     return (
-      <Main fullWidth>
+      <Main>
         <PermissionAlert access={['alerts:write']} project={project} />
 
         <StyledForm
@@ -1189,8 +1189,11 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                 priority="danger"
                 confirmText={t('Delete Rule')}
                 onConfirm={this.handleDeleteRule}
-                header={t('Delete Rule')}
-                message={t('Are you sure you want to delete this rule?')}
+                header={<h5>{t('Delete Alert Rule?')}</h5>}
+                message={t(
+                  'Are you sure you want to delete "%s"? You won\'t be able to view the history of this alert once it\'s deleted.',
+                  rule.name
+                )}
               >
                 <Button priority="danger">{t('Delete Rule')}</Button>
               </Confirm>

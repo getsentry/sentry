@@ -227,10 +227,10 @@ class MetricSpec(TypedDict):
 
 def is_on_demand_snuba_query(snuba_query: SnubaQuery) -> bool:
     """Returns ``True`` if the snuba query can't be supported by standard metrics."""
-    return is_on_demand_query(snuba_query.dataset, snuba_query.aggregate, snuba_query.query)
+    return is_on_demand_metric_query(snuba_query.dataset, snuba_query.aggregate, snuba_query.query)
 
 
-def is_on_demand_query(
+def is_on_demand_metric_query(
     dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
 ) -> bool:
     """Returns ``True`` if the dataset is performance metrics and query contains non-standard search fields."""
@@ -238,11 +238,32 @@ def is_on_demand_query(
     if not dataset or Dataset(dataset) != Dataset.PerformanceMetrics:
         return False
 
+    if is_standard_metrics_compatible(dataset, aggregate, query):
+        return False
+
+    for field in _get_aggregate_fields(aggregate):
+        if not _is_on_demand_supported_field(field):
+            return False
+    try:
+        return _is_on_demand_supported_query(event_search.parse_search_query(query))
+    except InvalidSearchQuery:
+        logger.error(f"Failed to parse search query: {query}", exc_info=True)
+        return False
+
+
+def is_standard_metrics_compatible(
+    dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
+) -> bool:
+    """Returns ``True`` if the query can be supported by standard metrics."""
+
+    if not dataset or Dataset(dataset) not in [Dataset.Metrics, Dataset.PerformanceMetrics]:
+        return False
+
     for field in _get_aggregate_fields(aggregate):
         if not _is_standard_metrics_field(field):
-            return True
+            return False
     try:
-        return not _is_standard_metrics_query(event_search.parse_search_query(query))
+        return _is_standard_metrics_query(event_search.parse_search_query(query))
     except InvalidSearchQuery:
         logger.error(f"Failed to parse search query: {query}", exc_info=True)
         return False
@@ -253,14 +274,14 @@ def _get_aggregate_fields(aggregate: str) -> Sequence[str]:
     Returns any fields referenced by the arguments of supported aggregate
     functions, otherwise ``None``.
     """
+    _SUPPORTED_AGG_FNS = ("count_if", "count_unique")
 
-    # count_if is currently the only supported function, exit early
-    if not aggregate.startswith("count_if("):
+    if not aggregate.startswith(_SUPPORTED_AGG_FNS):
         return []
 
     try:
         function, arguments, _ = fields.parse_function(aggregate)
-        if function == "count_if" and arguments:
+        if function in _SUPPORTED_AGG_FNS and arguments:
             return [arguments[0]]
     except InvalidSearchQuery:
         logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)
@@ -290,8 +311,162 @@ def _is_standard_metrics_search_filter(token: QueryToken) -> bool:
     return True
 
 
+def to_standard_metrics_query(query: str) -> str:
+    """
+    Converts a query containing on demand search fields to a query that can be
+    run using only standard metrics.
+
+    This is done by removing conditions requiring on-demand metrics.
+
+    NOTE: This does **NOT** create an equivalent query. It only creates the best
+    approximation available using only standard metrics. It is used for approximating
+    the volume of an on-demand metrics query using a combination of indexed and metrics data.
+
+    Examples:
+        "enviroment:dev AND transaction.duration:>=1s" -> "enviroment:dev"
+        "enviroment:dev OR transaction.duration:>=1s" -> "enviroment:dev"
+        "transaction.duration:>=1s OR browser.version:1" -> ""
+        "transaction.duration:>=1s AND browser.version:1" -> ""
+    """
+    try:
+        tokens = event_search.parse_search_query(query)
+    except InvalidSearchQuery:
+        logger.error(f"Failed to parse search query: {query}", exc_info=True)
+        raise
+
+    cleaned_query = to_standard_metrics_tokens(tokens)
+    return query_tokens_to_string(cleaned_query)
+
+
+def to_standard_metrics_tokens(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+    """
+    Converts a query in token form containing on-demand search fields to a query
+    that has all on-demand filters removed and can be run using only standard metrics.
+    """
+    remaining_tokens = _remove_on_demand_search_filters(tokens)
+    cleaned_query = cleanup_query(remaining_tokens)
+    return cleaned_query
+
+
+def query_tokens_to_string(tokens: Sequence[QueryToken]) -> str:
+    """
+    Converts a list of tokens into a query string.
+    """
+    ret_val = ""
+    for token in tokens:
+        if isinstance(token, str):
+            ret_val += f" {token}"
+        else:
+            ret_val += f" {token.to_query_string()}"
+    return ret_val.strip()
+
+
+def _remove_on_demand_search_filters(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+    """
+    removes tokens that contain filters that can only be handled by on demand metrics.
+    """
+    ret_val: List[QueryToken] = []
+    for token in tokens:
+        if isinstance(token, SearchFilter):
+            if _is_standard_metrics_search_filter(token):
+                ret_val.append(token)
+        elif isinstance(token, ParenExpression):
+            ret_val.append(ParenExpression(_remove_on_demand_search_filters(token.children)))
+        else:
+            ret_val.append(token)
+    return ret_val
+
+
+def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+    """
+    Recreates a valid query from an original query that has had on demand search filters removed.
+
+    When removing filters from a query it is possible to create invalid queries.
+    For example removing the on demand filters from "transaction.duration:>=1s OR browser.version:1 AND environment:dev"
+    would result in "OR AND environment:dev" which is not a valid query this should be cleaned to "environment:dev.
+
+    "release:internal and browser.version:1 or os.name:android" => "release:internal or and os.name:android" which would be
+    cleaned to "release:internal or os.name:android"
+    """
+    tokens = list(tokens)
+
+    # remove empty parens
+    removed_empty_parens: List[QueryToken] = []
+    for token in tokens:
+        if not isinstance(token, ParenExpression):
+            removed_empty_parens.append(token)
+        else:
+            children = cleanup_query(token.children)
+            if len(children) > 0:
+                removed_empty_parens.append(ParenExpression(children))
+    # remove AND and OR operators at the start of the query
+    while len(removed_empty_parens) > 0 and isinstance(removed_empty_parens[0], str):
+        removed_empty_parens.pop(0)
+
+    # remove AND and OR operators at the end of the query
+    while len(removed_empty_parens) > 0 and isinstance(removed_empty_parens[-1], str):
+        removed_empty_parens.pop()
+
+    # remove AND and OR operators that are next to each other
+    ret_val = []
+    previous_token: Optional[QueryToken] = None
+
+    for token in removed_empty_parens:
+        # this loop takes care of removing consecutive AND/OR operators (keeping only one of them)
+        if isinstance(token, str) and isinstance(previous_token, str):
+            token = cast(QueryOp, token.upper())
+            # this handles two AND/OR operators next to each other, we must drop one of them
+            # if we have an AND do nothing (AND will be merged in the previous token see comment below)
+            # if we have an OR the resulting operator will be an OR
+            # AND OR => OR
+            # OR OR => OR
+            # OR AND => OR
+            # AND AND => AND
+            if token == "OR":
+                previous_token = "OR"
+            continue
+        elif previous_token is not None:
+            ret_val.append(previous_token)
+        previous_token = token
+    # take care of the last token (if any)
+    if previous_token is not None:
+        ret_val.append(previous_token)
+
+    return ret_val
+
+
+def _is_on_demand_supported_query(tokens: Sequence[QueryToken]) -> bool:
+    """
+    Recursively checks if any of the supplied token contain search filters that can't be handled by standard metrics.
+    """
+
+    for token in tokens:
+        if not _is_on_demand_supported_search_filter(token):
+            return False
+
+    return True
+
+
+def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
+    if isinstance(token, SearchFilter):
+        return _is_on_demand_supported_field(token.key.name)
+
+    if isinstance(token, ParenExpression):
+        return _is_on_demand_supported_query(token.children)
+
+    return True
+
+
 def _is_standard_metrics_field(field: str) -> bool:
     return field in _STANDARD_METRIC_FIELDS
+
+
+def _is_on_demand_supported_field(field: str) -> bool:
+    try:
+        _map_field_name(field)
+        return True
+    except ValueError:
+        return False
 
 
 def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:
@@ -317,10 +492,8 @@ class OndemandMetricSpec(NamedTuple):
 
     def query_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
-
-        # For simplicity, we use the field and the original query for computing the hash of a metric but the best way
-        # would be to compute it mixing the field and the sorted query AST.
-        str_to_hash = f"{self.field};{self.original_query}"
+        sorted_conditions = str(_deep_sorted(self.condition()))
+        str_to_hash = f"{self.field};{sorted_conditions}"
         return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
 
     def to_metric_spec(self) -> MetricSpec:
@@ -694,9 +867,13 @@ def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
 
 def _map_field_name(search_key: str) -> str:
     """
-    Maps the name of a field in a search query to the event protocol path.
+    <<<<<<< HEAD
+        Maps the name of a field in a search query to the event protocol path.
+    =======
+        Maps a name of a field in a search query to the event protocol path.
+    >>>>>>> master
 
-    Raises an exception if the field is not supported.
+        Raises an exception if the field is not supported.
     """
     # Map known fields using a static mapping.
     if field := _SEARCH_TO_PROTOCOL_FIELDS.get(search_key):
