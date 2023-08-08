@@ -45,6 +45,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 import CreateIntegrationButton from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
+import ReinstallAlert from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
 
 import {POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
@@ -546,6 +547,7 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
         )}
 
         <PermissionAlert access={['org:integrations']} />
+        <ReinstallAlert />
         <Panel>
           <PanelBody data-test-id="integration-panel">
             {displayedList.length ? (
