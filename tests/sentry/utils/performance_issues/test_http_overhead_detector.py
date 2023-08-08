@@ -151,7 +151,6 @@ class HTTPOverheadDetectorTest(TestCase):
             )
         ]
 
-
     def test_does_not_detect_under_delay_threshold(self):
         url = "/api/endpoint/123"
         event = _valid_http_overhead_event(url)
