@@ -3,13 +3,12 @@ from __future__ import annotations
 import abc
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Mapping, Optional, Sequence
 
 from django.http import HttpRequest, HttpResponse
 from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
-from sentry.middleware.integrations.integration_control import ResponseHandler
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
@@ -20,6 +19,8 @@ from sentry.silo.client import RegionSiloClient
 from sentry.types.region import Region, get_region_for_organization
 
 logger = logging.getLogger(__name__)
+if TYPE_CHECKING:
+    from sentry.middleware.integrations.integration_control import ResponseHandler
 
 
 class RegionResult:

@@ -42,6 +42,7 @@ class IntegrationControlMiddleware:
         for classification in self.classifications:
             _cls = classification(response_handler=self.get_response)
             if _cls.should_operate(request):
+                logger.info(f"routing_request.{_cls.__class__}", extra={"path": request.path})
                 return _cls.get_response(request)
 
         return self.get_response(request)
