@@ -6,21 +6,30 @@ from sentry.issues.escalating_group_forecast import ONE_EVENT_FORECAST, Escalati
 from sentry.models.group import Group, GroupStatus
 from sentry.tasks.weekly_escalating_forecast import run_escalating_forecast
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
 
 
 class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
-    def create_archived_until_escalating_groups(self, num_groups: int) -> List[Group]:
+    def create_groups(
+        self, num_groups: int, status: GroupStatus, substatus: GroupSubStatus
+    ) -> List[Group]:
         group_list = []
         project_1 = self.project
         for i in range(num_groups):
             group = self.create_group(project=project_1)
-            group.status = GroupStatus.IGNORED
-            group.substatus = GroupSubStatus.UNTIL_ESCALATING
+            group.status = status
+            group.substatus = substatus
             group.save()
             group_list.append(group)
         return group_list
+
+    def create_archived_until_escalating_groups(self, num_groups: int) -> List[Group]:
+        return self.create_groups(num_groups, GroupStatus.IGNORED, GroupSubStatus.UNTIL_ESCALATING)
+
+    def create_ongoing_groups(self, num_groups: int) -> List[Group]:
+        return self.create_groups(num_groups, GroupStatus.UNRESOLVED, GroupSubStatus.ONGOING)
 
     @patch("sentry.issues.forecasts.generate_and_save_missing_forecasts.delay")
     @patch("sentry.issues.escalating.query_groups_past_counts")
@@ -125,3 +134,34 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             assert second_fetched_forecast is not None
             assert first_fetched_forecast.date_added < second_fetched_forecast.date_added
             record_mock.assert_called_with("issue_forecasts.saved", num_groups=1)
+
+    @with_feature("organizations:escalating-issues-v2")
+    @patch("sentry.analytics.record")
+    @patch("sentry.issues.forecasts.query_groups_past_counts")
+    def test_multiple_archived_and_ongoing_groups_escalating_forecast(
+        self, mock_query_groups_past_counts: MagicMock, record_mock: MagicMock
+    ) -> None:
+        with self.tasks():
+            archived_group_list = self.create_archived_until_escalating_groups(num_groups=3)
+            ongoing_group_list = self.create_ongoing_groups(num_groups=3)
+            group_list = archived_group_list + ongoing_group_list
+
+            mock_query_groups_past_counts.return_value = get_mock_groups_past_counts_response(
+                num_days=7, num_hours=23, groups=group_list
+            )
+
+            run_escalating_forecast()
+            approximate_date_added = datetime.now(timezone.utc)
+            for i in range(len(group_list)):
+                fetched_forecast = EscalatingGroupForecast.fetch(
+                    group_list[i].project.id, group_list[i].id
+                )
+                assert fetched_forecast is not None
+                assert fetched_forecast.project_id == group_list[i].project.id
+                assert fetched_forecast.group_id == group_list[i].id
+                assert fetched_forecast.forecast == [100] * 14
+                assert fetched_forecast.date_added.replace(
+                    second=0, microsecond=0
+                ) == approximate_date_added.replace(second=0, microsecond=0)
+                assert fetched_forecast.date_added < approximate_date_added
+                record_mock.assert_called_with("issue_forecasts.saved", num_groups=6)
