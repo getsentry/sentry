@@ -13,6 +13,17 @@ class IntegrationAddedEvent(analytics.Event):
     )
 
 
+class IntegrationDisabledNotified(analytics.Event):
+    type = "integration.disabled.notified"
+
+    attributes = (
+        analytics.Attribute("organization_id"),
+        analytics.Attribute("redis_key"),
+        analytics.Attribute("provider"),
+        analytics.Attribute("integration_slug"),
+    )
+
+
 class IntegrationIssueCreatedEvent(analytics.Event):
     type = "integration.issue.created"
 
@@ -112,6 +123,7 @@ class IntegrationStacktraceLinkEvent(analytics.Event):
 
 def register_analytics() -> None:
     analytics.register(IntegrationAddedEvent)
+    analytics.register(IntegrationDisabledNotified)
     analytics.register(IntegrationIssueCreatedEvent)
     analytics.register(IntegrationIssueLinkedEvent)
     analytics.register(IntegrationIssueStatusSyncedEvent)
