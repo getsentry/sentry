@@ -1,16 +1,9 @@
 import ExternalLink from 'sentry/components/links/externalLink';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-
-type Props = {
-  guideLink: string;
-  newOrg?: boolean;
-  organization?: Organization;
-  platformKey?: PlatformKey;
-  projectId?: string;
-};
 
 export function getUploadSourceMapsStep({
   guideLink,
@@ -18,7 +11,13 @@ export function getUploadSourceMapsStep({
   platformKey,
   projectId,
   newOrg,
-}: Props) {
+}: {
+  guideLink: string;
+  newOrg?: boolean;
+  organization?: Organization;
+  platformKey?: PlatformKey;
+  projectId?: string;
+}) {
   return {
     title: t('Upload Source Maps'),
     description: (
@@ -71,3 +70,43 @@ export function getUploadSourceMapsStep({
     ],
   };
 }
+
+export const platformProductAvailability = {
+  javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
+  'javascript-react': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-vue': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-angular': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-ember': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-gatsby': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-nextjs': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-remix': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-svelte': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-sveltekit': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+};

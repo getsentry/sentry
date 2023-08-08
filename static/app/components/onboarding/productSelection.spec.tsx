@@ -18,9 +18,17 @@ describe('Onboarding Product Selection', function () {
       },
     });
 
-    render(<ProductSelection />, {
-      context: routerContext,
-    });
+    render(
+      <ProductSelection
+        products={[
+          ProductSolution.PERFORMANCE_MONITORING,
+          ProductSolution.SESSION_REPLAY,
+        ]}
+      />,
+      {
+        context: routerContext,
+      }
+    );
 
     // Introduction
     expect(
@@ -94,9 +102,19 @@ describe('Onboarding Product Selection', function () {
 
     const skipLazyLoader = jest.fn();
 
-    render(<ProductSelection lazyLoader skipLazyLoader={skipLazyLoader} />, {
-      context: routerContext,
-    });
+    render(
+      <ProductSelection
+        lazyLoader
+        skipLazyLoader={skipLazyLoader}
+        products={[
+          ProductSolution.PERFORMANCE_MONITORING,
+          ProductSolution.SESSION_REPLAY,
+        ]}
+      />,
+      {
+        context: routerContext,
+      }
+    );
 
     // Introduction
     expect(
@@ -132,9 +150,18 @@ describe('Onboarding Product Selection', function () {
       },
     ];
 
-    render(<ProductSelection disabledProducts={disabledProducts} />, {
-      context: routerContext,
-    });
+    render(
+      <ProductSelection
+        disabledProducts={disabledProducts}
+        products={[
+          ProductSolution.PERFORMANCE_MONITORING,
+          ProductSolution.SESSION_REPLAY,
+        ]}
+      />,
+      {
+        context: routerContext,
+      }
+    );
 
     // Performance Monitoring shall be unchecked and disabled by default
     expect(screen.getByRole('checkbox', {name: 'Performance Monitoring'})).toBeDisabled();
@@ -149,5 +176,32 @@ describe('Onboarding Product Selection', function () {
 
     // Try to uncheck performance monitoring
     await waitFor(() => expect(router.push).not.toHaveBeenCalled());
+  });
+
+  it('does not render Session Replay', async function () {
+    const {router, routerContext} = initializeOrg({
+      router: {
+        location: {
+          query: {product: ['session-replay']},
+        },
+        params: {},
+      },
+    });
+
+    render(<ProductSelection products={[ProductSolution.PERFORMANCE_MONITORING]} />, {
+      context: routerContext,
+    });
+
+    expect(
+      screen.queryByRole('checkbox', {name: 'Session Replay'})
+    ).not.toBeInTheDocument();
+
+    // router.replace is called to remove session-replay from query
+    await waitFor(() =>
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: undefined,
+        query: {product: ['performance-monitoring']},
+      })
+    );
   });
 });

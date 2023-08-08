@@ -10,6 +10,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
+import {platformProductAvailability} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   ProductSelection,
   ProductSolution,
@@ -33,14 +34,14 @@ export function SetupDocsLoader({
   project,
   platform,
   close,
-  showDocsWithProductSelection,
+  newOrg,
 }: {
   close: () => void;
   location: Location;
   organization: Organization;
   platform: PlatformKey | null;
   project: Project;
-  showDocsWithProductSelection?: boolean;
+  newOrg?: boolean;
 }) {
   const api = useApi();
   const currentPlatform = platform ?? project?.platform ?? 'other';
@@ -143,20 +144,18 @@ export function SetupDocsLoader({
 
   return (
     <Fragment>
-      {showDocsWithProductSelection ? (
+      {!newOrg ? (
         <ProductSelectionAvailabilityHook
           organization={organization}
           lazyLoader
           skipLazyLoader={close}
+          products={platformProductAvailability[currentPlatform]}
         />
       ) : (
         <ProductSelection
-          defaultSelectedProducts={[
-            ProductSolution.PERFORMANCE_MONITORING,
-            ProductSolution.SESSION_REPLAY,
-          ]}
           lazyLoader
           skipLazyLoader={close}
+          products={platformProductAvailability[currentPlatform]}
         />
       )}
 

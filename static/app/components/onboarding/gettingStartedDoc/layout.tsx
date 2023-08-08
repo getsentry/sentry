@@ -6,16 +6,15 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Step, StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
-  ProductSelection,
-  ProductSolution,
-} from 'sentry/components/onboarding/productSelection';
+import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
+
+import {platformProductAvailability} from './utils';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({
   hookName: 'component:product-selection-availability',
@@ -48,10 +47,8 @@ export function Layout({
   const organization = useOrganization();
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
-  const isJavaScriptPlatform =
-    platformKey === 'javascript' || !!platformKey?.match('^javascript-([A-Za-z]+)$');
-
-  const displayProductSelection = !isSelfHosted && isJavaScriptPlatform;
+  const displayProductSelection =
+    !isSelfHosted && platformKey && platformProductAvailability[platformKey];
 
   return (
     <Wrapper>
@@ -62,15 +59,13 @@ export function Layout({
         </Fragment>
       )}
       {displayProductSelection && newOrg && (
-        <ProductSelection
-          defaultSelectedProducts={[
-            ProductSolution.PERFORMANCE_MONITORING,
-            ProductSolution.SESSION_REPLAY,
-          ]}
-        />
+        <ProductSelection products={platformProductAvailability[platformKey]} />
       )}
       {displayProductSelection && !newOrg && (
-        <ProductSelectionAvailabilityHook organization={organization} />
+        <ProductSelectionAvailabilityHook
+          organization={organization}
+          products={platformProductAvailability[platformKey]}
+        />
       )}
       <Steps withTopSpacing={!displayProductSelection && newOrg}>
         {steps.map(step => (

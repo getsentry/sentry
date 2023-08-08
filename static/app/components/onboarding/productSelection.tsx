@@ -21,20 +21,51 @@ export enum ProductSolution {
 }
 
 export type DisabledProduct = {
-  product: ProductSolution;
   reason: string;
   onClick?: () => void;
+  product?: ProductSolution;
 };
 
 type ProductProps = {
+  /**
+   * If the product is checked. This information is grabbed from the URL.
+   */
   checked: boolean;
-  disabled: boolean;
+  /**
+   * The name of the product
+   */
   label: string;
+  /**
+   * Brief product description
+   */
+  description?: string;
+  /**
+   * If the product is disabled. It contains a reason and an optional onClick handler
+   */
+  disabled?: DisabledProduct;
+  /**
+   * Link of the product documentation. Rendered if there is also a description.
+   */
+  docLink?: string;
+  /**
+   * Click handler. If the product is enablec, by clicking on the button, the product is added or removed from the URL.
+   */
   onClick?: () => void;
+  /**
+   * A permanent disabled product is always disabled and cannot be enabled.
+   */
   permanentDisabled?: boolean;
 };
 
-function Product({disabled, permanentDisabled, checked, label, onClick}: ProductProps) {
+function Product({
+  disabled,
+  permanentDisabled,
+  checked,
+  label,
+  onClick,
+  docLink,
+  description,
+}: ProductProps) {
   const ProductWrapper = permanentDisabled
     ? PermanentDisabledProductWrapper
     : disabled
@@ -42,30 +73,56 @@ function Product({disabled, permanentDisabled, checked, label, onClick}: Product
     : ProductButtonWrapper;
 
   return (
-    <ProductWrapper
-      onClick={onClick}
-      disabled={onClick ?? permanentDisabled ? false : disabled}
-      priority={permanentDisabled || checked ? 'primary' : 'default'}
-      aria-label={label}
+    <Tooltip
+      title={
+        disabled?.reason ??
+        (description && (
+          <TooltipDescription>
+            {description}
+            {docLink && <ExternalLink href={docLink}>{t('Read the Docs')}</ExternalLink>}
+          </TooltipDescription>
+        ))
+      }
+      isHoverable
     >
-      <ProductButtonInner>
-        <Checkbox
-          checked={checked}
-          disabled={permanentDisabled ? false : disabled}
-          aria-label={label}
-          size="xs"
-          readOnly
-        />
-        <span>{label}</span>
-        <IconQuestion size="xs" color="subText" />
-      </ProductButtonInner>
-    </ProductWrapper>
+      <ProductWrapper
+        onClick={disabled?.onClick ?? onClick}
+        disabled={disabled?.onClick ?? permanentDisabled ? false : !!disabled}
+        priority={permanentDisabled || checked ? 'primary' : 'default'}
+        aria-label={label}
+      >
+        <ProductButtonInner>
+          <Checkbox
+            checked={checked}
+            disabled={permanentDisabled ? false : !!disabled}
+            aria-label={label}
+            size="xs"
+            readOnly
+          />
+          <span>{label}</span>
+          <IconQuestion size="xs" color="subText" />
+        </ProductButtonInner>
+      </ProductWrapper>
+    </Tooltip>
   );
 }
 
 export type ProductSelectionProps = {
+  /**
+   * List of products to display
+   */
+  products: ProductSolution[];
+  /**
+   * List of products that are checked by default
+   */
   defaultSelectedProducts?: ProductSolution[];
+  /**
+   * List of products that are disabled. All of them have to contain a reason by default and optionally an onClick handler.
+   */
   disabledProducts?: DisabledProduct[];
+  /**
+   * If true, the loader script is used instead of the npm/yarn guide.
+   */
   lazyLoader?: boolean;
   skipLazyLoader?: () => void;
 };
@@ -75,19 +132,23 @@ export function ProductSelection({
   disabledProducts,
   lazyLoader,
   skipLazyLoader,
+  products,
 }: ProductSelectionProps) {
   const router = useRouter();
-  const products = decodeList(router.location.query.product);
+  const urlProducts = decodeList(router.location.query.product);
+
+  const defaultProducts = defaultSelectedProducts
+    ? defaultSelectedProducts.filter(defaultSelectedProduct =>
+        products.includes(defaultSelectedProduct)
+      )
+    : products;
 
   useEffect(() => {
-    if (!defaultSelectedProducts) {
-      return;
-    }
     router.replace({
       pathname: router.location.pathname,
       query: {
         ...router.location.query,
-        product: defaultSelectedProducts,
+        product: defaultProducts,
       },
     });
     // Adding defaultSelectedProducts to the dependency array causes an max-depth error
@@ -100,21 +161,13 @@ export function ProductSelection({
         pathname: router.location.pathname,
         query: {
           ...router.location.query,
-          product: products.includes(product)
-            ? products.filter(p => p !== product)
-            : [...products, product],
+          product: urlProducts.includes(product)
+            ? urlProducts.filter(p => p !== product)
+            : [...urlProducts, product],
         },
       });
     },
-    [router, products]
-  );
-
-  const performanceProductDisabled = disabledProducts?.find(
-    disabledProduct => disabledProduct.product === ProductSolution.PERFORMANCE_MONITORING
-  );
-
-  const sessionReplayProductDisabled = disabledProducts?.find(
-    disabledProduct => disabledProduct.product === ProductSolution.SESSION_REPLAY
+    [router, urlProducts]
   );
 
   return (
@@ -130,61 +183,42 @@ export function ProductSelection({
             })}
       </TextBlock>
       <Products>
-        <Tooltip title={t("Let's admit it, we all have errors.")}>
-          <Product disabled checked permanentDisabled label={t('Error Monitoring')} />
-        </Tooltip>
-        <Tooltip
-          title={
-            performanceProductDisabled?.reason ?? (
-              <TooltipDescription>
-                {t(
-                  'Automatic performance issue detection with context like who it impacts and the release, line of code, or function causing the slowdown.'
-                )}
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/performance/">
-                  {t('Read the Docs')}
-                </ExternalLink>
-              </TooltipDescription>
-            )
-          }
-          isHoverable
-        >
+        <Product
+          label={t('Error Monitoring')}
+          disabled={{reason: t("Let's admit it, we all have errors.")}}
+          checked
+          permanentDisabled
+        />
+        {products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
           <Product
-            onClick={
-              performanceProductDisabled
-                ? performanceProductDisabled?.onClick
-                : () => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)
-            }
-            disabled={!!performanceProductDisabled}
-            checked={products.includes(ProductSolution.PERFORMANCE_MONITORING)}
             label={t('Performance Monitoring')}
+            description={t(
+              'Automatic performance issue detection with context like who it impacts and the release, line of code, or function causing the slowdown.'
+            )}
+            docLink="https://docs.sentry.io/platforms/javascript/guides/react/performance/"
+            onClick={() => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)}
+            disabled={disabledProducts?.find(
+              disabledProduct =>
+                disabledProduct.product === ProductSolution.PERFORMANCE_MONITORING
+            )}
+            checked={urlProducts.includes(ProductSolution.PERFORMANCE_MONITORING)}
           />
-        </Tooltip>
-        <Tooltip
-          title={
-            sessionReplayProductDisabled?.reason ?? (
-              <TooltipDescription>
-                {t(
-                  'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
-                )}
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/session-replay/">
-                  {t('Read the Docs')}
-                </ExternalLink>
-              </TooltipDescription>
-            )
-          }
-          isHoverable
-        >
+        )}
+        {products.includes(ProductSolution.SESSION_REPLAY) && (
           <Product
-            onClick={
-              sessionReplayProductDisabled
-                ? sessionReplayProductDisabled?.onClick
-                : () => handleClickProduct(ProductSolution.SESSION_REPLAY)
-            }
-            disabled={!!sessionReplayProductDisabled}
-            checked={products.includes(ProductSolution.SESSION_REPLAY)}
             label={t('Session Replay')}
+            description={t(
+              'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
+            )}
+            docLink="https://docs.sentry.io/platforms/javascript/guides/react/session-replay/"
+            onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
+            disabled={disabledProducts?.find(
+              disabledProduct =>
+                disabledProduct.product === ProductSolution.SESSION_REPLAY
+            )}
+            checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
           />
-        </Tooltip>
+        )}
       </Products>
       {lazyLoader && (
         <AlternativeInstallationAlert type="info" showIcon>
