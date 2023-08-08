@@ -399,6 +399,7 @@ def test_extract_strings_with_single_use_case_ids_blocked():
         True,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == {
         MockUseCaseID.USE_CASE_1: {
@@ -471,6 +472,7 @@ def test_extract_strings_with_multiple_use_case_ids_blocked():
         True,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == {
         MockUseCaseID.TRANSACTIONS: {
@@ -703,6 +705,7 @@ def test_resolved_with_aggregation_options(caplog, settings):
         False,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == (
         {
