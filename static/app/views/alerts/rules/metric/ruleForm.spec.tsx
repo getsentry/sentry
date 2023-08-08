@@ -297,7 +297,7 @@ describe('Incident Rules Form', () => {
 
     beforeEach(() => {
       editRule = MockApiClient.addMockResponse({
-        url: `/projects/org-slug/project-slug/alert-rules/${rule.id}/`,
+        url: `/organizations/org-slug/alert-rules/${rule.id}/`,
         method: 'PUT',
         body: rule,
       });
@@ -449,7 +449,7 @@ describe('Incident Rules Form', () => {
     it('success status updates the rule', async () => {
       const alertRule = TestStubs.MetricRule({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
-        url: `/projects/org-slug/project-slug/alert-rules/${alertRule.id}/`,
+        url: `/organizations/org-slug/alert-rules/${alertRule.id}/`,
         method: 'PUT',
         body: {uuid},
         statusCode: 202,
@@ -496,7 +496,7 @@ describe('Incident Rules Form', () => {
     it('pending status keeps loading true', () => {
       const alertRule = TestStubs.MetricRule({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
-        url: `/projects/org-slug/project-slug/alert-rules/${alertRule.id}/`,
+        url: `/organizations/org-slug/alert-rules/${alertRule.id}/`,
         method: 'PUT',
         body: {uuid},
         statusCode: 202,
@@ -522,7 +522,7 @@ describe('Incident Rules Form', () => {
     it('failed status renders error message', async () => {
       const alertRule = TestStubs.MetricRule({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
-        url: `/projects/org-slug/project-slug/alert-rules/${alertRule.id}/`,
+        url: `/organizations/org-slug/alert-rules/${alertRule.id}/`,
         method: 'PUT',
         body: {uuid},
         statusCode: 202,
