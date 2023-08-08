@@ -4,6 +4,7 @@
 import datetime
 import logging
 import shutil
+import subprocess
 import time
 from os import environ, path
 from urllib.parse import urlparse
@@ -111,6 +112,7 @@ def relay_server_setup(live_server, tmpdir_factory):
         "name": container_name,
         "volumes": {config_path: {"bind": "/etc/relay"}},
         "command": ["run", "--config", "/etc/relay"],
+        "config_path": config_path,
     }
 
     # Some structure similar to what the live_server fixture returns
@@ -129,11 +131,26 @@ def relay_server_setup(live_server, tmpdir_factory):
 @pytest.fixture(scope="function")
 def relay_server(relay_server_setup, settings):
     adjust_settings_for_relay_tests(settings)
-    options = relay_server_setup["options"]
-    with get_docker_client() as docker_client:
-        container_name = _relay_server_container_name()
-        _remove_container_if_exists(docker_client, container_name)
-        container = docker_client.containers.run(**options)
+
+    subprocess.call(
+        (
+            "docker",
+            "run",
+            "-d",
+            "--name",
+            "sentry_test_relay_server",
+            "-p",
+            "33331:33331",
+            "--network=sentry",
+            "--add-host=host.docker.internal:host-gateway",
+            "-v",
+            f"{relay_server_setup['config_path']}:/etc/relay",
+            RELAY_TEST_IMAGE,
+            "run",
+            "--config",
+            "/etc/relay",
+        )
+    )
 
     _log.info("Waiting for Relay container to start")
 
@@ -142,12 +159,15 @@ def relay_server(relay_server_setup, settings):
     for i in range(8):
         try:
             subprocess.call(("docker", "exec", "sentry_test_relay_server", "cat", "/etc/hosts"))
-            subprocess.call(("docker", "exec", "sentry_test_relay_server", "nslookup", "host.docker.internal"))
+            subprocess.call(
+                ("docker", "exec", "sentry_test_relay_server", "nslookup", "host.docker.internal")
+            )
             requests.get(url)
             break
         except Exception as ex:
             if i == 7:
-                raise ValueError(f"relay did not start in time:\n{container.logs()}") from ex
+                # todo logs
+                raise ValueError("relay did not start in time") from ex
             time.sleep(0.1 * 2**i)
     else:
         raise ValueError("relay did not start in time")
