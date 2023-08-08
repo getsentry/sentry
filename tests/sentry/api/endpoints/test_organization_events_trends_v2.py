@@ -185,7 +185,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
 
         trends_call_args_data = mock_get_trends.call_args[0][0]["data"]
         assert len(trends_call_args_data.get(f"{self.project.slug},foo")) > 0
-        assert len(trends_call_args_data.get(f"{self.project.slug}, bar", [])) == 0
+        assert len(trends_call_args_data.get(f"{self.project.slug},bar", [])) == 0
 
         assert response.status_code == 200, response.content
 
