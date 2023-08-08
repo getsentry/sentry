@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from typing import Type
 
+# Django apps we take care to never import or export from.
+EXCLUDED_APPS = frozenset(("auth", "contenttypes"))
+
 
 def get_final_derivations_of(model: Type) -> set[Type]:
     """A "final" derivation of the given `model` base class is any non-abstract class for the
