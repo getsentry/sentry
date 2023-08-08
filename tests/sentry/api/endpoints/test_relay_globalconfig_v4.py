@@ -37,7 +37,9 @@ def call_endpoint(client, relay, private_key):
     ],
 )
 @django_db_all
-def test_return_global_config(call_endpoint, version, request_global_config, expect_global_config):
+def test_return_global_config_on_right_version(
+    call_endpoint, version, request_global_config, expect_global_config
+):
     result, status_code = call_endpoint(version, request_global_config)
     assert status_code < 400
     if not expect_global_config:
