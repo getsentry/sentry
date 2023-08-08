@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List
+from typing import Any, List
 
 import sentry_sdk
 from django.db import connection
@@ -98,7 +98,7 @@ def pr_to_issue_query(pr_id: int):
         return cursor.fetchall()
 
 
-def get_top_5_issues_by_count(issue_list: List[int], project: Project) -> List[int]:
+def get_top_5_issues_by_count(issue_list: list[int], project: Project) -> list[dict[str, Any]]:
     """Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
     request = SnubaRequest(
         dataset=Dataset.Events.value,
