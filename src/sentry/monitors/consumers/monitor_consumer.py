@@ -180,7 +180,9 @@ def _try_handle_high_volume_task_trigger(ts: datetime):
     reference_datetime = ts.replace(second=0, microsecond=0)
     reference_ts = int(reference_datetime.timestamp())
 
-    last_ts = redis_client.get(HIGH_VOLUME_LAST_TRIGGER_TS_KEY)
+    # Since GETSET is atomic this acts as a guard against another consumer
+    # picking up the minute rollover
+    last_ts = redis_client.getset(HIGH_VOLUME_LAST_TRIGGER_TS_KEY, reference_ts)
     if last_ts is not None:
         last_ts = int(last_ts)
 
@@ -188,23 +190,22 @@ def _try_handle_high_volume_task_trigger(ts: datetime):
     if last_ts == reference_ts:
         return
 
-    try:
-        lock = locks.get("sentry.monitors.task_trigger", duration=5)
-        with lock.acquire():
-            # If more than exactly a minute has passed then we've skipped a
-            # task run, report that to sentry, it is a problem.
-            if last_ts is not None and last_ts + 60 != reference_ts:
-                with sentry_sdk.push_scope() as scope:
-                    scope.set_extra("last_ts", last_ts)
-                    scope.set_extra("reference_ts", reference_ts)
-                    sentry_sdk.capture_message("Monitor task dispatch minute skipped")
+    # Track the delay from the true time, ideally this should be pretty
+    # close, but in the case of a backlog, this will be much higher
+    total_delay = reference_ts - datetime.now().timestamp()
 
-            _dispatch_tasks(ts)
-            metrics.incr("monitors.tassk.triggered_via_high_volume_clock")
-            redis_client.set(HIGH_VOLUME_LAST_TRIGGER_TS_KEY, reference_ts)
-    except UnableToAcquireLock:
-        # Another message processor is handling this. Nothing to do
-        pass
+    metrics.incr("monitors.task.triggered_via_high_volume_clock")
+    metrics.gauge("monitors.task.high_volume_clock_delay", total_delay)
+
+    # If more than exactly a minute has passed then we've skipped a
+    # task run, report that to sentry, it is a problem.
+    if last_ts is not None and reference_ts > last_ts + 60:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra("last_ts", last_ts)
+            scope.set_extra("reference_ts", reference_ts)
+            sentry_sdk.capture_message("Monitor task dispatch minute skipped")
+
+    _dispatch_tasks(ts)
 
 
 def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
@@ -212,7 +213,10 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
     # clock_pulse task is not enabled). Instead we use each check-in message as
     # a means for triggering our tasks.
     if settings.SENTRY_MONITORS_HIGH_VOLUME_MODE:
-        _try_handle_high_volume_task_trigger(ts)
+        try:
+            _try_handle_high_volume_task_trigger(ts)
+        except Exception:
+            logger.exception("Failed try high-volume task trigger", exc_info=True)
 
     params: CheckinPayload = json.loads(wrapper["payload"])
     start_time = to_datetime(float(wrapper["start_time"]))
