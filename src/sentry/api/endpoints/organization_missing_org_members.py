@@ -59,21 +59,30 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
             .order_by("-commit_count")
         )
 
-    def _get_email_domain(self, email: str) -> str:
-        return Address(addr_spec=email).domain
-
-    def get(self, request: Request, organization) -> Response:
-        queryset = self._get_missing_members(organization)
-
+    def _get_shared_email_domain(self, organization):
         # if a member has user_email=None, then they have yet to accept an invite
         org_owners = organization.get_members_with_org_roles(
             roles=[roles.get_top_dog().id]
         ).exclude(user_email=None)
 
-        owner_emails = {self._get_email_domain(owner.user_email) for owner in org_owners}
+        def _get_email_domain(email: str) -> str:
+            return Address(addr_spec=email).domain
 
-        if len(owner_emails) == 1:
-            queryset = queryset.filter(email__endswith=owner_emails.pop())
+        owner_email_domains = {_get_email_domain(owner.user_email) for owner in org_owners}
+
+        # all owners have the same email domain
+        if len(owner_email_domains) == 1:
+            return owner_email_domains.pop()
+
+        return None
+
+    def get(self, request: Request, organization: Organization) -> Response:
+        queryset = self._get_missing_members(organization)
+
+        shared_domain = self._get_shared_email_domain(organization)
+
+        if shared_domain:
+            queryset = queryset.filter(email__endswith=shared_domain)
 
         query = request.GET.get("query")
         if query:

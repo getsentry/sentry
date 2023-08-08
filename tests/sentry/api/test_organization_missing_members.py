@@ -45,16 +45,17 @@ class OrganizationMissingMembersTestCase(APITestCase):
         self.create_commit(repo=self.repo, author=self.nonmember_commit_author1)
         self.create_commit(repo=self.repo, author=self.nonmember_commit_author2)
 
-        not_common_domain_author = self.create_commit_author(
+        not_shared_domain_author = self.create_commit_author(
             project=self.project, email="a@exampletwo.com"
         )
-        not_common_domain_author.external_id = "not"
-        not_common_domain_author.save()
-        self.create_commit(repo=self.repo, author=not_common_domain_author)
+        not_shared_domain_author.external_id = "not"
+        not_shared_domain_author.save()
+        self.create_commit(repo=self.repo, author=not_shared_domain_author)
 
         self.login_as(self.user)
 
-    def test_simple__common_domain(self):
+    def test_simple__shared_domain(self):
+        # only returns users with example.com emails (shared domain)
         OrganizationMember.objects.filter(
             organization_id=self.organization.id, role="owner"
         ).update(user_email="owner@example.com")
@@ -106,7 +107,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
         assert response.data[0]["integration"] == "github"
         assert response.data[0]["users"] == []
 
-    def test_not_common_domain(self):
+    def test_owners_with_different_domains(self):
         user = self.create_user(email="owner@exampletwo.com")
         self.create_member(
             organization=self.organization,
@@ -126,7 +127,9 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "a@exampletwo.com", "externalId": "not", "commitCount": 1},
         ]
 
-    def test_query(self):
+    def test_query_on_author_email_and_external_id(self):
+        # self.nonmember_commit_author1 matches on email
+        # the below matches on external id
         nonmember_commit_author = self.create_commit_author(
             project=self.project, email="c2@example.com"
         )
