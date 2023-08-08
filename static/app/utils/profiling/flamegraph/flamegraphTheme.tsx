@@ -63,6 +63,7 @@ export interface FlamegraphTheme {
     HIGHLIGHTED_LABEL_COLOR: ColorChannels;
     HOVERED_FRAME_BORDER_COLOR: string;
     LABEL_FONT_COLOR: string;
+    MEMORY_CHART_COLORS: ColorChannels[];
     MINIMAP_POSITION_OVERLAY_BORDER_COLOR: string;
     MINIMAP_POSITION_OVERLAY_COLOR: string;
     // Nice color picker for GLSL colors - https://keiwando.com/color-picker/
@@ -195,6 +196,10 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
       'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
     },
     CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
+    MEMORY_CHART_COLORS: [
+      hexToColorChannels(CHART_PALETTE[4][2], 0.8),
+      hexToColorChannels(CHART_PALETTE[4][3], 0.8),
+    ],
     CHART_CURSOR_INDICATOR: 'rgba(31,35,58,.75)',
     CPU_CHART_LABEL_COLOR: 'rgba(31,35,58,.75)',
     CURSOR_CROSSHAIR: '#bbbbbb',
@@ -244,6 +249,10 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
       'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
     },
     CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
+    MEMORY_CHART_COLORS: [
+      hexToColorChannels(CHART_PALETTE[4][2], 0.8),
+      hexToColorChannels(CHART_PALETTE[4][3], 0.8),
+    ],
     CHART_CURSOR_INDICATOR: 'rgba(255, 255, 255, 0.5)',
     CPU_CHART_LABEL_COLOR: 'rgba(255, 255, 255, 0.5)',
     CURSOR_CROSSHAIR: '#828285',

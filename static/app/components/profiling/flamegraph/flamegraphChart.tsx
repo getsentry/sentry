@@ -18,7 +18,7 @@ import {
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import type {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
+import type {FlamegraphChart as FlamegraphChartType} from 'sentry/utils/profiling/flamegraphChart';
 import {
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
@@ -36,25 +36,25 @@ import {
   CollapsibleTimelineLoadingIndicator,
   CollapsibleTimelineMessage,
 } from './collapsibleTimeline';
-import {FlamegraphCpuChartTooltip} from './flamegraphCpuChartTooltip';
+import {FlamegraphChartTooltip} from './flamegraphChartTooltip';
 
 interface FlamegraphChartProps {
   canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
-  chart: FlamegraphChart | null;
-  cpuChartCanvas: FlamegraphCanvas | null;
-  cpuChartCanvasRef: HTMLCanvasElement | null;
-  cpuChartView: CanvasView<FlamegraphChart> | null;
-  setCpuChartCanvasRef: (ref: HTMLCanvasElement | null) => void;
+  chart: FlamegraphChartType | null;
+  chartCanvas: FlamegraphCanvas | null;
+  chartCanvasRef: HTMLCanvasElement | null;
+  chartView: CanvasView<FlamegraphChartType> | null;
+  setChartCanvasRef: (ref: HTMLCanvasElement | null) => void;
 }
 
-export function FlamegraphCpuChart({
+export function FlamegraphChart({
   chart,
   canvasPoolManager,
-  cpuChartView,
-  cpuChartCanvas,
-  cpuChartCanvasRef,
-  setCpuChartCanvasRef,
+  chartView,
+  chartCanvas,
+  chartCanvasRef,
+  setChartCanvasRef,
   canvasBounds,
 }: FlamegraphChartProps) {
   const profiles = useProfiles();
@@ -70,30 +70,30 @@ export function FlamegraphCpuChart({
   const configSpaceCursorRef = useRef<vec2 | null>(null);
   configSpaceCursorRef.current = configSpaceCursor;
 
-  const cpuChartRenderer = useMemo(() => {
-    if (!cpuChartCanvasRef || !chart) {
+  const chartRenderer = useMemo(() => {
+    if (!chartCanvasRef || !chart) {
       return null;
     }
 
-    return new FlamegraphChartRenderer(cpuChartCanvasRef, chart, theme);
-  }, [cpuChartCanvasRef, chart, theme]);
+    return new FlamegraphChartRenderer(chartCanvasRef, chart, theme);
+  }, [chartCanvasRef, chart, theme]);
 
-  const drawCpuChart = useCallback(() => {
-    if (!cpuChartCanvas || !chart || !cpuChartView || !cpuChartRenderer) {
+  const drawchart = useCallback(() => {
+    if (!chartCanvas || !chart || !chartView || !chartRenderer) {
       return;
     }
 
     const configViewToPhysicalSpaceTransform = transformMatrixBetweenRect(
-      cpuChartView.configView,
-      cpuChartCanvas.physicalSpace
+      chartView.configView,
+      chartCanvas.physicalSpace
     );
 
-    const offsetPhysicalSpace = cpuChartCanvas.physicalSpace
+    const offsetPhysicalSpace = chartCanvas.physicalSpace
       // shrink the chart height by the padding to pad the top of chart
-      .withHeight(cpuChartCanvas.physicalSpace.height - theme.SIZES.CHART_PX_PADDING);
+      .withHeight(chartCanvas.physicalSpace.height - theme.SIZES.CHART_PX_PADDING);
 
     const physicalSpaceToOffsetPhysicalSpaceTransform = transformMatrixBetweenRect(
-      cpuChartCanvas.physicalSpace,
+      chartCanvas.physicalSpace,
       offsetPhysicalSpace
     );
 
@@ -105,34 +105,34 @@ export function FlamegraphCpuChart({
     );
     mat3.multiply(
       fromConfigView,
-      cpuChartCanvas.physicalSpace.invertYTransform(),
+      chartCanvas.physicalSpace.invertYTransform(),
       fromConfigView
     );
 
-    cpuChartRenderer.draw(
-      cpuChartView.configView,
+    chartRenderer.draw(
+      chartView.configView,
       fromConfigView,
-      cpuChartView.toConfigView(cpuChartCanvas.logicalSpace),
+      chartView.toConfigView(chartCanvas.logicalSpace),
       configSpaceCursorRef
     );
-  }, [chart, cpuChartCanvas, cpuChartRenderer, cpuChartView, theme]);
+  }, [chart, chartCanvas, chartRenderer, chartView, theme]);
 
   useEffect(() => {
-    drawCpuChart();
-  }, [drawCpuChart, configSpaceCursor]);
+    drawchart();
+  }, [drawchart, configSpaceCursor]);
 
   useEffect(() => {
-    scheduler.registerBeforeFrameCallback(drawCpuChart);
+    scheduler.registerBeforeFrameCallback(drawchart);
     scheduler.draw();
 
     return () => {
-      scheduler.unregisterBeforeFrameCallback(drawCpuChart);
+      scheduler.unregisterBeforeFrameCallback(drawchart);
     };
-  }, [drawCpuChart, scheduler]);
+  }, [drawchart, scheduler]);
 
   const onMouseDrag = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!cpuChartCanvas || !cpuChartView || !startInteractionVector) {
+      if (!chartCanvas || !chartView || !startInteractionVector) {
         return;
       }
 
@@ -140,15 +140,15 @@ export function FlamegraphCpuChart({
         evt.nativeEvent.offsetX,
         evt.nativeEvent.offsetY,
         startInteractionVector,
-        cpuChartView,
-        cpuChartCanvas
+        chartView,
+        chartCanvas
       );
 
       if (!configDelta) {
         return;
       }
 
-      canvasPoolManager.dispatch('transform config view', [configDelta, cpuChartView]);
+      canvasPoolManager.dispatch('transform config view', [configDelta, chartView]);
       setStartInteractionVector(
         getPhysicalSpacePositionFromOffset(
           evt.nativeEvent.offsetX,
@@ -156,18 +156,18 @@ export function FlamegraphCpuChart({
         )
       );
     },
-    [cpuChartCanvas, cpuChartView, startInteractionVector, canvasPoolManager]
+    [chartCanvas, chartView, startInteractionVector, canvasPoolManager]
   );
 
   const onCanvasMouseMove = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!cpuChartCanvas || !cpuChartView) {
+      if (!chartCanvas || !chartView) {
         return;
       }
 
-      const configSpaceMouse = cpuChartView.getConfigViewCursor(
+      const configSpaceMouse = chartView.getConfigViewCursor(
         vec2.fromValues(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY),
-        cpuChartCanvas
+        chartCanvas
       );
 
       setConfigSpaceCursor(configSpaceMouse);
@@ -179,7 +179,7 @@ export function FlamegraphCpuChart({
         setLastInteraction(null);
       }
     },
-    [cpuChartCanvas, cpuChartView, onMouseDrag, startInteractionVector]
+    [chartCanvas, chartView, onMouseDrag, startInteractionVector]
   );
 
   const onMapCanvasMouseUp = useCallback(() => {
@@ -195,30 +195,26 @@ export function FlamegraphCpuChart({
     };
   }, [onMapCanvasMouseUp]);
 
-  const onWheelCenterZoom = useWheelCenterZoom(
-    cpuChartCanvas,
-    cpuChartView,
-    canvasPoolManager
-  );
-  const onCanvasScroll = useCanvasScroll(cpuChartCanvas, cpuChartView, canvasPoolManager);
+  const onWheelCenterZoom = useWheelCenterZoom(chartCanvas, chartView, canvasPoolManager);
+  const onCanvasScroll = useCanvasScroll(chartCanvas, chartView, canvasPoolManager);
 
   useCanvasZoomOrScroll({
     setConfigSpaceCursor,
     setLastInteraction,
     handleWheel: onWheelCenterZoom,
     handleScroll: onCanvasScroll,
-    canvas: cpuChartCanvasRef,
+    canvas: chartCanvasRef,
   });
 
   useInteractionViewCheckPoint({
-    view: cpuChartView,
+    view: chartView,
     lastInteraction,
   });
 
   // When a user click anywhere outside the spans, clear cursor and selected node
   useEffect(() => {
     const onClickOutside = (evt: MouseEvent) => {
-      if (!cpuChartCanvasRef || cpuChartCanvasRef.contains(evt.target as Node)) {
+      if (!chartCanvasRef || chartCanvasRef.contains(evt.target as Node)) {
         return;
       }
       setConfigSpaceCursor(null);
@@ -249,7 +245,7 @@ export function FlamegraphCpuChart({
       evt.preventDefault();
       evt.stopPropagation();
 
-      if (!cpuChartView) {
+      if (!chartView) {
         return;
       }
 
@@ -262,30 +258,26 @@ export function FlamegraphCpuChart({
       setLastInteraction(null);
       setStartInteractionVector(null);
     },
-    [configSpaceCursor, cpuChartView]
+    [configSpaceCursor, chartView]
   );
 
   return (
     <Fragment>
       <Canvas
-        ref={setCpuChartCanvasRef}
+        ref={setChartCanvasRef}
         onMouseMove={onCanvasMouseMove}
         onMouseLeave={onCanvasMouseLeave}
         onMouseUp={onCanvasMouseUp}
         onMouseDown={onCanvasMouseDown}
         cursor={lastInteraction === 'pan' ? 'grabbing' : 'default'}
       />
-      {configSpaceCursor &&
-      cpuChartRenderer &&
-      cpuChartCanvas &&
-      cpuChartView &&
-      chart ? (
-        <FlamegraphCpuChartTooltip
-          cpuChart={chart}
+      {configSpaceCursor && chartRenderer && chartCanvas && chartView && chart ? (
+        <FlamegraphChartTooltip
+          chart={chart}
           configSpaceCursor={configSpaceCursor}
-          cpuChartCanvas={cpuChartCanvas}
-          cpuChartView={cpuChartView}
-          cpuChartRenderer={cpuChartRenderer}
+          chartCanvas={chartCanvas}
+          chartView={chartView}
+          chartRenderer={chartRenderer}
           canvasBounds={canvasBounds}
         />
       ) : null}
@@ -294,7 +286,7 @@ export function FlamegraphCpuChart({
         <CollapsibleTimelineLoadingIndicator />
       ) : profiles.type === 'resolved' && !chart?.series.length ? (
         <CollapsibleTimelineMessage>
-          {t('Profile has no CPU measurements')}
+          {t('Profile has no measurements')}
         </CollapsibleTimelineMessage>
       ) : null}
     </Fragment>
