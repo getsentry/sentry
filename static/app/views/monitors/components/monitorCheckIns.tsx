@@ -95,7 +95,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
         {isLoading
           ? [...new Array(6)].map((_, i) => (
               <RowPlaceholder key={i}>
-                <RowPlaceholderInner height="2rem" />
+                <Placeholder height="2rem" />
               </RowPlaceholder>
             ))
           : checkInList.map(checkIn => (
@@ -213,8 +213,4 @@ const RowPlaceholder = styled('div')`
   &:not(:last-child) {
     border-bottom: solid 1px ${p => p.theme.innerBorder};
   }
-`;
-
-const RowPlaceholderInner = styled(Placeholder)`
-  border-radius: ${p => p.theme.borderRadius};
 `;
