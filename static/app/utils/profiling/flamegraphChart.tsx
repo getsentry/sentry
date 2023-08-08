@@ -12,7 +12,7 @@ interface Series {
   type: 'line' | 'area';
 }
 
-export interface ProfileSerieMeasurement extends Profiling.Measurement {
+export interface ProfileSeriesMeasurement extends Profiling.Measurement {
   name: string;
 }
 
