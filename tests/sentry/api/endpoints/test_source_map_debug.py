@@ -317,6 +317,107 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert error["message"] == "The absolute path url is not valid"
         assert error["data"] == {"absPath": "app.example.com/static/js/main.fa8fe19f.js"}
 
+    def test_skips_node_internals(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "platform": "node",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "TypeError",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "node:vm",
+                                        "filename": "/static/js/main.fa8fe19f.js",
+                                        "lineno": 5,
+                                        "colno": 45,
+                                    }
+                                ]
+                            },
+                        },
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+        assert len(resp.data["errors"]) == 0
+
+    def test_no_valid_url_skips_node(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "platform": "node",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "TypeError",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "/path/to/file/thats/not/url/main.fa8fe19f.js",
+                                        "filename": "/static/js/main.fa8fe19f.js",
+                                        "lineno": 5,
+                                        "colno": 45,
+                                    }
+                                ]
+                            },
+                        },
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        release = Release.objects.get(organization=self.organization, version=event.release)
+        release.update(user_agent="test_user_agent")
+
+        file = File.objects.create(
+            name="application.js",
+            type="release.file",
+            headers={"Sourcemap": "/path/to/file/thats/not/url/main.fa8fe19f.js.map"},
+        )
+        fileobj = ContentFile(b"wat")
+        file.putfile(fileobj)
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
+            file=file,
+            name="/path/to/file/thats/not/url/main.fa8fe19f.js",
+        )
+
+        sourcemapfile = File.objects.create(
+            name="/path/to/file/thats/not/url/main.fa8fe19f.js.map", type="release.file"
+        )
+        sourcemapfileobj = ContentFile(b"wat")
+        sourcemapfile.putfile(sourcemapfileobj)
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
+            file=sourcemapfile,
+            name="/path/to/file/thats/not/url/main.fa8fe19f.js.map",
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+        assert len(resp.data["errors"]) == 0
+
     def test_partial_url_match(self):
         event = self.store_event(
             data={
