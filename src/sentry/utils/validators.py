@@ -11,7 +11,7 @@ INVALID_SPAN_ID = "{} must be a valid 16 character hex (containing only digits, 
 
 HEXADECIMAL_16_DIGITS = re.compile("^[0-9a-fA-F]{16}$")
 
-VALID_EMAIL_RE = re.compile(r"(^[a-zA-Z0-9*_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)")
+VALID_EMAIL_SEARCH = re.compile(r"(^[a-zA-Z0-9*_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)")
 
 
 def normalize_event_id(value):
@@ -29,5 +29,5 @@ def is_span_id(value):
     return bool(HEXADECIMAL_16_DIGITS.search(force_str(value)))
 
 
-def is_email(value):
-    return bool(VALID_EMAIL_RE.search(force_str(value)))
+def is_email_search(value):
+    return bool(VALID_EMAIL_SEARCH.search(force_str(value)))

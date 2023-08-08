@@ -21,7 +21,7 @@ from sentry.replays.post_process import ReplayDetailsResponse, process_raw_respo
 from sentry.replays.query import query_replays_collection, replay_url_parser_config
 from sentry.replays.validators import ReplayValidator
 from sentry.utils.snuba import QueryMemoryLimitExceeded
-from sentry.utils.validators import is_email
+from sentry.utils.validators import is_email_search
 
 
 @region_silo_endpoint
@@ -78,7 +78,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         def data_fn(offset, limit):
             try:
                 query = request.query_params.get("query", "")
-                if is_email(query):
+                if is_email_search(query):
                     query = f"user.email:{query}"
 
                 search_filters = parse_search_query(query, config=replay_url_parser_config)
