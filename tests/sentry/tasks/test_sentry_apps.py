@@ -122,6 +122,7 @@ class TestSendAlertEvent(TestCase):
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_send_alert_event(self, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
         group = event.group
         rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": self.sentry_app})
 
@@ -223,6 +224,7 @@ class TestProcessResourceChange(TestCase):
 
     def test_group_created_sends_webhook(self, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
         with self.tasks():
             post_process_group(
                 is_new=True,

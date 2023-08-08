@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import datetime
 import uuid
+from typing import Any
 
 import pytest
 from django.urls import reverse
@@ -165,7 +168,10 @@ class OrganizationReplayCountEndpointTest(APITestCase, SnubaTestCase, ReplaysSnu
             project_id=self.project.id,
         )
 
-        query = {"query": f"issue.id:[{event_a.group.id}, {event_c.group.id}]", "returnIds": True}
+        query: dict[str, Any] = {
+            "query": f"issue.id:[{event_a.group.id}, {event_c.group.id}]",
+            "returnIds": True,
+        }
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
 

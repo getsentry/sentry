@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from collections import namedtuple
-from typing import Any, Callable, Dict, MutableMapping, Sequence, Type
+from typing import Any, Callable, ClassVar, Dict, Mapping, Sequence, Type
 
 from django import forms
 
@@ -57,7 +57,7 @@ class RuleBase(abc.ABC):
     def __init__(
         self,
         project: Project,
-        data: MutableMapping[str, Any] | None = None,
+        data: Mapping[str, Any] | None = None,
         rule: Rule | None = None,
     ) -> None:
         self.project = project
@@ -65,15 +65,9 @@ class RuleBase(abc.ABC):
         self.had_data = data is not None
         self.rule = rule
 
-    @property
-    @abc.abstractmethod
-    def id(self) -> str:
-        pass
-
-    @property
-    @abc.abstractmethod
-    def label(self) -> str:
-        pass
+    id: ClassVar[str]
+    label: ClassVar[str]
+    rule_type: ClassVar[str]
 
     def is_enabled(self) -> bool:
         return True
@@ -82,7 +76,7 @@ class RuleBase(abc.ABC):
         return self.data.get(key, default)
 
     def get_form_instance(self) -> forms.Form:
-        data: MutableMapping[str, Any] | None = None
+        data: Mapping[str, Any] | None = None
         if self.had_data:
             data = self.data
         return self.form_cls(data)

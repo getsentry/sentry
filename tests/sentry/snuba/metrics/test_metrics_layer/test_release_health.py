@@ -68,7 +68,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     "session.healthy",
                     "session.anr_rate",
                 ],
-                "includeSeries": "0",
+                "includeSeries": ["0"],
             }
         )
         query = QueryDefinition([self.project], query_params)

@@ -133,7 +133,7 @@ def query_replay_instance(
 
 
 def query_replays_dataset(
-    project_ids: List[str],
+    project_ids: List[int],
     start: datetime,
     end: datetime,
     where: List[Condition],
@@ -199,7 +199,7 @@ def query_replays_dataset(
 
 
 def query_replays_dataset_with_subquery(
-    project_ids: List[str],
+    project_ids: List[int],
     start: datetime,
     end: datetime,
     environments: List[str],
@@ -347,7 +347,7 @@ def query_replays_count(
 
 
 def query_replays_dataset_tagkey_values(
-    project_ids: List[str],
+    project_ids: List[int],
     start: datetime,
     end: datetime,
     environment: str | None,

@@ -194,8 +194,8 @@ class DiscoverFunctionTest(unittest.TestCase):
         assert fn.is_accessible(["fn"]) is True
 
 
-class BaseSemverConverterTest:
-    key = None
+class BaseSemverConverterTest(TestCase):
+    key: str
 
     def converter(self, *args, **kwargs):
         raise NotImplementedError
@@ -222,7 +222,7 @@ class BaseSemverConverterTest:
         assert set(converted[2]) == set(expected_releases)
 
 
-class SemverFilterConverterTest(BaseSemverConverterTest, TestCase):
+class SemverFilterConverterTest(BaseSemverConverterTest):
     key = SEMVER_ALIAS
 
     def converter(self, *args, **kwargs):
@@ -377,7 +377,7 @@ class SemverFilterConverterTest(BaseSemverConverterTest, TestCase):
         )
 
 
-class SemverPackageFilterConverterTest(BaseSemverConverterTest, TestCase):
+class SemverPackageFilterConverterTest(BaseSemverConverterTest):
     key = SEMVER_PACKAGE_ALIAS
 
     def converter(self, *args, **kwargs):
@@ -418,7 +418,7 @@ class SemverPackageFilterConverterTest(BaseSemverConverterTest, TestCase):
         )
 
 
-class SemverBuildFilterConverterTest(BaseSemverConverterTest, TestCase):
+class SemverBuildFilterConverterTest(BaseSemverConverterTest):
     key = SEMVER_BUILD_ALIAS
 
     def converter(self, *args, **kwargs):
