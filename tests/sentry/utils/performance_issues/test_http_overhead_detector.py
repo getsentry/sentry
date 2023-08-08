@@ -20,19 +20,23 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-def overhead_span(duration: float, request_start: float, url: str) -> dict[str, Any]:
+def overhead_span(
+    duration: float, request_start: float, url: str, span_start=1.0, span_id="b" * 16
+) -> dict[str, Any]:
+    span = create_span(
+        "http.client",
+        desc=url,
+        duration=duration,
+        data={
+            "url": url,
+            "network.protocol.version": "1.1",
+            "http.request.request_start": request_start / 1000.0,
+        },
+    )
+    span["span_id"] = span_id
     return modify_span_start(
-        create_span(
-            "http.client",
-            desc=url,
-            duration=duration,
-            data={
-                "url": url,
-                "network.protocol.version": "1.1",
-                "http.request.request_start": request_start / 1000.0,
-            },
-        ),
-        1,
+        span,
+        span_start,
     )
 
 
@@ -141,9 +145,54 @@ class HTTPOverheadDetectorTest(TestCase):
         ]
 
         assert len(self.find_problems(event)) == 1
+
         trigger_span["data"]["network.protocol.version"] = "h3"
 
         assert len(self.find_problems(event)) == 0
+
+    def test_non_overlapping_not_included_evidence(self):
+        url = "https://example.com/api/endpoint/123"
+        event = _valid_http_overhead_event(url)
+        event["spans"] = [
+            overhead_span(1000, 1, url),
+            overhead_span(1000, 2, url),
+            overhead_span(1000, 3, url),
+            overhead_span(1000, 4, url),
+            overhead_span(1000, 5, url),
+            overhead_span(1000, 502, url, 1, "c" * 16),
+            overhead_span(1000, 2001, url, 2000),
+            overhead_span(1000, 2002, url, 2000),
+            overhead_span(1000, 2003, url, 2000),
+            overhead_span(1000, 2104, url, 2000),
+            overhead_span(1000, 2105, url, 2000),
+            overhead_span(1000, 2502, url, 2000, "d" * 16),  # Separated group
+        ]
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint="1-1016-example.com",
+                op="http",
+                desc="/api/endpoint/123",
+                type=PerformanceHTTPOverheadGroupType,
+                parent_span_ids=None,
+                cause_span_ids=[],
+                offender_span_ids=[
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                    "dddddddddddddddd",
+                ],
+                evidence_data={
+                    "op": "http",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                        "dddddddddddddddd",
+                    ],
+                },
+                evidence_display=[],
+            )
+        ]
 
     def test_detect_other_location(self):
         url = "https://example.com/api/endpoint/123"
