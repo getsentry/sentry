@@ -236,8 +236,7 @@ def is_on_demand_metric_query(
 
 
 def _is_on_demand_supported_aggregate(aggregate: str) -> bool:
-    """Returns ``True`` if the aggregate can be supported by on-demand metrics."""
-
+    # equations are currently not supported
     if aggregate.startswith("equation|"):
         return False
 
@@ -245,6 +244,7 @@ def _is_on_demand_supported_aggregate(aggregate: str) -> bool:
 
     if function not in _SEARCH_TO_METRIC_AGGREGATES.keys():
         return False
+    # count() has no arguments
     if len(arguments) == 0:
         return True
 
@@ -264,8 +264,6 @@ def _is_standard_metric_compatible_aggregate(aggregate: str) -> bool:
 def is_standard_metrics_compatible(
     dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
 ) -> bool:
-    """Returns ``True`` if the query can be supported by standard metrics."""
-
     if not dataset or Dataset(dataset) not in [Dataset.Metrics, Dataset.PerformanceMetrics]:
         return False
 
