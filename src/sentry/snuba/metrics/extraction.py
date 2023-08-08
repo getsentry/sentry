@@ -589,7 +589,12 @@ class OndemandMetricSpec:
     def query_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
         sorted_conditions = str(_deep_sorted(self.condition))
-        str_to_hash = f"{self.field};{sorted_conditions}"
+        # For calculating the hash we use the following:
+        # - field without the aggregate
+        # - sorted conditions that Relay will apply before extracting the metric
+        # These fields are used in order to maximize the amount of overlap between identical metrics that are expressed
+        # via syntactically different queries (e.g., avg(measurement.lcp) = p95(measurement.lcp)).
+        str_to_hash = f"{self.field_to_extract};{sorted_conditions}"
         return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
 
     @cached_property
@@ -599,6 +604,7 @@ class OndemandMetricSpec:
         return self._process_query()
 
     def tags_conditions(self, project: Project) -> List[TagSpec]:
+        """Returns a list of tag conditions that will specify how tags are injected into metrics by Relay."""
         tags_specs_generator = _DERIVED_METRICS.get(self.op)
         if tags_specs_generator is None:
             return []
@@ -606,6 +612,7 @@ class OndemandMetricSpec:
         return tags_specs_generator(project, self._argument)
 
     def to_metric_spec(self, project: Project) -> MetricSpec:
+        """Converts the OndemandMetricSpec into a MetricSpec that Relay can understand."""
         # Tag conditions are always computed based on the project.
         extended_tags_conditions = self.tags_conditions(project).copy()
         extended_tags_conditions.append({"key": QUERY_HASH_KEY, "value": self.query_hash})
