@@ -206,6 +206,7 @@ const CardTitleContent = styled('div')`
 `;
 
 const CardTitle = styled('h6')`
+  margin: 0;
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: bold;
   color: ${p => p.theme.gray400};
