@@ -141,6 +141,8 @@ def relay_server(relay_server_setup, settings):
 
     for i in range(8):
         try:
+            subprocess.call(("docker", "exec", "sentry_test_relay_server", "cat", "/etc/hosts"))
+            subprocess.call(("docker", "exec", "sentry_test_relay_server", "nslookup", "host.docker.internal"))
             requests.get(url)
             break
         except Exception as ex:
