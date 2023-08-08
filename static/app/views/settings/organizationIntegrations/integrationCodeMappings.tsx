@@ -17,8 +17,8 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
-  Integration,
   Organization,
+  OrganizationIntegration,
   Project,
   Repository,
   RepositoryProjectPathConfig,
@@ -42,7 +42,7 @@ import RepositoryProjectPathConfigRow, {
 
 type Props = DeprecatedAsyncComponent['props'] &
   WithRouteAnalyticsProps & {
-    integration: Integration;
+    integration: OrganizationIntegration;
     organization: Organization;
     projects: Project[];
   };

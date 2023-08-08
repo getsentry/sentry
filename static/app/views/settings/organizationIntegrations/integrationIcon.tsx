@@ -2,15 +2,15 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import PluginIcon, {DEFAULT_ICON, ICON_PATHS} from 'sentry/plugins/components/pluginIcon';
-import {Integration} from 'sentry/types';
+import {OrganizationIntegration} from 'sentry/types';
 
 type Props = {
-  integration: Integration;
+  integration: OrganizationIntegration;
   size?: number;
 };
 
 type State = {
-  imgSrc: Integration['icon'];
+  imgSrc: OrganizationIntegration['icon'];
 };
 
 type IconProps = Pick<Props, 'size'>;
@@ -33,7 +33,7 @@ class Icon extends Component<Props, State> {
     return (
       <StyledIcon
         size={size}
-        src={this.state.imgSrc}
+        src={this.state.imgSrc || ''}
         onError={() => {
           this.setState({imgSrc: ICON_PATHS[integration.provider.key] || DEFAULT_ICON});
         }}

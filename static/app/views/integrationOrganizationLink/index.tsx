@@ -13,7 +13,7 @@ import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
-import {Integration, IntegrationProvider, Organization} from 'sentry/types';
+import {IntegrationProvider, Organization, OrganizationIntegration} from 'sentry/types';
 import {generateBaseControlSiloUrl} from 'sentry/utils';
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {
@@ -134,7 +134,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
   };
 
   // used with Github to redirect to the the integration detail
-  onInstallWithInstallationId = (data: Integration) => {
+  onInstallWithInstallationId = (data: OrganizationIntegration) => {
     const {organization} = this.state;
     const orgId = organization && organization.slug;
     const normalizedUrl = normalizeUrl(

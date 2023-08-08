@@ -19,15 +19,15 @@ import {t} from 'sentry/locale';
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import {space} from 'sentry/styles/space';
 import type {
-  Integration,
   IntegrationRepository,
   Organization,
+  OrganizationIntegration,
   Repository,
 } from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = DeprecatedAsyncComponent['props'] & {
-  integration: Integration;
+  integration: OrganizationIntegration;
   organization: Organization;
 };
 

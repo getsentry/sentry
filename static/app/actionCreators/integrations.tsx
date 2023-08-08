@@ -6,7 +6,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
-import {Integration, Repository} from 'sentry/types';
+import {Integration, OrganizationIntegration, Repository} from 'sentry/types';
 
 const api = new Client();
 
@@ -162,7 +162,7 @@ export function migrateRepository(
   client: Client,
   orgId: string,
   repositoryId: string,
-  integration: Integration
+  integration: OrganizationIntegration
 ) {
   const data = {integrationId: integration.id};
   addLoadingMessage();
@@ -188,7 +188,7 @@ export function addRepository(
   client: Client,
   orgId: string,
   name: string,
-  integration: Integration
+  integration: OrganizationIntegration
 ) {
   const data = {
     installation: integration.id,

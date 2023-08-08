@@ -7,9 +7,9 @@ import FormModel from 'sentry/components/forms/model';
 import {Field} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import type {
-  Integration,
   IntegrationRepository,
   Organization,
+  OrganizationIntegration,
   Project,
   Repository,
   RepositoryProjectPathConfig,
@@ -19,7 +19,7 @@ import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
 
 type Props = {
-  integration: Integration;
+  integration: OrganizationIntegration;
   onCancel: FormProps['onCancel'];
   onSubmitSuccess: FormProps['onSubmitSuccess'];
   organization: Organization;

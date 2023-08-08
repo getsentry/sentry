@@ -1,7 +1,7 @@
 import {Button, ButtonProps} from 'sentry/components/button';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {IntegrationWithConfig} from 'sentry/types';
+import {OrganizationIntegration} from 'sentry/types';
 
 import AddIntegration from './addIntegration';
 
@@ -11,7 +11,7 @@ interface AddIntegrationButtonProps
       React.ComponentProps<typeof AddIntegration>,
       'provider' | 'organization' | 'analyticsParams' | 'modalParams'
     > {
-  onAddIntegration: (data: IntegrationWithConfig) => void;
+  onAddIntegration: (data: OrganizationIntegration) => void;
   buttonText?: string;
   reinstall?: boolean;
 }

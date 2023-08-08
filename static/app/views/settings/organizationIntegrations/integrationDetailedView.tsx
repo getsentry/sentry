@@ -15,7 +15,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Integration, IntegrationProvider, ObjectStatus} from 'sentry/types';
+import {IntegrationProvider, ObjectStatus, OrganizationIntegration} from 'sentry/types';
 import {getAlertText, getIntegrationStatus} from 'sentry/utils/integrationUtil';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -39,7 +39,7 @@ const FirstPartyIntegrationAdditionalCTA = HookOrDefault({
 });
 
 type State = {
-  configurations: Integration[];
+  configurations: OrganizationIntegration[];
   information: {providers: IntegrationProvider[]};
 };
 
@@ -163,7 +163,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     );
   }
 
-  onInstall = (integration: Integration) => {
+  onInstall = (integration: OrganizationIntegration) => {
     // send the user to the configure integration view for that integration
     const {organization} = this.props;
     this.props.router.push(
@@ -173,7 +173,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     );
   };
 
-  onRemove = (integration: Integration) => {
+  onRemove = (integration: OrganizationIntegration) => {
     const {organization} = this.props;
 
     const origIntegrations = [...this.state.configurations];
@@ -200,7 +200,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     );
   };
 
-  onDisable = (integration: Integration) => {
+  onDisable = (integration: OrganizationIntegration) => {
     let url: string;
 
     const [domainName, orgName] = integration.domainName.split('/');

@@ -9,9 +9,9 @@ import {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   ExternalUser,
-  Integration,
   Member,
   Organization,
+  OrganizationIntegration,
 } from 'sentry/types';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -23,7 +23,7 @@ import IntegrationExternalMappings from './integrationExternalMappings';
 
 type Props = DeprecatedAsyncComponent['props'] &
   WithRouterProps & {
-    integration: Integration;
+    integration: OrganizationIntegration;
     organization: Organization;
   };
 

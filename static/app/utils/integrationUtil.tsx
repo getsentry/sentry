@@ -21,10 +21,10 @@ import type {
   DocIntegration,
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
-  Integration,
   IntegrationFeature,
   IntegrationInstallationStatus,
   IntegrationType,
+  OrganizationIntegration,
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
@@ -259,14 +259,18 @@ export const platformToIntegrationMap = {
   'python-awslambda': 'aws_lambda',
 };
 
-export const isSlackIntegrationUpToDate = (integrations: Integration[]): boolean => {
+export const isSlackIntegrationUpToDate = (
+  integrations: OrganizationIntegration[]
+): boolean => {
   return integrations.every(
     integration =>
       integration.provider.key !== 'slack' || integration.scopes?.includes('commands')
   );
 };
 
-export const getAlertText = (integrations?: Integration[]): string | undefined => {
+export const getAlertText = (
+  integrations?: OrganizationIntegration[]
+): string | undefined => {
   return isSlackIntegrationUpToDate(integrations || [])
     ? undefined
     : t(
@@ -296,7 +300,7 @@ export const sentryNameToOption = ({id, name}): Result => ({
   label: name,
 });
 
-export function getIntegrationStatus(integration: Integration) {
+export function getIntegrationStatus(integration: OrganizationIntegration) {
   // there are multiple status fields for an integration we consider
   const statusList = [integration.organizationIntegrationStatus, integration.status];
   const firstNotActive = statusList.find(s => s !== 'active');

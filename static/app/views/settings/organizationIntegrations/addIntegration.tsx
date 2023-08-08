@@ -4,14 +4,14 @@ import * as qs from 'query-string';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {IntegrationProvider, IntegrationWithConfig, Organization} from 'sentry/types';
+import {IntegrationProvider, Organization, OrganizationIntegration} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 type Props = {
   children: (
     openDialog: (urlParams?: {[key: string]: string}) => void
   ) => React.ReactNode;
-  onInstall: (data: IntegrationWithConfig) => void;
+  onInstall: (data: OrganizationIntegration) => void;
   organization: Organization;
   provider: IntegrationProvider;
   account?: string; // for analytics

@@ -380,7 +380,7 @@ export type OrganizationIntegration = {
   accountType: string | null;
   configData: ConfigData | null;
   configOrganization: Field[];
-  domainName: string | null;
+  domainName: string;
   externalId: string;
   gracePeriodEnd: string;
   icon: string | null;
@@ -390,6 +390,15 @@ export type OrganizationIntegration = {
   organizationIntegrationStatus: ObjectStatus;
   provider: OrganizationIntegrationProvider;
   status: ObjectStatus;
+  dynamicDisplayInformation?: {
+    configure_integration?: {
+      instructions: string[];
+    };
+    integration_detail?: {
+      uninstallationUrl?: string;
+    };
+  };
+  scopes?: string[];
 };
 
 // we include the configOrganization when we need it
@@ -410,7 +419,7 @@ export type IntegrationExternalIssue = {
   url: string;
 };
 
-export interface GroupIntegration extends Integration {
+export interface GroupIntegration extends OrganizationIntegration {
   externalIssues: IntegrationExternalIssue[];
 }
 

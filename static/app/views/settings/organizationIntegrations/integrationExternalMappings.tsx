@@ -17,8 +17,8 @@ import {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   ExternalActorSuggestion,
-  Integration,
   Organization,
+  OrganizationIntegration,
 } from 'sentry/types';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
 // eslint-disable-next-line no-restricted-imports
@@ -47,7 +47,7 @@ type Props = DeprecatedAsyncComponent['props'] &
     | 'onResults'
     | 'defaultOptions'
   > & {
-    integration: Integration;
+    integration: OrganizationIntegration;
     mappings: ExternalActorMapping[];
     onCreate: (mapping?: ExternalActorMappingOrSuggestion) => void;
     onDelete: (mapping: ExternalActorMapping) => void;

@@ -5,16 +5,16 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {Field} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import {Integration, Organization} from 'sentry/types';
+import {Organization, OrganizationIntegration} from 'sentry/types';
 
 type Props = {
-  integration: Integration;
+  integration: OrganizationIntegration;
   onUpdate: () => void;
   organization: Organization;
 };
 
 type State = {
-  integration: Integration;
+  integration: OrganizationIntegration;
 };
 
 class IntegrationMainSettings extends Component<Props, State> {
@@ -22,7 +22,7 @@ class IntegrationMainSettings extends Component<Props, State> {
     integration: this.props.integration,
   };
 
-  handleSubmitSuccess = (data: Integration) => {
+  handleSubmitSuccess = (data: OrganizationIntegration) => {
     addSuccessMessage(t('Integration updated.'));
     this.props.onUpdate();
     this.setState({integration: data});

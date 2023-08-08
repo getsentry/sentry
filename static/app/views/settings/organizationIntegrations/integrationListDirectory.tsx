@@ -23,9 +23,9 @@ import {space} from 'sentry/styles/space';
 import {
   AppOrProviderOrPlugin,
   DocIntegration,
-  Integration,
   IntegrationProvider,
   Organization,
+  OrganizationIntegration,
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
@@ -71,7 +71,7 @@ type State = {
   config: {providers: IntegrationProvider[]} | null;
   displayedList: AppOrProviderOrPlugin[];
   docIntegrations: DocIntegration[] | null;
-  integrations: Integration[] | null;
+  integrations: OrganizationIntegration[] | null;
   list: AppOrProviderOrPlugin[];
   orgOwnedApps: SentryApp[] | null;
   plugins: PluginWithProjectList[] | null;
@@ -147,7 +147,7 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
     const {integrations, publishedApps, plugins} = this.state;
     const integrationsInstalled = new Set();
     // add installed integrations
-    integrations?.forEach((integration: Integration) => {
+    integrations?.forEach((integration: OrganizationIntegration) => {
       integrationsInstalled.add(integration.provider.key);
     });
     // add sentry apps

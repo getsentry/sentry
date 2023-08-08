@@ -11,7 +11,7 @@ import {t, tct} from 'sentry/locale';
 import {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
-  Integration,
+  OrganizationIntegration,
 } from 'sentry/types';
 import {
   getExternalActorEndpointDetails,
@@ -23,7 +23,7 @@ type Props = Pick<FormProps, 'onCancel' | 'onSubmitSuccess' | 'onSubmitError'> &
   Pick<SelectAsyncControlProps, 'defaultOptions'> & {
     dataEndpoint: string;
     getBaseFormEndpoint: (mapping?: ExternalActorMappingOrSuggestion) => string;
-    integration: Integration;
+    integration: OrganizationIntegration;
     sentryNamesMapper: (v: any) => {id: string; name: string}[];
     type: 'user' | 'team';
     isInline?: boolean;

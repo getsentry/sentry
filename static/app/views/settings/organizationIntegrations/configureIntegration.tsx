@@ -18,8 +18,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   IntegrationProvider,
-  IntegrationWithConfig,
   Organization,
+  OrganizationIntegration,
   PluginWithProjectList,
 } from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
@@ -54,7 +54,7 @@ type Tab = 'repos' | 'codeMappings' | 'userMappings' | 'teamMappings' | 'setting
 
 type State = DeprecatedAsyncView['state'] & {
   config: {providers: IntegrationProvider[]};
-  integration: IntegrationWithConfig;
+  integration: OrganizationIntegration;
   plugins: PluginWithProjectList[] | null;
   tab?: Tab;
 };

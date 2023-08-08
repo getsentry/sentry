@@ -8,7 +8,12 @@ import AbstractExternalIssueForm, {
 import {FormProps} from 'sentry/components/forms/form';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
-import {Group, Integration, IntegrationExternalIssue, Organization} from 'sentry/types';
+import {
+  Group,
+  IntegrationExternalIssue,
+  Organization,
+  OrganizationIntegration,
+} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 
@@ -24,7 +29,7 @@ const SUBMIT_LABEL_BY_ACTION = {
 
 type Props = {
   group: Group;
-  integration: Integration;
+  integration: OrganizationIntegration;
   onChange: (onSuccess?: () => void, onError?: () => void) => void;
   organization: Organization;
 } & AbstractExternalIssueForm['props'];

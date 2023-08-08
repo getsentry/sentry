@@ -9,8 +9,8 @@ import {t} from 'sentry/locale';
 import {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
-  Integration,
   Organization,
+  OrganizationIntegration,
   Team,
 } from 'sentry/types';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
@@ -23,7 +23,7 @@ import IntegrationExternalMappings from './integrationExternalMappings';
 
 type Props = DeprecatedAsyncComponent['props'] &
   WithRouterProps & {
-    integration: Integration;
+    integration: OrganizationIntegration;
     organization: Organization;
   };
 

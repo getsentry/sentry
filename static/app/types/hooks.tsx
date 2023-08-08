@@ -15,7 +15,7 @@ import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider'
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ExperimentKey} from './experiments';
-import type {Integration, IntegrationProvider} from './integrations';
+import type {IntegrationProvider, OrganizationIntegration} from './integrations';
 import type {Member, Organization} from './organization';
 import type {Project} from './project';
 import type {User} from './user';
@@ -116,13 +116,13 @@ type ProductSelectionAvailabilityProps = Pick<
 };
 
 type FirstPartyIntegrationAlertProps = {
-  integrations: Integration[];
+  integrations: OrganizationIntegration[];
   hideCTA?: boolean;
   wrapWithContainer?: boolean;
 };
 
 type FirstPartyIntegrationAdditionalCTAProps = {
-  integrations: Integration[];
+  integrations: OrganizationIntegration[];
 };
 
 type AttemptCloseAttemptProps = {

@@ -11,7 +11,12 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'sentry/types';
+import {
+  IntegrationProvider,
+  ObjectStatus,
+  Organization,
+  OrganizationIntegration,
+} from 'sentry/types';
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
 
@@ -19,9 +24,9 @@ import {AddIntegrationButton} from './addIntegrationButton';
 import IntegrationItem from './integrationItem';
 
 type Props = {
-  integration: Integration;
-  onDisable: (integration: Integration) => void;
-  onRemove: (integration: Integration) => void;
+  integration: OrganizationIntegration;
+  onDisable: (integration: OrganizationIntegration) => void;
+  onRemove: (integration: OrganizationIntegration) => void;
   organization: Organization;
   provider: IntegrationProvider;
   trackIntegrationAnalytics: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback
@@ -33,7 +38,7 @@ export default class InstalledIntegration extends Component<Props> {
     this.props.trackIntegrationAnalytics('integrations.uninstall_clicked');
   };
 
-  getRemovalBodyAndText(aspects: Integration['provider']['aspects']) {
+  getRemovalBodyAndText(aspects: OrganizationIntegration['provider']['aspects']) {
     if (aspects && aspects.removal_dialog) {
       return {
         body: aspects.removal_dialog.body,
@@ -48,7 +53,7 @@ export default class InstalledIntegration extends Component<Props> {
     };
   }
 
-  handleRemove(integration: Integration) {
+  handleRemove(integration: OrganizationIntegration) {
     this.props.onRemove(integration);
     this.props.trackIntegrationAnalytics('integrations.uninstall_completed');
   }
