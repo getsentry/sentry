@@ -29,8 +29,8 @@ function UnmemoizedConsoleLogRow({
   currentTime,
   expandPaths,
   frame,
-  handleMouseEnter,
-  handleMouseLeave,
+  onMouseEnter,
+  onMouseLeave,
   index,
   onClickTimestamp,
   onDimensionChange,
@@ -57,8 +57,8 @@ function UnmemoizedConsoleLogRow({
       })}
       hasOccurred={hasOccurred}
       level={(frame as ConsoleFrame).level}
-      onMouseEnter={() => handleMouseEnter(frame)}
-      onMouseLeave={() => handleMouseLeave(frame)}
+      onMouseEnter={() => onMouseEnter(frame)}
+      onMouseLeave={() => onMouseLeave(frame)}
       style={style}
     >
       <ConsoleLevelIcon level={(frame as ConsoleFrame).level} />
