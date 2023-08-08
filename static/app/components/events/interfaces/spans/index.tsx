@@ -74,7 +74,7 @@ function TraceErrorAlerts({
       <Alert type={getCumulativeAlertLevelFromErrors(errors)}>
         <ErrorLabel>{label}</ErrorLabel>
 
-        <TraceErrorList trace={parsedTrace} errors={traceErrors} onClickSpan={() => {}} />
+        <TraceErrorList trace={parsedTrace} errors={traceErrors} />
       </Alert>
     </AlertContainer>
   );

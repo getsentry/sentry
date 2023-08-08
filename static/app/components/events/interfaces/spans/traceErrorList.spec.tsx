@@ -37,9 +37,7 @@ describe('TraceErrorList', () => {
       }),
     ];
 
-    render(
-      <TraceErrorList trace={parseTrace(event)} errors={errors} onClickSpan={jest.fn()} />
-    );
+    render(<TraceErrorList trace={parseTrace(event)} errors={errors} />);
 
     const listItems = screen.getAllByRole('listitem');
     expect(listItems).toHaveLength(2);
@@ -74,9 +72,7 @@ describe('TraceErrorList', () => {
       }),
     ];
 
-    render(
-      <TraceErrorList trace={parseTrace(event)} errors={errors} onClickSpan={jest.fn()} />
-    );
+    render(<TraceErrorList trace={parseTrace(event)} errors={errors} />);
 
     const listItem = screen.getByRole('listitem');
     expect(listItem).toHaveTextContent('1 warning error in /path');
