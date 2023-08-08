@@ -232,12 +232,9 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
 
     ratelimit_key = f"{project.organization_id}:{monitor_slug}:{environment}"
 
-    # Strip sdk version to reduce metric cardinality
-    sdk_platform = source_sdk.split("/")[0] if source_sdk else "none"
-
     metric_kwargs = {
         "source": "consumer",
-        "sdk_platform": sdk_platform,
+        "source_sdk": source_sdk,
     }
 
     if killswitch_matches_context(
