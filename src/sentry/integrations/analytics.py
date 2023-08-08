@@ -20,7 +20,6 @@ class IntegrationDisabledNotified(analytics.Event):
         analytics.Attribute("organization_id"),
         analytics.Attribute("redis_key"),
         analytics.Attribute("provider"),
-        analytics.Attribute("integration_slug"),
     )
 
 
