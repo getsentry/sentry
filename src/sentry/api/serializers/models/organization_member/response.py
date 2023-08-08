@@ -4,7 +4,10 @@ from typing import List, Optional
 from typing_extensions import TypedDict
 
 from sentry.api.serializers.models.external_actor import ExternalActorResponse
-from sentry.api.serializers.models.role import RoleSerializerResponse
+from sentry.api.serializers.models.role import (
+    OrganizationRoleSerializerResponse,
+    TeamRoleSerializerResponse,
+)
 from sentry.api.serializers.models.user import UserSerializerResponse
 
 
@@ -49,6 +52,9 @@ class _TeamRole(TypedDict):
 
 class OrganizationMemberResponseOptional(TypedDict, total=False):
     externalUsers: List[ExternalActorResponse]
+    groupOrgRoles: List[OrganizationRoleSerializerResponse]
+    role: str  # Deprecated: use orgRole
+    roleName: str  # Deprecated
 
 
 class OrganizationMemberSCIMSerializerResponse(OrganizationMemberSCIMSerializerOptional):
@@ -71,12 +77,9 @@ class OrganizationMemberResponse(OrganizationMemberResponseOptional):
     email: str
     name: str
     user: UserSerializerResponse
-    role: str  # Deprecated: use orgRole
-    roleName: str  # Deprecated
     orgRole: str
-    groupOrgRoles: List[RoleSerializerResponse]
     pending: bool
-    expired: str
+    expired: bool
     flags: _OrganizationMemberFlags
     dateCreated: datetime
     inviteStatus: str
@@ -92,9 +95,14 @@ class OrganizationMemberWithProjectsResponse(OrganizationMemberResponse):
     projects: List[str]
 
 
-class OrganizationMemberWithRolesResponse(OrganizationMemberWithTeamsResponse):
+class OrganizationMemberWithRolesResponseOptional(TypedDict, total=False):
+    roles: List[OrganizationRoleSerializerResponse]  # Deprecated: use orgRoleList
+
+
+class OrganizationMemberWithRolesResponse(
+    OrganizationMemberWithTeamsResponse, OrganizationMemberWithRolesResponseOptional
+):
     invite_link: Optional[str]
     isOnlyOwner: bool
-    roles: List[RoleSerializerResponse]  # Deprecated: use orgRoleList
-    orgRoleList: List[RoleSerializerResponse]
-    teamRoleList: List[RoleSerializerResponse]
+    orgRoleList: List[OrganizationRoleSerializerResponse]
+    teamRoleList: List[TeamRoleSerializerResponse]
