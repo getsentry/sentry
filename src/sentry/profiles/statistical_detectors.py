@@ -63,32 +63,19 @@ class FunctionPayload:
 def run_regressed_functions_detection(
     project: Project, start: datetime, payloads: List[FunctionPayload]
 ) -> List[FunctionPayload]:
-    regressed_functions: List[FunctionPayload] = []
-
     cluster_key = "default"  # TODO: read from settings
     client = redis.redis_clusters.get(cluster_key)
 
     with client.pipeline() as pipeline:
         for payload in payloads:
-            key = make_function_key(project, payload, VERSION)
+            key = make_function_key(project.id, payload, VERSION)
             pipeline.hgetall(key)
         results = pipeline.execute()
 
     old_states = [RegressionState.from_dict(result) for result in results]
-
-    new_states = []
-
-    for payload, old_state in zip(payloads, old_states):
-        if is_out_of_order(old_state, payload):
-            continue
-
-        key = make_function_key(project, payload, VERSION)
-        regressed, value = detect_regression(old_state, payload)
-
-        if regressed:
-            regressed_functions.append(payload)
-
-        new_states.append((key, value))
+    new_states, regressed_functions = compute_new_regression_states(
+        project.id, old_states, payloads
+    )
 
     with client.pipeline() as pipeline:
         for key, value in new_states:
@@ -100,8 +87,31 @@ def run_regressed_functions_detection(
     return regressed_functions
 
 
-def make_function_key(project: Project, payload: FunctionPayload, version: int) -> str:
-    return f"statdtr:v:{version}:p:{project.id}:f:{payload.fingerprint}"
+def compute_new_regression_states(
+    project_id: int,
+    old_states: List[RegressionState],
+    payloads: List[FunctionPayload],
+) -> Tuple[List[Tuple[str, RegressionState]], List[FunctionPayload]]:
+    new_states: List[Tuple[str, RegressionState]] = []
+    regressed_functions: List[FunctionPayload] = []
+
+    for payload, old_state in zip(payloads, old_states):
+        if is_out_of_order(old_state, payload):
+            continue
+
+        key = make_function_key(project_id, payload, VERSION)
+        regressed, value = detect_regression(old_state, payload)
+
+        if regressed:
+            regressed_functions.append(payload)
+
+        new_states.append((key, value))
+
+    return new_states, regressed_functions
+
+
+def make_function_key(project_id: int, payload: FunctionPayload, version: int) -> str:
+    return f"statdtr:v:{version}:p:{project_id}:f:{payload.fingerprint}"
 
 
 def is_out_of_order(state: RegressionState, payload: FunctionPayload) -> bool:
@@ -140,6 +150,10 @@ def detect_regression(
     By tracking both of these moving averages, we're looking for when the fast
     moving average cross the slow moving average from below. Whenever this happens,
     it is an indication that the timeseries is trending upwards.
+
+    Here, we choose to use the exponential moving average as it is less sensitive
+    to large variations in the data and allows us weigh the newly seen data more
+    heavily than old data that is no longer relevant.
     """
 
     # This EMA uses a shorter period to follow the timeseries more closely.
