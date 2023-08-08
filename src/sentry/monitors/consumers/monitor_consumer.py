@@ -199,7 +199,7 @@ def _try_handle_high_volume_task_trigger(ts: datetime):
 
     # If more than exactly a minute has passed then we've skipped a
     # task run, report that to sentry, it is a problem.
-    if last_ts is not None and last_ts + 60 != reference_ts:
+    if last_ts is not None and reference_ts > last_ts + 60:
         with sentry_sdk.push_scope() as scope:
             scope.set_extra("last_ts", last_ts)
             scope.set_extra("reference_ts", reference_ts)
