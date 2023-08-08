@@ -202,7 +202,7 @@ class TestBuildSpec(TestCase):
         spec = OndemandMetricSpec(field="count()", query="transaction.duration:>1s")
 
         assert spec._metric_type == "c"
-        assert spec.field is None
+        assert spec.field_to_extract is None
         assert spec.op == "sum"
         assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
 
@@ -210,7 +210,7 @@ class TestBuildSpec(TestCase):
         spec = OndemandMetricSpec(field="p75(measurements.fp)", query="transaction.duration:>1s")
 
         assert spec._metric_type == "d"
-        assert spec.field == "event.measurements.fp"
+        assert spec.field_to_extract == "event.measurements.fp"
         assert spec.op == "p75"
         assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
 
@@ -220,7 +220,7 @@ class TestBuildSpec(TestCase):
         )
 
         assert spec._metric_type == "c"
-        assert spec.field is None
+        assert spec.field_to_extract is None
         assert spec.op == "sum"
         assert spec.condition == {
             "inner": [
@@ -234,7 +234,7 @@ class TestBuildSpec(TestCase):
         spec = OndemandMetricSpec(field="count()", query="release:foo transaction.duration:<10s")
 
         assert spec._metric_type == "c"
-        assert spec.field is None
+        assert spec.field_to_extract is None
         assert spec.op == "sum"
         assert spec.condition == {
             "inner": [
@@ -250,7 +250,7 @@ class TestBuildSpec(TestCase):
         )
 
         assert spec._metric_type == "c"
-        assert spec.field is None
+        assert spec.field_to_extract is None
         assert spec.op == "sum"
         assert spec.condition == {
             "op": "and",
@@ -272,7 +272,7 @@ class TestBuildSpec(TestCase):
         )
 
         assert spec._metric_type == "c"
-        assert spec.field is None
+        assert spec.field_to_extract is None
         assert spec.op == "sum"
         assert spec.condition == {
             "op": "or",
@@ -292,7 +292,7 @@ class TestBuildSpec(TestCase):
         spec = OndemandMetricSpec(field="count()", query="release.version:1.*")
 
         assert spec._metric_type == "c"
-        assert spec.field is None
+        assert spec.field_to_extract is None
         assert spec.op == "sum"
         assert spec.condition == {
             "name": "event.release.version.short",
@@ -304,7 +304,7 @@ class TestBuildSpec(TestCase):
         spec = OndemandMetricSpec(field="count_if(transaction.duration,equals,300)", query="")
 
         assert spec._metric_type == "c"
-        assert spec.field is None
+        assert spec.field_to_extract is None
         assert spec.op == "sum"
         assert spec.condition == {
             "name": "event.duration",
@@ -318,7 +318,7 @@ class TestBuildSpec(TestCase):
         )
 
         assert spec._metric_type == "c"
-        assert spec.field is None
+        assert spec.field_to_extract is None
         assert spec.op == "sum"
         assert spec.condition == {
             "op": "and",
@@ -348,10 +348,10 @@ class TestBuildSpec(TestCase):
         spec = OndemandMetricSpec(field="failure_rate()", query="transaction.duration:>1s")
 
         assert spec._metric_type == "c"
-        assert spec.field is None
+        assert spec.field_to_extract is None
         assert spec.op == "on_demand_failure_rate"
         assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
-        assert spec.tags_conditions == [
+        assert spec.tags_conditions(self.project) == [
             {
                 "condition": {
                     "inner": {

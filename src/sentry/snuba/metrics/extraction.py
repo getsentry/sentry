@@ -550,7 +550,7 @@ class QueryParsingResult:
 @dataclass
 class OndemandMetricSpec:
     # Base fields from outside.
-    field: Optional[str]
+    field: str
     query: str
 
     # Public fields.
@@ -606,13 +606,14 @@ class OndemandMetricSpec:
         return tags_specs_generator(project, self._argument)
 
     def to_metric_spec(self, project: Project) -> MetricSpec:
+        # Tag conditions are always computed based on the project.
         extended_tags_conditions = self.tags_conditions(project).copy()
         extended_tags_conditions.append({"key": QUERY_HASH_KEY, "value": self.query_hash})
 
         return {
             "category": DataCategory.TRANSACTION.api_name(),
             "mri": self.mri,
-            "field": self.field,
+            "field": self.field_to_extract,
             "condition": self.condition,
             "tags": extended_tags_conditions,
         }
