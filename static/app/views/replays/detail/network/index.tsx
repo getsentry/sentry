@@ -51,7 +51,7 @@ function NetworkList({
 }: Props) {
   const organization = useOrganization();
   const {currentTime, currentHoverTime} = useReplayContext();
-  const {handleMouseEnter, handleMouseLeave, onClickTimestamp} = useCrumbHandlers();
+  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 
@@ -153,8 +153,8 @@ function NetworkList({
               currentHoverTime={currentHoverTime}
               currentTime={currentTime}
               frame={network}
-              handleMouseEnter={handleMouseEnter}
-              handleMouseLeave={handleMouseLeave}
+              onMouseEnter={onMouseEnter}
+              onMouseLeave={onMouseLeave}
               onClickCell={onClickCell}
               onClickTimestamp={onClickTimestamp}
               ref={e => e && registerChild?.(e)}

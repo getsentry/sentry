@@ -13,11 +13,11 @@ type MaybeOnClickHandler = null | ((frame: ReplayFrame) => void);
 
 function splitCrumbs({
   frames,
-  handleOnClick,
+  onClick,
   startTimestampMs,
 }: {
   frames: ReplayFrame[];
-  handleOnClick: MaybeOnClickHandler;
+  onClick: MaybeOnClickHandler;
   startTimestampMs: number;
 }) {
   const firstFrame = frames.slice(0, 1);
@@ -40,19 +40,19 @@ function splitCrumbs({
         key="first"
         frames={firstFrame}
         startTimestampMs={startTimestampMs}
-        handleOnClick={handleOnClick}
+        onClick={onClick}
       />,
       <SummarySegment
         key="summary"
         frames={summarizedFrames}
         startTimestampMs={startTimestampMs}
-        handleOnClick={handleOnClick}
+        onClick={onClick}
       />,
       <SummarySegment
         key="last"
         frames={lastFrame}
         startTimestampMs={startTimestampMs}
-        handleOnClick={handleOnClick}
+        onClick={onClick}
       />,
     ];
   }
@@ -62,21 +62,21 @@ function splitCrumbs({
       key={i}
       frames={[frame]}
       startTimestampMs={startTimestampMs}
-      handleOnClick={handleOnClick}
+      onClick={onClick}
     />
   ));
 }
 
 function SummarySegment({
   frames,
-  handleOnClick,
+  onClick,
   startTimestampMs,
 }: {
   frames: ReplayFrame[];
-  handleOnClick: MaybeOnClickHandler;
+  onClick: MaybeOnClickHandler;
   startTimestampMs: number;
 }) {
-  const {handleMouseEnter, handleMouseLeave} = useCrumbHandlers();
+  const {onMouseEnter, onMouseLeave} = useCrumbHandlers();
 
   const summaryItems = (
     <ScrollingList>
@@ -84,9 +84,9 @@ function SummarySegment({
         <li key={i}>
           <BreadcrumbItem
             frame={frame}
-            onClick={handleOnClick}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
+            onClick={onClick}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
             startTimestampMs={startTimestampMs}
           />
         </li>

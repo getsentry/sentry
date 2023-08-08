@@ -43,7 +43,7 @@ function useExtractedDomNodes({replay}: {replay: null | ReplayReader}) {
 function DomMutations({replay, startTimestampMs}: Props) {
   const {data: actions, isLoading} = useExtractedDomNodes({replay});
   const {currentTime, currentHoverTime} = useReplayContext();
-  const {handleMouseEnter, handleMouseLeave, onClickTimestamp} = useCrumbHandlers();
+  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const filterProps = useDomFilters({actions: actions || []});
   const {items, setSearchTerm} = filterProps;
@@ -72,8 +72,8 @@ function DomMutations({replay, startTimestampMs}: Props) {
         <DomMutationRow
           currentHoverTime={currentHoverTime}
           currentTime={currentTime}
-          handleMouseEnter={handleMouseEnter}
-          handleMouseLeave={handleMouseLeave}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
           mutation={mutation}
           onClickTimestamp={onClickTimestamp}
           startTimestampMs={startTimestampMs}

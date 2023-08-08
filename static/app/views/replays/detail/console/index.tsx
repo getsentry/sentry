@@ -34,7 +34,7 @@ const cellMeasurer = {
 };
 
 function Console({frames, startTimestampMs}: Props) {
-  const {handleMouseEnter, handleMouseLeave, onClickTimestamp} = useCrumbHandlers();
+  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const filterProps = useConsoleFilters({frames: frames || []});
   const {expandPathsRef, searchTerm, logLevel, items, setSearchTerm} = filterProps;
@@ -74,8 +74,8 @@ function Console({frames, startTimestampMs}: Props) {
           currentTime={currentTime}
           expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
           frame={item}
-          handleMouseEnter={handleMouseEnter}
-          handleMouseLeave={handleMouseLeave}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
           index={index}
           onClickTimestamp={onClickTimestamp}
           onDimensionChange={handleDimensionChange}

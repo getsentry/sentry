@@ -34,7 +34,7 @@ function BreadcrumbRow({
 }: Props) {
   const {currentTime, currentHoverTime} = useReplayContext();
 
-  const {handleMouseEnter, handleMouseLeave} = useCrumbHandlers();
+  const {onMouseEnter, onMouseLeave} = useCrumbHandlers();
 
   const hasOccurred = currentTime >= frame.offsetMs;
   const isBeforeHover =
@@ -54,8 +54,8 @@ function BreadcrumbRow({
         index={index}
         frame={frame}
         onClick={onClick}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
         startTimestampMs={startTimestampMs}
         expandPaths={expandPaths}
         onDimensionChange={onDimensionChange}

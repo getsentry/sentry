@@ -34,7 +34,7 @@ const cellMeasurer = {
 
 function ErrorList({errorFrames, startTimestampMs}: Props) {
   const {currentTime, currentHoverTime} = useReplayContext();
-  const {handleMouseEnter, handleMouseLeave, onClickTimestamp} = useCrumbHandlers();
+  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const filterProps = useErrorFilters({errorFrames: errorFrames || []});
   const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
@@ -84,8 +84,8 @@ function ErrorList({errorFrames, startTimestampMs}: Props) {
               currentHoverTime={currentHoverTime}
               currentTime={currentTime}
               frame={error}
-              handleMouseEnter={handleMouseEnter}
-              handleMouseLeave={handleMouseLeave}
+              onMouseEnter={onMouseEnter}
+              onMouseLeave={onMouseLeave}
               onClickTimestamp={onClickTimestamp}
               ref={e => e && registerChild?.(e)}
               rowIndex={rowIndex}

@@ -22,7 +22,7 @@ function useCrumbHandlers() {
     timeoutId: null,
   });
 
-  const handleMouseEnter = useCallback(
+  const onMouseEnter = useCallback(
     (frame: ReplayFrame) => {
       // this debounces the mouseEnter callback in unison with mouseLeave
       // we ensure the pointer remains over the target element before dispatching state events in order to minimize unnecessary renders
@@ -47,7 +47,7 @@ function useCrumbHandlers() {
     [setCurrentHoverTime, startTimestampMs, highlight, clearAllHighlights]
   );
 
-  const handleMouseLeave = useCallback(
+  const onMouseLeave = useCallback(
     (frame: ReplayFrame) => {
       // if there is a mouseEnter callback queued and we're leaving it we can just cancel the timeout
       if (mouseEnterCallback.current.id === frame) {
@@ -75,8 +75,8 @@ function useCrumbHandlers() {
   );
 
   return {
-    handleMouseEnter,
-    handleMouseLeave,
+    onMouseEnter,
+    onMouseLeave,
     onClickTimestamp,
   };
 }

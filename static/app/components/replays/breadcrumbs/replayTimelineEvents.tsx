@@ -26,8 +26,8 @@ function ReplayTimelineEvents({
   className,
   durationMs,
   frames,
-  handleMouseEnter,
-  handleMouseLeave,
+  onMouseEnter,
+  onMouseLeave,
   onClickTimestamp,
   startTimestampMs,
   width,
@@ -43,8 +43,8 @@ function ReplayTimelineEvents({
         <EventColumn key={column} column={column}>
           <Event
             frames={colFrames}
-            handleMouseEnter={handleMouseEnter}
-            handleMouseLeave={handleMouseLeave}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
             markerWidth={markerWidth}
             onClickTimestamp={onClickTimestamp}
             startTimestampMs={startTimestampMs}
@@ -69,8 +69,8 @@ const EventColumn = styled(Timeline.Col)<{column: number}>`
 
 function Event({
   frames,
-  handleMouseEnter,
-  handleMouseLeave,
+  onMouseEnter,
+  onMouseLeave,
   markerWidth,
   onClickTimestamp,
   startTimestampMs,
@@ -86,8 +86,8 @@ function Event({
       frame={frame}
       key={i}
       onClick={onClickTimestamp}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       startTimestampMs={startTimestampMs}
     />
   ));

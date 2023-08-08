@@ -19,7 +19,7 @@ const FrameWalker = memo(function FrameWalker({frames, replayRecord}: Props) {
     <ChevronDividedList
       items={splitCrumbs({
         frames,
-        handleOnClick: onClickTimestamp,
+        onClick: onClickTimestamp,
         startTimestampMs,
       })}
     />

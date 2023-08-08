@@ -22,7 +22,7 @@ type Props = {};
 
 function ReplayTimeline({}: Props) {
   const {replay} = useReplayContext();
-  const {handleMouseEnter, handleMouseLeave, onClickTimestamp} = useCrumbHandlers();
+  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const {setActiveTab} = useActiveReplayTab();
 
@@ -57,8 +57,8 @@ function ReplayTimeline({}: Props) {
               <ReplayTimelineEvents
                 durationMs={durationMs}
                 frames={chapterFrames}
-                handleMouseEnter={handleMouseEnter}
-                handleMouseLeave={handleMouseLeave}
+                onMouseEnter={onMouseEnter}
+                onMouseLeave={onMouseLeave}
                 onClickTimestamp={frame => {
                   onClickTimestamp(frame);
                   setActiveTab(getFrameDetails(frame).tabKey);
