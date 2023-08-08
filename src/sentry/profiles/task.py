@@ -21,6 +21,7 @@ from sentry.profiles.device import classify_device
 from sentry.profiles.java import deobfuscate_signature
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -46,6 +47,7 @@ class VroomTimeout(Exception):
     acks_late=True,
     task_time_limit=60,
     task_acks_on_failure_or_timeout=False,
+    silo_mode=SiloMode.REGION,
 )
 def process_profile_task(
     profile: Optional[Profile] = None,

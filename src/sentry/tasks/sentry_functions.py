@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from sentry.api.serializers import serialize
 from sentry.models import Group
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import json
 from sentry.utils.cloudfunctions import publish_message
@@ -14,7 +15,10 @@ TASK_OPTIONS = {
 
 
 @instrumented_task(
-    "sentry.tasks.sentry_functions.send_sentry_function_webhook", acks_late=True, **TASK_OPTIONS
+    "sentry.tasks.sentry_functions.send_sentry_function_webhook",
+    acks_late=True,
+    silo_mode=SiloMode.REGION,
+    **TASK_OPTIONS,
 )
 @retry
 def send_sentry_function_webhook(sentry_function_id, event, issue_id, data=None):

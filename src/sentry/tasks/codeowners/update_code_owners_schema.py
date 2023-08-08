@@ -5,6 +5,7 @@ from typing import Any, Iterable
 from sentry import features
 from sentry.models import Integration, Organization, Project
 from sentry.services.hybrid_cloud.integration import RpcIntegration
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, load_model_from_db, retry
 
 
@@ -13,6 +14,7 @@ from sentry.tasks.base import instrumented_task, load_model_from_db, retry
     queue="code_owners",
     default_retry_delay=5,
     max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
 @retry
 def update_code_owners_schema(

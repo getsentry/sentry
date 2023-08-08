@@ -56,6 +56,7 @@ from sentry.dynamic_sampling.tasks.utils import (
 )
 from sentry.models import Organization, Project
 from sentry.sentry_metrics import indexer
+from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
@@ -71,6 +72,7 @@ from sentry.utils.snuba import raw_snql_query
     max_retries=5,
     soft_time_limit=2 * 60 * 60,
     time_limit=2 * 60 * 60 + 5,
+    silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def boost_low_volume_projects(context: TaskContext) -> None:
@@ -91,6 +93,7 @@ def boost_low_volume_projects(context: TaskContext) -> None:
     max_retries=5,
     soft_time_limit=25 * 60,
     time_limit=2 * 60 + 5,
+    silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task
 def boost_low_volume_projects_of_org(

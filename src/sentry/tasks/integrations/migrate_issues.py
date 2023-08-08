@@ -13,6 +13,7 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.integrations import logger
 
 
+# TODO(hybrid-cloud): Fix the cross-silo model accesses
 @instrumented_task(
     name="sentry.tasks.integrations.migrate_issues",
     queue="integrations",

@@ -1,8 +1,12 @@
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils.safe import safe_execute
 
 
-@instrumented_task(name="sentry.tasks.user_report")
+@instrumented_task(
+    name="sentry.tasks.user_report",
+    silo_mode=SiloMode.REGION,
+)
 def user_report(report, project_id):
     """
     Create and send a UserReport.

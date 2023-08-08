@@ -7,6 +7,8 @@ from hashlib import sha1
 import celery
 import sentry_sdk
 
+from sentry.silo import SiloMode
+
 # XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
 if celery.version_info >= (5, 2):
     from celery import current_task
@@ -53,6 +55,7 @@ logger = logging.getLogger(__name__)
     default_retry_delay=60,
     max_retries=3,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def assemble_download(
     data_export_id,
@@ -297,7 +300,12 @@ def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DE
         return 0
 
 
-@instrumented_task(name="sentry.data_export.tasks.merge_blobs", queue="data_export", acks_late=True)
+@instrumented_task(
+    name="sentry.data_export.tasks.merge_blobs",
+    queue="data_export",
+    acks_late=True,
+    silo_mode=SiloMode.REGION,
+)
 def merge_export_blobs(data_export_id, **kwargs):
     with sentry_sdk.start_span(op="merge"):
         try:

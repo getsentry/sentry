@@ -1,5 +1,6 @@
 from sentry import analytics
 from sentry.models import Activity, ExternalIssue, Integration
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.integrations import should_comment_sync
 from sentry.types.activity import ActivityType
@@ -10,6 +11,7 @@ from sentry.types.activity import ActivityType
     queue="integrations",
     default_retry_delay=60 * 5,
     max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
 # TODO(jess): Add more retry exclusions once ApiClients have better error handling
 @retry(exclude=(Integration.DoesNotExist))

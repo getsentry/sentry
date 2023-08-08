@@ -3,6 +3,7 @@ import logging
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
@@ -40,7 +41,12 @@ CHECKINS_LIMIT = 10_000
 SUBTITLE_DATETIME_FORMAT = "%b %d, %I:%M %p"
 
 
-@instrumented_task(name="sentry.monitors.tasks.check_missing", time_limit=15, soft_time_limit=10)
+@instrumented_task(
+    name="sentry.monitors.tasks.check_missing",
+    time_limit=15,
+    soft_time_limit=10,
+    silo_mode=SiloMode.REGION,
+)
 def check_missing(current_datetime=None):
     if current_datetime is None:
         current_datetime = timezone.now()
@@ -106,7 +112,12 @@ def check_missing(current_datetime=None):
             logger.exception("Exception in check_monitors - mark missed")
 
 
-@instrumented_task(name="sentry.monitors.tasks.check_timeout", time_limit=15, soft_time_limit=10)
+@instrumented_task(
+    name="sentry.monitors.tasks.check_timeout",
+    time_limit=15,
+    soft_time_limit=10,
+    silo_mode=SiloMode.REGION,
+)
 def check_timeout(current_datetime=None):
     if current_datetime is None:
         current_datetime = timezone.now()
