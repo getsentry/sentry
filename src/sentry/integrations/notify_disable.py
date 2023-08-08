@@ -1,5 +1,6 @@
 from typing import Union
 
+from sentry import analytics
 from sentry.models import Organization
 from sentry.utils.email import MessageBuilder
 
@@ -70,3 +71,13 @@ def notify_disable(
             else "sentry/integrations/notify-disable.txt",
         )
         msg.send_async([user.email])
+
+    analytics.record(
+        "integration.disabled.notified",
+        provider=integration_name,
+        organization_id=organization.id,
+        redis_key=redis_key,
+        integration_slug=integration_slug
+        if integration_slug and "sentry-app" in redis_key
+        else None,
+    )
