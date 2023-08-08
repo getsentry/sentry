@@ -7,6 +7,10 @@ from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.snuba.metrics_performance import query as metrics_query
 
 
+def query_spans(transaction: str, breakpoint):
+    pass
+
+
 @region_silo_endpoint
 class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
@@ -25,7 +29,8 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
 
         transaction_name = request.GET.get("transaction")
         project_id = request.GET.get("project")
-        if not transaction_name or not project_id:
+        breakpoint = request.GET.get("breakpoint")
+        if not transaction_name or not project_id or not breakpoint:
             # Project ID is required to ensure the events we query for are
             # the same transaction
             return Response(status=400)
@@ -42,6 +47,10 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
 
         if transaction_count_query["data"][0]["count"] == 0:
             return Response(status=400, data="Transaction not found")
+
+        pre_breakpoint_spans, post_breakpoint_spans = query_spans(
+            transaction=transaction_name, breakpoint=breakpoint
+        )
 
         # TODO: This is only a temporary stub for surfacing RCA data
         root_cause_results["transaction_count"] = transaction_count_query["data"][0]["count"]
