@@ -103,7 +103,7 @@ def schedule_auto_transition_to_ongoing() -> None:
             auto_transition_issues_new_to_ongoing.delay(
                 project_ids=project_ids,
                 first_seen_lte=int(seven_days_ago.timestamp()),
-                organization=org,
+                organization_id=org.id,
                 expires=now + timedelta(hours=1),
             )
 
@@ -135,7 +135,7 @@ def schedule_auto_transition_to_ongoing() -> None:
 def auto_transition_issues_new_to_ongoing(
     project_ids: List[int],
     first_seen_lte: int,
-    organization: Organization,
+    organization_id: int,
     **kwargs,
 ) -> None:
     """
@@ -153,7 +153,7 @@ def auto_transition_issues_new_to_ongoing(
     logger.info(
         "auto_transition_issues_new_to_ongoing started",
         extra={
-            "organization_id": organization.id,
+            "organization_id": organization_id,
             "most_recent_group_first_seen_seven_days_ago": most_recent_group_first_seen_seven_days_ago.id,
             "first_seen_lte": first_seen_lte,
         },
@@ -175,7 +175,7 @@ def auto_transition_issues_new_to_ongoing(
             logger.info(
                 "auto_transition_issues_new_to_ongoing updating group",
                 extra={
-                    "organization_id": organization.id,
+                    "organization_id": organization_id,
                     "most_recent_group_first_seen_seven_days_ago": most_recent_group_first_seen_seven_days_ago.id,
                     "group_id": group.id,
                 },
