@@ -35,6 +35,7 @@ def query(
     has_metrics=False,
     use_metrics_layer=False,
     skip_tag_resolution=False,
+    on_demand_metrics_enabled=False,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
