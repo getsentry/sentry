@@ -66,12 +66,13 @@ class RelayProjectConfigsEndpoint(Endpoint):
         if version == "4":
             if request.relay_request_data.get("global"):
                 response["global"] = get_global_config()
-        elif self._should_use_v3(version, request):
+
+        if self._should_use_v3(version, request):
             # Always compute the full config. It's invalid to send partial
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
             response.update(self._post_or_schedule_by_key(request))
-        elif version in ["2", "3"]:
+        elif version in ["2", "3", "4"]:
             response["configs"] = self._post_by_key(
                 request=request,
                 full_config_requested=full_config_requested,
@@ -87,6 +88,16 @@ class RelayProjectConfigsEndpoint(Endpoint):
         return Response(response, status=200)
 
     def _should_use_v3(self, version, request):
+        """Determine whether the v3 computation should be used for project configs.
+
+        - When v4 is requested, the project config should have the same behavior
+        as v3.
+        - When v3 is requested with full config, v3 should be used.
+        - When v3 is requested with partial configs, v2 should be used since v3
+        doesn't support partial configs. By default, Relay will request full
+        configs and the amount of partial configs should be low, so we can
+        handle them per-request instead of considering them for v3.
+        """
         set_tag("relay_endpoint_version", version)
         no_cache = request.relay_request_data.get("noCache") or False
         set_tag("relay_no_cache", no_cache)
@@ -96,14 +107,10 @@ class RelayProjectConfigsEndpoint(Endpoint):
         use_v3 = True
         reason = "version"
 
-        if version != "3":
+        if version not in ["3", "4"]:
             use_v3 = False
             reason = "version"
         elif not is_full_config:
-            # The v3 implementation can't handle partial configs. Relay by
-            # default request full configs and the amount of partial configs
-            # should be low, so we handle them per request instead of
-            # considering them v3.
             use_v3 = False
             reason = "fullConfig"
             version = "2"  # Downgrade to 2 for reporting metrics
