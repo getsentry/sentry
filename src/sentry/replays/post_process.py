@@ -154,23 +154,23 @@ def generate_normalized_output(
 
         item.pop("clickClass", None)
         item.pop("click_selector", None)
+        ret_item["activity"] = item.pop("activity", None)
         # don't need clickClass or click_selector
         #  for the click field, as they are only used for searching.
         # (click.classes contains the full list of classes for a click)
         ret_item["clicks"] = extract_click_fields(item)
-        ret_item["activity"] = item.pop("activity", None)
-        ret_item["count_errors"] = item.pop("count_errors", None)
         ret_item["count_dead_clicks"] = item.pop("count_dead_clicks", None)
+        ret_item["count_errors"] = item.pop("count_errors", None)
         ret_item["count_rage_clicks"] = item.pop("count_rage_clicks", None)
-        ret_item["duration"] = item.pop("duration", None)
-        ret_item["started_at"] = item.pop("started_at", None)
-        ret_item["finished_at"] = item.pop("finished_at", None)
-        ret_item["count_urls"] = item.pop("count_urls", None)
-        ret_item["replay_type"] = item.pop("replay_type", "session")
         ret_item["count_segments"] = item.pop("count_segments", None)
-        ret_item["platform"] = item.pop("platform", None)
-        ret_item["releases"] = item.pop("releases", [])
+        ret_item["count_urls"] = item.pop("count_urls", None)
         ret_item["dist"] = item.pop("dist", None)
+        ret_item["duration"] = item.pop("duration", None)
+        ret_item["finished_at"] = item.pop("finished_at", None)
+        ret_item["platform"] = item.pop("platform", None)
+        ret_item["releases"] = list(filter(bool, item.pop("releases", [])))
+        ret_item["replay_type"] = item.pop("replay_type", "session")
+        ret_item["started_at"] = item.pop("started_at", None)
 
         yield ret_item
 
