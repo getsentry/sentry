@@ -7,7 +7,6 @@ from typing import Any, Collection, Dict, Iterable, Mapping, Sequence, cast
 from urllib.parse import urlencode, urlparse
 
 from django.conf import settings
-from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
 from django.http.request import HttpRequest
@@ -129,6 +128,10 @@ def get_login_url(reset: bool = False) -> str:
 
 
 def initiate_login(request: HttpRequest, next_url: str | None = None) -> None:
+    """
+    initiate_login simply clears session cache
+    if provided a `next_url` will append to the session after clearing previous keys
+    """
     for key in ("_next", "_after_2fa", "_pending_2fa"):
         try:
             del request.session[key]
@@ -413,11 +416,12 @@ class EmailAuthBackend(ModelBackend):
         return True
 
 
-def make_login_link_with_redirect(path: str, redirect: str) -> str:
+def construct_link_with_query(path: str, query_params: dict[str, str]) -> str:
     """
-    append an after login redirect to a path.
-    note: this function assumes that the redirect has been validated
+    constructs a link with url encoded query params given a base path
     """
-    query_string = urlencode({REDIRECT_FIELD_NAME: redirect})
-    redirect_uri = f"{path}?{query_string}"
+    query_string = urlencode({k: v for k, v in query_params.items() if v})
+    redirect_uri = f"{path}"
+    if query_string:
+        redirect_uri += f"?{query_string}"
     return redirect_uri

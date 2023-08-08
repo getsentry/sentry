@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
+from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.exceptions import APIException
@@ -9,7 +10,7 @@ from rest_framework.exceptions import APIException
 from sentry.app import env
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
-from sentry.utils.auth import make_login_link_with_redirect
+from sentry.utils.auth import construct_link_with_query
 from sentry.utils.http import is_using_customer_domain
 
 
@@ -71,7 +72,8 @@ class SsoRequired(SentryAPIException):
             login_url = organization.absolute_url(path=login_url)
 
         if after_login_redirect:
-            login_url = make_login_link_with_redirect(login_url, after_login_redirect)
+            query_params = {REDIRECT_FIELD_NAME: after_login_redirect}
+            login_url = construct_link_with_query(path=login_url, query_params=query_params)
 
         super().__init__(loginUrl=login_url)
 

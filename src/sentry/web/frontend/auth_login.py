@@ -26,6 +26,7 @@ from sentry.services.hybrid_cloud.organization import RpcOrganization, organizat
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import (
+    construct_link_with_query,
     get_login_redirect,
     has_user_registration,
     initiate_login,
@@ -504,22 +505,29 @@ class AuthLoginView(BaseView):
     def get_default_context(self, request: Request, **kwargs) -> dict:
         """
         Sets up a default context that will be injected into our login template.
+        TODO: clean up unused context
         """
         organization = kwargs.pop("organization", None)
         default_context = {
             "server_hostname": get_server_hostname(),
             "login_form": None,
-            "organization": kwargs.pop("organization", None),
+            "organization": kwargs.pop(
+                "organization", None
+            ),  # NOTE: not utilized in basic login page (only org login)
             "register_form": None,
             "CAN_REGISTER": False,
-            "join_request_link": self.get_join_request_link(organization=organization),
+            "join_request_link": self.get_join_request_link(
+                organization=organization, request=request
+            ),  # NOTE: not utilized in basic login page (only org login)
             "show_login_banner": settings.SHOW_LOGIN_BANNER,
             "banner_choice": randint(0, 1),  # 2 possible banners
         }
         default_context.update(additional_context.run_callbacks(request=request))
         return default_context
 
-    def get_join_request_link(self, organization: RpcOrganization) -> Union[str, None]:
+    def get_join_request_link(
+        self, organization: RpcOrganization, request: Request
+    ) -> Union[str, None]:
         """
         Returns a join request link and does something else? TODO: FIGURE OUT WHAT THIS DOES IN REVIEW
         """
@@ -530,8 +538,10 @@ class AuthLoginView(BaseView):
             return None
 
         join_request_link_viewed.send_robust(sender=self, organization=organization)
-
-        return reverse("sentry-join-request", args=[organization.slug])
+        query_params = request.GET
+        path = reverse("sentry-join-request", args=[organization.slug])
+        redirect_uri = construct_link_with_query(path=path, query_params=query_params)
+        return redirect_uri
 
     def handle_basic_auth(
         self, request: Request, **kwargs
@@ -701,7 +711,9 @@ class AuthLoginView(BaseView):
             "organization": organization,
             "register_form": register_form,
             "CAN_REGISTER": can_register,
-            "join_request_link": self.get_join_request_link(organization),
+            "join_request_link": self.get_join_request_link(
+                organization=organization, request=request
+            ),
             "show_login_banner": settings.SHOW_LOGIN_BANNER,
             "banner_choice": randint(0, 1),  # 2 possible banners
         }
