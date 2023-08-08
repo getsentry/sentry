@@ -3,14 +3,14 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from click.testing import CliRunner
 from django.core.management import call_command
 
 from sentry.backup.comparators import ComparatorMap
+from sentry.backup.exports import exports
 from sentry.backup.findings import ComparatorFindings
 from sentry.backup.helpers import get_exportable_final_derivations_of, get_final_derivations_of
+from sentry.backup.imports import imports
 from sentry.backup.validate import validate
-from sentry.runner.commands.backup import export, import_
 from sentry.silo import unguarded_write
 from sentry.testutils.factories import get_fixture_path
 from sentry.utils import json
@@ -25,6 +25,8 @@ __all__ = [
     "import_export_from_fixture_then_validate",
 ]
 
+NOOP_PRINTER = lambda *args, **kwargs: None
+
 
 class ValidationError(Exception):
     def __init__(self, info: ComparatorFindings):
@@ -36,13 +38,10 @@ def export_to_file(path: Path) -> JSONData:
     """Helper function that exports the current state of the database to the specified file."""
 
     json_file_path = str(path)
-    rv = CliRunner().invoke(
-        export, [json_file_path], obj={"silent": True, "indent": 2, "exclude": None}
-    )
-    assert rv.exit_code == 0, rv.output
+    with open(json_file_path, "w+") as tmp_file:
+        exports(tmp_file, 2, None, NOOP_PRINTER)
 
     with open(json_file_path) as tmp_file:
-        # print("\n\n\nOUT: \n\n\n" + tmp_file.read())
         output = json.load(tmp_file)
     return output
 
@@ -61,12 +60,10 @@ def import_export_then_validate(method_name: str) -> JSONData:
 
         # Write the contents of the "expected" JSON file into the now clean database.
         # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
-        with unguarded_write(using="default"):
+        with unguarded_write(using="default"), open(tmp_expect) as tmp_file:
             # Reset the Django database.
             call_command("flush", verbosity=0, interactive=False)
-
-            rv = CliRunner().invoke(import_, [str(tmp_expect)])
-            assert rv.exit_code == 0, rv.output
+            imports(tmp_file, NOOP_PRINTER)
 
         # Validate that the "expected" and "actual" JSON matches.
         actual = export_to_file(tmp_actual)
@@ -93,9 +90,8 @@ def import_export_from_fixture_then_validate(
         expect = json.load(backup_file)
 
     # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
-    with unguarded_write(using="default"):
-        rv = CliRunner().invoke(import_, [str(fixture_file_path)])
-        assert rv.exit_code == 0, rv.output
+    with unguarded_write(using="default"), open(fixture_file_path) as fixture_file:
+        imports(fixture_file, NOOP_PRINTER)
 
     res = validate(expect, export_to_file(tmp_path.joinpath("tmp_test_file.json")), map)
     if res.findings:
