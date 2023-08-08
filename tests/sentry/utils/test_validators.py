@@ -1,4 +1,4 @@
-from sentry.utils.validators import is_event_id, is_span_id, normalize_event_id
+from sentry.utils.validators import is_email, is_event_id, is_span_id, normalize_event_id
 
 
 def test_is_event_id():
@@ -58,3 +58,19 @@ def test_is_span_id():
     assert not is_span_id(4711)
     assert not is_span_id(False)
     assert not is_span_id(None)
+
+
+def test_is_email():
+    assert is_email("abc123@gmail.com")
+    assert is_email("abcde@fgh.ijk.lm")
+    assert is_email("first.last@sentry.io")
+    assert is_email("abc-def_ghi@1234.com")
+    assert is_email("*@sentry.io")
+
+    assert not is_email("")
+    assert not is_email("abscdfasdfesdv")
+    assert not is_email("@name")
+    assert not is_email("abc.com")
+    assert not is_email(4711)
+    assert not is_email(False)
+    assert not is_email(None)
