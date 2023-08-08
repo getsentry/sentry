@@ -116,6 +116,41 @@ class HTTPOverheadDetectorTest(TestCase):
         event["spans"] = event["spans"][:5]
         assert self.find_problems(event) == []
 
+    def test_slowest_span_description_used(self):
+        url = "/api/endpoint/123"
+        event = _valid_http_overhead_event("/api/endpoint/123")
+        event["spans"] = [
+            overhead_span(1000, 1, url),
+            overhead_span(1000, 2, url),
+            overhead_span(1000, 3, url),
+            overhead_span(1000, 4, url),
+            overhead_span(1000, 5, url),
+            overhead_span(1000, 502, "/api/endpoint/slowest"),
+        ]
+
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint="1-1016-/",
+                op="http",
+                desc="/api/endpoint/slowest",
+                type=PerformanceHTTPOverheadGroupType,
+                parent_span_ids=None,
+                cause_span_ids=[],
+                offender_span_ids=[
+                    "bbbbbbbbbbbbbbbb",
+                ],
+                evidence_data={
+                    "op": "http",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        "bbbbbbbbbbbbbbbb",
+                    ],
+                },
+                evidence_display=[],
+            )
+        ]
+
     def test_does_not_detect_under_delay_threshold(self):
         url = "/api/endpoint/123"
         event = _valid_http_overhead_event(url)
