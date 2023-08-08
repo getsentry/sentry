@@ -16,6 +16,7 @@ from sentry.issues.grouptype import (
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
+    PerformanceHTTPOverheadGroupType,
     PerformanceLargeHTTPPayloadGroupType,
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceNPlusOneGroupType,
@@ -45,6 +46,7 @@ class InternalProjectOptions(Enum):
     CONSECUTIVE_DB_QUERIES = "consecutive_db_queries_detection_enabled"
     RENDER_BLOCKING_ASSET = "large_render_blocking_asset_detection_enabled"
     SLOW_DB_QUERY = "slow_db_queries_detection_enabled"
+    HTTP_OVERHEAD = "http_overhead_detection_enabled"
 
 
 class ConfigurableThresholds(Enum):
@@ -59,6 +61,7 @@ class ConfigurableThresholds(Enum):
     SLOW_DB_QUERY_DURATION = "slow_db_query_duration_threshold"
     N_PLUS_API_CALLS_DURATION = "n_plus_one_api_calls_total_duration_threshold"
     CONSECUTIVE_HTTP_SPANS_MIN_TIME_SAVED = "consecutive_http_spans_min_time_saved_threshold"
+    HTTP_OVERHEAD_REQUEST_DELAY = "http_overhead_request_delay_threshold"
 
 
 internal_only_project_settings_to_group_map: Dict[str, Type[GroupType]] = {
@@ -72,6 +75,7 @@ internal_only_project_settings_to_group_map: Dict[str, Type[GroupType]] = {
     InternalProjectOptions.CONSECUTIVE_DB_QUERIES.value: PerformanceConsecutiveDBQueriesGroupType,
     InternalProjectOptions.RENDER_BLOCKING_ASSET.value: PerformanceRenderBlockingAssetSpanGroupType,
     InternalProjectOptions.SLOW_DB_QUERY.value: PerformanceSlowDBQueryGroupType,
+    InternalProjectOptions.HTTP_OVERHEAD.value: PerformanceHTTPOverheadGroupType,
 }
 
 configurable_thresholds_to_internal_settings_map: Dict[str, str] = {
@@ -86,6 +90,7 @@ configurable_thresholds_to_internal_settings_map: Dict[str, str] = {
     ConfigurableThresholds.SLOW_DB_QUERY_DURATION.value: InternalProjectOptions.SLOW_DB_QUERY.value,
     ConfigurableThresholds.N_PLUS_API_CALLS_DURATION.value: InternalProjectOptions.N_PLUS_ONE_API_CALLS.value,
     ConfigurableThresholds.CONSECUTIVE_HTTP_SPANS_MIN_TIME_SAVED.value: InternalProjectOptions.CONSECUTIVE_HTTP_SPANS.value,
+    ConfigurableThresholds.HTTP_OVERHEAD_REQUEST_DELAY.value: InternalProjectOptions.HTTP_OVERHEAD.value,
 }
 
 
@@ -129,6 +134,9 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     )
     consecutive_http_spans_min_time_saved_threshold = serializers.IntegerField(
         required=False, min_value=1000, max_value=TEN_SECONDS  # ms
+    )
+    http_overhead_request_delay_threshold = serializers.IntegerField(
+        required=False, min_value=200, max_value=TEN_SECONDS  # ms
     )
     uncompressed_assets_detection_enabled = serializers.BooleanField(required=False)
     consecutive_http_spans_detection_enabled = serializers.BooleanField(required=False)
