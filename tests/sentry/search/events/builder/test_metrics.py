@@ -21,7 +21,9 @@ from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.extraction import QUERY_HASH_KEY
+from sentry.snuba.metrics import TransactionMRI
+from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, OndemandMetricSpec
+from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -2099,27 +2101,69 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
 
 
 class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
-    def test_run_on_demand_query(self):
+    def test_run_query_with_on_demand_distribution(self):
+        field = "p75(measurements.fp)"
+        query = "transaction.duration:>=100"
+        spec = OndemandMetricSpec(field=field, query=query)
+
+        self.store_transaction_metric(
+            value=200,
+            metric=TransactionMetricKey.DIST_ON_DEMAND.value,
+            internal_metric=TransactionMRI.DIST_ON_DEMAND.value,
+            entity="metrics_distributions",
+            tags={"query_hash": spec.query_hash()},
+            timestamp=self.start + datetime.timedelta(minutes=15),
+        )
+
         query = AlertMetricsQueryBuilder(
             self.params,
             use_metrics_layer=False,
             granularity=3600,
-            query="transaction.duration:>=100",
+            query=query,
             dataset=Dataset.PerformanceMetrics,
-            selected_columns=["p75(measurements.fp)"],
+            selected_columns=[field],
             on_demand_metrics_enabled=True,
         )
 
         result = query.run_query("test_query")
 
-        assert len(result["data"]) == 1
-
+        assert result["data"] == [{"d:transactions/on_demand@none": 200.0}]
         meta = result["meta"]
-
         assert len(meta) == 1
         assert meta[0]["name"] == "d:transactions/on_demand@none"
 
-    def test_get_snql_query(self):
+    def test_run_query_with_on_demand_count(self):
+        field = "count(measurements.fp)"
+        query = "transaction.duration:>=100"
+        spec = OndemandMetricSpec(field=field, query=query)
+
+        self.store_transaction_metric(
+            value=100,
+            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            entity="metrics_counters",
+            tags={"query_hash": spec.query_hash()},
+            timestamp=self.start + datetime.timedelta(minutes=15),
+        )
+
+        query = AlertMetricsQueryBuilder(
+            self.params,
+            use_metrics_layer=False,
+            granularity=3600,
+            query=query,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[field],
+            on_demand_metrics_enabled=True,
+        )
+
+        result = query.run_query("test_query")
+
+        assert result["data"] == [{"c:transactions/on_demand@none": 100.0}]
+        meta = result["meta"]
+        assert len(meta) == 1
+        assert meta[0]["name"] == "c:transactions/on_demand@none"
+
+    def test_get_snql_query_with_on_demand_distribution(self):
         query = AlertMetricsQueryBuilder(
             self.params,
             use_metrics_layer=False,
@@ -2167,6 +2211,52 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         query_hash_clause = Condition(
             lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="3b902501"
+        )
+
+        assert query_hash_clause in snql_query.where
+
+    def test_get_snql_query_with_on_demand_count(self):
+        query = AlertMetricsQueryBuilder(
+            self.params,
+            use_metrics_layer=False,
+            granularity=3600,
+            query="transaction.duration:>=100",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=["count(transaction.duration)"],
+            on_demand_metrics_enabled=True,
+        )
+
+        snql_request = query.get_snql_query()
+        assert snql_request.dataset == "generic_metrics"
+        snql_query = snql_request.query
+        self.assertCountEqual(
+            [
+                Function(
+                    "sumIf",
+                    [
+                        Column("value"),
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                indexer.resolve(
+                                    UseCaseID.TRANSACTIONS,
+                                    None,
+                                    "c:transactions/on_demand@none",
+                                ),
+                            ],
+                        ),
+                    ],
+                    "c:transactions/on_demand@none",
+                )
+            ],
+            snql_query.select,
+        )
+
+        query_hash_index = indexer.resolve(UseCaseID.TRANSACTIONS, None, QUERY_HASH_KEY)
+
+        query_hash_clause = Condition(
+            lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="88f3eb66"
         )
 
         assert query_hash_clause in snql_query.where
