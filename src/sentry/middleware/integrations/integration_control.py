@@ -14,6 +14,8 @@ from sentry.silo import SiloMode
 
 logger = logging.getLogger(__name__)
 
+ResponseHandler = Callable[[HttpRequest], HttpResponse]
+
 
 class IntegrationControlMiddleware:
     classifications: List[Type[BaseClassification]] = [
@@ -22,7 +24,7 @@ class IntegrationControlMiddleware:
     ]
     """Classifications to determine whether request must be parsed, sorted in priority order."""
 
-    def __init__(self, get_response: Callable[[], HttpResponse]):
+    def __init__(self, get_response: ResponseHandler):
         self.get_response = get_response
 
     def _should_operate(self, request: HttpRequest) -> bool:
@@ -40,6 +42,6 @@ class IntegrationControlMiddleware:
         for classification in self.classifications:
             _cls = classification(response_handler=self.get_response)
             if _cls.should_operate(request):
-                return _cls.get_response(request=request)
+                return _cls.get_response(request)
 
-        return self.get_response()
+        return self.get_response(request)

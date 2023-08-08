@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 import re
-from typing import TYPE_CHECKING, Callable, Type
+from typing import TYPE_CHECKING, Type
 
 from django.http import HttpRequest, HttpResponse
 from pyparsing import Mapping
@@ -23,11 +23,13 @@ from .parsers import (
 )
 
 if TYPE_CHECKING:
+    from sentry.middleware.integrations.integration_control import ResponseHandler
+
     from .parsers.base import BaseRequestParser
 
 
 class BaseClassification(abc.ABC):
-    def __init__(self, response_handler: Callable[[], HttpResponse]) -> None:
+    def __init__(self, response_handler: ResponseHandler) -> None:
         self.response_handler = response_handler
 
     def should_operate(self, request: HttpRequest) -> bool:

@@ -3,12 +3,13 @@ from __future__ import annotations
 import abc
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, Mapping, Optional, Sequence
+from typing import Mapping, Optional, Sequence
 
 from django.http import HttpRequest, HttpResponse
 from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
+from sentry.middleware.integrations.integration_control import ResponseHandler
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
@@ -40,7 +41,7 @@ class BaseRequestParser(abc.ABC):
             "'webhook_identifier' property is required for outboxing. Refer to WebhookProviderIdentifier enum."
         )
 
-    def __init__(self, request: HttpRequest, response_handler: Callable[[], HttpResponse]):
+    def __init__(self, request: HttpRequest, response_handler: ResponseHandler):
         self.request = request
         self.match: ResolverMatch = resolve(self.request.path)
         self.view_class = self.match.func.view_class  # type:ignore
