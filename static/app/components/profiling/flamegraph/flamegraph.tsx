@@ -43,7 +43,7 @@ import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegrap
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   FlamegraphChart as FlamegraphChartModel,
-  ProfileSerieMeasurement,
+  ProfileSeriesMeasurement,
 } from 'sentry/utils/profiling/flamegraphChart';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
@@ -313,7 +313,7 @@ function Flamegraph(): ReactElement {
       return LOADING_OR_FALLBACK_CPU_CHART;
     }
 
-    const measures: ProfileSerieMeasurement[] = [];
+    const measures: ProfileSeriesMeasurement[] = [];
 
     for (const key in profileGroup.measurements) {
       if (key.startsWith('cpu_usage')) {
@@ -337,7 +337,7 @@ function Flamegraph(): ReactElement {
       return LOADING_OR_FALLBACK_MEMORY_CHART;
     }
 
-    const measures: ProfileSerieMeasurement[] = [];
+    const measures: ProfileSeriesMeasurement[] = [];
 
     const memory_footprint = profileGroup.measurements?.memory_footprint;
     if (memory_footprint) {

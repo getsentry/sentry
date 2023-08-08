@@ -38,7 +38,7 @@ export class FlamegraphChart {
 
   constructor(
     configSpace: Rect,
-    measurements: ProfileSerieMeasurement[],
+    measurements: ProfileSeriesMeasurement[],
     colors: ColorChannels[],
     options: ChartOptions = {}
   ) {
