@@ -54,7 +54,7 @@ class SlackPresenter(OptionsPresenter):
             )
             if response.status_code == 200:
                 return True
-            raise Exception(
+            raise ConnectionError(
                 f"Slack integration webhook failed. Status code: {response.status_code}"
             )
         except Exception:
