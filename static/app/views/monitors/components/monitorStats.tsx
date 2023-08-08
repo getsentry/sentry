@@ -8,6 +8,7 @@ import {HeaderTitle} from 'sentry/components/charts/styles';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {intervalToMilliseconds} from 'sentry/utils/dates';
@@ -120,7 +121,7 @@ function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
         <PanelBody withPadding>
           <StyledHeaderTitle>{t('Check-Ins')}</StyledHeaderTitle>
           {isLoading ? (
-            <Placeholder height={height} />
+            <Placeholder height={`${height}px`} />
           ) : (
             <BarChart
               isGroupedByDate
@@ -149,7 +150,7 @@ function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
         <PanelBody withPadding>
           <StyledHeaderTitle>{t('Average Duration')}</StyledHeaderTitle>
           {isLoading ? (
-            <Placeholder height={height} />
+            <Placeholder height={`${height}px`} />
           ) : (
             <AreaChart
               isGroupedByDate
@@ -178,12 +179,6 @@ function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
 
 const StyledHeaderTitle = styled(HeaderTitle)`
   margin-bottom: ${space(1)};
-`;
-
-const Placeholder = styled('div')<{height: number}>`
-  height: ${p => p.height}px;
-  background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
 `;
 
 export default MonitorStats;
