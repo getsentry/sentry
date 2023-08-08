@@ -340,6 +340,7 @@ class WidgetCard extends Component<Props, State> {
                   {this.renderContextMenu()}
                 </WidgetHeader>
                 {hasSessionDuration && SESSION_DURATION_ALERT}
+
                 {isWidgetInvalid ? (
                   <Fragment>
                     {renderErrorMessage?.('Widget query condition is invalid.')}
