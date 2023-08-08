@@ -234,7 +234,6 @@ def is_on_demand_metric_query(
     dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
 ) -> bool:
     """Returns ``True`` if the dataset is performance metrics and query contains non-standard search fields."""
-
     if not dataset or Dataset(dataset) != Dataset.PerformanceMetrics:
         return False
 
@@ -900,9 +899,12 @@ def _get_derived_metric_params(project: Project, field: str) -> DerivedMetricPar
             order_by=[],
             value_list=["threshold", "metric"],
         )
+
         # We expect to find only 1 entry, if we find many or none, we throw an error.
-        if len(result) != 1:
-            raise Exception(f"Zero or multiple thresholds found for apdex in project {project.id}")
+        if len(result) == 0:
+            raise Exception(f"No apdex threshold found for apdex in project {project.id}")
+        elif len(result) > 1:
+            raise Exception(f"Multiple thresholds found for apdex in project {project.id}")
 
         # We will extract the threshold from the apdex(x) field where x is the threshold.
         _threshold, metric = result[0]

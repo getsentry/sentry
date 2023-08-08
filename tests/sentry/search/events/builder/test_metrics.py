@@ -8,6 +8,7 @@ import pytest
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 
 from sentry.exceptions import IncompatibleMetricsQuery
+from sentry.models import ProjectTransactionThreshold
 from sentry.search.events import constants
 from sentry.search.events.builder import (
     AlertMetricsQueryBuilder,
@@ -2120,13 +2121,17 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert meta[0]["name"] == "d:transactions/on_demand@none"
 
     def test_run_on_demand_query_with_derived_metric(self):
+        ProjectTransactionThreshold.objects.create(
+            project=self.project, organization=self.project.organization, threshold=100, metric=1
+        )
+
         query = AlertMetricsQueryBuilder(
             self.params,
             use_metrics_layer=False,
             granularity=3600,
             query="transaction.duration:>=100",
             dataset=Dataset.PerformanceMetrics,
-            selected_columns=["apdex()"],
+            selected_columns=["apdex(10)"],
             on_demand_metrics_enabled=True,
         )
 
