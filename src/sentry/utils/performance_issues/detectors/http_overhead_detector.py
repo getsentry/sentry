@@ -137,7 +137,7 @@ class HTTPOverheadDetector(PerformanceDetector):
         location_spans = [indicator.span for indicator in chain if indicator.delay > 100]
 
         fingerprint = f"1-{PerformanceHTTPOverheadGroupType.type_id}-{location}"
-        example_span = location_spans[0]
+        example_span = location_spans[-1]
         desc: str = example_span.get("description", None)
 
         location_span_ids = [span.get("span_id", None) for span in location_spans]
