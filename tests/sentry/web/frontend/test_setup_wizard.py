@@ -7,10 +7,10 @@ from sentry.cache import default_cache
 from sentry.models.apitoken import ApiToken
 from sentry.models.projectkey import ProjectKey
 from sentry.testutils.cases import PermissionTestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import no_silo_test
 
 
-@control_silo_test
+@no_silo_test(stable=True)
 class SetupWizard(PermissionTestCase):
     def test_redirect(self):
         user = self.create_user("foo@example.com", is_active=False)

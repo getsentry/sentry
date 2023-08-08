@@ -4,17 +4,18 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
-from sentry.models import IntegrationFeature, SentryApp, SentryAppAvatar, User
+from sentry.models import IntegrationFeature, SentryApp, SentryAppAvatar
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.integrations.integration_feature import IntegrationTypes
 from sentry.models.integrations.sentry_app import MASKED_VALUE
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 
 
 @register(SentryApp)
 class SentryAppSerializer(Serializer):
-    def get_attrs(self, item_list: List[SentryApp], user: User, **kwargs: Any):
+    def get_attrs(self, item_list: List[SentryApp], user: RpcUser, **kwargs: Any):
         # Get associated IntegrationFeatures
         app_feature_attrs = IntegrationFeature.objects.get_by_targets_as_dict(
             targets=item_list, target_type=IntegrationTypes.SENTRY_APP
@@ -47,7 +48,7 @@ class SentryAppSerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj, attrs, user, access):
+    def serialize(self, obj, attrs, user: RpcUser, access):
         from sentry.sentry_apps.apps import consolidate_events
 
         application = attrs["application"]
@@ -83,7 +84,7 @@ class SentryAppSerializer(Serializer):
 
         if owner:
             if (env.request and is_active_superuser(env.request)) or (
-                hasattr(user, "get_orgs") and owner.id in user_org_ids
+                user.is_authenticated and owner.id in user_org_ids
             ):
                 client_secret = (
                     obj.application.client_secret if obj.show_auth_info(access) else MASKED_VALUE

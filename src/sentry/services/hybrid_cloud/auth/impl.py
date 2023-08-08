@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import base64
-from typing import Any, List, Mapping
+from typing import Any, List, Mapping, Tuple
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.db.models import Count, F, Q
+from rest_framework.exceptions import AuthenticationFailed
 
 from sentry import roles
 from sentry.auth.access import get_permissions_for_user
@@ -147,8 +148,13 @@ class DatabaseBackedAuthService(AuthService):
     ) -> AuthenticationContext:
         fake_request = FakeAuthenticationRequest(request)
 
+        t: Tuple[Any, Any] | None
         for authenticator_type in authenticator_types:
-            t = authenticator_type.as_authenticator().authenticate(fake_request)  # type: ignore[arg-type]
+            t = None
+            try:
+                t = authenticator_type.as_authenticator().authenticate(fake_request)  # type: ignore[arg-type]
+            except AuthenticationFailed:
+                pass
             if t is not None:
                 user, token = t
                 return AuthenticationContext(

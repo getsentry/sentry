@@ -17,7 +17,6 @@ from sentry.api.authentication import (
 )
 from sentry.models import UserIP
 from sentry.services.hybrid_cloud.auth import auth_service, authentication_request_from
-from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired, logger
 from sentry.utils.linksign import process_signature
 
@@ -53,8 +52,6 @@ def get_user(request):
 class AuthenticationMiddleware(MiddlewareMixin):
     @property
     def impl(self) -> Any:
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            return RequestAuthenticationMiddleware(self.get_response)
         return HybridCloudAuthenticationMiddleware(self.get_response)
 
     def process_request(self, request: Request):

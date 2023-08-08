@@ -5,6 +5,7 @@ from drf_spectacular.openapi import AutoSchema
 from drf_spectacular.utils import Direction
 
 from sentry.apidocs.spectacular_ports import resolve_type_hint
+from sentry.services.hybrid_cloud.auth import RpcAuthentication, RpcAuthenticatorType
 
 
 class TokenAuthExtension(OpenApiAuthenticationExtension):
@@ -25,6 +26,30 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):
         scope_list = list(scopes)
         scope_list.sort()
         return {self.name: scope_list}
+
+    def get_security_definition(
+        self, auto_schema: AutoSchema
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        return {"type": "http", "scheme": "bearer"}
+
+
+class RpcTokenAuthExtension(OpenApiAuthenticationExtension):
+    """
+    Extension that adds what scopes are needed to access an endpoint to the
+    OpenAPI Schema.
+    """
+
+    target_class = "sentry.services.hybrid_cloud.auth.model.RpcAuthentication"
+    name = "auth_token"
+
+    def matches(self, t: RpcAuthenticatorType) -> bool:
+        return isinstance(self.target, RpcAuthentication) and t in self.target.types
+
+    def get_security_requirement(self, auto_schema: AutoSchema) -> Dict[str, List[Any]]:
+        if not self.matches(RpcAuthenticatorType.TOKEN_AUTHENTICATION):
+            return {}
+
+        return TokenAuthExtension(self.target).get_security_requirement(auto_schema)
 
     def get_security_definition(
         self, auto_schema: AutoSchema
