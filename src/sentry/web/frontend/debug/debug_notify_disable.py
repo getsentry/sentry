@@ -1,39 +1,40 @@
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
-from sentry.constants import SentryAppStatus
+from sentry import integrations
 from sentry.integrations.notify_disable import get_provider_type, get_url
-from sentry.models import Organization, SentryApp
+from sentry.models import Integration, Organization
 
 from .mail import MailPreview
 
 
 class DebugNotifyDisableView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
-        self.organization = Organization(id=1, slug="organization", name="My Company")
-        self.sentry_app = SentryApp(
-            name="Test App",
-            events=["issue.resolved", "issue.ignored", "issue.assigned"],
-            status=SentryAppStatus.INTERNAL,
-            webhook_url="https://broken-example.com/webhook",
+        self.integration = Integration.objects.create(
+            provider="slack",
+            name="Awesome Team",
+            external_id="TXXXXXXXZ",
+            metadata={
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
         )
 
-        integration_name = self.sentry_app.name
+        self.organization = Organization(id=1, slug="organization", name="My Company")
+
+        provider = integrations.get(self.integration.provider)
+        integration_name = provider.name
         integration_link = get_url(
             self.organization,
-            get_provider_type(f"sentry-app-error:{self.sentry_app.uuid}"),
-            self.sentry_app.slug,
+            get_provider_type(f"sentry-integration-error:{self.integration.external_id}"),
+            provider.name,
         )
-        redis_key = f"sentry-app-error:{self.sentry_app.uuid}"
 
         return MailPreview(
-            html_template="sentry/integrations/sentry-app-notify-disable.html",
-            text_template="sentry/integrations/sentry-app-notify-disable.txt",
+            html_template="sentry/integrations/notify-disable.html",
+            text_template="sentry/integrations/notify-disable.txt",
             context={
                 "integration_name": integration_name,
                 "integration_link": integration_link,
-                "webhook_url": self.sentry_app.webhook_url
-                if "sentry-app" in redis_key and self.sentry_app.webhook_url
-                else "",
             },
         ).render(request)
