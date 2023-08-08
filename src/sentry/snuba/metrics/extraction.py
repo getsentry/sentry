@@ -245,7 +245,7 @@ def _is_on_demand_supported_aggregate(aggregate: str) -> bool:
     if function not in _SEARCH_TO_METRIC_AGGREGATES.keys():
         return False
     # count() has no arguments
-    if len(arguments) == 0:
+    if function == "count":
         return True
 
     return _is_on_demand_supported_field(arguments[0])
@@ -255,7 +255,8 @@ def _is_standard_metric_compatible_aggregate(aggregate: str) -> bool:
     """Returns ``True`` if the aggregate is compatible with standard metrics."""
 
     function, arguments, _ = fields.parse_function(aggregate)
-    if len(arguments) == 0:
+    # count() has no arguments
+    if function == "count":
         return True
 
     return _is_standard_metrics_field(arguments[0])
