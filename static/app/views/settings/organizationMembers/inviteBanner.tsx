@@ -24,6 +24,12 @@ type Props = {
 
 export function InviteBanner({missingMembers, onSendInvite, organization}: Props) {
   // NOTE: this is currently used for Github only
+
+  const hideBanner =
+    !organization.features.includes('integrations-gh-invite') ||
+    !organization.access.includes('org:write') ||
+    !missingMembers?.users ||
+    missingMembers?.users.length === 0;
   const [sendingInvite, setSendingInvite] = useState<boolean>(false);
   const [showBanner, setShowBanner] = useState<boolean>(false);
 
@@ -32,31 +38,27 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
   const promptsFeature = `${integrationName}_missing_members`;
 
   const snoozePrompt = useCallback(async () => {
+    setShowBanner(false);
     await promptsUpdate(api, {
       organizationId: organization.id,
       feature: promptsFeature,
       status: 'snoozed',
     });
-
-    setShowBanner(false);
   }, [api, organization, promptsFeature]);
 
   useEffect(() => {
+    if (hideBanner) {
+      return;
+    }
     promptsCheck(api, {
       organizationId: organization.id,
       feature: promptsFeature,
     }).then(prompt => {
       setShowBanner(!promptIsDismissed(prompt));
     });
-  });
+  }, [api, organization, promptsFeature, hideBanner]);
 
-  if (
-    !organization.features.includes('integrations-gh-invite') ||
-    !showBanner ||
-    !organization.access.includes('org:write') ||
-    !missingMembers?.users ||
-    missingMembers?.users.length === 0
-  ) {
+  if (hideBanner || !showBanner) {
     return null;
   }
 
@@ -203,7 +205,7 @@ const CardTitleContent = styled('div')`
   flex-direction: column;
 `;
 
-const CardTitle = styled('div')`
+const CardTitle = styled('h6')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: bold;
   color: ${p => p.theme.gray400};

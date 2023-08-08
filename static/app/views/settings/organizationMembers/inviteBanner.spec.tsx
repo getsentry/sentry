@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DEFAULT_SNOOZE_PROMPT_DAYS} from 'sentry/utils/promptIsDismissed';
 import {InviteBanner} from 'sentry/views/settings/organizationMembers/inviteBanner';
@@ -46,16 +46,16 @@ describe('inviteBanner', function () {
       />
     );
 
-    await act(tick);
-
     expect(
-      screen.getByText('Bring your full GitHub team on board in Sentry')
+      await screen.findByRole('heading', {
+        name: 'Bring your full GitHub team on board in Sentry',
+      })
     ).toBeInTheDocument();
     expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(5);
     expect(screen.getByText('See all 5 missing members')).toBeInTheDocument();
   });
 
-  it('does not render banner if no feature flag', async function () {
+  it('does not render banner if no feature flag', function () {
     const org = TestStubs.Organization({
       features: [],
     });
@@ -68,14 +68,14 @@ describe('inviteBanner', function () {
       />
     );
 
-    await act(tick);
-
     expect(
-      screen.queryByText('Bring your full GitHub team on board in Sentry')
+      screen.queryByRole('heading', {
+        name: 'Bring your full GitHub team on board in Sentry',
+      })
     ).not.toBeInTheDocument();
   });
 
-  it('does not render banner if no missing members', async function () {
+  it('does not render banner if no missing members', function () {
     const org = TestStubs.Organization({
       features: ['integrations-gh-invite'],
     });
@@ -88,14 +88,14 @@ describe('inviteBanner', function () {
       />
     );
 
-    await act(tick);
-
     expect(
-      screen.queryByText('Bring your full GitHub team on board in Sentry')
+      screen.queryByRole('heading', {
+        name: 'Bring your full GitHub team on board in Sentry',
+      })
     ).not.toBeInTheDocument();
   });
 
-  it('does not render banner if lacking org:write', async function () {
+  it('does not render banner if lacking org:write', function () {
     const org = TestStubs.Organization({
       features: ['integrations-gh-invite'],
       access: [],
@@ -109,10 +109,10 @@ describe('inviteBanner', function () {
       />
     );
 
-    await act(tick);
-
     expect(
-      screen.queryByText('Bring your full GitHub team on board in Sentry')
+      screen.queryByRole('heading', {
+        name: 'Bring your full GitHub team on board in Sentry',
+      })
     ).not.toBeInTheDocument();
   });
 
@@ -141,14 +141,14 @@ describe('inviteBanner', function () {
       />
     );
 
-    await act(tick);
-
     expect(
-      screen.getByText('Bring your full GitHub team on board in Sentry')
+      await screen.findByRole('heading', {
+        name: 'Bring your full GitHub team on board in Sentry',
+      })
     ).toBeInTheDocument();
   });
 
-  it('does not render banner if snoozed_ts days is shorter than threshold', async function () {
+  it('does not render banner if snoozed_ts days is shorter than threshold', function () {
     const org = TestStubs.Organization({
       features: ['integrations-gh-invite'],
     });
@@ -159,7 +159,7 @@ describe('inviteBanner', function () {
         .subtract(DEFAULT_SNOOZE_PROMPT_DAYS - 1, 'days')
         .unix(),
     };
-    MockApiClient.addMockResponse({
+    const mockPrompt = MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       method: 'GET',
       body: {data: promptResponse},
@@ -173,10 +173,11 @@ describe('inviteBanner', function () {
       />
     );
 
-    await act(tick);
-
+    expect(mockPrompt).toHaveBeenCalled();
     expect(
-      screen.queryByText('Bring your full GitHub team on board in Sentry')
+      screen.queryByRole('heading', {
+        name: 'Bring your full GitHub team on board in Sentry',
+      })
     ).not.toBeInTheDocument();
   });
 });

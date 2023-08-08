@@ -1,5 +1,3 @@
-import {act} from 'react-dom/test-utils';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -111,9 +109,7 @@ describe('OrganizationMembersWrapper', function () {
       </OrganizationMembersWrapper>
     );
 
-    await act(tick);
-
-    expect(screen.getByText('Members')).toBeInTheDocument();
+    expect(await screen.findByText('Members')).toBeInTheDocument();
     expect(screen.getByText(member.name)).toBeInTheDocument();
   });
 });

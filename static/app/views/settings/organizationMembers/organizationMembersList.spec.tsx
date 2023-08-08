@@ -2,7 +2,6 @@ import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 
 import {
-  act,
   render,
   renderGlobalModal,
   screen,
@@ -457,7 +456,7 @@ describe('OrganizationMembersList', function () {
       teams: [],
     });
 
-    it('disable buttons for no access', async function () {
+    it('disable buttons for no access', function () {
       const org = TestStubs.Organization({
         status: {
           id: 'active',
@@ -476,8 +475,6 @@ describe('OrganizationMembersList', function () {
       render(<OrganizationMembersList {...defaultProps} organization={org} />, {
         context: TestStubs.routerContext([{organization: org}]),
       });
-
-      await act(tick);
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
@@ -623,10 +620,10 @@ describe('OrganizationMembersList', function () {
         context: TestStubs.routerContext([{organization: org}]),
       });
 
-      await act(tick);
-
       expect(
-        screen.getByText('Bring your full GitHub team on board in Sentry')
+        await screen.findByRole('heading', {
+          name: 'Bring your full GitHub team on board in Sentry',
+        })
       ).toBeInTheDocument();
       expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(5);
       expect(screen.getByText('See all 5 missing members')).toBeInTheDocument();
