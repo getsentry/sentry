@@ -18,8 +18,8 @@ class IntegrationDisabledNotified(analytics.Event):
 
     attributes = (
         analytics.Attribute("organization_id"),
-        analytics.Attribute("redis_key"),
         analytics.Attribute("provider"),
+        analytics.Attribute("id"),
     )
 
 
