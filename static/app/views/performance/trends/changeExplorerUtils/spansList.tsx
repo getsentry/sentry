@@ -9,13 +9,16 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {SuspectSpan, SuspectSpans} from 'sentry/utils/performance/suspectSpans/types';
+import {EventsResultsDataRow, Sort} from 'sentry/utils/profiling/hooks/types';
+import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
+import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useProjects from 'sentry/utils/useProjects';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
@@ -58,6 +61,16 @@ export type ChangedSuspectSpan = AveragedSuspectSpan & {
   percentChange: number;
 };
 
+type AveragedSuspectFunction = EventsResultsDataRow<FunctionsField> & {
+  avgSumExclusiveTime: number;
+};
+
+type ChangedSuspectFunction = AveragedSuspectFunction & {
+  avgTimeDifference: number;
+  changeType: string;
+  percentChange: number;
+};
+
 type NumberedListProps = {
   isError: boolean;
   isLoading: boolean;
@@ -65,6 +78,8 @@ type NumberedListProps = {
   location: Location;
   organization: Organization;
   transactionName: string;
+  functions?: ChangedSuspectFunction[];
+  project?: Project;
   projectID?: string;
   spans?: ChangedSuspectSpan[];
 };
@@ -75,6 +90,17 @@ export const SpanChangeType = {
   regressed: t('Regressed'),
   improved: t('Improved'),
 };
+
+const functionsFields = [
+  'package',
+  'function',
+  'count()',
+  'p75()',
+  'sum()',
+  'examples()',
+] as const;
+
+export type FunctionsField = (typeof functionsFields)[number];
 
 export function SpansList(props: SpansListProps) {
   const {trendView, location, organization, breakpoint, transaction, trendChangeType} =
@@ -157,7 +183,9 @@ export function SpansList(props: SpansListProps) {
     )
   );
 
-  const transactionCountBefore = totalTransactionsBefore?.data[0]['count()'] as number;
+  const transactionCountBefore = totalTransactionsBefore?.data
+    ? (totalTransactionsBefore?.data[0]['count()'] as number)
+    : 0;
 
   const {
     data: totalTransactionsAfter,
@@ -177,7 +205,88 @@ export function SpansList(props: SpansListProps) {
     )
   );
 
-  const transactionCountAfter = totalTransactionsAfter?.data[0]['count()'] as number;
+  const transactionCountAfter = totalTransactionsAfter?.data
+    ? (totalTransactionsAfter?.data[0]['count()'] as number)
+    : 0;
+
+  const functionsSort: Sort<FunctionsField> = {key: 'sum()', order: 'desc'};
+
+  const query = useMemo(() => {
+    const conditions = new MutableSearch('');
+    conditions.setFilterValues('transaction', [transaction.transaction]);
+    return conditions.formatString();
+  }, [transaction.transaction]);
+
+  const beforeFunctionsQuery = useProfileFunctions<FunctionsField>({
+    fields: functionsFields,
+    referrer: 'api.performance.performance-change-explorer',
+    sort: functionsSort,
+    query,
+    limit: 50,
+    datetime: {
+      end: breakpointTime,
+      start: startTime,
+      period: null,
+      utc: null,
+    },
+  });
+
+  const afterFunctionsQuery = useProfileFunctions<FunctionsField>({
+    fields: functionsFields,
+    referrer: 'api.performance.performance-change-explorer',
+    sort: functionsSort,
+    query,
+    limit: 50,
+    datetime: {
+      end: endTime,
+      start: breakpointTime,
+      period: null,
+      utc: null,
+    },
+  });
+
+  // need these averaged fields because comparing total self times may be inaccurate depending on
+  // where the breakpoint is
+  const functionsAveragedAfter = addAvgSumOfFunctions(
+    afterFunctionsQuery.data?.data,
+    transactionCountAfter
+  );
+  const functionsAveragedBefore = addAvgSumOfFunctions(
+    beforeFunctionsQuery.data?.data,
+    transactionCountBefore
+  );
+
+  const addedFunctions = addFunctionChangeFields(
+    findFunctionsNotIn(functionsAveragedAfter, functionsAveragedBefore),
+    true
+  );
+  const removedFunctions = addFunctionChangeFields(
+    findFunctionsNotIn(functionsAveragedBefore, functionsAveragedAfter),
+    false
+  );
+
+  const remainingFunctionsBefore = findFunctionsIn(
+    functionsAveragedBefore,
+    functionsAveragedAfter
+  );
+  const remainingFunctionsAfter = findFunctionsIn(
+    functionsAveragedAfter,
+    functionsAveragedBefore
+  );
+
+  const remainingFunctionsWithChange = addPercentChangeInFunctions(
+    remainingFunctionsBefore,
+    remainingFunctionsAfter
+  );
+
+  const allFunctionsUpdated = remainingFunctionsWithChange
+    ?.concat(addedFunctions ? addedFunctions : [])
+    .concat(removedFunctions ? removedFunctions : []);
+
+  // sorts all functions in descending order of avgTimeDifference (change in avg total self time)
+  const functionList = allFunctionsUpdated?.sort(
+    (a, b) => b.avgTimeDifference - a.avgTimeDifference
+  );
 
   return (
     <SuspectSpansQuery
@@ -219,11 +328,11 @@ export function SpansList(props: SpansListProps) {
                 transactionCountBefore
               );
 
-              const addedSpans = addChangeFields(
+              const addedSpans = addSpanChangeFields(
                 findSpansNotIn(spansAveragedAfter, spansAveragedBefore),
                 true
               );
-              const removedSpans = addChangeFields(
+              const removedSpans = addSpanChangeFields(
                 findSpansNotIn(spansAveragedBefore, spansAveragedAfter),
                 false
               );
@@ -237,7 +346,7 @@ export function SpansList(props: SpansListProps) {
                 spansAveragedBefore
               );
 
-              const remainingSpansWithChange = addPercentChange(
+              const remainingSpansWithChange = addPercentChangeInSpans(
                 remainingSpansBefore,
                 remainingSpansAfter
               );
@@ -258,22 +367,30 @@ export function SpansList(props: SpansListProps) {
                       ? spanList
                       : spanList?.reverse()
                   }
+                  functions={
+                    trendChangeType === TrendChangeType.REGRESSION
+                      ? functionList
+                      : functionList?.reverse()
+                  }
                   projectID={projectID}
+                  project={projects.find(project => project.id === projectID)}
                   location={location}
                   organization={organization}
                   transactionName={transaction.transaction}
-                  limit={6}
+                  limit={8}
                   isLoading={
                     transactionsLoadingBefore ||
                     transactionsLoadingAfter ||
                     spansLoadingBefore ||
-                    spansLoadingAfter
+                    spansLoadingAfter ||
+                    beforeFunctionsQuery.isLoading ||
+                    afterFunctionsQuery.isLoading
                   }
                   isError={
-                    hasSpansErrorBefore ||
-                    hasSpansErrorAfter ||
                     transactionsErrorBefore ||
-                    transactionsErrorAfter
+                    transactionsErrorAfter ||
+                    ((hasSpansErrorBefore || hasSpansErrorAfter) &&
+                      (beforeFunctionsQuery.isError || afterFunctionsQuery.isError))
                   }
                 />
               );
@@ -361,6 +478,34 @@ function findSpansIn(
   });
 }
 
+function findFunctionsNotIn(
+  initialFunctions: AveragedSuspectFunction[] | undefined,
+  comparingFunctions: AveragedSuspectFunction[] | undefined
+) {
+  return initialFunctions?.filter(initialValue => {
+    const functionInComparingSet = comparingFunctions?.find(
+      comparingValue =>
+        comparingValue.function === initialValue.function &&
+        comparingValue.package === initialValue.package
+    );
+    return functionInComparingSet === undefined;
+  });
+}
+
+function findFunctionsIn(
+  initialFunctions: AveragedSuspectFunction[] | undefined,
+  comparingFunctions: AveragedSuspectFunction[] | undefined
+) {
+  return initialFunctions?.filter(initialValue => {
+    const functionInComparingSet = comparingFunctions?.find(
+      comparingValue =>
+        comparingValue.function === initialValue.function &&
+        comparingValue.package === initialValue.package
+    );
+    return functionInComparingSet !== undefined;
+  });
+}
+
 /**
  *
  * adds an average of the sumExclusive time so it is more comparable when the breakpoint
@@ -380,7 +525,26 @@ function addAvgSumExclusiveTime(
   });
 }
 
-function addPercentChange(
+/**
+ *
+ * adds an average of the sum() time so it is more comparable when the breakpoint
+ * is not close to the middle of the timeseries
+ */
+function addAvgSumOfFunctions(
+  suspectFunctions: EventsResultsDataRow<FunctionsField>[] | undefined,
+  transactionCount: number
+) {
+  return suspectFunctions?.map(susFunc => {
+    return {
+      ...susFunc,
+      avgSumExclusiveTime: (susFunc['sum()'] as number)
+        ? (susFunc['sum()'] as number) / transactionCount
+        : 0,
+    };
+  });
+}
+
+function addPercentChangeInSpans(
   before: AveragedSuspectSpan[] | undefined,
   after: AveragedSuspectSpan[] | undefined
 ) {
@@ -405,7 +569,33 @@ function addPercentChange(
   });
 }
 
-function addChangeFields(
+function addPercentChangeInFunctions(
+  before: AveragedSuspectFunction[] | undefined,
+  after: AveragedSuspectFunction[] | undefined
+) {
+  return after?.map(functionAfter => {
+    const functionBefore = before?.find(
+      beforeValue =>
+        functionAfter.function === beforeValue.function &&
+        functionAfter.package === beforeValue.package
+    );
+    const percentageChange =
+      relativeChange(
+        functionBefore?.avgSumExclusiveTime || 0,
+        functionAfter.avgSumExclusiveTime
+      ) * 100;
+    return {
+      ...functionAfter,
+      percentChange: percentageChange,
+      avgTimeDifference:
+        functionAfter.avgSumExclusiveTime - (functionBefore?.avgSumExclusiveTime || 0),
+      changeType:
+        percentageChange < 0 ? SpanChangeType.improved : SpanChangeType.regressed,
+    };
+  });
+}
+
+function addSpanChangeFields(
   spans: AveragedSuspectSpan[] | undefined,
   added: boolean
 ): ChangedSuspectSpan[] | undefined {
@@ -429,16 +619,42 @@ function addChangeFields(
   });
 }
 
+function addFunctionChangeFields(
+  functions: AveragedSuspectFunction[] | undefined,
+  added: boolean
+): ChangedSuspectFunction[] | undefined {
+  // percent change is hardcoded to pass the 1% change threshold,
+  // avoid infinite values and reflect correct change type
+  return functions?.map(func => {
+    if (added) {
+      return {
+        ...func,
+        percentChange: 100,
+        avgTimeDifference: func.avgSumExclusiveTime,
+        changeType: SpanChangeType.added,
+      };
+    }
+    return {
+      ...func,
+      percentChange: -100,
+      avgTimeDifference: 0 - func.avgSumExclusiveTime,
+      changeType: SpanChangeType.removed,
+    };
+  });
+}
+
 export function NumberedList(props: NumberedListProps) {
   const {
     spans,
     projectID,
+    project,
     location,
     transactionName,
     organization,
     limit,
     isLoading,
     isError,
+    functions,
   } = props;
 
   if (isLoading) {
@@ -454,7 +670,7 @@ export function NumberedList(props: NumberedListProps) {
     );
   }
 
-  if (spans?.length === 0) {
+  if ((spans?.length === 0 || !spans) && (functions?.length === 0 || !functions)) {
     return (
       <EmptyStateWarning>
         <p data-test-id="spans-no-results">{t('No results found for your query')}</p>
@@ -462,10 +678,22 @@ export function NumberedList(props: NumberedListProps) {
     );
   }
 
+  let spansLimit = limit / 2;
+  let functionsLimit = limit / 2;
+
+  if (spans && (!functions || functions.length === 0)) {
+    spansLimit = limit;
+    functionsLimit = 0;
+  }
+  if (functions && (!spans || spans.length === 0)) {
+    functionsLimit = limit;
+    spansLimit = 0;
+  }
+
   // percent change of a span must be more than 1%
   const formattedSpans = spans
     ?.filter(span => (spans.length > 10 ? Math.abs(span.percentChange) >= 1 : true))
-    .slice(0, limit)
+    .slice(0, spansLimit)
     .map((span, index) => {
       const spanDetailsPage = spanDetailsRouteWithQuery({
         orgSlug: organization.slug,
@@ -493,30 +721,79 @@ export function NumberedList(props: NumberedListProps) {
             <p style={{marginLeft: space(2)}}>
               {tct('[changeType] suspect span', {changeType: span.changeType})}
             </p>
-            <SpanLink to={spanDetailsPage} onClick={handleClickAnalytics}>
+            <ListLink to={spanDetailsPage} onClick={handleClickAnalytics}>
               {span.description ? `${span.op} - ${span.description}` : span.op}
-            </SpanLink>
+            </ListLink>
           </ListItemWrapper>
         </li>
       );
     });
 
-  if (formattedSpans?.length === 0) {
+  // percent change of a function must be more than 1%
+  const formattedFunctions = functions
+    ?.filter(func => (functions.length > 10 ? Math.abs(func.percentChange) >= 1 : true))
+    .slice(0, functionsLimit)
+    .map((func, index) => {
+      const profiles = func['examples()'] as string[];
+
+      const functionSummaryView = generateProfileFlamechartRouteWithQuery({
+        orgSlug: organization.slug,
+        projectSlug: project?.slug || '',
+        profileId: profiles[0],
+        query: {
+          frameName: func.function as string,
+          framePackage: func.package as string,
+        },
+      });
+
+      const handleClickAnalytics = () => {
+        trackAnalytics(
+          'performance_views.performance_change_explorer.function_link_clicked',
+          {
+            organization,
+            transaction: transactionName,
+            package: func.package as string,
+            function: func.function as string,
+            profile_id: profiles[0],
+          }
+        );
+      };
+
+      return (
+        <li key={`list-item-${index}`}>
+          <ListItemWrapper data-test-id="list-item">
+            <p style={{marginLeft: space(2)}}>
+              {tct('[changeType] suspect function', {changeType: func.changeType})}
+            </p>
+            <ListLink to={functionSummaryView} onClick={handleClickAnalytics}>
+              {func.function}
+            </ListLink>
+          </ListItemWrapper>
+        </li>
+      );
+    });
+
+  if (formattedSpans?.length === 0 && formattedFunctions?.length === 0) {
     return (
       <EmptyStateWarning>
-        <p data-test-id="spans-no-changes">{t('No sizable changes in suspect spans')}</p>
+        <p data-test-id="spans-no-changes">
+          {t('No sizable changes in suspect spans and functions')}
+        </p>
       </EmptyStateWarning>
     );
   }
 
   return (
     <div style={{marginTop: space(4)}}>
-      <ol>{formattedSpans}</ol>
+      <ol>
+        {formattedSpans}
+        {formattedFunctions}
+      </ol>
     </div>
   );
 }
 
-const SpanLink = styled(Link)`
+const ListLink = styled(Link)`
   margin-left: ${space(1)};
   ${p => p.theme.overflowEllipsis}
 `;

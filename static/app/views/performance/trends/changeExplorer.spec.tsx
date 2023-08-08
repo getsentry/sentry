@@ -6,13 +6,17 @@ import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {SuspectSpans} from 'sentry/utils/performance/suspectSpans/types';
+import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {PerformanceChangeExplorer} from 'sentry/views/performance/trends/changeExplorer';
 import {
   COLUMNS,
   MetricsTable,
   renderBodyCell,
 } from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
-import {SpansList} from 'sentry/views/performance/trends/changeExplorerUtils/spansList';
+import {
+  FunctionsField,
+  SpansList,
+} from 'sentry/views/performance/trends/changeExplorerUtils/spansList';
 import {
   NormalizedTrendsTransaction,
   TrendChangeType,
@@ -195,6 +199,97 @@ const spanResults: SuspectSpans = [
   },
 ];
 
+const functionResults: EventsResultsDataRow<FunctionsField>[] = [
+  {
+    'count()': 234,
+    'examples()': ['serw8r9s', 'aeo4i2u38'],
+    function: 'f1',
+    'p75()': 4239847,
+    package: 'p1',
+    'sum()': 2304823908,
+  },
+  {
+    'count()': 234,
+    'examples()': ['serw8r9s', 'aeo4i2u38'],
+    function: 'f2',
+    'p75()': 4239847,
+    package: 'p2',
+    'sum()': 2304823908,
+  },
+  {
+    'count()': 234,
+    'examples()': ['serw8r9s', 'aeo4i2u38'],
+    function: 'f3',
+    'p75()': 4239847,
+    package: 'p3',
+    'sum()': 2304823908,
+  },
+  {
+    'count()': 234,
+    'examples()': ['serw8r9s', 'aeo4i2u38'],
+    function: 'f4',
+    'p75()': 4239847,
+    package: 'p4',
+    'sum()': 2304823908,
+  },
+  {
+    'count()': 234,
+    'examples()': ['serw8r9s', 'aeo4i2u38'],
+    function: 'f5',
+    'p75()': 4239847,
+    package: 'p5',
+    'sum()': 2304823908,
+  },
+  {
+    'count()': 234,
+    'examples()': ['serw8r9s', 'aeo4i2u38'],
+    function: 'f5',
+    'p75()': 4239847,
+    package: 'p5',
+    'sum()': 2304823908,
+  },
+  {
+    'count()': 234,
+    'examples()': ['serw8r9s', 'aeo4i2u38'],
+    function: 'f7',
+    'p75()': 4239847,
+    package: 'p7',
+    'sum()': 2304823908,
+  },
+  {
+    'count()': 234,
+    'examples()': ['serw8r9s', 'aeo4i2u38'],
+    function: 'f8',
+    'p75()': 4239847,
+    package: 'p8',
+    'sum()': 2304823908,
+  },
+  {
+    'count()': 234,
+    'examples()': ['serw8r9s', 'aeo4i2u38'],
+    function: 'f9',
+    'p75()': 4239847,
+    package: 'p9',
+    'sum()': 2304823908,
+  },
+  {
+    'count()': 234,
+    'examples()': ['serw8r9s', 'aeo4i2u38'],
+    function: 'f10',
+    'p75()': 4239847,
+    package: 'p10',
+    'sum()': 2304823908,
+  },
+  {
+    'count()': 234,
+    'examples()': ['serw8r9s', 'aeo4i2u38'],
+    function: 'f11',
+    'p75()': 4239847,
+    package: 'p11',
+    'sum()': 2304823908,
+  },
+];
+
 describe('Performance > Trends > Performance Change Explorer', function () {
   let eventsMockBefore;
   let spansMock;
@@ -208,6 +303,7 @@ describe('Performance > Trends > Performance Change Explorer', function () {
             'p50()': 47.34580982348902,
             'tps()': 3.7226926286168966,
             'count()': 345,
+            'examples()': ['dkwj4w8sdjk', 'asdi389a8'],
           },
         ],
         meta: {
@@ -216,12 +312,14 @@ describe('Performance > Trends > Performance Change Explorer', function () {
             '950()': 'duration',
             'tps()': 'number',
             'count()': 'number',
+            'examples()': 'Array',
           },
           units: {
             'p95()': 'millisecond',
             'p50()': 'millisecond',
             'tps()': null,
             'count()': null,
+            'examples()': null,
           },
           isMetricsData: true,
           tips: {},
@@ -282,7 +380,7 @@ describe('Performance > Trends > Performance Change Explorer', function () {
       expect(screen.getAllByTestId('pce-metrics-chart-row-before')).toHaveLength(4);
       expect(screen.getAllByTestId('pce-metrics-chart-row-after')).toHaveLength(4);
       expect(screen.getAllByTestId('pce-metrics-chart-row-change')).toHaveLength(4);
-      expect(screen.getByTestId('spans-no-results')).toBeInTheDocument();
+      expect(screen.getByTestId('list-item')).toBeInTheDocument();
     });
   });
 
@@ -467,6 +565,10 @@ describe('Performance > Trends > Performance Change Explorer', function () {
 
   it('renders spans list with no results', async () => {
     const data = initializeData();
+    const emptyEventsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {},
+    });
 
     render(
       <SpansList
@@ -480,6 +582,8 @@ describe('Performance > Trends > Performance Change Explorer', function () {
     );
 
     await waitForMockCall(spansMock);
+    await waitForMockCall(emptyEventsMock);
+
     await waitFor(() => {
       expect(screen.getByTestId('empty-state')).toBeInTheDocument();
       expect(screen.getByTestId('spans-no-results')).toBeInTheDocument();
@@ -489,6 +593,10 @@ describe('Performance > Trends > Performance Change Explorer', function () {
   it('renders spans list with error message', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-spans-performance/',
+      statusCode: 504,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
       statusCode: 504,
     });
     const data = initializeData();
@@ -513,6 +621,13 @@ describe('Performance > Trends > Performance Change Explorer', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-spans-performance/',
       body: spanResults,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: functionResults,
+        meta: {},
+      },
     });
     const data = initializeData();
 
