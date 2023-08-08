@@ -70,6 +70,7 @@ enum DetectorConfigAdmin {
   LARGE_HTTP_PAYLOAD_ENABLED = 'large_http_payload_detection_enabled',
   N_PLUS_ONE_API_CALLS_ENABLED = 'n_plus_one_api_calls_detection_enabled',
   CONSECUTIVE_HTTP_ENABLED = 'consecutive_http_spans_detection_enabled',
+  HTTP_OVERHEAD_ENABLED = 'http_overhead_detection_enabled',
 }
 
 export enum DetectorConfigCustomer {
@@ -84,6 +85,7 @@ export enum DetectorConfigCustomer {
   UNCOMPRESSED_ASSET_SIZE = 'uncompressed_asset_size_threshold',
   CONSECUTIVE_DB_MIN_TIME_SAVED = 'consecutive_db_min_time_saved_threshold',
   CONSECUTIVE_HTTP_MIN_TIME_SAVED = 'consecutive_http_spans_min_time_saved_threshold',
+  HTTP_OVERHEAD_REQUEST_DELAY = 'http_request_delay_threshold',
 }
 
 type RouteParams = {orgId: string; projectId: string};
@@ -423,6 +425,19 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             },
           }),
       },
+      {
+        name: DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED,
+        type: 'boolean',
+        label: t('HTTP/1.1 Overhead Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              [DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED]: value,
+            },
+          }),
+      },
     ];
   }
 
@@ -696,6 +711,28 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabled: !(
               hasAccess &&
               performanceSettings[DetectorConfigAdmin.CONSECUTIVE_HTTP_ENABLED]
+            ),
+            formatLabel: formatDuration,
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('HTTP Overhead'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.HTTP_OVERHEAD_REQUEST_DELAY,
+            type: 'range',
+            label: t('Request Delay'),
+            defaultValue: 500, // in ms
+            help: t(
+              'Setting the value to 500ms, means that the HTTP request delay (wait time) will have to exceed 500ms for an HTTP Overhead issue to be created.'
+            ),
+            tickValues: [0, allowedDurationValues.slice(6, 17).length - 1],
+            showTickLabels: true,
+            allowedValues: allowedDurationValues.slice(6, 17),
+            disabled: !(
+              hasAccess && performanceSettings[DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED]
             ),
             formatLabel: formatDuration,
             disabledReason,
