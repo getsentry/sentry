@@ -219,6 +219,9 @@ def pytest_configure(config):
     # For now, multiprocessing does not work in tests.
     settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = True
 
+    # Assume this is always configured (not the real secret)
+    settings.RPC_SHARED_SECRET = ("215b1f0d",)
+
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
     patcher = mock.patch("socket.getfqdn", return_value="localhost")
