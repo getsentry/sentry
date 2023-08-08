@@ -352,20 +352,25 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         audit_data = member.get_audit_log_data()
 
+        proj_list = list(
+            Project.objects.filter(organization=organization).values_list("id", flat=True)
+        )
+        uos = [
+            uo
+            for uo in user_option_service.get_many(
+                filter=dict(user_ids=[member.user_id], project_ids=proj_list, key="mail:email")
+            )
+        ]
+
         with transaction.atomic(router.db_for_write(Project)):
             # Delete instances of `UserOption` that are scoped to the projects within the
             # organization when corresponding member is removed from org
-            proj_list = list(
-                Project.objects.filter(organization=organization).values_list("id", flat=True)
-            )
-            uos = [
-                uo
-                for uo in user_option_service.get_many(
-                    filter=dict(user_ids=[member.user_id], project_ids=proj_list, key="mail:email")
-                )
-            ]
-            user_option_service.delete_options(option_ids=[uo.id for uo in uos])
+
             member.delete()
+            transaction.on_commit(
+                lambda: user_option_service.delete_options(option_ids=[uo.id for uo in uos]),
+                using=router.db_for_write(Project),
+            )
 
         self.create_audit_entry(
             request=request,
