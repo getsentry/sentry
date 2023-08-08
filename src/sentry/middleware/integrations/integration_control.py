@@ -8,6 +8,7 @@ from django.http import HttpRequest, HttpResponse
 from sentry.middleware.integrations.classifications import (
     BaseClassification,
     IntegrationClassification,
+    PluginClassification,
 )
 from sentry.silo import SiloMode
 
@@ -15,13 +16,9 @@ logger = logging.getLogger(__name__)
 
 
 class IntegrationControlMiddleware:
-    integration_prefix: str = "/extensions/"
-    """Prefix for all integration requests. See `src/sentry/web/urls.py`"""
-    setup_suffix: str = "/setup/"
-    """Suffix for PipelineAdvancerView on installation. See `src/sentry/web/urls.py`"""
-
     classifications: List[Type[BaseClassification]] = [
         IntegrationClassification,
+        PluginClassification,
     ]
     """Classifications to determine whether request must be parsed, sorted in priority order."""
 
