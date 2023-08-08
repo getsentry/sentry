@@ -6,7 +6,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -15,6 +15,7 @@ import ListItem from 'sentry/components/list/listItem';
 import NavTabs from 'sentry/components/navTabs';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {
   IntegrationProvider,
   IntegrationWithConfig,
@@ -225,6 +226,15 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
             </Confirm>
           )}
         </Access>
+      ) : provider && provider.key === 'discord' ? (
+        <LinkButton
+          aria-label="Open this server in the Discord app"
+          size="sm"
+          // @ts-ignore - the type of integration here is weird.
+          href={`discord://discord.com/channels/${integration.externalId}`}
+        >
+          Open in Discord
+        </LinkButton>
       ) : null;
 
     return action;
@@ -294,9 +304,11 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
 
   renderBody() {
     const {integration} = this.state;
+    const {organization, router} = this.props;
     const provider = this.state.config.providers.find(
       p => p.key === integration.provider.key
     );
+
     if (!provider) {
       return null;
     }
@@ -305,9 +317,26 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
     const header = (
       <SettingsPageHeader noTitleStyles title={title} action={this.getAction(provider)} />
     );
-
+    const backButton = (
+      <BackButtonWrapper>
+        <Button
+          icon={<IconArrow direction="left" size="sm" />}
+          size="sm"
+          onClick={() => {
+            router.push(
+              normalizeUrl({
+                pathname: `/settings/${organization.slug}/integrations/${provider.key}/`,
+              })
+            );
+          }}
+        >
+          Back
+        </Button>
+      </BackButtonWrapper>
+    );
     return (
       <Fragment>
+        {backButton}
         {header}
         {this.renderMainContent(provider)}
         <BreadcrumbTitle
@@ -377,6 +406,11 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
 }
 
 export default withOrganization(withApi(ConfigureIntegration));
+
+const BackButtonWrapper = styled('div')`
+  margin-bottom: ${space(2)};
+  width: 100%;
+`;
 
 const CapitalizedLink = styled('a')`
   text-transform: capitalize;
