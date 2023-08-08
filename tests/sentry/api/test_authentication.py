@@ -6,7 +6,7 @@ from django.http import HttpRequest
 from django.test import RequestFactory, override_settings
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
-from sentry_relay import generate_key_pair
+from sentry_relay.auth import generate_key_pair
 
 from sentry.api.authentication import (
     ClientIdSecretAuthentication,

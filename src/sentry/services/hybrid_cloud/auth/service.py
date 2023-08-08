@@ -7,7 +7,6 @@ import abc
 from typing import Any, List, Mapping, Optional, cast
 
 from sentry.services.hybrid_cloud.auth import (
-    AuthenticatedToken,
     AuthenticationContext,
     AuthenticationRequest,
     MiddlewareAuthenticationResponse,
@@ -80,11 +79,6 @@ class AuthService(RpcService):
         This method returns a list of auth providers for an org
         :return:
         """
-        pass
-
-    @rpc_method
-    @abc.abstractmethod
-    def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
         pass
 
     @rpc_method

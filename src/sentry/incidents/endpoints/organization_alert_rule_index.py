@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import datetime
 
 from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery, Value
@@ -59,9 +60,13 @@ class AlertRuleIndexMixin(Endpoint):
             default_per_page=25,
         )
 
-    def create_metric_alert(self, request, organization):
+    def create_metric_alert(self, request, organization, project=None):
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
+
+        data = deepcopy(request.data)
+        if project:
+            data["projects"] = [project.slug]
 
         serializer = AlertRuleSerializer(
             context={
@@ -73,7 +78,7 @@ class AlertRuleIndexMixin(Endpoint):
                     organization_id=organization.id
                 ),
             },
-            data=request.data,
+            data=data,
         )
         if serializer.is_valid():
             trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)

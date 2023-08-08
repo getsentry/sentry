@@ -65,7 +65,6 @@ class OrganizationMemberWithRolesSerializer(OrganizationMemberWithTeamsSerialize
         )
 
         if self.allowed_roles:
-            context["invite_link"] = obj.get_invite_link()
             context["user"] = attrs.get("serializedUser", {})
 
         context["isOnlyOwner"] = obj.is_only_owner()
