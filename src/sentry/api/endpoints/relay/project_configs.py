@@ -64,7 +64,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         set_tag("relay_protocol_version", version)
 
         if version == "4":
-            if request.relay_request_data.get("globalConfig"):
+            if request.relay_request_data.get("global"):
                 response["global"] = get_global_config()
         elif self._should_use_v3(version, request):
             # Always compute the full config. It's invalid to send partial

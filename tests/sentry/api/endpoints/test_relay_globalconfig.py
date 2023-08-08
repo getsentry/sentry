@@ -12,7 +12,7 @@ def fetch_projconfig(client, relay, private_key):
     def inner(version, global_):
         path = reverse("sentry-api-0-relay-projectconfigs") + f"?version={version}"
 
-        raw_json, signature = private_key.pack({"globalConfig": True} if global_ else {})
+        raw_json, signature = private_key.pack({"global": True} if global_ else {})
 
         resp = client.post(
             path,
