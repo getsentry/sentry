@@ -39,5 +39,6 @@ class DebugSentryAppNotifyDisableView(View):
                 "webhook_url": self.sentry_app.webhook_url
                 if "sentry-app" in redis_key and self.sentry_app.webhook_url
                 else "",
+                "dashboard_link": f"{integration_link}dashboard/",
             },
         ).render(request)

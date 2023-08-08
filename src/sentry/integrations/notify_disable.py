@@ -58,6 +58,9 @@ def notify_disable(
                 "integration_name": integration_name.title(),
                 "integration_link": integration_link,
                 "webhook_url": webhook_url if "sentry-app" in redis_key and webhook_url else "",
+                "dashboard_link": f"{integration_link}dashboard/"
+                if "sentry-app" in redis_key
+                else "",
             },
             html_template="sentry/integrations/sentry-app-notify-disable.html"
             if "sentry-app" in redis_key and integration_slug
