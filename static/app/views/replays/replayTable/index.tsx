@@ -40,7 +40,6 @@ type Props = {
   sort: Sort | undefined;
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
-  footer?: ReactNode;
   gridRows?: string;
   saveLocation?: boolean;
 };
@@ -54,7 +53,6 @@ function ReplayTable({
   emptyMessage,
   saveLocation,
   gridRows,
-  footer,
 }: Props) {
   const routes = useRoutes();
   const newLocation = useLocation();
@@ -108,8 +106,8 @@ function ReplayTable({
 
   if (
     needSDKUpgrade.needsUpdate &&
-    (visibleColumns.includes(ReplayColumn.COUNT_DEAD_CLICKS) ||
-      visibleColumns.includes(ReplayColumn.COUNT_RAGE_CLICKS))
+    (visibleColumns.includes(ReplayColumn.MOST_DEAD_CLICKS) ||
+      visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS))
   ) {
     return (
       <StyledPanelTable
@@ -240,7 +238,6 @@ function ReplayTable({
           </Fragment>
         );
       })}
-      {footer}
     </StyledPanelTable>
   );
 }
