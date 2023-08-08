@@ -18,7 +18,7 @@ from typing import (
 from typing_extensions import NotRequired
 
 from sentry.api import event_search
-from sentry.api.event_search import AggregateFilter, ParenExpression, SearchFilter
+from sentry.api.event_search import ParenExpression, SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import fields
 from sentry.snuba.dataset import Dataset
@@ -225,57 +225,52 @@ def is_on_demand_metric_query(
     if is_standard_metrics_compatible(dataset, aggregate, query):
         return False
 
-    try:
-        if not _is_on_demand_supported_aggregate(aggregate):
+    for field in _get_aggregate_fields(aggregate):
+        if not _is_on_demand_supported_field(field):
             return False
-
+    try:
         return _is_on_demand_supported_query(event_search.parse_search_query(query))
     except InvalidSearchQuery:
         logger.error(f"Failed to parse search query: {query}", exc_info=True)
         return False
 
 
-def _is_on_demand_supported_aggregate(aggregate: str) -> bool:
-    # equations are currently not supported
-    if aggregate.startswith("equation|"):
-        return False
-
-    function, arguments, _ = fields.parse_function(aggregate)
-
-    if function not in _SEARCH_TO_METRIC_AGGREGATES.keys():
-        return False
-    # count() has no arguments
-    if function == "count":
-        return True
-
-    return _is_on_demand_supported_field(arguments[0])
-
-
-def _is_standard_metric_compatible_aggregate(aggregate: str) -> bool:
-    """Returns ``True`` if the aggregate is compatible with standard metrics."""
-
-    function, arguments, _ = fields.parse_function(aggregate)
-    # count() has no arguments
-    if function == "count":
-        return True
-
-    return _is_standard_metrics_field(arguments[0])
-
-
 def is_standard_metrics_compatible(
     dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
 ) -> bool:
+    """Returns ``True`` if the query can be supported by standard metrics."""
+
     if not dataset or Dataset(dataset) not in [Dataset.Metrics, Dataset.PerformanceMetrics]:
         return False
 
-    try:
-        if not _is_standard_metric_compatible_aggregate(aggregate):
+    for field in _get_aggregate_fields(aggregate):
+        if not _is_standard_metrics_field(field):
             return False
-
+    try:
         return _is_standard_metrics_query(event_search.parse_search_query(query))
     except InvalidSearchQuery:
         logger.error(f"Failed to parse search query: {query}", exc_info=True)
         return False
+
+
+def _get_aggregate_fields(aggregate: str) -> Sequence[str]:
+    """
+    Returns any fields referenced by the arguments of supported aggregate
+    functions, otherwise ``None``.
+    """
+    _SUPPORTED_AGG_FNS = ("count_if", "count_unique")
+
+    if not aggregate.startswith(_SUPPORTED_AGG_FNS):
+        return []
+
+    try:
+        function, arguments, _ = fields.parse_function(aggregate)
+        if function in _SUPPORTED_AGG_FNS and arguments:
+            return [arguments[0]]
+    except InvalidSearchQuery:
+        logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)
+
+    return []
 
 
 def _is_standard_metrics_query(tokens: Sequence[QueryToken]) -> bool:
@@ -437,13 +432,7 @@ def _is_on_demand_supported_query(tokens: Sequence[QueryToken]) -> bool:
 
 
 def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
-    if isinstance(token, AggregateFilter):
-        return False
-
     if isinstance(token, SearchFilter):
-        if not _SEARCH_TO_RELAY_OPERATORS.get(token.operator):
-            return False
-
         return _is_on_demand_supported_field(token.key.name)
 
     if isinstance(token, ParenExpression):
