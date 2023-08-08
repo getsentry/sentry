@@ -5,7 +5,7 @@ from typing import Any, Callable, List, Mapping, Optional
 from django.db.models import QuerySet
 
 from sentry.api.serializers import SentryAppAlertRuleActionSerializer, Serializer, serialize
-from sentry.constants import SentryAppInstallationStatus
+from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.mediators import alert_rule_actions
 from sentry.models import (
     SentryApp,
@@ -209,3 +209,11 @@ class DatabaseBackedAppService(AppService):
             return serialize_sentry_app(SentryApp.objects.get(application_id=api_application_id))
         except SentryApp.DoesNotExist:
             return None
+
+    def get_published_sentry_apps_for_organization(
+        self, *, organization_id: int
+    ) -> List[RpcSentryApp]:
+        published_apps = SentryApp.objects.filter(
+            owner_id=organization_id, status=SentryAppStatus.PUBLISHED
+        )
+        return [serialize_sentry_app(app) for app in published_apps]
