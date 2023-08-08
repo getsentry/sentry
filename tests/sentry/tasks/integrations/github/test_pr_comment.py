@@ -262,14 +262,17 @@ class TestCommentBuilderQueries(GithubCommentTestCase):
             data={"message": "issue 1", "culprit": "issue1", "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert ev1.group is not None
         ev2 = self.store_event(
             data={"message": "issue 2", "culprit": "issue2", "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
+        assert ev2.group is not None
         ev3 = self.store_event(
             data={"message": "issue 3", "culprit": "issue3", "fingerprint": ["group-3"]},
             project_id=self.project.id,
         )
+        assert ev3.group is not None
         comment_contents = get_comment_contents([ev1.group.id, ev2.group.id, ev3.group.id])
         assert (
             PullRequestIssue(
