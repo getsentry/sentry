@@ -214,12 +214,11 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         has been generated.
         - **`204`**: The member is already on the team.
 
-        If the team is provisioned through an identity provider, then the member cannot join the
+        If the team is provisioned through an identity provider, the member cannot join the
         team through Sentry.
 
-        Note that the permission scopes also vary depending on the organization setting `"Open
-        Membership"` and the type of authorization token. The following table outlines the accepted
-        scopes.
+        Note the permission scopes vary depending on the organization setting `"Open Membership"`
+        and the type of authorization token. The following table outlines the accepted scopes.
         <table style="width: 100%;">
         <thead>
             <tr>
@@ -273,8 +272,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         return a 202 and request an invite to the team.
 
 
-        \*\*Team Admins must have both **`org:read`** and **`team:write`** scopes in their user auth
-        token to utilize this endpoint
+        \*\*Team Admins must have both **`org:read`** and **`team:write`** scopes in their user
+        authorization token to add members to their teams.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -399,8 +398,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         r"""
         Delete an organization member from a team.
 
-        Note that the permission scopes also vary depending on the type of authorization token. The
-        following table outlines the accepted scopes.
+        Note the permission scopes vary depending on the type of authorization token. The following
+        table outlines the accepted scopes.
         <table style="width: 100%;">
             <tr style="width: 50%;">
                 <td style="width: 50%; text-align: center; font-weight: bold; vertical-align: middle;"><a href="https://docs.sentry.io/api/auth/#auth-tokens">Org Auth Token</a></td>
@@ -431,7 +430,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
 
         \*\*Team Admins must have both **`org:read`** and **`team:admin`** scopes in their user
-        auth token to remove other organization members from the teams they are admins of.
+        authorization token to delete members from their teams.
         """
         try:
             team = Team.objects.get(organization=organization, slug=team_slug)
