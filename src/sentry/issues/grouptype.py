@@ -306,6 +306,7 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1016
     slug = "performance_http_overhead"
     description = "HTTP/1.1 Overhead"
+    noise_config = NoiseConfig(ignore_limit=100)
     category = GroupCategory.PERFORMANCE.value
 
 
