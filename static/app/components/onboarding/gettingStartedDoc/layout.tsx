@@ -46,6 +46,26 @@ export type LayoutProps = {
   platformKey?: PlatformKey;
 };
 
+function getDefaultSelectedProducts({
+  includeProfiling,
+  hideSessionReplay,
+}: {
+  hideSessionReplay?: boolean;
+  includeProfiling?: boolean;
+}) {
+  const defaultSelectedProducts = [ProductSolution.PERFORMANCE_MONITORING];
+
+  if (includeProfiling) {
+    defaultSelectedProducts.push(ProductSolution.PROFILING);
+  }
+
+  if (!hideSessionReplay) {
+    defaultSelectedProducts.push(ProductSolution.SESSION_REPLAY);
+  }
+
+  return defaultSelectedProducts;
+}
+
 export function Layout({
   steps,
   platformKey,
@@ -74,11 +94,10 @@ export function Layout({
       )}
       {displayProductSelection && newOrg && (
         <ProductSelection
-          defaultSelectedProducts={
-            includeProfiling
-              ? [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING]
-              : [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY]
-          }
+          defaultSelectedProducts={getDefaultSelectedProducts({
+            includeProfiling,
+            hideSessionReplay,
+          })}
           includeProfiling={includeProfiling}
           hideSessionReplay={hideSessionReplay}
         />

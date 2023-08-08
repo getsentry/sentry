@@ -126,7 +126,23 @@ export function ProductSelection({
   }, [router]);
 
   useEffect(() => {
-    if (profilingProductDisabled && products.includes(ProductSolution.PROFILING)) {
+    if (
+      (sessionReplayProductDisabled || hideSessionReplay) &&
+      products.includes(ProductSolution.SESSION_REPLAY)
+    ) {
+      router.replace({
+        pathname: router.location.pathname,
+        query: {
+          ...router.location.query,
+          product: products.filter(p => p !== ProductSolution.SESSION_REPLAY),
+        },
+      });
+    }
+
+    if (
+      (profilingProductDisabled || !includeProfiling) &&
+      products.includes(ProductSolution.PROFILING)
+    ) {
       router.replace({
         pathname: router.location.pathname,
         query: {
@@ -135,7 +151,14 @@ export function ProductSelection({
         },
       });
     }
-  }, [router, profilingProductDisabled, products]);
+  }, [
+    router,
+    hideSessionReplay,
+    includeProfiling,
+    profilingProductDisabled,
+    sessionReplayProductDisabled,
+    products,
+  ]);
 
   const handleClickProduct = useCallback(
     (product: ProductSolution) => {

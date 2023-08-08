@@ -150,4 +150,97 @@ describe('Onboarding Product Selection', function () {
     // Try to uncheck performance monitoring
     await waitFor(() => expect(router.push).not.toHaveBeenCalled());
   });
+
+  it('does not render session replay', async function () {
+    const {routerContext, router} = initializeOrg({
+      router: {
+        location: {
+          query: {product: ['performance-monitoring', 'session-replay']},
+        },
+        params: {},
+      },
+    });
+
+    render(<ProductSelection hideSessionReplay />, {
+      context: routerContext,
+    });
+
+    // Session Replay shall not be rendered, even if the query param contains it
+    expect(
+      screen.queryByRole('checkbox', {name: 'Session Replay'})
+    ).not.toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: undefined,
+        query: {product: ['performance-monitoring']},
+      })
+    );
+  });
+
+  it('renders disabled Profiling', async function () {
+    const {router, routerContext} = initializeOrg({
+      router: {
+        location: {
+          query: {product: ['profiling']},
+        },
+        params: {},
+      },
+    });
+
+    render(<ProductSelection includeProfiling />, {
+      context: routerContext,
+    });
+
+    // Performance Monitoring shall benot be enabled by default and NOT checked
+    expect(
+      screen.getByRole('checkbox', {name: 'Performance Monitoring'})
+    ).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Performance Monitoring'})).toBeEnabled();
+
+    // Profiling shall be checked and enabled by default
+    expect(screen.getByRole('checkbox', {name: 'Profiling'})).toBeDisabled();
+
+    // Router shall be called removing Profiling from the query param, this will be responsible for unchecking Profiling
+    await waitFor(() =>
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: undefined,
+        query: {product: []},
+      })
+    );
+  });
+
+  it('renders enabled Profiling', async function () {
+    const {routerContext, router} = initializeOrg({
+      router: {
+        location: {
+          query: {product: ['performance-monitoring', 'profiling']},
+        },
+        params: {},
+      },
+    });
+
+    render(<ProductSelection includeProfiling />, {
+      context: routerContext,
+    });
+
+    // Performance Monitoring shall be checked and enabled by default
+    expect(screen.getByRole('checkbox', {name: 'Performance Monitoring'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Performance Monitoring'})).toBeEnabled();
+
+    // Profiling shall be checked and enabled by default
+    expect(screen.getByRole('checkbox', {name: 'Profiling'})).toBeEnabled();
+    expect(screen.getByRole('checkbox', {name: 'Profiling'})).toBeChecked();
+
+    // Users can uncheck Profiling
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Profiling'}));
+
+    // Router shall be called removing Profiling from the query param, this will be responsible for unchecking Profiling
+    await waitFor(() =>
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: undefined,
+        query: {product: ['performance-monitoring']},
+      })
+    );
+  });
 });
