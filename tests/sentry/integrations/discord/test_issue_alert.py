@@ -63,7 +63,9 @@ class DiscordIssueAlertTest(RuleTestCase):
         results = list(self.rule.after(self.event, self.get_state()))
         assert len(results) == 1
 
-        results[0].callback(self.event, futures=[])
+        with self.feature("organizations:integrations-discord-notifications"):
+            results[0].callback(self.event, futures=[])
+
         body = responses.calls[0].request.body
         data = json.loads(bytes.decode(body, "utf-8"))
 
@@ -107,7 +109,9 @@ class DiscordIssueAlertTest(RuleTestCase):
         results = list(self.rule.after(self.event, self.get_state()))
         assert len(results) == 1
 
-        results[0].callback(self.event, futures=[])
+        with self.feature("organizations:integrations-discord-notifications"):
+            results[0].callback(self.event, futures=[])
+
         body = responses.calls[0].request.body
         data = json.loads(bytes.decode(body, "utf-8"))
 
@@ -133,7 +137,9 @@ class DiscordIssueAlertTest(RuleTestCase):
         results = list(self.rule.after(self.event, self.get_state()))
         assert len(results) == 1
 
-        results[0].callback(self.event, futures=[])
+        with self.feature("organizations:integrations-discord-notifications"):
+            results[0].callback(self.event, futures=[])
+
         body = responses.calls[0].request.body
         data = json.loads(bytes.decode(body, "utf-8"))
 
@@ -159,7 +165,9 @@ class DiscordIssueAlertTest(RuleTestCase):
         results = list(self.rule.after(self.event, self.get_state()))
         assert len(results) == 1
 
-        results[0].callback(self.event, futures=[])
+        with self.feature("organizations:integrations-discord-notifications"):
+            results[0].callback(self.event, futures=[])
+
         body = responses.calls[0].request.body
         data = json.loads(bytes.decode(body, "utf-8"))
 
@@ -174,6 +182,17 @@ class DiscordIssueAlertTest(RuleTestCase):
         assert (
             buttons[2]["custom_id"]
             == f"{DiscordComponentCustomIds.ASSIGN_DIALOG}:{self.event.group.id}"
+        )
+
+    @responses.activate
+    def test_feature_flag_disabled(self):
+        results = list(self.rule.after(self.event, self.get_state()))
+        assert len(results) == 1
+        with self.feature("organizations:integrations-discord-notifications"):
+            results[0].callback(self.event, futures=[])
+
+        responses.assert_call_count(
+            f"{DiscordClient.MESSAGE_URL.format(channel_id=self.channel_id)}", 0
         )
 
     def test_integration_removed(self):

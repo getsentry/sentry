@@ -68,7 +68,6 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
     assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
 
 
-@region_silo_test(stable=True)
 class ProjectRuleDetailsBaseTestCase(APITestCase):
     endpoint = "sentry-api-0-project-rule-details"
 

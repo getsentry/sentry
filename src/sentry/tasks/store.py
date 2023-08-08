@@ -18,6 +18,7 @@ from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
 from sentry.models import Activity, Organization, Project, ProjectOption
+from sentry.silo import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
@@ -217,6 +218,7 @@ def _do_preprocess_event(
     queue="events.preprocess_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def preprocess_event(
     cache_key: str,
@@ -243,6 +245,7 @@ def preprocess_event(
     queue="events.reprocessing.preprocess_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def preprocess_event_from_reprocessing(
     cache_key: str,
@@ -267,6 +270,7 @@ def preprocess_event_from_reprocessing(
     queue="sleep",
     time_limit=(60 * 5) + 5,
     soft_time_limit=60 * 5,
+    silo_mode=SiloMode.REGION,
 )
 def retry_process_event(process_task_name: str, task_kwargs: Dict[str, Any], **kwargs: Any) -> None:
     """
@@ -468,6 +472,7 @@ def do_process_event(
     queue="events.process_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def process_event(
     cache_key: str,
@@ -504,6 +509,7 @@ def process_event(
     queue="events.reprocessing.process_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def process_event_from_reprocessing(
     cache_key: str,
@@ -768,7 +774,7 @@ def _do_save_event(
 
 
 def time_synthetic_monitoring_event(
-    data: Event, project_id: int, start_time: Optional[int]
+    data: Event, project_id: int, start_time: Optional[float]
 ) -> bool:
     """
     For special events produced by the recurring synthetic monitoring
@@ -822,6 +828,7 @@ def time_synthetic_monitoring_event(
     queue="events.save_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def save_event(
     cache_key: Optional[str] = None,
@@ -839,6 +846,7 @@ def save_event(
     queue="events.save_event_transaction",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def save_event_transaction(
     cache_key: Optional[str] = None,
@@ -856,6 +864,7 @@ def save_event_transaction(
     queue="events.save_event_attachments",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def save_event_attachments(
     cache_key: Optional[str] = None,

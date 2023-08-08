@@ -10,6 +10,7 @@ from urllib.parse import quote as urlquote
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
+from django.http.request import HttpRequest
 from django.views.decorators.csrf import csrf_exempt
 from pytz import utc
 from rest_framework import status
@@ -587,7 +588,7 @@ class ReleaseAnalyticsMixin:
         )
 
 
-def resolve_region(request: Request) -> Optional[str]:
+def resolve_region(request: HttpRequest) -> Optional[str]:
     subdomain = getattr(request, "subdomain", None)
     if subdomain is None:
         return None
@@ -609,26 +610,6 @@ class EndpointSiloLimit(SiloLimit):
         )
         new_class.__module__ = decorated_class.__module__
         return new_class
-
-    def create_override(
-        self,
-        original_method: Callable[..., Any],
-    ) -> Callable[..., Any]:
-        limiting_override = super().create_override(original_method)
-
-        def single_process_silo_mode_wrapper(*args: Any, **kwargs: Any) -> Any:
-            if SiloMode.single_process_silo_mode():
-                entering_mode: SiloMode = SiloMode.MONOLITH
-                for mode in self.modes:
-                    # Select a mode, if available, from the target modes.
-                    entering_mode = mode
-                with SiloMode.enter_single_process_silo_context(entering_mode):
-                    return limiting_override(*args, **kwargs)
-            else:
-                return limiting_override(*args, **kwargs)
-
-        functools.update_wrapper(single_process_silo_mode_wrapper, limiting_override)
-        return single_process_silo_mode_wrapper
 
     def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
         return self.create_override(decorated_method)
