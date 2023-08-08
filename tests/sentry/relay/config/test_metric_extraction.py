@@ -369,7 +369,7 @@ def test_get_metric_extraction_config_with_apdex(default_project):
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
             "field": None,
-            "mri": "e:transactions/on_demand@none",
+            "mri": "c:transactions/on_demand@none",
             "tags": [
                 {
                     "condition": {"name": "event.duration", "op": "lte", "value": 10},
