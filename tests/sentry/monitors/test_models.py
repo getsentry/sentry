@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from unittest.mock import patch
 
@@ -26,7 +27,7 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.tasks import SUBTITLE_DATETIME_FORMAT
 from sentry.monitors.validators import ConfigValidator
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
@@ -325,7 +326,10 @@ class MonitorEnvironmentTestCase(TestCase):
         )
 
         last_checkin = timezone.now()
-        assert monitor_environment.mark_failed(last_checkin=last_checkin)
+        trace_id = uuid.uuid4().hex
+        assert monitor_environment.mark_failed(
+            last_checkin=last_checkin, occurrence_context={"trace_id": trace_id}
+        )
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
 
@@ -383,6 +387,7 @@ class MonitorEnvironmentTestCase(TestCase):
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": monitor.slug,
                 },
+                "trace_id": trace_id,
             },
         ) == dict(event)
 
@@ -474,6 +479,7 @@ class MonitorEnvironmentTestCase(TestCase):
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": monitor.slug,
                 },
+                "trace_id": None,
             },
         ) == dict(event)
 
@@ -561,6 +567,7 @@ class MonitorEnvironmentTestCase(TestCase):
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": monitor.slug,
                 },
+                "trace_id": None,
             },
         ) == dict(event)
 

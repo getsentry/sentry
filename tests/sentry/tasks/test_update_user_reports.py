@@ -4,7 +4,7 @@ from django.utils import timezone
 
 from sentry.models import UserReport
 from sentry.tasks.update_user_reports import update_user_reports
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 

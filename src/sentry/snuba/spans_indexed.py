@@ -40,6 +40,7 @@ def query(
     use_metrics_layer=False,
     skip_tag_resolution=False,
     extra_columns=None,
+    on_demand_metrics_enabled=False,
 ):
     builder = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,

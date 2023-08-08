@@ -298,13 +298,12 @@ def query_replays_dataset_with_subquery(
 
 
 def query_replays_count(
-    project_ids: List[str],
+    project_ids: List[int],
     start: datetime,
     end: datetime,
     replay_ids: List[str],
     tenant_ids: dict[str, Any],
 ):
-
     snuba_request = Request(
         dataset="replays",
         app_id="replay-backend-web",
@@ -888,10 +887,26 @@ QUERY_ALIAS_COLUMN_MAP = {
         alias="count_urls",
     ),
     "count_dead_clicks": Function(
-        "sum", parameters=[Column("click_is_dead")], alias="count_dead_clicks"
+        "sumIf",
+        parameters=[
+            Column("click_is_dead"),
+            Function(
+                "greaterOrEquals",
+                [Column("timestamp"), datetime(year=2023, month=7, day=24)],
+            ),
+        ],
+        alias="count_dead_clicks",
     ),
     "count_rage_clicks": Function(
-        "sum", parameters=[Column("click_is_rage")], alias="count_rage_clicks"
+        "sumIf",
+        parameters=[
+            Column("click_is_rage"),
+            Function(
+                "greaterOrEquals",
+                [Column("timestamp"), datetime(year=2023, month=7, day=24)],
+            ),
+        ],
+        alias="count_rage_clicks",
     ),
     "is_archived": Function(
         "ifNull",

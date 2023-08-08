@@ -12,7 +12,7 @@ from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.models import Commit, CommitAuthor, GroupLink, PullRequest, Repository
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
@@ -74,7 +74,7 @@ class PushEventWebhookTest(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(project.organization, self.user)
+            integration.add_organization(project.organization.id, self.user)
 
         response = self.client.post(
             path=self.url,
@@ -135,7 +135,7 @@ class PushEventWebhookTest(APITestCase):
         repos = Repository.objects.all()
         assert len(repos) == 0
 
-    @with_feature("organizations:auto-repo-linking")
+    @with_feature("organizations:integrations-auto-repo-linking")
     @patch("sentry.integrations.github.webhook.metrics")
     def test_creates_missing_repo(self, mock_metrics):
         project = self.project  # force creation
@@ -150,7 +150,7 @@ class PushEventWebhookTest(APITestCase):
         assert repos[0].name == "baxterthehacker/public-repo"
         mock_metrics.incr.assert_called_with("github.webhook.create_repository")
 
-    @with_feature("organizations:auto-repo-linking")
+    @with_feature("organizations:integrations-auto-repo-linking")
     def test_ignores_hidden_repo(self):
         project = self.project  # force creation
 
@@ -231,7 +231,7 @@ class PushEventWebhookTest(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(project.organization, self.user)
+            integration.add_organization(project.organization.id, self.user)
 
         org2 = self.create_organization()
         project2 = self.create_project(organization=org2, name="bar")
@@ -250,7 +250,7 @@ class PushEventWebhookTest(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(org2, self.user)
+            integration.add_organization(org2.id, self.user)
 
         response = self.client.post(
             path=self.url,
@@ -278,7 +278,7 @@ class PushEventWebhookTest(APITestCase):
         )
         assert len(commit_list) == 0
 
-    @with_feature("organizations:auto-repo-linking")
+    @with_feature("organizations:integrations-auto-repo-linking")
     @patch("sentry.integrations.github.webhook.metrics")
     def test_multiple_orgs_creates_missing_repos(self, mock_metrics):
         project = self.project  # force creation
@@ -293,8 +293,8 @@ class PushEventWebhookTest(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(project.organization, self.user)
-            integration.add_organization(org2, self.user)
+            integration.add_organization(project.organization.id, self.user)
+            integration.add_organization(org2.id, self.user)
 
         response = self.client.post(
             path=self.url,
@@ -318,7 +318,7 @@ class PushEventWebhookTest(APITestCase):
             assert repo.name == "baxterthehacker/public-repo"
         mock_metrics.incr.assert_called_with("github.webhook.create_repository")
 
-    @with_feature("organizations:auto-repo-linking")
+    @with_feature("organizations:integrations-auto-repo-linking")
     def test_multiple_orgs_ignores_hidden_repo(self):
         project = self.project  # force creation
 
@@ -332,8 +332,8 @@ class PushEventWebhookTest(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(project.organization, self.user)
-            integration.add_organization(org2, self.user)
+            integration.add_organization(project.organization.id, self.user)
+            integration.add_organization(org2.id, self.user)
 
         repo = self.create_repo(
             project=project,
@@ -377,7 +377,7 @@ class PullRequestEventWebhook(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(project.organization, self.user)
+            integration.add_organization(project.organization.id, self.user)
 
         response = self.client.post(
             path=self.url,
@@ -428,7 +428,7 @@ class PullRequestEventWebhook(APITestCase):
         repos = Repository.objects.all()
         assert len(repos) == 0
 
-    @with_feature("organizations:auto-repo-linking")
+    @with_feature("organizations:integrations-auto-repo-linking")
     @patch("sentry.integrations.github.webhook.metrics")
     def test_creates_missing_repo(self, mock_metrics):
         project = self.project  # force creation
@@ -442,7 +442,7 @@ class PullRequestEventWebhook(APITestCase):
         assert repos[0].name == "baxterthehacker/public-repo"
         mock_metrics.incr.assert_called_with("github.webhook.create_repository")
 
-    @with_feature("organizations:auto-repo-linking")
+    @with_feature("organizations:integrations-auto-repo-linking")
     def test_ignores_hidden_repo(self):
         project = self.project  # force creation
 
@@ -461,7 +461,7 @@ class PullRequestEventWebhook(APITestCase):
         assert len(repos) == 1
         assert repos[0] == repo
 
-    @with_feature("organizations:auto-repo-linking")
+    @with_feature("organizations:integrations-auto-repo-linking")
     @patch("sentry.integrations.github.webhook.metrics")
     def test_multiple_orgs_creates_missing_repo(self, mock_metrics):
         project = self.project  # force creation
@@ -476,8 +476,8 @@ class PullRequestEventWebhook(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(project.organization, self.user)
-            integration.add_organization(org2, self.user)
+            integration.add_organization(project.organization.id, self.user)
+            integration.add_organization(org2.id, self.user)
 
         response = self.client.post(
             path=self.url,
@@ -501,7 +501,7 @@ class PullRequestEventWebhook(APITestCase):
             assert repo.name == "baxterthehacker/public-repo"
         mock_metrics.incr.assert_called_with("github.webhook.create_repository")
 
-    @with_feature("organizations:auto-repo-linking")
+    @with_feature("organizations:integrations-auto-repo-linking")
     def test_multiple_orgs_ignores_hidden_repo(self):
         project = self.project  # force creation
 
@@ -515,8 +515,8 @@ class PullRequestEventWebhook(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(project.organization, self.user)
-            integration.add_organization(org2, self.user)
+            integration.add_organization(project.organization.id, self.user)
+            integration.add_organization(org2.id, self.user)
 
         repo = self.create_repo(
             project=project,
@@ -559,7 +559,7 @@ class PullRequestEventWebhook(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(project.organization, self.user)
+            integration.add_organization(project.organization.id, self.user)
 
         repo = Repository.objects.create(
             organization_id=project.organization.id,
@@ -603,7 +603,7 @@ class PullRequestEventWebhook(APITestCase):
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(project.organization, self.user)
+            integration.add_organization(project.organization.id, self.user)
 
         repo = Repository.objects.create(
             organization_id=project.organization.id,

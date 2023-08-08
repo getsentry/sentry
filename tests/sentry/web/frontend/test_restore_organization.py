@@ -3,7 +3,7 @@ from django.urls import reverse
 from sentry.models import Organization, OrganizationStatus, ScheduledDeletion
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.tasks.deletion.scheduled import run_deletion
-from sentry.testutils import PermissionTestCase, TestCase
+from sentry.testutils.cases import PermissionTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
 
 

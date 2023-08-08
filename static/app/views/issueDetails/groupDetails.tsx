@@ -23,7 +23,7 @@ import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import {Group, IssueCategory, Organization, Project} from 'sentry/types';
+import {Group, GroupStatus, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -63,6 +63,7 @@ import {
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
+  useDefaultIssueEvent,
   useEnvironmentsFromUrl,
   useFetchIssueTagsForDetailsPage,
 } from './utils';
@@ -248,7 +249,9 @@ function useEventApiQuery({
   const hasMostHelpfulEventFeature = organization.features.includes(
     'issue-details-most-helpful-event'
   );
-  const eventIdUrl = eventId ?? (hasMostHelpfulEventFeature ? 'recommended' : 'latest');
+  const defaultIssueEvent = useDefaultIssueEvent();
+  const eventIdUrl =
+    eventId ?? (hasMostHelpfulEventFeature ? defaultIssueEvent : 'latest');
   const helpfulEventQuery =
     hasMostHelpfulEventFeature && typeof location.query.query === 'string'
       ? location.query.query
@@ -502,11 +505,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   }, [isGroupError, groupError, handleError]);
 
   const refetchGroup = useCallback(() => {
-    if (
-      group?.status !== ReprocessingStatus.REPROCESSING ||
-      loadingGroup ||
-      loadingEvent
-    ) {
+    if (group?.status !== GroupStatus.REPROCESSING || loadingGroup || loadingEvent) {
       return;
     }
 
@@ -753,6 +752,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
           projectId: props.group?.project.id,
           availableProjects: projectIds,
         });
+        scope.setFingerprint(['group-details-project-not-found']);
         Sentry.captureException(new Error('Project not found'));
       });
     }

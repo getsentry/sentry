@@ -105,6 +105,9 @@ SENTRY_DISALLOWED_IPS = ()
 # search domains.
 SENTRY_ENSURE_FQDN = False
 
+# XXX [!!]: When adding a new key here BE SURE to configure it in getsentry, as
+#           it can not be `default`. The default cluster in sentry.io
+#           production is NOT a true redis cluster and WILL error in prod.
 SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER = "default"
 SENTRY_INCIDENT_RULES_REDIS_CLUSTER = "default"
 SENTRY_RATE_LIMIT_REDIS_CLUSTER = "default"
@@ -114,6 +117,7 @@ SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
 SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
 SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER = "default"
 SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
+SENTRY_MONITORS_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -365,7 +369,7 @@ SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "REGION": ["sentry.RegionOutbox"],
 }
 
-INSTALLED_APPS = (
+INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.messages",
@@ -633,7 +637,7 @@ USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
 
 # List of the available regions, or a JSON string
 # that is parsed.
-SENTRY_REGION_CONFIG: Any = tuple()
+SENTRY_REGION_CONFIG: Any = ()
 
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET = None
@@ -752,6 +756,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.check_am2_compatibility",
     "sentry.dynamic_sampling.tasks.collect_orgs",
+    "sentry.tasks.statistical_detectors",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -813,6 +818,7 @@ CELERY_QUEUES_REGION = [
         routing_key="events.reprocessing.symbolicate_event_low_priority",
     ),
     Queue("events.save_event", routing_key="events.save_event"),
+    Queue("events.save_event_highcpu", routing_key="events.save_event_highcpu"),
     Queue("events.save_event_transaction", routing_key="events.save_event_transaction"),
     Queue("events.save_event_attachments", routing_key="events.save_event_attachments"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
@@ -871,6 +877,7 @@ CELERY_QUEUES_REGION = [
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("recap_servers", routing_key="recap_servers"),
+    Queue("performance.statistical_detector", routing_key="performance.statistical_detector"),
     CELERY_ISSUE_STATES_QUEUE,
 ]
 
@@ -1110,7 +1117,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "github_comment_reactions": {
         "task": "sentry.tasks.integrations.github_comment_reactions",
-        "schedule": crontab(hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
+        "schedule": crontab(minute=0, hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
     },
     "poll_recap_servers": {
         "task": "sentry.tasks.poll_recap_servers",
@@ -1122,6 +1129,10 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.dynamic_sampling.tasks.collect_orgs",
         # Run every 20 minutes
         "schedule": crontab(minute="*/20"),
+    },
+    "statistical-detectors-detect-regressions": {
+        "task": "sentry.tasks.statistical_detectors.run_detection",
+        "schedule": crontab(minute=0, hour="*/1"),
     },
 }
 
@@ -1156,6 +1167,7 @@ PROCESSING_QUEUES = [
     "events.reprocessing.symbolicate_event",
     "events.reprocessing.symbolicate_event_low_priority",
     "events.save_event",
+    "events.save_event_highcpu",
     "events.save_event_attachments",
     "events.save_event_transaction",
     "events.symbolicate_event",
@@ -1307,6 +1319,8 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_FEATURES = {
     # Enables user registration.
     "auth:register": True,
+    # Enables actionable items alerts and endpoint
+    "organizations:actionable-items": False,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     "organizations:alert-allow-indexed": False,
     # Enables tagging javascript errors from the browser console.
@@ -1314,7 +1328,7 @@ SENTRY_FEATURES = {
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
     # Enables automatically linking repositories using commit webhook data
-    "organizations:auto-repo-linking": False,
+    "organizations:integrations-auto-repo-linking": False,
     # The overall flag for codecov integration, gated by plans.
     "organizations:codecov-integration": False,
     # Enables getting commit sha from git blame for codecov.
@@ -1343,6 +1357,8 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Allow disabling integrations when broken is detected
     "organizations:slack-disable-on-broken": False,
+    # Allow disabling sentryapps when broken is detected
+    "organizations:disable-sentryapps-on-broken": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1419,6 +1435,8 @@ SENTRY_FEATURES = {
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
+    # Enables higher limit for alert rules
+    "organizations:more-slow-alerts": False,
     # Extract on demand metrics
     "organizations:on-demand-metrics-extraction": False,
     # Extract on demand metrics (experimental features)
@@ -1479,9 +1497,11 @@ SENTRY_FEATURES = {
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enables inviting new members based on GitHub commit activity.
-    "organizations:gh-invite": False,
+    "organizations:integrations-gh-invite": False,
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": False,
+    # Enable comments of related issues on open PRs
+    "organizations:integrations-open-pr-comment": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
@@ -1496,6 +1516,8 @@ SENTRY_FEATURES = {
     "organizations:issue-details-most-helpful-event-ui": False,
     # Display if a release is using semver when resolving issues
     "organizations:issue-release-semver": False,
+    # Display a prompt to setup releases in the resolve options dropdown
+    "organizations:issue-resolve-release-setup": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -1555,6 +1577,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-m-n-plus-one-db-detector": False,
     # Enable FE/BE for tracing without performance
     "organizations:performance-tracing-without-performance": False,
+    # Enable root cause analysis for statistical detector perf issues
+    "organizations:statistical-detectors-root-cause-analysis": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1633,9 +1657,6 @@ SENTRY_FEATURES = {
     "organizations:device-class-synthesis": False,
     # Enable the product selection feature in the getting started docs, regardless of the organization's strategy
     "organizations:getting-started-doc-with-product-selection": False,
-    # Enable a new behavior for deleting the freshly created project,
-    # if the user clicks on the back button in the onboarding for new orgs
-    "organizations:onboarding-project-deletion-on-back-click": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
     # Enable OpenAI suggestions in the issue details page
@@ -1668,8 +1689,6 @@ SENTRY_FEATURES = {
     "organizations:org-auth-tokens": False,
     # Enable detecting SDK crashes during event processing
     "organizations:sdk-crash-detection": False,
-    # Enables commenting on PRs from the Sentry comment bot.
-    "organizations:pr-comment-bot": False,
     # Enables slack channel lookup via schedule message
     "organizations:slack-use-new-lookup": False,
     # Enable functionality for recap server polling.
@@ -1684,6 +1703,8 @@ SENTRY_FEATURES = {
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
     "projects:discard-groups": False,
+    # Extract spans from transactions in Relay, and forward them via Kafka.
+    "projects:extract-standalone-spans": False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
@@ -1735,7 +1756,7 @@ SENTRY_PROJECT_KEY = None
 
 # Default organization to represent the Internal Sentry project.
 # Used as a default when in SINGLE_ORGANIZATION mode.
-SENTRY_ORGANIZATION = None
+SENTRY_ORGANIZATION: int | None = None
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT: int | None = None
@@ -1879,7 +1900,7 @@ SENTRY_BUFFER_OPTIONS: dict[str, str] = {}
 # Cache backend
 # XXX: We explicitly require the cache to be configured as its not optional
 # and causes serious confusion with the default django cache
-SENTRY_CACHE = None
+SENTRY_CACHE: str | None = None
 SENTRY_CACHE_OPTIONS = {"is_default_cache": True}
 
 # Attachment blob cache backend
@@ -2409,6 +2430,9 @@ SENTRY_USE_PROFILING = False
 # This flag activates consuming issue platform occurrence data in the development environment
 SENTRY_USE_ISSUE_OCCURRENCE = False
 
+# This flag activates consuming GroupAttribute messages in the development environment
+SENTRY_USE_GROUP_ATTRIBUTES = False
+
 # This flag activates code paths that are specific for customer domains
 SENTRY_USE_CUSTOMER_DOMAINS = False
 
@@ -2490,7 +2514,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "postgres": lambda settings, options: (
         {
             "image": f"ghcr.io/getsentry/image-mirror-library-postgres:{PG_VERSION}-alpine",
-            "pull": True,
             "ports": {"5432/tcp": 5432},
             "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
             "volumes": {
@@ -2553,7 +2576,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
             # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
             else "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.6.1.6734-testing-arm",
-            "pull": True,
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
             # The arm image does not properly load the MAX_MEMORY_USAGE_RATIO
@@ -2575,7 +2597,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "snuba": lambda settings, options: (
         {
             "image": "ghcr.io/getsentry/snuba:latest",
-            "pull": True,
             "ports": {"1218/tcp": 1218, "1219/tcp": 1219},
             "command": ["devserver"]
             + (["--no-workers"] if "snuba" in settings.SENTRY_EVENTSTREAM else []),
@@ -2598,6 +2619,9 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 if settings.SENTRY_USE_ISSUE_OCCURRENCE
                 else "",
                 "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1",
+                "ENABLE_GROUP_ATTRIBUTES_CONSUMER": "1"
+                if settings.SENTRY_USE_GROUP_ATTRIBUTES
+                else "",
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
@@ -2623,7 +2647,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "symbolicator": lambda settings, options: (
         {
             "image": "us.gcr.io/sentryio/symbolicator:nightly",
-            "pull": True,
             "ports": {"3021/tcp": 3021},
             "volumes": {settings.SYMBOLICATOR_CONFIG_DIR: {"bind": "/etc/symbolicator"}},
             "command": ["run", "--config", "/etc/symbolicator/config.yml"],
@@ -2633,7 +2656,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "relay": lambda settings, options: (
         {
             "image": "us.gcr.io/sentryio/relay:nightly",
-            "pull": True,
             "ports": {"7899/tcp": settings.SENTRY_RELAY_PORT},
             "volumes": {settings.RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
             "command": ["run", "--config", "/etc/relay"],
@@ -2644,7 +2666,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "chartcuterie": lambda settings, options: (
         {
             "image": "us.gcr.io/sentryio/chartcuterie:latest",
-            "pull": True,
             "volumes": {settings.CHARTCUTERIE_CONFIG_DIR: {"bind": "/etc/chartcuterie"}},
             "environment": {
                 "CHARTCUTERIE_CONFIG": "/etc/chartcuterie/config.js",
@@ -2659,7 +2680,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "cdc": lambda settings, options: (
         {
             "image": "ghcr.io/getsentry/cdc:latest",
-            "pull": True,
             "only_if": settings.SENTRY_USE_CDC_DEV,
             "command": ["cdc", "-c", "/etc/cdc/configuration.yaml", "producer"],
             "volumes": {settings.CDC_CONFIG_DIR: {"bind": "/etc/cdc"}},
@@ -2668,7 +2688,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "vroom": lambda settings, options: (
         {
             "image": "us.gcr.io/sentryio/vroom:nightly",
-            "pull": True,
             "volumes": {"profiles": {"bind": "/var/lib/sentry-profiles"}},
             "environment": {
                 "SENTRY_KAFKA_BROKERS_PROFILING": "{containers[kafka][name]}:9093",
@@ -3085,6 +3104,7 @@ KAFKA_INGEST_OCCURRENCES = "ingest-occurrences"
 KAFKA_INGEST_MONITORS = "ingest-monitors"
 KAFKA_EVENTSTREAM_GENERIC = "generic-events"
 KAFKA_GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
+KAFKA_GROUP_ATTRIBUTES = "group-attributes"
 
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
@@ -3130,6 +3150,7 @@ KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     KAFKA_INGEST_MONITORS: {"cluster": "default"},
     KAFKA_EVENTSTREAM_GENERIC: {"cluster": "default"},
     KAFKA_GENERIC_EVENTS_COMMIT_LOG: {"cluster": "default"},
+    KAFKA_GROUP_ATTRIBUTES: {"cluster": "default"},
 }
 
 
@@ -3432,6 +3453,7 @@ DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
 ENABLE_ANALYTICS = False
 
 MAX_SLOW_CONDITION_ISSUE_ALERTS = 100
+MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 200
 MAX_FAST_CONDITION_ISSUE_ALERTS = 200
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 
@@ -3472,6 +3494,8 @@ DISALLOWED_CUSTOMER_DOMAINS: list[str] = []
 
 SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS: dict[str, str] = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
+
+SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT = 10000
 
 # USE_SPLIT_DBS is leveraged in tests as we validate db splits further.
 # Split databases are also required for the USE_SILOS devserver flow.
@@ -3568,6 +3592,8 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "options": {"cluster": "default"},
 }
 
+ADDITIONAL_BULK_QUERY_DELETES: list[Tuple[str, str, str | None]] = []
+
 # Monitor limits to prevent abuse
 MAX_MONITORS_PER_ORG = 10000
 MAX_ENVIRONMENTS_PER_MONITOR = 1000
@@ -3629,3 +3655,38 @@ SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
 
 # Feature flag to turn off role-swapping to help bridge getsentry transition.
 USE_ROLE_SWAPPING_IN_TESTS = True
+
+# Threshold for the number of timeouts needed in a day to disable an integration
+BROKEN_TIMEOUT_THRESHOLD = 1000
+
+SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
+SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
+
+# This setting configures how the Monitors (Crons) feature will run the tasks
+# responsible for marking monitors as having "Missed" check-ins and having
+# "Timed out" check-ins.
+#
+# These two tasks must be run every minute and should be run as close to the
+# leading minute boundary as possible. By default these tasks will be
+# triggered via a clock pulse that is generated by a celery beat task. The
+# sentry.monitors.consumer service is responsible for detecting this clock
+# pulse and dispatching the tasks.
+#
+# When high volume mode is enabled, a clock pulse will not be generated by
+# celery beat, instead the monitor consumer will use all processed check-in
+# messages as its clock. We track message timestamps (floored to the minute)
+# and any time that timestamp changes over a minute, the tasks will be
+# triggered
+#
+# NOTE: THERE MUST BE A HIGH VOLUME OF CHECK-INS TO USE THIS MODE!! If a
+#       check-in message is not consumed the tasks will not run, and missed
+#       check-ins will not be generated!
+#
+# The advantage of high volume mode is that we will not rely on celery beat to
+# accurately trigger clock pulses. This is important in scenarios where it is
+# not possible to guarantee that the celery beat tasks will run every minute.
+#
+# (For example, when sentry.io deploys, there is a short period where the
+# celery tasks are being restarted, if they are not running during the minute
+# boundary, the task will not run)
+SENTRY_MONITORS_HIGH_VOLUME_MODE = False

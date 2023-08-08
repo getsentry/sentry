@@ -19,7 +19,11 @@ function CollapsibleTimeline(props: CollapsibleTimelineProps) {
   const theme = useFlamegraphTheme();
   return (
     <Fragment>
-      <CollapsibleTimelineHeader border={theme.COLORS.GRID_LINE_COLOR}>
+      <CollapsibleTimelineHeader
+        open={props.open}
+        labelHeight={theme.SIZES.TIMELINE_LABEL_HEIGHT}
+        border={theme.COLORS.GRID_LINE_COLOR}
+      >
         <CollapsibleTimelineLabel>{props.title}</CollapsibleTimelineLabel>
         <StyledButton
           size="xs"
@@ -31,7 +35,9 @@ function CollapsibleTimeline(props: CollapsibleTimelineProps) {
         </StyledButton>
       </CollapsibleTimelineHeader>
       {props.open ? (
-        <CollapsibleTimelineContainer>{props.children}</CollapsibleTimelineContainer>
+        <CollapsibleTimelineContainer labelHeight={theme.SIZES.TIMELINE_LABEL_HEIGHT}>
+          {props.children}
+        </CollapsibleTimelineContainer>
       ) : null}
     </Fragment>
   );
@@ -68,10 +74,10 @@ export function CollapsibleTimelineLoadingIndicator({size}: {size?: number}) {
   );
 }
 
-const CollapsibleTimelineContainer = styled('div')`
+const CollapsibleTimelineContainer = styled('div')<{labelHeight: number}>`
   position: relative;
   width: 100%;
-  height: 100%;
+  height: calc(100% - ${p => p.labelHeight}px);
 `;
 
 const CollapsibleTimelineLoadingIndicatorContainer = styled('div')`
@@ -83,15 +89,20 @@ const CollapsibleTimelineLoadingIndicatorContainer = styled('div')`
   height: 100%;
 `;
 
-const CollapsibleTimelineHeader = styled('div')<{border: string}>`
+const CollapsibleTimelineHeader = styled('div')<{
+  border: string;
+  labelHeight: number;
+  open: boolean;
+}>`
   display: flex;
   justify-content: space-between;
   align-items: center;
   position: relative;
   z-index: 1;
-  height: 20px;
-  min-height: 20px;
+  height: ${p => p.labelHeight}px;
+  min-height: ${p => p.labelHeight}px;
   border-top: 1px solid ${p => p.border};
+  border-bottom: 1px solid ${p => (p.open ? p.border : 'transparent')};
   background-color: ${p => p.theme.backgroundSecondary};
 `;
 
@@ -109,7 +120,6 @@ export const CollapsibleTimelineMessage = styled('p')`
   width: 100%;
   position: absolute;
   color: ${p => p.theme.subText};
-  padding-bottom: ${space(4)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 export {CollapsibleTimeline};

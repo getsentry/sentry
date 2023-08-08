@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import warnings
 from collections import defaultdict
-from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Literal, Optional, Sequence, Tuple, Union, overload
 
 from django.conf import settings
 from django.db import IntegrityError, connections, models, router, transaction
@@ -30,13 +32,33 @@ if TYPE_CHECKING:
 
 
 class TeamManager(BaseManager):
+    @overload
     def get_for_user(
         self,
-        organization: "Organization",
-        user: Union["User", "RpcUser"],
+        organization: Organization,
+        user: User | RpcUser,
+        scope: str | None = None,
+    ) -> list[Team]:
+        ...
+
+    @overload
+    def get_for_user(
+        self,
+        organization: Organization,
+        user: User | RpcUser,
+        scope: str | None = None,
+        *,
+        with_projects: Literal[True],
+    ) -> list[tuple[Team, list[Project]]]:
+        ...
+
+    def get_for_user(
+        self,
+        organization: Organization,
+        user: Union[User, RpcUser],
         scope: Optional[str] = None,
         with_projects: bool = False,
-    ) -> Union[Sequence["Team"], Sequence[Tuple["Team", Sequence["Project"]]]]:
+    ) -> Union[Sequence[Team], Sequence[Tuple[Team, Sequence[Project]]]]:
         """
         Returns a list of all teams a user has some level of access to.
         """
@@ -85,7 +107,7 @@ class TeamManager(BaseManager):
             ).values_list("project_id", "team_id"):
                 teams_by_project[project_id].add(team_id)
 
-            projects_by_team = {t.id: [] for t in team_list}
+            projects_by_team: dict[int, list[Project]] = {t.id: [] for t in team_list}
             for project in project_list:
                 for team_id in teams_by_project[project.id]:
                     projects_by_team[team_id].append(project)
@@ -320,7 +342,7 @@ class Team(Model, SnowflakeIdMixin):
     def get_projects(self):
         from sentry.models import Project
 
-        return Project.objects.get_for_team_ids({self.id})
+        return Project.objects.get_for_team_ids([self.id])
 
     def outbox_for_update(self) -> RegionOutbox:
         return RegionOutbox(

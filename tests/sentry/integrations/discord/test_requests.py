@@ -3,9 +3,7 @@ from __future__ import annotations
 from unittest import mock
 from urllib.parse import urlencode
 
-import pytest
-
-from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
+from sentry.integrations.discord.requests.base import DiscordRequest
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -36,20 +34,9 @@ class DiscordRequestTest(TestCase):
         }
         return DiscordRequest(self.request)
 
-    def test_exposes_data(self):
-        discord_request = self.mock_request()
-        assert discord_request.data["type"] == 1
-
     def test_exposes_guild_id(self):
         discord_request = self.mock_request()
         assert discord_request.guild_id == "guild-id"
-
-    def test_validate_data_returns_400(self):
-        discord_request = self.mock_request()
-        type(self.request).data = mock.PropertyMock(side_effect=ValueError())
-        with pytest.raises(DiscordRequestError) as e:
-            discord_request.validate()
-            assert e.value.status == 400
 
     def test_collects_logging_data(self):
         discord_request = self.mock_request()
@@ -112,13 +99,11 @@ class DiscordRequestTest(TestCase):
                 },
             }
         )
-        discord_request._validate_data()
         res = discord_request.get_command_name()
         assert res == "test_command"
 
     def test_get_command_name_not_command(self):
         discord_request = self.mock_request()
-        discord_request._validate_data()
         res = discord_request.get_command_name()
         assert res == ""
 

@@ -8,11 +8,10 @@ from rest_framework import status
 from sentry.api.serializers.base import serialize
 from sentry.models import DocIntegration, IntegrationFeature
 from sentry.models.integrations.integration_feature import IntegrationTypes
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
 class DocIntegrationDetailsTest(APITestCase):
     endpoint = "sentry-api-0-doc-integration-details"
 

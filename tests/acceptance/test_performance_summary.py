@@ -5,8 +5,9 @@ import pytz
 
 from fixtures.page_objects.transaction_summary import TransactionSummaryPage
 from sentry.models import AssistantActivity
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
 FEATURES = {"organizations:performance-view": True}
@@ -18,6 +19,7 @@ def make_event(event_data):
     return event_data
 
 
+@no_silo_test(stable=True)
 class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

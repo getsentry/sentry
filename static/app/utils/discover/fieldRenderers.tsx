@@ -119,6 +119,8 @@ type FieldFormatters = {
 
 export type FieldTypes = keyof FieldFormatters;
 
+const DEFAULT_RATE_SIG_DIGITS = 3;
+
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
 `;
@@ -234,12 +236,12 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data, baggage) => {
       const {unit} = baggage ?? {};
-
-      return (
-        <NumberContainer>
-          {`${formatAbbreviatedNumber(data[field])}${unit ? RATE_UNIT_LABELS[unit] : ''}`}
-        </NumberContainer>
-      );
+      const renderedUnit = unit ? RATE_UNIT_LABELS[unit] : '';
+      const formattedNumber = `${formatAbbreviatedNumber(
+        data[field],
+        DEFAULT_RATE_SIG_DIGITS
+      )}${renderedUnit}`;
+      return <NumberContainer>{formattedNumber}</NumberContainer>;
     },
   },
   integer: {
@@ -699,9 +701,7 @@ type SpecialFunctionFieldRenderer = (
 ) => (data: EventData, baggage: RenderFunctionBaggage) => React.ReactNode;
 
 type SpecialFunctions = {
-  sps_percent_change: SpecialFunctionFieldRenderer;
   time_spent_percentage: SpecialFunctionFieldRenderer;
-  tps_percent_change: SpecialFunctionFieldRenderer;
   user_misery: SpecialFunctionFieldRenderer;
 };
 
@@ -768,14 +768,6 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
         />
       </BarContainer>
     );
-  },
-  // N.B. Do not colorize any throughput percent change renderers, since a
-  // change in throughput is not inherently good or bad
-  tps_percent_change: fieldName => data => {
-    return <PercentChangeCell deltaValue={data[fieldName]} colorize={false} />;
-  },
-  sps_percent_change: fieldName => data => {
-    return <PercentChangeCell deltaValue={data[fieldName]} colorize={false} />;
   },
   time_spent_percentage: fieldName => data => {
     return (

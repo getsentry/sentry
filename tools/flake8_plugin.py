@@ -22,6 +22,8 @@ S005_msg = "S005 Do not import models from sentry.models but the actual module"
 
 S006_msg = "S006 Do not use force_bytes / force_str -- test the types directly"
 
+S007_msg = "S007 Do not import sentry.testutils into production code."
+
 
 class SentryVisitor(ast.NodeVisitor):
     def __init__(self, filename: str) -> None:
@@ -45,6 +47,12 @@ class SentryVisitor(ast.NodeVisitor):
                 and any(x.name in {"force_bytes", "force_str"} for x in node.names)
             ):
                 self.errors.append((node.lineno, node.col_offset, S006_msg))
+            elif (
+                "tests/" not in self.filename
+                and "sentry/testutils/" not in self.filename
+                and "sentry.testutils" in node.module
+            ):
+                self.errors.append((node.lineno, node.col_offset, S007_msg))
 
         self.generic_visit(node)
 
@@ -52,6 +60,12 @@ class SentryVisitor(ast.NodeVisitor):
         for alias in node.names:
             if alias.name.split(".")[0] in S003_modules:
                 self.errors.append((node.lineno, node.col_offset, S003_msg))
+            elif (
+                "tests/" not in self.filename
+                and "sentry/testutils/" not in self.filename
+                and "sentry.testutils" in alias.name
+            ):
+                self.errors.append((node.lineno, node.col_offset, S007_msg))
 
         self.generic_visit(node)
 

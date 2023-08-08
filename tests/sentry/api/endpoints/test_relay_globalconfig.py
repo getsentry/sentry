@@ -3,8 +3,8 @@ from django.urls import reverse
 
 from sentry.relay.config.measurements import BUILTIN_MEASUREMENTS, CUSTOM_MEASUREMENT_LIMIT
 from sentry.relay.config.metric_extraction import HISTOGRAM_OUTLIER_RULES
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
-from sentry.utils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture

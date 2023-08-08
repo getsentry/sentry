@@ -5,6 +5,8 @@ import subprocess
 import sys
 import tempfile
 
+import pytest
+
 
 def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
     if plugins is None:
@@ -23,6 +25,7 @@ def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
             capture_output=True,
             encoding="UTF-8",
         )
+        assert not ret.stderr
         return ret.returncode, ret.stdout
 
 
@@ -219,3 +222,25 @@ Found 4 errors in 1 file (checked 1 source file)
     ret, out = call_mypy(code)
     assert ret
     assert out == expected
+
+
+@pytest.mark.parametrize(
+    "attr",
+    (
+        pytest.param("access", id="access from sentry.api.base"),
+        pytest.param("csp_nonce", id="csp_nonce from csp.middleware"),
+        pytest.param("is_sudo", id="is_sudo from sudo.middleware"),
+        pytest.param("subdomain", id="subdomain from sentry.middleware.subdomain"),
+    ),
+)
+def test_added_http_request_attribute(attr: str) -> None:
+    src = f"""\
+from django.http.request import HttpRequest
+x: HttpRequest
+x.{attr}
+"""
+    ret, out = call_mypy(src, plugins=[])
+    assert ret
+
+    ret, out = call_mypy(src)
+    assert ret == 0, (ret, out)

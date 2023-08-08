@@ -187,22 +187,36 @@ class StacktraceProcessor:
 
 
 def find_stacktraces_in_data(
-    data: NodeData, include_raw: bool = False, with_exceptions: bool = False
+    data: NodeData, include_raw: bool = False, include_empty_exceptions: bool = False
 ) -> list[StacktraceInfo]:
-    """Finds all stacktraces in a given data blob and returns it
-    together with some meta information.
+    """
+    Finds all stacktraces in a given data blob and returns them together with some meta information.
 
     If `include_raw` is True, then also raw stacktraces are included.
 
-    If `with_exceptions` is set to `True` then stacktraces of the exception
-    are always included and the `is_exception` flag is set on that stack
-    info object.
+    If `include_empty_exceptions` is set to `True` then null/empty stacktraces and stacktraces with
+    no or only null/empty frames are included (where they otherwise would not be), with the
+    `is_exception` flag is set on their `StacktraceInfo` object.
     """
     rv = []
 
-    def _append_stacktrace(stacktrace, container, is_exception: bool = False) -> None:
+    def _append_stacktrace(
+        stacktrace: Any,
+        # The entry in `exception.values` or `threads.values` containing the `stacktrace` attribute,
+        # or None for top-level stacktraces
+        container: Any = None,
+        # Whether or not the container is from `exception.values`
+        is_exception: bool = False,
+        # Prevent skipping empty/null stacktraces from `exception.values` (other empty/null
+        # stacktraces are always skipped)
+        include_empty_exceptions: bool = False,
+    ) -> None:
         frames = _safe_get_frames(stacktrace)
-        if not is_exception and (not stacktrace or not frames):
+
+        if is_exception and include_empty_exceptions:
+            # win-fast bypass of null/empty check
+            pass
+        elif not stacktrace or not frames:
             return
 
         platforms = _get_frames_metadata(frames, data.get("platform", "unknown"))
@@ -217,20 +231,28 @@ def find_stacktraces_in_data(
 
     # Look for stacktraces under the key `exception`
     for exc in get_path(data, "exception", "values", filter=True, default=()):
-        _append_stacktrace(exc.get("stacktrace"), exc, is_exception=with_exceptions)
+        _append_stacktrace(
+            exc.get("stacktrace"),
+            container=exc,
+            is_exception=True,
+            include_empty_exceptions=include_empty_exceptions,
+        )
 
     # Look for stacktraces under the key `stacktrace`
-    _append_stacktrace(data.get("stacktrace"), None)
+    _append_stacktrace(data.get("stacktrace"))
 
     # The native family includes stacktraces under threads
     for thread in get_path(data, "threads", "values", filter=True, default=()):
-        _append_stacktrace(thread.get("stacktrace"), thread)
+        _append_stacktrace(thread.get("stacktrace"), container=thread)
 
     if include_raw:
         # Iterate over a copy of rv, otherwise, it will infinitely append to itself
         for info in rv[:]:
             if info.container is not None:
-                _append_stacktrace(info.container.get("raw_stacktrace"), info.container)
+                # We don't set `is_exception` to `True` here, even if `info.is_exception` is set,
+                # because otherwise we'd end up processing each exception container twice in
+                # `process_stacktraces`
+                _append_stacktrace(info.container.get("raw_stacktrace"), container=info.container)
 
     return rv
 
@@ -333,7 +355,7 @@ def _update_frame(frame: dict[str, Any], platform: Optional[str]) -> None:
 def should_process_for_stacktraces(data):
     from sentry.plugins.base import plugins
 
-    infos = find_stacktraces_in_data(data, with_exceptions=True)
+    infos = find_stacktraces_in_data(data, include_empty_exceptions=True)
     platforms: set[str] = set()
     for info in infos:
         platforms.update(info.platforms or ())
@@ -532,7 +554,7 @@ def dedup_errors(errors):
 
 
 def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
-    infos = find_stacktraces_in_data(data, with_exceptions=True)
+    infos = find_stacktraces_in_data(data, include_empty_exceptions=True)
     if make_processors is None:
         processors = get_processors_for_stacktraces(data, infos)
     else:

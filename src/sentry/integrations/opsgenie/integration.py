@@ -121,42 +121,48 @@ class InstallationGuideView(PipelineView):
 
 
 class OpsgenieIntegration(IntegrationInstallation):
-    def get_client(self) -> Any:
+    def get_client(self, integration_key: str) -> Any:  # type: ignore
         org_integration_id = self.org_integration.id if self.org_integration else None
-        return OpsgenieClient(integration=self.model, org_integration_id=org_integration_id)
+        return OpsgenieClient(
+            integration=self.model,
+            integration_key=integration_key,
+            org_integration_id=org_integration_id,
+        )
 
     def get_organization_config(self) -> Sequence[Any]:
         fields = [
             {
                 "name": "team_table",
                 "type": "table",
-                "label": "Opsgenie teams with the Sentry integration enabled",
-                "help": "If teams need to be updated, deleted, or added manually please do so here. Alert rules will need to be individually updated for any additions or deletions of teams.",
+                "label": "Opsgenie integrations",
+                "help": "If integration keys need to be updated, deleted, or added manually please do so here. Your keys must be associated with a 'Sentry' Integration in Opsgenie. \
+                Alert rules will need to be individually updated for any key additions or deletions.",
                 "addButtonText": "",
-                "columnLabels": {"team": "Team", "integration_key": "Integration Key"},
+                "columnLabels": {
+                    "team": "Opsgenie Integration",
+                    "integration_key": "Integration Key",
+                },
                 "columnKeys": ["team", "integration_key"],
-                "confirmDeleteMessage": "Any alert rules associated with this team will stop working. The rules will still exist but will show a `removed` team.",
+                "confirmDeleteMessage": "Any alert rules associated with this integration will stop working. The rules will still exist but will show a `removed` team.",
             }
         ]
 
         return fields
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
-        client = self.get_client()
-        # get the team ID/test the API key for a newly added row
+        # add the integration ID to a newly added row
+        if not self.org_integration:
+            return
+
         teams = data["team_table"]
         unsaved_teams = [team for team in teams if team["id"] == ""]
+        # this is not instantaneous, so you could add the same team a bunch of times in a row
+        # but I don't anticipate this being too much of an issue
+        added_names = {team["team"] for team in teams if team not in unsaved_teams}
         for team in unsaved_teams:
-            try:
-                resp = client.get_team_id(
-                    integration_key=team["integration_key"], team_name=team["team"]
-                )
-                team["id"] = resp["data"]["id"]
-            except ApiError:
-                raise ValidationError(
-                    {"api_key": ["Could not save due to invalid team name or integration key."]}
-                )
-
+            if team["team"] in added_names:
+                raise ValidationError({"duplicate_name": ["Duplicate team name."]})
+            team["id"] = str(self.org_integration.id) + "-" + team["team"]
         return super().update_organization_config(data)
 
 

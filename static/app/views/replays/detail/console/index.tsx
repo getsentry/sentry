@@ -9,7 +9,7 @@ import {
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import type {Crumb} from 'sentry/types/breadcrumbs';
+import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
 import ConsoleFilters from 'sentry/views/replays/detail/console/consoleFilters';
 import ConsoleLogRow from 'sentry/views/replays/detail/console/consoleLogRow';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
@@ -21,7 +21,7 @@ import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 import useVirtualizedInspector from '../useVirtualizedInspector';
 
 interface Props {
-  breadcrumbs: undefined | Crumb[];
+  frames: undefined | BreadcrumbFrame[];
   startTimestampMs: number;
 }
 
@@ -32,8 +32,8 @@ const cellMeasurer = {
   minHeight: 24,
 };
 
-function Console({breadcrumbs, startTimestampMs}: Props) {
-  const filterProps = useConsoleFilters({breadcrumbs: breadcrumbs || []});
+function Console({frames, startTimestampMs}: Props) {
+  const filterProps = useConsoleFilters({frames: frames || []});
   const {expandPathsRef, searchTerm, logLevel, items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
   const {currentTime, currentHoverTime} = useReplayContext();
@@ -67,7 +67,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
         rowIndex={index}
       >
         <ConsoleLogRow
-          breadcrumb={item}
+          frame={item}
           currentTime={currentTime}
           currentHoverTime={currentHoverTime}
           expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
@@ -82,9 +82,9 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
 
   return (
     <FluidHeight>
-      <ConsoleFilters breadcrumbs={breadcrumbs} {...filterProps} />
-      <TabItemContainer>
-        {breadcrumbs ? (
+      <ConsoleFilters frames={frames} {...filterProps} />
+      <TabItemContainer data-test-id="replay-details-console-tab">
+        {frames ? (
           <AutoSizer onResize={updateList}>
             {({width, height}) => (
               <ReactVirtualizedList
@@ -92,7 +92,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
                 height={height}
                 noRowsRenderer={() => (
                   <NoRowRenderer
-                    unfilteredItems={breadcrumbs}
+                    unfilteredItems={frames}
                     clearSearchTerm={clearSearchTerm}
                   >
                     {t('No console logs recorded')}
