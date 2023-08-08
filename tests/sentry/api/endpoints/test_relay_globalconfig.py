@@ -8,7 +8,7 @@ from sentry.utils import json
 
 
 @pytest.fixture
-def fetch_projconfig(client, relay, private_key):
+def call_endpoint(client, relay, private_key):
     def inner(version, global_):
         path = reverse("sentry-api-0-relay-projectconfigs") + f"?version={version}"
 
@@ -37,10 +37,8 @@ def fetch_projconfig(client, relay, private_key):
     ],
 )
 @django_db_all
-def test_return_global_config(
-    fetch_projconfig, version, request_global_config, expect_global_config
-):
-    result, status_code = fetch_projconfig(version, request_global_config)
+def test_return_global_config(call_endpoint, version, request_global_config, expect_global_config):
+    result, status_code = call_endpoint(version, request_global_config)
     assert status_code < 400
     if not expect_global_config:
         assert result.get("global") is None
