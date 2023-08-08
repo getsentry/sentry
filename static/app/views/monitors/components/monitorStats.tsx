@@ -6,7 +6,6 @@ import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
 import {getYAxisMaxFn} from 'sentry/components/charts/miniBarChart';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
@@ -56,10 +55,6 @@ function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
 
   const {data: stats, isLoading} = useApiQuery<MonitorStat[]>(queryKey, {staleTime: 0});
 
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
-
   let emptyStats = true;
   const success: BarChartSeries = {
     seriesName: t('Successful'),
@@ -107,7 +102,7 @@ function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
     },
   });
 
-  if (emptyStats) {
+  if (!isLoading && emptyStats) {
     return (
       <Panel>
         <PanelBody withPadding>
@@ -124,49 +119,57 @@ function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
       <Panel>
         <PanelBody withPadding>
           <StyledHeaderTitle>{t('Check-Ins')}</StyledHeaderTitle>
-          <BarChart
-            isGroupedByDate
-            showTimeInTooltip
-            useShortDate
-            series={[success, failed, timeout, missed]}
-            stacked
-            height={height}
-            colors={colors}
-            tooltip={{
-              trigger: 'axis',
-            }}
-            yAxis={getYAxisOptions('number')}
-            grid={{
-              top: 6,
-              bottom: 0,
-              left: 0,
-              right: 0,
-            }}
-            animation={false}
-          />
+          {isLoading ? (
+            <Placeholder height={height} />
+          ) : (
+            <BarChart
+              isGroupedByDate
+              showTimeInTooltip
+              useShortDate
+              series={[success, failed, timeout, missed]}
+              stacked
+              height={height}
+              colors={colors}
+              tooltip={{
+                trigger: 'axis',
+              }}
+              yAxis={getYAxisOptions('number')}
+              grid={{
+                top: 6,
+                bottom: 0,
+                left: 0,
+                right: 0,
+              }}
+              animation={false}
+            />
+          )}
         </PanelBody>
       </Panel>
       <Panel>
         <PanelBody withPadding>
           <StyledHeaderTitle>{t('Average Duration')}</StyledHeaderTitle>
-          <AreaChart
-            isGroupedByDate
-            showTimeInTooltip
-            useShortDate
-            series={[duration]}
-            height={height}
-            colors={[theme.charts.colors[0]]}
-            yAxis={getYAxisOptions('duration')}
-            grid={{
-              top: 6,
-              bottom: 0,
-              left: 0,
-              right: 0,
-            }}
-            tooltip={{
-              valueFormatter: value => tooltipFormatter(value, 'duration'),
-            }}
-          />
+          {isLoading ? (
+            <Placeholder height={height} />
+          ) : (
+            <AreaChart
+              isGroupedByDate
+              showTimeInTooltip
+              useShortDate
+              series={[duration]}
+              height={height}
+              colors={[theme.charts.colors[0]]}
+              yAxis={getYAxisOptions('duration')}
+              grid={{
+                top: 6,
+                bottom: 0,
+                left: 0,
+                right: 0,
+              }}
+              tooltip={{
+                valueFormatter: value => tooltipFormatter(value, 'duration'),
+              }}
+            />
+          )}
         </PanelBody>
       </Panel>
     </React.Fragment>
@@ -175,6 +178,12 @@ function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
 
 const StyledHeaderTitle = styled(HeaderTitle)`
   margin-bottom: ${space(1)};
+`;
+
+const Placeholder = styled('div')<{height: number}>`
+  height: ${p => p.height}px;
+  background: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 export default MonitorStats;
