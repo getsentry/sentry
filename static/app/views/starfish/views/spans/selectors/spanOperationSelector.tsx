@@ -11,8 +11,8 @@ import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {
+  DefaultEmptyOption,
   EMPTY_OPTION_VALUE,
-  EmptyOption,
 } from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 const {SPAN_OP} = SpanMetricsFields;
@@ -47,7 +47,7 @@ export function SpanOperationSelector({
         if (datum[SPAN_OP] === '') {
           return {
             value: EMPTY_OPTION_VALUE,
-            label: <EmptyOption />,
+            label: <DefaultEmptyOption />,
           };
         }
         return {

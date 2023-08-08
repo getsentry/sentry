@@ -9,10 +9,10 @@ from fixtures.page_objects.issue_list import IssueListPage
 from sentry.models import Visibility
 from sentry.models.savedsearch import SavedSearch, SortOptions
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import no_silo_test
 
 
-@region_silo_test
+@no_silo_test(stable=True)
 class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

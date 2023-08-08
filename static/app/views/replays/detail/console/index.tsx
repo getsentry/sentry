@@ -83,7 +83,7 @@ function Console({frames, startTimestampMs}: Props) {
   return (
     <FluidHeight>
       <ConsoleFilters frames={frames} {...filterProps} />
-      <TabItemContainer>
+      <TabItemContainer data-test-id="replay-details-console-tab">
         {frames ? (
           <AutoSizer onResize={updateList}>
             {({width, height}) => (

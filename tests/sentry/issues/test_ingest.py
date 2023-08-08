@@ -262,7 +262,7 @@ class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
 
 
 class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
-    def test(self) -> None:
+    def test_simple(self) -> None:
         occurrence = self.build_occurrence()
         event = self.store_event(data={}, project_id=self.project.id)
         assert materialize_metadata(occurrence, event) == {
@@ -272,6 +272,19 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "title": occurrence.issue_title,
             "location": event.location,
             "last_received": json.datetime_to_str(event.datetime),
+        }
+
+    def test_preserves_existing_metadata(self) -> None:
+        occurrence = self.build_occurrence()
+        event = self.store_event(data={}, project_id=self.project.id)
+        event.data.setdefault("metadata", {})
+        event.data["metadata"]["dogs"] = "are great"  # should not get clobbered
+
+        materialized = materialize_metadata(occurrence, event)
+        assert materialized["metadata"] == {
+            "title": occurrence.issue_title,
+            "value": occurrence.subtitle,
+            "dogs": "are great",
         }
 
 

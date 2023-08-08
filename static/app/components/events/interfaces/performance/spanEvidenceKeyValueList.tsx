@@ -29,7 +29,8 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
 
 import KeyValueList from '../keyValueList';
-import {RawSpanType} from '../spans/types';
+import {ProcessedSpanType, RawSpanType} from '../spans/types';
+import {getSpanSubTimings, SpanSubTimingName} from '../spans/utils';
 
 import {TraceContextSpanProxy} from './spanEvidence';
 
@@ -86,6 +87,7 @@ export function SpanEvidenceKeyValueList({
       [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: UncompressedAssetSpanEvidence,
       [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: ConsecutiveHTTPSpanEvidence,
       [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: LargeHTTPPayloadSpanEvidence,
+      [IssueType.PERFORMANCE_HTTP_OVERHEAD]: HTTPOverheadSpanEvidence,
     }[issueType] ?? DefaultSpanEvidence;
 
   return (
@@ -167,6 +169,25 @@ function LargeHTTPPayloadSpanEvidence({
             getSpanFieldBytes(offendingSpans[0], 'http.response_content_length') ??
               getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')
           ),
+        ].filter(Boolean) as KeyValueListData
+      }
+    />
+  );
+}
+
+function HTTPOverheadSpanEvidence({
+  event,
+  offendingSpans,
+  orgSlug,
+  projectSlug,
+}: SpanEvidenceKeyValueListProps) {
+  return (
+    <PresortedKeyValueList
+      data={
+        [
+          makeTransactionNameRow(event, orgSlug, projectSlug),
+
+          makeRow(t('Max Queue Time'), getHTTPOverheadMaxTime(offendingSpans)),
         ].filter(Boolean) as KeyValueListData
       }
     />
@@ -431,6 +452,22 @@ const getConsecutiveDbTimeSaved = (
   return (
     totalDuration - Math.max(maxIndependentSpanDuration, sumOfDependentSpansDuration)
   );
+};
+
+const getHTTPOverheadMaxTime = (offendingSpans: Span[]): string | null => {
+  const slowestSpanTimings = getSpanSubTimings(
+    offendingSpans[offendingSpans.length - 1] as ProcessedSpanType
+  );
+  if (!slowestSpanTimings) {
+    return null;
+  }
+  const waitTimeTiming = slowestSpanTimings.find(
+    timing => timing.name === SpanSubTimingName.WAIT_TIME
+  );
+  if (!waitTimeTiming) {
+    return null;
+  }
+  return getPerformanceDuration(waitTimeTiming.duration * 1000);
 };
 
 const sumSpanDurations = (spans: Span[]) => {

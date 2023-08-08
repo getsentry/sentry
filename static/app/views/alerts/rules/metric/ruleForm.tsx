@@ -27,6 +27,7 @@ import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
+import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
@@ -37,7 +38,6 @@ import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {
-  hasNonStandardMetricSearchFilters,
   isOnDemandMetricAlert,
   isValidOnDemandMetricAlert,
 } from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
@@ -132,10 +132,7 @@ function determineAlertDataset(
     return selectedDataset;
   }
 
-  if (
-    hasNonStandardMetricSearchFilters(query) &&
-    selectedDataset === Dataset.TRANSACTIONS
-  ) {
+  if (isOnDemandQueryString(query) && selectedDataset === Dataset.TRANSACTIONS) {
     // for on-demand metrics extraction we want to override the dataset and use performance metrics instead
     return Dataset.GENERIC_METRICS;
   }
@@ -752,11 +749,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleDeleteRule = async () => {
     const {organization, params} = this.props;
-    const {projectId, ruleId} = params;
+    const {ruleId} = params;
 
     try {
       await this.api.requestPromise(
-        `/organizations/${organization.slug}/${projectId}/alert-rules/${ruleId}/`,
+        `/organizations/${organization.slug}/alert-rules/${ruleId}/`,
         {
           method: 'DELETE',
         }
