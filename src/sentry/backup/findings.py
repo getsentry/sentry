@@ -3,16 +3,22 @@ from __future__ import annotations
 from typing import NamedTuple
 
 
-# TODO(team-ospo/#155): Figure out if we are going to use `pk` as part of the identifier, or some other kind of sequence number internal to the JSON export instead.
 class InstanceID(NamedTuple):
-    """Every entry in the generated backup JSON file should have a unique model+pk combination,
+    """Every entry in the generated backup JSON file should have a unique model+ordinal combination,
     which serves as its identifier."""
 
     model: str
-    pk: int
+
+    # The order that this model appeared in the JSON inputs. Because we validate that the same
+    # number of models of each kind are present on both the left and right side when validating, we
+    # can use the ordinal as a unique identifier.
+    ordinal: int | None = None
 
     def pretty(self) -> str:
-        return f"InstanceID(model: {self.model!r}, pk: {self.pk})"
+        out = f"InstanceID(model: {self.model!r}"
+        if self.ordinal:
+            out += f", ordinal: {self.ordinal}"
+        return out + ")"
 
 
 class ComparatorFinding(NamedTuple):
@@ -20,10 +26,19 @@ class ComparatorFinding(NamedTuple):
 
     kind: str
     on: InstanceID
+    left_pk: int | None = None
+    right_pk: int | None = None
     reason: str = ""
 
     def pretty(self) -> str:
-        return f"Finding(\n\tkind: {self.kind!r},\n\ton: {self.on.pretty()},\n\treason: {self.reason}\n)"
+        out = f"Finding(\n\tkind: {self.kind!r},\n\ton: {self.on.pretty()}"
+        if self.left_pk:
+            out += f",\n\tleft_pk: {self.left_pk}"
+        if self.right_pk:
+            out += f",\n\tright_pk: {self.right_pk}"
+        if self.reason:
+            out += f",\n\treason: {self.reason}"
+        return out + "\n)"
 
 
 class ComparatorFindings:

@@ -7,7 +7,7 @@ from dateutil import parser
 from django.db import models
 
 from sentry.backup.findings import ComparatorFinding, InstanceID
-from sentry.backup.helpers import get_exportable_final_derivations_of
+from sentry.backup.helpers import Side, get_exportable_final_derivations_of
 from sentry.db.models import BaseModel
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.utils.json import JSONData
@@ -31,15 +31,15 @@ class JSONScrubbingComparator(ABC):
     def __init__(self, *fields: str):
         self.fields = set(fields)
 
-    def check(self, side: str, data: JSONData) -> None:
+    def check(self, side: Side, data: JSONData) -> None:
         """Ensure that we have received valid JSON data at runtime."""
 
         if "model" not in data or not isinstance(data["model"], str):
-            raise RuntimeError(f"The {side} input must have a `model` string assigned to it.")
-        if "pk" not in data or not isinstance(data["pk"], int):
-            raise RuntimeError(f"The {side} input must have a numerical `pk` entry.")
+            raise RuntimeError(f"The {side.name} input must have a `model` string assigned to it.")
+        if "ordinal" not in data or not isinstance(data["ordinal"], int):
+            raise RuntimeError(f"The {side.name} input must have a numerical `ordinal` entry.")
         if "fields" not in data or not isinstance(data["fields"], dict):
-            raise RuntimeError(f"The {side} input must have a `fields` dictionary.")
+            raise RuntimeError(f"The {side.name} input must have a `fields` dictionary.")
 
     @abstractmethod
     def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
@@ -61,6 +61,8 @@ class JSONScrubbingComparator(ABC):
                     ComparatorFinding(
                         kind="Unexecuted" + self.get_kind(),
                         on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
                         reason=f"the left `{f}` value was missing",
                     )
                 )
@@ -69,6 +71,8 @@ class JSONScrubbingComparator(ABC):
                     ComparatorFinding(
                         kind="Unexecuted" + self.get_kind(),
                         on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
                         reason=f"the right `{f}` value was missing",
                     )
                 )
@@ -92,8 +96,8 @@ class JSONScrubbingComparator(ABC):
             omitted, the scrubbed entry defaults to `True`.
         """
 
-        self.check("left", left)
-        self.check("right", right)
+        self.check(Side.left, left)
+        self.check(Side.right, right)
         if "scrubbed" not in left:
             left["scrubbed"] = {}
         if "scrubbed" not in right:
@@ -142,6 +146,8 @@ class DateUpdatedComparator(JSONScrubbingComparator):
                 ComparatorFinding(
                     kind=self.get_kind(),
                     on=on,
+                    left_pk=left["pk"],
+                    right_pk=right["pk"],
                     reason=f"""the left value ({left_date_updated}) of `{f}` was not less than or equal to the right value ({right_date_updated})""",
                 )
             ]
@@ -170,6 +176,8 @@ class DateAddedComparator(JSONScrubbingComparator):
                     ComparatorFinding(
                         kind=self.get_kind(),
                         on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
                         reason=f"""the left value ({left_date_added}) of `{f}` was not equal to the right value ({right_date_added})""",
                     )
                 )
@@ -199,6 +207,8 @@ class ObfuscatingComparator(JSONScrubbingComparator, ABC):
                     ComparatorFinding(
                         kind=self.get_kind(),
                         on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
                         reason=f"""the left value ("{lv}") of `{f}` was not equal to the right value ("{rv}")""",
                     )
                 )
