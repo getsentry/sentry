@@ -142,7 +142,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
     ) -> Response:
         """
-        Update an member's organization and team-level roles.
+        Update a member's organization and team-level roles.
         """
         allowed_roles = get_allowed_org_roles(request, organization)
         serializer = OrganizationMemberSerializer(
