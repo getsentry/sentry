@@ -3,10 +3,9 @@ from __future__ import annotations
 import abc
 import logging
 import re
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING, Mapping, Type
 
 from django.http import HttpRequest, HttpResponse
-from pyparsing import Mapping
 
 from .parsers import (
     BitbucketRequestParser,
