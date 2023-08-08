@@ -2,7 +2,7 @@ import {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {colorComponentsToRGBA} from './colors/utils';
-import {makeFormatter} from './units/units';
+import {makeFormatter, makeTimelineFormatter} from './units/units';
 
 interface Series {
   fillColor: string;
@@ -16,10 +16,15 @@ export interface ProfileSerieMeasurement extends Profiling.Measurement {
   name: string;
 }
 
+interface ChartOptions {
+  type?: 'line' | 'area';
+}
+
 export class FlamegraphChart {
   configSpace: Rect;
   formatter: ReturnType<typeof makeFormatter>;
   tooltipFormatter: ReturnType<typeof makeFormatter>;
+  timelineFormatter: (value: number) => string;
   series: Series[];
   domains: {
     x: [number, number];
@@ -34,9 +39,11 @@ export class FlamegraphChart {
   constructor(
     configSpace: Rect,
     measurements: ProfileSerieMeasurement[],
-    colors: ColorChannels[]
+    colors: ColorChannels[],
+    options: ChartOptions = {}
   ) {
     this.series = new Array<Series>();
+    this.timelineFormatter = makeTimelineFormatter('nanoseconds');
 
     if (!measurements || !measurements.length) {
       this.formatter = makeFormatter('percent');
@@ -45,7 +52,7 @@ export class FlamegraphChart {
       return;
     }
 
-    const type = measurements.length > 1 ? 'line' : 'area';
+    const type = options.type ? options.type : measurements.length > 1 ? 'line' : 'area';
 
     for (let j = 0; j < measurements.length; j++) {
       const measurement = measurements[j];
@@ -54,8 +61,12 @@ export class FlamegraphChart {
         name: measurement.name,
         lineColor: colorComponentsToRGBA(colors[j]),
         fillColor: colorComponentsToRGBA(colors[j]),
-        points: new Array(measurement.values.length).fill(0),
+        points: new Array(measurement?.values?.length ?? 0).fill(0),
       };
+
+      if (!measurement?.values?.length) {
+        continue;
+      }
 
       for (let i = 0; i < measurement.values.length; i++) {
         const m = measurement.values[i];
