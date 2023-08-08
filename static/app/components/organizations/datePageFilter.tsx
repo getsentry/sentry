@@ -34,6 +34,7 @@ export function DatePageFilter({
   menuWidth,
   triggerProps = {},
   resetParamsOnChange,
+  storageNamespace,
   ...selectProps
 }: DatePageFilterProps) {
   const router = useRouter();
@@ -58,6 +59,7 @@ export function DatePageFilter({
         updateDateTime(newTimePeriod, router, {
           save: true,
           resetParams: resetParamsOnChange,
+          storageNamespace,
         });
       }}
       menuTitle={menuTitle ?? t('Filter Time Range')}
