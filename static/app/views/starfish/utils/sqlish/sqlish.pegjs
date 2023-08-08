@@ -2,7 +2,7 @@ Expression
    = tokens:Token*
 
 Token
-   = LeftParenthesis / RightParenthesis / Whitespace / Keyword / Parameter / CollapsedColumns / GenericToken
+  = LeftParenthesis / RightParenthesis / Whitespace / Keyword / Parameter / CollapsedColumns / GenericToken
 
 LeftParenthesis
   = "(" { return { type: 'LeftParenthesis', content: '(' } }
@@ -21,10 +21,10 @@ JoinKeyword
 }
 
 JoinDirection
- = "LEFT"i / "RIGHT"i / "FULL"i
+  = "LEFT"i / "RIGHT"i / "FULL"i
 
 JoinType
-= "OUTER"i / "INNER"i
+  = "OUTER"i / "INNER"i
 
 Parameter
   = Parameter:("%s" / ":c" [0-9]) { return { type: 'Parameter', content: Array.isArray(Parameter) ? Parameter.join('') : Parameter } }
