@@ -2,7 +2,11 @@ import {useEffect, useState} from 'react';
 
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
-import type {ReplayFrame} from 'sentry/utils/replays/types';
+import type {
+  LargestContentfulPaintFrame,
+  PaintFrame,
+  ReplayFrame,
+} from 'sentry/utils/replays/types';
 import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
 import {
   useFetchTransactions,
@@ -12,7 +16,9 @@ import {
 export interface ReplayTraceRow {
   durationMs: number;
   frameOpOrCategory: string | undefined;
+  lcpFrame: undefined | LargestContentfulPaintFrame;
   offsetMs: number;
+  paintFrames: PaintFrame[];
   replayFrame: ReplayFrame;
   timestampMs: number;
   traces: TraceFullDetailed[];
@@ -36,7 +42,6 @@ export default function useReplayPerfData({replay}: Props) {
     if (!replay) {
       return;
     }
-    // const startTimestampMs = replay.getReplay().started_at.getTime();
 
     // Clone the list because we're going to mutate it
     const frames = [...replay.getPerfFrames()];
@@ -45,6 +50,27 @@ export default function useReplayPerfData({replay}: Props) {
 
     while (frames.length) {
       const thisFrame = frames.shift()!;
+
+      const relatedOps = ['largest-contentful-paint', 'paint'];
+      const relatedFrames: ReplayFrame[] = [];
+      for (const frame of frames) {
+        if (relatedOps.includes(getFrameOpOrCategory(frame))) {
+          relatedFrames.push(frame);
+        } else {
+          break;
+        }
+      }
+      for (let i = relatedFrames.length; i > 0; i--) {
+        frames.shift();
+      }
+
+      const lcpFrame: undefined | LargestContentfulPaintFrame = relatedFrames.find(
+        frame => getFrameOpOrCategory(frame) === 'largest-contentful-paint'
+      ) as undefined | LargestContentfulPaintFrame;
+      const paintFrames = relatedFrames.filter(
+        frame => getFrameOpOrCategory(frame) === 'paint'
+      ) as PaintFrame[];
+
       const nextFrame = frames[0];
 
       const tracesAfterThis = traces.filter(
@@ -54,7 +80,9 @@ export default function useReplayPerfData({replay}: Props) {
       rows.push({
         durationMs: nextFrame ? nextFrame.timestampMs - thisFrame.timestampMs : 0,
         frameOpOrCategory: getFrameOpOrCategory(thisFrame),
+        lcpFrame,
         offsetMs: thisFrame.offsetMs,
+        paintFrames,
         replayFrame: thisFrame,
         timestampMs: thisFrame.timestampMs,
         traces: nextFrame
@@ -63,19 +91,6 @@ export default function useReplayPerfData({replay}: Props) {
             )
           : tracesAfterThis,
       });
-
-      // const traces = ;
-
-      // relatedTraces.forEach(trace => {
-      //   const traceTimestampMS = trace.start_timestamp * 1000;
-      //   rows.push({
-      //     durationMs: trace['transaction.duration'],
-      //     frameOpOrCategory: undefined,
-      //     offsetMs: traceTimestampMS - startTimestampMs,
-      //     timestampMs: traceTimestampMS,
-      //     trace,
-      //   });
-      // });
     }
 
     setData(rows);

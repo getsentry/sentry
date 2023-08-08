@@ -267,7 +267,11 @@ export default class ReplayReader {
       ...this._sortedBreadcrumbFrames.filter(frame =>
         ['navigation', 'replay.init', 'ui.click'].includes(frame.category)
       ),
-      ...this._sortedSpanFrames.filter(frame => frame.op.startsWith('navigation.')),
+      ...this._sortedSpanFrames.filter(
+        frame =>
+          ['largest-contentful-paint', 'paint'].includes(frame.op) ||
+          frame.op.startsWith('navigation.')
+      ),
     ].sort(sortFrames)
   );
 
