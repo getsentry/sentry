@@ -3,7 +3,6 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
 class UserUserRolesTest(APITestCase):
     endpoint = "sentry-api-0-user-userrole-details"
 

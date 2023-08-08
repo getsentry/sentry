@@ -3,7 +3,6 @@ from __future__ import annotations
 import contextlib
 import datetime
 import functools
-import inspect
 import logging
 import threading
 from enum import Enum
@@ -30,7 +29,6 @@ from django.db import router, transaction
 from django.db.models import Model
 from typing_extensions import Self
 
-from sentry.db.postgres.transactions import in_test_assert_no_transaction
 from sentry.silo import SiloMode
 from sentry.utils.env import in_test_environment
 
@@ -40,7 +38,7 @@ T = TypeVar("T")
 
 ArgumentDict = Mapping[str, Any]
 
-OptionValue = Union[str, int, bool, None]
+OptionValue = Any
 
 IDEMPOTENCY_KEY_LENGTH = 48
 REGION_NAME_LENGTH = 48
@@ -64,7 +62,7 @@ def report_pydantic_type_validation_error(
                 "model_class": str(model_class),
             },
         )
-        logger.warning("Pydantic type validation error", exc_info=True)
+        sentry_sdk.capture_message("Pydantic type validation error")
 
 
 def _hack_pydantic_type_validation() -> None:
@@ -99,6 +97,8 @@ def _hack_pydantic_type_validation() -> None:
         **kwargs: Any,
     ) -> Tuple[Optional[Any], Optional[pydantic.error_wrappers.ErrorList]]:
         result, errors = builtin_validate(field, value, *args, cls=cls, **kwargs)
+        if in_test_environment():
+            return result, errors
         if errors:
             report_pydantic_type_validation_error(field, value, errors, cls)
         return result, None
@@ -275,73 +275,6 @@ class DelegatedByOpenTransaction(Generic[ServiceInterface]):
             if open_transaction:
                 return getattr(constructor(), item)
         return getattr(self._default(), item)
-
-
-hc_test_stub: Any = threading.local()
-
-
-def CreateStubFromBase(
-    base: Type[ServiceInterface], target_mode: SiloMode
-) -> Type[ServiceInterface]:
-    """
-    Using a concrete implementation class of a service, creates a new concrete implementation class suitable for a test
-    stub.  It retains parity with the given base by passing through all of its abstract method implementations to the
-    given base class, but wraps it to run in the target silo mode, allowing tests written for monolith mode to largely
-    work symmetrically.  In the future, however, when monolith mode separate is deprecated, this logic should be
-    replaced by true mocking utilities, for say, target RPC endpoints.
-
-    This implementation will not work outside of test contexts.
-    """
-
-    def __init__(self: Any, backing_service: ServiceInterface) -> None:
-        self.backing_service = backing_service
-
-    def make_method(method_name: str) -> Any:
-        def method(self: Any, *args: Any, **kwds: Any) -> Any:
-            in_test_assert_no_transaction(
-                f"remote service method {base.__name__}.{method_name} called inside transaction!  Move service calls to outside of transactions."
-            )
-            from sentry.services.hybrid_cloud.auth import AuthenticationContext
-
-            with SiloMode.exit_single_process_silo_context():
-                if cb := getattr(hc_test_stub, "cb", None):
-                    cb(self.backing_service, method_name, *args, **kwds)
-                method = getattr(self.backing_service, method_name)
-                call_args = inspect.getcallargs(method, *args, **kwds)
-
-                auth_context: AuthenticationContext = AuthenticationContext()
-                if "auth_context" in call_args:
-                    auth_context = call_args["auth_context"] or auth_context
-
-                try:
-                    with auth_context.applied_to_request(), SiloMode.enter_single_process_silo_context(
-                        target_mode
-                    ):
-                        return method(*args, **kwds)
-                except Exception as e:
-                    raise RuntimeError(f"Service call failed: {base.__name__}.{method_name}") from e
-
-        return method
-
-    methods = {}
-    for Super in base.__bases__:
-        for name in dir(Super):
-            if getattr(getattr(Super, name), "__isabstractmethod__", False):
-                methods[name] = make_method(name)
-
-    methods["__init__"] = __init__
-
-    return cast(
-        Type[ServiceInterface], type(f"Stub{base.__bases__[0].__name__}", base.__bases__, methods)
-    )
-
-
-def stubbed(f: Callable[[], ServiceInterface], mode: SiloMode) -> Callable[[], ServiceInterface]:
-    def factory() -> ServiceInterface:
-        backing = f()
-        return cast(ServiceInterface, cast(Any, CreateStubFromBase(type(backing), mode))(backing))
-
-    return factory
 
 
 def silo_mode_delegation(

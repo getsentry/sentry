@@ -141,7 +141,7 @@ class OAuth2Provider(Provider, abc.ABC):
 
     @abc.abstractmethod
     def get_refresh_token_url(self) -> str:
-        pass
+        raise NotImplementedError
 
     def get_refresh_token_params(self, refresh_token):
         return {

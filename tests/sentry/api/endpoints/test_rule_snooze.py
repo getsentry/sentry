@@ -13,7 +13,6 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
 class BaseRuleSnoozeTest(APITestCase):
     def setUp(self):
         self.issue_alert_rule = Rule.objects.create(
