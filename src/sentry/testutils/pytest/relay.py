@@ -4,7 +4,6 @@
 import datetime
 import logging
 import shutil
-import sys
 import time
 from os import environ, path
 from urllib.parse import urlparse
@@ -107,6 +106,7 @@ def relay_server_setup(live_server, tmpdir_factory):
         "image": RELAY_TEST_IMAGE,
         "ports": {"%s/tcp" % relay_port: relay_port},
         "network": network,
+        "extra_hosts": {"host.docker.internal": "host-gateway"},
         "detach": True,
         "name": container_name,
         "volumes": {config_path: {"bind": "/etc/relay"}},
@@ -122,6 +122,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     shutil.rmtree(config_path)
 
     import subprocess
+
     subprocess.call(("docker", "logs", "sentry_test_relay_server"))
 
 
