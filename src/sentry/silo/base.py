@@ -5,12 +5,16 @@ import contextlib
 import functools
 import itertools
 import threading
+import typing
 from enum import Enum
 from typing import Any, Callable, Generator, Iterable
 
 from django.conf import settings
 
 from sentry.utils.env import in_test_environment
+
+if typing.TYPE_CHECKING:
+    from sentry.types.region import Region
 
 
 class SiloMode(Enum):
@@ -43,7 +47,9 @@ class SiloMode(Enum):
 
     @classmethod
     @contextlib.contextmanager
-    def enter_single_process_silo_context(cls, mode: SiloMode) -> Generator[None, None, None]:
+    def enter_single_process_silo_context(
+        cls, mode: SiloMode, region: Region | None = None
+    ) -> Generator[None, None, None]:
         """
         Used by silo endpoint decorators and other contexts that help 'suggest' to acceptance testing and local
         single process silo testing which 'silo context' the process should be running in.  Prevents re-entrant
@@ -54,12 +60,15 @@ class SiloMode(Enum):
             assert (
                 single_process_silo_mode_state.mode is None
             ), "Re-entrant invariant broken! Use exit_single_process_silo_context to explicit pass 'fake' RPC boundaries."
-        old = single_process_silo_mode_state.mode
+        old_mode = single_process_silo_mode_state.mode
+        old_region = single_process_silo_mode_state.region
         single_process_silo_mode_state.mode = mode
+        single_process_silo_mode_state.region = region
         try:
             yield
         finally:
-            single_process_silo_mode_state.mode = old
+            single_process_silo_mode_state.mode = old_mode
+            single_process_silo_mode_state.region = old_region
 
     @classmethod
     @contextlib.contextmanager
@@ -72,6 +81,7 @@ class SiloMode(Enum):
         """
         old = single_process_silo_mode_state.mode
         single_process_silo_mode_state.mode = None
+        single_process_silo_mode_state.region = None
         try:
             yield
         finally:
@@ -85,6 +95,7 @@ class SiloMode(Enum):
 
 class SingleProcessSiloModeState(threading.local):
     mode: SiloMode | None = None
+    region: Region | None = None
 
 
 single_process_silo_mode_state = SingleProcessSiloModeState()
