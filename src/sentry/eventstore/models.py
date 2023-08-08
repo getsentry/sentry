@@ -32,6 +32,8 @@ logger = logging.getLogger(__name__)
 
 # Keys in the event payload we do not want to send to the event stream / snuba.
 EVENTSTREAM_PRUNED_KEYS = ("debug_meta", "_meta")
+# Keys in the event metadata we do not want to include in the event's `search_message`
+SEARCH_MESSAGE_SKIPPED_KEYS = frozenset([])
 
 if TYPE_CHECKING:
     from sentry.interfaces.user import User
@@ -554,7 +556,10 @@ class BaseEvent(metaclass=abc.ABCMeta):
             message += data["logentry"].get("formatted") or data["logentry"].get("message") or ""
 
         if event_metadata:
-            for value in event_metadata.values():
+            for key, value in event_metadata.items():
+                if key in SEARCH_MESSAGE_SKIPPED_KEYS or isinstance(value, (bool, int, float)):
+                    continue
+
                 value_u = force_str(value, errors="replace")
                 if value_u not in message:
                     message = f"{message} {value_u}"
