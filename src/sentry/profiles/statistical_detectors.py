@@ -107,12 +107,12 @@ def compute_new_regression_states(
     regressed_functions: List[FunctionPayload] = []
 
     for payload, old_state in zip(payloads, old_states):
-        if old_state.timestamp is not None and old_state.timestamp < payload.timestamp:
+        if old_state.timestamp is not None and old_state.timestamp > payload.timestamp:
             # In the event that the timestamp is before the payload's timestamps,
             # we do not want to process this payload.
             #
             # This should not happen other than in some error state.
-            logger.warn(
+            logger.warning(
                 "Function regression detection out of order. Processing %s, but last processed was %s",
                 payload.timestamp.isoformat(),
                 old_state.timestamp.isoformat(),
@@ -136,7 +136,7 @@ def make_function_key(project_id: int, payload: FunctionPayload, version: int) -
 
 def detect_regression(
     state: RegressionState, payload: FunctionPayload
-) -> Tuple[bool, RegressionState,]:  # Mapping[str | bytes, str | float | int]
+) -> Tuple[bool, RegressionState]:
     """
     Detect if a regression has occurred using the moving average cross over.
     See https://en.wikipedia.org/wiki/Moving_average_crossover.
@@ -175,7 +175,7 @@ def detect_regression(
         # The new fast moving average is above the new slow moving average
         and ema_short.value > ema_long.value
         # The old fast moving average is below the old slow moving average
-        and state.short_ma < state.long_ma
+        and state.short_ma <= state.long_ma
     )
 
     new_state = RegressionState(payload.timestamp, state.count + 1, ema_short.value, ema_long.value)
