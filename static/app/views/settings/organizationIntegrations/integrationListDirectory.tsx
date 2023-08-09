@@ -506,15 +506,13 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
 
   renderBody() {
     const {organization} = this.props;
-    const {displayedList, list, searchInput, selectedCategory} = this.state;
-
+    const {displayedList, list, searchInput, selectedCategory, integrations} = this.state;
     const title = t('Integrations');
     const categoryList = uniq(flatten(list.map(getCategoriesForIntegration))).sort();
 
     return (
       <Fragment>
         <SentryDocumentTitle title={title} orgSlug={organization.slug} />
-
         {!this.props.hideHeader && (
           <SettingsPageHeader
             title={title}
@@ -545,9 +543,8 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
             action={<CreateIntegrationButton analyticsView="integrations_directory" />}
           />
         )}
-
         <PermissionAlert access={['org:integrations']} />
-        <ReinstallAlert />
+        <ReinstallAlert integrations={integrations} />
         <Panel>
           <PanelBody data-test-id="integration-panel">
             {displayedList.length ? (
