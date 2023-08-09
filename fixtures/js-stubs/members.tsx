@@ -1,8 +1,9 @@
 import type {Member as MemberType} from 'sentry/types';
 
 import {Member} from './member';
+import {User} from './user';
 
-export function Members(params = []): MemberType[] {
+export function Members(params: MemberType[] = []): MemberType[] {
   return [
     Member(),
     {
@@ -63,38 +64,7 @@ export function Members(params = []): MemberType[] {
         'idp:role-restricted': false,
         'member-limit:restricted': false,
       },
-      user: {
-        id: '3',
-        has2fa: true,
-        name: 'Sentry 3 Name',
-        email: 'sentry3@test.com',
-        username: 'Sentry 3 Username',
-        canReset2fa: false,
-        dateJoined: '',
-        emails: [],
-        experiments: {},
-        flags: {newsletter_consent_prompt: false},
-        hasPasswordAuth: false,
-        identities: [],
-        isActive: false,
-        isAuthenticated: false,
-        isManaged: false,
-        isStaff: false,
-        isSuperuser: false,
-        ip_address: '',
-        lastActive: '',
-        lastLogin: '',
-        options: {
-          avatarType: 'gravatar',
-          clock24Hours: false,
-          defaultIssueEvent: 'recommended',
-          language: '',
-          stacktraceOrder: 1,
-          theme: 'system',
-          timezone: '',
-        },
-        permissions: new Set(),
-      },
+      user: User(),
     },
     {
       id: '4',
