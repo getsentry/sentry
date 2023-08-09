@@ -12,8 +12,7 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.models import Organization, OrganizationOption, Project, ProjectKey, ProjectKeyStatus
 from sentry.relay import config, projectconfig_cache
-from sentry.relay.config.measurements import get_measurements_config
-from sentry.relay.config.metric_extraction import HISTOGRAM_OUTLIER_RULES
+from sentry.relay.globalconfig import get_global_config
 from sentry.tasks.relay import schedule_build_project_config
 from sentry.utils import metrics
 
@@ -23,15 +22,6 @@ logger = logging.getLogger(__name__)
 PROJECT_CONFIG_SIZE_THRESHOLD = 10000
 
 ProjectConfig = MutableMapping[str, Any]
-
-
-def get_global_config():
-    metrics.incr("relay.project_configs.global.fetched")
-    return {
-        "measurements": get_measurements_config(),
-        # Subset of conditional tagging rules that does not depend on the project:
-        "metricsConditionalTagging": HISTOGRAM_OUTLIER_RULES,
-    }
 
 
 def _sample_apm():
@@ -65,6 +55,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         if version == "4":
             if request.relay_request_data.get("global"):
+                metrics.incr("relay.project_configs.global.fetched", tags={"version": version})
                 response["global"] = get_global_config()
 
         if self._should_use_v3(version, request):
