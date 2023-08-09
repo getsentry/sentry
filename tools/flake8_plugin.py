@@ -49,6 +49,7 @@ class SentryVisitor(ast.NodeVisitor):
                 self.errors.append((node.lineno, node.col_offset, S006_msg))
             elif (
                 "tests/" not in self.filename
+                and "fixtures/" not in self.filename
                 and "sentry/testutils/" not in self.filename
                 and "sentry.testutils" in node.module
             ):
@@ -62,6 +63,7 @@ class SentryVisitor(ast.NodeVisitor):
                 self.errors.append((node.lineno, node.col_offset, S003_msg))
             elif (
                 "tests/" not in self.filename
+                and "fixtures/" not in self.filename
                 and "sentry/testutils/" not in self.filename
                 and "sentry.testutils" in alias.name
             ):
