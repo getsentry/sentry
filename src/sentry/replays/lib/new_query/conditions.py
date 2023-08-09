@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Generic, TypeVar, Union
 
-from snuba_sdk import Column, Condition, Function, Op
+from snuba_sdk import Condition, Function, Op
+from snuba_sdk.expressions import Expression
 
 Numeric = Union[int, float]
 T = TypeVar("T")
@@ -10,43 +11,43 @@ T = TypeVar("T")
 
 class GenericBase(Generic[T]):
     @staticmethod
-    def visit_eq(column: str, value: T) -> Condition:
+    def visit_eq(expression: Expression, value: T) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_neq(column: str, value: T) -> Condition:
+    def visit_neq(expression: Expression, value: T) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_gt(column: str, value: T) -> Condition:
+    def visit_gt(expression: Expression, value: T) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_gte(column: str, value: T) -> Condition:
+    def visit_gte(expression: Expression, value: T) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_lt(column: str, value: T) -> Condition:
+    def visit_lt(expression: Expression, value: T) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_lte(column: str, value: T) -> Condition:
+    def visit_lte(expression: Expression, value: T) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_match(column: str, value: T) -> Condition:
+    def visit_match(expression: Expression, value: T) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_not_match(column: str, value: T) -> Condition:
+    def visit_not_match(expression: Expression, value: T) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_in(column: str, value: list[T]) -> Condition:
+    def visit_in(expression: Expression, value: list[T]) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_not_in(column: str, value: list[T]) -> Condition:
+    def visit_not_in(expression: Expression, value: list[T]) -> Condition:
         not_supported()
 
 
@@ -54,118 +55,118 @@ class BooleanScalar(GenericBase[bool]):
     """Boolean scalar column condition class."""
 
     @staticmethod
-    def visit_eq(column: str, value: bool) -> Condition:
-        return Condition(Column(column), Op.EQ, value)
+    def visit_eq(expression: Expression, value: bool) -> Condition:
+        return Condition(expression, Op.EQ, value)
 
     @staticmethod
-    def visit_neq(column: str, value: bool) -> Condition:
-        return Condition(Column(column), Op.NEQ, value)
+    def visit_neq(expression: Expression, value: bool) -> Condition:
+        return Condition(expression, Op.NEQ, value)
 
 
 class NumericScalar(GenericBase[Numeric]):
     """Scalar numeric column condition class."""
 
     @staticmethod
-    def visit_eq(column: str, value: T) -> Condition:
-        return Condition(Column(column), Op.EQ, value)
+    def visit_eq(expression: Expression, value: T) -> Condition:
+        return Condition(expression, Op.EQ, value)
 
     @staticmethod
-    def visit_neq(column: str, value: T) -> Condition:
-        return Condition(Column(column), Op.NEQ, value)
+    def visit_neq(expression: Expression, value: T) -> Condition:
+        return Condition(expression, Op.NEQ, value)
 
     @staticmethod
-    def visit_gt(column: str, value: T) -> Condition:
-        return Condition(Column(column), Op.GT, value)
+    def visit_gt(expression: Expression, value: T) -> Condition:
+        return Condition(expression, Op.GT, value)
 
     @staticmethod
-    def visit_gte(column: str, value: T) -> Condition:
-        return Condition(Column(column), Op.GTE, value)
+    def visit_gte(expression: Expression, value: T) -> Condition:
+        return Condition(expression, Op.GTE, value)
 
     @staticmethod
-    def visit_lt(column: str, value: T) -> Condition:
-        return Condition(Column(column), Op.LT, value)
+    def visit_lt(expression: Expression, value: T) -> Condition:
+        return Condition(expression, Op.LT, value)
 
     @staticmethod
-    def visit_lte(column: str, value: T) -> Condition:
-        return Condition(Column(column), Op.LTE, value)
+    def visit_lte(expression: Expression, value: T) -> Condition:
+        return Condition(expression, Op.LTE, value)
 
     @staticmethod
-    def visit_in(column: str, value: list[T]) -> Condition:
-        return Condition(Column(column), Op.IN, value)
+    def visit_in(expression: Expression, value: list[T]) -> Condition:
+        return Condition(expression, Op.IN, value)
 
     @staticmethod
-    def visit_not_in(column: str, value: list[T]) -> Condition:
-        return Condition(Column(column), Op.NOT_IN, value)
+    def visit_not_in(expression: Expression, value: list[T]) -> Condition:
+        return Condition(expression, Op.NOT_IN, value)
 
 
 class StringScalar(GenericBase[str]):
     """Scalar string column condition class."""
 
     @staticmethod
-    def visit_eq(column: str, value: str) -> Condition:
-        return Condition(Column(column), Op.EQ, value)
+    def visit_eq(expression: Expression, value: str) -> Condition:
+        return Condition(expression, Op.EQ, value)
 
     @staticmethod
-    def visit_neq(column: str, value: str) -> Condition:
-        return Condition(Column(column), Op.NEQ, value)
+    def visit_neq(expression: Expression, value: str) -> Condition:
+        return Condition(expression, Op.NEQ, value)
 
     @staticmethod
-    def visit_match(column: str, value: str) -> Condition:
+    def visit_match(expression: Expression, value: str) -> Condition:
         v = f"(?i){value[1:-1]}"
-        return Condition(Function("match", parameters=[Column(column), v]), Op.EQ, 1)
+        return Condition(Function("match", parameters=[expression, v]), Op.EQ, 1)
 
     @staticmethod
-    def visit_not_match(column: str, value: str) -> Condition:
+    def visit_not_match(expression: Expression, value: str) -> Condition:
         v = f"(?i){value[1:-1]}"
-        return Condition(Function("match", parameters=[Column(column), v]), Op.EQ, 0)
+        return Condition(Function("match", parameters=[expression, v]), Op.EQ, 0)
 
     @staticmethod
-    def visit_in(column: str, value: list[str]) -> Condition:
-        return Condition(Column(column), Op.IN, value)
+    def visit_in(expression: Expression, value: list[str]) -> Condition:
+        return Condition(expression, Op.IN, value)
 
     @staticmethod
-    def visit_not_in(column: str, value: list[str]) -> Condition:
-        return Condition(Column(column), Op.NOT_IN, value)
+    def visit_not_in(expression: Expression, value: list[str]) -> Condition:
+        return Condition(expression, Op.NOT_IN, value)
 
 
 class IPv4Scalar(GenericBase[str]):
     """Scalar string column condition class."""
 
     @staticmethod
-    def visit_eq(column: str, value: str) -> Condition:
-        return Condition(Column(column), Op.EQ, Function("IPv4StringToNum", parameters=[value]))
+    def visit_eq(expression: Expression, value: str) -> Condition:
+        return Condition(expression, Op.EQ, Function("IPv4StringToNum", parameters=[value]))
 
     @staticmethod
-    def visit_neq(column: str, value: str) -> Condition:
-        return Condition(Column(column), Op.NEQ, Function("IPv4StringToNum", parameters=[value]))
+    def visit_neq(expression: Expression, value: str) -> Condition:
+        return Condition(expression, Op.NEQ, Function("IPv4StringToNum", parameters=[value]))
 
     @staticmethod
-    def visit_in(column: str, value: list[str]) -> Condition:
+    def visit_in(expression: Expression, value: list[str]) -> Condition:
         values = [Function("IPv4StringToNum", parameters=[v]) for v in value]
-        return Condition(Column(column), Op.IN, values)
+        return Condition(expression, Op.IN, values)
 
     @staticmethod
-    def visit_not_in(column: str, value: list[str]) -> Condition:
+    def visit_not_in(expression: Expression, value: list[str]) -> Condition:
         values = [Function("IPv4StringToNum", parameters=[v]) for v in value]
-        return Condition(Column(column), Op.NOT_IN, values)
+        return Condition(expression, Op.NOT_IN, values)
 
 
 class GenericComposite(GenericBase[T]):
     @staticmethod
-    def visit_eq(column: str, value: T) -> Condition:
-        return Condition(Function("has", parameters=[Column(column), value]), Op.EQ, 1)
+    def visit_eq(expression: Expression, value: T) -> Condition:
+        return Condition(Function("has", parameters=[expression, value]), Op.EQ, 1)
 
     @staticmethod
-    def visit_neq(column: str, value: T) -> Condition:
-        return Condition(Function("has", parameters=[Column(column), value]), Op.EQ, 0)
+    def visit_neq(expression: Expression, value: T) -> Condition:
+        return Condition(Function("has", parameters=[expression, value]), Op.EQ, 0)
 
     @staticmethod
-    def visit_in(column: str, value: list[T]) -> Condition:
-        return Condition(Function("hasAny", parameters=[Column(column), value]), Op.EQ, 1)
+    def visit_in(expression: Expression, value: list[T]) -> Condition:
+        return Condition(Function("hasAny", parameters=[expression, value]), Op.EQ, 1)
 
     @staticmethod
-    def visit_not_in(column: str, value: list[T]) -> Condition:
-        return Condition(Function("hasAny", parameters=[Column(column), value]), Op.EQ, 0)
+    def visit_not_in(expression: Expression, value: list[T]) -> Condition:
+        return Condition(Function("hasAny", parameters=[expression, value]), Op.EQ, 0)
 
 
 class NumericComposite(GenericComposite[Numeric]):

@@ -9,28 +9,28 @@ class TagScalar(GenericBase[str]):
     """Tag scalar condition class."""
 
     @staticmethod
-    def visit_eq(column: str, value: str) -> Condition:
-        return Condition(match_key_value_exact(column, value), Op.EQ, 1)
+    def visit_eq(expression_name: str, value: str) -> Condition:
+        return Condition(match_key_value_exact(expression_name, value), Op.EQ, 1)
 
     @staticmethod
-    def visit_neq(column: str, value: str) -> Condition:
-        return Condition(match_key_value_exact(column, value), Op.EQ, 0)
+    def visit_neq(expression_name: str, value: str) -> Condition:
+        return Condition(match_key_value_exact(expression_name, value), Op.EQ, 0)
 
     @staticmethod
-    def visit_in(column: str, value: list[str]) -> Condition:
-        return Condition(match_key_values_exact(column, value), Op.EQ, 1)
+    def visit_in(expression_name: str, value: list[str]) -> Condition:
+        return Condition(match_key_values_exact(expression_name, value), Op.EQ, 1)
 
     @staticmethod
-    def visit_not_in(column: str, value: list[str]) -> Condition:
-        return Condition(match_key_values_exact(column, value), Op.EQ, 0)
+    def visit_not_in(expression_name: str, value: list[str]) -> Condition:
+        return Condition(match_key_values_exact(expression_name, value), Op.EQ, 0)
 
     @staticmethod
-    def visit_match(column: str, value: str) -> Condition:
-        return Condition(match_key_value_wildcard(column, value), Op.EQ, 1)
+    def visit_match(expression_name: str, value: str) -> Condition:
+        return Condition(match_key_value_wildcard(expression_name, value), Op.EQ, 1)
 
     @staticmethod
-    def visit_not_match(column: str, value: str) -> Condition:
-        return Condition(match_key_value_wildcard(column, value), Op.EQ, 0)
+    def visit_not_match(expression_name: str, value: str) -> Condition:
+        return Condition(match_key_value_wildcard(expression_name, value), Op.EQ, 0)
 
 
 def match_key_value_exact(key: str, value: str) -> Function:
@@ -56,7 +56,7 @@ def _get_tag_values(key: str) -> Function:
         "arrayFilter",
         parameters=[
             Lambda(["key", "mask"], Function("equals", parameters=[Identifier("mask"), 1])),
-            Column("tv"),
+            Column("tags.value"),
             _bitmask_on_tag_key(key),
         ],
     )
@@ -73,7 +73,7 @@ def _bitmask_on_tag_key(key: str) -> Function:
         parameters=[
             Lambda(["i", "key"], Function("equals", parameters=[Identifier("key"), key])),
             Function("arrayEnumerate", parameters=[Column("tk")]),
-            Column("tk"),
+            Column("tags.key"),
         ],
     )
 
