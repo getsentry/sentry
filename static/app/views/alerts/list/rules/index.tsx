@@ -95,8 +95,10 @@ class AlertRulesList extends DeprecatedAsyncComponent<
     ownerValue: string
   ) => {
     const {organization} = this.props;
-    const alertPath = rule.type === 'alert_rule' ? 'alert-rules' : 'rules';
-    const endpoint = `/projects/${organization.slug}/${projectId}/${alertPath}/${rule.id}/`;
+    const endpoint =
+      rule.type === 'alert_rule'
+        ? `/organizations/${organization.slug}/alert-rules/${rule.id}`
+        : `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`;
     const updatedRule = {...rule, owner: ownerValue};
 
     this.api.request(endpoint, {
@@ -113,11 +115,11 @@ class AlertRulesList extends DeprecatedAsyncComponent<
 
   handleDeleteRule = async (projectId: string, rule: CombinedMetricIssueAlerts) => {
     const {organization} = this.props;
-    const alertPath = isIssueAlert(rule) ? 'rules' : 'alert-rules';
-
     try {
       await this.api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/${alertPath}/${rule.id}/`,
+        isIssueAlert(rule)
+          ? `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`
+          : `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
         {
           method: 'DELETE',
         }

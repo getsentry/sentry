@@ -63,6 +63,12 @@ export const supportedPlatformExpectedDocKeys: Record<
   ],
   javascript: ['1-install', '2-configure-document-policy', '3-configure'],
   'javascript-react': ['1-install', '2-configure-document-policy', '3-configure'],
+  'react-native': [
+    '0-alert',
+    '1-install',
+    '2-configure-performance',
+    '3-configure-profiling',
+  ],
 };
 
 function makeDocKey(platformId: PlatformKey, key: string) {

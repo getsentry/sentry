@@ -11,7 +11,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class FileBlobTest(TestCase):
     def test_from_file(self):
         fileobj = ContentFile(b"foo bar")

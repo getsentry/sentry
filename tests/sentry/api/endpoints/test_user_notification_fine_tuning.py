@@ -5,7 +5,6 @@ from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
-@control_silo_test(stable=True)
 class UserNotificationFineTuningTestBase(APITestCase):
     endpoint = "sentry-api-0-user-notifications-fine-tuning"
 
@@ -55,7 +54,8 @@ class UserNotificationFineTuningGetTest(UserNotificationFineTuningTestBase):
         assert response.data.get(self.organization.id) == "0"
 
 
-@control_silo_test
+# TODO(hybrid-cloud): Fix underlying logic, which is not silo safe
+@control_silo_test()
 class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
     method = "put"
 
