@@ -194,8 +194,8 @@ def _try_handle_high_volume_task_trigger(ts: datetime):
     # close, but in the case of a backlog, this will be much higher
     total_delay = reference_ts - datetime.now().timestamp()
 
-    metrics.incr("monitors.task.triggered_via_high_volume_clock", sample_rate=1.0)
-    metrics.gauge("monitors.task.high_volume_clock_delay", total_delay)
+    logger.info(f"Monitor consumer clock tick: {reference_datetime}")
+    metrics.gauge("monitors.task.high_volume_clock_delay", total_delay, sample_rate=1.0)
 
     # If more than exactly a minute has passed then we've skipped a
     # task run, report that to sentry, it is a problem.
