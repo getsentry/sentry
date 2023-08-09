@@ -9,7 +9,7 @@ from sentry.models import Actor, Project, Rule
 class Updater(Mediator):
     rule = Param(Rule)
     name = Param(str, required=False)
-    owner = Param(Actor, required=False)
+    owner = Param(int, required=False)
     environment = Param(int, required=False)
     project = Param(Project)
     action_match = Param(str, required=False)
@@ -33,11 +33,11 @@ class Updater(Mediator):
         self.rule.save()
         return self.rule
 
-    @if_param("name")
     def _update_name(self):
-        self.rule.label = self.name
+        if self.name:
+            self.rule.label = self.name
 
-    def _update_owner(self):
+    def _update_owner(self) -> None:
         self.rule.owner = Actor.objects.get(id=self.owner) if self.owner else None
 
     def _update_environment(self):
