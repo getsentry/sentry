@@ -3,11 +3,10 @@ from __future__ import annotations
 from typing import List, Optional
 
 from sentry.api.serializers import ProjectSerializer
-from sentry.models import Project, ProjectOption, Team
+from sentry.models import Project, ProjectOption
 from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
-from sentry.services.hybrid_cloud.organization.model import RpcTeam
 from sentry.services.hybrid_cloud.project import (
     ProjectFilterArgs,
     ProjectService,
