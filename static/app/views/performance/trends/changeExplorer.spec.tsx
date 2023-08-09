@@ -208,6 +208,7 @@ describe('Performance > Trends > Performance Change Explorer', function () {
             'p50()': 47.34580982348902,
             'tps()': 3.7226926286168966,
             'count()': 345,
+            'failure_rate()': 0.23498234,
           },
         ],
         meta: {
@@ -216,16 +217,18 @@ describe('Performance > Trends > Performance Change Explorer', function () {
             '950()': 'duration',
             'tps()': 'number',
             'count()': 'number',
+            'failure_rate()': 'number',
           },
           units: {
             'p95()': 'millisecond',
             'p50()': 'millisecond',
             'tps()': null,
             'count()': null,
+            'failure_rate()': null,
           },
           isMetricsData: true,
           tips: {},
-          dataset: 'metrics',
+          dataset: 'metricsEnhanced',
         },
       },
     });

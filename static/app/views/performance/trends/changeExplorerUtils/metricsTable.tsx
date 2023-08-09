@@ -7,9 +7,7 @@ import GridEditable, {
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import {TableData, useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
@@ -43,7 +41,7 @@ type MetricsTableProps = {
   trendView: TrendView;
 };
 
-const fieldsNeeded: AggregationKeyWithAlias[] = ['tps', 'p50', 'p95', 'count'];
+const fieldsNeeded: AggregationKeyWithAlias[] = ['tps', 'p50', 'p95', 'failure_rate'];
 
 type MetricColumnKey = 'metric' | 'before' | 'after' | 'change';
 
@@ -83,17 +81,6 @@ const COLUMN_TYPE: Record<MetricColumnKey, ColumnType> = {
   change: 'percentage',
 };
 
-const errorsTooltip = (
-  <div style={{display: 'flex', gap: space(1)}}>
-    <p style={{marginBottom: 0}}>{'Errors'}</p>
-    <QuestionTooltip
-      size="sm"
-      title={t('Errors per 1m transactions')}
-      position="bottom-start"
-    />
-  </div>
-);
-
 export function MetricsTable(props: MetricsTableProps) {
   const {trendFunction, transaction, trendView, organization, location, isLoading} =
     props;
@@ -126,7 +113,7 @@ export function MetricsTable(props: MetricsTableProps) {
       breakpointTime,
       fieldsNeeded,
       'transaction',
-      DiscoverDatasets.METRICS,
+      DiscoverDatasets.METRICS_ENHANCED,
       organization,
       trendView,
       transaction.transaction,
@@ -140,36 +127,7 @@ export function MetricsTable(props: MetricsTableProps) {
       endTime,
       fieldsNeeded,
       'transaction',
-      DiscoverDatasets.METRICS,
-      organization,
-      trendView,
-      transaction.transaction,
-      location
-    )
-  );
-
-  const {data: beforeBreakpointErrors, isLoading: isLoadingBeforeErrors} =
-    useDiscoverQuery(
-      getQueryParams(
-        startTime,
-        breakpointTime,
-        ['count'],
-        'error',
-        DiscoverDatasets.DISCOVER,
-        organization,
-        trendView,
-        transaction.transaction,
-        location
-      )
-    );
-
-  const {data: afterBreakpointErrors, isLoading: isLoadingAfterErrors} = useDiscoverQuery(
-    getQueryParams(
-      breakpointTime,
-      endTime,
-      ['count'],
-      'error',
-      DiscoverDatasets.DISCOVER,
+      DiscoverDatasets.METRICS_ENHANCED,
       organization,
       trendView,
       transaction.transaction,
@@ -211,30 +169,21 @@ export function MetricsTable(props: MetricsTableProps) {
       )
     : p95;
 
-  const beforeBreakpointErrorsAvg = getAvgdErrorsData(
-    beforeBreakpointErrors,
-    beforeBreakpoint
-  );
-  const afterBreakpointErrorsAvg = getAvgdErrorsData(
-    afterBreakpointErrors,
-    afterBreakpoint
-  );
-
-  const errors: TableDataRow = getEventsRowData(
-    'count()',
-    'Errors',
-    '',
+  const failureRate: TableDataRow = getEventsRowData(
+    'failure_rate()',
+    'Failure Rate',
+    '%',
     0,
-    false,
-    beforeBreakpointErrorsAvg,
-    afterBreakpointErrorsAvg
+    true,
+    beforeBreakpoint,
+    afterBreakpoint
   );
 
   const columnOrder = MetricColumnOrder.map(column => COLUMNS[column]);
 
   return (
     <GridEditable
-      data={[throughput, p50Events, p95Events, errors]}
+      data={[throughput, p50Events, p95Events, failureRate]}
       columnOrder={columnOrder}
       columnSortBy={[]}
       grid={{
@@ -242,13 +191,7 @@ export function MetricsTable(props: MetricsTableProps) {
         renderBodyCell,
       }}
       location={location}
-      isLoading={
-        isLoadingBefore ||
-        isLoadingAfter ||
-        isLoading ||
-        isLoadingBeforeErrors ||
-        isLoadingAfterErrors
-      }
+      isLoading={isLoadingBefore || isLoadingAfter || isLoading}
     />
   );
 }
@@ -258,7 +201,7 @@ function getEventsRowData(
   rowTitle: string,
   suffix: string,
   nullValue: string | number,
-  wholeNumbers: boolean,
+  percentage: boolean,
   beforeData?: TableData,
   afterData?: TableData
 ): TableDataRow {
@@ -268,12 +211,12 @@ function getEventsRowData(
   ) {
     return {
       metric: rowTitle,
-      before: !wholeNumbers
+      before: !percentage
         ? toFormattedNumber(beforeData.data[0][field].toString(), 1) + ' ' + suffix
-        : beforeData.data[0][field],
-      after: !wholeNumbers
+        : formatPercentage(beforeData.data[0][field] as number, 1),
+      after: !percentage
         ? toFormattedNumber(afterData.data[0][field].toString(), 1) + ' ' + suffix
-        : afterData.data[0][field],
+        : formatPercentage(afterData.data[0][field] as number, 1),
       change:
         beforeData.data[0][field] && afterData.data[0][field]
           ? formatPercentage(
@@ -348,29 +291,6 @@ export function relativeChange(before: number, after: number) {
   return (after - before) / before;
 }
 
-function getAvgdErrorsData(
-  breakpointErrors: TableData | undefined,
-  breakpointData: TableData | undefined
-) {
-  const breakpointErrorsAvg: TableData = {
-    data: [
-      {
-        id: 'id',
-        'count()': 0,
-      },
-    ],
-  };
-
-  if (breakpointErrors?.data[0]['count()'] && breakpointData?.data[0]['count()']) {
-    breakpointErrorsAvg.data[0]['count()'] =
-      ((breakpointErrors?.data[0]['count()'] as number) /
-        (breakpointData?.data[0]['count()'] as number)) *
-      1000000;
-  }
-
-  return breakpointErrorsAvg;
-}
-
 function renderHeadCell(column: MetricColumn, _index: number): ReactNode {
   const align = fieldAlignment(column.key, COLUMN_TYPE[column.key]);
   return (
@@ -406,14 +326,6 @@ export function renderBodyCell(
     }
   } else {
     data = dataRow[column.key];
-  }
-
-  if (dataRow[column.key] === 'Errors') {
-    return (
-      <Container data-test-id={'pce-metrics-chart-row-' + column.key}>
-        {errorsTooltip}
-      </Container>
-    );
   }
 
   return (
