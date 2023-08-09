@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Generic, TypeVar, Union
+from uuid import UUID
 
 from snuba_sdk import Condition, Function, Op
 from snuba_sdk.expressions import Expression
@@ -126,6 +127,26 @@ class StringScalar(GenericBase[str]):
 
     @staticmethod
     def visit_not_in(expression: Expression, value: list[str]) -> Condition:
+        return Condition(expression, Op.NOT_IN, value)
+
+
+class UUIDScalar(GenericBase[UUID]):
+    """Scalar UUID column condition class."""
+
+    @staticmethod
+    def visit_eq(expression: Expression, value: UUID) -> Condition:
+        return Condition(expression, Op.EQ, value)
+
+    @staticmethod
+    def visit_neq(expression: Expression, value: UUID) -> Condition:
+        return Condition(expression, Op.NEQ, value)
+
+    @staticmethod
+    def visit_in(expression: Expression, value: list[UUID]) -> Condition:
+        return Condition(expression, Op.IN, value)
+
+    @staticmethod
+    def visit_not_in(expression: Expression, value: list[UUID]) -> Condition:
         return Condition(expression, Op.NOT_IN, value)
 
 

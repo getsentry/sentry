@@ -22,8 +22,8 @@ def parse_str(value: str) -> str:
     return value
 
 
-def parse_uuid(value: str) -> str:
+def parse_uuid(value: str) -> uuid.UUID:
     try:
-        return str(uuid.UUID(value))
+        return uuid.UUID(value)
     except ValueError:
         raise Exception("Failed to parse UUID.")

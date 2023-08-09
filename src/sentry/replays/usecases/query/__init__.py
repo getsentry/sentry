@@ -5,12 +5,12 @@ from typing import Union
 from snuba_sdk import Condition
 
 from sentry.api.event_search import SearchFilter
-from sentry.replays.lib.new_query.fields import NamedExpressionField
+from sentry.replays.lib.new_query.fields import ColumnField
 from sentry.replays.usecases.query.fields import ComputedField
 
 
 def handle_search_filters(
-    search_config: dict[str, Union[NamedExpressionField, ComputedField]],
+    search_config: dict[str, Union[ColumnField, ComputedField]],
     field_name_map: dict[str, str],
     search_filters: list[SearchFilter],
 ) -> list[Condition]:
@@ -21,7 +21,7 @@ def handle_search_filters(
 
 
 def search_filter_to_condition(
-    search_config: dict[str, Union[NamedExpressionField, ComputedField]],
+    search_config: dict[str, Union[ColumnField, ComputedField]],
     field_name_map: dict[str, str],
     search_filter: SearchFilter,
 ) -> Condition:

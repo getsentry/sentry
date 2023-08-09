@@ -57,8 +57,17 @@ class BaseField(Generic[T]):
         return visitor(expression, value)
 
 
-class NamedExpressionField(BaseField[T]):
-    def apply(self, expression_name: str, search_filter: SearchFilter) -> Condition:
+class ColumnField(BaseField[T]):
+    """Column fields target one column."""
+
+    def __init__(
+        self, column_name: str, parse_fn: Callable[[str], T], query_type: Type[GenericBase[T]]
+    ) -> None:
+        self.column_name = column_name
+        self.parse = parse_fn
+        self.query = query_type
+
+    def apply(self, search_filter: SearchFilter) -> Condition:
         """Apply a search operation against any named expression.
 
         A named expression can be a column name or an expression alias.
@@ -74,29 +83,35 @@ class NamedExpressionField(BaseField[T]):
             else:
                 applicable = self._apply_scalar
 
-            return applicable(self.as_expression(expression_name), operator, parsed_value)
+            return applicable(self.expression, operator, parsed_value)
         else:
             parsed_value = [self.parse(str(v)) for v in value]
-            return self._apply_composite(
-                self.as_expression(expression_name), operator, parsed_value
-            )
+            return self._apply_composite(self.expression, operator, parsed_value)
 
-    def as_expression(self, expression_name: str) -> Column:
-        return Column(expression_name)
-
-
-class CountExpressionField(NamedExpressionField[int]):
-    def as_expression(self, expression_name: str) -> Function:
-        return Function("count", parameters=[Column(expression_name)])
+    @property
+    def expression(self) -> Column:
+        return Column(self.column_name)
 
 
-class SumExpressionField(NamedExpressionField[int]):
-    def as_expression(self, expression_name: str) -> Function:
-        return Function("sum", parameters=[Column(expression_name)])
+class StringColumnField(ColumnField[str]):
+    """."""
 
 
-class SumLengthExpressionField(NamedExpressionField[int]):
-    def as_expression(self, expression_name: str) -> Function:
+class CountExpressionField(ColumnField[int]):
+    @property
+    def expression(self) -> Function:
+        return Function("count", parameters=[Column(self.column_name)])
+
+
+class SumExpressionField(ColumnField[int]):
+    @property
+    def expression(self) -> Function:
+        return Function("sum", parameters=[Column(self.column_name)])
+
+
+class SumLengthExpressionField(ColumnField[int]):
+    @property
+    def expression(self) -> Function:
         return Function(
-            "sum", parameters=[Function("length", parameters=[Column(expression_name)])]
+            "sum", parameters=[Function("length", parameters=[Column(self.column_name)])]
         )
