@@ -6,7 +6,7 @@ from pathlib import Path
 from django.core.management import call_command
 
 from sentry.backup.comparators import ComparatorMap
-from sentry.backup.exports import exports
+from sentry.backup.exports import OldExportConfig, exports
 from sentry.backup.findings import ComparatorFindings
 from sentry.backup.helpers import get_exportable_final_derivations_of, get_final_derivations_of
 from sentry.backup.imports import imports
@@ -39,7 +39,7 @@ def export_to_file(path: Path) -> JSONData:
 
     json_file_path = str(path)
     with open(json_file_path, "w+") as tmp_file:
-        exports(tmp_file, 2, None, NOOP_PRINTER)
+        exports(tmp_file, OldExportConfig(), 2, NOOP_PRINTER)
 
     with open(json_file_path) as tmp_file:
         output = json.load(tmp_file)

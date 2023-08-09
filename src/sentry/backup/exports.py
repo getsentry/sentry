@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from typing import NamedTuple
 
 import click
 from django.core.serializers import serialize
@@ -76,6 +77,7 @@ def sort_dependencies():
                 rel_model = getattr(field.remote_field, "model", None)
                 if rel_model is not None and rel_model != model:
                     deps.append(rel_model)
+
             model_dependencies.append((model, deps))
 
     model_dependencies.reverse()
@@ -119,20 +121,28 @@ def sort_dependencies():
     return model_list
 
 
-def exports(dest, indent, exclude, printer=click.echo):
-    """Exports core metadata for the Sentry installation."""
+class OldExportConfig(NamedTuple):
+    """While we are migrating to the new backup system, we need to take care not to break the old
+    and relatively untested workflows. This model allows us to stub in the old configs."""
 
-    if exclude is None:
-        exclude = ()
-    else:
-        exclude = exclude.lower().split(",")
+    # Do we include models that aren't in `sentry.*` databases, like the native Django ones (sites,
+    # sessions, etc)?
+    include_non_sentry_models: bool = False
+
+    # A list of models to exclude from the export - eventually we want to deprecate and remove this
+    # option.
+    excluded_models: set[str] = set()
+
+
+def exports(dest, old_config: OldExportConfig, indent: int, printer=click.echo):
+    """Exports core data for the Sentry installation."""
 
     def yield_objects():
         # Collate the objects to be serialized.
         for model in sort_dependencies():
             if (
-                not getattr(model, "__include_in_export__", True)
-                or model.__name__.lower() in exclude
+                not getattr(model, "__include_in_export__", old_config.include_non_sentry_models)
+                or model.__name__.lower() in old_config.excluded_models
                 or model._meta.proxy
             ):
                 printer(f">> Skipping model <{model.__name__}>", err=True)
