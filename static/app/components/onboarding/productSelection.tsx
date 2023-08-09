@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -19,6 +20,49 @@ export enum ProductSolution {
   PERFORMANCE_MONITORING = 'performance-monitoring',
   SESSION_REPLAY = 'session-replay',
 }
+
+// This is the list of products that are available for each platform
+// Since the ProductSelection component is rendered in the onboarding flow, it is ok to have this list here
+// NOTE: the export is used in the tests only, please don't use it elsewhere
+export const platformProductAvailability = {
+  javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
+  'javascript-react': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-vue': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-angular': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-ember': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-gatsby': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-nextjs': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-remix': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-svelte': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-sveltekit': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+};
 
 export type DisabledProduct = {
   reason: string;
@@ -109,10 +153,6 @@ function Product({
 
 export type ProductSelectionProps = {
   /**
-   * List of products to display
-   */
-  products: ProductSolution[];
-  /**
    * List of products that are checked by default
    */
   defaultSelectedProducts?: ProductSolution[];
@@ -124,7 +164,15 @@ export type ProductSelectionProps = {
    * If true, the loader script is used instead of the npm/yarn guide.
    */
   lazyLoader?: boolean;
+  /**
+   * The platform key of the project (e.g. javascript-react, python-django, etc.)
+   */
+  platform?: PlatformKey;
   skipLazyLoader?: () => void;
+  /**
+   * If true, the component has a bottom margin of 20px
+   */
+  withBottomMargin?: boolean;
 };
 
 export function ProductSelection({
@@ -132,14 +180,18 @@ export function ProductSelection({
   disabledProducts,
   lazyLoader,
   skipLazyLoader,
-  products,
+  platform,
+  withBottomMargin,
 }: ProductSelectionProps) {
   const router = useRouter();
   const urlProducts = decodeList(router.location.query.product);
+  const products: ProductSolution[] | undefined = platform
+    ? platformProductAvailability[platform]
+    : undefined;
 
   const defaultProducts = defaultSelectedProducts
     ? defaultSelectedProducts.filter(defaultSelectedProduct =>
-        products.includes(defaultSelectedProduct)
+        (products ?? []).includes(defaultSelectedProduct)
       )
     : products;
 
@@ -151,7 +203,7 @@ export function ProductSelection({
         product: defaultProducts,
       },
     });
-    // Adding defaultSelectedProducts to the dependency array causes an max-depth error
+    // Adding defaultProducts to the dependency array causes an max-depth error
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
@@ -169,6 +221,11 @@ export function ProductSelection({
     },
     [router, urlProducts]
   );
+
+  if (!products) {
+    // if the platform does not support any product, we don't render anything
+    return null;
+  }
 
   return (
     <Fragment>
@@ -233,7 +290,7 @@ export function ProductSelection({
           })}
         </AlternativeInstallationAlert>
       )}
-      <Divider />
+      <Divider withBottomMargin={withBottomMargin} />
     </Fragment>
   );
 }
@@ -288,11 +345,12 @@ const ProductButtonInner = styled('div')`
   align-items: center;
 `;
 
-const Divider = styled('hr')`
+const Divider = styled('hr')<{withBottomMargin?: boolean}>`
   height: 1px;
   width: 100%;
   background: ${p => p.theme.border};
   border: none;
+  ${p => p.withBottomMargin && `margin-bottom: ${space(3)}`}
 `;
 
 const TooltipDescription = styled('div')`

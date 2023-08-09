@@ -14,8 +14,6 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {platformProductAvailability} from './utils';
-
 const ProductSelectionAvailabilityHook = HookOrDefault({
   hookName: 'component:product-selection-availability',
 });
@@ -47,9 +45,6 @@ export function Layout({
   const organization = useOrganization();
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
-  const displayProductSelection =
-    !isSelfHosted && platformKey && platformProductAvailability[platformKey];
-
   return (
     <Wrapper>
       {introduction && (
@@ -58,16 +53,16 @@ export function Layout({
           <Divider />
         </Fragment>
       )}
-      {displayProductSelection && newOrg && (
-        <ProductSelection products={platformProductAvailability[platformKey]} />
+      {!isSelfHosted && newOrg && (
+        <ProductSelection platform={platformKey} withBottomMargin />
       )}
-      {displayProductSelection && !newOrg && (
+      {!isSelfHosted && !newOrg && (
         <ProductSelectionAvailabilityHook
           organization={organization}
-          products={platformProductAvailability[platformKey]}
+          platform={platformKey}
         />
       )}
-      <Steps withTopSpacing={!displayProductSelection && newOrg}>
+      <Steps>
         {steps.map(step => (
           <Step key={step.title ?? step.type} {...step} />
         ))}
@@ -98,11 +93,10 @@ const Divider = styled('hr')`
   border: none;
 `;
 
-const Steps = styled('div')<{withTopSpacing?: boolean}>`
+const Steps = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  ${p => p.withTopSpacing && `margin-top: ${space(3)}`}
 `;
 
 const Introduction = styled('div')`

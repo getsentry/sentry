@@ -10,7 +10,6 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
-import {platformProductAvailability} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   ProductSelection,
   ProductSolution,
@@ -149,14 +148,10 @@ export function SetupDocsLoader({
           organization={organization}
           lazyLoader
           skipLazyLoader={close}
-          products={platformProductAvailability[currentPlatform]}
+          platform={currentPlatform}
         />
       ) : (
-        <ProductSelection
-          lazyLoader
-          skipLazyLoader={close}
-          products={platformProductAvailability[currentPlatform]}
-        />
+        <ProductSelection lazyLoader skipLazyLoader={close} platform={currentPlatform} />
       )}
 
       {projectKeyUpdateError && (

@@ -3,6 +3,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
+  platformProductAvailability,
   ProductSelection,
   ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
@@ -18,17 +19,9 @@ describe('Onboarding Product Selection', function () {
       },
     });
 
-    render(
-      <ProductSelection
-        products={[
-          ProductSolution.PERFORMANCE_MONITORING,
-          ProductSolution.SESSION_REPLAY,
-        ]}
-      />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<ProductSelection platform="javascript-react" />, {
+      context: routerContext,
+    });
 
     // Introduction
     expect(
@@ -106,10 +99,7 @@ describe('Onboarding Product Selection', function () {
       <ProductSelection
         lazyLoader
         skipLazyLoader={skipLazyLoader}
-        products={[
-          ProductSolution.PERFORMANCE_MONITORING,
-          ProductSolution.SESSION_REPLAY,
-        ]}
+        platform="javascript-react"
       />,
       {
         context: routerContext,
@@ -153,10 +143,7 @@ describe('Onboarding Product Selection', function () {
     render(
       <ProductSelection
         disabledProducts={disabledProducts}
-        products={[
-          ProductSolution.PERFORMANCE_MONITORING,
-          ProductSolution.SESSION_REPLAY,
-        ]}
+        platform="javascript-react"
       />,
       {
         context: routerContext,
@@ -179,6 +166,10 @@ describe('Onboarding Product Selection', function () {
   });
 
   it('does not render Session Replay', async function () {
+    platformProductAvailability['javascript-react'] = [
+      ProductSolution.PERFORMANCE_MONITORING,
+    ];
+
     const {router, routerContext} = initializeOrg({
       router: {
         location: {
@@ -188,7 +179,7 @@ describe('Onboarding Product Selection', function () {
       },
     });
 
-    render(<ProductSelection products={[ProductSolution.PERFORMANCE_MONITORING]} />, {
+    render(<ProductSelection platform="javascript-react" />, {
       context: routerContext,
     });
 
