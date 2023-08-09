@@ -45,14 +45,6 @@ jobs:
           # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
           # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
           fail-fast: false
-          matrix:
-            # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-            instance: [0, 1, 2, 3, 4]
-            pg-version: ['14']
-
-        env:
-          # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
-          MATRIX_INSTANCE_TOTAL: 5
         steps:
         - uses: actions/checkout@v3
           with:
@@ -70,7 +62,7 @@ jobs:
             # overhead of running bigtable in all backend tests
             # is way smaller than the time it would take to run in its own job.
             bigtable: true
-            pg-version: ${{ matrix.pg-version }}
+            pg-version: 14
         - name: Download Codecov CLI
           run: |
             pip install --extra-index-url https://pypi.org/simple --no-cache-dir pytest codecov-cli
