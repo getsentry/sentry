@@ -21,7 +21,13 @@ describe('SQLishFormatter', function () {
     it('Adds newlines for keywords in INSERTs', () => {
       expect(
         formatter.toString('INSERT INTO users (id, name) VALUES (:c0, :c1) RETURNING *')
-      ).toEqual('INSERT INTO users (id, name) \nVALUES (:c0, :c1) \nRETURNING *');
+      ).toEqual('INSERT INTO users (id, name) \nVALUES (\n  :c0, :c1\n) \nRETURNING *');
+    });
+
+    it('Adds indentation for keywords followed by parentheses', () => {
+      expect(formatter.toString('SELECT * FROM (SELECT * FROM users))')).toEqual(
+        'SELECT * \nFROM (\n  SELECT * \n  FROM users\n))'
+      );
     });
   });
 
