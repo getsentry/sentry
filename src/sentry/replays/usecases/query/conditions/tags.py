@@ -72,7 +72,7 @@ def _bitmask_on_tag_key(key: str) -> Function:
         "arrayMap",
         parameters=[
             Lambda(["i", "key"], Function("equals", parameters=[Identifier("key"), key])),
-            Function("arrayEnumerate", parameters=[Column("tk")]),
+            Function("arrayEnumerate", parameters=[Column("tags.key")]),
             Column("tags.key"),
         ],
     )
