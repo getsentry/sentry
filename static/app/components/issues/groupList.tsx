@@ -337,7 +337,6 @@ export {GroupList};
 export default withApi(withSentryRouter(GroupList));
 
 const GroupPlaceholder = styled('div')`
-  grid-column: 1 / -1;
   padding: ${space(1)};
 
   &:not(:last-child) {
