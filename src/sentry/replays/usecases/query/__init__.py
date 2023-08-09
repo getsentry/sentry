@@ -90,6 +90,8 @@ def search_filter_to_condition(
         return field.apply(search_filter)
     else:
         field = search_config["*"]
+        if field_name.startswith("tags["):
+            field_name = field_name[5:-1]
         return field.apply(field_name, search_filter)
 
 
