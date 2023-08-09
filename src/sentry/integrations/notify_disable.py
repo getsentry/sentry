@@ -77,6 +77,8 @@ def notify_disable(
         provider=integration_slug
         if integration_slug and "sentry-app" in redis_key
         else integration_name,  # integration_name is the provider for first party integrations
+        type="sentry_app" if "sentry-app" in redis_key else "first-party",
+        integration_id=redis_key[redis_key.find(":") :],
         organization_id=organization.id,
         user_id=organization.default_owner_id(),
     )
