@@ -23,8 +23,8 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
 function DomMutationRow({
   currentHoverTime,
   currentTime,
-  handleMouseEnter,
-  handleMouseLeave,
+  onMouseEnter,
+  onMouseLeave,
   mutation,
   onClickTimestamp,
   startTimestampMs,
@@ -46,8 +46,8 @@ function DomMutationRow({
         beforeHoverTime: currentHoverTime !== undefined && isBeforeHover,
         afterHoverTime: currentHoverTime !== undefined && !isBeforeHover,
       })}
-      onMouseEnter={() => handleMouseEnter(frame)}
-      onMouseLeave={() => handleMouseLeave(frame)}
+      onMouseEnter={() => onMouseEnter(frame)}
+      onMouseLeave={() => onMouseLeave(frame)}
       style={style}
     >
       <IconWrapper color={color} hasOccurred={hasOccurred}>
