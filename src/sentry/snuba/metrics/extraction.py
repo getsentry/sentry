@@ -239,6 +239,13 @@ class SupportedBy:
     def both(cls):
         return cls(standard_metrics=True, on_demand_metrics=True)
 
+    @classmethod
+    def combine(cls, *supported_by):
+        return cls(
+            standard_metrics=all(s.standard_metrics for s in supported_by),
+            on_demand_metrics=all(s.on_demand_metrics for s in supported_by),
+        )
+
 
 def should_use_on_demand_metrics(
     dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
@@ -248,23 +255,12 @@ def should_use_on_demand_metrics(
     if not dataset or Dataset(dataset) != Dataset.PerformanceMetrics:
         return False
 
-    supported_by = get_supported_by(aggregate, query)
-
-    return not supported_by.standard_metrics and supported_by.on_demand_metrics
-
-
-def get_supported_by(aggregate: str, query: Optional[str] = ""):
     aggregate_supported_by = _get_aggregate_supported_by(aggregate)
     query_supported_by = _get_query_supported_by(query)
 
-    standard_metrics = (
-        aggregate_supported_by.standard_metrics and query_supported_by.standard_metrics
-    )
-    on_demand_metrics = (
-        aggregate_supported_by.on_demand_metrics and query_supported_by.on_demand_metrics
-    )
+    supported_by = SupportedBy.combine(aggregate_supported_by, query_supported_by)
 
-    return SupportedBy(standard_metrics=standard_metrics, on_demand_metrics=on_demand_metrics)
+    return not supported_by.standard_metrics and supported_by.on_demand_metrics
 
 
 def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
@@ -275,7 +271,10 @@ def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
 
         function, args, _ = fields.parse_function(aggregate)
 
-        return _get_fn_supported_by(function, args)
+        function_support = _get_function_support(function)
+        args_support = _get_args_support(args)
+
+        return SupportedBy.combine(function_support, args_support)
 
     except InvalidSearchQuery:
         logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)
@@ -283,23 +282,12 @@ def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
     return SupportedBy.neither()
 
 
-def _get_fn_supported_by(function: str, args: Sequence[str]) -> SupportedBy:
-    fn_support = _get_fn_support(function)
-    args_support = _get_args_support(args)
-
-    standard_metrics = fn_support.standard_metrics and args_support.standard_metrics
-    on_demand_metrics = fn_support.on_demand_metrics and args_support.on_demand_metrics
-
-    return SupportedBy(standard_metrics=standard_metrics, on_demand_metrics=on_demand_metrics)
-
-
-def _get_fn_support(function: str) -> SupportedBy:
-    on_demand_metrics = False
-
-    if function in _SEARCH_TO_METRIC_AGGREGATES and function in _AGGREGATE_TO_METRIC_TYPE:
-        on_demand_metrics = True
-
-    return SupportedBy(standard_metrics=True, on_demand_metrics=on_demand_metrics)
+def _get_function_support(function: str) -> SupportedBy:
+    return SupportedBy(
+        standard_metrics=True,
+        on_demand_metrics=function in _SEARCH_TO_METRIC_AGGREGATES
+        and function in _AGGREGATE_TO_METRIC_TYPE,
+    )
 
 
 def _get_args_support(args: Sequence[str]) -> SupportedBy:
@@ -335,7 +323,10 @@ def is_standard_metrics_compatible(
     if not dataset or Dataset(dataset) not in [Dataset.Metrics, Dataset.PerformanceMetrics]:
         return False
 
-    return get_supported_by(aggregate, query).standard_metrics
+    aggregate_supported_by = _get_aggregate_supported_by(aggregate)
+    query_supported_by = _get_query_supported_by(query)
+
+    return SupportedBy.combine(aggregate_supported_by, query_supported_by).standard_metrics
 
 
 def _get_aggregate_fields(aggregate: str) -> Sequence[str]:
