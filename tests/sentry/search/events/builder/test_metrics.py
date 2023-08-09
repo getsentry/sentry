@@ -1955,36 +1955,104 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             allow_metric_aggregates=False,
         )
 
-    def test_on_demand_metrics(self):
+    def test_run_query_with_on_demand_count(self):
+        field = "count()"
+        query = "transaction.duration:>0"
+        spec = OndemandMetricSpec(field=field, query=query)
+
+        for hour in range(0, 5):
+            self.store_transaction_metric(
+                value=hour * 100,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                tags={"query_hash": spec.query_hash()},
+                timestamp=self.start + datetime.timedelta(hours=hour),
+            )
+
         query = TimeseriesMetricQueryBuilder(
             self.params,
             dataset=Dataset.PerformanceMetrics,
             interval=3600,
-            query="transaction.duration:>0",
-            selected_columns=["count()"],
+            query=query,
+            selected_columns=[field],
             on_demand_metrics_enabled=True,
         )
         result = query.run_query("test_query")
         assert result["data"][:5] == [
             {
                 "time": self.start.isoformat(),
-                "count": 0,
+                "count": 0.0,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-                "count": 0,
+                "count": 100.0,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
-                "count": 0,
+                "count": 200.0,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
-                "count": 0,
+                "count": 300.0,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
-                "count": 0,
+                "count": 400.0,
+            },
+        ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "count", "type": "Float64"},
+            ],
+        )
+
+    def test_run_query_with_on_demand_distribution(self):
+        field = "p75(measurements.fp)"
+        query = "transaction.duration:>0"
+        spec = OndemandMetricSpec(field=field, query=query)
+
+        for hour in range(0, 5):
+            self.store_transaction_metric(
+                value=hour * 100,
+                metric=TransactionMetricKey.DIST_ON_DEMAND.value,
+                internal_metric=TransactionMRI.DIST_ON_DEMAND.value,
+                entity="metrics_distributions",
+                tags={"query_hash": spec.query_hash()},
+                timestamp=self.start + datetime.timedelta(hours=hour),
+            )
+
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query,
+            selected_columns=[field],
+            on_demand_metrics_enabled=True,
+        )
+        result = query.run_query("test_query")
+        assert result["data"][:5] == [
+            {
+                "time": self.start.isoformat(),
+                "count": 0.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+                "count": 100.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+                "count": 200.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
+                "count": 300.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
+                "count": 400.0,
             },
         ]
         self.assertCountEqual(
