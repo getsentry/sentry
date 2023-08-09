@@ -1456,9 +1456,8 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# flag for turning on/off the options_automator_slack_webhook.
 register(
-    "options_automator_slack_webhook",
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    "options_automator_slack_webhook_enabled",
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

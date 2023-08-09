@@ -1,4 +1,3 @@
-from sentry import options
 from sentry.runner.commands.presenters.consolepresenter import ConsolePresenter
 from sentry.runner.commands.presenters.slackpresenter import SlackPresenter
 
@@ -8,7 +7,7 @@ class PresenterDelegator:
         self._consolepresenter = ConsolePresenter()
 
         self._slackpresenter = None
-        if options.get("options_automator_slack_webhook") and SlackPresenter.is_slack_enabled():
+        if SlackPresenter.is_slack_enabled():
             self._slackpresenter = SlackPresenter()
 
     def __getattr__(self, attr: str):

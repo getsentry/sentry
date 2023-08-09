@@ -3,6 +3,7 @@ from typing import List, Tuple
 import requests
 from django.conf import settings
 
+from sentry import options
 from sentry.runner.commands.presenters.optionspresenter import OptionsPresenter
 from sentry.utils import json
 
@@ -30,7 +31,10 @@ class SlackPresenter(OptionsPresenter):
     @staticmethod
     def is_slack_enabled():
 
-        if not settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
+        if not (
+            options.get("options_automator_slack_webhook_enabled")
+            and settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL
+        ):
             return False
         try:
             test_payload: dict = {
