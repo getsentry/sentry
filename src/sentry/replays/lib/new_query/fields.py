@@ -15,7 +15,7 @@ class BaseField(Generic[T]):
         self.parse = parse
         self.query = query
 
-    def apply(self) -> Condition:
+    def apply(self, search_filter: SearchFilter) -> Condition:
         raise NotImplementedError
 
     def _apply_wildcard(self, expression: Expression, operator: str, value: T) -> Condition:
@@ -73,7 +73,7 @@ class ColumnField(BaseField[T]):
         A named expression can be a column name or an expression alias.
         """
         operator = search_filter.operator
-        value = search_filter.value.raw_value
+        value = search_filter.value.value
 
         if isinstance(value, (str, int, datetime.datetime)):
             parsed_value = self.parse(str(value))
@@ -94,7 +94,7 @@ class ColumnField(BaseField[T]):
 
 
 class StringColumnField(ColumnField[str]):
-    """."""
+    """String type conditional column field."""
 
 
 class CountExpressionField(ColumnField[int]):

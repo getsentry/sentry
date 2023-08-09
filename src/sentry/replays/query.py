@@ -37,6 +37,7 @@ from sentry.replays.lib.query import (
     generate_valid_conditions,
     get_valid_sort_commands,
 )
+from sentry.replays.usecases.query import query_using_aggregated_search
 from sentry.utils.snuba import raw_snql_query
 
 MAX_PAGE_SIZE = 100
@@ -71,6 +72,17 @@ def query_replays_collection(
         conditions.append(Condition(Column("agg_environment"), Op.IN, environment))
 
     paginators = make_pagination_values(limit, offset)
+
+    return query_using_aggregated_search(
+        fields,
+        search_filters,
+        None,
+        paginators,
+        organization,
+        project_ids,
+        start,
+        end,
+    )
 
     # Attempt to eager return with subquery.
 
@@ -1036,123 +1048,3 @@ def _extract_children(expression: ParenExpression) -> Generator[str, None, None]
             yield child
         elif isinstance(child, ParenExpression):
             yield from _extract_children(child)
-
-
-#
-
-
-# def query_using_aggregated_search(
-#     fields: list[str],
-#     search_filters: list[Union[SearchFilter, str, ParenExpression]],
-#     sort: str | None,
-#     pagination: Paginators | None,
-#     organization: Organization | None,
-#     project_ids: list[int],
-#     period_start: datetime,
-#     period_stop: datetime,
-# ):
-#     tenant_ids = _make_tenant_ids(organization)
-
-#     sorting = [
-#         OrderBy(Function("min", parameters=[Column("replay_start_timestamp")]), Direction.DESC)
-#     ]
-
-#     # Simple aggregation steps.
-#     simple_aggregation_query = make_simple_aggregation_query(
-#         search_filters=search_filters,
-#         sort=sorting,
-#         project_ids=project_ids,
-#         period_start=period_start,
-#         period_stop=period_stop,
-#     )
-#     if pagination:
-#         simple_aggregation_query = simple_aggregation_query.set_limit(pagination.limit)
-#         simple_aggregation_query = simple_aggregation_query.set_offset(pagination.offset)
-
-#     simple_aggregation_response = raw_snql_query(
-#         Request(
-#             dataset="replays",
-#             app_id="replay-backend-web",
-#             query=simple_aggregation_query,
-#             tenant_ids=tenant_ids,
-#         ),
-#         "replays.query.browse_simple_aggregation",
-#     )
-
-#     # Collection step.
-#     found_project_ids, replay_ids = _replay_rows_to_arrays(
-#         simple_aggregation_response.get("data", [])
-#     )
-
-#     # Final aggregation step.
-#     return raw_snql_query(
-#         Request(
-#             dataset="replays",
-#             app_id="replay-backend-web",
-#             query=make_full_aggregation_query(
-#                 fields=fields,
-#                 replay_ids=replay_ids,
-#                 project_ids=found_project_ids,
-#                 period_start=period_start,
-#                 period_end=period_stop,
-#             ),
-#             tenant_ids=tenant_ids,
-#         ),
-#         "replays.query.browse_points",
-#     )
-
-
-# def make_simple_aggregation_query(
-#     search_filters: list[Union[SearchFilter, str, ParenExpression]],
-#     sort: list[OrderBy],
-#     project_ids: list[int],
-#     period_start: datetime,
-#     period_stop: datetime,
-# ) -> Query:
-#     having = _optimize_search_filters(search_filters)
-
-#     return Query(
-#         match=Entity("replays"),
-#         select=[Column("project_id"), Column("replay_id")],
-#         where=[
-#             Condition(Column("project_id"), Op.IN, project_ids),
-#             Condition(Column("timestamp"), Op.LT, period_stop),
-#             Condition(Column("timestamp"), Op.GTE, period_start),
-#         ],
-#         having=having,
-#         orderby=sort,
-#         groupby=[Column("project_id"), Column("replay_id")],
-#         granularity=Granularity(3600),
-#     )
-
-
-# def make_full_aggregation_query(
-#     fields: list[str],
-#     replay_ids: list[str],
-#     project_ids: list[int],
-#     period_start: datetime,
-#     period_end: datetime,
-# ) -> Query:
-#     """Return a query to fetch every replay in the set."""
-
-#     def _select_from_fields() -> list[Union[Column, Function]]:
-#         if fields:
-#             return select_from_fields(list(set(fields)))
-#         else:
-#             return QUERY_ALIAS_COLUMN_MAP.values()
-
-#     return Query(
-#         match=Entity("replays"),
-#         select=_select_from_fields(),
-#         where=[
-#             Condition(Column("project_id"), Op.IN, project_ids),
-#             Condition(Column("replay_id"), Op.IN, replay_ids),
-#             # We can scan an extended time range to account for replays which span either end of
-#             # the range.  These timestamps are an optimization and could be removed with minimal
-#             # performance impact.  It's a point query.  Its super fast.
-#             Condition(Column("timestamp"), Op.GTE, period_start - timedelta(hours=1)),
-#             Condition(Column("timestamp"), Op.LT, period_end + timedelta(hours=1)),
-#         ],
-#         groupby=[Column("project_id"), Column("replay_id")],
-#         granularity=Granularity(3600),
-#     )

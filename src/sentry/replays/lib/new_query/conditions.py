@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Generic, TypeVar, Union
 from uuid import UUID
 
-from snuba_sdk import Condition, Function, Op
+from snuba_sdk import Condition, Function, Identifier, Lambda, Op
 from snuba_sdk.expressions import Expression
 
 Numeric = Union[int, float]
@@ -196,6 +196,36 @@ class NumericComposite(GenericComposite[Numeric]):
 
 class StringComposite(GenericComposite[str]):
     """Composite string column condition class."""
+
+    @staticmethod
+    def visit_match(expression: Expression, value: str) -> Condition:
+        v = f"(?i){value[1:-1]}"
+        return Condition(
+            Function(
+                "arrayExists",
+                parameters=[
+                    Lambda(["item"], Function("match", parameters=[Identifier("item"), v])),
+                    expression,
+                ],
+            ),
+            Op.EQ,
+            1,
+        )
+
+    @staticmethod
+    def visit_not_match(expression: Expression, value: str) -> Condition:
+        v = f"(?i){value[1:-1]}"
+        return Condition(
+            Function(
+                "arrayExists",
+                parameters=[
+                    Lambda(["item"], Function("match", parameters=[Identifier("item"), v])),
+                    expression,
+                ],
+            ),
+            Op.EQ,
+            0,
+        )
 
 
 def not_supported() -> None:

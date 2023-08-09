@@ -93,11 +93,11 @@ search_config: dict[str, Union[ColumnField, ComputedField]] = {
 # Objects have child keys which can be explicitly searched.  To ease the search experience of
 # user's we map the outer object's name to one of the inner keys.  This acts as a default search
 # target if none was specified.
-search_config["browser"] = search_config["browser_name"]
-search_config["device"] = search_config["device_name"]
-search_config["os"] = search_config["os_name"]
-search_config["sdk"] = search_config["sdk_name"]
-search_config["user"] = search_config["user_username"]
+search_config["browser"] = search_config["browser.name"]
+search_config["device"] = search_config["device.name"]
+search_config["os"] = search_config["os.name"]
+search_config["sdk"] = search_config["sdk.name"]
+search_config["user"] = search_config["user.username"]
 
 
 # Fields which have multiple names that represent the same search operation are defined here.

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from typing import List
+
 from snuba_sdk import And, Column, Condition, Function, Op, Or
 
 from sentry.replays.lib.selector.parse import QueryType
 from sentry.replays.usecases.query.conditions.base import ComputedBase
 
 
-class ClickSelector(ComputedBase[list[QueryType]]):
+class ClickSelector(ComputedBase[List[QueryType]]):
     """Click selector condition class."""
 
     @staticmethod

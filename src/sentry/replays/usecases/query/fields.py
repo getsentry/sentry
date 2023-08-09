@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from typing import TypeVar
 
@@ -16,7 +18,7 @@ class ComputedField(BaseField[T]):
         A named expression can be a column name or an expression alias.
         """
         operator = search_filter.operator
-        value = search_filter.value.raw_value
+        value = search_filter.value.value
 
         if isinstance(value, (str, int, datetime.datetime)):
             parsed_value = self.parse(str(value))
@@ -77,7 +79,7 @@ class TagField(BaseField[T]):
         A named expression can be a column name or an expression alias.
         """
         operator = search_filter.operator
-        value = search_filter.value.raw_value
+        value = search_filter.value.value
 
         if isinstance(value, (str, int, datetime.datetime)):
             parsed_value = self.parse(str(value))
