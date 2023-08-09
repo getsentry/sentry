@@ -1,6 +1,5 @@
 export type SignupAnalyticsParameters = {
   'join_request.created': {
-    organization: string;
     referrer: string;
   };
 };
