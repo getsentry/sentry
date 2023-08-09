@@ -3,6 +3,9 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {IconArrow} from 'sentry/icons';
+import {ArrowProps} from 'sentry/icons/iconArrow';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   children?: React.ReactNode;
@@ -10,17 +13,15 @@ type Props = {
 
 function Carousel({children}: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const [isAtStart, setIsAtStart] = useState<boolean>(true);
-  const [isAtEnd, setIsAtEnd] = useState<boolean>(false);
-  const [showArrows, setShowArrows] = useState<boolean>(true);
+  const [isAtStart, setIsAtStart] = useState(true);
+  const [isAtEnd, setIsAtEnd] = useState(false);
+  const [showArrows, setShowArrows] = useState(true);
 
+  /**
+   * @param scrollLeft The amount scrolled horizontally
+   * @param totalScrollDist The maximum horizontal scroll value
+   */
   const setStartAndEnd = (scrollLeft: number, totalScrollDist: number) => {
-    // scrollLeft: the amount scrolled horizontally.
-    // start at 0 and end at totalScrollDist
-
-    // totalScrollDist = scrollWidth - clientWidth
-    // scrollWidth: total element width including overflow
-    // clientWidth: width of the element excluding overflow
     if (scrollLeft <= 0) {
       setIsAtStart(true);
       setIsAtEnd(false);
@@ -44,7 +45,7 @@ function Carousel({children}: Props) {
 
     const scrollLeft = ref.current.scrollLeft;
     setStartAndEnd(scrollLeft, contentWidth);
-  }, [ref]);
+  }, []);
 
   const handleScroll = (direction: string) => {
     requestAnimationFrame(() => {
@@ -84,10 +85,10 @@ function Carousel({children}: Props) {
         {children}
       </CarouselItems>
       {showArrows && !isAtStart && (
-        <CircledArrow onClick={() => handleScroll('left')} direction="left" />
+        <ScrollButton onClick={() => handleScroll('left')} direction="left" />
       )}
       {showArrows && !isAtEnd && (
-        <CircledArrow onClick={() => handleScroll('right')} direction="right" />
+        <ScrollButton onClick={() => handleScroll('right')} direction="right" />
       )}
     </CarouselContainer>
   );
@@ -95,6 +96,7 @@ function Carousel({children}: Props) {
 
 const CarouselContainer = styled('div')`
   position: relative;
+  padding-bottom: ${space(0.5)};
 `;
 
 const CarouselItems = styled('div')`
@@ -111,20 +113,19 @@ const CarouselItems = styled('div')`
   }
 `;
 
-type ArrowProps = {
-  direction: 'up' | 'down' | 'left' | 'right';
+type ScrollButtonProps = {
+  direction: ArrowProps['direction'];
   onClick: () => void;
 };
 
-function CircledArrow({onClick, direction}: ArrowProps) {
+function ScrollButton({onClick, direction = 'left'}: ScrollButtonProps) {
   return (
     <StyledArrowButton
       onClick={onClick}
       direction={direction}
-      data-test-id={`arrow-${direction}`}
-    >
-      <IconArrow color="black" size="sm" direction={direction} />
-    </StyledArrowButton>
+      aria-label={t('Scroll %s', direction)}
+      icon={<IconArrow size="sm" direction={direction} />}
+    />
   );
 }
 
@@ -135,14 +136,11 @@ const StyledArrowButton = styled(Button)<{direction: string}>`
   bottom: 0;
   height: 36px;
   width: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 66px;
+  border-radius: 50%;
   border: 1px solid ${p => p.theme.gray200};
   padding: 0;
   margin: auto;
-  background-color: white;
+  background-color: ${p => p.theme.background};
 `;
 
 export default Carousel;

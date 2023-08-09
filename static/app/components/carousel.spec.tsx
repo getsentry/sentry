@@ -13,8 +13,8 @@ describe('Carousel', function () {
       </Placeholder>
     );
 
-    expect(screen.queryByTestId('arrow-left')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('arrow-right')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Scroll left')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Scroll right')).not.toBeInTheDocument();
   });
 
   it('does not show left arrow if all the way to the left', function () {
@@ -35,8 +35,8 @@ describe('Carousel', function () {
       </Carousel>
     );
 
-    expect(screen.queryByTestId('arrow-left')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('arrow-right')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Scroll left')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Scroll right')).toBeInTheDocument();
   });
 
   it('does not show right arrow if all the way to the right', async function () {
@@ -60,7 +60,7 @@ describe('Carousel', function () {
       </Carousel>
     );
 
-    expect(await screen.findByTestId('arrow-left')).toBeInTheDocument();
-    expect(screen.queryByTestId('arrow-right')).not.toBeInTheDocument();
+    expect(await screen.findByLabelText('Scroll left')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Scroll right')).not.toBeInTheDocument();
   });
 });
