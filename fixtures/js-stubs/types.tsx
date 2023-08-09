@@ -1,4 +1,4 @@
-import {EntryException, ReleaseMeta} from 'sentry/types';
+import {EntryException, ProjectKey, ReleaseMeta} from 'sentry/types';
 import type {
   ReplayError,
   ReplayListRecord,
@@ -120,7 +120,7 @@ type TestStubFixtures = {
   ProjectAlertRuleConfiguration: OverridableStub;
   ProjectDetails: OverridableStub;
   ProjectFilters: OverridableStubList;
-  ProjectKeys: OverridableStubList;
+  ProjectKeys: OverridableStubList<ProjectKey>;
   ProviderList: SimpleStub;
   PublishedApps: SimpleStub;
   PullRequest: OverridableStub;
