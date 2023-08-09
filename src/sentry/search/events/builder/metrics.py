@@ -599,7 +599,6 @@ class MetricsQueryBuilder(QueryBuilder):
         This dialect should NEVER be used outside of the transformer as it will create problems if parsed by the
         snuba SDK.
         """
-
         if not self.use_metrics_layer and not self.on_demand_metrics_enabled:
             # The reasoning for this error is because if "use_metrics_layer" is false, the MQB will not generate the
             # snql dialect explained below as there is not need for that because it will directly generate normal snql
@@ -641,7 +640,6 @@ class MetricsQueryBuilder(QueryBuilder):
         """
         This method returns the normal snql of the query being built for execution.
         """
-
         if self.use_metrics_layer:
             # The reasoning for this error is because if "use_metrics_layer" is true, the snql built within MQB will
             # be a slight variation of snql that is understood only by the "mqb_query_transformer" thus we don't
@@ -821,15 +819,16 @@ class MetricsQueryBuilder(QueryBuilder):
 
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                    snuba_query = self.get_metrics_layer_snql_query()
                     if self._on_demand_metric_spec:
                         metrics_query = self._get_metrics_query_from_on_demand_spec(
                             self._on_demand_metric_spec
                         )
                     else:
+                        snuba_query = self.get_metrics_layer_snql_query()
                         metrics_query = transform_mqb_query_to_metrics_query(
                             snuba_query.query, self.is_alerts_query
                         )
+
                 with sentry_sdk.start_span(op="metric_layer", description="run_query"):
                     metrics_data = get_series(
                         projects=self.params.projects,
@@ -1251,7 +1250,6 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                 transform_mqb_query_to_metrics_query,
             )
 
-            snuba_query = self.get_snql_query()[0].query
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
                     if self._on_demand_metric_spec:
@@ -1259,6 +1257,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                             self._on_demand_metric_spec
                         )
                     elif self.use_metrics_layer:
+                        snuba_query = self.get_snql_query()[0].query
                         metrics_query = transform_mqb_query_to_metrics_query(
                             snuba_query, self.is_alerts_query
                         )
