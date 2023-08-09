@@ -787,6 +787,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # are no other Snuba-based search predicates, we can simply
         # return the results from Postgres.
         if (
+            # XXX: Don't enable this for now, it doesn't properly respect issue platform rules for hiding issue types.
+            # We'll need to consolidate where we apply the type filters if we do want this.
             allow_postgres_only_search
             and cursor is None
             and sort_by == "date"
