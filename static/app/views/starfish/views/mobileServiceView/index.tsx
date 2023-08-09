@@ -38,11 +38,11 @@ export function MobileStarfishView() {
   const location = useLocation();
   const {data: releases, isLoading: isReleasesLoading} = useReleases();
 
-  const release1 =
-    decodeScalar(location.query.release1) ?? releases?.[0]?.version ?? undefined;
+  const primaryRelease =
+    decodeScalar(location.query.primaryRelease) ?? releases?.[0]?.version ?? undefined;
 
-  const release2 =
-    decodeScalar(location.query.release2) ?? releases?.[0]?.version ?? undefined;
+  const secondaryRelease =
+    decodeScalar(location.query.secondaryRelease) ?? releases?.[0]?.version ?? undefined;
 
   const query = new MutableSearch(['event.type:transaction', 'transaction.op:ui.load']);
 
@@ -65,8 +65,8 @@ export function MobileStarfishView() {
           'avg(measurements.frames_frozen_rate)',
         ],
         query:
-          defined(release1) && release1 !== ''
-            ? query.copy().addStringFilter(`release:${release1}`).formatString()
+          defined(primaryRelease) && primaryRelease !== ''
+            ? query.copy().addStringFilter(`release:${primaryRelease}`).formatString()
             : query.formatString(),
         dataset: DiscoverDatasets.METRICS,
         version: 2,
@@ -96,8 +96,8 @@ export function MobileStarfishView() {
           'avg(measurements.frames_frozen_rate)',
         ],
         query:
-          defined(release2) && release2 !== ''
-            ? query.copy().addStringFilter(`release:${release2}`).formatString()
+          defined(secondaryRelease) && secondaryRelease !== ''
+            ? query.copy().addStringFilter(`release:${secondaryRelease}`).formatString()
             : query.formatString(),
         dataset: DiscoverDatasets.METRICS,
         version: 2,
@@ -108,7 +108,7 @@ export function MobileStarfishView() {
       },
       pageFilter.selection
     ),
-    enabled: !isReleasesLoading && release1 !== release2,
+    enabled: !isReleasesLoading && primaryRelease !== secondaryRelease,
     referrer: 'api.starfish-web-service.span-category-breakdown-timeseries',
     initialData: {},
   });
@@ -129,7 +129,7 @@ export function MobileStarfishView() {
 
     if (defined(firstReleaseSeries)) {
       Object.keys(firstReleaseSeries).forEach(yAxis => {
-        const label = `${release1}`;
+        const label = `${primaryRelease}`;
         if (yAxis in transformedSeries) {
           transformedSeries[yAxis].push({
             seriesName: label,
@@ -148,7 +148,7 @@ export function MobileStarfishView() {
 
     if (defined(secondReleaseSeries)) {
       Object.keys(secondReleaseSeries).forEach(yAxis => {
-        const label = `${release2}`;
+        const label = `${secondaryRelease}`;
         if (yAxis in transformedSeries) {
           transformedSeries[yAxis].push({
             seriesName: label,

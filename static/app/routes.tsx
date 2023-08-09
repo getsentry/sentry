@@ -1690,6 +1690,25 @@ function buildRoutes() {
           component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
         />
       </Route>
+      <Route path="initialization/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/starfish/modules/mobile/initialization')
+          )}
+        />
+      </Route>
+      <Route path="pageload/">
+        <IndexRoute
+          component={make(() => import('sentry/views/starfish/modules/mobile/pageload'))}
+        />
+      </Route>
+      <Route path="responsiveness/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/starfish/modules/mobile/responsiveness')
+          )}
+        />
+      </Route>
       <Route path="spans/">
         <IndexRoute component={make(() => import('sentry/views/starfish/views/spans'))} />
         <Route
