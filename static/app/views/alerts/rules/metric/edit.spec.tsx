@@ -71,7 +71,7 @@ describe('MetricRulesEdit', function () {
     });
 
     const editRule = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/project-slug/alert-rules/${rule.id}/`,
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
       method: 'PUT',
       body: rule,
     });
@@ -167,7 +167,7 @@ describe('MetricRulesEdit', function () {
     });
 
     const editRule = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/project-slug/alert-rules/${rule.id}/`,
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
       method: 'PUT',
       body: rule,
     });

@@ -16,7 +16,8 @@ export type ProfilingFormatterUnit =
   | 'second'
   | 'seconds'
   | 'count'
-  | 'percent';
+  | 'percent'
+  | 'byte';
 
 const durationMappings: Record<ProfilingFormatterUnit, number> = {
   nanosecond: 1e-9,
@@ -29,6 +30,7 @@ const durationMappings: Record<ProfilingFormatterUnit, number> = {
   seconds: 1,
   count: 1,
   percent: 1,
+  byte: 1,
 };
 
 export function makeFormatTo(
@@ -86,6 +88,17 @@ export function makeFormatter(
   if (from === 'percent') {
     return (value: number) => {
       return value.toFixed(precision) + '%';
+    };
+  }
+
+  if (from === 'byte') {
+    return (value: number) => {
+      if (value === 0) {
+        return '0B';
+      }
+      const byteUnits = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(value) / Math.log(1000));
+      return (value / Math.pow(1000, i)).toFixed(precision) + byteUnits[i];
     };
   }
 

@@ -4,7 +4,7 @@ from typing import Type
 
 from django.db import models
 
-from sentry.runner.commands.backup import DatetimeSafeDjangoJSONEncoder
+from sentry.backup.exports import DatetimeSafeDjangoJSONEncoder
 
 
 def targets(expected_models: list[Type]):

@@ -118,7 +118,7 @@ def _ensure_monitor_with_config(
     validator = ConfigValidator(data=config)
 
     if not validator.is_valid():
-        logger.debug("monitor_config for %s is not valid", monitor_slug)
+        logger.debug(f"invalid monitor_config: {monitor_slug}")
         return monitor
 
     validated_config = validator.validated_data
@@ -180,7 +180,9 @@ def _try_handle_high_volume_task_trigger(ts: datetime):
     reference_datetime = ts.replace(second=0, microsecond=0)
     reference_ts = int(reference_datetime.timestamp())
 
-    last_ts = redis_client.get(HIGH_VOLUME_LAST_TRIGGER_TS_KEY)
+    # Since GETSET is atomic this acts as a guard against another consumer
+    # picking up the minute rollover
+    last_ts = redis_client.getset(HIGH_VOLUME_LAST_TRIGGER_TS_KEY, reference_ts)
     if last_ts is not None:
         last_ts = int(last_ts)
 
@@ -188,23 +190,22 @@ def _try_handle_high_volume_task_trigger(ts: datetime):
     if last_ts == reference_ts:
         return
 
-    try:
-        lock = locks.get("sentry.monitors.task_trigger", duration=5)
-        with lock.acquire():
-            # If more than exactly a minute has passed then we've skipped a
-            # task run, report that to sentry, it is a problem.
-            if last_ts is not None and last_ts + 60 != reference_ts:
-                with sentry_sdk.push_scope() as scope:
-                    scope.set_extra("last_ts", last_ts)
-                    scope.set_extra("reference_ts", reference_ts)
-                    sentry_sdk.capture_message("Monitor task dispatch minute skipped")
+    # Track the delay from the true time, ideally this should be pretty
+    # close, but in the case of a backlog, this will be much higher
+    total_delay = reference_ts - datetime.now().timestamp()
 
-            _dispatch_tasks(ts)
-            metrics.incr("monitors.tassk.triggered_via_high_volume_clock")
-            redis_client.set(HIGH_VOLUME_LAST_TRIGGER_TS_KEY, reference_ts)
-    except UnableToAcquireLock:
-        # Another message processor is handling this. Nothing to do
-        pass
+    metrics.incr("monitors.task.triggered_via_high_volume_clock")
+    metrics.gauge("monitors.task.high_volume_clock_delay", total_delay)
+
+    # If more than exactly a minute has passed then we've skipped a
+    # task run, report that to sentry, it is a problem.
+    if last_ts is not None and reference_ts > last_ts + 60:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra("last_ts", last_ts)
+            scope.set_extra("reference_ts", reference_ts)
+            sentry_sdk.capture_message("Monitor task dispatch minute skipped")
+
+    _dispatch_tasks(ts)
 
 
 def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
@@ -212,7 +213,10 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
     # clock_pulse task is not enabled). Instead we use each check-in message as
     # a means for triggering our tasks.
     if settings.SENTRY_MONITORS_HIGH_VOLUME_MODE:
-        _try_handle_high_volume_task_trigger(ts)
+        try:
+            _try_handle_high_volume_task_trigger(ts)
+        except Exception:
+            logger.exception("Failed try high-volume task trigger", exc_info=True)
 
     params: CheckinPayload = json.loads(wrapper["payload"])
     start_time = to_datetime(float(wrapper["start_time"]))
@@ -228,9 +232,12 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
 
     ratelimit_key = f"{project.organization_id}:{monitor_slug}:{environment}"
 
+    # Strip sdk version to reduce metric cardinality
+    sdk_platform = source_sdk.split("/")[0] if source_sdk else "none"
+
     metric_kwargs = {
         "source": "consumer",
-        "source_sdk": source_sdk,
+        "sdk_platform": sdk_platform,
     }
 
     if killswitch_matches_context(
@@ -240,7 +247,9 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
             "monitors.checkin.dropped.blocked",
             tags={**metric_kwargs},
         )
-        logger.debug("monitor check in blocked: %s", monitor_slug)
+        logger.debug(
+            f"monitor check in blocked via killswitch: {project.organization_id} - {monitor_slug}"
+        )
         return
 
     if ratelimits.is_limited(
@@ -252,7 +261,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
             "monitors.checkin.dropped.ratelimited",
             tags={**metric_kwargs},
         )
-        logger.debug("monitor check in rate limited: %s", monitor_slug)
+        logger.debug(f"monitor check in rate limited: {monitor_slug}")
         return
 
     def update_existing_check_in(
@@ -271,10 +280,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                 tags={"source": "consumer", "status": "guid_mismatch"},
             )
             logger.debug(
-                "check-in guid %s already associated with %s not payload %s",
-                existing_check_in,
-                existing_check_in.monitor_id,
-                monitor.id,
+                f"check-in guid {existing_check_in} already associated with {existing_check_in.monitor_id} not payload monitor {monitor.id}"
             )
             return
 
@@ -284,9 +290,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                 tags={**metric_kwargs, "status": "checkin_finished"},
             )
             logger.debug(
-                "check-in was finished: attempted update from %s to %s",
-                existing_check_in.status,
-                updated_status,
+                f"check-in was finished: attempted update from {existing_check_in.status} to {updated_status}"
             )
             return
 
@@ -300,7 +304,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                 "monitors.checkin.result",
                 tags={**metric_kwargs, "status": "failed_duration_check"},
             )
-            logger.debug("check-in implicit duration is invalid: %s", project.organization_id)
+            logger.debug(f"check-in implicit duration is invalid: {updated_duration}")
             return
 
         # update date_added for heartbeat
@@ -390,7 +394,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_limits"},
                 )
-                logger.debug("monitor exceeds limits for organization: %s", project.organization_id)
+                logger.debug(f"monitor exceeds limits for organization: {project.organization_id}")
                 return
 
             try:
@@ -402,14 +406,14 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_environment_limits"},
                 )
-                logger.debug("monitor environment exceeds limits for monitor: %s", monitor_slug)
+                logger.debug(f"monitor environment exceeds limits for monitor: {monitor_slug}")
                 return
             except MonitorEnvironmentValidationFailed:
                 metrics.incr(
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_environment_name_length"},
                 )
-                logger.debug("monitor environment name too long: %s %s", monitor_slug, environment)
+                logger.debug(f"monitor environment name too long: {monitor_slug} - {environment}")
                 return
 
             status = getattr(CheckInStatus, validated_params["status"].upper())
@@ -438,9 +442,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                             },
                         )
                         logger.debug(
-                            "monitor environment does not match on existing guid: %s %s",
-                            environment,
-                            check_in_id,
+                            f"monitor environment does not match on existing guid: {environment} - {check_in_id}"
                         )
                         return
 
@@ -500,7 +502,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_checkin_creation_lock"},
         )
-        logger.debug("failed to acquire lock to create check-in: %s", guid)
+        logger.debug(f"failed to acquire lock to create check-in: {guid}")
     except Exception:
         # Skip this message and continue processing in the consumer.
         metrics.incr(
