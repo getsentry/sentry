@@ -310,6 +310,9 @@ class QueryBuilder(BaseQueryBuilder):
             orderby=orderby,
         )
 
+    def are_columns_resolved(self) -> bool:
+        return self.columns and isinstance(self.columns[0], Function)
+
     def get_default_converter(self) -> Callable[[event_search.SearchFilter], Optional[WhereType]]:
         return self._default_filter_converter
 
