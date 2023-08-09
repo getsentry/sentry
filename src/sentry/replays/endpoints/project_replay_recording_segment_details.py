@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 from io import BytesIO
 
 import sentry_sdk
-from django.http import StreamingHttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.base import region_silo_endpoint
@@ -14,7 +15,9 @@ from sentry.replays.usecases.reader import download_segment, fetch_segment_metad
 
 @region_silo_endpoint
 class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project, replay_id, segment_id) -> Response:
+    def get(
+        self, request: Request, project, replay_id, segment_id
+    ) -> StreamingHttpResponse | HttpResponse:
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
         ):
@@ -33,7 +36,9 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
                         "replayId": segment.replay_id,
                         "segmentId": segment.segment_id,
                         "projectId": str(segment.project_id),
-                        "dateAdded": segment.date_added.replace(microsecond=0).isoformat(),
+                        "dateAdded": segment.date_added.replace(microsecond=0).isoformat()
+                        if segment.date_added
+                        else None,
                     }
                 }
             )
@@ -46,6 +51,9 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
         segment_bytes = download_segment(
             segment, transaction=transaction, current_hub=sentry_sdk.Hub.current
         )
+        if segment_bytes is None:
+            segment_bytes = b"[]"
+
         segment_reader = BytesIO(segment_bytes)
 
         response = StreamingHttpResponse(
