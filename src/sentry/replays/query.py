@@ -76,7 +76,8 @@ def query_replays_collection(
     return query_using_aggregated_search(
         fields,
         search_filters,
-        None,
+        environment,
+        sort,
         paginators,
         organization,
         project_ids,

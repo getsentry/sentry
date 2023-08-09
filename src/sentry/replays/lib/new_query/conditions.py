@@ -190,6 +190,46 @@ class GenericComposite(GenericBase[T]):
         return Condition(Function("hasAny", parameters=[expression, value]), Op.EQ, 0)
 
 
+class UUIDComposite(GenericComposite[UUID]):
+    """Composite UUID column condition class."""
+
+    @staticmethod
+    def visit_eq(expression: Expression, value: UUID) -> Condition:
+        return Condition(
+            Function("has", parameters=[expression, Function("toUUID", parameters=[str(value)])]),
+            Op.EQ,
+            1,
+        )
+
+    @staticmethod
+    def visit_neq(expression: Expression, value: UUID) -> Condition:
+        return Condition(
+            Function("has", parameters=[expression, Function("toUUID", parameters=[str(value)])]),
+            Op.EQ,
+            0,
+        )
+
+    @staticmethod
+    def visit_in(expression: Expression, value: list[UUID]) -> Condition:
+        return Condition(
+            Function(
+                "hasAny", parameters=[expression, Function("toUUID", parameters=[str(value)])]
+            ),
+            Op.EQ,
+            1,
+        )
+
+    @staticmethod
+    def visit_not_in(expression: Expression, value: list[UUID]) -> Condition:
+        return Condition(
+            Function(
+                "hasAny", parameters=[expression, Function("toUUID", parameters=[str(value)])]
+            ),
+            Op.EQ,
+            0,
+        )
+
+
 class NumericComposite(GenericComposite[Numeric]):
     """Composite numeric column condition class."""
 

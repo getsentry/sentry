@@ -20,7 +20,7 @@ from snuba_sdk import (
 )
 from snuba_sdk.expressions import Expression
 
-from sentry.api.event_search import ParenExpression, SearchFilter
+from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, SearchValue
 from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.fields import BaseField
 from sentry.utils.snuba import raw_snql_query
@@ -96,6 +96,7 @@ def search_filter_to_condition(
 # Everything below here will move to replays/query.py once we deprecate the old query behavior.
 # Leaving it here for now so this is easier to review/remove.
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
+from sentry.replays.usecases.query.configs.aggregate_sort import sort_config as agg_sort_config
 
 Paginators = namedtuple("Paginators", ("limit", "offset"))
 
@@ -103,6 +104,7 @@ Paginators = namedtuple("Paginators", ("limit", "offset"))
 def query_using_aggregated_search(
     fields: list[str],
     search_filters: list[Union[SearchFilter, str, ParenExpression]],
+    environments: list[str],
     sort: str | None,
     pagination: Paginators | None,
     organization: Organization | None,
@@ -112,14 +114,24 @@ def query_using_aggregated_search(
 ):
     tenant_ids = _make_tenant_ids(organization)
 
-    sorting = [
-        OrderBy(Function("min", parameters=[Column("replay_start_timestamp")]), Direction.DESC)
-    ]
+    if sort is None:
+        sorting = [OrderBy(agg_sort_config["started_at"], Direction.DESC)]
+    elif sort.startswith("-"):
+        sorting = [OrderBy(agg_sort_config[sort[1:]], Direction.DESC)]
+    else:
+        sorting = [OrderBy(agg_sort_config[sort], Direction.ASC)]
+
+    # Environments is provided to us outside of the ?query= url parameter. It's stil filtered like
+    # the values in that parameter so let's shove it inside and process it like any other filter.
+    if environments:
+        search_filters.append(
+            SearchFilter(SearchKey("environment"), "IN", SearchValue(environments))
+        )
 
     # Simple aggregation steps.
     simple_aggregation_query = make_simple_aggregation_query(
         search_filters=search_filters,
-        sort=sorting,
+        orderby=sorting,
         project_ids=project_ids,
         period_start=period_start,
         period_stop=period_stop,
@@ -148,6 +160,7 @@ def query_using_aggregated_search(
             app_id="replay-backend-web",
             query=make_full_aggregation_query(
                 fields=fields,
+                orderby=sorting,
                 replay_ids=replay_ids,
                 project_ids=project_ids,
                 period_start=period_start,
@@ -161,7 +174,7 @@ def query_using_aggregated_search(
 
 def make_simple_aggregation_query(
     search_filters: list[Union[SearchFilter, str, ParenExpression]],
-    sort: list[OrderBy],
+    orderby: list[OrderBy],
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
@@ -177,7 +190,7 @@ def make_simple_aggregation_query(
             Condition(Column("timestamp"), Op.GTE, period_start),
         ],
         having=having,
-        orderby=sort,
+        orderby=orderby,
         groupby=[Column("replay_id")],
         granularity=Granularity(3600),
     )
@@ -185,6 +198,7 @@ def make_simple_aggregation_query(
 
 def make_full_aggregation_query(
     fields: list[str],
+    orderby: list[OrderBy],
     replay_ids: list[str],
     project_ids: list[int],
     period_start: datetime,
@@ -197,7 +211,7 @@ def make_full_aggregation_query(
         if fields:
             return select_from_fields(list(set(fields)))
         else:
-            return QUERY_ALIAS_COLUMN_MAP.values()
+            return list(QUERY_ALIAS_COLUMN_MAP.values())
 
     return Query(
         match=Entity("replays"),
@@ -211,6 +225,7 @@ def make_full_aggregation_query(
             Condition(Column("timestamp"), Op.GTE, period_start - timedelta(hours=1)),
             Condition(Column("timestamp"), Op.LT, period_end + timedelta(hours=1)),
         ],
+        orderby=orderby,
         groupby=[Column("project_id"), Column("replay_id")],
         granularity=Granularity(3600),
     )

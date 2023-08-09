@@ -11,10 +11,7 @@ def parse_float(value: str) -> float:
 
 def parse_int(value: str) -> int:
     """Coerce to int or fail."""
-    try:
-        return int(value)
-    except ValueError:
-        raise Exception("Failed to parse integer.")
+    return int(parse_float(value))
 
 
 def parse_str(value: str) -> str:

@@ -75,7 +75,7 @@ class ColumnField(BaseField[T]):
         operator = search_filter.operator
         value = search_filter.value.value
 
-        if isinstance(value, (str, int, datetime.datetime)):
+        if isinstance(value, (str, int, float, datetime.datetime)):
             parsed_value = self.parse(str(value))
 
             if search_filter.value.is_wildcard():

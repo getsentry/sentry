@@ -38,32 +38,23 @@ def _activity_score():
                 ],
             )
         ],
-        alias="_sort_target",
     )
 
 
 def any_if(column_name):
     return Function(
-        "anyIf",
-        parameters=[Column(column_name), Function("notEmpty", [Column(column_name)])],
-        alias="_sort_target",
+        "anyIf", parameters=[Column(column_name), Function("notEmpty", [Column(column_name)])]
     )
 
 
 sort_config = {
     "activity": _activity_score(),
     "browser.name": any_if("browser_name"),
-    "count_dead_clicks": Function(
-        "sum", parameters=[Column("click_is_dead")], alias="_sort_target"
-    ),
+    "count_dead_clicks": Function("sum", parameters=[Column("click_is_dead")]),
     "count_errors": Function(
-        "sum",
-        parameters=[Function("length", parameters=[Column("error_ids")])],
-        alias="_sort_target",
+        "sum", parameters=[Function("length", parameters=[Column("error_ids")])]
     ),
-    "count_rage_clicks": Function(
-        "sum", parameters=[Column("click_is_rage")], alias="_sort_target"
-    ),
+    "count_rage_clicks": Function("sum", parameters=[Column("click_is_rage")]),
     "duration": Function(
         "dateDiff",
         parameters=[
@@ -71,12 +62,10 @@ sort_config = {
             Function("min", parameters=[Column("replay_start_timestamp")]),
             Function("max", parameters=[Column("timestamp")]),
         ],
-        alias="_sort_target",
     ),
+    "finished_at": Function("max", parameters=[Column("timestamp")]),
     "os.name": any_if("os_name"),
-    "started_at": Function(
-        "min", parameters=[Column("replay_start_timestamp")], alias="_sort_target"
-    ),
+    "started_at": Function("min", parameters=[Column("replay_start_timestamp")]),
 }
 
 sort_config["browser"] = sort_config["browser.name"]

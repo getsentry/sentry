@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from snuba_sdk import Condition, Function, Op
 from snuba_sdk.expressions import Expression
 
@@ -8,6 +10,7 @@ from sentry.replays.lib.new_query.conditions import (
     IPv4Scalar,
     StringComposite,
     StringScalar,
+    UUIDComposite,
 )
 from sentry.replays.lib.new_query.utils import translate_condition_to_function
 from sentry.replays.usecases.query.conditions.tags import TagScalar
@@ -81,6 +84,24 @@ class SumOfStringComposite(GenericBase[str]):
     @staticmethod
     def visit_not_in(expression: Expression, value: list[str]) -> Condition:
         return does_not_contain(StringComposite.visit_in(expression, value))
+
+
+class SumOfUUIDComposite(GenericBase[UUID]):
+    @staticmethod
+    def visit_eq(expression: Expression, value: UUID) -> Condition:
+        return contains(UUIDComposite.visit_eq(expression, value))
+
+    @staticmethod
+    def visit_neq(expression: Expression, value: UUID) -> Condition:
+        return does_not_contain(UUIDComposite.visit_eq(expression, value))
+
+    @staticmethod
+    def visit_in(expression: Expression, value: list[UUID]) -> Condition:
+        return contains(UUIDComposite.visit_in(expression, value))
+
+    @staticmethod
+    def visit_not_in(expression: Expression, value: list[UUID]) -> Condition:
+        return does_not_contain(UUIDComposite.visit_in(expression, value))
 
 
 class SumOfTagScalar(GenericBase[str]):
