@@ -8,7 +8,6 @@ import pytest
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 
 from sentry.exceptions import IncompatibleMetricsQuery
-from sentry.models import ProjectTransactionThreshold
 from sentry.search.events import constants
 from sentry.search.events.builder import (
     AlertMetricsQueryBuilder,
@@ -1967,7 +1966,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
                 internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
                 entity="metrics_counters",
-                tags={"query_hash": spec.query_hash()},
+                tags={"query_hash": spec.query_hash},
                 timestamp=self.start + datetime.timedelta(hours=hour),
             )
 
@@ -2192,6 +2191,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             on_demand_metrics_enabled=True,
+            skip_time_conditions=False,
         )
 
         result = query.run_query("test_query")
@@ -2223,6 +2223,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             on_demand_metrics_enabled=True,
+            skip_time_conditions=False,
         )
 
         result = query.run_query("test_query")
@@ -2232,60 +2233,46 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert len(meta) == 1
         assert meta[0]["name"] == "c:transactions/on_demand@none"
 
-    def test_run_query_with_on_demand_derived_metric(self):
-        # We create the threshold for the apdex, which will contain also the metric type.
-        ProjectTransactionThreshold.objects.create(
-            project=self.project, organization=self.project.organization, threshold=100, metric=1
-        )
-
-        field = "apdex(10)"
-        query = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query)
-
-        self.store_transaction_metric(
-            value=100,
-            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
-            entity="metrics_counters",
-            tags={"query_hash": spec.query_hash, "satisfaction": "satisfactory"},
-            timestamp=self.start + datetime.timedelta(minutes=15),
-        )
-
-        self.store_transaction_metric(
-            value=300,
-            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
-            entity="metrics_counters",
-            tags={"query_hash": spec.query_hash, "satisfaction": "tolerable"},
-            timestamp=self.start + datetime.timedelta(minutes=15),
-        )
+    def test_get_run_query_with_on_demand_count_and_time_range_required_and_not_supplied(self):
+        params = {
+            "organization_id": self.organization.id,
+            "project_id": self.projects,
+        }
 
         query = AlertMetricsQueryBuilder(
-            self.params,
+            params,
             use_metrics_layer=False,
             granularity=3600,
-            query=query,
+            query="transaction.duration:>=100",
             dataset=Dataset.PerformanceMetrics,
-            selected_columns=[field],
+            selected_columns=["count(transaction.duration)"],
             on_demand_metrics_enabled=True,
+            # We set here the skipping of conditions, since this is true for alert subscriptions, but we want to verify
+            # whether our secondary error barrier works.
+            skip_time_conditions=True,
         )
 
-        result = query.run_query("test_query")
+        with pytest.raises(IncompatibleMetricsQuery):
+            query.run_query("test_query")
 
-        assert result["data"] == [{"c:transactions/on_demand@none": 0.625}]
-        meta = result["meta"]
-        assert len(meta) == 1
-        assert meta[0]["name"] == "c:transactions/on_demand@none"
-
-    def test_get_snql_query_with_on_demand_distribution(self):
+    def test_get_snql_query_with_on_demand_distribution_and_time_range_not_required_and_not_supplied(
+        self,
+    ):
+        params = {
+            "organization_id": self.organization.id,
+            "project_id": self.projects,
+        }
         query = AlertMetricsQueryBuilder(
-            self.params,
+            params,
             use_metrics_layer=False,
             granularity=3600,
             query="transaction.duration:>=100",
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["p75(measurements.fp)"],
             on_demand_metrics_enabled=True,
+            # We want to test the snql generation when a time range is not supplied, which is the case for alert
+            # subscriptions.
+            skip_time_conditions=True,
         )
 
         snql_request = query.get_snql_query()
@@ -2329,7 +2316,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         assert query_hash_clause in snql_query.where
 
-    def test_get_snql_query_with_on_demand_count(self):
+    def test_get_snql_query_with_on_demand_count_and_time_range_required_and_supplied(self):
         query = AlertMetricsQueryBuilder(
             self.params,
             use_metrics_layer=False,
@@ -2338,6 +2325,8 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["count(transaction.duration)"],
             on_demand_metrics_enabled=True,
+            # We want to test the snql generation when a time range is supplied.
+            skip_time_conditions=False,
         )
 
         snql_request = query.get_snql_query()
@@ -2369,8 +2358,12 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         query_hash_index = indexer.resolve(UseCaseID.TRANSACTIONS, None, QUERY_HASH_KEY)
 
+        start_time_clause = Condition(lhs=Column(name="timestamp"), op=Op.GTE, rhs=self.start)
+        end_time_clause = Condition(lhs=Column(name="timestamp"), op=Op.LT, rhs=self.end)
         query_hash_clause = Condition(
             lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="88f3eb66"
         )
 
+        assert start_time_clause in snql_query.where
+        assert end_time_clause in snql_query.where
         assert query_hash_clause in snql_query.where
