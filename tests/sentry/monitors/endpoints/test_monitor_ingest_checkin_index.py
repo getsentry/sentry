@@ -336,7 +336,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 },
                 **self.dsn_auth_headers,
             )
-            assert resp.status_code == 403
+            assert resp.status_code == 400
             assert "MonitorLimitsExceeded" in resp.data.keys()
 
             Monitor.objects.filter(organization_id=self.organization.id).delete()
@@ -387,7 +387,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 },
                 **self.dsn_auth_headers,
             )
-            assert resp.status_code == 403
+            assert resp.status_code == 400
             assert "MonitorEnvironmentValidationFailed" in resp.data.keys()
 
     def test_with_dsn_auth_and_guid(self):
