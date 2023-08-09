@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.models.project import Project
-from sentry.profiles.statistical_detectors import FunctionPayload, run_regressed_functions_detection
+from sentry.profiles.statistical_detectors import FunctionPayload, run_functions_trend_detection
 from sentry.snuba import functions
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
@@ -44,32 +44,32 @@ def run_detection() -> None:
             performance_projects.append(project.id)
 
             if len(performance_projects) >= ITERATOR_CHUNK:
-                detect_regressed_transactions.delay(performance_projects)
+                detect_transaction_trends.delay(performance_projects)
                 performance_projects = []
 
         if project.flags.has_profiles:
             profiling_projects.append(project.id)
 
             if len(profiling_projects) >= ITERATOR_CHUNK:
-                detect_regressed_functions.delay(profiling_projects, now)
+                detect_function_trends.delay(profiling_projects, now)
                 profiling_projects = []
     """
 
     # make sure to dispatch a task to handle the remaining projects
     if performance_projects:
-        detect_regressed_transactions.delay(performance_projects)
+        detect_transaction_trends.delay(performance_projects)
         performance_projects = []
     if profiling_projects:
-        detect_regressed_functions.delay(profiling_projects, now)
+        detect_function_trends.delay(profiling_projects, now)
         profiling_projects = []
 
 
 @instrumented_task(
-    name="sentry.tasks.statistical_detectors._detect_regressed_transactions",
+    name="sentry.tasks.statistical_detectors._detect_transaction_trends",
     queue="performance.statistical_detector",
     max_retries=0,
 )
-def detect_regressed_transactions(project_ids: List[int], **kwargs) -> None:
+def detect_transaction_trends(project_ids: List[int], **kwargs) -> None:
     if not options.get("statistical_detectors.enable"):
         return
 
@@ -78,18 +78,18 @@ def detect_regressed_transactions(project_ids: List[int], **kwargs) -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.statistical_detectors._detect_regressed_functions",
+    name="sentry.tasks.statistical_detectors._detect_function_trends",
     queue="performance.statistical_detector",
     max_retries=0,
 )
-def detect_regressed_functions(project_ids: List[int], start: datetime, **kwargs) -> None:
+def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) -> None:
     if not options.get("statistical_detectors.enable"):
         return
 
     for project in Project.objects.filter(id__in=project_ids):
         try:
             function_payloads = query_functions(project, start)
-            run_regressed_functions_detection(project, start, function_payloads)
+            run_functions_trend_detection(project, start, function_payloads)
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
