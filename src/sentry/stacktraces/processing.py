@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Callable, NamedTuple, Optional, Sequence
+from typing import Any, Callable, Mapping, NamedTuple, Optional, Sequence
 
 import sentry_sdk
 
-from sentry.db.models.fields.node import NodeData
 from sentry.models import Project, Release
 from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils.cache import cache
@@ -187,7 +186,7 @@ class StacktraceProcessor:
 
 
 def find_stacktraces_in_data(
-    data: NodeData, include_raw: bool = False, include_empty_exceptions: bool = False
+    data: Mapping[str, Any], include_raw: bool = False, include_empty_exceptions: bool = False
 ) -> list[StacktraceInfo]:
     """
     Finds all stacktraces in a given data blob and returns them together with some meta information.

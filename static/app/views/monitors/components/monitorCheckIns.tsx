@@ -7,15 +7,16 @@ import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PanelTable from 'sentry/components/panels/panelTable';
+import Placeholder from 'sentry/components/placeholder';
 import ShortId from 'sentry/components/shortId';
 import StatusIndicator from 'sentry/components/statusIndicator';
 import Text from 'sentry/components/text';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -69,9 +70,6 @@ function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
     isError,
   } = useApiQuery<CheckIn[]>(queryKey, {staleTime: 0});
 
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
   if (isError) {
     return <LoadingError />;
   }
@@ -94,89 +92,95 @@ function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
           t('Timestamp'),
         ]}
       >
-        {checkInList.map(checkIn => (
-          <React.Fragment key={checkIn.id}>
-            <Status>
-              <StatusIndicator
-                status={checkStatusToIndicatorStatus[checkIn.status]}
-                tooltipTitle={tct('Check In Status: [status]', {
-                  status: statusToText[checkIn.status],
-                })}
-              />
-              <Text>{statusToText[checkIn.status]}</Text>
-            </Status>
-            {checkIn.status !== CheckInStatus.MISSED ? (
-              <div>
-                {monitor.config.timezone ? (
-                  <Tooltip
-                    title={
-                      <DateTime
-                        date={checkIn.dateCreated}
-                        forcedTimezone={monitor.config.timezone}
-                        timeZone
-                        timeOnly
-                      />
-                    }
-                  >
-                    {<DateTime date={checkIn.dateCreated} timeOnly />}
-                  </Tooltip>
-                ) : (
-                  <DateTime date={checkIn.dateCreated} timeOnly />
-                )}
-              </div>
-            ) : (
-              emptyCell
-            )}
-            {defined(checkIn.duration) ? (
-              <Duration seconds={checkIn.duration / 1000} />
-            ) : (
-              emptyCell
-            )}
-            {checkIn.groups && checkIn.groups.length > 0 ? (
-              <IssuesContainer>
-                {checkIn.groups.map(({id, shortId}) => (
-                  <QuickContextHovercard
-                    dataRow={{
-                      ['issue.id']: id,
-                      issue: shortId,
-                    }}
-                    contextType={ContextType.ISSUE}
-                    organization={organization}
-                    key={id}
-                  >
-                    {
-                      <StyledShortId
-                        shortId={shortId}
-                        avatar={
-                          <ProjectBadge
-                            project={monitor.project}
-                            hideName
-                            avatarSize={12}
+        {isLoading
+          ? [...new Array(6)].map((_, i) => (
+              <RowPlaceholder key={i}>
+                <Placeholder height="2rem" />
+              </RowPlaceholder>
+            ))
+          : checkInList.map(checkIn => (
+              <React.Fragment key={checkIn.id}>
+                <Status>
+                  <StatusIndicator
+                    status={checkStatusToIndicatorStatus[checkIn.status]}
+                    tooltipTitle={tct('Check In Status: [status]', {
+                      status: statusToText[checkIn.status],
+                    })}
+                  />
+                  <Text>{statusToText[checkIn.status]}</Text>
+                </Status>
+                {checkIn.status !== CheckInStatus.MISSED ? (
+                  <div>
+                    {monitor.config.timezone ? (
+                      <Tooltip
+                        title={
+                          <DateTime
+                            date={checkIn.dateCreated}
+                            forcedTimezone={monitor.config.timezone}
+                            timeZone
+                            timeOnly
                           />
                         }
-                        to={`/issues/${id}`}
-                      />
-                    }
-                  </QuickContextHovercard>
-                ))}
-              </IssuesContainer>
-            ) : (
-              emptyCell
-            )}
-            {checkIn.attachmentId ? (
-              <Button
-                size="xs"
-                icon={<IconDownload size="xs" />}
-                href={generateDownloadUrl(checkIn)}
-              >
-                {t('Attachment')}
-              </Button>
-            ) : (
-              emptyCell
-            )}
-            <Timestamp date={checkIn.dateCreated} />
-          </React.Fragment>
-        ))}
+                      >
+                        {<DateTime date={checkIn.dateCreated} timeOnly />}
+                      </Tooltip>
+                    ) : (
+                      <DateTime date={checkIn.dateCreated} timeOnly />
+                    )}
+                  </div>
+                ) : (
+                  emptyCell
+                )}
+                {defined(checkIn.duration) ? (
+                  <Duration seconds={checkIn.duration / 1000} />
+                ) : (
+                  emptyCell
+                )}
+                {checkIn.groups && checkIn.groups.length > 0 ? (
+                  <IssuesContainer>
+                    {checkIn.groups.map(({id, shortId}) => (
+                      <QuickContextHovercard
+                        dataRow={{
+                          ['issue.id']: id,
+                          issue: shortId,
+                        }}
+                        contextType={ContextType.ISSUE}
+                        organization={organization}
+                        key={id}
+                      >
+                        {
+                          <StyledShortId
+                            shortId={shortId}
+                            avatar={
+                              <ProjectBadge
+                                project={monitor.project}
+                                hideName
+                                avatarSize={12}
+                              />
+                            }
+                            to={`/issues/${id}`}
+                          />
+                        }
+                      </QuickContextHovercard>
+                    ))}
+                  </IssuesContainer>
+                ) : (
+                  emptyCell
+                )}
+                {checkIn.attachmentId ? (
+                  <Button
+                    size="xs"
+                    icon={<IconDownload size="xs" />}
+                    href={generateDownloadUrl(checkIn)}
+                  >
+                    {t('Attachment')}
+                  </Button>
+                ) : (
+                  emptyCell
+                )}
+                <Timestamp date={checkIn.dateCreated} />
+              </React.Fragment>
+            ))}
       </PanelTable>
       <Pagination pageLinks={getResponseHeader?.('Link')} />
     </React.Fragment>
@@ -200,4 +204,13 @@ const Timestamp = styled(DateTime)`
 
 const StyledShortId = styled(ShortId)`
   justify-content: flex-start;
+`;
+
+const RowPlaceholder = styled('div')`
+  grid-column: 1 / -1;
+  padding: ${space(1)};
+
+  &:not(:last-child) {
+    border-bottom: solid 1px ${p => p.theme.innerBorder};
+  }
 `;

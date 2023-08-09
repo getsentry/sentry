@@ -9,6 +9,7 @@ from django.conf import settings
 from sentry.replays.lib.storage import FilestoreBlob, StorageBlob
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.reader import fetch_segments_metadata
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -22,6 +23,7 @@ replay_publisher: Optional[KafkaPublisher] = None
     queue="replays.delete_replay",
     default_retry_delay=5,
     max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
 def delete_recording_segments(project_id: int, replay_id: str, **kwargs: Any) -> None:
     """Asynchronously delete a replay."""

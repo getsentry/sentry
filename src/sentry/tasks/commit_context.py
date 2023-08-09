@@ -23,6 +23,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequestCommit
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.groupowner import process_suspect_commits
 from sentry.utils import metrics
@@ -124,6 +125,7 @@ def queue_comment_task_if_needed(
     retry_backoff=True,
     retry_backoff_max=60 * 60 * 3,  # 3 hours
     retry_jitter=False,
+    silo_mode=SiloMode.REGION,
 )
 def process_commit_context(
     event_id,
