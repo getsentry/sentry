@@ -91,7 +91,7 @@ def queue_comment_task_if_needed(
         )
         return
 
-    pr = pr_query.get()
+    pr = pr_query[0]
     if pr.date_added >= datetime.now(tz=timezone.utc) - timedelta(days=PR_COMMENT_WINDOW) and (
         not pr.pullrequestcomment_set.exists()
         or group_owner.group_id not in pr.pullrequestcomment_set.get().group_ids
