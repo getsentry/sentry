@@ -2,6 +2,7 @@ from base64 import b64encode
 
 from sentry import options as options_store
 from sentry.models import SentryAppAvatar
+from sentry.models.files.control_file import ControlFile
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -37,7 +38,7 @@ class SentryAppAvatarTestBase(APITestCase):
 
 
 @control_silo_test(stable=True)
-class SentryAppAvatarTest(SentryAppAvatarTestBase):
+class SentryAppAvatarGetTest(SentryAppAvatarTestBase):
     def test_get(self):
         response = self.get_success_response(self.unpublished_app.slug)
 
@@ -53,6 +54,30 @@ class SentryAppAvatarTest(SentryAppAvatarTestBase):
         assert simple_avatar["color"] is False
         assert response.data["uuid"] == str(self.unpublished_app.uuid)
 
+    def test_get_upload_control_file(self):
+        self.method = "put"
+        self.create_avatar(is_color=True)
+
+        self.method = "get"
+        self.create_avatar(is_color=True)
+        response = self.get_success_response(self.unpublished_app.slug)
+
+        assert response.status_code == 200, response.content
+        assert response.data["uuid"] == str(self.unpublished_app.uuid)
+        uploads = [
+            avatar for avatar in response.data["avatars"] if avatar["avatarType"] == "upload"
+        ]
+        upload = uploads[0]
+        assert upload["avatarType"] == "upload"
+        assert upload["avatarUuid"]
+
+        avatar = SentryAppAvatar.objects.filter(sentry_app_id=self.unpublished_app.id).first()
+        assert avatar
+        assert avatar.get_file_id()
+        assert avatar.control_file_id
+        file = avatar.get_file()
+        assert isinstance(file, ControlFile)
+
 
 @control_silo_test(stable=True)
 class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
@@ -65,11 +90,25 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         assert avatar.get_file_id()
         assert avatar.get_avatar_type_display() == "upload"
         color_avatar = self.get_avatar(resp)
+        assert color_avatar
         assert color_avatar["avatarType"] == "upload"
         assert color_avatar["avatarUuid"] is not None
         assert color_avatar["color"] is True
 
-    def test_upload_control(self):
+    def test_upload_control_file(self):
+        resp = self.create_avatar(is_color=True)
+
+        avatar = SentryAppAvatar.objects.get(sentry_app=self.unpublished_app, color=True)
+        assert avatar.get_file_id()
+        assert avatar.control_file_id
+        assert avatar.get_avatar_type_display() == "upload"
+        color_avatar = self.get_avatar(resp)
+        assert color_avatar
+        assert color_avatar["avatarType"] == "upload"
+        assert color_avatar["avatarUuid"] is not None
+        assert color_avatar["color"] is True
+
+    def test_upload_control_with_storage_options(self):
         with self.options(
             {
                 "filestore.control.backend": options_store.get("filestore.backend"),
@@ -82,6 +121,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
             assert avatar.get_file_id()
             assert avatar.get_avatar_type_display() == "upload"
             color_avatar = self.get_avatar(resp)
+            assert color_avatar
             assert color_avatar["avatarType"] == "upload"
             assert color_avatar["avatarUuid"] is not None
             assert color_avatar["color"] is True
@@ -96,6 +136,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         assert avatars[0].get_file_id()
         assert avatars[0].get_avatar_type_display() == "upload"
         color_avatar = self.get_avatar(resp)
+        assert color_avatar
         assert color_avatar["color"] is True
         assert color_avatar["avatarType"] == "upload"
         assert color_avatar["avatarUuid"] is not None
@@ -103,6 +144,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         assert avatars[1].get_file_id()
         assert avatars[1].get_avatar_type_display() == "upload"
         simple_avatar = self.get_avatar(resp, False)
+        assert simple_avatar
         assert simple_avatar["color"] is False
         assert simple_avatar["avatarType"] == "upload"
         assert simple_avatar["avatarUuid"] is not None
@@ -129,10 +171,12 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         color_avatar = self.get_avatar(response)
         simple_avatar = self.get_avatar(response, False)
 
+        assert color_avatar
         assert color_avatar["avatarType"] == "default"
         assert color_avatar["avatarUuid"] is not None
         assert color_avatar["color"] is True
 
+        assert simple_avatar
         assert simple_avatar["avatarType"] == "default"
         assert simple_avatar["avatarUuid"] is not None
         assert simple_avatar["color"] is False
