@@ -78,7 +78,9 @@ def queue_comment_task_if_needed(
     merge_commit_sha = response[0]["merge_commit_sha"]
 
     pr_query = PullRequest.objects.filter(
-        organization_id=commit.organization_id, merge_commit_sha=merge_commit_sha
+        organization_id=commit.organization_id,
+        repository_id=commit.repository_id,
+        merge_commit_sha=merge_commit_sha,
     )
     if not pr_query.exists():
         logger.info(
