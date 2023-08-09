@@ -3,7 +3,7 @@ from __future__ import annotations
 from io import BytesIO
 
 import sentry_sdk
-from django.http import HttpResponse, StreamingHttpResponse
+from django.http import HttpResponseBase
 from rest_framework.request import Request
 
 from sentry import features
@@ -17,7 +17,7 @@ from sentry.replays.usecases.reader import download_segment, fetch_segment_metad
 class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
     def get(
         self, request: Request, project, replay_id, segment_id
-    ) -> StreamingHttpResponse | HttpResponse:
+    ) -> HttpResponseBase:
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
         ):
