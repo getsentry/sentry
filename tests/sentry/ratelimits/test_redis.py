@@ -1,6 +1,7 @@
 from time import time
 
 from freezegun import freeze_time
+from freezegun.api import FrozenDateTimeFactory
 
 from sentry.ratelimits.redis import RedisRateLimiter
 from sentry.testutils.cases import TestCase
@@ -41,6 +42,7 @@ class RedisRateLimiterTest(TestCase):
     def test_current_value_expire(self):
         """Ensure that the count resets when the window expires"""
         with freeze_time("2000-01-01") as frozen_time:
+            assert isinstance(frozen_time, FrozenDateTimeFactory)
             for _ in range(10):
                 self.backend.is_limited("foo", 1, window=10)
             assert self.backend.current_value("foo", window=10) == 10
@@ -50,6 +52,7 @@ class RedisRateLimiterTest(TestCase):
 
     def test_is_limited_with_value(self):
         with freeze_time("2000-01-01") as frozen_time:
+            assert isinstance(frozen_time, FrozenDateTimeFactory)
             expected_reset_time = int(time() + 5)
 
             limited, value, reset_time = self.backend.is_limited_with_value("foo", 1, window=5)

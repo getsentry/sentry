@@ -1,11 +1,13 @@
 import os
 from contextlib import contextmanager
+from typing import Generator
 from unittest import mock
 
 import pytest
 from google.rpc.status_pb2 import Status
 
-from sentry.nodestore.bigtable.backend import BigtableKVStorage, BigtableNodeStorage
+from sentry.nodestore.bigtable.backend import BigtableNodeStorage
+from sentry.utils.kvstore.bigtable import BigtableKVStorage
 
 
 class MockedBigtableKVStorage(BigtableKVStorage):
@@ -71,7 +73,7 @@ class MockedBigtableNodeStorage(BigtableNodeStorage):
 
 
 @contextmanager
-def get_temporary_bigtable_nodestorage() -> BigtableNodeStorage:
+def get_temporary_bigtable_nodestorage() -> Generator[BigtableNodeStorage, None, None]:
     if "BIGTABLE_EMULATOR_HOST" not in os.environ:
         pytest.skip(
             "Bigtable is not available, set BIGTABLE_EMULATOR_HOST enironment variable to enable"

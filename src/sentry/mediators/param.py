@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Generic, TypeVar, overload
+from typing import TYPE_CHECKING, Callable, Generic, Literal, TypeVar, overload
 
 from typing_extensions import Self
 
@@ -76,6 +76,26 @@ class Param(Generic[T]):
         >>>     user = Param(dict)
         >>>     name = Param(str, default=lambda self: self.user['name'])
     """
+
+    @overload
+    def __init__(
+        self: Param[T | None],
+        type: type[T],
+        *,
+        required: Literal[False],
+        default: T | Callable[..., T] | None = None,
+    ) -> None:
+        ...
+
+    @overload
+    def __init__(
+        self: Param[T],
+        type: type[T],
+        *,
+        required: bool = ...,
+        default: T | Callable[..., T] | None = None,
+    ) -> None:
+        ...
 
     def __init__(
         self,

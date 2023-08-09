@@ -5,7 +5,7 @@ import string
 from typing import TYPE_CHECKING, Any, Callable, Mapping, Type
 
 from django.conf import settings
-from rest_framework.request import Request
+from django.http.request import HttpRequest
 from rest_framework.response import Response
 
 from sentry import features
@@ -45,7 +45,7 @@ def concurrent_limiter() -> ConcurrentRateLimiter:
 
 def get_rate_limit_key(
     view_func: EndpointFunction,
-    request: Request,
+    request: HttpRequest,
     rate_limit_group: str,
     rate_limit_config: RateLimitConfig | None = None,
 ) -> str | None:

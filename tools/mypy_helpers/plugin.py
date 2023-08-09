@@ -75,6 +75,9 @@ def _adjust_http_request_members(ctx: ClassDefContext) -> None:
         # added by sentry.api.base and sentry.web.frontend.base
         # TODO: idk why I can't use the real type here :/
         add_attribute_to_class(ctx.api, ctx.cls, "access", AnyType(TypeOfAny.explicit))
+        # added by sentry.middleware.auth
+        # TODO: figure out how to get the real types here
+        add_attribute_to_class(ctx.api, ctx.cls, "auth", AnyType(TypeOfAny.explicit))
         # added by csp.middleware.CSPMiddleware
         add_attribute_to_class(ctx.api, ctx.cls, "csp_nonce", ctx.api.named_type("builtins.str"))
         # added by sudo.middleware.SudoMiddleware

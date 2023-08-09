@@ -1,9 +1,9 @@
 import responses
 
-from sentry.mediators.external_requests import AlertRuleActionRequester
 from sentry.mediators.external_requests.alert_rule_action_requester import (
     DEFAULT_ERROR_MESSAGE,
     DEFAULT_SUCCESS_MESSAGE,
+    AlertRuleActionRequester,
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils import json

@@ -1,6 +1,7 @@
 import copy
 from unittest import mock
 
+from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.db import models
 
@@ -354,7 +355,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
                     scope_list=["org:read", "org:write", "member:read", "member:write"],
                 )
             request = copy.deepcopy(self.request)
-            request.user = None
+            request.user = AnonymousUser()
             request.auth = api_key
             self.org.handle_2fa_required(request)
         self.is_pending_organization_member(user.id, member.id)

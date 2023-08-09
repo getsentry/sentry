@@ -1,5 +1,10 @@
+from __future__ import annotations
+
+from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
+
+
 class BaseFetchProjectsWithRecentSessionsTest:
-    backend_class = None
+    backend_class: type[BaseReleaseMonitorBackend]
 
     def setUp(self):
         super().setUp()
@@ -38,7 +43,7 @@ class BaseFetchProjectsWithRecentSessionsTest:
 
 
 class BaseFetchProjectReleaseHealthTotalsTest:
-    backend_class = None
+    backend_class: type[BaseReleaseMonitorBackend]
 
     def setUp(self):
         self.project1 = self.create_project()

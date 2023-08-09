@@ -1,25 +1,23 @@
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property
 from time import sleep, time
-from unittest.mock import patch
+from unittest.mock import patch, sentinel
 
 from django.contrib.auth.models import AnonymousUser
+from django.http.request import HttpRequest
 from django.test import RequestFactory, override_settings
 from django.urls import re_path, reverse
 from freezegun import freeze_time
+from freezegun.api import FrozenDateTimeFactory
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
-from sentry.middleware.ratelimit import (
-    RatelimitMiddleware,
-    get_rate_limit_config,
-    get_rate_limit_key,
-    get_rate_limit_value,
-)
+from sentry.middleware.ratelimit import RatelimitMiddleware
 from sentry.models import ApiKey, ApiToken, SentryAppInstallation, User
 from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
+from sentry.ratelimits.utils import get_rate_limit_config, get_rate_limit_key, get_rate_limit_value
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -28,7 +26,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 @control_silo_test(stable=True)
 @override_settings(SENTRY_SELF_HOSTED=False)
 class RatelimitMiddlewareTest(TestCase):
-    middleware = RatelimitMiddleware(None)
+    middleware = RatelimitMiddleware(lambda request: sentinel.response)
 
     @cached_property
     def factory(self):
@@ -74,10 +72,10 @@ class RatelimitMiddlewareTest(TestCase):
 
     def test_process_response_fails_open(self):
         request = self.factory.get("/")
-        bad_response = object()
+        bad_response = sentinel.response
         assert self.middleware.process_response(request, bad_response) is bad_response
 
-        class BadRequest:
+        class BadRequest(HttpRequest):
             def __getattr__(self, attr):
                 raise Exception("nope")
 
@@ -112,6 +110,7 @@ class RatelimitMiddlewareTest(TestCase):
         # Requests outside the current window should not be rate limited
         default_rate_limit_mock.return_value = RateLimit(1, 1)
         with freeze_time("2000-01-01") as frozen_time:
+            assert isinstance(frozen_time, FrozenDateTimeFactory)
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
             frozen_time.tick(1)
@@ -129,6 +128,7 @@ class RatelimitMiddlewareTest(TestCase):
 
         default_rate_limit_mock.return_value = RateLimit(1, 1)
         with freeze_time("2000-01-01") as frozen_time:
+            assert isinstance(frozen_time, FrozenDateTimeFactory)
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
             frozen_time.tick(1)
@@ -143,16 +143,16 @@ class RatelimitMiddlewareTest(TestCase):
 
         request = self.factory.get("/")
         self.middleware.process_view(request, self._test_endpoint, [], {})
-        assert request.rate_limit_category == "ip"
+        assert request.rate_limit_category == RateLimitCategory.IP
 
         request.session = {}
         request.user = self.user
         self.middleware.process_view(request, self._test_endpoint, [], {})
-        assert request.rate_limit_category == "user"
+        assert request.rate_limit_category == RateLimitCategory.USER
 
         self.populate_sentry_app_request(request)
         self.middleware.process_view(request, self._test_endpoint, [], {})
-        assert request.rate_limit_category == "org"
+        assert request.rate_limit_category == RateLimitCategory.ORGANIZATION
 
     def test_get_rate_limit_key(self):
         # Import an endpoint
@@ -226,13 +226,13 @@ class TestGetRateLimitValue(TestCase):
         rate_limit_config = get_rate_limit_config(view.view_class)
 
         assert get_rate_limit_value(
-            "GET", "ip", rate_limit_config
+            "GET", RateLimitCategory.IP, rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.IP)
         assert get_rate_limit_value(
-            "POST", "org", rate_limit_config
+            "POST", RateLimitCategory.ORGANIZATION, rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.ORGANIZATION)
         assert get_rate_limit_value(
-            "DELETE", "user", rate_limit_config
+            "DELETE", RateLimitCategory.USER, rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.USER)
 
     def test_override_rate_limit(self):
@@ -247,16 +247,20 @@ class TestGetRateLimitValue(TestCase):
         view = TestEndpoint.as_view()
         rate_limit_config = get_rate_limit_config(view.view_class)
 
-        assert get_rate_limit_value("GET", "ip", rate_limit_config) == RateLimit(100, 5)
+        assert get_rate_limit_value("GET", RateLimitCategory.IP, rate_limit_config) == RateLimit(
+            100, 5
+        )
         # get is not overriddent for user, hence we use the default
         assert get_rate_limit_value(
-            "GET", "user", rate_limit_config
+            "GET", RateLimitCategory.USER, rate_limit_config
         ) == get_default_rate_limits_for_group("default", category=RateLimitCategory.USER)
         # get is not overriddent for IP, hence we use the default
         assert get_rate_limit_value(
-            "POST", "ip", rate_limit_config
+            "POST", RateLimitCategory.IP, rate_limit_config
         ) == get_default_rate_limits_for_group("default", category=RateLimitCategory.IP)
-        assert get_rate_limit_value("POST", "user", rate_limit_config) == RateLimit(20, 4)
+        assert get_rate_limit_value("POST", RateLimitCategory.USER, rate_limit_config) == RateLimit(
+            20, 4
+        )
 
 
 class RateLimitHeaderTestEndpoint(Endpoint):

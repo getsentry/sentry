@@ -14,7 +14,7 @@ from sentry.models import (
     OrganizationOption,
     Rule,
 )
-from sentry.plugins.bases import IssueTrackingPlugin
+from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import (
     alert_rule_created,
@@ -273,11 +273,13 @@ class OrganizationOnboardingTaskTest(TestCase):
         om = self.create_member(
             organization=self.organization, teams=[self.team], email="someemail@example.com"
         )
+        invite = organization_service.get_invite_by_id(
+            organization_member_id=om.id, organization_id=om.organization_id
+        )
+        assert invite is not None
         helper = ApiInviteHelper(
             self.make_request(user=user),
-            organization_service.get_invite_by_id(
-                organization_member_id=om.id, organization_id=om.organization_id
-            ),
+            invite,
             None,
         )
 
@@ -301,11 +303,13 @@ class OrganizationOnboardingTaskTest(TestCase):
         om2 = self.create_member(
             organization=self.organization, teams=[self.team], email="blah@example.com"
         )
+        invite = organization_service.get_invite_by_id(
+            organization_member_id=om2.id, organization_id=om2.organization_id
+        )
+        assert invite is not None
         helper = ApiInviteHelper(
             self.make_request(user=user2),
-            organization_service.get_invite_by_id(
-                organization_member_id=om2.id, organization_id=om2.organization_id
-            ),
+            invite,
             None,
         )
 

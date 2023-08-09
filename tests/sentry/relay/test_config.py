@@ -111,8 +111,8 @@ def test_get_project_config(default_project, insta_snapshot, django_cache, full)
     default_project.organization.update_option("sentry:relay_pii_config", PII_CONFIG)
     keys = ProjectKey.objects.filter(project=default_project)
 
-    cfg = get_project_config(default_project, full_config=full, project_keys=keys)
-    cfg = cfg.to_dict()
+    project_cfg = get_project_config(default_project, full_config=full, project_keys=keys)
+    cfg = project_cfg.to_dict()
 
     _validate_project_config(cfg["config"])
 
@@ -184,9 +184,9 @@ def test_project_config_uses_filter_features(
         default_project.update_option("sentry:blacklisted_ips", blacklisted_ips)
 
     with Feature({"projects:custom-inbound-filters": has_custom_filters}):
-        cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project, full_config=True)
 
-    cfg = cfg.to_dict()
+    cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
     cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
     cfg_releases = get_path(cfg, "config", "filterSettings", "releases")
@@ -210,9 +210,9 @@ def test_project_config_uses_filter_features(
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["organizations:profiling"])
 def test_project_config_exposed_features(default_project):
     with Feature({"organizations:profiling": True}):
-        cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project, full_config=True)
 
-    cfg = cfg.to_dict()
+    cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
     cfg_features = get_path(cfg, "config", "features")
     assert cfg_features == ["organizations:profiling"]
@@ -305,9 +305,9 @@ def test_project_config_with_all_biases_enabled(
             "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
             return_value=0.1,
         ):
-            cfg = get_project_config(default_project)
+            project_cfg = get_project_config(default_project)
 
-    cfg = cfg.to_dict()
+    cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
     dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
     assert dynamic_sampling == {
@@ -424,9 +424,9 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
             "organizations:transaction-metrics-extraction": transaction_metrics == "with_metrics",
         }
     ):
-        cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project, full_config=True)
 
-    cfg = cfg.to_dict()
+    cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
     insta_snapshot(
         {
@@ -449,9 +449,9 @@ def test_project_config_with_organizations_metrics_extraction(
         abnormal_mechanism_rollout,
     ):
         with Feature({"organizations:metrics-extraction": has_metrics_extraction}):
-            cfg = get_project_config(default_project, full_config=True)
+            project_cfg = get_project_config(default_project, full_config=True)
 
-        cfg = cfg.to_dict()
+        cfg = project_cfg.to_dict()
         _validate_project_config(cfg["config"])
         session_metrics = get_path(cfg, "config", "sessionMetrics")
         if has_metrics_extraction:
@@ -497,9 +497,9 @@ def test_project_config_satisfaction_thresholds(
             "organizations:transaction-metrics-extraction": True,
         }
     ):
-        cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project, full_config=True)
 
-    cfg = cfg.to_dict()
+    cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
     insta_snapshot(cfg["config"]["metricConditionalTagging"])
 
@@ -508,8 +508,8 @@ def test_project_config_satisfaction_thresholds(
 @region_silo_test(stable=True)
 def test_project_config_with_span_attributes(default_project, insta_snapshot):
     # The span attributes config is not set with the flag turnd off
-    cfg = get_project_config(default_project, full_config=True)
-    cfg = cfg.to_dict()
+    project_cfg = get_project_config(default_project, full_config=True)
+    cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
     insta_snapshot(cfg["config"]["spanAttributes"])
 
@@ -534,8 +534,8 @@ def test_has_metric_extraction(default_project, feature_flag, killswitch):
         }
     )
     with feature, options:
-        config = get_project_config(default_project)
-        config = config.to_dict()["config"]
+        project_config = get_project_config(default_project)
+        config = project_config.to_dict()["config"]
         _validate_project_config(config)
         if killswitch or not feature_flag:
             assert "transactionMetrics" not in config
