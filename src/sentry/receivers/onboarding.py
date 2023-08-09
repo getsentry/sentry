@@ -98,13 +98,13 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
 
 
 @first_event_pending.connect(weak=False)
-def record_raven_installed(project, user, **kwargs):
+def record_raven_installed(project_id: int, organization_id: int, user_id: int | None, **kwargs):
     OrganizationOnboardingTask.objects.record(
-        organization_id=project.organization_id,
+        organization_id=organization_id,
         task=OnboardingTask.FIRST_EVENT,
         status=OnboardingTaskStatus.PENDING,
-        user_id=user.id if user else None,
-        project_id=project.id,
+        user_id=user_id,
+        project_id=project_id,
     )
 
 

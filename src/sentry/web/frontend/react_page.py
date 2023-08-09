@@ -10,7 +10,6 @@ from rest_framework.request import Request
 from sentry import features, options
 from sentry.api.utils import customer_domain_path, generate_organization_url
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
-from sentry.services.hybrid_cloud.project import project_service
 from sentry.signals import first_event_pending
 from sentry.utils.http import is_using_customer_domain, query_string
 from sentry.web.frontend.base import BaseView, ControlSiloOrganizationView
@@ -117,7 +116,11 @@ class ReactPageView(ControlSiloOrganizationView, ReactMixin):
                 organization_service.schedule_signal(
                     signal=first_event_pending,
                     organization_id=organization.id,
-                    args=dict(project=project, user_id=request.user.id if request.user else None),
+                    args=dict(
+                        project_id=project.id,
+                        organization_id=organization.id,
+                        user_id=request.user.id if request.user else None,
+                    ),
                 )
         request.organization = organization
         return self.handle_react(request)
