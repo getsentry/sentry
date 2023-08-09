@@ -35,6 +35,10 @@ class OldExportConfig(NamedTuple):
     # option.
     excluded_models: set[str] = set()
 
+    # Old exports use "natural" foreign keys, which in practice only changes how foreign keys into
+    # `sentry.User` are represented.
+    use_natural_foreign_keys: bool = False
+
 
 def exports(dest, old_config: OldExportConfig, indent: int, printer=click.echo):
     """Exports core data for the Sentry installation."""
@@ -59,6 +63,6 @@ def exports(dest, old_config: OldExportConfig, indent: int, printer=click.echo):
         yield_objects(),
         indent=indent,
         stream=dest,
-        use_natural_foreign_keys=True,
+        use_natural_foreign_keys=old_config.use_natural_foreign_keys,
         cls=DatetimeSafeDjangoJSONEncoder,
     )

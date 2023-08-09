@@ -10,7 +10,6 @@ from django.db import models
 from sentry.backup.findings import ComparatorFinding, ComparatorFindingKind, InstanceID
 from sentry.backup.helpers import Side, get_exportable_final_derivations_of
 from sentry.db.models import BaseModel
-from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.utils.json import JSONData
 
 
@@ -304,12 +303,6 @@ def auto_assign_email_obfuscating_comparators(comps: ComparatorMap) -> None:
         assign = set()
         for f in fields:
             if isinstance(f, models.EmailField):
-                assign.add(f.name)
-            elif isinstance(f, FlexibleForeignKey) and f.related_model.__name__ == "User":
-                assign.add(f.name)
-            elif isinstance(f, models.OneToOneField) and f.related_model.__name__ == "User":
-                assign.add(f.name)
-            elif isinstance(f, models.ManyToManyField) and f.related_model.__name__ == "User":
                 assign.add(f.name)
 
         if len(assign):
