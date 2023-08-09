@@ -91,7 +91,7 @@ type ProductProps = {
    */
   docLink?: string;
   /**
-   * Click handler. If the product is enablec, by clicking on the button, the product is added or removed from the URL.
+   * Click handler. If the product is enabled, by clicking on the button, the product is added or removed from the URL.
    */
   onClick?: () => void;
   /**
