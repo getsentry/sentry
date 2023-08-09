@@ -9,7 +9,9 @@ from django.test import override_settings
 from requests import Request
 from responses import matchers
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.github.client import GitHubAppsClient
+from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
@@ -539,3 +541,28 @@ class GithubProxyClientTest(TestCase):
             assert "/repos/test-repo/issues" in request.url
             assert client.base_url not in request.url
             client.assert_proxy_request(request, is_proxy=True)
+
+    @responses.activate
+    def test_fatal_disable(self):
+        jwt_request = Request(
+            method=responses.POST,
+            url=f"{self.gh_client.base_url}/app/installations/{self.installation_id}/access_tokens",
+        ).prepare()
+        responses.add(
+            responses.POST,
+            status=403,
+            url=f"https://api.github.com/app/installations/{self.installation_id}/access_tokens",
+            json={
+                "message": "This installation has been suspended",
+                "documentation_url": "https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app",
+            },
+        )
+
+        with pytest.raises(ApiError):
+            self.gh_client.authorize_request(prepared_request=jwt_request)
+
+        buffer = IntegrationRequestBuffer(self.gh_client._get_redis_key())
+        assert buffer.is_integration_broken() is True
+        assert self.integration.status == ObjectStatus.DISABLED
+        assert [len(item) == 0 for item in buffer._get_broken_range_from_buffer()]
+        assert len(buffer._get_all_from_buffer()) == 0

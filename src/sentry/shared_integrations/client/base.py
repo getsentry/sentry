@@ -392,7 +392,7 @@ class BaseApiClient(TrackResponseMixin):
         random_value = randint(0, 99)
         if not len(redis_key):
             return
-        if not self.is_considered_error(error) or self.is_error_fatal(error):
+        if not self.is_considered_error(error) and not self.is_error_fatal(error):
             return
         try:
             buffer = IntegrationRequestBuffer(redis_key)
@@ -400,7 +400,10 @@ class BaseApiClient(TrackResponseMixin):
             if random_value == 0:
                 self.logger.error("integration.disable_on_broken.init.fail", exc_info=True)
         try:
-            buffer.record_error()
+            if self.is_error_fatal(error):
+                buffer.record_fatal()
+            else:
+                buffer.record_error()
             if buffer.is_integration_broken():
                 self.disable_integration()
         except Exception:
