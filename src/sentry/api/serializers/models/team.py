@@ -163,7 +163,7 @@ class _TeamSerializerResponseOptional(TypedDict, total=False):
     orgRole: Optional[str]  # TODO(cathy): Change to new key
 
 
-class TeamSerializerResponse(_TeamSerializerResponseOptional):
+class BaseTeamSerializerResponse(TypedDict):
     id: str
     slug: str
     name: str
@@ -178,8 +178,24 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
     avatar: SerializedAvatarFields
 
 
+# We require a third Team Response TypedDict that inherits like so:
+# TeamSerializerResponse
+#   * BaseTeamSerializerResponse
+#   * _TeamSerializerResponseOptional
+# instead of having this inheritance:
+# BaseTeamSerializerResponse
+#   * _TeamSerializerResponseOptional
+# b/c of how drf-spectacular builds schema using @extend_schema. When specifying a DRF serializer
+# as a response, the schema will include all optional fields even if the response body for that
+# request never includes those fields. There is no way to have a single serializer that we can
+# manipulate to exclude optional fields at will, so we need two separate serializers where one
+# returns the base response fields, and the other returns the combined base+optional response fields
+class TeamSerializerResponse(BaseTeamSerializerResponse, _TeamSerializerResponseOptional):
+    pass
+
+
 @register(Team)
-class TeamSerializer(Serializer):
+class BaseTeamSerializer(Serializer):
     expand: Sequence[str] | None
     collapse: Sequence[str] | None
     access: Access | None
@@ -298,7 +314,7 @@ class TeamSerializer(Serializer):
 
     def serialize(
         self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> TeamSerializerResponse:
+    ) -> BaseTeamSerializerResponse:
         if attrs.get("avatar"):
             avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
@@ -306,7 +322,7 @@ class TeamSerializer(Serializer):
             }
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
-        result: TeamSerializerResponse = {
+        result: BaseTeamSerializerResponse = {
             "id": str(obj.id),
             "slug": obj.slug,
             "name": obj.name,
@@ -322,6 +338,16 @@ class TeamSerializer(Serializer):
         }
         if obj.org_role:
             result["orgRole"] = obj.org_role
+
+        return result
+
+
+# See TeamSerializerResponse for explanation as to why this is needed
+class TeamSerializer(BaseTeamSerializer):
+    def serialize(
+        self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+    ) -> TeamSerializerResponse:
+        result = super().serialize(obj, attrs, user, **kwargs)
 
         # Expandable attributes.
         if self._expand("externalTeams"):
