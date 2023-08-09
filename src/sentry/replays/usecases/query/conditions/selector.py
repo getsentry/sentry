@@ -25,7 +25,7 @@ class ClickSelector(ComputedBase[List[QueryType]]):
 #
 # If multiple selectors are provided then we are asking if any row matches any selector.
 def search_selector(queries: list[QueryType]) -> Condition:
-    conditions: list[Condition] = []
+    conditions: list[Function] = []
 
     for query in queries:
         cmp_functions = []
