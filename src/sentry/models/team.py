@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import warnings
 from collections import defaultdict
-from typing import TYPE_CHECKING, Literal, Optional, Sequence, Tuple, Union, overload
+from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
 
 from django.conf import settings
 from django.db import IntegrityError, connections, models, router, transaction
@@ -27,35 +27,15 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project, User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.models import Organization, Project
 
 
 class TeamManager(BaseManager):
-    @overload
     def get_for_user(
         self,
-        organization: Organization,
-        user: User | RpcUser,
-        scope: str | None = None,
-    ) -> list[Team]:
-        ...
-
-    @overload
-    def get_for_user(
-        self,
-        organization: Organization,
-        user: User | RpcUser,
-        scope: str | None = None,
         *,
-        with_projects: Literal[True],
-    ) -> list[tuple[Team, list[Project]]]:
-        ...
-
-    def get_for_user(
-        self,
         organization: Organization,
-        user: Union[User, RpcUser],
+        user_id: int,
         scope: Optional[str] = None,
         with_projects: bool = False,
     ) -> Union[Sequence[Team], Sequence[Tuple[Team, Sequence[Project]]]]:
@@ -66,16 +46,13 @@ class TeamManager(BaseManager):
         from sentry.models import OrganizationMember, OrganizationMemberTeam, Project
         from sentry.models.projectteam import ProjectTeam
 
-        if not user.is_authenticated:
-            return []
-
         base_team_qs = self.filter(organization=organization, status=TeamStatus.ACTIVE)
 
         if env.request and is_active_superuser(env.request) or settings.SENTRY_PUBLIC:
             team_list = list(base_team_qs)
         else:
             try:
-                om = OrganizationMember.objects.get(user_id=user.id, organization=organization)
+                om = OrganizationMember.objects.get(user_id=user_id, organization=organization)
             except OrganizationMember.DoesNotExist:
                 # User is not a member of the organization at all
                 return []

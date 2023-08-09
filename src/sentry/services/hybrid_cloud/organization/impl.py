@@ -282,7 +282,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
         updates: models.F | models.CombinedExpression = models.F("flags")
-        for (name, value) in flags.items():
+        for name, value in flags.items():
             if value is True:
                 updates = updates.bitor(getattr(Organization.flags, name))
             elif value is False:
@@ -521,15 +521,15 @@ class DatabaseBackedOrganizationService(OrganizationService):
         signal.signal.send_robust(None, organization_id=organization_id, **args)
 
     def get_teams_for_user(self, *, organization_id: int, user_id: int) -> List[RpcTeam]:
-        from sentry.services.hybrid_cloud.user.service import user_service
-
         organization = Organization.objects.get_from_cache(id=organization_id)
-        user = user_service.get_user(user_id=user_id)
 
-        if not (organization and user):
+        if not organization:
             return []
 
-        teams = Team.objects.get_for_user(organization=organization, user=user)
+        teams = Team.objects.get_for_user(
+            organization=organization,
+            user_id=user_id,
+        )
         return [serialize_rpc_team(team) for team in teams]
 
 

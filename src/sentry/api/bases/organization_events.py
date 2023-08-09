@@ -81,12 +81,15 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         return [team.id for team in self.get_teams(request, organization)]
 
     def get_teams(self, request: Request, organization: Organization) -> Sequence[Team]:
-        if not request.user:
+        if not (request.user and request.user.is_authenticated):
             return []
 
         teams = get_teams(request, organization)
         if not teams:
-            teams = Team.objects.get_for_user(organization, request.user)
+            teams = Team.objects.get_for_user(
+                organization=organization,
+                user_id=request.user.id,
+            )
 
         return [team for team in teams]
 
