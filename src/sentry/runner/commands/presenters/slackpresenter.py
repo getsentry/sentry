@@ -29,9 +29,6 @@ class SlackPresenter(OptionsPresenter):
 
     @staticmethod
     def is_slack_enabled():
-        import logging
-
-        logger = logging.getLogger("sentry.options_automator")
 
         if not settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
             return False
@@ -58,9 +55,9 @@ class SlackPresenter(OptionsPresenter):
             )
             if response.status_code == 200:
                 return True
-            logger.error(f"Slack integration webhook failed. Status code: {response.status_code}")
-            return False
-
+            raise ConnectionError(
+                f"Slack integration webhook failed. Status code: {response.status_code}"
+            )
         except Exception:
             raise
 
