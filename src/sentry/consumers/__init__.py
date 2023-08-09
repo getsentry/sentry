@@ -99,6 +99,10 @@ _POST_PROCESS_FORWARDER_OPTIONS = [
 ]
 
 
+_INGEST_SPANS_OPTIONS = multiprocessing_options(default_max_batch_size=100) + [
+    click.Option(["--output-topic", "output_topic"], type=str, default="snuba-spans"),
+]
+
 # consumer name -> consumer definition
 # XXX: default_topic is needed to lookup the schema even if the actual topic name has been
 # overridden. This is because the current topic override mechanism means the default topic name
@@ -249,6 +253,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
     },
     "ingest-spans": {
+        "click_options": _INGEST_SPANS_OPTIONS,
         "topic": settings.KAFKA_INGEST_SPANS,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
     },
