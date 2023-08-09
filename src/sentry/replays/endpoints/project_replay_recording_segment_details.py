@@ -3,6 +3,7 @@ from __future__ import annotations
 from io import BytesIO
 
 import sentry_sdk
+from django.http import StreamingHttpResponse
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
