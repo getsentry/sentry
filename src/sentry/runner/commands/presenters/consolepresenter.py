@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 import click
 
@@ -25,10 +25,10 @@ class ConsolePresenter(OptionsPresenter):
     INVALID_TYPE_ERROR = "Option %s has invalid type. got %s, expected %s."
 
     def __init__(self) -> None:
-        self.drifted_options: List[Tuple[str, str]] = []
+        self.drifted_options: List[Tuple[str, Any]] = []
         self.channel_updated_options: List[str] = []
-        self.updated_options: List[Tuple[str, str, str]] = []
-        self.set_options: List[Tuple[str, str]] = []
+        self.updated_options: List[Tuple[str, Any, Any]] = []
+        self.set_options: List[Tuple[str, Any]] = []
         self.unset_options: List[str] = []
         self.not_writable_options: List[Tuple[str, str]] = []
         self.unregistered_options: List[str] = []

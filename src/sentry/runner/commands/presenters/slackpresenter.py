@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 import requests
 from django.conf import settings
@@ -19,10 +19,10 @@ class SlackPresenter(OptionsPresenter):
     MAX_OPTION_VALUE_LENGTH = 30
 
     def __init__(self) -> None:
-        self.drifted_options: List[Tuple[str, str]] = []
+        self.drifted_options: List[Tuple[str, Any]] = []
         self.channel_updated_options: List[str] = []
-        self.updated_options: List[Tuple[str, str, str]] = []
-        self.set_options: List[Tuple[str, str]] = []
+        self.updated_options: List[Tuple[str, Any, Any]] = []
+        self.set_options: List[Tuple[str, Any]] = []
         self.unset_options: List[str] = []
         self.not_writable_options: List[Tuple[str, str]] = []
         self.unregistered_options: List[str] = []
@@ -74,7 +74,7 @@ class SlackPresenter(OptionsPresenter):
             "updated_options": [
                 {
                     "option_name": key,
-                    "db_value": db_value,
+                    "db_value": self.truncate_value(db_value),
                     "value": self.truncate_value(value),
                 }
                 for key, db_value, value in self.updated_options
