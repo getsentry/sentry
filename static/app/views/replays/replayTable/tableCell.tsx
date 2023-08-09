@@ -10,7 +10,7 @@ import StringWalker from 'sentry/components/replays/walker/stringWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconCalendar, IconDelete, IconFatal, IconFire, IconSad} from 'sentry/icons';
+import {IconCalendar, IconDelete, IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
@@ -277,10 +277,7 @@ export function RageClickCountCell({replay}: Props) {
   return (
     <Item data-test-id="replay-table-count-rage-clicks">
       {replay.count_rage_clicks ? (
-        <DeadRageCount>
-          <IconSad />
-          {replay.count_rage_clicks}
-        </DeadRageCount>
+        <DeadRageCount>{replay.count_rage_clicks}</DeadRageCount>
       ) : (
         <Count>0</Count>
       )}
@@ -295,10 +292,7 @@ export function DeadClickCountCell({replay}: Props) {
   return (
     <Item data-test-id="replay-table-count-dead-clicks">
       {replay.count_dead_clicks ? (
-        <DeadRageCount>
-          <IconFatal />
-          {replay.count_dead_clicks}
-        </DeadRageCount>
+        <DeadRageCount>{replay.count_dead_clicks}</DeadRageCount>
       ) : (
         <Count>0</Count>
       )}
