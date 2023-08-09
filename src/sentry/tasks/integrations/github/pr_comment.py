@@ -19,6 +19,7 @@ from sentry.models.pullrequest import CommentType, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.silo import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
@@ -172,7 +173,9 @@ def create_or_update_comment(
     )
 
 
-@instrumented_task(name="sentry.tasks.integrations.github_comment_workflow")
+@instrumented_task(
+    name="sentry.tasks.integrations.github_comment_workflow", silo_mode=SiloMode.REGION
+)
 def github_comment_workflow(pullrequest_id: int, project_id: int):
     cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(pullrequest_id)
 
@@ -265,7 +268,9 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         raise e
 
 
-@instrumented_task(name="sentry.tasks.integrations.github_comment_reactions")
+@instrumented_task(
+    name="sentry.tasks.integrations.github_comment_reactions", silo_mode=SiloMode.REGION
+)
 def github_comment_reactions():
     logger.info("github.pr_comment.reactions_task")
 
