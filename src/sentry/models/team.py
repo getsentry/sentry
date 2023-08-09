@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import warnings
 from collections import defaultdict
-from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Literal, Optional, Sequence, Tuple, Union, overload
 
 from django.conf import settings
 from django.db import IntegrityError, connections, models, router, transaction
@@ -31,6 +31,27 @@ if TYPE_CHECKING:
 
 
 class TeamManager(BaseManager):
+    @overload
+    def get_for_user(
+        self,
+        *,
+        organization: Organization,
+        user_id: int,
+        scope: str | None = None,
+    ) -> list[Team]:
+        ...
+
+    @overload
+    def get_for_user(
+        self,
+        *,
+        organization: Organization,
+        user_id: int,
+        scope: str | None = None,
+        with_projects: Literal[True],
+    ) -> list[tuple[Team, list[Project]]]:
+        ...
+
     def get_for_user(
         self,
         *,
