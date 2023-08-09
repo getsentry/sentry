@@ -60,6 +60,7 @@ class TestGroupOwners(TestCase):
             },
             project_id=self.project.id,
         )
+        assert self.event.group is not None
         GroupRelease.objects.create(
             group_id=self.event.group.id, project_id=self.project.id, release_id=self.release.id
         )

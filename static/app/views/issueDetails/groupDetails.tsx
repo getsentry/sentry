@@ -684,21 +684,6 @@ function GroupDetailsContent({
 
   useTrackView({group, event, project, tab: currentTab});
 
-  useEffect(() => {
-    if (
-      currentTab === Tab.DETAILS &&
-      group &&
-      event &&
-      group.id !== event?.groupID &&
-      !eventError
-    ) {
-      // if user pastes only the event id into the url, but it's from another group, redirect to correct group/event
-      const redirectUrl = `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.id}/`;
-
-      router.push(normalizeUrl(redirectUrl));
-    }
-  }, [currentTab, event, eventError, group, organization.slug, router]);
-
   const childProps = {
     environments,
     group,

@@ -18,6 +18,7 @@ from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.utils import json
 
 
 @region_silo_test(stable=True)
@@ -281,24 +282,21 @@ class NotificationActionsIndexEndpointTest(APITestCase):
 
         self.mock_register(data)(MockActionRegistration)
 
-        # Can't find slack channel
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
-            status=500,
-        )
-        self.get_error_response(
-            self.organization.slug,
-            status_code=status.HTTP_400_BAD_REQUEST,
-            method="POST",
-            **data,
-        )
-        # Successful search for channel
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
-            json={"ok": True, "channels": [{"name": channel_name, "id": channel_id}]},
+            content_type="application/json",
+            body=json.dumps(
+                {"ok": "true", "channel": channel_id, "scheduled_message_id": "Q1298393284"}
+            ),
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.deleteScheduledMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": True}),
         )
         response = self.get_success_response(
             self.organization.slug,
