@@ -18,6 +18,8 @@ HELP_MESSAGE = """
 `/help`: View this message.
 `/link`: Link your Discord account to your Sentry account to perform actions on Sentry notifications.
 `/unlink`: Unlink your Discord account from your Sentry account.
+
+Note that in order for the link and unlink actions to work, you must be already logged in to your Sentry account.
 """
 
 

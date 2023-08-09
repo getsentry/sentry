@@ -26,7 +26,7 @@ from sentry.types.group import SUBSTATUS_TO_STR, GroupSubStatus
 
 from ..utils import logger
 
-NO_IDENTITY = "You need to link your Discord account to your Sentry account to do that. You can do this with `/link`!"
+NO_IDENTITY = "You need to link your Discord account to your Sentry account to do that. You can do this with `/link`."
 NOT_IN_ORG = "You must be a member of the org this issue belongs to in order to act on it."
 ASSIGNEE_UPDATED = "Assignee has been updated."
 RESOLVE_DIALOG_OPTIONS = [
@@ -39,7 +39,7 @@ RESOLVED_IN_NEXT_RELEASE = "The issue will be resolved in the next release."
 RESOLVED_IN_CURRENT_RELEASE = "The issue will be resolved in the current release."
 UNRESOLVED = "The issue has been unresolved."
 MARKED_ONGOING = "The issue has been marked as ongoing."
-IGNORE_UNTIL_ESCALATES = "The issue will be ignored until it escalates."
+ARCHIVE_UNTIL_ESCALATES = "The issue will be archived until it escalates."
 
 
 class DiscordMessageComponentHandler(DiscordInteractionHandler):
@@ -192,7 +192,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
                 "substatus": SUBSTATUS_TO_STR[GroupSubStatus.UNTIL_ESCALATING],
             }
         )
-        return self.send_message(IGNORE_UNTIL_ESCALATES)
+        return self.send_message(ARCHIVE_UNTIL_ESCALATES)
 
     def update_group(self, data: Mapping[str, object]) -> None:
         analytics.record(

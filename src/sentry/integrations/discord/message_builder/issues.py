@@ -14,6 +14,7 @@ from sentry.integrations.message_builder import (
     build_attachment_text,
     build_attachment_title,
     build_footer,
+    get_color,
     get_title_link,
 )
 from sentry.models.group import Group, GroupStatus
@@ -68,7 +69,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
                     ExternalProviders.DISCORD,
                     rule_id,
                 ),
-                color=LEVEL_TO_COLOR["info"],
+                color=LEVEL_TO_COLOR[get_color(event_for_tags, self.notification, self.group)],
                 # We can't embed urls in Discord embed footers.
                 footer=DiscordMessageEmbedFooter(
                     build_footer(self.group, project, self.rules, "{text}")
