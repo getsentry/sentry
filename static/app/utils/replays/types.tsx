@@ -82,7 +82,11 @@ export function getFrameOpOrCategory(frame: ReplayFrame) {
 }
 
 export function isConsoleFrame(frame: BreadcrumbFrame): frame is ConsoleFrame {
-  return frame.category === 'console';
+  if (frame.category === 'console') {
+    frame.data = frame.data ?? {};
+    return true;
+  }
+  return false;
 }
 
 export function isDeadClick(frame: SlowClickFrame) {
