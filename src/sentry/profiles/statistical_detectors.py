@@ -187,7 +187,7 @@ def detect_trend(state: TrendState, payload: TrendPayload) -> Tuple[TrendType, T
     elif stablized and ema_short.value < ema_long.value and state.short_ma >= state.long_ma:
         # The new fast moving average is below the new slow moving average
         # The old fast moving average is above the old slow moving average
-        # This indicates an downards trend.
+        # This indicates an downwards trend.
         trend = TrendType.Improved
     else:
         trend = TrendType.Unchanged

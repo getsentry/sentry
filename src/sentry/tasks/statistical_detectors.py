@@ -65,7 +65,7 @@ def run_detection() -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.statistical_detectors._detect_transaction_trends",
+    name="sentry.tasks.statistical_detectors.detect_transaction_trends",
     queue="performance.statistical_detector",
     max_retries=0,
 )
@@ -78,7 +78,7 @@ def detect_transaction_trends(project_ids: List[int], **kwargs) -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.statistical_detectors._detect_function_trends",
+    name="sentry.tasks.statistical_detectors.detect_function_trends",
     queue="performance.statistical_detector",
     max_retries=0,
 )
