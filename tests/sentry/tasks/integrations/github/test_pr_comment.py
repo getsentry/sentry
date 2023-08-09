@@ -861,7 +861,7 @@ class TestSafeForComment(GithubCommentTestCase):
             responses.GET,
             self.gh_path.format(pull_number=self.pr.key),
             status=200,
-            json={"changed_files": 10, "additions": 100, "deletions": 100, "state": "closed"},
+            json={"changed_files": 5, "additions": 100, "deletions": 100, "state": "closed"},
         )
 
         assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)

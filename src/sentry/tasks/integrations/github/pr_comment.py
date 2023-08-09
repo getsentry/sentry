@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from enum import Enum
 from typing import Any, List
 
 import sentry_sdk
@@ -41,6 +42,12 @@ class PullRequestIssue:
     url: str
 
 
+class GithubAPIErrorType(Enum):
+    RATE_LIMITED = "gh_rate_limited"
+    MISSING_PULL_REQUEST = "missing_gh_pull_request"
+    UNKNOWN = "unknown_api_error"
+
+
 COMMENT_BODY_TEMPLATE = """## Suspect Issues
 This pull request has been deployed and Sentry observed the following issues:
 
@@ -57,7 +64,7 @@ RATE_LIMITED_MESSAGE = "API rate limit exceeded"
 OPEN_PR_METRIC_BASE = "github_open_pr_comment.{key}"
 
 # Caps the number of files that can be modified in a PR to leave a comment
-OPEN_PR_MAX_FILES_CHANGED = 10
+OPEN_PR_MAX_FILES_CHANGED = 7
 # Caps the number of lines that can be modified in a PR to leave a comment
 OPEN_PR_MAX_LINES_CHANGED = 500
 
@@ -172,7 +179,7 @@ def create_or_update_comment(
         pr_comment.group_ids = issue_list
         pr_comment.save()
 
-    # TODO(adas): Figure out a way to track average rate limit left for GH client
+    # TODO(cathy): Figure out a way to track average rate limit left for GH client
 
     logger.info(
         "github.pr_comment.create_or_update_comment",
@@ -328,7 +335,7 @@ def github_comment_reactions():
         metrics.incr("github_pr_comment.comment_reactions.success")
 
 
-# TODO(adas): Change the client typing to allow for multiple SCM Integrations
+# TODO(cathy): Change the client typing to allow for multiple SCM Integrations
 def safe_for_comment(
     gh_client: GitHubAppsClient, repository: Repository, pull_request: PullRequest
 ) -> bool:
@@ -340,17 +347,17 @@ def safe_for_comment(
         if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
             metrics.incr(
                 OPEN_PR_METRIC_BASE.format(key="api_error"),
-                tags={"type": "gh_rate_limited", "code": e.code},
+                tags={"type": GithubAPIErrorType.RATE_LIMITED.value, "code": e.code},
             )
         elif e.code == 404:
             metrics.incr(
                 OPEN_PR_METRIC_BASE.format(key="api_error"),
-                tags={"type": "missing_gh_pull_request", "code": e.code},
+                tags={"type": GithubAPIErrorType.MISSING_PULL_REQUEST.value, "code": e.code},
             )
         else:
             metrics.incr(
                 OPEN_PR_METRIC_BASE.format(key="api_error"),
-                tags={"type": "unknown_api_error", "code": e.code},
+                tags={"type": GithubAPIErrorType.UNKNOWN.value, "code": e.code},
             )
             logger.exception("github.open_pr_comment.unknown_api_error")
         return False
