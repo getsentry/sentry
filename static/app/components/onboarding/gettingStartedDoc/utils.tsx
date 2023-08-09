@@ -4,21 +4,19 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-type Props = {
-  guideLink: string;
-  newOrg?: boolean;
-  organization?: Organization;
-  platformKey?: PlatformKey;
-  projectId?: string;
-};
-
 export function getUploadSourceMapsStep({
   guideLink,
   organization,
   platformKey,
   projectId,
   newOrg,
-}: Props) {
+}: {
+  guideLink: string;
+  newOrg?: boolean;
+  organization?: Organization;
+  platformKey?: PlatformKey;
+  projectId?: string;
+}) {
   return {
     title: t('Upload Source Maps'),
     description: (
