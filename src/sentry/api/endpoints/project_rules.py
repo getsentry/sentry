@@ -88,6 +88,16 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
+
+        if not data.get("actions", []):
+            return Response(
+                {
+                    "actions": [
+                        "You must add an action for this alert to fire.",
+                    ]
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         # combine filters and conditions into one conditions criteria for the rule object
         conditions = data.get("conditions", [])
         if "filters" in data:
@@ -144,6 +154,40 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             "frequency": data.get("frequency"),
             "user_id": request.user.id,
         }
+        matchers = [key for key in list(kwargs.keys()) if key not in ("name", "user_id")]
+        existing_rules = Rule.objects.filter(project=project, status=0)
+        for existing_rule in existing_rules:
+            keys = 0
+            matches = 0
+            for matcher in matchers:
+                if existing_rule.data.get(matcher) and kwargs.get(matcher):
+                    keys += 1
+                    if matcher in ("conditions", "actions"):
+                        # check if "name" is present and remove it before comparing
+                        existing_rule_copy = existing_rule.data[matcher].copy()
+                        new_rule_copy = kwargs[matcher].copy()
+                        for i in existing_rule_copy:
+                            if "name" in i.keys():
+                                del i["name"]
+                        for i in new_rule_copy:
+                            if "name" in i.keys():
+                                del i["name"]
+
+                        if existing_rule_copy == new_rule_copy:
+                            matches += 1
+
+                    elif existing_rule.data[matcher] == kwargs[matcher]:
+                        matches += 1
+
+            if keys == matches:
+                return Response(
+                    {
+                        "name": [
+                            f"This rule is an exact duplicate of '{existing_rule.label}' in this project and may not be created.",
+                        ]
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
         owner = data.get("owner")
         if owner:
             try:
@@ -165,6 +209,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             kwargs.get("actions")
         )
         rule = project_rules.Creator.run(request=request, **kwargs)
+
         RuleActivity.objects.create(
             rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
         )

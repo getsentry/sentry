@@ -139,7 +139,15 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
     def test_simple(self):
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        actions = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+                "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+            }
+        ]
 
         self.run_test(actions=actions, conditions=conditions)
 
@@ -158,6 +166,54 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         ]
 
         self.run_test(actions=actions, conditions=conditions)
+
+    def test_duplicate_rule(self):
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "name": "A new issue is created",
+            }
+        ]
+        actions = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+                "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+            }
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="hellboy",
+            frequency=1440,
+            owner=self.user.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="all",
+            actions=actions,
+            conditions=conditions,
+        )
+        rule = Rule.objects.get(id=response.data["id"])
+
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            frequency=rule.data["frequency"],
+            owner=self.user.get_actor_identifier(),
+            actionMatch=rule.data["action_match"],
+            filterMatch=rule.data["filter_match"],
+            actions=rule.data["actions"],
+            conditions=conditions,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert (
+            resp.data["name"][0]
+            == f"This rule is an exact duplicate of '{rule.label}' in this project and may not be created."
+        )
 
     def test_pre_save(self):
         """Test that a rule with name data in the conditions and actions is saved without it"""
@@ -480,7 +536,19 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
     def test_no_actions(self):
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        self.run_test(name="no action rule", actions=[], conditions=conditions)
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            frequency=30,
+            owner=self.user.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="any",
+            actions=[],
+            conditions=conditions,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert resp.data["actions"][0] == "You must add an action for this alert to fire."
 
     @patch(
         "sentry.integrations.slack.actions.notification.get_channel_id",
