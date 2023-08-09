@@ -30,7 +30,6 @@ class OAuthRevokeView(View):
     def dispatch(self, request, *args, **kwargs):
         return super().dispatch(request, *args, **kwargs)
 
-    # Note: the reason parameter is for internal use only
     def error(self, request: HttpRequest, name, error_description=None, status=400):
         client_id = request.POST.get("client_id")
 
@@ -111,7 +110,7 @@ class OAuthRevokeView(View):
             return self.error(
                 request=request,
                 name="invalid_credentials",
-                reason="invalid client_id or client_secret",
+                error_description="invalid client_id or client_secret",
                 status=401,
             )
 
