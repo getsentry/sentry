@@ -533,9 +533,6 @@ class AuthLoginView(BaseView):
     def get_join_request_link(
         self, organization: RpcOrganization, request: Request
     ) -> Union[str, None]:
-        """
-        Returns a join request link and does something else? TODO: FIGURE OUT WHAT THIS DOES IN REVIEW
-        """
         if not organization:
             return None
 
