@@ -1,3 +1,4 @@
+import {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
@@ -13,14 +14,14 @@ import {ReplayRecordNestedFieldName} from 'sentry/views/replays/types';
 
 type NotSortable = {
   label: string;
-  tooltip?: string;
+  tooltip?: string | ReactNode;
 };
 
 type Sortable = {
   fieldName: ReplayRecordNestedFieldName;
   label: string;
   sort: undefined | Sort;
-  tooltip?: string;
+  tooltip?: string | ReactNode;
 };
 
 type Props = NotSortable | Sortable;
