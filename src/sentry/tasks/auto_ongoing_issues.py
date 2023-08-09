@@ -103,6 +103,7 @@ def schedule_auto_transition_to_ongoing() -> None:
             auto_transition_issues_new_to_ongoing.delay(
                 project_ids=project_ids,
                 first_seen_lte=int(seven_days_ago.timestamp()),
+                organization_id=org.id,
                 expires=now + timedelta(hours=1),
             )
 
@@ -134,18 +135,28 @@ def schedule_auto_transition_to_ongoing() -> None:
 def auto_transition_issues_new_to_ongoing(
     project_ids: List[int],
     first_seen_lte: int,
+    organization_id: int,
     **kwargs,
 ) -> None:
     """
     We will update all NEW Groups to ONGOING that were created before the
     most recent Group first seen 7 days ago.
     """
+
     most_recent_group_first_seen_seven_days_ago = (
         Group.objects.filter(
             first_seen__lte=datetime.fromtimestamp(first_seen_lte, timezone.utc),
         )
         .order_by("-id")
         .first()
+    )
+    logger.info(
+        "auto_transition_issues_new_to_ongoing started",
+        extra={
+            "organization_id": organization_id,
+            "most_recent_group_first_seen_seven_days_ago": most_recent_group_first_seen_seven_days_ago.id,
+            "first_seen_lte": first_seen_lte,
+        },
     )
 
     for new_groups in chunked(
@@ -160,6 +171,15 @@ def auto_transition_issues_new_to_ongoing(
         ),
         ITERATOR_CHUNK,
     ):
+        for group in new_groups:
+            logger.info(
+                "auto_transition_issues_new_to_ongoing updating group",
+                extra={
+                    "organization_id": organization_id,
+                    "most_recent_group_first_seen_seven_days_ago": most_recent_group_first_seen_seven_days_ago.id,
+                    "group_id": group.id,
+                },
+            )
         bulk_transition_group_to_ongoing(
             GroupStatus.UNRESOLVED,
             GroupSubStatus.NEW,
