@@ -2233,7 +2233,31 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert len(meta) == 1
         assert meta[0]["name"] == "c:transactions/on_demand@none"
 
-    def test_get_snql_query_with_on_demand_distribution_and_no_time_range(self):
+    def test_get_run_query_with_on_demand_count_and_time_range_required_and_not_supplied(self):
+        params = {
+            "organization_id": self.organization.id,
+            "project_id": self.projects,
+        }
+
+        query = AlertMetricsQueryBuilder(
+            params,
+            use_metrics_layer=False,
+            granularity=3600,
+            query="transaction.duration:>=100",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=["count(transaction.duration)"],
+            on_demand_metrics_enabled=True,
+            # We set here the skipping of conditions, since this is true for alert subscriptions, but we want to verify
+            # whether our secondary error barrier works.
+            skip_time_conditions=True,
+        )
+
+        with pytest.raises(IncompatibleMetricsQuery):
+            query.run_query("test_query")
+
+    def test_get_snql_query_with_on_demand_distribution_and_time_range_not_required_and_not_supplied(
+        self,
+    ):
         params = {
             "organization_id": self.organization.id,
             "project_id": self.projects,
@@ -2246,6 +2270,8 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["p75(measurements.fp)"],
             on_demand_metrics_enabled=True,
+            # We want to test the snql generation when a time range is not supplied, which is the case for alert
+            # subscriptions.
             skip_time_conditions=True,
         )
 
@@ -2290,7 +2316,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         assert query_hash_clause in snql_query.where
 
-    def test_get_snql_query_with_on_demand_count_and_time_range(self):
+    def test_get_snql_query_with_on_demand_count_and_time_range_required_and_supplied(self):
         query = AlertMetricsQueryBuilder(
             self.params,
             use_metrics_layer=False,
@@ -2299,6 +2325,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["count(transaction.duration)"],
             on_demand_metrics_enabled=True,
+            # We want to test the snql generation when a time range is supplied.
             skip_time_conditions=False,
         )
 
