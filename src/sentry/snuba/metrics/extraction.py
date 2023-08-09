@@ -535,6 +535,10 @@ _DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator] = {
 }
 
 
+def is_derived_metric(op: MetricOperationType) -> bool:
+    return op in _DERIVED_METRICS
+
+
 @dataclass(frozen=True)
 class FieldParsingResult:
     function: str
@@ -548,7 +552,7 @@ class QueryParsingResult:
 
 
 @dataclass
-class OndemandMetricSpec:
+class OnDemandMetricSpec:
     # Base fields from outside.
     field: str
     query: str
@@ -588,14 +592,34 @@ class OndemandMetricSpec:
     @cached_property
     def query_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
-        sorted_conditions = str(_deep_sorted(self.condition))
-        # For calculating the hash we use the following:
-        # - field without the aggregate
-        # - sorted conditions that Relay will apply before extracting the metric
-        # These fields are used in order to maximize the amount of overlap between identical metrics that are expressed
-        # via syntactically different queries (e.g., avg(measurement.lcp) = p95(measurement.lcp)).
-        str_to_hash = f"{self.field_to_extract};{sorted_conditions}"
+        str_to_hash = f"{self._field_for_hash()};{self._query_for_hash()}"
         return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
+
+    def _field_for_hash(self) -> Optional[str]:
+        # Since derived metrics are a special case, we want to make sure that the hashing is different from the other
+        # metrics.
+        #
+        # More specifically the hashing implementation will depend on the derived metric type:
+        # - failure rate -> hash the op
+        # - apdex -> hash the op + value
+        #
+        # The rationale for different hashing is complex to explain but the main idea is that if we hash the argument
+        # and the conditions, we might have a case in which `count()` with condition `f` has the same hash as `apdex()`
+        # with condition `f` and this will create a problem, since we might already have data for the `count()` and when
+        # `apdex()` is created in the UI, we will use that metric but that metric didn't extract in the past the tags
+        # that are used for apdex calculation, effectively causing problems with the data.
+        if self.op == "on_demand_failure_rate":
+            return self.op
+        elif self.op == "on_demand_apdex":
+            return f"{self.op}:{self._argument}"
+
+        return self._argument
+
+    def _query_for_hash(self):
+        # In order to reduce the amount of metric being extracted, we perform a sort of the conditions tree. This
+        # heuristic allows us to perform some de-duplication to minimize the number of metrics extracted for
+        # semantically identical queries.
+        return str(_deep_sorted(self.condition))
 
     @cached_property
     def condition(self) -> RuleCondition:
@@ -626,7 +650,7 @@ class OndemandMetricSpec:
         }
 
     def _process_field(self) -> Tuple[MetricOperationType, str, Optional[str]]:
-        parsed_field = self.parse_field(self.field)
+        parsed_field = self._parse_field(self.field)
         if parsed_field is None:
             raise Exception(f"Unable to parse the field {self.field}")
 
@@ -636,7 +660,7 @@ class OndemandMetricSpec:
         return op, metric_type, self._parse_argument(op, metric_type, parsed_field)
 
     def _process_query(self) -> RuleCondition:
-        parsed_field = self.parse_field(self.field)
+        parsed_field = self._parse_field(self.field)
         if parsed_field is None:
             raise Exception(f"Unable to parse the field {self.field}")
 
@@ -648,7 +672,7 @@ class OndemandMetricSpec:
             count_if_rule_condition = _convert_countif_filter(key, op, value)
 
         # First step is to parse the query string into our internal AST format.
-        parsed_query = self.parse_query(self.query)
+        parsed_query = self._parse_query(self.query)
         # An on demand metric must have at least a condition, otherwise we can just use a classic metric.
         if parsed_query is None or len(parsed_query.conditions) == 0:
             if count_if_rule_condition is None:
@@ -712,7 +736,7 @@ class OndemandMetricSpec:
         return new_query
 
     @staticmethod
-    def parse_field(value: str) -> Optional[FieldParsingResult]:
+    def _parse_field(value: str) -> Optional[FieldParsingResult]:
         try:
             function, arguments, alias = fields.parse_function(value)
             return FieldParsingResult(function=function, arguments=arguments, alias=alias)
@@ -720,7 +744,7 @@ class OndemandMetricSpec:
             return None
 
     @staticmethod
-    def parse_query(value: str) -> Optional[QueryParsingResult]:
+    def _parse_query(value: str) -> Optional[QueryParsingResult]:
         try:
             conditions = event_search.parse_search_query(value)
             return QueryParsingResult(conditions=conditions)

@@ -30,6 +30,7 @@ from sentry.dynamic_sampling.tasks.logging import (
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task_with_context
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 
 # Since we are using a granularity of 60 (minute granularity), we want to have a higher time upper limit for executing
@@ -51,6 +52,7 @@ class RecalibrationError(Exception):
     max_retries=5,
     soft_time_limit=2 * 60 * 60,  # 2hours
     time_limit=2 * 60 * 60 + 5,
+    silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def recalibrate_orgs(context: TaskContext) -> None:

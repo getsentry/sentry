@@ -16,7 +16,7 @@ from sentry.models import (
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     MetricSpec,
-    OndemandMetricSpec,
+    OnDemandMetricSpec,
     RuleCondition,
     is_on_demand_metric_query,
 )
@@ -185,7 +185,7 @@ def _convert_aggregate_and_query_to_metric(
         if not is_on_demand_metric_query(dataset, aggregate, query):
             return None
 
-        on_demand_spec = OndemandMetricSpec(
+        on_demand_spec = OnDemandMetricSpec(
             field=aggregate,
             query=query,
         )

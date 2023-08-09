@@ -199,7 +199,7 @@ class QueryBuilder(BaseQueryBuilder):
         selected_columns: Optional[List[str]] = None,
         groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
-        orderby: Optional[List[str]] = None,
+        orderby: list[str] | str | None = None,
         auto_fields: bool = False,
         auto_aggregations: bool = False,
         use_aggregate_conditions: bool = False,
@@ -343,7 +343,7 @@ class QueryBuilder(BaseQueryBuilder):
         selected_columns: Optional[List[str]] = None,
         groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
-        orderby: Optional[List[str]] = None,
+        orderby: list[str] | str | None = None,
     ) -> None:
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
             # Has to be done early, since other conditions depend on start and end
@@ -879,7 +879,7 @@ class QueryBuilder(BaseQueryBuilder):
             rhs = Function("nullIf", [rhs, 0])
         return Function(equation.operator, [lhs, rhs], alias)
 
-    def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
+    def resolve_orderby(self, orderby: list[str] | str | None) -> List[OrderBy]:
         """Given a list of public aliases, optionally prefixed by a `-` to
         represent direction, construct a list of Snql Orderbys
         """
@@ -1606,7 +1606,7 @@ class UnresolvedQuery(QueryBuilder):
         selected_columns: Optional[List[str]] = None,
         groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
-        orderby: Optional[List[str]] = None,
+        orderby: list[str] | str | None = None,
     ) -> None:
         pass
 
@@ -1657,7 +1657,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         selected_columns: Optional[List[str]] = None,
         groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
-        orderby: Optional[List[str]] = None,
+        orderby: list[str] | str | None = None,
     ) -> None:
         self.resolve_time_conditions()
         self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
