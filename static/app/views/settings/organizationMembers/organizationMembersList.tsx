@@ -6,7 +6,6 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
-import Feature from 'sentry/components/acl/feature';
 import {AsyncComponentState} from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -333,12 +332,10 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
 
     return (
       <Fragment>
-        <Feature organization={organization} features={['integrations-gh-invite']}>
-          <InviteBanner
-            missingMembers={githubMissingMembers}
-            onSendInvite={this.handleInviteMissingMember}
-          />
-        </Feature>
+        <InviteBanner
+          missingMembers={githubMissingMembers}
+          onSendInvite={this.handleInviteMissingMember}
+        />
         <ClassNames>
           {({css}) =>
             this.renderSearchInput({
