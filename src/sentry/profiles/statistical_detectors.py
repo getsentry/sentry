@@ -40,13 +40,24 @@ class RegressionState:
 
     @staticmethod
     def from_dict(d: Any) -> RegressionState:
-        count = int(d.get(RegressionState.FIELD_COUNT, 0))
-        short_ma = float(d.get(RegressionState.FIELD_SHORT_TERM, 0))
-        long_ma = float(d.get(RegressionState.FIELD_LONG_TERM, 0))
+        try:
+            count = int(d.get(RegressionState.FIELD_COUNT, 0))
+        except ValueError:
+            count = 0
 
         try:
-            timestamp = datetime.fromisoformat(d.get(RegressionState.FIELD_TIMESTAMP))
-        except (ValueError, TypeError):
+            short_ma = float(d.get(RegressionState.FIELD_SHORT_TERM, 0))
+        except ValueError:
+            short_ma = 0
+
+        try:
+            long_ma = float(d.get(RegressionState.FIELD_LONG_TERM, 0))
+        except ValueError:
+            long_ma = 0
+
+        try:
+            timestamp = datetime.fromisoformat(d.get(RegressionState.FIELD_TIMESTAMP, ""))
+        except ValueError:
             timestamp = None
 
         return RegressionState(timestamp, count, short_ma, long_ma)
@@ -96,7 +107,16 @@ def compute_new_regression_states(
     regressed_functions: List[FunctionPayload] = []
 
     for payload, old_state in zip(payloads, old_states):
-        if is_out_of_order(old_state, payload):
+        if old_state.timestamp is not None and old_state.timestamp < payload.timestamp:
+            # In the event that the timestamp is before the payload's timestamps,
+            # we do not want to process this payload.
+            #
+            # This should not happen other than in some error state.
+            logger.warn(
+                "Function regression detection out of order. Processing %s, but last processed was %s",
+                payload.timestamp.isoformat(),
+                old_state.timestamp.isoformat(),
+            )
             continue
 
         key = make_function_key(project_id, payload, VERSION)
@@ -114,32 +134,12 @@ def make_function_key(project_id: int, payload: FunctionPayload, version: int) -
     return f"statdtr:v:{version}:p:{project_id}:f:{payload.fingerprint}"
 
 
-def is_out_of_order(state: RegressionState, payload: FunctionPayload) -> bool:
-    # The previous value does not have a timestamp associated with it.
-    # This can happen the first time the key is added.
-    if state.timestamp is None:
-        return True
-
-    if state.timestamp < payload.timestamp:
-        return True
-
-    # In the event that the timestamp is before the payload's timestamps,
-    # we do not want to process this payload.
-    # This should not happen other than in some error state.
-    logger.warn(
-        "Function regression detection out of order. Processing %s, but last processed was %s",
-        payload.timestamp.isoformat(),
-        state.timestamp.isoformat(),
-    )
-    return False
-
-
 def detect_regression(
     state: RegressionState, payload: FunctionPayload
 ) -> Tuple[bool, RegressionState,]:  # Mapping[str | bytes, str | float | int]
     """
     Detect if a regression has occurred using the moving average cross over.
-    See https://en.wikipedia.org/wiki/Moving_average_crossover
+    See https://en.wikipedia.org/wiki/Moving_average_crossover.
 
     We keep track of 2 moving averages, one with a shorter period and one with
     a longer period. The shorter period moving average is a faster moving average
