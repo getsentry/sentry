@@ -58,6 +58,12 @@ class AuthenticationMiddleware(MiddlewareMixin):
         return HybridCloudAuthenticationMiddleware(self.get_response)
 
     def process_request(self, request: Request):
+        if request.path.startswith("/api/0/internal/rpc/"):
+            # Avoid doing RPC authentication when we're already
+            # in an RPC request.
+            request.user = AnonymousUser()
+            return
+
         return self.impl.process_request(request)
 
     def process_exception(self, request: Request, exception):

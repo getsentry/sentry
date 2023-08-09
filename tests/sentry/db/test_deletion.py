@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from sentry.db.deletion import BulkDeleteQuery
 from sentry.models import Group, Project
-from sentry.testutils import TestCase, TransactionTestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 
 
 class BulkDeleteQueryTest(TestCase):

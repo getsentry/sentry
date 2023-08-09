@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple, Union, cast
 
 from sentry.models.integrations.pagerduty_service import PagerDutyService, PagerDutyServiceDict
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
+from sentry.services.hybrid_cloud.integration.model import RpcIntegrationExternalProject
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -86,6 +87,7 @@ class IntegrationService(RpcService):
         integration_id: Optional[int] = None,
         provider: Optional[str] = None,
         external_id: Optional[str] = None,
+        organization_id: Optional[int] = None,
         organization_integration_id: Optional[int] = None,
     ) -> Optional[RpcIntegration]:
         """
@@ -189,6 +191,15 @@ class IntegrationService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def add_organization(
+        self, *, integration_id: int, org_ids: List[int]
+    ) -> Optional[RpcIntegration]:
+        """
+        Adds organizations to an existing integration
+        """
+
+    @rpc_method
+    @abstractmethod
     def update_integration(
         self,
         *,
@@ -247,7 +258,7 @@ class IntegrationService(RpcService):
         incident_id: int,
         organization: RpcOrganizationSummary,
         new_status: int,
-        incident_attachment: Mapping[str, str],
+        incident_attachment: Mapping[str, Any],  # TODO: Replace with object schema
         metric_value: Optional[str] = None,
     ) -> None:
         pass
@@ -255,13 +266,20 @@ class IntegrationService(RpcService):
     @rpc_method
     @abstractmethod
     def send_msteams_incident_alert_notification(
-        self, *, integration_id: int, channel: Optional[str], attachment: Dict[str, Any]
+        self, *, integration_id: int, channel: str, attachment: Dict[str, Any]
     ) -> None:
         raise NotImplementedError
 
     @rpc_method
     @abstractmethod
     def delete_integration(self, *, integration_id: int) -> None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_integration_external_project(
+        self, *, organization_id: int, integration_id: int, external_id: str
+    ) -> Optional[RpcIntegrationExternalProject]:
         pass
 
 

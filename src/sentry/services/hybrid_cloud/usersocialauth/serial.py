@@ -8,5 +8,9 @@ if TYPE_CHECKING:
 
 def serialize_usersocialauth(auth: "UserSocialAuth") -> RpcUserSocialAuth:
     return RpcUserSocialAuth(
-        id=auth.id, user_id=auth.user.id, provider=auth.id, uid=auth.uid, extra_data=auth.extra_data
+        id=auth.id,
+        user_id=auth.user.id,
+        provider=auth.provider,
+        uid=auth.uid,
+        extra_data=dict(auth.extra_data or ()),
     )

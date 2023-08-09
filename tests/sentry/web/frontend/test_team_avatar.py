@@ -3,12 +3,12 @@ from io import BytesIO
 from django.urls import reverse
 
 from sentry.models import File, TeamAvatar
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.web.frontend.generic import FOREVER_CACHE
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamAvatarTest(TestCase):
     def test_headers(self):
         team = self.create_team()

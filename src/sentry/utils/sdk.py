@@ -133,6 +133,12 @@ SAMPLED_TASKS = {
     "sentry.monitors.tasks.check_missing": 1.0,
     "sentry.monitors.tasks.check_timeout": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2,
+    "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2,
+    "sentry.dynamic_sampling.tasks.sliding_window": 0.2,
+    "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,
+    "sentry.dynamic_sampling.tasks.collect_orgs": 0.2,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:

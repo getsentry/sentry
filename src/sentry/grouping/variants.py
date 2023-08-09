@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 
 
 class BaseVariant:
     # The type of the variant that is reported to the UI.
-    type: str
+    type: str | None = None
 
     # This is true if `get_hash` does not return `None`.
     contributes = True

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import timedelta
 
 import pytest
@@ -19,7 +21,7 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
 )
 from sentry.snuba import discover
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 
@@ -265,7 +267,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
 
-        tests = [
+        tests: list[tuple[str, str, list[str]]] = [
             ("key1", "", ["value1", "value2"]),
             ("key1", "has:key1", ["value1", "value2"]),
             ("key1", "!has:key1", []),
@@ -537,7 +539,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
 
-        tests = [
+        tests: list[tuple[str, list[str]]] = [
             ('message:"oh no"', ["oh no"]),
             ('message:"oh yeah"', ["oh yeah"]),
             ('message:""', []),
@@ -1985,7 +1987,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             self.store_event(data=data, project_id=self.project.id)
 
-        queries = [
+        queries: list[tuple[str, list[int]]] = [
             ("", [0, 1, 1]),
             ("error.handled:true", [1, 1]),
             ("!error.handled:true", [0]),
@@ -2028,7 +2030,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             self.store_event(data=data, project_id=self.project.id)
 
-        queries = [
+        queries: list[tuple[str, list[str], list[int]]] = [
             ("error.unhandled:true", ["a" * 32], [1]),
             ("!error.unhandled:true", ["b" * 32, "c" * 32], [0, 0]),
             ("has:error.unhandled", ["a" * 32], [1]),

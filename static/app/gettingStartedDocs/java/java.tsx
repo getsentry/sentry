@@ -48,7 +48,7 @@ repositories {
 
 // Add Sentry's SDK as a dependency.
 dependencies {
-    implementation 'io.sentry:sentry:6.25.2'
+    implementation 'io.sentry:sentry:6.27.0'
 }
           `,
           },
@@ -96,7 +96,7 @@ sentry {
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry</artifactId>
-  <version>6.25.2</version>
+  <version>6.27.0</version>
 </dependency>
             `,
           },
@@ -111,7 +111,7 @@ sentry {
     <plugin>
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
-      <version>0.0.2</version>
+      <version>0.0.3</version>
       <configuration>
       <!-- for showing output of sentry-cli -->
       <debugSentryCli>true</debugSentryCli>
@@ -154,7 +154,7 @@ sentry {
           {
             description: <p>{tct('For [strong:SBT]:', {strong: <strong />})}</p>,
             language: 'scala',
-            code: `libraryDependencies += "io.sentry" % "sentry" % "6.25.2"`,
+            code: `libraryDependencies += "io.sentry" % "sentry" % "6.27.0"`,
           },
         ],
       },

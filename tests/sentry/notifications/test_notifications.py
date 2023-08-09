@@ -8,7 +8,7 @@ import responses
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.utils import timezone
-from sentry_relay import parse_release
+from sentry_relay.processing import parse_release
 
 from sentry.event_manager import EventManager
 from sentry.models import (
@@ -24,7 +24,7 @@ from sentry.models import (
 )
 from sentry.silo import SiloMode
 from sentry.tasks.post_process import post_process_group
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test

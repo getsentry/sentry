@@ -1,6 +1,6 @@
 import uuid
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Mapping, Sequence
 from unittest import mock
@@ -47,9 +47,9 @@ from sentry.notifications.utils.digest import get_digest_subject
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
+from sentry.replays.testutils import mock_replay
 from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.testutils import TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -1189,7 +1189,7 @@ class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
         )
 
 
-class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
+class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_notify_digest(self, notify):
         project = self.project
@@ -1221,12 +1221,16 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_notify_digest_replay_id(self, notify):
         project = self.project
+        self.project.flags.has_replays = True
+        self.project.save()
+
         timestamp = iso_format(before_now(minutes=1))
+        replay1_id = "46eb3948be25448abd53fe36b5891ff2"
         event = self.store_event(
             data={
                 "timestamp": timestamp,
                 "fingerprint": ["group-1"],
-                "contexts": {"replay": {"replay_id": "46eb3948be25448abd53fe36b5891ff2"}},
+                "contexts": {"replay": {"replay_id": replay1_id}},
             },
             project_id=project.id,
         )
@@ -1234,9 +1238,17 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
             data={
                 "timestamp": timestamp,
                 "fingerprint": ["group-2"],
-                "contexts": {"replay": {"replay_id": "46eb3948be25448abd53fe36b5891ff2"}},
+                "contexts": {"replay": {"replay_id": replay1_id}},
             },
             project_id=project.id,
+        )
+
+        self.store_replays(
+            mock_replay(
+                datetime.now() - timedelta(seconds=22),
+                self.project.id,
+                replay1_id,
+            )
         )
 
         rule = project.rule_set.all()[0]

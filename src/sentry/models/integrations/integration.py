@@ -25,38 +25,8 @@ if TYPE_CHECKING:
         IntegrationInstallation,
         IntegrationProvider,
     )
-    from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 
 logger = logging.getLogger(__name__)
-
-
-class HybridIntegrationUtility:
-    """
-    Class storing shared methods across Integration and RpcIntegrations
-    """
-
-    @classmethod
-    def get_provider(cls, instance: Integration | RpcIntegration) -> IntegrationProvider:
-        from sentry import integrations
-
-        return integrations.get(instance.provider)
-
-    @classmethod
-    def get_installation(
-        cls, instance: Integration | RpcIntegration, organization_id: int, **kwargs: Any
-    ) -> IntegrationInstallation:
-        installation = instance.get_provider().get_installation(
-            model=instance,
-            organization_id=organization_id,
-            **kwargs,
-        )
-        return installation
-
-    @classmethod
-    def has_feature(
-        cls, instance: Integration | RpcIntegration, feature: IntegrationFeatures
-    ) -> bool:
-        return feature in instance.get_provider().features
 
 
 class IntegrationManager(BaseManager):
@@ -96,15 +66,19 @@ class Integration(DefaultFieldsModel):
         unique_together = (("provider", "external_id"),)
 
     def get_provider(self) -> IntegrationProvider:
-        return HybridIntegrationUtility.get_provider(instance=self)
+        from .utils import get_provider
+
+        return get_provider(instance=self)
 
     def get_installation(self, organization_id: int, **kwargs: Any) -> IntegrationInstallation:
-        return HybridIntegrationUtility.get_installation(
-            instance=self, organization_id=organization_id, **kwargs
-        )
+        from .utils import get_installation
+
+        return get_installation(instance=self, organization_id=organization_id, **kwargs)
 
     def has_feature(self, feature: IntegrationFeatures) -> bool:
-        return HybridIntegrationUtility.has_feature(instance=self, feature=feature)
+        from .utils import has_feature
+
+        return has_feature(instance=self, feature=feature)
 
     def delete(self, *args, **kwds):
         with outbox_context(
@@ -132,7 +106,9 @@ class Integration(DefaultFieldsModel):
             for region_name in find_regions_for_orgs(org_ids)
         ]
 
-    def add_organization(self, organization: RpcOrganization, user=None, default_auth_id=None):
+    def add_organization(
+        self, organization_id: int | RpcOrganization, user=None, default_auth_id=None
+    ):
         """
         Add an organization to this integration.
 
@@ -140,10 +116,13 @@ class Integration(DefaultFieldsModel):
         """
         from sentry.models import OrganizationIntegration
 
+        if not isinstance(organization_id, int):
+            organization_id = organization_id.id
+
         try:
             with transaction.atomic(using=router.db_for_write(OrganizationIntegration)):
                 org_integration, created = OrganizationIntegration.objects.get_or_create(
-                    organization_id=organization.id,
+                    organization_id=organization_id,
                     integration_id=self.id,
                     defaults={"default_auth_id": default_auth_id, "config": {}},
                 )
@@ -154,7 +133,7 @@ class Integration(DefaultFieldsModel):
                 if created:
                     organization_service.schedule_signal(
                         integration_added,
-                        organization_id=organization.id,
+                        organization_id=organization_id,
                         args=dict(integration_id=self.id, user_id=user.id if user else None),
                     )
                 return org_integration
@@ -162,7 +141,7 @@ class Integration(DefaultFieldsModel):
             logger.info(
                 "add-organization-integrity-error",
                 extra={
-                    "organization_id": organization.id,
+                    "organization_id": organization_id,
                     "integration_id": self.id,
                     "default_auth_id": default_auth_id,
                 },

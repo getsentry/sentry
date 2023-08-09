@@ -4,8 +4,9 @@ from uuid import uuid4
 
 import pytz
 
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
 FEATURE_NAMES = ["organizations:performance-view"]
@@ -15,6 +16,7 @@ def make_span_id() -> str:
     return uuid4().hex[:16]
 
 
+@no_silo_test(stable=True)
 class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
     def create_error(self, platform, trace_id, span_id, project_id, timestamp):
         data = load_data(platform, timestamp=timestamp)

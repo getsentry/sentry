@@ -20,6 +20,7 @@ from sentry.models import (
     Project,
 )
 from sentry.monitoring.queues import backend
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.group import GroupSubStatus
 from sentry.utils.iterators import chunked
@@ -73,6 +74,7 @@ def get_daily_10min_bucket(now: datetime):
     max_retries=3,
     default_retry_delay=60,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry(on=(OperationalError,))
 @monitor(monitor_slug="schedule_auto_transition_to_ongoing")
@@ -125,6 +127,7 @@ def schedule_auto_transition_to_ongoing() -> None:
     max_retries=3,
     default_retry_delay=60,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry(on=(OperationalError,))
 @log_error_if_queue_has_items
@@ -173,6 +176,7 @@ def auto_transition_issues_new_to_ongoing(
     max_retries=3,
     default_retry_delay=60,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry(on=(OperationalError,))
 @log_error_if_queue_has_items
@@ -220,6 +224,7 @@ def auto_transition_issues_regressed_to_ongoing(
     max_retries=3,
     default_retry_delay=60,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry(on=(OperationalError,))
 @log_error_if_queue_has_items

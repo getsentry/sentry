@@ -1,7 +1,6 @@
 import unittest
-from typing import Any, Mapping
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils.event_frames import (
     cocoa_frame_munger,
     find_stack_frames,
@@ -102,7 +101,9 @@ class JavaFilenameMungingTestCase(unittest.TestCase):
                 "filename": "Application.java",
             },
         ]
-        key, munged_frames = munged_filename_and_frames("java", frames, "munged_filename")
+        ret = munged_filename_and_frames("java", frames, "munged_filename")
+        assert ret is not None
+        key, munged_frames = ret
         assert len(munged_frames) == 3
         assert munged_frames[0][key] == "jdk/internal/reflect/NativeMethodAccessorImpl.java"
         assert munged_frames[1][key] == "io/sentry/example/Application.java"
@@ -250,14 +251,16 @@ class JavaFilenameMungingTestCase(unittest.TestCase):
                 "in_app": True,
             },
         ]
-        key, munged_frames = munged_filename_and_frames("java", exception_frames, "munged_filename")
+        ret = munged_filename_and_frames("java", exception_frames, "munged_filename")
+        assert ret is not None
+        key, munged_frames = ret
         assert len(munged_frames) == 16
         for z in zip(exception_frames, munged_frames):
             assert z[0].items() <= z[1].items()
 
         has_munged = list(filter(lambda f: f.get("filename") and f.get("module"), munged_frames))
         assert len(has_munged) == 14
-        assert all(str(x.get("munged_filename")).endswith(x.get("filename")) for x in has_munged)
+        assert all(x["munged_filename"].endswith(x["filename"]) for x in has_munged)
 
 
 class CocoaFilenameMungingTestCase(unittest.TestCase):
@@ -406,7 +409,8 @@ class FlutterFilenameMungingTestCase(TestCase):
         munged_frames = munged_filename_and_frames(
             "other", frames, "munged_filename", "sentry.dart.flutter"
         )
-        munged_first_frame: Mapping[str, Any] = munged_frames[1][0]
+        assert munged_frames is not None
+        munged_first_frame = munged_frames[1][0]
         assert munged_first_frame.items() > frames[0].items()
         assert munged_first_frame["munged_filename"] == "a/b/test.dart"
 

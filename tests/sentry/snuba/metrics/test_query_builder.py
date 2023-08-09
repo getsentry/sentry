@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 import types
 from dataclasses import replace
@@ -71,9 +73,9 @@ from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.query import MetricConditionField, MetricField, MetricGroupByField
 from sentry.snuba.metrics.query_builder import QUERY_PROJECT_LIMIT, QueryDefinition
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.utils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.fixtures import django_db_all
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -486,7 +488,7 @@ def test_build_snuba_query_mri(mock_now, mock_now2):
     org_id = 1
     use_case_id = UseCaseID.SESSIONS
     # Your typical release health query querying everything
-    query_params = MultiValueDict(
+    query_params: MultiValueDict[str, str] = MultiValueDict(
         {
             "groupBy": [],
             "field": [
@@ -568,7 +570,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
     org_id = 1
     use_case_id = UseCaseID.SESSIONS
     # Your typical release health query querying everything
-    query_params = MultiValueDict(
+    query_params: MultiValueDict[str, str] = MultiValueDict(
         {
             "groupBy": [],
             "field": [
@@ -736,7 +738,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
                 "sum(sentry.sessions.session)",
             ],
             "orderBy": ["-sum(sentry.sessions.session)"],
-            "per_page": [2],
+            "per_page": ["2"],
         }
     )
     query_definition = QueryDefinition(
@@ -836,7 +838,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
             "field": [
                 "p95(session.duration)",
             ],
-            "per_page": [2],
+            "per_page": ["2"],
         }
     )
     query_definition = QueryDefinition(
@@ -948,7 +950,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_translate_results_derived_metrics(_1, _2):
-    query_params = MultiValueDict(
+    query_params: MultiValueDict[str, str] = MultiValueDict(
         {
             "groupBy": [],
             "field": [

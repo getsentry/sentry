@@ -24,10 +24,11 @@ from sentry.models import (
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.releasefile import update_artifact_index
 from sentry.tasks.assemble import assemble_artifacts
-from sentry.testutils import RelayStoreHelper
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
 
@@ -103,7 +104,7 @@ def upload_bundle(bundle_file, project, release=None, dist=None, upload_as_artif
     )
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 class TestJavascriptIntegration(RelayStoreHelper):
     @pytest.fixture(autouse=True)
     def initialize(self, default_projectkey, default_project, set_sentry_option, live_server):
@@ -633,68 +634,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
         assert frame.post_context == ["}"]
-
-    @requires_symbolicator
-    @pytest.mark.symbolicator
-    def test_urlencoded_files(self):
-        project = self.project
-        release = Release.objects.create(organization_id=project.organization_id, version="abc")
-        release.add_project(project)
-
-        for file, name in [
-            ("file.min.js", "~/_next/static/chunks/pages/foo/[bar]-1234.js"),
-            ("file.wc.sourcemap.js", "~/_next/static/chunks/pages/foo/[bar]-1234.js.map"),
-        ]:
-            with open(get_fixture_path(file), "rb") as f:
-                headers = {"sourcemap": name + ".map"} if name.endswith(".js") else {}
-                file_obj = File.objects.create(name=name, type="release.file", headers=headers)
-                file_obj.putfile(f)
-            ReleaseFile.objects.create(
-                name=name,
-                release_id=release.id,
-                organization_id=project.organization_id,
-                file=file_obj,
-            )
-
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "release": "abc",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "app:///_next/static/chunks/pages/foo/%5Bbar%5D-1234.js",
-                                    "lineno": 1,
-                                    "colno": 79,
-                                }
-                            ]
-                        },
-                    }
-                ]
-            },
-        }
-
-        event = self.post_and_retrieve_event(data)
-
-        assert "errors" not in event.data
-
-        exception = event.interfaces["exception"]
-        frame_list = exception.values[0].stacktrace.frames
-
-        assert len(frame_list) == 1
-        frame = frame_list[0]
-        assert frame.data["resolved_with"] == "release-old"
-        assert frame.data["symbolicated"]
-
-        assert frame.function == "multiply"
-        assert frame.filename == "file2.js"
-        assert frame.lineno == 3
-        assert frame.colno == 2
 
     @requires_symbolicator
     @pytest.mark.symbolicator

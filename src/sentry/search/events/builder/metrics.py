@@ -40,7 +40,11 @@ from sentry.search.events.types import (
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, OndemandMetricSpec, is_on_demand_query
+from sentry.snuba.metrics.extraction import (
+    QUERY_HASH_KEY,
+    OndemandMetricSpec,
+    is_on_demand_metric_query,
+)
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.query import MetricField, MetricsQuery
 from sentry.utils.dates import to_timestamp
@@ -117,7 +121,7 @@ class MetricsQueryBuilder(QueryBuilder):
         if not field:
             return None
 
-        if not is_on_demand_query(dataset, field, query):
+        if not is_on_demand_metric_query(dataset, field, query):
             return None
 
         try:
@@ -487,6 +491,20 @@ class MetricsQueryBuilder(QueryBuilder):
         operator = search_filter.operator
         value = search_filter.value.value
 
+        # Handle checks for existence
+        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+            if name in constants.METRICS_MAP:
+                if search_filter.operator == "!=":
+                    return None
+                else:
+                    raise IncompatibleMetricsQuery("!has isn't compatible with metrics queries")
+            else:
+                return Condition(
+                    Function("has", [Column("tags.key"), self.resolve_metric_index(name)]),
+                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
+                    1,
+                )
+
         lhs = self.resolve_column(name)
         # If this is an aliasedexpression, we don't need the alias here, just the expression
         if isinstance(lhs, AliasedExpression):
@@ -523,15 +541,6 @@ class MetricsQueryBuilder(QueryBuilder):
             ):
                 raise InvalidSearchQuery(
                     "Filter on timestamp is outside of the selected date range."
-                )
-
-        # Handle checks for existence
-        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            if is_tag:
-                return Condition(
-                    Function("has", [Column("tags.key"), self.resolve_metric_index(name)]),
-                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
-                    1,
                 )
 
         if search_filter.value.is_wildcard():
@@ -1106,6 +1115,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         use_metrics_layer: Optional[bool] = False,
         groupby: Optional[Column] = None,
         on_demand_metrics_enabled: Optional[bool] = False,
+        parser_config_overrides: Optional[Mapping[str, Any]] = None,
     ):
         super().__init__(
             params=params,
@@ -1117,6 +1127,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             functions_acl=functions_acl,
             use_metrics_layer=use_metrics_layer,
             on_demand_metrics_enabled=on_demand_metrics_enabled,
+            parser_config_overrides=parser_config_overrides,
         )
         if self.granularity.granularity > interval:
             for granularity in constants.METRICS_GRANULARITIES:

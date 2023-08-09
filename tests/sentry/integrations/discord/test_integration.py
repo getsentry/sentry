@@ -10,7 +10,7 @@ from sentry.integrations.discord.integration import DiscordIntegrationProvider
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils.cases import IntegrationTestCase
 
 
 class DiscordIntegrationTest(IntegrationTestCase):
@@ -153,7 +153,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
     def test_setup(self):
         provider = self.provider()
 
-        url = f"{DiscordClient.base_url}{DiscordClient.APPLICATION_COMMANDS.format(application_id=self.application_id)}"
+        url = f"{DiscordClient.base_url}{DiscordClient.APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}"
         responses.add(
             responses.PUT,
             url=url,
@@ -170,11 +170,11 @@ class DiscordIntegrationTest(IntegrationTestCase):
         mock_log_error.return_value = None
         provider = self.provider()
 
-        url = f"{DiscordClient.base_url}{DiscordClient.APPLICATION_COMMANDS.format(application_id=self.application_id)}"
+        url = f"{DiscordClient.base_url}{DiscordClient.APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}"
         responses.add(
             responses.PUT,
             url=url,
-            status=200,
+            status=500,
         )
 
         provider.setup()
@@ -186,10 +186,11 @@ class DiscordIntegrationTest(IntegrationTestCase):
     def test_setup_cache(self):
         provider = self.provider()
 
-        url = f"{DiscordClient.base_url}{DiscordClient.APPLICATION_COMMANDS.format(application_id=self.application_id)}"
+        url = f"{DiscordClient.base_url}{DiscordClient.APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}"
         responses.add(
             responses.PUT,
             url=url,
+            json={},
             status=200,
         )
 
