@@ -5,7 +5,6 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -14,13 +13,13 @@ import ReplaySearchBar from 'sentry/views/replays/list/replaySearchBar';
 
 export function ReplaysFilters() {
   return (
-    <FilterContainer>
+    <Container>
       <PageFilterBar condensed>
         <ProjectPageFilter resetParamsOnChange={['cursor']} />
         <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
         <DatePageFilter alignDropdown="left" resetParamsOnChange={['cursor']} />
       </PageFilterBar>
-    </FilterContainer>
+    </Container>
   );
 }
 
@@ -54,8 +53,4 @@ export function ReplaysSearch() {
 const Container = styled('div')`
   display: inline-grid;
   width: 100%;
-`;
-
-const FilterContainer = styled(Container)`
-  margin-bottom: ${space(2)};
 `;

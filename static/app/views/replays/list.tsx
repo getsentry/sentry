@@ -34,8 +34,8 @@ function ReplaysListContainer() {
       <PageFiltersContainer>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <ReplaysFilters />
             <LayoutGap>
+              <ReplaysFilters />
               <ReplaysErroneousDeadRageCards />
               <ReplaysSearch />
               <ReplaysList />
