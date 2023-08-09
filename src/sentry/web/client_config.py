@@ -128,12 +128,12 @@ class _ClientConfig:
         self.request = request
         if request is not None:
             self.user = getattr(request, "user", None) or AnonymousUser()
-            session = getattr(request, "session", None)
+            self.session = getattr(request, "session", None)
         else:
             self.user = None
-            session = None
+            self.session = None
 
-        self.last_org = _resolve_last_org(session, self.user)
+        self.last_org = _resolve_last_org(self.session, self.user)
 
     @property
     def last_org_slug(self) -> str | None:
@@ -318,5 +318,5 @@ def get_client_config(request=None) -> Mapping[str, Any]:
 
     config = _ClientConfig(request)
     if request is not None and config.last_org is None:
-        _delete_activeorg(request.session)
+        _delete_activeorg(config.session)
     return config.get_context()
