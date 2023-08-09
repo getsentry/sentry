@@ -284,6 +284,42 @@ def test_should_use_on_demand(agg, query, result):
     assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
 
 
+def create_spec_if_needed(dataset, agg, query):
+    if should_use_on_demand_metrics(dataset, agg, query):
+        return OndemandMetricSpec(agg, query)
+
+
+class TestCreatesOndemandMetricSpec:
+    dataset = Dataset.PerformanceMetrics
+
+    def test_creates_on_demand_spec(self):
+        assert create_spec_if_needed(self.dataset, "count()", "transaction.duration:>0")
+        assert create_spec_if_needed(
+            self.dataset, "p75(measurements.fp)", "transaction.duration:>0"
+        )
+        assert create_spec_if_needed(
+            self.dataset, "count_if(transaction.duration,equals,0)", "transaction.duration:>0"
+        )
+        assert create_spec_if_needed(self.dataset, "count()", "transaction.duration:>0")
+        assert create_spec_if_needed(self.dataset, "count()", "transaction.duration:>0")
+        assert create_spec_if_needed(self.dataset, "count()", "transaction.duration:>0")
+
+    def test_does_not_create_on_demand_spec(self):
+        assert not create_spec_if_needed(self.dataset, "count()", "release:a")
+        assert not create_spec_if_needed(self.dataset, "failure_rate()", "transaction.duration:>0")
+        assert not create_spec_if_needed(
+            self.dataset, "count_unique(user)", "transaction.duration:>0"
+        )
+        assert not create_spec_if_needed(self.dataset, "last_seen()", "transaction.duration:>0")
+        assert not create_spec_if_needed(self.dataset, "any(user)", "transaction.duration:>0")
+        assert not create_spec_if_needed(self.dataset, "p95(transaction.duration)", "")
+        assert not create_spec_if_needed(self.dataset, "message", "transaction.duration:>0")
+        assert not create_spec_if_needed(self.dataset, "count()", "transaction.duration:[1,2,3]")
+        assert not create_spec_if_needed(
+            self.dataset, "equation| count() / count()", "transaction.duration:>0"
+        )
+
+
 def test_spec_simple_query_count():
     spec = OndemandMetricSpec("count()", "transaction.duration:>1s")
 
