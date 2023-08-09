@@ -11,7 +11,7 @@ RightParenthesis
   = ")" { return { type: 'RightParenthesis', content: ')' } }
 
 Keyword
-  = Keyword:("SELECT"i / "INSERT"i / "DELETE"i / "FROM"i / "ON"i / "WHERE"i / "AND"i / "ORDER BY"i / "LIMIT"i / "GROUP BY"i / "OFFSET"i / "VALUES"i / "RETURNING"i / JoinKeyword) {
+  = Keyword:("ADD"i / "ALL"i / "ALTER"i / "AND"i / "ANY"i / "AS"i / "ASC"i / "BACKUP"i / "BETWEEN"i / "BY"i / "CASE"i / "CHECK"i / "COLUMN"i / "CONSTRAINT"i / "COUNT"i / "CREATE"i / "DATABASE"i / "DEFAULT"i / "DELETE"i / "DESC"i / "DISTINCT"i / "DROP"i / "EXEC"i / "EXISTS"i / "FOREIGN"i / "FROM"i / "FROM"i / "FULL"i / "GROUP"i / "HAVING"i / "INNER"i / "INSERT"i / "JOIN"i / "KEY"i / "LEFT"i / "LIMIT"i / "OFFSET"i / "ON"i / "ORDER"i / "OUTER"i / "RETURNING"i / "RIGHT"i / "SELECT"i / "SELECT"i / "TABLE"i / "UPDATE"i / "VALUES"i / "WHERE"i / JoinKeyword) {
   return { type: 'Keyword', content: Keyword }
 }
 
