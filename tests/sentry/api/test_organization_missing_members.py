@@ -130,6 +130,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
     def test_query_on_author_email_and_external_id(self):
         # self.nonmember_commit_author1 matches on email
         # the below matches on external id
+
         nonmember_commit_author = self.create_commit_author(
             project=self.project, email="c2@example.com"
         )
