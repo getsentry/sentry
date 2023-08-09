@@ -156,15 +156,3 @@ class Param(Generic[T]):
 
         def __get__(self, inst: C | None, owner: type[C]) -> T | Self:
             ...
-
-
-def if_param(name):
-    def _if_param(func):
-        def wrapper(self, *args):
-            if not hasattr(self, name) or getattr(self, name) is None:
-                return
-            return func(self, *args)
-
-        return wrapper
-
-    return _if_param
