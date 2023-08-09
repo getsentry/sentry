@@ -2,11 +2,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from sentry.profiles.statistical_detectors import (
-    FunctionPayload,
-    TrendState,
-    compute_new_trend_states,
-)
+from sentry.profiles.statistical_detectors import TrendPayload, TrendState, compute_new_trend_states
 
 
 @pytest.mark.parametrize(
@@ -112,7 +108,7 @@ def test_run_functions_trend_detection(initial, p95s, regressed_indices, improve
     now = datetime.now()
 
     payloads = [
-        FunctionPayload(0, i + 1, p95, now + timedelta(hours=i + 1)) for i, p95 in enumerate(p95s)
+        TrendPayload(0, i + 1, p95, now + timedelta(hours=i + 1)) for i, p95 in enumerate(p95s)
     ]
 
     for payload in payloads:

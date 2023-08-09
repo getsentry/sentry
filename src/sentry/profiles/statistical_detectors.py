@@ -72,8 +72,8 @@ class TrendState:
 
 
 @dataclass
-class FunctionPayload:
-    fingerprint: int
+class TrendPayload:
+    group: str | int
     count: float
     p95: float
     timestamp: datetime
@@ -83,11 +83,11 @@ def run_functions_trend_detection(
     client: RedisCluster | StrictRedis,
     project: Project,
     start: datetime,
-    payloads: List[FunctionPayload],
-) -> Tuple[List[FunctionPayload], List[FunctionPayload]]:
+    payloads: List[TrendPayload],
+) -> Tuple[List[TrendPayload], List[TrendPayload]]:
     with client.pipeline() as pipeline:
         for payload in payloads:
-            key = make_function_key(project.id, payload, VERSION)
+            key = make_key(project.id, payload, VERSION)
             pipeline.hgetall(key)
         results = pipeline.execute()
 
@@ -109,11 +109,11 @@ def run_functions_trend_detection(
 def compute_new_trend_states(
     project_id: int,
     old_states: List[TrendState],
-    payloads: List[FunctionPayload],
-) -> Tuple[List[Tuple[str, TrendState]], List[FunctionPayload], List[FunctionPayload]]:
+    payloads: List[TrendPayload],
+) -> Tuple[List[Tuple[str, TrendState]], List[TrendPayload], List[TrendPayload]]:
     new_states: List[Tuple[str, TrendState]] = []
-    regressed_functions: List[FunctionPayload] = []
-    improved_functions: List[FunctionPayload] = []
+    regressed_functions: List[TrendPayload] = []
+    improved_functions: List[TrendPayload] = []
 
     for payload, old_state in zip(payloads, old_states):
         if old_state.timestamp is not None and old_state.timestamp > payload.timestamp:
@@ -128,7 +128,7 @@ def compute_new_trend_states(
             )
             continue
 
-        key = make_function_key(project_id, payload, VERSION)
+        key = make_key(project_id, payload, VERSION)
         trend, value = detect_trend(old_state, payload)
 
         if trend == TrendType.Regressed:
@@ -141,11 +141,11 @@ def compute_new_trend_states(
     return new_states, regressed_functions, improved_functions
 
 
-def make_function_key(project_id: int, payload: FunctionPayload, version: int) -> str:
-    return f"statdtr:v:{version}:p:{project_id}:f:{payload.fingerprint}"
+def make_key(project_id: int, payload: TrendPayload, version: int) -> str:
+    return f"statdtr:v:{version}:p:{project_id}:f:{payload.group}"
 
 
-def detect_trend(state: TrendState, payload: FunctionPayload) -> Tuple[TrendType, TrendState]:
+def detect_trend(state: TrendState, payload: TrendPayload) -> Tuple[TrendType, TrendState]:
     """
     Detect if a change has occurred using the moving average cross over.
     See https://en.wikipedia.org/wiki/Moving_average_crossover.

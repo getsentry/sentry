@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.models.project import Project
-from sentry.profiles.statistical_detectors import FunctionPayload
+from sentry.profiles.statistical_detectors import TrendPayload
 from sentry.snuba import functions
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
@@ -97,7 +97,7 @@ def query_transactions(project_id: int) -> None:
     pass
 
 
-def query_functions(project: Project, start: datetime) -> List[FunctionPayload]:
+def query_functions(project: Project, start: datetime) -> List[TrendPayload]:
     params = _get_function_query_params(project, start)
 
     # TODOs:
@@ -121,8 +121,8 @@ def query_functions(project: Project, start: datetime) -> List[FunctionPayload]:
     )
 
     return [
-        FunctionPayload(
-            fingerprint=row["fingerprint"],
+        TrendPayload(
+            group=row["fingerprint"],
             count=row["count()"],
             p95=row["p95()"],
             timestamp=datetime.fromisoformat(row["timestamp"]),
