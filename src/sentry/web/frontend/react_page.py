@@ -109,9 +109,10 @@ class ReactPageView(ControlSiloOrganizationView, ReactMixin):
 
     def handle(self, request: Request, organization: RpcOrganization, **kwargs) -> HttpResponse:
         if "project_id" in kwargs and request.GET.get("onboarding"):
-            project = project_service.get_by_slug(
-                organization_id=organization.id, slug=kwargs["project_id"]
+            project = next(
+                (p for p in organization.projects if p.slug == kwargs["project_id"]), None
             )
+
             if project:
                 organization_service.schedule_signal(
                     signal=first_event_pending,
