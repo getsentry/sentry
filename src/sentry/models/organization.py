@@ -36,6 +36,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.team import Team
 from sentry.roles.manager import Role
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
@@ -273,13 +274,11 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
         return generate_snowflake_id(cls.snowflake_redis_key)
 
     def delete(self, **kwargs):
-        from sentry.models import NotificationSetting
-
         if self.is_default:
             raise Exception("You cannot delete the the default organization.")
 
-        # There is no foreign key relationship so we have to manually cascade.
-        NotificationSetting.objects.remove_for_organization(self)
+        # There is no foreign key relationship, so we have to manually cascade.
+        notifications_service.remove_notification_settings_for_organization(organization_id=self.id)
 
         with outbox_context(transaction.atomic(router.db_for_write(Organization)), flush=False):
             Organization.outbox_for_update(self.id).save()
