@@ -74,7 +74,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 full_config_requested=full_config_requested,
             )
         else:
-            return Response("Unsupported version, we only support versions 1 to 3.", 400)
+            return Response("Unsupported version, we only support versions 1 to 4.", 400)
 
         return Response(response, status=200)
 
