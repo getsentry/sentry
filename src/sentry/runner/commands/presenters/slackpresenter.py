@@ -37,7 +37,7 @@ class SlackPresenter(OptionsPresenter):
                 "updated_options": [],
                 "set_options": [],
                 "unset_options": [],
-                "not_writable": [],
+                "not_writable_options": [],
                 "unregistered_options": [],
                 "invalid_type_options": [],
             }
