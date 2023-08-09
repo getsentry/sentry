@@ -17,13 +17,12 @@ function isSavedRule(rule: MetricRule): rule is SavedMetricRule {
 export function addOrUpdateRule(
   api: Client,
   orgId: string,
-  projectId: string,
   rule: MetricRule,
   query?: object | any
 ) {
   const isExisting = isSavedRule(rule);
   const endpoint = isExisting
-    ? `/projects/${orgId}/${projectId}/alert-rules/${rule.id}/`
+    ? `/organizations/${orgId}/alert-rules/${rule.id}/`
     : `/organizations/${orgId}/alert-rules/`;
   const method = isExisting ? 'PUT' : 'POST';
 

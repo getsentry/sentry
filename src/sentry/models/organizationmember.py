@@ -29,6 +29,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
@@ -475,7 +476,12 @@ class OrganizationMember(Model):
         if self.user_id:
             if self.user_email:
                 return self.user_email
-            user = user_service.get_user(user_id=self.user_id)
+
+            # This is a fallback case when the org member outbox message from
+            #  the control-silo has not been drained/denormalized, but we need
+            #  to retrieve it, so we skip our rpc-in-transaction validations here.
+            with in_test_hide_transaction_boundary():
+                user = user_service.get_user(user_id=self.user_id)
             if user and user.email:
                 return user.email
         return self.email

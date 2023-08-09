@@ -3,11 +3,11 @@ from urllib.parse import urlparse
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.models import ExternalActor, Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.testutils.cases import AcceptanceTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import no_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
-@region_silo_test
+@no_silo_test(stable=True)
 class SlackLinkTeamTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

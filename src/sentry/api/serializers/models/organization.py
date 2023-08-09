@@ -26,8 +26,9 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
 from sentry.api.serializers.models.role import (
     OrganizationRoleSerializer,
-    RoleSerializerResponse,
+    OrganizationRoleSerializerResponse,
     TeamRoleSerializer,
+    TeamRoleSerializerResponse,
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.serializers.types import OrganizationSerializerResponse
@@ -391,8 +392,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     isDefault: bool
     defaultRole: bool
     availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
-    orgRoleList: List[RoleSerializerResponse]
-    teamRoleList: List[RoleSerializerResponse]
+    orgRoleList: List[OrganizationRoleSerializerResponse]
+    teamRoleList: List[TeamRoleSerializerResponse]
     openMembership: bool
     allowSharedIssues: bool
     enhancedPrivacy: bool
