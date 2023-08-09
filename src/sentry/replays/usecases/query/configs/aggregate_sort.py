@@ -1,44 +1,6 @@
 from snuba_sdk import Column, Function
 
-
-def _activity_score():
-    error_weight = Function("multiply", parameters=[Column("count_errors"), 25])
-    pages_visited_weight = Function("multiply", parameters=[Column("count_urls"), 5])
-
-    combined_weight = Function(
-        "plus",
-        parameters=[
-            error_weight,
-            pages_visited_weight,
-        ],
-    )
-
-    combined_weight_normalized = Function(
-        "intDivOrZero",
-        parameters=[
-            combined_weight,
-            10,
-        ],
-    )
-
-    return Function(
-        "floor",
-        parameters=[
-            Function(
-                "greatest",
-                parameters=[
-                    1,
-                    Function(
-                        "least",
-                        parameters=[
-                            10,
-                            combined_weight_normalized,
-                        ],
-                    ),
-                ],
-            )
-        ],
-    )
+from sentry.replays.usecases.query.conditions.activity import aggregate_activity
 
 
 def any_if(column_name):
@@ -48,7 +10,7 @@ def any_if(column_name):
 
 
 sort_config = {
-    "activity": _activity_score(),
+    "activity": aggregate_activity(),
     "browser.name": any_if("browser_name"),
     "count_dead_clicks": Function("sum", parameters=[Column("click_is_dead")]),
     "count_errors": Function(
@@ -65,6 +27,8 @@ sort_config = {
     ),
     "finished_at": Function("max", parameters=[Column("timestamp")]),
     "os.name": any_if("os_name"),
+    "platform": any_if("platform"),
+    "project_id": Function("any", parameters=[Column("project_id")]),
     "started_at": Function("min", parameters=[Column("replay_start_timestamp")]),
 }
 

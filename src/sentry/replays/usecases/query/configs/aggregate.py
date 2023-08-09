@@ -13,6 +13,7 @@ from sentry.replays.lib.new_query.fields import (
 from sentry.replays.lib.new_query.parsers import parse_int, parse_str, parse_uuid
 from sentry.replays.lib.selector.parse import parse_selector
 from sentry.replays.usecases.query.conditions import (
+    AggregateActivityScalar,
     ClickSelector,
     SimpleAggregateDurationScalar,
     SimpleAggregateErrorIDScalar,
@@ -51,18 +52,18 @@ def array_string_field(column_name: str) -> StringColumnField:
 
 
 search_config: dict[str, Union[ColumnField, ComputedField]] = {
-    # "activity": AggregatedIntegerField,
+    "activity": ComputedField(parse_int, AggregateActivityScalar),
     "browser.name": string_field("browser_name"),
     "browser.version": string_field("browser_version"),
     "click.alt": string_field("click_alt"),
-    "click.aria_label": string_field("click_aria_label"),
-    "click.class": string_field("click_class"),
+    "click.label": string_field("click_aria_label"),
+    "click.class": array_string_field("click_class"),
     "click.id": string_field("click_id"),
     "click.role": string_field("click_role"),
     "click.selector": ComputedField(parse_selector, ClickSelector),
     "click.tag": string_field("click_tag"),
     "click.testid": string_field("click_testid"),
-    "click.text": string_field("click_text"),
+    "click.textContent": string_field("click_text"),
     "click.title": string_field("click_title"),
     "count_dead_clicks": sum_field("click_is_dead"),
     "count_errors": sum_length_field("error_ids"),
@@ -76,7 +77,7 @@ search_config: dict[str, Union[ColumnField, ComputedField]] = {
     "dist": string_field("dist"),
     "duration": ComputedField(parse_int, SimpleAggregateDurationScalar),
     "environment": string_field("environment"),
-    "error_ids": ComputedField(parse_str, SimpleAggregateErrorIDScalar),
+    "error_ids": ComputedField(parse_uuid, SimpleAggregateErrorIDScalar),
     "os.name": string_field("os_name"),
     "os.version": string_field("os_version"),
     "platform": string_field("platform"),

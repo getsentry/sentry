@@ -6,7 +6,7 @@ from sentry.replays.usecases.query.conditions.base import ComputedBase
 
 
 class SimpleAggregateDurationScalar(ComputedBase[int]):
-    """Error ids scalar condition class."""
+    """Duration scalar condition class."""
 
     @staticmethod
     def visit_eq(value: int) -> Condition:

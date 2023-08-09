@@ -1,3 +1,4 @@
+from .activity import AggregateActivityScalar  # noqa
 from .aggregate import (  # noqa
     SumOfIPv4Scalar,
     SumOfStringComposite,

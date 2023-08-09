@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List
 
-from snuba_sdk import And, Column, Condition, Function, Op, Or
+from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.replays.lib.selector.parse import QueryType
 from sentry.replays.usecases.query.conditions.base import ComputedBase
@@ -28,32 +28,47 @@ def search_selector(queries: list[QueryType]) -> Condition:
     conditions: list[Condition] = []
 
     for query in queries:
-        _conditions = []
+        cmp_functions = []
 
         if query.alt:
-            _conditions.append(Condition(Column("click_alt"), Op.EQ, query.alt))
+            cmp_functions.append(equals(Column("click_alt"), query.alt))
         if query.aria_label:
-            _conditions.append(Condition(Column("click_aria_label"), Op.EQ, query.aria_label))
+            cmp_functions.append(equals(Column("click_aria_label"), query.aria_label))
         if query.classes:
-            _conditions.append(Condition(Column("click_classes"), Op.EQ, query.classes))
+            has_all = Function("hasAll", parameters=[Column("click_class"), query.classes])
+            cmp_functions.append(equals(has_all, 1))
         if query.id:
-            _conditions.append(Condition(Column("click_id"), Op.EQ, query.id))
+            cmp_functions.append(equals(Column("click_id"), query.id))
         if query.role:
-            _conditions.append(Condition(Column("click_role"), Op.EQ, query.role))
+            cmp_functions.append(equals(Column("click_role"), query.role))
         if query.tag:
-            _conditions.append(Condition(Column("click_tag"), Op.EQ, query.tag))
+            cmp_functions.append(equals(Column("click_tag"), query.tag))
         if query.testid:
-            _conditions.append(Condition(Column("click_testid"), Op.EQ, query.testid))
+            cmp_functions.append(equals(Column("click_testid"), query.testid))
         if query.title:
-            _conditions.append(Condition(Column("click_title"), Op.EQ, query.title))
+            cmp_functions.append(equals(Column("click_title"), query.title))
 
-        if _conditions:
-            conditions.append(And(_conditions))
+        if cmp_functions:
+            conditions.append(comparator("and", cmp_functions))
 
-    if len(conditions) == 1:
-        # There's only one set of conditions and they all must pass in order to be counted.
-        return Function("sum", parameters=[conditions])
-    else:
-        # There's multiple sets of conditions and any of them passing is considered a successful
-        # hit.  To require all of the conditions pass replace the "Or" function with "And".
-        return Function("sum", parameters=[Or(conditions)])
+    return Condition(Function("sum", parameters=[comparator("or", conditions)]), Op.GT, 0)
+
+
+def equals(lhs: Column, rhs: str | int) -> Function:
+    return Function("equals", parameters=[lhs, rhs])
+
+
+def comparator(comparison_fn: str, functions: list[Function]) -> Function:
+    # Horrific work-around. Related: https://github.com/getsentry/snuba-sdk/issues/115
+    if len(functions) == 0:
+        return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
+
+    inner_condition = None
+
+    for function in functions:
+        if inner_condition:
+            inner_condition = Function(comparison_fn, parameters=[inner_condition, function])
+        else:
+            inner_condition = function
+
+    return inner_condition
