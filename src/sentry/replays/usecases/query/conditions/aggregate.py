@@ -9,6 +9,7 @@ from sentry.replays.lib.new_query.conditions import (
     StringComposite,
     StringScalar,
 )
+from sentry.replays.lib.new_query.utils import translate_condition_to_function
 from sentry.replays.usecases.query.conditions.tags import TagScalar
 
 
@@ -67,11 +68,11 @@ class SumOfStringComposite(GenericBase[str]):
 
     @staticmethod
     def visit_match(expression: Expression, value: str) -> Condition:
-        return contains(StringComposite.visit_match(expression, value).lhs)
+        return contains(StringComposite.visit_match(expression, value))
 
     @staticmethod
     def visit_not_match(expression: Expression, value: str) -> Condition:
-        return does_not_contain(StringComposite.visit_match(expression, value).lhs)
+        return does_not_contain(StringComposite.visit_match(expression, value))
 
     @staticmethod
     def visit_in(expression: Expression, value: list[str]) -> Condition:
@@ -110,9 +111,13 @@ class SumOfTagScalar(GenericBase[str]):
 
 def contains(condition: Condition) -> Condition:
     """Return true if any of the rows in the aggregation set match the condition."""
-    return Condition(Function("sum", parameters=[condition]), Op.GT, 0)
+    return Condition(
+        Function("sum", parameters=[translate_condition_to_function(condition)]), Op.GT, 0
+    )
 
 
 def does_not_contain(condition: Condition) -> Condition:
     """Return true if none of the rows in the aggregation set match the condition."""
-    return Condition(Function("sum", parameters=[condition]), Op.EQ, 0)
+    return Condition(
+        Function("sum", parameters=[translate_condition_to_function(condition)]), Op.EQ, 0
+    )
