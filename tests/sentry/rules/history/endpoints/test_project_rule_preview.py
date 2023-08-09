@@ -3,6 +3,7 @@ from datetime import timedelta
 from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
 from freezegun import freeze_time
+from freezegun.api import FrozenDateTimeFactory
 
 from sentry.models import Activity, Group, GroupInbox, GroupInboxReason
 from sentry.testutils.cases import APITestCase
@@ -70,7 +71,9 @@ class ProjectRulePreviewEndpointTest(APITestCase):
         assert resp.status_code == 400
 
     def test_endpoint(self):
-        with freeze_time(timezone.now()) as frozen_time:
+        time_to_freeze = timezone.now()
+        with freeze_time(time_to_freeze) as frozen_time:
+            assert isinstance(frozen_time, FrozenDateTimeFactory)
             resp = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
@@ -85,7 +88,7 @@ class ProjectRulePreviewEndpointTest(APITestCase):
             )
 
             result = parse_datetime(resp["endpoint"])
-            endpoint = frozen_time.time_to_freeze.replace(tzinfo=result.tzinfo)
+            endpoint = time_to_freeze.replace(tzinfo=result.tzinfo)
             assert result == endpoint
             frozen_time.tick(1)
 
