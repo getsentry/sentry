@@ -1,5 +1,4 @@
 import {EntryException, ReleaseMeta} from 'sentry/types';
-import {SavedTrigger} from 'sentry/views/alerts/rules/metric/types';
 import type {
   ReplayError,
   ReplayListRecord,
@@ -83,7 +82,7 @@ type TestStubFixtures = {
   Incident: OverridableStub;
   IncidentActivity: OverridableStub;
   IncidentStats: OverridableStub;
-  IncidentTrigger: OverridableStub<SavedTrigger>;
+  IncidentTrigger: OverridableStub;
   InstallWizard: OverridableStub;
   JiraIntegration: OverridableStub;
   JiraIntegrationProvider: OverridableStub;
