@@ -2191,6 +2191,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             on_demand_metrics_enabled=True,
+            skip_time_conditions=False,
         )
 
         result = query.run_query("test_query")
@@ -2222,6 +2223,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             on_demand_metrics_enabled=True,
+            skip_time_conditions=False,
         )
 
         result = query.run_query("test_query")
@@ -2231,15 +2233,20 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert len(meta) == 1
         assert meta[0]["name"] == "c:transactions/on_demand@none"
 
-    def test_get_snql_query_with_on_demand_distribution(self):
+    def test_get_snql_query_with_on_demand_distribution_and_no_time_range(self):
+        params = {
+            "organization_id": self.organization.id,
+            "project_id": self.projects,
+        }
         query = AlertMetricsQueryBuilder(
-            self.params,
+            params,
             use_metrics_layer=False,
             granularity=3600,
             query="transaction.duration:>=100",
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["p75(measurements.fp)"],
             on_demand_metrics_enabled=True,
+            skip_time_conditions=True,
         )
 
         snql_request = query.get_snql_query()
@@ -2283,7 +2290,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         assert query_hash_clause in snql_query.where
 
-    def test_get_snql_query_with_on_demand_count(self):
+    def test_get_snql_query_with_on_demand_count_and_time_range(self):
         query = AlertMetricsQueryBuilder(
             self.params,
             use_metrics_layer=False,
@@ -2292,6 +2299,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["count(transaction.duration)"],
             on_demand_metrics_enabled=True,
+            skip_time_conditions=False,
         )
 
         snql_request = query.get_snql_query()
@@ -2323,8 +2331,12 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         query_hash_index = indexer.resolve(UseCaseID.TRANSACTIONS, None, QUERY_HASH_KEY)
 
+        start_time_clause = Condition(lhs=Column(name="timestamp"), op=Op.GTE, rhs=self.start)
+        end_time_clause = Condition(lhs=Column(name="timestamp"), op=Op.LT, rhs=self.end)
         query_hash_clause = Condition(
             lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="88f3eb66"
         )
 
+        assert start_time_clause in snql_query.where
+        assert end_time_clause in snql_query.where
         assert query_hash_clause in snql_query.where

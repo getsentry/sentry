@@ -316,6 +316,7 @@ class QueryBuilder(BaseQueryBuilder):
     def resolve_time_conditions(self) -> None:
         if self.skip_time_conditions:
             return
+
         # start/end are required so that we can run a query in a reasonable amount of time
         if self.params.start is None or self.params.end is None:
             raise InvalidSearchQuery("Cannot query without a valid date range")
