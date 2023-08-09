@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import router, transaction
 from django.utils import timezone
 from rest_framework import serializers
-from snuba_sdk import Function, Limit
+from snuba_sdk import Column, Condition, Function, Limit, Op
 
 from sentry import features
 from sentry.api.fields.actor import ActorField
@@ -27,7 +27,11 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTrigger
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.entity_subscription import get_entity_subscription
+from sentry.snuba.entity_subscription import (
+    ENTITY_TIME_COLUMNS,
+    get_entity_key_from_query_builder,
+    get_entity_subscription,
+)
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import build_query_builder
 
@@ -283,7 +287,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     def _validate_snql_query(self, data, entity_subscription, projects):
         end = timezone.now()
         start = end - timedelta(minutes=10)
-
         try:
             query_builder = build_query_builder(
                 entity_subscription,
@@ -297,7 +300,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     "end": end,
                 },
             )
-            query_builder.limit = Limit(1)
         except (InvalidSearchQuery, ValueError) as e:
             raise serializers.ValidationError(f"Invalid Query or Metric: {e}")
 
@@ -308,6 +310,15 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
         dataset = Dataset(data["dataset"].value)
         self._validate_time_window(dataset, data.get("time_window"))
+
+        time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
+        query_builder.add_conditions(
+            [
+                Condition(Column(time_col), Op.GTE, start),
+                Condition(Column(time_col), Op.LT, end),
+            ]
+        )
+        query_builder.limit = Limit(1)
 
         try:
             query_builder.run_query(referrer="alertruleserializer.test_query")
