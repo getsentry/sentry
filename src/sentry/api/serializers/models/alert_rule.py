@@ -50,7 +50,7 @@ class AlertRuleSerializer(Serializer):
                 "triggers", []
             )
             for action in serialized.get("actions", []):
-                install = sentry_app_installations_by_sentry_app_id.get(action.get("sentryAppId"))
+                install = sentry_app_installations_by_sentry_app_id.get(str(action["sentryAppId"]))
                 if install:
                     action["_sentry_app_component"] = install.get("sentry_app_component")
                     action["_sentry_app_installation"] = install.get("sentry_app_installation")
@@ -75,7 +75,7 @@ class AlertRuleSerializer(Serializer):
         use_by_user_id: MutableMapping[int, RpcUser] = {
             user.id: user
             for user in user_service.get_many(
-                filter=dict(user_ids=[r.user_id for r in rule_activities])
+                filter=dict(user_ids=[r.user_id for r in rule_activities if r.user_id is not None])
             )
         }
         for rule_activity in rule_activities:

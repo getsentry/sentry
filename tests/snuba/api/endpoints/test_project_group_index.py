@@ -32,7 +32,7 @@ from sentry.models import (
 )
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test

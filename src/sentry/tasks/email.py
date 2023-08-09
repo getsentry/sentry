@@ -1,6 +1,7 @@
 import logging
 
 from sentry.auth import access
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils.email import send_messages
 
@@ -26,6 +27,7 @@ def _get_user_from_email(group, email):
     queue="email",
     default_retry_delay=60 * 5,
     max_retries=None,
+    silo_mode=SiloMode.REGION,
 )
 def process_inbound_email(mailfrom, group_id, payload):
     """ """

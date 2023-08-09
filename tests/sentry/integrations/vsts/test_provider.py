@@ -9,7 +9,7 @@ from django.http import HttpRequest
 from sentry.identity.vsts.provider import VSTSIdentityProvider, VSTSOAuth2CallbackView
 from sentry.integrations.vsts.integration import AccountConfigView, AccountForm
 from sentry.models import Identity, IdentityProvider
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.http import absolute_uri
 
@@ -60,6 +60,7 @@ class TestVSTSOAuthCallbackView(TestCase):
         assert result["refresh_token"] == "zzzzzzzzzz"
 
 
+@control_silo_test(stable=True)
 class TestAccountConfigView(TestCase):
     def setUp(self):
         responses.reset()

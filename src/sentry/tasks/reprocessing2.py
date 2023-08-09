@@ -8,6 +8,7 @@ from sentry import eventstore, eventstream, nodestore
 from sentry.eventstore.models import Event
 from sentry.models import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.types.activity import ActivityType
@@ -20,6 +21,7 @@ from sentry.utils.query import celery_run_batch_query
     queue="events.reprocessing.process_event",
     time_limit=120,
     soft_time_limit=110,
+    silo_mode=SiloMode.REGION,
 )
 def reprocess_group(
     project_id,
@@ -135,6 +137,7 @@ def reprocess_group(
     queue="events.reprocessing.process_event",
     time_limit=60 * 5,
     max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
 @retry
 def handle_remaining_events(

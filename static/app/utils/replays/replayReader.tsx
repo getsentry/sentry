@@ -2,7 +2,6 @@ import * as Sentry from '@sentry/react';
 import memoize from 'lodash/memoize';
 import {duration} from 'moment';
 
-import type {Crumb} from 'sentry/types/breadcrumbs';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
@@ -16,12 +15,7 @@ import {
   recordingStartFrame,
 } from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
-import {
-  breadcrumbFactory,
-  replayTimestamps,
-  spansFactory,
-} from 'sentry/utils/replays/replayDataUtils';
-import splitAttachmentsByType from 'sentry/utils/replays/splitAttachmentsByType';
+import {replayTimestamps} from 'sentry/utils/replays/replayDataUtils';
 import type {
   BreadcrumbFrame,
   ErrorFrame,
@@ -31,14 +25,12 @@ import type {
   SlowClickFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
-import {isDeadClick, isDeadRageClick} from 'sentry/utils/replays/types';
-import type {
-  RecordingEvent,
-  ReplayCrumb,
-  ReplayError,
-  ReplayRecord,
-  ReplaySpan,
-} from 'sentry/views/replays/types';
+import {
+  BreadcrumbCategories,
+  isDeadClick,
+  isDeadRageClick,
+} from 'sentry/utils/replays/types';
+import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 interface ReplayReaderParams {
   /**
@@ -68,6 +60,32 @@ type RequiredNotNull<T> = {
 };
 
 const sortFrames = (a, b) => a.timestampMs - b.timestampMs;
+
+function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
+  const slowClickFrames = frames.filter(
+    frame => frame.category === 'ui.slowClickDetected'
+  );
+
+  const clickFrames = frames.filter(frame => frame.category === 'ui.click');
+
+  const otherFrames = frames.filter(
+    frame => !(slowClickFrames.includes(frame) || clickFrames.includes(frame))
+  );
+
+  const uniqueClickFrames: BreadcrumbFrame[] = clickFrames.filter(clickFrame => {
+    return !slowClickFrames.some(
+      slowClickFrame =>
+        slowClickFrame.data &&
+        'nodeId' in slowClickFrame.data &&
+        clickFrame.data &&
+        'nodeId' in clickFrame.data &&
+        slowClickFrame.data.nodeId === clickFrame.data.nodeId &&
+        slowClickFrame.timestampMs === clickFrame.timestampMs
+    );
+  });
+
+  return uniqueClickFrames.concat(otherFrames).concat(slowClickFrames);
+}
 
 export default class ReplayReader {
   static factory({attachments, errors, replayRecord}: ReplayReaderParams) {
@@ -125,7 +143,7 @@ export default class ReplayReader {
     }
 
     // Hydrate the data we were given
-    this.replayRecord = replayRecord;
+    this._replayRecord = replayRecord;
     // Errors don't need to be sorted here, they will be merged with breadcrumbs
     // and spans in the getter and then sorted together.
     this._errors = hydrateErrors(replayRecord, errors).sort(sortFrames);
@@ -147,38 +165,6 @@ export default class ReplayReader {
     this._sortedBreadcrumbFrames.push(replayInitBreadcrumb(replayRecord));
     this._sortedRRWebEvents.unshift(recordingStartFrame(replayRecord));
     this._sortedRRWebEvents.push(recordingEndFrame(replayRecord));
-
-    /*********************/
-    /** OLD STUFF BELOW **/
-    /*********************/
-    const {rawBreadcrumbs, rawRRWebEvents, rawNetworkSpans, rawMemorySpans} =
-      splitAttachmentsByType(attachments);
-
-    const spans = [...rawMemorySpans, ...rawNetworkSpans] as ReplaySpan[];
-
-    // TODO(replays): We should get correct timestamps from the backend instead
-    // of having to fix them up here.
-    const {startTimestampMs, endTimestampMs} = replayTimestamps(
-      replayRecord,
-      rawRRWebEvents as RecordingEvent[],
-      rawBreadcrumbs as ReplayCrumb[],
-      spans
-    );
-    replayRecord.started_at = new Date(startTimestampMs);
-    replayRecord.finished_at = new Date(endTimestampMs);
-    replayRecord.duration = duration(
-      replayRecord.finished_at.getTime() - replayRecord.started_at.getTime()
-    );
-
-    this.sortedSpans = spansFactory(spans);
-    this.breadcrumbs = breadcrumbFactory(
-      replayRecord,
-      errors,
-      rawBreadcrumbs as ReplayCrumb[],
-      this.sortedSpans
-    );
-
-    this.replayRecord = replayRecord;
   }
 
   public timestampDeltas = {startedAtDelta: 0, finishedAtDelta: 0};
@@ -186,13 +172,10 @@ export default class ReplayReader {
   private _cacheKey: string;
   private _errors: ErrorFrame[];
   private _optionFrame: undefined | OptionFrame;
+  private _replayRecord: ReplayRecord;
   private _sortedBreadcrumbFrames: BreadcrumbFrame[];
   private _sortedRRWebEvents: RecordingFrame[];
   private _sortedSpanFrames: SpanFrame[];
-
-  private sortedSpans: ReplaySpan[];
-  private replayRecord: ReplayRecord;
-  private breadcrumbs: Crumb[];
 
   toJSON = () => this._cacheKey;
 
@@ -200,11 +183,11 @@ export default class ReplayReader {
    * @returns Duration of Replay (milliseonds)
    */
   getDurationMs = () => {
-    return this.replayRecord.duration.asMilliseconds();
+    return this._replayRecord.duration.asMilliseconds();
   };
 
   getReplay = () => {
-    return this.replayRecord;
+    return this._replayRecord;
   };
 
   getRRWebFrames = () => this._sortedRRWebEvents;
@@ -212,7 +195,10 @@ export default class ReplayReader {
   getErrorFrames = () => this._errors;
 
   getConsoleFrames = memoize(() =>
-    this._sortedBreadcrumbFrames.filter(frame => frame.category === 'console')
+    this._sortedBreadcrumbFrames.filter(
+      frame =>
+        frame.category === 'console' || !BreadcrumbCategories.includes(frame.category)
+    )
   );
 
   getNavigationFrames = memoize(() =>
@@ -228,16 +214,29 @@ export default class ReplayReader {
     )
   );
 
-  getDOMFrames = memoize(() => [
-    ...this._sortedBreadcrumbFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
-    ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
-  ]);
+  getDOMFrames = memoize(() =>
+    [
+      ...removeDuplicateClicks(
+        this._sortedBreadcrumbFrames
+          .filter(frame => 'nodeId' in (frame.data ?? {}))
+          .filter(
+            frame =>
+              !(
+                (frame.category === 'ui.slowClickDetected' &&
+                  !isDeadClick(frame as SlowClickFrame)) ||
+                frame.category === 'ui.multiClick'
+              )
+          )
+      ),
+      ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
+    ].sort(sortFrames)
+  );
 
   getDomNodes = memoize(() =>
     extractDomNodes({
       frames: this.getDOMFrames(),
       rrwebEvents: this.getRRWebFrames(),
-      finishedAt: this.replayRecord.finished_at,
+      finishedAt: this._replayRecord.finished_at,
     })
   );
 
@@ -247,32 +246,21 @@ export default class ReplayReader {
 
   getChapterFrames = memoize(() =>
     [
-      ...this._sortedBreadcrumbFrames.filter(
-        frame =>
-          ['navigation', 'replay.init', 'replay.mutations', 'ui.click'].includes(
-            frame.category
-          ) ||
-          (frame.category === 'ui.slowClickDetected' &&
-            (isDeadClick(frame as SlowClickFrame) ||
-              isDeadRageClick(frame as SlowClickFrame)))
-        // Hiding all ui.multiClick (multi or rage clicks)
+      ...removeDuplicateClicks(
+        this._sortedBreadcrumbFrames.filter(
+          frame =>
+            ['navigation', 'replay.init', 'replay.mutations', 'ui.click'].includes(
+              frame.category
+            ) ||
+            (frame.category === 'ui.slowClickDetected' &&
+              (isDeadClick(frame as SlowClickFrame) ||
+                isDeadRageClick(frame as SlowClickFrame)))
+        )
       ),
       ...this._sortedSpanFrames.filter(frame =>
         ['navigation.navigate', 'navigation.reload', 'navigation.back_forward'].includes(
           frame.op
         )
-      ),
-      ...this._errors,
-    ].sort(sortFrames)
-  );
-
-  getTimelineFrames = memoize(() =>
-    [
-      ...this._sortedBreadcrumbFrames.filter(frame =>
-        ['replay.init', 'ui.click'].includes(frame.category)
-      ),
-      ...this._sortedSpanFrames.filter(frame =>
-        ['navigation.navigate', 'navigation.reload'].includes(frame.op)
       ),
       ...this._errors,
     ].sort(sortFrames)
@@ -298,15 +286,4 @@ export default class ReplayReader {
         Object.keys(frame?.data?.response?.headers ?? {}).length
     );
   });
-
-  /*********************/
-  /** OLD STUFF BELOW **/
-  /*********************/
-  getConsoleCrumbs = memoize(() =>
-    this.breadcrumbs.filter(crumb => crumb.category === 'console')
-  );
-
-  getNonConsoleCrumbs = memoize(() =>
-    this.breadcrumbs.filter(crumb => crumb.category !== 'console')
-  );
 }

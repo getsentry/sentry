@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.issues.grouptype import (
+    ErrorGroupType,
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
@@ -32,7 +33,7 @@ from sentry.models import (
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry.utils.samples import load_data
@@ -125,26 +126,40 @@ class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):
 @region_silo_test
 class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
     def test_new_group(self) -> None:
-        occurrence = self.build_occurrence()
-        event = self.store_event(data={}, project_id=self.project.id)
-        group_info = save_issue_from_occurrence(occurrence, event, None)
-        assert group_info is not None
-        assert group_info.is_new
-        assert not group_info.is_regression
-        group = group_info.group
-        assert group.title == occurrence.issue_title
-        assert group.platform == event.platform
-        assert group.level == LOG_LEVELS_MAP.get(occurrence.level)
-        assert group.last_seen == event.datetime
-        assert group.first_seen == event.datetime
-        assert group.active_at == event.datetime
-        assert group.issue_type == occurrence.type
-        assert group.first_release is None
-        assert group.title == occurrence.issue_title
-        assert group.data["metadata"]["value"] == occurrence.subtitle
-        assert group.culprit == occurrence.culprit
-        assert group.message == "<unlabeled event> something bad happened it was bad api/123"
-        assert group.location() == event.location
+        occurrence = self.build_occurrence(type=ErrorGroupType.type_id)
+        event = self.store_event(
+            data={"platform": "javascript"},
+            project_id=self.project.id,
+        )
+
+        with patch("sentry.issues.ingest.metrics.incr") as mock_metrics_incr:
+            group_info = save_issue_from_occurrence(occurrence, event, None)
+            assert group_info is not None
+            assert group_info.is_new
+            assert not group_info.is_regression
+
+            group = group_info.group
+            assert group.title == occurrence.issue_title
+            assert group.platform == event.platform
+            assert group.level == LOG_LEVELS_MAP.get(occurrence.level)
+            assert group.last_seen == event.datetime
+            assert group.first_seen == event.datetime
+            assert group.active_at == event.datetime
+            assert group.issue_type == occurrence.type
+            assert group.first_release is None
+            assert group.title == occurrence.issue_title
+            assert group.data["metadata"]["value"] == occurrence.subtitle
+            assert group.culprit == occurrence.culprit
+            assert group.message == "<unlabeled event> something bad happened it was bad api/123"
+            assert group.location() == event.location
+            mock_metrics_incr.assert_any_call(
+                "group.created",
+                skip_internal=True,
+                tags={
+                    "platform": "javascript",
+                    "type": ErrorGroupType.type_id,
+                },
+            )
 
     def test_existing_group(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
@@ -247,7 +262,7 @@ class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
 
 
 class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
-    def test(self) -> None:
+    def test_simple(self) -> None:
         occurrence = self.build_occurrence()
         event = self.store_event(data={}, project_id=self.project.id)
         assert materialize_metadata(occurrence, event) == {
@@ -257,6 +272,19 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "title": occurrence.issue_title,
             "location": event.location,
             "last_received": json.datetime_to_str(event.datetime),
+        }
+
+    def test_preserves_existing_metadata(self) -> None:
+        occurrence = self.build_occurrence()
+        event = self.store_event(data={}, project_id=self.project.id)
+        event.data.setdefault("metadata", {})
+        event.data["metadata"]["dogs"] = "are great"  # should not get clobbered
+
+        materialized = materialize_metadata(occurrence, event)
+        assert materialized["metadata"] == {
+            "title": occurrence.issue_title,
+            "value": occurrence.subtitle,
+            "dogs": "are great",
         }
 
 
@@ -272,7 +300,7 @@ class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):
         group_info = save_issue_from_occurrence(occurrence, event, None)
         assert group_info is not None
 
-        group_event = event.for_group(group_info.group.id)
+        group_event = event.for_group(group_info.group)
         with mock.patch("sentry.issues.ingest.eventstream") as eventstream, mock.patch.object(
             event, "for_group", return_value=group_event
         ):

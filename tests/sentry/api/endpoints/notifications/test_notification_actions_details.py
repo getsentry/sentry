@@ -13,10 +13,12 @@ from sentry.models.notificationaction import (
     NotificationAction,
     NotificationActionProject,
 )
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.utils import json
 
 
 @region_silo_test(stable=True)
@@ -214,7 +216,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
 
     @patch.dict(NotificationAction._registry, {})
     @responses.activate
-    def test_post_with_slack_validation(self):
+    def test_put_with_slack_validation(self):
         class MockActionRegistration(ActionRegistration):
             pass
 
@@ -232,26 +234,23 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
 
         self.mock_register(data)(MockActionRegistration)
 
-        # Can't find slack channel
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
-            status=500,
-        )
-        self.get_error_response(
-            self.organization.slug,
-            self.notif_action.id,
-            status_code=status.HTTP_400_BAD_REQUEST,
-            method="PUT",
-            **data,
-        )
-        # Successful search for channel
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
-            json={"ok": True, "channels": [{"name": channel_name, "id": channel_id}]},
+            content_type="application/json",
+            body=json.dumps(
+                {"ok": "true", "channel": channel_id, "scheduled_message_id": "Q1298393284"}
+            ),
         )
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.deleteScheduledMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": True}),
+        )
+
         response = self.get_success_response(
             self.organization.slug,
             self.notif_action.id,
@@ -262,7 +261,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         assert response.data["targetIdentifier"] == channel_id
 
     @patch.dict(NotificationAction._registry, {})
-    def test_PUT_with_pagerduty_validation(self):
+    def test_put_with_pagerduty_validation(self):
         class MockActionRegistration(ActionRegistration):
             pass
 
@@ -355,6 +354,40 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         # Relation table has been updated
         assert not NotificationActionProject.objects.filter(action_id=self.notif_action.id).exists()
 
+    @patch.dict(NotificationAction._registry, {})
+    def test_put_org_member(self):
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, teams=[self.team])
+        self.login_as(user)
+
+        data = {**self.base_data}
+        self.get_error_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="PUT",
+            **data,
+        )
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_put_org_admin(self):
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, role="admin")
+        self.login_as(user)
+
+        self.test_put_simple()
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_put_team_admin(self):
+        user = self.create_user()
+        member = self.create_member(organization=self.organization, user=user, role="member")
+        OrganizationMemberTeam.objects.create(
+            team=self.team, organizationmember=member, role="admin"
+        )
+        self.login_as(user)
+
+        self.test_put_simple()
+
     def test_delete_invalid_action(self):
         self.get_error_response(
             self.organization.slug,
@@ -381,15 +414,38 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         )
         assert not NotificationAction.objects.filter(id=self.notif_action.id).exists()
 
-    def test_delete_success_as_manager(self):
+    def test_delete_manager(self):
         user = self.create_user()
         self.create_member(user=user, organization=self.organization, role="manager")
         self.login_as(user)
-        assert NotificationAction.objects.filter(id=self.notif_action.id).exists()
-        self.get_success_response(
+
+        self.test_delete_simple()
+
+    def test_delete_org_member(self):
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization)
+        self.login_as(user)
+
+        self.get_error_response(
             self.organization.slug,
             self.notif_action.id,
-            status_code=status.HTTP_204_NO_CONTENT,
+            status_code=status.HTTP_403_FORBIDDEN,
             method="DELETE",
         )
-        assert not NotificationAction.objects.filter(id=self.notif_action.id).exists()
+
+    def test_delete_org_admin(self):
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, role="admin")
+        self.login_as(user)
+
+        self.test_delete_simple()
+
+    def test_delete_team_admin(self):
+        user = self.create_user()
+        member = self.create_member(organization=self.organization, user=user, role="member")
+        OrganizationMemberTeam.objects.create(
+            team=self.team, organizationmember=member, role="admin"
+        )
+        self.login_as(user)
+
+        self.test_delete_simple()

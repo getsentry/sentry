@@ -163,7 +163,7 @@ describe('ResolveActions', function () {
     });
   });
 
-  it('displays the current release version', async function () {
+  it('displays if the current release version uses semver', async function () {
     render(
       <ResolveActions
         onUpdate={spy}
@@ -174,23 +174,14 @@ describe('ResolveActions', function () {
     );
 
     await userEvent.click(screen.getByLabelText('More resolve options'));
-    expect(screen.getByText('The current release (1.2.3)')).toBeInTheDocument();
-  });
-
-  it('displays if the current release version uses semver', async function () {
-    const organization = TestStubs.Organization({features: ['issue-release-semver']});
-    render(
-      <ResolveActions
-        onUpdate={spy}
-        hasRelease
-        projectSlug="proj-1"
-        latestRelease={{version: 'frontend@1.2.3'}}
-      />,
-      {organization}
-    );
-
-    await userEvent.click(screen.getByLabelText('More resolve options'));
     expect(screen.getByText('The current release')).toBeInTheDocument();
     expect(screen.getByText('1.2.3 (semver)')).toBeInTheDocument();
+  });
+
+  it('displays prompt to setup releases when there are no releases', async function () {
+    render(<ResolveActions onUpdate={spy} hasRelease={false} projectSlug="proj-1" />);
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(screen.getByText('Resolving is better with Releases')).toBeInTheDocument();
   });
 });

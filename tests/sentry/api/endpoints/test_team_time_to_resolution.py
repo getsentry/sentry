@@ -5,7 +5,7 @@ from freezegun import freeze_time
 
 from sentry.models import GroupAssignee, GroupEnvironment, GroupHistoryStatus
 from sentry.models.actor import get_actor_for_user
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
 

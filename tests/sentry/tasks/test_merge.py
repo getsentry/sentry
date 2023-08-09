@@ -4,7 +4,7 @@ from sentry import eventstore, eventstream
 from sentry.models import Group, GroupEnvironment, GroupMeta, GroupRedirect, UserReport
 from sentry.similarity import _make_index_backend
 from sentry.tasks.merge import merge_groups
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import redis
@@ -74,7 +74,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         with self.tasks():
             eventstream_state = eventstream.backend.start_merge(project.id, [group1.id], group2.id)
             merge_groups([group1.id], group2.id)
-            eventstream.end_merge(eventstream_state)
+            eventstream.backend.end_merge(eventstream_state)
 
         assert not Group.objects.filter(id=group1.id).exists()
 

@@ -2,7 +2,7 @@ from celery import current_app
 from celery.schedules import crontab
 from django.conf import settings
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class CeleryQueueRegisteredTest(TestCase):

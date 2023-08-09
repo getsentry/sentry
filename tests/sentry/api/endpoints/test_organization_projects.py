@@ -2,11 +2,10 @@ from django.urls import reverse
 
 from sentry.models import ApiKey
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test(stable=True)
 class OrganizationProjectsTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-projects"
 

@@ -41,7 +41,8 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
+from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
+from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -236,7 +237,7 @@ def create_incident_activity(
     comment=None,
     mentioned_user_ids=None,
     date_added=None,
-):
+) -> IncidentActivity:
     if activity_type == IncidentActivityType.COMMENT and user:
         subscribe_to_incident(incident, user.id)
     value = str(value) if value is not None else value
@@ -851,8 +852,12 @@ def delete_alert_rule(alert_rule, user=None, ip_address=None):
                 event=audit_log.get_event_id("ALERT_RULE_REMOVE"),
             )
 
+        subscriptions = alert_rule.snuba_query.subscriptions.all()
+        bulk_delete_snuba_subscriptions(subscriptions)
+
+        schedule_update_project_config(alert_rule, [sub.project for sub in subscriptions])
+
         incidents = Incident.objects.filter(alert_rule=alert_rule)
-        bulk_delete_snuba_subscriptions(list(alert_rule.snuba_query.subscriptions.all()))
         if incidents.exists():
             alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
             AlertRuleActivity.objects.create(
@@ -1240,6 +1245,10 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
         target_identifier, target_value = get_alert_rule_trigger_action_pagerduty_service(
             target_value, *args, **kwargs
         )
+    elif type == AlertRuleTriggerAction.Type.OPSGENIE.value:
+        target_identifier, target_value = get_alert_rule_trigger_action_opsgenie_team(
+            target_value, *args, **kwargs
+        )
     else:
         raise Exception("Not implemented")
 
@@ -1323,6 +1332,40 @@ def get_alert_rule_trigger_action_pagerduty_service(
     return service["id"], service["service_name"]
 
 
+def get_alert_rule_trigger_action_opsgenie_team(
+    target_value: Optional[str],
+    organization: RpcOrganizationIntegration,
+    integration_id: int,
+    use_async_lookup=False,
+    input_channel_id=None,
+    integrations=None,
+) -> tuple[str, str]:
+    from sentry.integrations.opsgenie.client import OpsgenieClient
+    from sentry.integrations.opsgenie.utils import get_team
+
+    oi = integration_service.get_organization_integration(
+        integration_id=integration_id, organization_id=organization.id
+    )
+    team = get_team(target_value, oi)
+    if not team:
+        raise InvalidTriggerActionError("No Opsgenie team found.")
+
+    integration_key = team["integration_key"]
+    integration = integration_service.get_integration(integration_id=integration_id)
+    if integration is None:
+        raise InvalidTriggerActionError("Opsgenie integration not found.")
+    client = OpsgenieClient(
+        integration=integration,
+        integration_key=integration_key,
+        org_integration_id=oi.id,
+    )
+    try:
+        client.authorize_integration(type="sentry")
+    except ApiError:
+        raise InvalidTriggerActionError("Invalid integration key.")
+    return team["id"], team["team"]
+
+
 def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id, installations):
     from sentry.services.hybrid_cloud.app import app_service
 
@@ -1374,6 +1417,19 @@ def get_pagerduty_services(organization_id, integration_id) -> List[Tuple[int, s
         return []
     services = PagerDutyService.services_in(org_int.config)
     return [(s["id"], s["service_name"]) for s in services]
+
+
+def get_opsgenie_teams(organization_id, integration_id) -> list[Tuple[str, str]]:
+    org_int = integration_service.get_organization_integration(
+        organization_id=organization_id, integration_id=integration_id
+    )
+    if org_int is None:
+        return []
+    teams = []
+    team_table = org_int.config.get("team_table")
+    if team_table:
+        teams = [(team["id"], team["team"]) for team in team_table]
+    return teams
 
 
 # TODO: This is temporarily needed to support back and forth translations for snuba / frontend.
