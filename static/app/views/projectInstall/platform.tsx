@@ -10,8 +10,10 @@ import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import {platformProductAvailability} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {
+  platformProductAvailability,
+  ProductSolution,
+} from 'sentry/components/onboarding/productSelection';
 import {
   performance as performancePlatforms,
   Platform,
@@ -177,7 +179,8 @@ export function ProjectInstallPlatform({location, params}: Props) {
   const showPerformancePrompt = performancePlatforms.includes(platform.id as PlatformKey);
   const isGettingStarted = window.location.href.indexOf('getting-started') > 0;
   const showDocsWithProductSelection =
-    gettingStartedDocWithProductSelection && platformProductAvailability[platform.key];
+    gettingStartedDocWithProductSelection &&
+    (platformProductAvailability[platform.key] ?? []).length > 0;
 
   return (
     <Fragment>
