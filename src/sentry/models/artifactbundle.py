@@ -132,9 +132,11 @@ class ArtifactBundleFlatFileIndex(Model):
     project_id = BoundedBigIntegerField(db_index=True)
     release_name = models.CharField(max_length=250)
     dist_name = models.CharField(max_length=64, default=NULL_STRING)
-    # This association is nullable since we need it for a correct durable implementation of the `FlatFileIndexState`.
-    flat_file_index = FlexibleForeignKey("sentry.File", null=True)
     date_added = models.DateTimeField(default=timezone.now)
+
+    # TODO: This column is in the process of being removed.
+    # For now, it still exists only to facilitate deleting all existing files.
+    flat_file_index = FlexibleForeignKey("sentry.File", null=True)
 
     class Meta:
         app_label = "sentry"
@@ -147,12 +149,7 @@ class ArtifactBundleFlatFileIndex(Model):
 
     def update_flat_file_index(self, data: str):
         indexstore.set_bytes(self._indexstore_id(), data.encode())
-
-        current_file = self.flat_file_index
-        if current_file:
-            current_file.delete()
-
-        self.update(flat_file_index=None, date_added=timezone.now())
+        self.update(date_added=timezone.now())
 
     def load_flat_file_index(self) -> Optional[bytes]:
         return indexstore.get_bytes(self._indexstore_id())
