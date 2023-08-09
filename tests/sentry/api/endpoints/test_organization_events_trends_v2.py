@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any, Dict, List, Union
 from unittest import mock
 
 import pytest
@@ -120,7 +121,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         events = response.data["events"]
         result_stats = response.data["stats"]
 
-        assert len(events["data"]) == len(mock_trends_result)
+        assert len(events["data"]) == 1
         assert events["data"] == mock_trends_result
 
         assert len(result_stats) > 0
@@ -128,7 +129,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
 
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.get_trends")
     def test_simple_with_no_trends(self, mock_get_trends):
-        mock_trends_result = []
+        mock_trends_result: List[Union[Dict[str, Any], None]] = []
         mock_get_trends.return_value = {"data": mock_trends_result}
 
         with self.feature(self.features):
@@ -150,14 +151,14 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         events = response.data["events"]
         result_stats = response.data["stats"]
 
-        assert len(events["data"]) == len(mock_trends_result)
-        assert events["data"] == mock_trends_result
+        assert len(events["data"]) == 0
+        assert events["data"] == []
 
         assert len(result_stats) == 0
 
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.get_trends")
     def test_simple_with_transaction_query(self, mock_get_trends):
-        mock_trends_result = []
+        mock_trends_result: List[Union[Dict[str, Any], None]] = []
         mock_get_trends.return_value = {"data": mock_trends_result}
 
         self.store_performance_metric(
@@ -222,7 +223,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         events = response.data["events"]
         result_stats = response.data["stats"]
 
-        assert len(events["data"]) == len(mock_trends_result)
+        assert len(events["data"]) == 1
         assert events["data"] == mock_trends_result
 
         assert len(result_stats) > 0
@@ -261,7 +262,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         events = response.data["events"]
         result_stats = response.data["stats"]
 
-        assert len(events["data"]) == len(mock_trends_result)
+        assert len(events["data"]) == 1
         assert events["data"] == mock_trends_result
 
         assert len(result_stats) > 0
