@@ -1,3 +1,4 @@
+import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
@@ -10,29 +11,34 @@ type Props = {
 
 function PerfFilters({
   traceRows,
-  getMutationsTypes,
+  getCrumbTypes,
   searchTerm,
+  selectValue,
+  setFilters,
   setSearchTerm,
-  setType,
-  type,
 }: Props) {
-  const mutationTypes = getMutationsTypes();
+  const crumbTypes = getCrumbTypes();
   return (
     <FiltersGrid>
       <CompactSelect
-        triggerProps={{prefix: t('Event Type')}}
-        triggerLabel={type.length === 0 ? t('Any') : null}
+        disabled={!crumbTypes.length}
         multiple
-        options={mutationTypes}
+        onChange={setFilters as (selection: SelectOption<string>[]) => void}
+        options={[
+          {
+            label: t('Breadcrumb Type'),
+            options: crumbTypes,
+          },
+        ]}
         size="sm"
-        onChange={selected => setType(selected.map(_ => _.value))}
-        value={type}
-        disabled={!mutationTypes.length}
+        triggerLabel={selectValue?.length === 0 ? t('Any') : null}
+        triggerProps={{prefix: t('Filter')}}
+        value={selectValue}
       />
       <SearchBar
         size="sm"
         onChange={setSearchTerm}
-        placeholder={t('Search DOM Events')}
+        placeholder={t('Search Events & Traces')}
         query={searchTerm}
         disabled={!traceRows || !traceRows.length}
       />

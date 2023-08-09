@@ -1,15 +1,24 @@
 import {useCallback, useMemo} from 'react';
 import uniq from 'lodash/uniq';
 
+import type {SelectOption} from 'sentry/components/compactSelect';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
 import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
+export interface PerfSelectOption extends SelectOption<string> {
+  qs: 'f_p_type';
+}
+
+const DEFAULT_FILTERS = {
+  f_p_type: [],
+} as Record<PerfSelectOption['qs'], string[]>;
+
 export type FilterFields = {
-  f_d_search: string;
-  f_d_type: string[];
+  f_p_search: string;
+  f_p_type: string[];
 };
 
 type Options = {
@@ -17,20 +26,20 @@ type Options = {
 };
 
 type Return = {
-  getMutationsTypes: () => {label: string; value: string}[];
+  getCrumbTypes: () => {label: string; value: string}[];
   items: ReplayTraceRow[];
   searchTerm: string;
+  selectValue: string[];
+  setFilters: (val: PerfSelectOption[]) => void;
   setSearchTerm: (searchTerm: string) => void;
-  setType: (type: string[]) => void;
-  type: string[];
 };
 
 const TYPE_TO_LABEL: Record<string, string> = {
   'ui.slowClickDetected': 'Rage & Dead Click',
-  'largest-contentful-paint': 'LCP',
   'ui.click': 'User Click',
   'ui.keyDown': 'KeyDown',
   'ui.input': 'Input',
+  // TODO: fill out this list, navigation, etc.
 };
 
 function typeToLabel(val: string): string {
@@ -39,19 +48,17 @@ function typeToLabel(val: string): string {
 
 const FILTERS = {
   type: (item: ReplayTraceRow, type: string[]) =>
-    type.length === 0 || type.includes(getFrameOpOrCategory(item.frame)),
+    type.length === 0 || type.includes(getFrameOpOrCategory(item.replayFrame)),
   searchTerm: (item: ReplayTraceRow, searchTerm: string) =>
-    JSON.stringify(item.html).toLowerCase().includes(searchTerm),
+    // TOOD: this should not only look at replayFrame, there's lots of stuff to see
+    JSON.stringify(item.replayFrame).toLowerCase().includes(searchTerm),
 };
 
 function usePerfFilters({traceRows}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
-  const type = useMemo(() => decodeList(query.f_d_type), [query.f_d_type]);
-  const searchTerm = useMemo(
-    () => decodeScalar(query.f_d_search, '').toLowerCase(),
-    [query.f_d_search]
-  );
+  const type = useMemo(() => decodeList(query.f_p_type), [query.f_p_type]);
+  const searchTerm = decodeScalar(query.f_p_search, '').toLowerCase();
 
   const items = useMemo(
     () =>
@@ -63,28 +70,41 @@ function usePerfFilters({traceRows}: Options): Return {
     [traceRows, type, searchTerm]
   );
 
-  const getMutationsTypes = useCallback(
+  const getCrumbTypes = useCallback(
     () =>
-      uniq(traceRows.map(traceRow => getFrameOpOrCategory(traceRow.frame)).concat(type))
+      uniq(
+        traceRows.map(traceRow => getFrameOpOrCategory(traceRow.replayFrame)).concat(type)
+      )
         .sort()
         .map(value => ({value, label: typeToLabel(value)})),
     [traceRows, type]
   );
 
-  const setType = useCallback((f_d_type: string[]) => setFilter({f_d_type}), [setFilter]);
-
   const setSearchTerm = useCallback(
-    (f_d_search: string) => setFilter({f_d_search: f_d_search || undefined}),
+    (f_p_search: string) => setFilter({f_p_search: f_p_search || undefined}),
+    [setFilter]
+  );
+
+  const setFilters = useCallback(
+    (value: PerfSelectOption[]) => {
+      const groupedValues = value.reduce((state, selection) => {
+        return {
+          ...state,
+          [selection.qs]: [...state[selection.qs], selection.value],
+        };
+      }, DEFAULT_FILTERS);
+      setFilter(groupedValues);
+    },
     [setFilter]
   );
 
   return {
-    getMutationsTypes,
+    getCrumbTypes,
     items,
     searchTerm,
     setSearchTerm,
-    setType,
-    type,
+    setFilters,
+    selectValue: [...type],
   };
 }
 

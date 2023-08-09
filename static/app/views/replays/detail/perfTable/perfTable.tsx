@@ -12,9 +12,9 @@ import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
-// import PerfFilters from 'sentry/views/replays/detail/perfTable/perfFilters';
+import PerfFilters from 'sentry/views/replays/detail/perfTable/perfFilters';
 import PerfRow from 'sentry/views/replays/detail/perfTable/perfRow';
-// import usePerfFilters from 'sentry/views/replays/detail/perfTable/usePerfFilters';
+import usePerfFilters from 'sentry/views/replays/detail/perfTable/usePerfFilters';
 import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
@@ -37,9 +37,8 @@ export default function PerfTable({perfData}: Props) {
 
   const traceRows = perfData.data;
 
-  // const filterProps = usePerfFilters({traceRows: traceRows || []});
-  // const {items, setSearchTerm} = filterProps;
-  const items = perfData.data;
+  const filterProps = usePerfFilters({traceRows: traceRows || []});
+  const {items} = filterProps; // setSearchTerm
   const clearSearchTerm = () => {}; //  setSearchTerm('');
 
   const listRef = useRef<ReactVirtualizedList>(null);
@@ -78,7 +77,7 @@ export default function PerfTable({perfData}: Props) {
 
   return (
     <FluidHeight>
-      {/* <PerfFilters traceRows={traceRows} {...filterProps} /> */}
+      <PerfFilters traceRows={traceRows} {...filterProps} />
       <TabItemContainer>
         {traceRows ? (
           <AutoSizer onResize={updateList}>

@@ -118,12 +118,12 @@ describe('useNetworkFilters', () => {
       value: 'resource.fetch',
       label: 'resource.fetch',
       qs: 'f_n_type' as const,
-    } as NetworkSelectOption;
+    };
     const STATUS_OPTION = {
       value: '200',
       label: '200',
       qs: 'f_n_status' as const,
-    } as NetworkSelectOption;
+    };
     const SEARCH_FILTER = 'pikachu';
 
     mockUseLocation

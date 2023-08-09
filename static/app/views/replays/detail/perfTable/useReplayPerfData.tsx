@@ -22,10 +22,23 @@ export interface ReplayTraceRow {
   replayFrame: ReplayFrame;
   timestampMs: number;
   traces: TraceFullDetailed[];
+  tracesFlattened: {indent: number; trace: TraceFullDetailed}[];
 }
 
 interface Props {
   replay: ReplayReader | null;
+}
+
+function mapTraces(indent: number, traces: TraceFullDetailed[]) {
+  return traces.flatMap(trace => {
+    return [
+      {
+        indent,
+        trace,
+      },
+      ...mapTraces(indent + 1, trace.children),
+    ];
+  });
 }
 
 export default function useReplayPerfData({replay}: Props) {
@@ -77,6 +90,13 @@ export default function useReplayPerfData({replay}: Props) {
         trace => trace.start_timestamp * 1000 >= thisFrame.timestampMs
       );
 
+      const relatedTraces = nextFrame
+        ? tracesAfterThis.filter(
+            trace => trace.start_timestamp * 1000 < nextFrame.timestampMs
+          )
+        : tracesAfterThis;
+      const tracesFlattened = mapTraces(0, relatedTraces);
+
       rows.push({
         durationMs: nextFrame ? nextFrame.timestampMs - thisFrame.timestampMs : 0,
         frameOpOrCategory: getFrameOpOrCategory(thisFrame),
@@ -85,11 +105,8 @@ export default function useReplayPerfData({replay}: Props) {
         paintFrames,
         replayFrame: thisFrame,
         timestampMs: thisFrame.timestampMs,
-        traces: nextFrame
-          ? tracesAfterThis.filter(
-              trace => trace.start_timestamp * 1000 < nextFrame.timestampMs
-            )
-          : tracesAfterThis,
+        traces: relatedTraces,
+        tracesFlattened,
       });
     }
 

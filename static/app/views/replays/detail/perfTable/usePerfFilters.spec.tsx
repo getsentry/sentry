@@ -3,10 +3,11 @@ import type {Location} from 'history';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
-import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
-import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
+// import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+// import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
+// import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {useLocation} from 'sentry/utils/useLocation';
+import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 
 import usePerfFilters, {FilterFields} from './usePerfFilters';
 
@@ -15,58 +16,36 @@ jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
 
-const ACTION_1_DEBUG = {
-  frame: hydrateSpans(TestStubs.ReplayRecord(), [
-    TestStubs.Replay.LargestContentfulPaintFrame({
-      startTimestamp: new Date(1663691559961),
-      endTimestamp: new Date(1663691559962),
-      data: {
-        nodeId: 1126,
-        size: 17782,
-        value: 0,
-      },
-    }),
-  ])[0],
-  html: '<div class="css-vruter e1weinmj3">HTTP 400 (invalid_grant): The provided authorization grant is invalid, expired, revoked, does not match the redirection URI used in the authorization request, or was issued to another client.</div>',
-  timestamp: 1663691559961,
-};
-
-const ACTION_2_CLICK = {
-  frame: hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
-    TestStubs.Replay.ClickFrame({
-      timestamp: new Date(1663691570812),
-      data: {
-        nodeId: 424,
-      },
-    }),
-  ])[0],
-  html: '<span aria-describedby="tooltip-nxf8deymg3" class="css-507rzt e1lk5gpt0">Ignored <span type="default" class="css-2uol17 e1gotaso0"><span><!-- 1 descendents --></span></span></span>',
-  timestamp: 1663691570812,
-};
-
-const ACTION_3_CLICK = {
-  frame: hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
-    TestStubs.Replay.ClickFrame({
-      timestamp: new Date(1663691634529),
-      data: {
-        nodeId: 9304,
-      },
-    }),
-  ])[0],
-  html: '<div class="loadmore" style="display: block;">Load more..</div>',
-  timestamp: 1663691634529,
-};
+// const ACTION_1_DEBUG = {
+//   frame: hydrateSpans(TestStubs.ReplayRecord(), [
+//     TestStubs.Replay.LargestContentfulPaintFrame({
+//       startTimestamp: new Date(1663691559961),
+//       endTimestamp: new Date(1663691559962),
+//       data: {
+//         nodeId: 1126,
+//         size: 17782,
+//         value: 0,
+//       },
+//     }),
+//   ])[0],
+//   html: '<div class="css-vruter e1weinmj3">HTTP 400 (invalid_grant): The provided authorization grant is invalid, expired, revoked, does not match the redirection URI used in the authorization request, or was issued to another client.</div>',
+//   timestamp: 1663691559961,
+// };
 
 describe('usePerfFilters', () => {
-  const actions: Extraction[] = [ACTION_1_DEBUG, ACTION_2_CLICK, ACTION_3_CLICK];
+  const traceRows: ReplayTraceRow[] = []; // TODO
 
   beforeEach(() => {
     jest.mocked(browserHistory.push).mockReset();
   });
 
   it('should update the url when setters are called', () => {
-    const TYPE_FILTER = ['ui'];
-    const SEARCH_FILTER = 'aria';
+    const TYPE_OPTION = {
+      value: 'ui',
+      label: 'ui',
+      qs: 'f_p_type' as const,
+    }; // TODO
+    const SEARCH_FILTER = 'aria'; // TODO
 
     mockUseLocation
       .mockReturnValueOnce({
@@ -75,18 +54,18 @@ describe('usePerfFilters', () => {
       } as Location<FilterFields>)
       .mockReturnValueOnce({
         pathname: '/',
-        query: {f_d_type: TYPE_FILTER},
+        query: {f_p_type: [TYPE_OPTION.value]},
       } as Location<FilterFields>);
 
     const {result, rerender} = reactHooks.renderHook(usePerfFilters, {
-      initialProps: {actions},
+      initialProps: {traceRows},
     });
 
-    result.current.setType(TYPE_FILTER);
+    result.current.setFilters([TYPE_OPTION]);
     expect(browserHistory.push).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
-        f_d_type: TYPE_FILTER,
+        f_p_type: [TYPE_OPTION.value],
       },
     });
 
@@ -96,7 +75,7 @@ describe('usePerfFilters', () => {
     expect(browserHistory.push).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
-        f_d_type: TYPE_FILTER,
+        f_p_type: [TYPE_OPTION.value],
         f_d_search: SEARCH_FILTER,
       },
     });
@@ -108,7 +87,7 @@ describe('usePerfFilters', () => {
       query: {},
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {actions}});
+    const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {traceRows}});
     expect(result.current.items.length).toEqual(3);
   });
 
@@ -116,11 +95,11 @@ describe('usePerfFilters', () => {
     mockUseLocation.mockReturnValue({
       pathname: '/',
       query: {
-        f_d_type: ['ui.click'],
+        f_p_type: ['ui.click'],
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {actions}});
+    const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {traceRows}});
     expect(result.current.items.length).toEqual(2);
   });
 
@@ -128,11 +107,11 @@ describe('usePerfFilters', () => {
     mockUseLocation.mockReturnValue({
       pathname: '/',
       query: {
-        f_d_search: 'aria',
+        f_p_search: 'aria',
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {actions}});
+    const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {traceRows}});
     expect(result.current.items.length).toEqual(1);
   });
 
@@ -140,32 +119,32 @@ describe('usePerfFilters', () => {
     mockUseLocation.mockReturnValue({
       pathname: '/',
       query: {
-        f_d_search: 'aria',
-        f_d_type: ['ui.click'],
+        f_p_search: 'aria',
+        f_p_type: ['ui.click'],
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {actions}});
+    const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {traceRows}});
     expect(result.current.items.length).toEqual(1);
   });
 });
 
 describe('getMutationsTypes', () => {
   it('should return a sorted list of BreadcrumbType', () => {
-    const actions = [ACTION_1_DEBUG, ACTION_2_CLICK];
+    const traceRows = []; // ACTION_1_DEBUG, ACTION_2_CLICK];
 
-    const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {actions}});
-    expect(result.current.getMutationsTypes()).toStrictEqual([
+    const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {traceRows}});
+    expect(result.current.getCrumbTypes()).toStrictEqual([
       {label: 'LCP', value: 'largest-contentful-paint'},
       {label: 'User Click', value: 'ui.click'},
     ]);
   });
 
   it('should deduplicate BreadcrumbType', () => {
-    const actions = [ACTION_1_DEBUG, ACTION_2_CLICK, ACTION_3_CLICK];
+    const traceRows = []; // ACTION_1_DEBUG, ACTION_2_CLICK, ACTION_3_CLICK];
 
-    const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {actions}});
-    expect(result.current.getMutationsTypes()).toStrictEqual([
+    const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {traceRows}});
+    expect(result.current.getCrumbTypes()).toStrictEqual([
       {label: 'LCP', value: 'largest-contentful-paint'},
       {label: 'User Click', value: 'ui.click'},
     ]);
