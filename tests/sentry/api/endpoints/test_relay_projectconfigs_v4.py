@@ -29,8 +29,8 @@ def call_endpoint(client, relay, private_key, default_projectkey):
         body = {"publicKeys": public_keys, "no_cache": False}
         if full_config is not None:
             body.update({"fullConfig": full_config})
-        if global_:
-            body.update({"global": True})
+        if global_ is not None:
+            body.update({"global": global_})
         raw_json, signature = private_key.pack(body)
 
         resp = client.post(
