@@ -75,7 +75,7 @@ ALERT_BLOCKED_FIELDS = {
 def apply_dataset_query_conditions(
     query_type: SnubaQuery.Type,
     query: str,
-    event_types: Optional[List[SnubaQueryEventType]],
+    event_types: Optional[List[SnubaQueryEventType.EventType]],
     discover: bool = False,
 ) -> str:
     """

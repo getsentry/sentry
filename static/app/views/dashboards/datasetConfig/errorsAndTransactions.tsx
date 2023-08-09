@@ -1,7 +1,8 @@
+import * as Sentry from '@sentry/react';
 import trimStart from 'lodash/trimStart';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -48,6 +49,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import {FieldKey} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {shouldUseOnDemandMetrics} from 'sentry/views/dashboards/widgetBuilder/onDemandMetricWidget/utils';
 import {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -518,6 +520,7 @@ function getEventsSeriesRequest(
       organization.features.includes('mep-rollout-flag')) &&
     defined(mepSetting) &&
     mepSetting !== MEPState.TRANSACTIONS_ONLY;
+
   let requestData;
   if (displayType === DisplayType.TOP_N) {
     requestData = {
@@ -596,7 +599,38 @@ function getEventsSeriesRequest(
     }
   }
 
+  if (shouldUseOnDemandMetrics(organization, widget)) {
+    return doOnDemandMetricsRequest(api, requestData);
+  }
+
   return doEventsRequest<true>(api, requestData);
+}
+
+async function doOnDemandMetricsRequest(
+  api,
+  requestData
+): Promise<
+  [EventsStats | MultiSeriesEventsStats, string | undefined, ResponseMeta | undefined]
+> {
+  try {
+    const isEditing = location.pathname.endsWith('/edit/');
+
+    const fetchEstimatedStats = () =>
+      `/organizations/${requestData.organization.slug}/metrics-estimation-stats/`;
+
+    const response = await doEventsRequest<false>(api, {
+      ...requestData,
+      dataset: 'metricsEnhanced',
+      generatePathname: isEditing ? fetchEstimatedStats : undefined,
+    });
+
+    response[0] = {...response[0], isMetricsData: true, isExtrapolatedData: isEditing};
+
+    return [response[0], response[1], response[2]];
+  } catch (err) {
+    Sentry.captureMessage('Failed to fetch metrics estimation stats', {extra: err});
+    return doEventsRequest<true>(api, requestData);
+  }
 }
 
 // Checks fieldValue to see what function is being used and only allow supported custom measurements

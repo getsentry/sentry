@@ -149,7 +149,7 @@ def estimate_volume(
 
 
 def _get_value(elm: MetricVolumeRow) -> float:
-    return cast(List[CountResult], elm[1])[0]["count"]
+    return cast(List[CountResult], elm[1])[0].get("count", 0.0)
 
 
 def _set_value(elm: MetricVolumeRow, value: float) -> None:

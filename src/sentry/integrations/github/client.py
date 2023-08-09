@@ -622,34 +622,27 @@ class GitHubClientMixin(GithubProxyClient):
             }}
         }}"""
 
-        contents = self.post(
-            path="/graphql",
-            data={"query": query},
-        )
-
         try:
-            results: Sequence[Mapping[str, Any]] = (
-                contents.get("data", {})
-                .get("repository", {})
-                .get("ref", {})
-                .get("target", {})
-                .get("blame", {})
-                .get("ranges", [])
+            contents = self.post(
+                path="/graphql",
+                data={"query": query},
+                allow_text=False,
             )
-            return results
-        except AttributeError as e:
-            if contents.get("errors"):
-                err_message = ", ".join(
-                    [error.get("message", "") for error in contents.get("errors", [])]
-                )
-                raise ApiError(err_message)
-
-            if contents.get("data", {}).get("repository", {}).get("ref", {}) is None:
-                raise ApiError("Branch does not exist in GitHub.")
-
+        except ValueError as e:
             sentry_sdk.capture_exception(e)
-
             return []
+
+        if contents.get("errors"):
+            err_message = ", ".join(
+                [error.get("message", "") for error in contents.get("errors", [])]
+            )
+            raise ApiError(err_message)
+
+        ref = contents.get("data", {}).get("repository", {}).get("ref")
+        if ref is None:
+            raise ApiError("Branch does not exist in GitHub.")
+
+        return ref.get("target", {}).get("blame", {}).get("ranges", [])
 
 
 class GitHubAppsClient(GitHubClientMixin):
