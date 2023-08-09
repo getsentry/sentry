@@ -176,7 +176,11 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
   };
 
   isInstalledOpsgeniePlugin = (plugin: PluginWithProjectList) => {
-    return plugin.id === 'opsgenie' && plugin.projectList.length >= 1;
+    return (
+      plugin.id === 'opsgenie' &&
+      plugin.projectList.length >= 1 &&
+      plugin.projectList.find(({enabled}) => enabled === true)
+    );
   };
 
   getAction = (provider: IntegrationProvider | undefined) => {
@@ -186,13 +190,11 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
       ['jira', 'jira_server'].includes(provider.key) &&
       (plugins || []).find(({id}) => id === 'jira');
     const shouldMigrateOpsgeniePlugin =
-      // feature flag for now
-      this.props.organization.features.includes(
-        'organizations:integrations-opsgenie-migration'
-      ) &&
+      this.props.organization.features.includes('integrations-opsgenie-migration') &&
       provider &&
       provider.key === 'opsgenie' &&
       (plugins || []).find(this.isInstalledOpsgeniePlugin);
+    // console.log(this.props.organization.features);
     const action =
       provider && provider.key === 'pagerduty' ? (
         <AddIntegration
