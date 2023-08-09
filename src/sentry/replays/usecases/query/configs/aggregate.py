@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Union
 
-from sentry.replays.lib.new_query.conditions import NumericScalar, UUIDScalar
+from sentry.replays.lib.new_query.conditions import IntegerScalar, UUIDScalar
 from sentry.replays.lib.new_query.fields import (
     ColumnField,
     CountExpressionField,
@@ -31,15 +31,15 @@ from sentry.replays.usecases.query.fields import ComputedField, TagField
 
 
 def count_field(column_name: str) -> CountExpressionField:
-    return CountExpressionField(column_name, parse_int, NumericScalar)
+    return CountExpressionField(column_name, parse_int, IntegerScalar)
 
 
 def sum_field(column_name: str) -> SumExpressionField:
-    return SumExpressionField(column_name, parse_int, NumericScalar)
+    return SumExpressionField(column_name, parse_int, IntegerScalar)
 
 
 def sum_length_field(column_name: str) -> SumLengthExpressionField:
-    return SumLengthExpressionField(column_name, parse_int, NumericScalar)
+    return SumLengthExpressionField(column_name, parse_int, IntegerScalar)
 
 
 def string_field(column_name: str) -> StringColumnField:
