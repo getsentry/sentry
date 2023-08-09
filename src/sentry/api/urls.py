@@ -12,9 +12,6 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
 from sentry.api.endpoints.organization_events_starfish import OrganizationEventsStarfishEndpoint
-from sentry.api.endpoints.organization_force_auto_assignment import (
-    OrganizationForceAutoAssignmentEndpoint,
-)
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
@@ -1306,11 +1303,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/events-trace-meta/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         OrganizationEventsTraceMetaEndpoint.as_view(),
         name="sentry-api-0-organization-events-trace-meta",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/force-auto-assignment/$",
-        OrganizationForceAutoAssignmentEndpoint.as_view(),
-        name="sentry-api-0-organization-force-auto-assignment",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/measurements-meta/$",
