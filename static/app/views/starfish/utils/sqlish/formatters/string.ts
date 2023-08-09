@@ -10,8 +10,7 @@ export function string(tokens: Token[]): string {
     }
 
     if (typeof content.content === 'string') {
-      if (content.type === 'Keyword') {
-        // Break up the string on newlines
+      if (content.type === 'Keyword' && NEWLINE_KEYWORDS.has(content.content)) {
         accumulator += '\n';
         accumulator += content.content;
       } else if (content.type === 'Whitespace') {
@@ -30,3 +29,18 @@ export function string(tokens: Token[]): string {
   tokens.forEach(contentize);
   return accumulator.trim();
 }
+
+const NEWLINE_KEYWORDS = new Set([
+  'DELETE',
+  'FROM',
+  'GROUP',
+  'INSERT',
+  'LIMIT',
+  'OFFSET',
+  'ON',
+  'ORDER',
+  'RETURNING',
+  'SELECT',
+  'VALUES',
+  'WHERE',
+]);
