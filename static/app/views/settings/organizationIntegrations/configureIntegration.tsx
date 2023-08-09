@@ -186,6 +186,10 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
       ['jira', 'jira_server'].includes(provider.key) &&
       (plugins || []).find(({id}) => id === 'jira');
     const shouldMigrateOpsgeniePlugin =
+      // feature flag for now
+      this.props.organization.features.includes(
+        'organizations:integrations-opsgenie-migration'
+      ) &&
       provider &&
       provider.key === 'opsgenie' &&
       (plugins || []).find(this.isInstalledOpsgeniePlugin);
