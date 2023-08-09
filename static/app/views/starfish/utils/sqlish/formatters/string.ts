@@ -21,8 +21,7 @@ export function string(tokens: Token[]): string {
       // If the previous legible token is a meaningful keyword that triggers a
       // newline, increase the current indentation level and note the parenthesis level where this happened
       if (
-        precedingNonWhitespaceToken &&
-        typeof precedingNonWhitespaceToken.content === 'string' &&
+        typeof precedingNonWhitespaceToken?.content === 'string' &&
         PARENTHESIS_NEWLINE_KEYWORDS.has(precedingNonWhitespaceToken.content)
       ) {
         accumulator += '\n';
