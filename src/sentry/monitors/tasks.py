@@ -62,7 +62,20 @@ def check_missing(current_datetime=None):
 
     qs = (
         MonitorEnvironment.objects.filter(
-            monitor__type__in=[MonitorType.CRON_JOB], next_checkin_latest__lt=current_datetime
+            monitor__type__in=[MonitorType.CRON_JOB],
+            # [!!]: Note that we use `lt` here to give a whole minute buffer
+            # for a check-in to be sent.
+            #
+            # As an example, if our next_checkin_latest for a monitor was
+            # 11:00:00, and our task runs at 11:00:05, the time is clamped down
+            # to 11:00:00, and then compared:
+            #
+            #  next_checkin_latest < 11:00:00
+            #
+            # Since they are equal this does not match. When the task is run a
+            # minute later if the check-in still hasn't been sent we will THEN
+            # mark it as missed.
+            next_checkin_latest__lt=current_datetime,
         )
         .exclude(
             status__in=[
