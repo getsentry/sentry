@@ -161,7 +161,7 @@ class MetricsQueryBuilder(QueryBuilder):
             org_id=self.params.organization.id,
             project_ids=[p.id for p in self.params.projects],
             include_series=include_series,
-            start=self.params.start,
+            start=self.start,
             end=self.params.end,
         )
 

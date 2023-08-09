@@ -100,10 +100,6 @@ _COUNTIF_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
 # Maps plain Discover functions to metric aggregation functions. Derived metrics
 # are not part of this mapping.
 _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
-    "eps": "sum",
-    "epm": "sum",
-    "tps": "sum",
-    "tpm": "sum",
     "count": "sum",
     "count_if": "sum",
     "avg": "avg",
@@ -119,10 +115,6 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
 
 # Mapping to infer metric type from Discover function.
 _AGGREGATE_TO_METRIC_TYPE = {
-    "eps": "c",
-    "epm": "c",
-    "tps": "c",
-    "tpm": "c",
     "count": "c",
     "count_if": "c",
     "avg": "d",
@@ -304,16 +296,12 @@ def _get_fn_supported_by(function: str, args: Sequence[str]) -> SupportedBy:
 
 
 def _get_fn_support(function: str) -> SupportedBy:
-    standard_metrics, on_demand_metrics = False, False
+    on_demand_metrics = False
 
     if function in _SEARCH_TO_METRIC_AGGREGATES and function in _AGGREGATE_TO_METRIC_TYPE:
         on_demand_metrics = True
 
-    # TODO(Ogi): Find an allow list of functions that can be supported by standard metrics
-    if function in _SEARCH_TO_METRIC_AGGREGATES or function in ["failure_rate, apdex"]:
-        standard_metrics = True
-
-    return SupportedBy(standard_metrics=standard_metrics, on_demand_metrics=on_demand_metrics)
+    return SupportedBy(standard_metrics=True, on_demand_metrics=on_demand_metrics)
 
 
 def _get_args_support(args: Sequence[str]) -> SupportedBy:
