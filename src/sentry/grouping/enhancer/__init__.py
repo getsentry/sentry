@@ -139,7 +139,7 @@ class Enhancements:
         self,
         frames: Sequence[dict[str, Any]],
         platform: str,
-        exception_data: dict[str, Any],
+        stacktrace_container: dict[str, Any],
         rule=None,
     ) -> None:
         """This applies the frame modifications to the frames itself. This
@@ -147,14 +147,17 @@ class Enhancements:
         """
         in_memory_cache: dict[str, str] = {}
 
-        match_frames, stacktrace_fingerprint = _matching_frames_and_fingerprint(frames, platform)
-        rules_fingerprint = _generate_rules_fingerprint(self._modifier_rules, platform)
+        match_frames, frames_fingerprint = _matching_frames_and_fingerprint(frames, platform)
+        stacktrace_fingerprint = _generate_stacktrace_fingerprint(
+            frames_fingerprint, self._modifier_rules, platform, stacktrace_container
+        )
         # The most expensive part of creating groups is applying the rules to frames (next code block)
         # We include the rules fingerprint to make sure that the set of rules are still the same
-        cache_key = f"stacktrace_rules_fingerprint.{rules_fingerprint}.{stacktrace_fingerprint}"
-        use_cache = bool(stacktrace_fingerprint and rules_fingerprint)
+        cache_key = f"stacktrace_hash.{stacktrace_fingerprint}"
+        use_cache = bool(stacktrace_fingerprint)
         if use_cache:
             merged, merged_frames = _merge_cached_values(frames, cache_key, platform)
+            # We use a boolean for faster checking if frames and merged_frames are still the same
             if merged:
                 frames = merged_frames
                 return
@@ -162,7 +165,7 @@ class Enhancements:
         with sentry_sdk.start_span(op="stacktrace_processing", description="apply_rules_to_frames"):
             for rule in self._modifier_rules:
                 for idx, action in rule.get_matching_frame_actions(
-                    match_frames, platform, exception_data, in_memory_cache
+                    match_frames, platform, stacktrace_container, in_memory_cache
                 ):
                     # Both frames and match_frames are updated
                     action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
@@ -518,16 +521,16 @@ def _merge_cached_values(
     """
     merged_frames: Sequence[dict[str, Any]] = []
     frames_merged = False
-    changed_frames_values = cache.get(cache_key)
+    changed_frames_values = cache.get(cache_key, False)
     # This helps tracking changes in the hit/miss ratio of the cache
     metrics.incr(
         "save_event.stacktrace.cache.get",
         tags={"success": changed_frames_values is True, "platform": platform},
     )
     if changed_frames_values:
-        # We duplicate the stacktrace and only return if everything has been applied correctly
-        merged_frames = deepcopy(frames)
         try:
+            # We duplicate the stacktrace and only return if everything has been applied correctly
+            merged_frames = deepcopy(frames)
             for frame, changed_frame_values in zip(merged_frames, changed_frames_values):
                 frame["in_app"] = changed_frame_values["in_app"]
                 set_path(frame, "data", "category", value=changed_frame_values["category"])
@@ -611,22 +614,54 @@ def _matching_frames_and_fingerprint(
     return (matched_frames, stacktrace_fingerprint)
 
 
+def _generate_stacktrace_fingerprint(
+    frames_fingerprint: str,
+    rules: Sequence[Rule],
+    platform: str,
+    stacktrace_container: dict[str, Any],
+) -> str:
+    """Create a fingerprint for the complete stacktrace + the rules used."""
+    stacktrace_fingerprint = ""
+    stacktrace_hash = md5()
+    try:
+        rules_fingerprint = _generate_rules_fingerprint(rules, platform)
+        hash_value(
+            stacktrace_hash,
+            (
+                frames_fingerprint,
+                rules_fingerprint,
+                stacktrace_container.get("type", ""),
+                stacktrace_container.get("value", ""),
+            ),
+        )
+        if stacktrace_hash:
+            stacktrace_fingerprint = stacktrace_hash.hexdigest()
+    except Exception:
+        # This will create an error in Sentry and help us evaluate why it failed
+        logger.exception(
+            "Stacktrace hashing failure. Investigate and fix.", extra={"platform": platform}
+        )
+
+    # This will help us calculate the success ratio for fingerprint calculation
+    metrics.incr(
+        "save_event.stacktrace.fingerprint",
+        tags={
+            "hashing_failure": stacktrace_fingerprint == "",
+            "platform": platform,
+        },
+    )
+
+    return stacktrace_fingerprint
+
+
 def _generate_rules_fingerprint(rules: Sequence[Rule], platform: str) -> str:
     """Return empty string or fingerprint representing this list of rules."""
     hashing_failure = False
     rules_hash = md5()
     rules_fingerprint = ""
     for rule in rules:
-        try:
-            rule_serialized = rule.serialized()
-            hash_value(rules_hash, rule_serialized)
-        except TypeError:
-            hashing_failure = True
-            # This will create an error in Sentry and help us evaluate why it failed
-            logger.exception(
-                "Rules hashing failure. Investigate and fix.",
-                extra={"rule": rule_serialized, "platform": platform},
-            )
+        rule_serialized = rule.serialized()
+        hash_value(rules_hash, rule_serialized)
 
     if not hashing_failure:
         rules_fingerprint = rules_hash.hexdigest()
