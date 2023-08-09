@@ -745,10 +745,10 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             # Run all the queries individually to determine compliance.
             queries = [
-                "duration",
-                "os.name",
-                "browser.name",
                 "activity",
+                "duration",
+                "browser.name",
+                "os.name",
             ]
 
             for key in queries:

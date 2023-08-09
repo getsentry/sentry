@@ -156,13 +156,12 @@ def query_using_aggregated_search(
     replay_ids = [row["replay_id"] for row in simple_aggregation_response.get("data", [])]
 
     # Final aggregation step.
-    return raw_snql_query(
+    results = raw_snql_query(
         Request(
             dataset="replays",
             app_id="replay-backend-web",
             query=make_full_aggregation_query(
                 fields=fields,
-                orderby=sorting,
                 replay_ids=replay_ids,
                 project_ids=project_ids,
                 period_start=period_start,
@@ -172,6 +171,32 @@ def query_using_aggregated_search(
         ),
         "replays.query.browse_points",
     )["data"]
+
+    # A weird snuba-ism.  You can't sort by an aggregation that is also present in the select.
+    # Even if the aggregations are different.  So we have to fallback to sorting on the
+    # application server.
+    #
+    # For example these are all examples of valid SQL that are not possible with Snuba.
+    #
+    #   SELECT any(os_name)
+    #   FROM replays_local
+    #   GROUP BY replay_id
+    #   ORDER BY any(os_name)
+    #
+    #   SELECT anyIf(os_name, notEmpty(os_name))
+    #   FROM replays_local
+    #   GROUP BY replay_id
+    #   ORDER BY any(os_name)
+    ordered_results = []
+
+    # TODO: O(n^2)! Very exciting.
+    for replay_id in replay_ids:
+        for result in results:
+            if result["replay_id"] == replay_id:
+                ordered_results.append(result)
+                break
+
+    return ordered_results
 
 
 def make_simple_aggregation_query(
@@ -200,7 +225,6 @@ def make_simple_aggregation_query(
 
 def make_full_aggregation_query(
     fields: list[str],
-    orderby: list[OrderBy],
     replay_ids: list[str],
     project_ids: list[int],
     period_start: datetime,
@@ -227,7 +251,6 @@ def make_full_aggregation_query(
             Condition(Column("timestamp"), Op.GTE, period_start - timedelta(hours=1)),
             Condition(Column("timestamp"), Op.LT, period_end + timedelta(hours=1)),
         ],
-        orderby=orderby,
         groupby=[Column("project_id"), Column("replay_id")],
         granularity=Granularity(3600),
     )
