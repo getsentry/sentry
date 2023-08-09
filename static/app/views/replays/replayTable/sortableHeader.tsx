@@ -36,7 +36,7 @@ function SortableHeader(props: Props) {
       <Header>
         {label}
         {tooltip ? (
-          <StyledQuestionTooltip size="xs" position="top" title={tooltip} />
+          <StyledQuestionTooltip size="xs" position="top" title={tooltip} isHoverable />
         ) : null}
       </Header>
     );
@@ -84,7 +84,7 @@ function SortableHeader(props: Props) {
         {label} {sort?.field === fieldName && sortArrow}
       </SortLink>
       {tooltip ? (
-        <StyledQuestionTooltip size="xs" position="top" title={tooltip} />
+        <StyledQuestionTooltip size="xs" position="top" title={tooltip} isHoverable />
       ) : null}
     </Header>
   );
