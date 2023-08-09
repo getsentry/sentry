@@ -1,4 +1,5 @@
 import {EntryException, ReleaseMeta} from 'sentry/types';
+import {IssueAlertRule} from 'sentry/types/alerts';
 import type {
   ReplayError,
   ReplayListRecord,
@@ -116,7 +117,7 @@ type TestStubFixtures = {
   PluginListConfig: SimpleStub;
   Plugins: OverridableStubList;
   Project: OverridableStub;
-  ProjectAlertRule: OverridableStub;
+  ProjectAlertRule: OverridableStub<IssueAlertRule>;
   ProjectAlertRuleConfiguration: OverridableStub;
   ProjectDetails: OverridableStub;
   ProjectFilters: OverridableStubList;
