@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 import re
-from typing import TYPE_CHECKING, Mapping, Type
+from typing import TYPE_CHECKING, List, Mapping, Type, cast
 
 from django.http import HttpRequest, HttpResponse
 
@@ -59,20 +59,20 @@ class IntegrationClassification(BaseClassification):
     setup_suffix: str = "/setup/"
     """Suffix for PipelineAdvancerView on installation. See `src/sentry/web/urls.py`"""
     logger = logging.getLogger(f"{__name__}.integration")
+    active_parsers: List[Type[BaseRequestParser]] = [
+        BitbucketRequestParser,
+        BitbucketServerRequestParser,
+        GithubEnterpriseRequestParser,
+        GithubRequestParser,
+        GitlabRequestParser,
+        JiraRequestParser,
+        JiraServerRequestParser,
+        MsTeamsRequestParser,
+        SlackRequestParser,
+        VstsRequestParser,
+    ]
     integration_parsers: Mapping[str, Type[BaseRequestParser]] = {
-        parser.provider: parser
-        for parser in [
-            BitbucketRequestParser,
-            BitbucketServerRequestParser,
-            GithubEnterpriseRequestParser,
-            GithubRequestParser,
-            GitlabRequestParser,
-            JiraRequestParser,
-            JiraServerRequestParser,
-            MsTeamsRequestParser,
-            SlackRequestParser,
-            VstsRequestParser,
-        ]
+        cast(str, parser.provider): parser for parser in active_parsers
     }
 
     def _identify_provider(self, request: HttpRequest) -> str | None:

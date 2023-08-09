@@ -4,7 +4,6 @@ from unittest.mock import MagicMock
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
-from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.plugin import PluginRequestParser
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.organization_mapping.service import organization_mapping_service
@@ -19,7 +18,6 @@ from sentry.types.region import Region, RegionCategory
 @control_silo_test(stable=True)
 class PluginRequestParserTest(TestCase):
     get_response = MagicMock()
-    middleware = IntegrationControlMiddleware(get_response)
     factory = RequestFactory()
     region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
 

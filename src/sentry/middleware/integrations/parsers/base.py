@@ -34,7 +34,7 @@ class BaseRequestParser(abc.ABC):
 
     @property
     def provider(self) -> str:
-        raise NotImplementedError("'provider' property is required by IntegrationControlMiddleware")
+        raise NotImplementedError("'provider' property is required by IntegrationClassification")
 
     @property
     def webhook_identifier(self) -> WebhookProviderIdentifier:

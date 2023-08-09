@@ -14,6 +14,8 @@ from sentry.testutils.cases import TestCase
 
 
 class BaseClassificationTestCase(TestCase):
+    get_response = MagicMock()
+
     def setUp(self):
         super().setUp()
         self.factory = RequestFactory()
