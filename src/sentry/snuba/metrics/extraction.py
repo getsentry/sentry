@@ -109,7 +109,6 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "p75": "p75",
     "p95": "p95",
     "p99": "p99",
-    "count_unique": "count_unique",
     # generic percentile is not supported by metrics layer.
 }
 
@@ -123,7 +122,6 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "p75": "d",
     "p95": "d",
     "p99": "d",
-    "count_unique": "s",
 }
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query

@@ -113,7 +113,7 @@ class TestIsOnDemandMetricQuery:
             is_on_demand_metric_query(
                 self.perf_metrics, "count_unique(transaction.duration)", "transaction.duration:>=1"
             )
-            is True
+            is False
         )
         assert (
             is_on_demand_metric_query(
@@ -259,7 +259,8 @@ class TestIsStandardMetricsCompatible:
     [
         ("count()", "release:a", False),  # supported by standard metrics
         ("failure_rate()", "release:a", False),  # supported by standard metrics
-        ("count_unique(geo.city)", "release:a", True),  # geo.city not supported by standard metrics
+        ("count_unique(geo.city)", "release:a", False),
+        # geo.city not supported by standard metrics, but also not by on demand
         (
             "count()",
             "transaction.duration:>1",
@@ -271,6 +272,12 @@ class TestIsStandardMetricsCompatible:
             "release:a",
             False,
         ),  # count_if supported by standard metrics
+        ("p75(transaction.duration)", "release:a", False),  # supported by standard metrics
+        (
+            "p75(transaction.duration)",
+            "transaction.duration:>1",
+            True,
+        ),  # transaction.duration query is on-demand
     ],
 )
 def test_should_use_on_demand(agg, query, result):
