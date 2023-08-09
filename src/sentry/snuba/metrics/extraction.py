@@ -296,7 +296,7 @@ def _get_args_support(args: Sequence[str]) -> SupportedBy:
 
     arg = args[0]
 
-    standard_metrics = _is_standard_metrics_field(arg) or arg == "transaction.duration"
+    standard_metrics = _is_standard_metrics_search_term(arg) or arg == "transaction.duration"
     on_demand_metrics = _is_on_demand_supported_field(arg)
 
     return SupportedBy(standard_metrics=standard_metrics, on_demand_metrics=on_demand_metrics)
@@ -363,7 +363,7 @@ def _is_standard_metrics_query(tokens: Sequence[QueryToken]) -> bool:
 
 def _is_standard_metrics_search_filter(token: QueryToken) -> bool:
     if isinstance(token, SearchFilter):
-        return _is_standard_metrics_field(token.key.name)
+        return _is_standard_metrics_search_term(token.key.name)
 
     if isinstance(token, ParenExpression):
         return _is_standard_metrics_query(token.children)
@@ -400,7 +400,11 @@ def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
 
 
 def _is_standard_metrics_field(field: str) -> bool:
-    return field in _STANDARD_METRIC_FIELDS or is_measurement(field) or is_span_op_breakdown(field)
+    return _is_standard_metrics_field(field) or is_measurement(field) or is_span_op_breakdown(field)
+
+
+def _is_standard_metrics_search_term(field: str) -> bool:
+    return field in _STANDARD_METRIC_FIELDS
 
 
 def _is_on_demand_supported_field(field: str) -> bool:
@@ -423,8 +427,8 @@ def to_standard_metrics_query(query: str) -> str:
     the volume of an on-demand metrics query using a combination of indexed and metrics data.
 
     Examples:
-        "enviroment:dev AND transaction.duration:>=1s" -> "enviroment:dev"
-        "enviroment:dev OR transaction.duration:>=1s" -> "enviroment:dev"
+        "environment:dev AND transaction.duration:>=1s" -> "environment:dev"
+        "environment:dev OR transaction.duration:>=1s" -> "environment:dev"
         "transaction.duration:>=1s OR browser.version:1" -> ""
         "transaction.duration:>=1s AND browser.version:1" -> ""
     """

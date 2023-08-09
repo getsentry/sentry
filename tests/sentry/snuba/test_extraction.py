@@ -211,7 +211,7 @@ class TestIsStandardMetricsCompatible:
             is False
         )
 
-    def test_standard_comaptible_queries(self):
+    def test_standard_compatible_queries(self):
         assert is_standard_metrics_compatible(self.perf_metrics, "count()", "") is True
         assert (
             is_standard_metrics_compatible(self.perf_metrics, "count()", "environment:dev") is True
@@ -242,16 +242,6 @@ class TestIsStandardMetricsCompatible:
             is_standard_metrics_compatible(self.perf_metrics, 'count_if(release,equals,"foo")', "")
             is True
         )
-
-
-# truth_table = [
-#     ('count()', 'release:a', 'standard'),
-#     ('failure_rate()', 'release:a', 'standard'),
-#     ('count_unique(geo.city)', 'release:a', 'on-demand'),
-#     ('count()', 'transaction.duration:>1', 'on-demand'),
-#     ('failure_rate()', 'transaction.duration:>1', 'indexed'),
-#     ('count_unique(geo.city)', 'transaction.duration:>1', 'on-demand'),
-# ]
 
 
 @pytest.mark.parametrize(
@@ -292,32 +282,37 @@ def create_spec_if_needed(dataset, agg, query):
 class TestCreatesOndemandMetricSpec:
     dataset = Dataset.PerformanceMetrics
 
-    def test_creates_on_demand_spec(self):
-        assert create_spec_if_needed(self.dataset, "count()", "transaction.duration:>0")
-        assert create_spec_if_needed(
-            self.dataset, "p75(measurements.fp)", "transaction.duration:>0"
-        )
-        assert create_spec_if_needed(
-            self.dataset, "count_if(transaction.duration,equals,0)", "transaction.duration:>0"
-        )
-        assert create_spec_if_needed(self.dataset, "count()", "transaction.duration:>0")
-        assert create_spec_if_needed(self.dataset, "count()", "transaction.duration:>0")
-        assert create_spec_if_needed(self.dataset, "count()", "transaction.duration:>0")
+    @pytest.mark.parametrize(
+        "aggregate, query",
+        [
+            ("count()", "transaction.duration:>0"),
+            ("p75(measurements.fp)", "transaction.duration:>0"),
+            ("p75(transaction.duration)", "transaction.duration:>0"),
+            ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
+            ("count()", "transaction.duration:>0"),
+            ("count()", "transaction.duration:>0"),
+        ],
+    )
+    def test_creates_on_demand_spec(self, aggregate, query):
+        assert create_spec_if_needed(self.dataset, aggregate, query)
 
-    def test_does_not_create_on_demand_spec(self):
-        assert not create_spec_if_needed(self.dataset, "count()", "release:a")
-        assert not create_spec_if_needed(self.dataset, "failure_rate()", "transaction.duration:>0")
-        assert not create_spec_if_needed(
-            self.dataset, "count_unique(user)", "transaction.duration:>0"
-        )
-        assert not create_spec_if_needed(self.dataset, "last_seen()", "transaction.duration:>0")
-        assert not create_spec_if_needed(self.dataset, "any(user)", "transaction.duration:>0")
-        assert not create_spec_if_needed(self.dataset, "p95(transaction.duration)", "")
-        assert not create_spec_if_needed(self.dataset, "message", "transaction.duration:>0")
-        assert not create_spec_if_needed(self.dataset, "count()", "transaction.duration:[1,2,3]")
-        assert not create_spec_if_needed(
-            self.dataset, "equation| count() / count()", "transaction.duration:>0"
-        )
+    @pytest.mark.parametrize(
+        "aggregate, query",
+        [
+            ("count()", "release:a"),
+            ("failure_rate()", "transaction.duration:>0"),
+            ("count_unique(user)", "transaction.duration:>0"),
+            ("last_seen()", "transaction.duration:>0"),
+            ("any(user)", "transaction.duration:>0"),
+            ("p95(transaction.duration)", ""),
+            ("count()", "p75(transaction.duration):>0"),
+            ("message", "transaction.duration:>0"),
+            ("count()", "transaction.duration:[1,2,3]"),
+            ("equation| count() / count()", "transaction.duration:>0"),
+        ],
+    )
+    def test_does_not_create_on_demand_spec(self, aggregate, query):
+        assert not create_spec_if_needed(self.dataset, aggregate, query)
 
 
 def test_spec_simple_query_count():
