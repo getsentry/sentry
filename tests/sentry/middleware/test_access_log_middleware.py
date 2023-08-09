@@ -206,7 +206,7 @@ class TestAccessLogFail(LogCaptureAPITestCase):
         self.assert_access_log_recorded()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestOrganizationIdPresent(LogCaptureAPITestCase):
     endpoint = "sentry-api-0-organization-stats-v2"
 
