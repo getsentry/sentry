@@ -187,7 +187,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                     project, monitor, result.get("environment")
                 )
             except (MonitorEnvironmentLimitsExceeded, MonitorEnvironmentValidationFailed) as e:
-                return self.respond({type(e).__name__: str(e)}, status=403)
+                return self.respond({type(e).__name__: str(e)}, status=400)
 
             # Infer the original start time of the check-in from the duration.
             duration = result.get("duration")

@@ -368,7 +368,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 },
                 **self.dsn_auth_headers,
             )
-            assert resp.status_code == 403
+            assert resp.status_code == 400
             assert "MonitorEnvironmentLimitsExceeded" in resp.data.keys()
 
     def test_monitor_environment_validation(self):
