@@ -1,6 +1,6 @@
 import {ProjectKey} from 'sentry/types/project';
 
-export function ProjectKeys(params = []): ProjectKey[] {
+export function ProjectKeys(params: ProjectKey[] = []): ProjectKey[] {
   return [
     {
       dsn: {
