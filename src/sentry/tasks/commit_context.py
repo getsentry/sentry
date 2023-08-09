@@ -6,7 +6,7 @@ from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 from sentry_sdk import set_tag
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.utils.commit_context import find_commit_context_for_event
@@ -23,6 +23,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequestCommit
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.groupowner import process_suspect_commits
 from sentry.utils import metrics
@@ -124,6 +125,7 @@ def queue_comment_task_if_needed(
     retry_backoff=True,
     retry_backoff_max=60 * 60 * 3,  # 3 hours
     retry_jitter=False,
+    silo_mode=SiloMode.REGION,
 )
 def process_commit_context(
     event_id,
@@ -361,9 +363,7 @@ def process_commit_context(
                 },  # Updates date of an existing owner, since we just matched them with this new event
             )
 
-            if features.has(
-                "organizations:pr-comment-bot", project.organization
-            ) and OrganizationOption.objects.get_value(
+            if OrganizationOption.objects.get_value(
                 organization=project.organization,
                 key="sentry:github_pr_bot",
                 default=True,

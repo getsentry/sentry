@@ -1,12 +1,14 @@
 from unittest import mock
 
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 # from fixtures.page_objects.organization_integration_settings import (
 #     OrganizationIntegrationSettingsPage,
 # )
 
 
+@no_silo_test(stable=True)
 class OrganizationSentryAppAcceptanceTestCase(AcceptanceTestCase):
     """
     As a user, I can install and uninstall a Sentry App

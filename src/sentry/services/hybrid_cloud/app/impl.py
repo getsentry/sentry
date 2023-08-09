@@ -5,7 +5,7 @@ from typing import Any, Callable, List, Mapping, Optional
 from django.db.models import QuerySet
 
 from sentry.api.serializers import SentryAppAlertRuleActionSerializer, Serializer, serialize
-from sentry.constants import SentryAppInstallationStatus
+from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.mediators import alert_rule_actions
 from sentry.models import (
     SentryApp,
@@ -126,19 +126,22 @@ class DatabaseBackedAppService(AppService):
         type: str,
         group_by: str = "sentry_app_id",
     ) -> Mapping[str, Any]:
-        return SentryAppInstallation.objects.get_related_sentry_app_components(
-            organization_ids=organization_ids,
-            sentry_app_ids=sentry_app_ids,
-            type=type,
-            group_by=group_by,
-        )
+        return {
+            str(k): v
+            for k, v in SentryAppInstallation.objects.get_related_sentry_app_components(
+                organization_ids=organization_ids,
+                sentry_app_ids=sentry_app_ids,
+                type=type,
+                group_by=group_by,
+            ).items()
+        }
 
     class _AppServiceFilterQuery(
         FilterQueryDatabaseImpl[
             SentryAppInstallation, SentryAppInstallationFilterArgs, RpcSentryAppInstallation, None
         ]
     ):
-        def base_query(self, ids_only: bool = False) -> QuerySet:
+        def base_query(self, ids_only: bool = False) -> QuerySet[SentryAppInstallation]:
             if ids_only:
                 return SentryAppInstallation.objects
             return SentryAppInstallation.objects.select_related("sentry_app")
@@ -154,8 +157,8 @@ class DatabaseBackedAppService(AppService):
             raise NotImplementedError("Serialization not supported for AppService")
 
         def apply_filters(
-            self, query: QuerySet, filters: SentryAppInstallationFilterArgs
-        ) -> QuerySet:
+            self, query: QuerySet[SentryAppInstallation], filters: SentryAppInstallationFilterArgs
+        ) -> QuerySet[SentryAppInstallation]:
             # filters["status"] = SentryAppInstallationStatus.INSTALLED
             if "installation_ids" in filters:
                 query = query.filter(id__in=filters["installation_ids"])
@@ -206,3 +209,11 @@ class DatabaseBackedAppService(AppService):
             return serialize_sentry_app(SentryApp.objects.get(application_id=api_application_id))
         except SentryApp.DoesNotExist:
             return None
+
+    def get_published_sentry_apps_for_organization(
+        self, *, organization_id: int
+    ) -> List[RpcSentryApp]:
+        published_apps = SentryApp.objects.filter(
+            owner_id=organization_id, status=SentryAppStatus.PUBLISHED
+        )
+        return [serialize_sentry_app(app) for app in published_apps]

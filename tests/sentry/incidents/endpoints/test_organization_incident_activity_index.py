@@ -6,7 +6,7 @@ from django.utils import timezone
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_incident_activity
 from sentry.incidents.models import IncidentActivityType
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 

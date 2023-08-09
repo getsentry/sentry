@@ -4,15 +4,10 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.paginator import (
-    CombinedQuerysetIntermediary,
-    CombinedQuerysetPaginator,
-    OffsetPaginator,
-)
+from sentry.api.paginator import CombinedQuerysetIntermediary, CombinedQuerysetPaginator
 from sentry.api.serializers import CombinedRuleSerializer, serialize
 from sentry.constants import ObjectStatus
-from sentry.incidents.endpoints.organization_alert_rule_index import create_metric_alert
+from sentry.incidents.endpoints.organization_alert_rule_index import AlertRuleIndexMixin
 from sentry.incidents.models import AlertRule
 from sentry.models import Rule
 from sentry.snuba.dataset import Dataset
@@ -49,32 +44,17 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
 
 
 @region_silo_endpoint
-class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
+class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleIndexMixin):
     permission_classes = (ProjectAlertRulePermission,)
 
     def get(self, request: Request, project) -> Response:
         """
-        Fetches metric alert rules for a project
+        Fetches metric alert rules for a project - @deprecated. Use OrganizationAlertRuleIndexEndpoint instead.
         """
-        if not features.has("organizations:incidents", project.organization, actor=request.user):
-            raise ResourceDoesNotExist
-
-        alert_rules = AlertRule.objects.fetch_for_project(project)
-        if not features.has("organizations:performance-view", project.organization):
-            # Filter to only error alert rules
-            alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
-
-        return self.paginate(
-            request,
-            queryset=alert_rules,
-            order_by="-date_added",
-            paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
-            default_per_page=25,
-        )
+        return self.fetch_metric_alert(request, project.organization, project)
 
     def post(self, request: Request, project) -> Response:
         """
         Create an alert rule - @deprecated. Use OrganizationAlertRuleIndexEndpoint instead.
         """
-        return create_metric_alert(self, request, project.organization)
+        return self.create_metric_alert(request, project.organization, project)

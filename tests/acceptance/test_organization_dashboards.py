@@ -19,9 +19,9 @@ from sentry.models import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import no_silo_test
 
 FEATURE_NAMES = [
     "organizations:discover-basic",
@@ -33,7 +33,7 @@ FEATURE_NAMES = [
 EDIT_FEATURE = ["organizations:dashboards-edit"]
 
 
-@region_silo_test
+@no_silo_test(stable=True)
 class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -696,7 +696,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             )
 
 
-@region_silo_test
+@no_silo_test(stable=True)
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

@@ -2,10 +2,13 @@ import {useCallback, useState} from 'react';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
@@ -36,16 +39,26 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
     []
   );
 
+  const organization = useOrganization();
+  const {query} = useLocation();
+
+  const onOpenDetailPanel = useCallback(() => {
+    if (query.transaction) {
+      trackAnalytics('starfish.panel.open', {organization});
+    }
+  }, [organization, query.transaction]);
+
   return (
     <PageErrorProvider>
       <DetailPanel
         detailKey={detailKey}
         onClose={() => {
-          router.push({
+          router.replace({
             pathname: router.location.pathname,
             query: omit(router.location.query, 'transaction', 'transactionMethod'),
           });
         }}
+        onOpen={onOpenDetailPanel}
       >
         <h3>{`${transactionMethod} ${transactionName}`}</h3>
         <PageErrorAlert />

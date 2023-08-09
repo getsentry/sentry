@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from django.db import models
+from django.db.models.query import QuerySet
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -11,7 +12,6 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    QuerySet,
     region_silo_only_model,
     sane_repr,
 )

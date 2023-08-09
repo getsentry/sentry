@@ -1,16 +1,14 @@
 import {EntryException, ReleaseMeta} from 'sentry/types';
 import type {
+  ReplayError,
   ReplayListRecord,
   ReplayRecord,
-  ReplaySpan,
 } from 'sentry/views/replays/types';
 
 import type {Replay} from './replay';
-import {MOCK_RESP_VERBOSE} from './ruleConditions';
+import {MockRuleCondition} from './ruleConditions';
 
 type SimpleStub<T = any> = () => T;
-
-type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 type OverridableStub<Params = any, Result = Params> = (
   params?: Partial<Params>
@@ -88,7 +86,11 @@ type TestStubFixtures = {
   InstallWizard: OverridableStub;
   JiraIntegration: OverridableStub;
   JiraIntegrationProvider: OverridableStub;
-  MOCK_RESP_VERBOSE: typeof MOCK_RESP_VERBOSE;
+  MOCK_RESP_INCONSISTENT_INTERVALS: MockRuleCondition;
+  MOCK_RESP_INCONSISTENT_PLACEHOLDERS: MockRuleCondition;
+  MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID: MockRuleCondition;
+  MOCK_RESP_PLACEHOLDERS: MockRuleCondition;
+  MOCK_RESP_VERBOSE: MockRuleCondition;
   Member: OverridableStub;
   Members: OverridableStubList;
   MetricRule: OverridableStub;
@@ -125,25 +127,9 @@ type TestStubFixtures = {
   Release: (params?: any, healthParams?: any) => any;
   ReleaseMeta: OverridableStub<ReleaseMeta>;
   Replay: typeof Replay;
-  ReplayError: OverridableStub;
+  ReplayError: OverridableStub<ReplayError>;
   ReplayList: OverridableStubList<ReplayListRecord>;
-  ReplayRRWebDivHelloWorld: OverridableStub;
-  ReplayRRWebNode: OverridableStub;
   ReplayRecord: OverridableStub<ReplayRecord>;
-  ReplaySegmentBreadcrumb: OverridableStub;
-  ReplaySegmentConsole: OverridableStub;
-  ReplaySegmentFullsnapshot: OverridableStub;
-  ReplaySegmentInit: OverridableStub;
-  ReplaySegmentNavigation: OverridableStub;
-  ReplaySegmentSpan: OverridableStub;
-  ReplaySpanPayload: OverridableStub<
-    Overwrite<ReplaySpan, {endTimestamp: Date; startTimestamp: Date}>,
-    ReplaySpan
-  >;
-  ReplaySpanPayloadNavigate: OverridableStub<
-    Overwrite<ReplaySpan, {endTimestamp: Date; startTimestamp: Date}>,
-    ReplaySpan
-  >;
   Repository: OverridableStub;
   RepositoryProjectPathConfig: OverridableStub;
   Search: OverridableStub;
@@ -205,9 +191,6 @@ type TestStubFixtures = {
   // AsanaAutocomplete(type = 'project', values = [DEFAULT_AUTOCOMPLETE])
   // PhabricatorAutocomplete(type = 'project', values = null)
   // RoleList(params = [], fullAccess = false)
-  // const MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID
-  // const MOCK_RESP_INCONSISTENT_PLACEHOLDERS
-  // const MOCK_RESP_INCONSISTENT_INTERVALS
 };
 
 export default TestStubFixtures;

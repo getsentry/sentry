@@ -4,24 +4,19 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import ApiApplications from 'sentry/views/settings/account/apiApplications';
 
 describe('ApiApplications', function () {
-  it('renders empty', function () {
-    const {router} = initializeOrg();
+  const {routerProps, router} = initializeOrg({router: {params: {}}});
 
+  beforeEach(function () {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('renders empty', function () {
     MockApiClient.addMockResponse({
       url: '/api-applications/',
       body: [],
     });
 
-    render(
-      <ApiApplications
-        router={router}
-        params={{}}
-        location={router.location}
-        routes={router.routes}
-        route={{}}
-        routeParams={{}}
-      />
-    );
+    render(<ApiApplications {...routerProps} />);
 
     expect(
       screen.getByText("You haven't created any applications yet.")
@@ -29,23 +24,12 @@ describe('ApiApplications', function () {
   });
 
   it('renders', function () {
-    const {router} = initializeOrg();
-
     const requestMock = MockApiClient.addMockResponse({
       url: '/api-applications/',
       body: [TestStubs.ApiApplication()],
     });
 
-    render(
-      <ApiApplications
-        router={router}
-        params={{}}
-        location={router.location}
-        routes={router.routes}
-        route={{}}
-        routeParams={{}}
-      />
-    );
+    render(<ApiApplications {...routerProps} />);
 
     expect(requestMock).toHaveBeenCalled();
 
@@ -53,8 +37,10 @@ describe('ApiApplications', function () {
   });
 
   it('creates application', async function () {
-    const {router} = initializeOrg();
-
+    MockApiClient.addMockResponse({
+      url: '/api-applications/',
+      body: [],
+    });
     const createApplicationRequest = MockApiClient.addMockResponse({
       url: '/api-applications/',
       body: TestStubs.ApiApplication({
@@ -63,16 +49,7 @@ describe('ApiApplications', function () {
       method: 'POST',
     });
 
-    render(
-      <ApiApplications
-        router={router}
-        params={{}}
-        location={router.location}
-        routes={router.routes}
-        route={{}}
-        routeParams={{}}
-      />
-    );
+    render(<ApiApplications {...routerProps} />);
 
     await userEvent.click(screen.getByLabelText('Create New Application'));
 
@@ -89,23 +66,16 @@ describe('ApiApplications', function () {
   });
 
   it('deletes application', async function () {
+    MockApiClient.addMockResponse({
+      url: '/api-applications/',
+      body: [TestStubs.ApiApplication({id: '123'})],
+    });
     const deleteApplicationRequest = MockApiClient.addMockResponse({
       url: '/api-applications/123/',
       method: 'DELETE',
     });
 
-    const {router} = initializeOrg();
-
-    render(
-      <ApiApplications
-        router={router}
-        params={{}}
-        location={router.location}
-        routes={router.routes}
-        route={{}}
-        routeParams={{}}
-      />
-    );
+    render(<ApiApplications {...routerProps} />);
 
     await userEvent.click(screen.getByLabelText('Remove'));
 

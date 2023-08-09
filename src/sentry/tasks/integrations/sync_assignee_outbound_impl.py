@@ -4,6 +4,7 @@ from sentry import analytics, features
 from sentry.models import ExternalIssue, Integration, Organization, User
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 
 
@@ -12,6 +13,7 @@ from sentry.tasks.base import instrumented_task, retry
     queue="integrations",
     default_retry_delay=60 * 5,
     max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
 @retry(
     exclude=(
@@ -33,9 +35,7 @@ def sync_assignee_outbound(external_issue_id: int, user_id: Optional[int], assig
 
     # Assume unassign if None.
     user = user_service.get_user(user_id) if user_id else None
-    installation = integration_service.get_installation(
-        integration=integration, organization_id=external_issue.organization_id
-    )
+    installation = integration.get_installation(organization_id=external_issue.organization_id)
     if installation.should_sync("outbound_assignee"):
         installation.sync_assignee_outbound(external_issue, user, assign=assign)
         analytics.record(

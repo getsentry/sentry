@@ -26,7 +26,7 @@ import {AddIntegrationButton} from './addIntegrationButton';
 import InstalledIntegration from './installedIntegration';
 
 // Show the features tab if the org has features for the integration
-const integrationFeatures = {github: ['pr-comment-bot']};
+const integrationFeatures = ['github'];
 
 const FirstPartyIntegrationAlert = HookOrDefault({
   hookName: 'component:first-party-integration-alert',
@@ -144,15 +144,9 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
   renderTabs() {
     // TODO: Convert to styled component
-    const {organization} = this.props;
-    // TODO(cathy): remove feature check
-    const tabs =
-      this.provider.key in integrationFeatures &&
-      organization.features.filter(value =>
-        integrationFeatures[this.provider.key].includes(value)
-      )
-        ? this.tabs
-        : this.tabs.filter(tab => tab !== 'features');
+    const tabs = integrationFeatures.includes(this.provider.key)
+      ? this.tabs
+      : this.tabs.filter(tab => tab !== 'features');
 
     return (
       <ul className="nav nav-tabs border-bottom" style={{paddingTop: '30px'}}>
@@ -344,7 +338,6 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
             name: 'githubPRBot',
             type: 'boolean',
             label: t('Enable Pull Request Bot'),
-            visible: ({features}) => features.includes('pr-comment-bot'),
             help: t(
               'Allow Sentry to comment on pull requests about issues impacting your app.'
             ),

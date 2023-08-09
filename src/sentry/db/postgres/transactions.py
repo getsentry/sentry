@@ -14,7 +14,7 @@ from sentry.utils.env import in_test_environment
 def django_test_transaction_water_mark(using: str | None = None):
     """
     Hybrid cloud outbox flushing depends heavily on transaction.on_commit logic, but our tests do not follow
-    production in terms of isolation (TestCase users two outer transactions, and stubbed RPCs cannot simulate
+    production in terms of isolation (TestCase uses two outer transactions, and stubbed RPCs cannot simulate
     transactional isolation without breaking other test case assumptions).  Therefore, in order to correctly
     simulate transaction.on_commit semantics, use this context in any place where we "simulate" inter transaction
     work that in tests should behave that way.
@@ -32,7 +32,7 @@ def django_test_transaction_water_mark(using: str | None = None):
             yield
         return
 
-    from sentry.testutils import hybrid_cloud
+    from sentry.testutils import hybrid_cloud  # NOQA:S007
 
     # Exempt get_connection call from silo validation checks
     with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
@@ -93,7 +93,7 @@ def in_test_assert_no_transaction(msg: str):
     if not in_test_environment() or not in_test_transaction_enforcement.enabled:
         return
 
-    from sentry.testutils import hybrid_cloud
+    from sentry.testutils import hybrid_cloud  # NOQA:S007
 
     for conn in connections.all():
         assert not hybrid_cloud.simulated_transaction_watermarks.connection_transaction_depth_above_watermark(

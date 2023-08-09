@@ -3,10 +3,11 @@ from __future__ import annotations
 from typing import Collection, List, Tuple
 
 from django.db import transaction
+from rest_framework import status
 from rest_framework.request import Request
 
 from sentry import roles
-from sentry.api.exceptions import SentryAPIException, status
+from sentry.api.exceptions import SentryAPIException
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.locks import locks
@@ -74,7 +75,7 @@ def can_admin_team(access: Access, team: Team) -> bool:
         return True
     if not access.has_team_membership(team):
         return False
-    return access.has_team_scope(team, "team:write")
+    return access.has_team_scope(team, "team:write") or access.has_team_scope(team, "team:admin")
 
 
 def get_allowed_org_roles(

@@ -20,8 +20,8 @@ export function DurationComparisonCell({
 }: Props) {
   const diff = duration - compareToDuration;
 
-  if (isNearBaseline(duration, compareToDuration)) {
-    return <TextAlignRight {...containerProps}>{t('Near baseline')}</TextAlignRight>;
+  if (isNearAverage(duration, compareToDuration)) {
+    return <TextAlignRight {...containerProps}>{t('Near Average')}</TextAlignRight>;
   }
 
   const readableDiff = getDuration(diff / 1000, 2, true, true);
@@ -34,7 +34,7 @@ export function DurationComparisonCell({
   );
 }
 
-export const isNearBaseline = (duration: number, compareToDuration: number) => {
+export const isNearAverage = (duration: number, compareToDuration: number) => {
   const maxDiff = 0.03 * compareToDuration;
   const diff = Math.abs(duration - compareToDuration);
   return diff < maxDiff;

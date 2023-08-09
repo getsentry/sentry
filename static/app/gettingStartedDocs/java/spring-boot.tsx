@@ -46,7 +46,7 @@ export const steps = ({
 <dependency>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-spring-boot-starter</artifactId>
-    <version>{{@inject packages.version('sentry.java.spring-boot', '4.0.0') }}</version>
+    <version>6.27.0</version>
 </dependency>
           `,
           },
@@ -57,7 +57,7 @@ export const steps = ({
 <dependency>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-spring-boot-starter-jakarta</artifactId>
-    <version>{{@inject packages.version('sentry.java.spring-boot.jakarta', '6.7.0') }}</version>
+    <version>6.27.0</version>
 </dependency>
         `,
           },
@@ -69,12 +69,12 @@ export const steps = ({
           {
             language: 'properties',
             description: <strong>{t('Spring Boot 2')}</strong>,
-            code: "implementation 'io.sentry:sentry-spring-boot-starter:{{@inject packages.version('sentry.java.spring-boot', '4.0.0') }}'",
+            code: "implementation 'io.sentry:sentry-spring-boot-starter:6.27.0'",
           },
           {
             language: 'properties',
             description: <strong>{t('Spring Boot 3')}</strong>,
-            code: "implementation 'io.sentry:sentry-spring-boot-starter-jakarta:{{@inject packages.version('sentry.java.spring-boot.jakarta', '6.7.0') }}'",
+            code: "implementation 'io.sentry:sentry-spring-boot-starter-jakarta:6.27.0'",
           },
         ],
       },
@@ -136,7 +136,7 @@ sentry:
 <dependency>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-logback</artifactId>
-    <version>{{@inject packages.version('sentry.java.logback', '4.0.0') }}</version>
+    <version>6.27.0</version>
 </dependency>
           `,
           },
@@ -151,7 +151,7 @@ sentry:
     <plugin>
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
-      <version>{{@inject packages.version('sentry.java.mavenplugin', '0.0.2') }}</version>
+      <version>0.0.3</version>
       <configuration>
         <!-- for showing output of sentry-cli -->
         <debugSentryCli>true</debugSentryCli>
@@ -193,7 +193,7 @@ sentry:
         configurations: [
           {
             language: 'properties',
-            code: "implementation 'io.sentry:sentry-logback:{{@inject packages.version('sentry.java.logback', '4.0.0') }}'",
+            code: "implementation 'io.sentry:sentry-logback:6.27.0'",
           },
           {
             language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
@@ -208,7 +208,7 @@ buildscript {
 }
 
 plugins {
-  id "io.sentry.jvm.gradle" version "{{@inject packages.version('sentry.java.android.gradle-plugin', '3.9.0') }}"
+  id "io.sentry.jvm.gradle" version "3.11.1"
 }
 
 sentry {

@@ -16,7 +16,9 @@ interface Props {
   end: Date;
   timeWindow: TimeWindow;
   width: number;
+  className?: string;
   showCursor?: boolean;
+  stickyCursor?: boolean;
 }
 
 function clampTimeBasedOnResolution(date: moment.Moment, resolution: string) {
@@ -66,7 +68,13 @@ export function GridLineTimeLabels({end, timeWindow, width}: Props) {
   );
 }
 
-export function GridLineOverlay({end, timeWindow, width, showCursor}: Props) {
+export function GridLineOverlay({
+  end,
+  timeWindow,
+  width,
+  showCursor,
+  stickyCursor,
+}: Props) {
   const {cursorLabelFormat} = timeWindowConfig[timeWindow];
 
   const makeCursorText = useCallback(
@@ -81,6 +89,7 @@ export function GridLineOverlay({end, timeWindow, width, showCursor}: Props) {
 
   const {cursorContainerRef, timelineCursor} = useTimelineCursor<HTMLDivElement>({
     enabled: showCursor,
+    sticky: stickyCursor,
     labelText: makeCursorText,
   });
 
@@ -108,18 +117,18 @@ const Overlay = styled('div')`
 const GridLineContainer = styled('div')`
   position: relative;
   height: 100%;
+  z-index: 1;
 `;
 
 const LabelsContainer = styled('div')`
   position: relative;
   align-self: stretch;
-  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const Gridline = styled('div')<{left: number}>`
   position: absolute;
   left: ${p => p.left}px;
-  border-left: 1px solid ${p => p.theme.innerBorder};
+  border-left: 1px solid ${p => p.theme.translucentInnerBorder};
   height: 100%;
 `;
 
@@ -127,6 +136,7 @@ const TimeLabelContainer = styled(Gridline)`
   display: flex;
   height: 100%;
   align-items: center;
+  border-left: none;
 `;
 
 const TimeLabel = styled(DateTime)`

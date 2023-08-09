@@ -7,14 +7,15 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
-from sentry.models import GroupRuleStatus, GroupStatus, ProjectOwnership, Rule
+from sentry.models import GroupRuleStatus, GroupStatus, Rule
+from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry
 from sentry.rules.conditions import EventCondition
 from sentry.rules.filters.base import EventFilter
 from sentry.rules.processor import RuleProcessor
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import region_silo_test
 
@@ -38,8 +39,8 @@ class MockConditionTrue(EventCondition):
 @region_silo_test(stable=True)
 class RuleProcessorTest(TestCase):
     def setUp(self):
-        self.group_event = self.store_event(data={}, project_id=self.project.id)
-        self.group_event = next(self.group_event.build_group_events())
+        event = self.store_event(data={}, project_id=self.project.id)
+        self.group_event = next(event.build_group_events())
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -364,8 +365,8 @@ class RuleProcessorTestFilters(TestCase):
     )
 
     def setUp(self):
-        self.group_event = self.store_event(data={}, project_id=self.project.id)
-        self.group_event = next(self.group_event.build_group_events())
+        event = self.store_event(data={}, project_id=self.project.id)
+        self.group_event = next(event.build_group_events())
 
     @patch("sentry.constants._SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
     def test_filter_passes(self):
@@ -476,10 +477,8 @@ class RuleProcessorTestFilters(TestCase):
         # setup an alert rule with 1 conditions and no filters that passes
         self.create_release(project=self.project, version="2021-02.newRelease")
 
-        self.group_event = self.store_event(
-            data={"release": "2021-02.newRelease"}, project_id=self.project.id
-        )
-        self.group_event = next(self.group_event.build_group_events())
+        event = self.store_event(data={"release": "2021-02.newRelease"}, project_id=self.project.id)
+        self.group_event = next(event.build_group_events())
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -520,14 +519,14 @@ class RuleProcessorTestFilters(TestCase):
             environments=[self.environment],
         )
 
-        self.group_event = self.store_event(
+        event = self.store_event(
             data={
                 "release": release.version,
                 "tags": [["environment", self.environment.name]],
             },
             project_id=self.project.id,
         )
-        self.group_event = next(self.group_event.build_group_events())
+        self.group_event = next(event.build_group_events())
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)

@@ -13,10 +13,12 @@ from sentry.models.notificationaction import (
     NotificationAction,
     NotificationActionProject,
 )
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.utils import json
 
 
 @region_silo_test(stable=True)
@@ -228,6 +230,21 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             **data,
         )
 
+    def test_post_org_member(self):
+        user = self.create_user("hornet@hk.com")
+        self.create_member(user=user, organization=self.organization, teams=[self.team])
+        self.login_as(user)
+        data = {
+            **self.base_data,
+            "projects": [p.slug for p in self.projects],
+        }
+        self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="POST",
+            **data,
+        )
+
     @patch.dict(NotificationAction._registry, {})
     def test_post_raises_validation_from_registry(self):
         error_message = "oops-idea-installed"
@@ -265,24 +282,21 @@ class NotificationActionsIndexEndpointTest(APITestCase):
 
         self.mock_register(data)(MockActionRegistration)
 
-        # Can't find slack channel
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
-            status=500,
-        )
-        self.get_error_response(
-            self.organization.slug,
-            status_code=status.HTTP_400_BAD_REQUEST,
-            method="POST",
-            **data,
-        )
-        # Successful search for channel
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
-            json={"ok": True, "channels": [{"name": channel_name, "id": channel_id}]},
+            content_type="application/json",
+            body=json.dumps(
+                {"ok": "true", "channel": channel_id, "scheduled_message_id": "Q1298393284"}
+            ),
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.deleteScheduledMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": True}),
         )
         response = self.get_success_response(
             self.organization.slug,
@@ -389,3 +403,63 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         # Relation table has been updated
         notif_action_projects = NotificationActionProject.objects.filter(action_id=notif_action.id)
         assert len(notif_action_projects) == len(self.projects)
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_post_org_admin(self):
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, role="admin")
+        self.login_as(user)
+
+        self.test_post_simple()
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_post_team_admin__success(self):
+        user = self.create_user()
+        member = self.create_member(organization=self.organization, user=user, role="member")
+        OrganizationMemberTeam.objects.create(
+            team=self.team, organizationmember=member, role="admin"
+        )
+        self.login_as(user)
+
+        self.test_post_simple()
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_post_team_admin__missing_access(self):
+        user = self.create_user()
+        member = self.create_member(organization=self.organization, user=user, role="member")
+        OrganizationMemberTeam.objects.create(
+            team=self.team, organizationmember=member, role="admin"
+        )
+        self.login_as(user)
+
+        non_admin_project = self.create_project(
+            organization=self.organization, teams=[self.create_team()]
+        )
+
+        class MockActionRegistration(ActionRegistration):
+            validate_action = MagicMock()
+
+        registration = MockActionRegistration
+        NotificationAction.register_action(
+            trigger_type=ActionTrigger.get_value(self.base_data["triggerType"]),
+            service_type=ActionService.get_value(self.base_data["serviceType"]),
+            target_type=ActionTarget.get_value(self.base_data["targetType"]),
+        )(registration)
+
+        data = {
+            **self.base_data,
+            "projects": [p.slug for p in self.projects] + [non_admin_project.slug],
+        }
+
+        assert not registration.validate_action.called
+        response = self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="POST",
+            **data,
+        )
+
+        assert (
+            "You do not have permission to create notification actions for projects"
+            in response.data["detail"]
+        )

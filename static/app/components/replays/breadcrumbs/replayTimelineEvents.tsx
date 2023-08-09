@@ -76,7 +76,7 @@ function Event({
 
   const buttons = frames.map((frame, i) => (
     <BreadcrumbItem
-      crumb={frame}
+      frame={frame}
       key={i}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}

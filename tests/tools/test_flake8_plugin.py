@@ -104,3 +104,31 @@ from django.utils.encoding import force_str
         "t.py:1:0: S006 Do not use force_bytes / force_str -- test the types directly",
         "t.py:2:0: S006 Do not use force_bytes / force_str -- test the types directly",
     ]
+
+
+def test_S007():
+    src = """\
+from sentry.testutils.outbox import outbox_runner
+"""
+    # no errors in tests/
+    assert _run(src, filename="tests/test_foo.py") == []
+
+    # no errors in src/sentry/testutils/
+    assert _run(src, filename="src/sentry/testutils/silo.py") == []
+
+    # errors in other paths
+    errors = _run(src, filename="src/sentry/api/endpoints/organization_details.py")
+    assert errors == [
+        "t.py:1:0: S007 Do not import sentry.testutils into production code.",
+    ]
+
+    # Module imports should have errors too.
+    src = """\
+import sentry.testutils.outbox as outbox_utils
+"""
+    assert _run(src, filename="tests/test_foo.py") == []
+
+    errors = _run(src, filename="src/sentry/api/endpoints/organization_details.py")
+    assert errors == [
+        "t.py:1:0: S007 Do not import sentry.testutils into production code.",
+    ]

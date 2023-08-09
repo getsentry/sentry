@@ -16,12 +16,7 @@ type Props = {
 const EventMessage = styled(
   ({className, level, levelIndicatorSize, message, annotations}: Props) => (
     <div className={className}>
-      {level && (
-        <ErrorLevel size={levelIndicatorSize} level={level}>
-          {level}
-        </ErrorLevel>
-      )}
-
+      {level && <ErrorLevel size={levelIndicatorSize} level={level} />}
       {message && <Message>{message}</Message>}
 
       {annotations}

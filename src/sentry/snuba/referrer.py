@@ -14,6 +14,7 @@ class Referrer(Enum):
     ALERTRULESERIALIZER_TEST_QUERY = "alertruleserializer.test_query"
     API_ALERTS_ALERT_RULE_CHART_METRICS_ENHANCED = "api.alerts.alert-rule-chart.metrics-enhanced"
     API_ALERTS_ALERT_RULE_CHART = "api.alerts.alert-rule-chart"
+    API_ALERTS_CHARTCUTERIE = "api.alerts.chartcuterie"
     API_AUTH_TOKEN_EVENTS_METRICS_ENHANCED_PRIMARY = (
         "api.auth-token.events.metrics-enhanced.primary"
     )
@@ -133,6 +134,7 @@ class Referrer(Enum):
     )
     API_ORGANIZATION_EVENTS_V2 = "api.organization-events-v2"
     API_ORGANIZATION_EVENTS = "api.organization-events"
+    API_ORGANIZATION_METRICS_ESTIMATION_STATS = "api.organization-metrics-estimation-stats"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
     API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
@@ -324,6 +326,7 @@ class Referrer(Enum):
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
     API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
     API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
+    API_PROFILING_PERFORMANCE_CHANGE_EXPLORER = "api.profiling.performance-change-explorer"
     API_PROFILING_PROFILE_SUMMARY_CHART = "api.profiling.profile-summary-chart"
     API_PROFILING_PROFILE_SUMMARY_TOTALS = "api.profiling.profile-summary-totals"
     API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
@@ -337,6 +340,7 @@ class Referrer(Enum):
     API_PROFILING_SUSPECT_FUNCTIONS_TRANSACTIONS = "api.profiling.suspect-functions.transactions"
     API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS = "api.profiling.function-trends.top-events"
     API_PROFILING_FUNCTION_TRENDS_STATS = "api.profiling.function-trends.stats"
+    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR = "api.profiling.functions.statistical-detector"
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"

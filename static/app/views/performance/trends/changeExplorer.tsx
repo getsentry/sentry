@@ -272,7 +272,7 @@ function getTransactionSummaryLink(
 
 const PanelBodyWrapper = styled('div')`
   padding: 0 ${space(2)};
-  margin-top: ${space(4)};
+  margin-top: ${space(1)};
 `;
 
 const HeaderWrapper = styled('div')`
@@ -309,7 +309,7 @@ const TransactionNameWrapper = styled('div')`
   display: flex;
   align-items: center;
   margin-bottom: ${space(3)};
-  width: fit-content;
+  max-width: fit-content;
 `;
 
 const ViewTransactionButton = styled(Button)`

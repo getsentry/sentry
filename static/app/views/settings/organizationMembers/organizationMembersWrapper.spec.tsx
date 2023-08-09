@@ -50,6 +50,11 @@ describe('OrganizationMembersWrapper', function () {
       method: 'GET',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/missing-members/',
+      method: 'GET',
+      body: [],
+    });
   });
 
   it('can invite member', async function () {
