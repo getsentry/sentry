@@ -100,12 +100,14 @@ class OrganizationMissingMembersTestCase(APITestCase):
         ]
 
     def test_no_authors(self):
+        # test
         org = self.create_organization(owner=self.create_user())
         self.create_member(user=self.user, organization=org, role="manager")
 
         response = self.get_success_response(org.slug)
         assert response.data[0]["integration"] == "github"
         assert response.data[0]["users"] == []
+        # test
 
     def test_owners_with_different_domains(self):
         user = self.create_user(email="owner@exampletwo.com")
@@ -121,6 +123,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
         response = self.get_success_response(self.organization.slug)
 
         assert response.data[0]["integration"] == "github"
+        # lorem ipsum
         assert response.data[0]["users"] == [
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
@@ -128,6 +131,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
         ]
 
     def test_query_on_author_email_and_external_id(self):
+        # test
         # self.nonmember_commit_author1 matches on email
         # the below matches on external id
 
