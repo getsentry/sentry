@@ -523,6 +523,10 @@ class OutboxBackedOrganizationSignalService(OrganizationSignalService):
     def schedule_signal(
         self, signal: Signal, organization_id: int, args: Mapping[str, Optional[Union[str, int]]]
     ) -> None:
+        if "organization_id" in args:
+            raise ValueError(
+                "organization_id should not be present in args. it will be passed automatically to the signal."
+            )
         with outbox_context(flush=False):
             payload: Any = {
                 "args": args,

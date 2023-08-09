@@ -1,10 +1,18 @@
 from fnmatch import fnmatch
 
 from django.urls import URLResolver, get_resolver, reverse
+from django.utils import timezone
 
 from sentry.models import OrganizationStatus
+from sentry.models.organizationonboardingtask import (
+    OnboardingTask,
+    OnboardingTaskStatus,
+    OrganizationOnboardingTask,
+)
+from sentry.signals import receivers_raise_on_send
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES, ReactMixin
 
@@ -338,3 +346,39 @@ class ReactPageViewTest(TestCase):
                 ("http://testserver/organizations/new/", 302),
             ]
             assert "activeorg" not in self.client.session
+
+    def test_onboarding_first_event(self):
+        org = self.create_organization(owner=self.user, status=OrganizationStatus.ACTIVE)
+
+        self.login_as(self.user)
+        now = timezone.now()
+        project = self.create_project(organization=org, first_event=now)
+
+        with self.feature({"organizations:customer-domains": [org.slug]}):
+            with assume_test_silo_mode(SiloMode.REGION):
+                assert not OrganizationOnboardingTask.objects.filter(
+                    organization=project.organization,
+                    project=project,
+                    user_id=self.user.id,
+                    task=OnboardingTask.FIRST_EVENT,
+                    status=OnboardingTaskStatus.PENDING,
+                ).exists()
+
+            with receivers_raise_on_send(), outbox_runner():
+                response = self.client.get(
+                    f"/projects/{project.slug}/?onboarding",
+                    SERVER_NAME=f"{org.slug}.testserver",
+                    follow=True,
+                )
+            assert response.status_code == 200
+            assert response.redirect_chain == []
+            self.assertTemplateUsed(response, "sentry/base-react.html")
+
+            with assume_test_silo_mode(SiloMode.REGION):
+                assert OrganizationOnboardingTask.objects.filter(
+                    organization=project.organization,
+                    project=project,
+                    user_id=self.user.id,
+                    task=OnboardingTask.FIRST_EVENT,
+                    status=OnboardingTaskStatus.PENDING,
+                ).exists()

@@ -705,14 +705,14 @@ urlpatterns += [
     ),
     # Projects
     re_path(
-        r"^projects/",
-        react_page_view,
-        name="projects",
-    ),
-    re_path(
         r"^projects/(?P<project_slug>[\w_-]+)/",
         react_page_view,
         name="project-details",
+    ),
+    re_path(
+        r"^projects/",
+        react_page_view,
+        name="projects",
     ),
     # Dashboards
     re_path(

@@ -107,18 +107,16 @@ class ReactPageView(ControlSiloOrganizationView, ReactMixin):
         return super().handle_auth_required(request, *args, **kwargs)
 
     def handle(self, request: Request, organization: RpcOrganization, **kwargs) -> HttpResponse:
-        if "project_id" in kwargs and request.GET.get("onboarding"):
+        if "project_slug" in kwargs and "onboarding" in request.GET:
             project = next(
-                (p for p in organization.projects if p.slug == kwargs["project_id"]), None
+                (p for p in organization.projects if p.slug == kwargs["project_slug"]), None
             )
-
             if project:
                 organization_service.schedule_signal(
                     signal=first_event_pending,
                     organization_id=organization.id,
                     args=dict(
                         project_id=project.id,
-                        organization_id=organization.id,
                         user_id=request.user.id if request.user else None,
                     ),
                 )
