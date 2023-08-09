@@ -502,10 +502,10 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
 
             if check_in.status == CheckInStatus.ERROR:
                 monitor_environment.mark_failed(
-                    start_time, occurrence_context={"trace_id": trace_id}
+                    check_in.date_added, occurrence_context={"trace_id": trace_id}
                 )
             else:
-                monitor_environment.mark_ok(check_in, start_time)
+                monitor_environment.mark_ok(check_in, check_in.date_added)
 
             metrics.incr(
                 "monitors.checkin.result",
