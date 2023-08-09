@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.models.project import Project
-from sentry.profiles.statistical_detectors import FunctionPayload, run_functions_trend_detection
+from sentry.profiles.statistical_detectors import FunctionPayload
 from sentry.snuba import functions
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
@@ -88,8 +88,7 @@ def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) ->
 
     for project in Project.objects.filter(id__in=project_ids):
         try:
-            function_payloads = query_functions(project, start)
-            run_functions_trend_detection(project, start, function_payloads)
+            query_functions(project, start)
         except Exception as e:
             sentry_sdk.capture_exception(e)
 

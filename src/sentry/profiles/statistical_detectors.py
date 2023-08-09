@@ -6,8 +6,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 
+from sentry_redis_tools.clients import RedisCluster, StrictRedis
+
 from sentry.models.project import Project
-from sentry.utils import redis
 from sentry.utils.math import ExponentialMovingAverage
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors")
@@ -79,11 +80,11 @@ class FunctionPayload:
 
 
 def run_functions_trend_detection(
-    project: Project, start: datetime, payloads: List[FunctionPayload]
+    client: RedisCluster | StrictRedis,
+    project: Project,
+    start: datetime,
+    payloads: List[FunctionPayload],
 ) -> Tuple[List[FunctionPayload], List[FunctionPayload]]:
-    cluster_key = "default"  # TODO: read from settings
-    client = redis.redis_clusters.get(cluster_key)
-
     with client.pipeline() as pipeline:
         for payload in payloads:
             key = make_function_key(project.id, payload, VERSION)
