@@ -13,6 +13,7 @@ interface AddIntegrationButtonProps
     > {
   onAddIntegration: (data: IntegrationWithConfig) => void;
   buttonText?: string;
+  installStatus?: string;
   reinstall?: boolean;
 }
 
@@ -24,10 +25,15 @@ export function AddIntegrationButton({
   reinstall,
   analyticsParams,
   modalParams,
+  installStatus,
   ...buttonProps
 }: AddIntegrationButtonProps) {
   const label =
-    buttonText ?? (reinstall ? t('Enable') : t('Add %s', provider.metadata.noun));
+    buttonText ?? reinstall
+      ? t('Enable')
+      : installStatus === 'Disabled'
+      ? t('Reinstall')
+      : t('Add %s', provider.metadata.noun);
 
   return (
     <Tooltip
