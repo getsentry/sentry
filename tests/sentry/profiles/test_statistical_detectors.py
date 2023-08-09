@@ -72,25 +72,42 @@ def test_trend_state(data, expected):
 
 
 @pytest.mark.parametrize(
-    "initial,p95s,breakpoints",
+    "initial,p95s,regressed_indices,improved_indices",
     [
         pytest.param(
             TrendState(None, 0, 0, 0),
             [1 for _ in range(10)] + [2 for _ in range(10)],
             [10],
-            id="sudden increase",
+            [],
+            id="stepwise increase",
+        ),
+        pytest.param(
+            TrendState(None, 0, 0, 0),
+            [2 for _ in range(10)] + [1 for _ in range(10)],
+            [],
+            [10],
+            id="stepwise decrease",
         ),
         pytest.param(
             TrendState(None, 0, 0, 0),
             [(i / 10) ** 2 for i in range(-10, 20)],
             [23],
+            [],
             id="quadratic increase",
+        ),
+        pytest.param(
+            TrendState(None, 0, 0, 0),
+            [-((i / 10) ** 2) for i in range(-10, 20)],
+            [],
+            [23],
+            id="quadratic decrease",
         ),
     ],
 )
-def test_run_regressed_functions_detection(initial, p95s, breakpoints):
+def test_run_functions_trend_detection(initial, p95s, regressed_indices, improved_indices):
     states = [initial]
     all_regressed = []
+    all_improved = []
 
     now = datetime.now()
 
@@ -99,8 +116,10 @@ def test_run_regressed_functions_detection(initial, p95s, breakpoints):
     ]
 
     for payload in payloads:
-        new_states, regressed, _ = compute_new_trend_states(1, states, [payload])
+        new_states, regressed, improved = compute_new_trend_states(1, states, [payload])
         states = [state for _, state in new_states]
         all_regressed.extend(regressed)
+        all_improved.extend(improved)
 
-    assert all_regressed == [payloads[i] for i in breakpoints]
+    assert all_regressed == [payloads[i] for i in regressed_indices]
+    assert all_improved == [payloads[i] for i in improved_indices]
