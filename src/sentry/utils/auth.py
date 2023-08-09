@@ -88,7 +88,7 @@ def get_auth_providers() -> Collection[str]:
     ]
 
 
-def get_pending_2fa_user(request: HttpRequest) -> User | None:
+def get_pending_2fa_user(request: HttpRequest) -> Optional[User]:
     rv = request.session.get("_pending_2fa")
     if rv is None:
         return None
@@ -401,7 +401,7 @@ class EmailAuthBackend(ModelBackend):
 
     def authenticate(
         self, request: HttpRequest, username: str, password: Optional[str] = None
-    ) -> User | None:
+    ) -> Optional[User]:
         users = find_users(username)
         if users:
             for user in users:
