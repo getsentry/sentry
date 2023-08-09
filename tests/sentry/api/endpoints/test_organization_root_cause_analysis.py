@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pytest
 from django.urls import reverse
 
@@ -34,7 +36,7 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
 
     @property
     def now(self):
-        return MetricsAPIBaseTestCase.MOCK_DATETIME
+        return MetricsAPIBaseTestCase.MOCK_DATETIME.replace(tzinfo=None)
 
     def test_404s_without_feature_flag(self):
         response = self.client.get(self.url, format="json")
@@ -42,13 +44,36 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
 
     def test_transaction_name_required(self):
         with self.feature(FEATURES):
-            response = self.client.get(self.url, format="json")
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "project": self.project.id,
+                    "breakpoint": (self.now - timedelta(days=1)).isoformat(),
+                },
+            )
 
         assert response.status_code == 400, response.content
 
     def test_project_id_required(self):
         with self.feature(FEATURES):
-            response = self.client.get(self.url, format="json", data={"transaction": "foo"})
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "transaction": "foo",
+                },
+            )
+
+        assert response.status_code == 400, response.content
+
+    def test_breakpoint_required(self):
+        with self.feature(FEATURES):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"transaction": "foo", "project": self.project.id},
+            )
 
         assert response.status_code == 400, response.content
 
@@ -57,7 +82,11 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
             response = self.client.get(
                 self.url,
                 format="json",
-                data={"transaction": "foo", "project": self.project.id},
+                data={
+                    "transaction": "foo",
+                    "project": self.project.id,
+                    "breakpoint": (self.now - timedelta(days=1)).isoformat(),
+                },
             )
 
         assert response.status_code == 200, response.content
