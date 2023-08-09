@@ -21,10 +21,10 @@ function Carousel({children}: Props) {
     // totalScrollDist = scrollWidth - clientWidth
     // scrollWidth: total element width including overflow
     // clientWidth: width of the element excluding overflow
-    if (scrollLeft < 10) {
+    if (scrollLeft <= 0) {
       setIsAtStart(true);
       setIsAtEnd(false);
-    } else if (scrollLeft > totalScrollDist - 10) {
+    } else if (scrollLeft >= totalScrollDist) {
       setIsAtStart(false);
       setIsAtEnd(true);
     } else {
@@ -46,7 +46,7 @@ function Carousel({children}: Props) {
     setStartAndEnd(scrollLeft, contentWidth);
   }, [ref]);
 
-  const scroll = (direction: string) => {
+  const handleScroll = (direction: string) => {
     requestAnimationFrame(() => {
       if (!ref.current) {
         return;
@@ -84,10 +84,10 @@ function Carousel({children}: Props) {
         {children}
       </CarouselItems>
       {showArrows && !isAtStart && (
-        <CircledArrow onClick={() => scroll('left')} direction="left" />
+        <CircledArrow onClick={() => handleScroll('left')} direction="left" />
       )}
       {showArrows && !isAtEnd && (
-        <CircledArrow onClick={() => scroll('right')} direction="right" />
+        <CircledArrow onClick={() => handleScroll('right')} direction="right" />
       )}
     </CarouselContainer>
   );
@@ -101,6 +101,14 @@ const CarouselItems = styled('div')`
   display: flex;
   overflow-x: scroll;
   scroll-behavior: smooth;
+  &::-webkit-scrollbar {
+    background-color: transparent;
+    height: 8px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: ${p => p.theme.gray400};
+    border-radius: 8px;
+  }
 `;
 
 type ArrowProps = {
