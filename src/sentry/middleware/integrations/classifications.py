@@ -47,6 +47,7 @@ class BaseClassification(abc.ABC):
 class PluginClassification(BaseClassification):
     plugin_prefix = "/plugins/"
     """Prefix for plugin requests."""
+    logger = logging.getLogger(f"{__name__}.plugin")
 
     def should_operate(self, request: HttpRequest) -> bool:
         is_plugin = request.path.startswith(self.plugin_prefix)
@@ -57,6 +58,7 @@ class PluginClassification(BaseClassification):
 
     def get_response(self, request: HttpRequest) -> HttpResponseBase:
         rp = PluginRequestParser(request=request, response_handler=self.response_handler)
+        self.logger.info("routing_request.plugin", extra={"path": request.path})
         return rp.get_response()
 
 
@@ -117,5 +119,5 @@ class IntegrationClassification(BaseClassification):
             request=request,
             response_handler=self.response_handler,
         )
-
+        self.logger.info(f"routing_request.{parser.provider}", extra={"path": request.path})
         return parser.get_response()
