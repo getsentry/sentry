@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import Union
 
 from snuba_sdk import (
+    And,
     Column,
     Condition,
     Direction,
@@ -12,10 +13,12 @@ from snuba_sdk import (
     Function,
     Granularity,
     Op,
+    Or,
     OrderBy,
     Query,
     Request,
 )
+from snuba_sdk.expressions import Expression
 
 from sentry.api.event_search import ParenExpression, SearchFilter
 from sentry.models.organization import Organization
@@ -25,11 +28,56 @@ from sentry.utils.snuba import raw_snql_query
 
 def handle_search_filters(
     search_config: dict[str, BaseField],
-    search_filters: list[SearchFilter],
+    search_filters: list[Union[SearchFilter, str, ParenExpression]],
 ) -> list[Condition]:
-    return [
-        search_filter_to_condition(search_config, search_filter) for search_filter in search_filters
-    ]
+    """Convert search filters to snuba conditions."""
+    result: list[Condition] = []
+    look_back = None
+    for search_filter in search_filters:
+        # SearchFilters are appended to the result set.  If they are top level filters they are
+        # implicitly And'ed in the WHERE/HAVING clause.
+        if isinstance(search_filter, SearchFilter):
+            condition = search_filter_to_condition(search_config, search_filter)
+            if look_back == "AND":
+                look_back = None
+                attempt_compressed_condition(result, condition, And)
+            elif look_back == "OR":
+                look_back = None
+                attempt_compressed_condition(result, condition, Or)
+            else:
+                result.append(condition)
+        # ParenExpressions are recursively computed.  If more than one condition is returned then
+        # those conditions are And'ed.
+        elif isinstance(search_filter, ParenExpression):
+            conditions = handle_search_filters(search_config, search_filter.children)
+            if len(conditions) < 2:
+                result.extend(conditions)
+            else:
+                result.append(And(conditions))
+        # String types are limited to AND and OR... I think?  In the case where its not a valid
+        # look-back it is implicitly ignored.
+        elif isinstance(search_filter, str):
+            look_back = search_filter
+
+    return result
+
+
+def attempt_compressed_condition(
+    result: list[Expression],
+    condition: Condition,
+    condition_type: Union[And, Or],
+):
+    """Unnecessary query optimization.
+
+    Improves legibility for query debugging. Clickhouse would flatten these nested OR statements
+    internally anyway.
+
+    (block OR block) OR block => (block OR block OR block)
+    """
+    if isinstance(result[-1], condition_type):
+        result[-1].conditions.append(condition)
+    else:
+        result.append(condition_type([result.pop(), condition]))
 
 
 def search_filter_to_condition(
