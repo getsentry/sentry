@@ -221,7 +221,6 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
     with sentry_sdk.start_transaction(
         op="_process_message",
         name="monitors.monitor_consumer",
-        sampled=True,
     ) as txn:
         params: CheckinPayload = json.loads(wrapper["payload"])
         start_time = to_datetime(float(wrapper["start_time"]))
