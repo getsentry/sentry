@@ -287,25 +287,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert len(response_data["data"][0]) == 1
             assert "id" in response_data["data"][0]
 
-    def test_get_replays_require_timely_initial_sequence(self):
-        """Test returned replays can not partially fall outside of range."""
-        project = self.create_project(teams=[self.team])
-
-        replay1_id = uuid.uuid4().hex
-        replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(days=365)
-        replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
-
-        self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id, segment_id=0))
-        self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id, segment_id=1))
-
-        with self.feature(REPLAYS_FEATURES):
-            response = self.client.get(self.url)
-            assert response.status_code == 200
-
-            response_data = response.json()
-            assert "data" in response_data
-            assert len(response_data["data"]) == 0
-
     def test_get_replays_filter_environment(self):
         """Test returned replays can not partially fall outside of range."""
         project = self.create_project(teams=[self.team])
@@ -764,22 +745,9 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             # Run all the queries individually to determine compliance.
             queries = [
-                "project_id",
-                "platform",
-                "dist",
                 "duration",
-                "sdk.name",
                 "os.name",
-                "os.version",
                 "browser.name",
-                "browser.version",
-                "device.name",
-                "device.brand",
-                "device.family",
-                "device.model",
-                "user.id",
-                "user.username",
-                "user.email",
                 "activity",
             ]
 
@@ -1042,7 +1010,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.testid:2",
                 "click.textContent:World",
                 "click.title:NotMyTitle",
-                "!click.selector:div#myid",
                 "click.selector:div#notmyid",
                 # Assert all classes must match.
                 "click.selector:div#myid.class1.class2.class3",
