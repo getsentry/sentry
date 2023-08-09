@@ -261,12 +261,29 @@ function CreateProject() {
   const canCreateTeam = organization.access.includes('project:admin');
   const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
 
-  const canSubmitForm =
-    !inFlight &&
-    (team || isOrgMemberWithNoAccess) &&
-    canCreateProject &&
-    projectName !== '' &&
-    (!shouldCreateCustomRule || conditions?.every?.(condition => condition.value));
+  const isMissingTeam = !isOrgMemberWithNoAccess && !team;
+  const isMissingProjectName = projectName === '';
+  const isMissingAlertThreshold =
+    shouldCreateCustomRule && !conditions?.every?.(condition => condition.value);
+
+  const formErrorCount = [
+    isMissingTeam,
+    isMissingProjectName,
+    isMissingAlertThreshold,
+  ].filter(value => value).length;
+
+  const canSubmitForm = !inFlight && canCreateProject && formErrorCount === 0;
+
+  let submitTooltipText: string | null = null;
+  if (formErrorCount > 1) {
+    submitTooltipText = t('Please fill out all the required fields');
+  } else if (isMissingProjectName) {
+    submitTooltipText = t('Please provide a project name');
+  } else if (isMissingAlertThreshold) {
+    submitTooltipText = t('Please provide an alert threshold');
+  } else {
+    submitTooltipText = t('Please select a team');
+  }
 
   const alertFrequencyDefaultValues = useMemo(() => {
     if (!autoFill) {
@@ -359,10 +376,7 @@ function CreateProject() {
           </div>
         )}
         <div>
-          <Tooltip
-            title={t('Please provide a project name')}
-            disabled={Boolean(canSubmitForm)}
-          >
+          <Tooltip title={submitTooltipText} disabled={formErrorCount === 0}>
             <Button
               type="submit"
               data-test-id="create-project"
