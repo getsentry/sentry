@@ -23,7 +23,6 @@ export enum ProductSolution {
 
 // This is the list of products that are available for each platform
 // Since the ProductSelection component is rendered in the onboarding flow, it is ok to have this list here
-// NOTE: the export is used in the tests only, please don't use it elsewhere
 export const platformProductAvailability = {
   javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   'javascript-react': [
