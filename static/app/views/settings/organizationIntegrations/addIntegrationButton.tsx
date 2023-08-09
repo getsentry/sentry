@@ -32,7 +32,7 @@ export function AddIntegrationButton({
     buttonText ?? reinstall
       ? t('Enable')
       : installStatus === 'Disabled'
-      ? 'Reinstall'
+      ? t('Reinstall')
       : t('Add %s', provider.metadata.noun);
 
   return (
