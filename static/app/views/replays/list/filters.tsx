@@ -5,25 +5,31 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import ReplaySearchBar from 'sentry/views/replays/list/replaySearchBar';
 
-function ReplaysFilters() {
-  const {selection} = usePageFilters();
-  const {pathname, query} = useLocation();
-  const organization = useOrganization();
-
+export function ReplaysFilters() {
   return (
-    <FilterContainer>
+    <Container>
       <PageFilterBar condensed>
         <ProjectPageFilter resetParamsOnChange={['cursor']} />
         <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
         <DatePageFilter alignDropdown="left" resetParamsOnChange={['cursor']} />
       </PageFilterBar>
+    </Container>
+  );
+}
+
+export function ReplaysSearch() {
+  const {selection} = usePageFilters();
+  const {pathname, query} = useLocation();
+  const organization = useOrganization();
+
+  return (
+    <Container>
       <ReplaySearchBar
         organization={organization}
         pageFilters={selection}
@@ -40,20 +46,11 @@ function ReplaysFilters() {
           });
         }}
       />
-    </FilterContainer>
+    </Container>
   );
 }
 
-const FilterContainer = styled('div')`
+const Container = styled('div')`
   display: inline-grid;
-  grid-template-columns: minmax(0, max-content) minmax(20rem, 1fr);
-  gap: ${space(2)};
   width: 100%;
-  margin-bottom: ${space(2)};
-
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: minmax(0, 1fr);
-  }
 `;
-
-export default ReplaysFilters;
