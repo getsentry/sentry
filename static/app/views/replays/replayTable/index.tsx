@@ -31,7 +31,7 @@ import {
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
-const MIN_DEAD_RAGE_CLICK_SDK = '7.60.1';
+export const MIN_DEAD_RAGE_CLICK_SDK = '7.60.1';
 
 type Props = {
   fetchError: undefined | Error;
