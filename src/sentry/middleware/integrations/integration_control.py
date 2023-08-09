@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Callable, List, Type
 
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest
+from django.http.response import HttpResponseBase
 
 from sentry.middleware.integrations.classifications import (
     BaseClassification,
@@ -14,7 +15,7 @@ from sentry.silo import SiloMode
 
 logger = logging.getLogger(__name__)
 
-ResponseHandler = Callable[[HttpRequest], HttpResponse]
+ResponseHandler = Callable[[HttpRequest], HttpResponseBase]
 
 
 class IntegrationControlMiddleware:
@@ -31,8 +32,7 @@ class IntegrationControlMiddleware:
         """
         Determines whether this middleware will operate or just pass the request along.
         """
-        is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
-        return is_correct_silo
+        return SiloMode.get_current_mode() == SiloMode.CONTROL
 
     def __call__(self, request: HttpRequest):
         if not self._should_operate(request):

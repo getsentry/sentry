@@ -45,7 +45,8 @@ class BaseRequestParser(abc.ABC):
     def __init__(self, request: HttpRequest, response_handler: ResponseHandler):
         self.request = request
         self.match: ResolverMatch = resolve(self.request.path)
-        self.view_class = self.match.func.view_class  # type:ignore
+        if hasattr(self.match.func, "view_class"):
+            self.view_class = self.match.func.view_class
         self.response_handler = response_handler
 
     # Common Helpers

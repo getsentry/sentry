@@ -5,7 +5,8 @@ import logging
 import re
 from typing import TYPE_CHECKING, List, Mapping, Type, cast
 
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest
+from django.http.response import HttpResponseBase
 
 from .parsers import (
     BitbucketRequestParser,
@@ -38,25 +39,31 @@ class BaseClassification(abc.ABC):
         """
         raise NotImplementedError
 
-    def get_response(self, request: HttpRequest) -> HttpResponse:
+    def get_response(self, request: HttpRequest) -> HttpResponseBase:
         """Parse the request and return a response."""
         raise NotImplementedError
 
 
 class PluginClassification(BaseClassification):
+    plugin_prefix = "/plugins/"
+    """Prefix for plugin requests."""
+
     def should_operate(self, request: HttpRequest) -> bool:
+        is_plugin = request.path.startswith(self.plugin_prefix)
+        if not is_plugin:
+            return False
         rp = PluginRequestParser(request=request, response_handler=self.response_handler)
         return rp.should_operate()
 
-    def get_response(self, request: HttpRequest) -> HttpResponse:
+    def get_response(self, request: HttpRequest) -> HttpResponseBase:
         rp = PluginRequestParser(request=request, response_handler=self.response_handler)
         return rp.get_response()
 
 
 class IntegrationClassification(BaseClassification):
-    integration_prefix: str = "/extensions/"
+    integration_prefix = "/extensions/"
     """Prefix for all integration requests. See `src/sentry/web/urls.py`"""
-    setup_suffix: str = "/setup/"
+    setup_suffix = "/setup/"
     """Suffix for PipelineAdvancerView on installation. See `src/sentry/web/urls.py`"""
     logger = logging.getLogger(f"{__name__}.integration")
     active_parsers: List[Type[BaseRequestParser]] = [
@@ -86,14 +93,14 @@ class IntegrationClassification(BaseClassification):
         if not result:
             self.logger.error("invalid_provider", extra={"path": request.path})
             return None
-        return result.group(1)
+        return result[1]
 
     def should_operate(self, request: HttpRequest) -> bool:
-        is_integration = request.path.startswith(self.integration_prefix)
-        is_not_setup = not request.path.endswith(self.setup_suffix)
-        return is_integration and is_not_setup
+        return request.path.startswith(self.integration_prefix) and not request.path.endswith(
+            self.setup_suffix
+        )
 
-    def get_response(self, request: HttpRequest) -> HttpResponse:
+    def get_response(self, request: HttpRequest) -> HttpResponseBase:
         provider = self._identify_provider(request)
         if not provider:
             return self.response_handler(request)
