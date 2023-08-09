@@ -4,6 +4,7 @@ from urllib.parse import urlencode
 
 from django.core import signing
 from django.urls import reverse
+from sentry_sdk.api import capture_exception
 
 from sentry import options
 from sentry.models import User
@@ -50,10 +51,15 @@ def process_signature(request, max_age=60 * 60 * 24 * 10):
     if not sig or sig.count(":") < 2:
         return None
 
-    signed_data = "{}|{}|{}".format(request.build_absolute_uri("/").rstrip("/"), request.path, sig)
+    request_absolute_uri = request.build_absolute_uri("/").rstrip("/")
+    request_path = request.path
+    signed_data = f"{request_absolute_uri}|{request_path}|{sig}"
     try:
         data = get_signer().unsign(signed_data, max_age=max_age)
-    except signing.BadSignature:
+    except signing.BadSignature as e:
+        # We should plan on removing this after debugging the current issue -- it is an 'expected' exception and not
+        # actually exceptional.
+        capture_exception(e)
         return None
 
     _, signed_path, user_id = data.rsplit("|", 2)

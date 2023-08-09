@@ -180,22 +180,36 @@ def _try_handle_high_volume_task_trigger(ts: datetime):
     reference_datetime = ts.replace(second=0, microsecond=0)
     reference_ts = int(reference_datetime.timestamp())
 
-    # Since GETSET is atomic this acts as a guard against another consumer
-    # picking up the minute rollover
+    precheck_last_ts = redis_client.get(HIGH_VOLUME_LAST_TRIGGER_TS_KEY)
+    if precheck_last_ts is not None:
+        precheck_last_ts = int(precheck_last_ts)
+
+    # If we have the same or an older reference timestamp from the most recent
+    # tick there is nothing to do, we've already handled this tick.
+    #
+    # The scenario where the reference_ts is older is likely due to a partition
+    # being slightly behind another partition that we've already read from
+    if precheck_last_ts is not None and precheck_last_ts >= reference_ts:
+        return
+
+    # GETSET is atomic. This is critical to avoid another consumer also
+    # processing the same tick.
     last_ts = redis_client.getset(HIGH_VOLUME_LAST_TRIGGER_TS_KEY, reference_ts)
     if last_ts is not None:
         last_ts = int(last_ts)
 
-    # Do nothing until the message we process moves across the minute boundary
-    if last_ts == reference_ts:
+    # Another consumer already handled the tick if the first LAST_TRIGGERED
+    # timestamp we got is different from the one we just got from the GETSET.
+    # Nothing needs to be done
+    if precheck_last_ts != last_ts:
         return
 
     # Track the delay from the true time, ideally this should be pretty
     # close, but in the case of a backlog, this will be much higher
-    total_delay = reference_ts - datetime.now().timestamp()
+    total_delay = datetime.now().timestamp()
 
-    metrics.incr("monitors.task.triggered_via_high_volume_clock")
-    metrics.gauge("monitors.task.high_volume_clock_delay", total_delay)
+    logger.info(f"Monitor consumer clock tick: {reference_datetime}")
+    metrics.gauge("monitors.task.high_volume_clock_delay", total_delay, sample_rate=1.0)
 
     # If more than exactly a minute has passed then we've skipped a
     # task run, report that to sentry, it is a problem.
