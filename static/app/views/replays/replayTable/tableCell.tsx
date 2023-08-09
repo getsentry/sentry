@@ -349,8 +349,7 @@ const Count = styled('span')`
 
 const DeadRageCount = styled(Count)`
   display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
+  width: 40px;
 `;
 
 const ErrorCount = styled(Count)`
