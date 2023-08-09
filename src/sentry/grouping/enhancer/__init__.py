@@ -147,9 +147,10 @@ class Enhancements:
         """
         in_memory_cache: dict[str, str] = {}
 
-        match_frames, frames_fingerprint = _matching_frames_and_fingerprint(frames, platform)
+        # Matching frames are used for matching rules
+        match_frames = [create_match_frame(frame, platform) for frame in frames]
         stacktrace_fingerprint = _generate_stacktrace_fingerprint(
-            frames_fingerprint, self._modifier_rules, platform, stacktrace_container
+            match_frames, stacktrace_container, self._modifier_rules, platform
         )
         # The most expensive part of creating groups is applying the rules to frames (next code block)
         # We include the rules fingerprint to make sure that the set of rules are still the same
@@ -578,69 +579,38 @@ def _cache_changed_frame_values(
     )
 
 
-def _matching_frames_and_fingerprint(
-    frames: Sequence[dict[str, Any]], platform: str
-) -> tuple[list[dict[str, Any]], str]:
-    """Return mock frames which are used for matching rules and a fingerprint representing the stacktrace."""
-    matched_frames = []
-    hashing_failure = False
-    stacktrace_hash = md5()
-    stacktrace_fingerprint = ""
-    for frame in frames:
-        match_frame = create_match_frame(frame, platform)
-        matched_frames.append(match_frame)
-
-        try:
-            # We create the hash based on the match_frame since it does not
-            # contain values like the `vars` which is not necessary for grouping
-            hash_value(stacktrace_hash, match_frame)
-        except TypeError:
-            hashing_failure = True
-            # This will create an error in Sentry and help us evaluate why it failed
-            logger.exception(
-                "Frame hashing failure. Investigate and fix.",
-                extra={"frame": frame, "platform": platform},
-            )
-
-    if not hashing_failure:
-        stacktrace_fingerprint = stacktrace_hash.hexdigest()
-    # This will help us calculate the ratio of success to failure stacktrace fingerprint calculation
-    # This will also track how many stacktraces are processed (rather than number of groups)
-    metrics.incr(
-        "save_event.stacktrace.fingerprint",
-        tags={"hashing_failure": hashing_failure, "platform": platform},
-    )
-
-    return (matched_frames, stacktrace_fingerprint)
-
-
 def _generate_stacktrace_fingerprint(
-    frames_fingerprint: str,
+    stacktrace_match_frames: Sequence[dict[str, Any]],
+    stacktrace_container: dict[str, Any],
     rules: Sequence[Rule],
     platform: str,
-    stacktrace_container: dict[str, Any],
 ) -> str:
-    """Create a fingerprint for the complete stacktrace + the rules used."""
+    """Create a fingerprint for the complete stacktrace + the rules used. Empty string if unsuccesful."""
     stacktrace_fingerprint = ""
-    stacktrace_hash = md5()
     try:
+        stacktrace_frames_fingerprint = _generate_match_frames_fingerprint(stacktrace_match_frames)
         rules_fingerprint = _generate_rules_fingerprint(rules, platform)
+        # Hash of the three components involved for fingerprinting a stacktrace
+        stacktrace_hash = md5()
         hash_value(
             stacktrace_hash,
             (
-                frames_fingerprint,
-                rules_fingerprint,
+                stacktrace_frames_fingerprint,
                 stacktrace_container.get("type", ""),
                 stacktrace_container.get("value", ""),
+                rules_fingerprint,
             ),
         )
-        if stacktrace_hash:
-            stacktrace_fingerprint = stacktrace_hash.hexdigest()
-    except Exception:
+
+        stacktrace_fingerprint = stacktrace_hash.hexdigest()
+    except Exception as e:
         # This will create an error in Sentry and help us evaluate why it failed
         logger.exception(
             "Stacktrace hashing failure. Investigate and fix.", extra={"platform": platform}
         )
+        # We want tests to fail to prevent breaking the caching system without noticing
+        if os.environ.get("PYTEST_CURRENT_TEST"):
+            raise e
 
     # This will help us calculate the success ratio for fingerprint calculation
     metrics.incr(
@@ -650,27 +620,28 @@ def _generate_stacktrace_fingerprint(
             "platform": platform,
         },
     )
-
     return stacktrace_fingerprint
 
 
+def _generate_match_frames_fingerprint(match_frames: Sequence[dict[str, Any]]) -> str:
+    """Fingerprint representing the stacktrace frames. Raises error if it fails."""
+    stacktrace_hash = md5()
+    for match_frame in match_frames:
+        # We create the hash based on the match_frame since it does not
+        # contain values like the `vars` which is not necessary for grouping
+        hash_value(stacktrace_hash, match_frame)
+
+    return stacktrace_hash.hexdigest()
+
+
 def _generate_rules_fingerprint(rules: Sequence[Rule], platform: str) -> str:
-    """Return empty string or fingerprint representing this list of rules."""
-    hashing_failure = False
+    """Fingerprint representing this list of rules. Raises error if it fails."""
     rules_hash = md5()
-    rules_fingerprint = ""
     for rule in rules:
         rule_serialized = rule.serialized()
         hash_value(rules_hash, rule_serialized)
 
-    if not hashing_failure:
-        rules_fingerprint = rules_hash.hexdigest()
-    # This will help us calculate the ratio of success to rules fingerprint calculation
-    metrics.incr(
-        "save_event.rules.fingerprint",
-        tags={"hashing_failure": hashing_failure, "platform": platform},
-    )
-    return rules_fingerprint
+    return rules_hash.hexdigest()
 
 
 def _load_configs():
