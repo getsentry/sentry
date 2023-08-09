@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass
 from typing import Mapping, Optional, TypedDict
 
@@ -46,8 +45,7 @@ class Span:
 
     @classmethod
     def key(cls, version: int, project_id: int, trace_id: str, span_id: str) -> str:
-        identifier = hashlib.md5(f"{project_id}:{trace_id}:{span_id}".encode()).hexdigest()
-        return f"s:{version}:{identifier}"
+        return f"s:{version}:{project_id}:{trace_id}:{span_id}"
 
     def save(self) -> None:
         nodestore.backend.set(
