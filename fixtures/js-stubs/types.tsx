@@ -1,4 +1,4 @@
-import {EntryException, ReleaseMeta} from 'sentry/types';
+import {EntryException, Member, ReleaseMeta} from 'sentry/types';
 import type {
   ReplayError,
   ReplayListRecord,
@@ -92,7 +92,7 @@ type TestStubFixtures = {
   MOCK_RESP_PLACEHOLDERS: MockRuleCondition;
   MOCK_RESP_VERBOSE: MockRuleCondition;
   Member: OverridableStub;
-  Members: OverridableStubList;
+  Members: OverridableStubList<Member>;
   MetricRule: OverridableStub;
   MetricsField: OverridableStub;
   MetricsMeta: OverridableStub;
