@@ -18,6 +18,7 @@ import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggesti
 import PlatformPicker, {Platform} from 'sentry/components/platformPicker';
 import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
 import TeamSelector from 'sentry/components/teamSelector';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -358,14 +359,19 @@ function CreateProject() {
           </div>
         )}
         <div>
-          <Button
-            type="submit"
-            data-test-id="create-project"
-            priority="primary"
-            disabled={!canSubmitForm}
+          <Tooltip
+            title={t('Please provide a project name')}
+            disabled={Boolean(canSubmitForm)}
           >
-            {t('Create Project')}
-          </Button>
+            <Button
+              type="submit"
+              data-test-id="create-project"
+              priority="primary"
+              disabled={!canSubmitForm}
+            >
+              {t('Create Project')}
+            </Button>
+          </Tooltip>
         </div>
       </CreateProjectForm>
     </Fragment>
