@@ -5,7 +5,12 @@ from difflib import unified_diff
 from typing import Dict, Tuple
 
 from sentry.backup.comparators import DEFAULT_COMPARATORS, ComparatorMap
-from sentry.backup.findings import ComparatorFinding, ComparatorFindings, InstanceID
+from sentry.backup.findings import (
+    ComparatorFinding,
+    ComparatorFindingKind,
+    ComparatorFindings,
+    InstanceID,
+)
 from sentry.backup.helpers import Side
 from sentry.utils.json import JSONData, JSONEncoder, better_default_encoder
 
@@ -44,7 +49,7 @@ def validate(
             else:
                 findings.append(
                     ComparatorFinding(
-                        kind="UnorderedInput",
+                        kind=ComparatorFindingKind.UnorderedInput,
                         on=InstanceID(model, self.next_ordinal),
                         left_pk=pk if side == Side.left else None,
                         right_pk=pk if side == Side.right else None,
@@ -99,7 +104,7 @@ def validate(
         if left_count != right_count:
             findings.append(
                 ComparatorFinding(
-                    kind="UnequalCounts",
+                    kind=ComparatorFindingKind.UnequalCounts,
                     on=InstanceID(model_name),
                     reason=f"""counted {left_count} left entries and {right_count} right entries""",
                 )
@@ -140,7 +145,7 @@ def validate(
         if diff:
             findings.append(
                 ComparatorFinding(
-                    kind="UnequalJSON",
+                    kind=ComparatorFindingKind.UnequalJSON,
                     on=id,
                     left_pk=left["pk"],
                     right_pk=right["pk"],

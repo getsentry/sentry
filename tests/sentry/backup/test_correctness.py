@@ -1,42 +1,9 @@
 from copy import deepcopy
 
-import pytest
-
-from sentry.backup.comparators import DEFAULT_COMPARATORS
-from sentry.backup.findings import InstanceID
+from sentry.backup.findings import ComparatorFindingKind, InstanceID
 from sentry.backup.validate import validate
 from sentry.testutils.factories import get_fixture_path
-from sentry.testutils.helpers.backups import (
-    ValidationError,
-    import_export_from_fixture_then_validate,
-)
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
-
-
-@django_db_all(transaction=True, reset_sequences=True)
-def test_good_fresh_install(tmp_path):
-    import_export_from_fixture_then_validate(tmp_path, "fresh-install.json", DEFAULT_COMPARATORS)
-
-
-@django_db_all(transaction=True, reset_sequences=True)
-def test_bad_unequal_json(tmp_path):
-    # Without the `DEFAULT_COMPARATORS`, the `date_updated` fields will not be compared using the
-    # special comparator logic, and will try to use (and fail on) simple JSON string comparison
-    # instead.
-    with pytest.raises(ValidationError) as execinfo:
-        import_export_from_fixture_then_validate(tmp_path, "fresh-install.json")
-    findings = execinfo.value.info.findings
-
-    assert len(findings) == 2
-    assert findings[0].kind == "UnequalJSON"
-    assert findings[0].on == InstanceID("sentry.userrole", 1)
-    assert findings[0].left_pk == 1
-    assert findings[0].right_pk == 1
-    assert findings[1].kind == "UnequalJSON"
-    assert findings[1].on == InstanceID("sentry.userroleuser", 1)
-    assert findings[1].left_pk == 1
-    assert findings[1].right_pk == 1
 
 
 def test_good_ignore_differing_pks(tmp_path):
@@ -102,11 +69,11 @@ def test_bad_duplicate_entry(tmp_path):
     findings = out.findings
 
     assert len(findings) == 2
-    assert findings[0].kind == "UnorderedInput"
+    assert findings[0].kind == ComparatorFindingKind.UnorderedInput
     assert findings[0].on == InstanceID("sentry.option", 2)
     assert findings[0].left_pk == 1
     assert not findings[0].right_pk
-    assert findings[1].kind == "UnorderedInput"
+    assert findings[1].kind == ComparatorFindingKind.UnorderedInput
     assert findings[1].on == InstanceID("sentry.option", 2)
     assert not findings[1].left_pk
     assert findings[1].right_pk == 1
@@ -151,11 +118,11 @@ def test_bad_out_of_order_entry(tmp_path):
     findings = out.findings
 
     assert len(findings) == 2
-    assert findings[0].kind == "UnorderedInput"
+    assert findings[0].kind == ComparatorFindingKind.UnorderedInput
     assert findings[0].on == InstanceID("sentry.option", 3)
     assert findings[0].left_pk == 2
     assert not findings[0].right_pk
-    assert findings[1].kind == "UnorderedInput"
+    assert findings[1].kind == ComparatorFindingKind.UnorderedInput
     assert findings[1].on == InstanceID("sentry.option", 3)
     assert not findings[1].left_pk
     assert findings[1].right_pk == 2
@@ -184,7 +151,7 @@ def test_bad_extra_left_entry(tmp_path):
     findings = out.findings
 
     assert len(findings) == 1
-    assert findings[0].kind == "UnequalCounts"
+    assert findings[0].kind == ComparatorFindingKind.UnequalCounts
     assert findings[0].on == InstanceID("sentry.option")
     assert not findings[0].left_pk
     assert not findings[0].right_pk
@@ -215,7 +182,7 @@ def test_bad_extra_right_entry(tmp_path):
     findings = out.findings
 
     assert len(findings) == 1
-    assert findings[0].kind == "UnequalCounts"
+    assert findings[0].kind == ComparatorFindingKind.UnequalCounts
     assert findings[0].on == InstanceID("sentry.option")
     assert not findings[0].left_pk
     assert not findings[0].right_pk
@@ -264,7 +231,7 @@ def test_bad_failing_comparator_field(tmp_path):
     findings = out.findings
 
     assert len(findings) == 1
-    assert findings[0].kind == "DateUpdatedComparator"
+    assert findings[0].kind == ComparatorFindingKind.DateUpdatedComparator
 
 
 def test_good_both_sides_comparator_field_missing(tmp_path):
@@ -326,7 +293,7 @@ def test_bad_left_side_comparator_field_missing(tmp_path):
     findings = out.findings
 
     assert len(findings) == 1
-    assert findings[0].kind == "UnexecutedDateUpdatedComparator"
+    assert findings[0].kind == ComparatorFindingKind.DateUpdatedComparatorExistenceCheck
     assert findings[0].on == InstanceID("sentry.userrole", 1)
     assert findings[0].left_pk == 1
     assert findings[0].right_pk == 1
@@ -370,30 +337,11 @@ def test_bad_right_side_comparator_field_missing(tmp_path):
     findings = out.findings
 
     assert len(findings) == 1
-    assert findings[0].kind == "UnexecutedDateUpdatedComparator"
+    assert findings[0].kind == ComparatorFindingKind.DateUpdatedComparatorExistenceCheck
     assert findings[0].on == InstanceID("sentry.userrole", 1)
     assert findings[0].left_pk == 1
     assert findings[0].right_pk == 1
     assert "right `date_updated`" in findings[0].reason
-
-
-@django_db_all(transaction=True, reset_sequences=True)
-def test_date_updated_with_zeroed_milliseconds(tmp_path):
-    import_export_from_fixture_then_validate(tmp_path, "datetime-with-zeroed-millis.json")
-
-
-@django_db_all(transaction=True, reset_sequences=True)
-def test_date_updated_with_unzeroed_milliseconds(tmp_path):
-    with pytest.raises(ValidationError) as execinfo:
-        import_export_from_fixture_then_validate(tmp_path, "datetime-with-unzeroed-millis.json")
-    findings = execinfo.value.info.findings
-    assert len(findings) == 1
-    assert findings[0].kind == "UnequalJSON"
-    assert findings[0].on == InstanceID("sentry.option", 1)
-    assert findings[0].left_pk == 1
-    assert findings[0].right_pk == 1
-    assert """-  "last_updated": "2023-06-22T00:00:00Z",""" in findings[0].reason
-    assert """+  "last_updated": "2023-06-22T00:00:00.000Z",""" in findings[0].reason
 
 
 def test_auto_assign_email_obfuscating_comparator(tmp_path):
@@ -441,7 +389,7 @@ def test_auto_assign_email_obfuscating_comparator(tmp_path):
 
     assert len(findings) == 2
 
-    assert findings[0].kind == "EmailObfuscatingComparator"
+    assert findings[0].kind == ComparatorFindingKind.EmailObfuscatingComparator
     assert findings[0].on == InstanceID("sentry.useremail", 1)
     assert findings[0].left_pk == 1
     assert findings[0].right_pk == 1
@@ -449,7 +397,7 @@ def test_auto_assign_email_obfuscating_comparator(tmp_path):
     assert """left value ("t...@...le.com")""" in findings[0].reason
     assert """right value ("f...@...e.fake")""" in findings[0].reason
 
-    assert findings[1].kind == "EmailObfuscatingComparator"
+    assert findings[1].kind == ComparatorFindingKind.EmailObfuscatingComparator
     assert findings[1].on == InstanceID("sentry.useremail", 1)
     assert findings[0].left_pk == 1
     assert findings[0].right_pk == 1

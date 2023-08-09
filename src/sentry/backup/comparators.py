@@ -6,7 +6,7 @@ from typing import Callable, Dict, List, Literal
 from dateutil import parser
 from django.db import models
 
-from sentry.backup.findings import ComparatorFinding, InstanceID
+from sentry.backup.findings import ComparatorFinding, ComparatorFindingKind, InstanceID
 from sentry.backup.helpers import Side, get_exportable_final_derivations_of
 from sentry.db.models import BaseModel
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
@@ -59,7 +59,7 @@ class JSONScrubbingComparator(ABC):
             if f not in left["fields"]:
                 findings.append(
                     ComparatorFinding(
-                        kind="Unexecuted" + self.get_kind(),
+                        kind=self.get_kind_existence_check(),
                         on=on,
                         left_pk=left["pk"],
                         right_pk=right["pk"],
@@ -69,7 +69,7 @@ class JSONScrubbingComparator(ABC):
             if f not in right["fields"]:
                 findings.append(
                     ComparatorFinding(
-                        kind="Unexecuted" + self.get_kind(),
+                        kind=self.get_kind_existence_check(),
                         on=on,
                         left_pk=left["pk"],
                         right_pk=right["pk"],
@@ -110,7 +110,7 @@ class JSONScrubbingComparator(ABC):
                 value = side["fields"][field]
                 value = [value] if isinstance(value, str) else value
                 del side["fields"][field]
-                side["scrubbed"][f"{self.get_kind()}::{field}"] = f(value)
+                side["scrubbed"][f"{self.get_kind().name}::{field}"] = f(value)
 
     def scrub(
         self,
@@ -119,11 +119,18 @@ class JSONScrubbingComparator(ABC):
     ) -> None:
         self.__scrub__(left, right)
 
-    def get_kind(self) -> str:
+    def get_kind(self) -> ComparatorFindingKind:
         """A unique identifier for this particular derivation of JSONScrubbingComparator, which will
         be bubbled up in ComparatorFindings when they are generated."""
 
-        return self.__class__.__name__
+        return ComparatorFindingKind.__members__[self.__class__.__name__]
+
+    def get_kind_existence_check(self) -> ComparatorFindingKind:
+        """A unique identifier for the existence check of this particular derivation of
+        JSONScrubbingComparator, which will be bubbled up in ComparatorFindings when they are
+        generated."""
+
+        return ComparatorFindingKind.__members__[self.__class__.__name__ + "ExistenceCheck"]
 
 
 class DateUpdatedComparator(JSONScrubbingComparator):
@@ -154,7 +161,7 @@ class DateUpdatedComparator(JSONScrubbingComparator):
         return []
 
 
-class DateAddedComparator(JSONScrubbingComparator):
+class DatetimeEqualityComparator(JSONScrubbingComparator):
     """Some exports from before sentry@23.7.1 may trim milliseconds from timestamps if they end in
     exactly `.000` (ie, not milliseconds at all - what are the odds!). Because comparisons may fail
     in this case, we use a special comparator for these cases."""
@@ -280,13 +287,15 @@ def auto_assign_date_added_comparator(comps: ComparatorMap) -> None:
                     assign.add(f.name)
 
         if name in comps:
-            found = next(filter(lambda e: isinstance(e, DateAddedComparator), comps[name]), None)
+            found = next(
+                filter(lambda e: isinstance(e, DatetimeEqualityComparator), comps[name]), None
+            )
             if found:
                 found.fields.update(assign)
             else:
-                comps[name].append(DateAddedComparator(*assign))
+                comps[name].append(DatetimeEqualityComparator(*assign))
         else:
-            comps[name] = [DateAddedComparator(*assign)]
+            comps[name] = [DatetimeEqualityComparator(*assign)]
 
 
 def auto_assign_email_obfuscating_comparator(comps: ComparatorMap) -> None:

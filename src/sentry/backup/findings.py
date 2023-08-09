@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum, unique
 from typing import NamedTuple
 
 
@@ -21,17 +22,58 @@ class InstanceID(NamedTuple):
         return out + ")"
 
 
+@unique
+class ComparatorFindingKind(Enum):
+    # The instances of a particular model did not maintain total ordering of pks (that is, pks did not appear in ascending order, or appear multiple times).
+    UnorderedInput = 1
+
+    # The number of instances of a particular model on the left and right side of the input were not
+    # equal.
+    UnequalCounts = 2
+
+    # The JSON of two instances of a model, after certain fields have been scrubbed by all applicable comparators, were not byte-for-byte equivalent.
+    UnequalJSON = 3
+
+    # Two datetime fields were not equal.
+    DatetimeEqualityComparator = 4
+
+    # Failed to compare datetimes because one of the fields being compared was not present or
+    # `None`.
+    DatetimeEqualityComparatorExistenceCheck = 5
+
+    # The right side field's datetime value was not greater (ie, "newer") than the left side's.
+    DateUpdatedComparator = 6
+
+    # Failed to compare datetimes because one of the fields being compared was not present or
+    # `None`.
+    DateUpdatedComparatorExistenceCheck = 7
+
+    # Email equality comparison failed.
+    EmailObfuscatingComparator = 8
+
+    # Failed to compare emails because one of the fields being compared was not present or
+    # `None`.
+    EmailObfuscatingComparatorExistenceCheck = 9
+
+    # Hash equality comparison failed.
+    HashObfuscatingComparator = 10
+
+    # Failed to compare hashes because one of the fields being compared was not present or
+    # `None`.
+    HashObfuscatingComparatorExistenceCheck = 11
+
+
 class ComparatorFinding(NamedTuple):
     """Store all information about a single failed matching between expected and actual output."""
 
-    kind: str
+    kind: ComparatorFindingKind
     on: InstanceID
     left_pk: int | None = None
     right_pk: int | None = None
     reason: str = ""
 
     def pretty(self) -> str:
-        out = f"Finding(\n\tkind: {self.kind!r},\n\ton: {self.on.pretty()}"
+        out = f"Finding(\n\tkind: {self.kind.name},\n\ton: {self.on.pretty()}"
         if self.left_pk:
             out += f",\n\tleft_pk: {self.left_pk}"
         if self.right_pk:
