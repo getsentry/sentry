@@ -2302,6 +2302,69 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert field_meta["p50()"] == "duration"
         assert field_meta["count()"] == "integer"
 
+    def test_p75_with_count_and_more_groupby(self):
+        """Implicitly test the fact that percentiles are their own 'dataset'"""
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            5,
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            5,
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1,
+            metric="user",
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "title",
+                    "transaction",
+                    "project",
+                    "p75()",
+                    "count()",
+                    "count_unique(user)",
+                ],
+                "query": "event.type:transaction",
+                "orderby": "count()",
+                "dataset": "metrics",
+                "project": self.project.id,
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        meta = response.data["meta"]
+        field_meta = meta["fields"]
+
+        assert data[0]["title"] == "foo_transaction"
+        assert data[0]["p75()"] == 1
+        assert data[0]["count()"] == 1
+        assert data[0]["count_unique(user)"] == 0
+
+        assert data[1]["title"] == "bar_transaction"
+        assert data[1]["p75()"] == 5
+        assert data[1]["count()"] == 2
+        assert data[1]["count_unique(user)"] == 1
+
+        assert meta["isMetricsData"]
+        assert field_meta["title"] == "string"
+        assert field_meta["p75()"] == "duration"
+        assert field_meta["count()"] == "integer"
+        assert field_meta["count_unique(user)"] == "integer"
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
