@@ -76,7 +76,7 @@ export default function SourceMapsWizard({analyticsParams}: Props) {
         icon={<IconFlag size="xl" />}
         title={t("Sentry isn't Sentry without source maps")}
         description={tct(
-          "You're not a computer, so we don't expect you to understand minified code like [code]. Upload source maps with the Sentry Wizard to unlock readable stack traces and better error grouping. [link:Learn more]",
+          "You're not a computer, so why parse minified code? Upload source maps with the Sentry Wizard to unlock readable stack traces and better error grouping. [link:Learn more]",
           {
             link: (
               <ExternalLink
@@ -89,7 +89,6 @@ export default function SourceMapsWizard({analyticsParams}: Props) {
                 href="https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps"
               />
             ),
-            code: <code>a.f.x()</code>,
           }
         )}
       >
