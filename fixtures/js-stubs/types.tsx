@@ -1,4 +1,4 @@
-import {EntryException, ReleaseMeta} from 'sentry/types';
+import {EntryException, OrganizationIntegration, ReleaseMeta} from 'sentry/types';
 import type {
   ReplayError,
   ReplayListRecord,
@@ -102,7 +102,7 @@ type TestStubFixtures = {
   OrgRoleList: OverridableStub;
   Organization: OverridableStub;
   OrganizationEvent: OverridableStub;
-  OrganizationIntegrations: OverridableStub;
+  OrganizationIntegrations: OverridableStub<OrganizationIntegration>;
   Organizations: OverridableStub;
   Outcomes: SimpleStub;
   OutcomesWithLowProcessedEvents: SimpleStub;
