@@ -270,12 +270,12 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         ).delete()
 
     def remove_for_organization(
-        self, organization: Organization, type: NotificationSettingTypes | None = None
+        self, organization_id: int, type: NotificationSettingTypes | None = None
     ) -> None:
         """Bulk delete all Notification Settings for an ENTIRE ORGANIZATION, optionally by type."""
         self._filter(
             scope_type=NotificationScopeType.ORGANIZATION,
-            scope_identifier=organization.id,
+            scope_identifier=organization_id,
             type=type,
         ).delete()
 
