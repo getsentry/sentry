@@ -8,6 +8,7 @@ from sentry.snuba.metrics.extraction import (
     is_on_demand_metric_query,
     is_standard_metrics_compatible,
     query_tokens_to_string,
+    should_use_on_demand_metrics,
     to_standard_metrics_query,
 )
 
@@ -66,7 +67,10 @@ class TestIsOnDemandMetricQuery:
             is True
         )
 
-    def test_standard_comaptible_queries(self):
+    def test_standard_compatible_queries(self):
+        assert (
+            is_on_demand_metric_query(self.perf_metrics, "p75(transaction.duration)", "") is False
+        )
         assert is_on_demand_metric_query(self.perf_metrics, "count()", "") is False
         assert is_on_demand_metric_query(self.perf_metrics, "count()", "environment:dev") is False
         assert (
@@ -89,12 +93,75 @@ class TestIsOnDemandMetricQuery:
     def test_countif(self):
         assert (
             is_on_demand_metric_query(
-                self.perf_metrics, "count_if(transaction.duration,equals,300)", ""
+                self.perf_metrics, "count_if(geo.city.duration,equals,vienna)", ""
             )
             is True
         )
         assert (
             is_on_demand_metric_query(self.perf_metrics, 'count_if(release,equals,"foo")', "")
+            is False
+        )
+
+    def test_unsupported_aggregate_functions(self):
+        assert (
+            is_on_demand_metric_query(
+                self.perf_metrics, "failure_rate()", "transaction.duration:>=1"
+            )
+            is False
+        )
+        assert (
+            is_on_demand_metric_query(
+                self.perf_metrics, "count_unique(transaction.duration)", "transaction.duration:>=1"
+            )
+            is True
+        )
+        assert (
+            is_on_demand_metric_query(
+                self.perf_metrics, "min(transaction.duration)", "transaction.duration:>=1"
+            )
+            is False
+        )
+        assert (
+            is_on_demand_metric_query(
+                self.perf_metrics, "any(transaction.duration)", "transaction.duration:>=1"
+            )
+            is False
+        )
+
+    def test_unsupported_aggregate_fields(self):
+        assert (
+            is_on_demand_metric_query(self.perf_metrics, "message", "transaction.duration:>=1")
+            is False
+        )
+        assert (
+            is_on_demand_metric_query(self.perf_metrics, "title", "transaction.duration:>=1")
+            is False
+        )
+
+    def test_unsupported_operators(self):
+        assert (
+            is_on_demand_metric_query(self.perf_metrics, "count()", "transaction.duration:[1,2,3]")
+            is False
+        )
+        assert (
+            is_on_demand_metric_query(self.perf_metrics, "count()", "!transaction.duration:[1,2,3]")
+            is False
+        )
+
+    def test_unsupported_equations(self):
+        assert (
+            is_on_demand_metric_query(
+                self.perf_metrics, "equation|count() / count()", "transaction.duration:>0"
+            )
+            is False
+        )
+        assert (
+            is_on_demand_metric_query(self.perf_metrics, "equation|count() / count()", "") is False
+        )
+
+    def test_unsupported_aggregate_filter(self):
+        assert (
+            is_on_demand_metric_query(self.perf_metrics, "count()", "p75(measurements.fcp):>100")
             is False
         )
 
@@ -164,17 +231,50 @@ class TestIsStandardMetricsCompatible:
             is True
         )
 
-    def test_countif(self):
+    def test_count_if(self):
         assert (
             is_standard_metrics_compatible(
                 self.perf_metrics, "count_if(transaction.duration,equals,300)", ""
             )
-            is False
+            is True
         )
         assert (
             is_standard_metrics_compatible(self.perf_metrics, 'count_if(release,equals,"foo")', "")
             is True
         )
+
+
+# truth_table = [
+#     ('count()', 'release:a', 'standard'),
+#     ('failure_rate()', 'release:a', 'standard'),
+#     ('count_unique(geo.city)', 'release:a', 'on-demand'),
+#     ('count()', 'transaction.duration:>1', 'on-demand'),
+#     ('failure_rate()', 'transaction.duration:>1', 'indexed'),
+#     ('count_unique(geo.city)', 'transaction.duration:>1', 'on-demand'),
+# ]
+
+
+@pytest.mark.parametrize(
+    "agg, query, result",
+    [
+        ("count()", "release:a", False),  # supported by standard metrics
+        ("failure_rate()", "release:a", False),  # supported by standard metrics
+        ("count_unique(geo.city)", "release:a", True),  # geo.city not supported by standard metrics
+        (
+            "count()",
+            "transaction.duration:>1",
+            True,
+        ),  # transaction.duration not supported by standard metrics
+        ("failure_rate()", "transaction.duration:>1", False),  # has to fallback to indexed
+        (
+            "count_if(transaction.duration,equals,0)",
+            "release:a",
+            False,
+        ),  # count_if supported by standard metrics
+    ],
+)
+def test_should_use_on_demand(agg, query, result):
+    assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
 
 
 def test_spec_simple_query_count():

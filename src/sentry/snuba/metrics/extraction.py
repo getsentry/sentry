@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import re
+from dataclasses import dataclass
 from typing import (
     Any,
     Dict,
@@ -18,13 +19,14 @@ from typing import (
 from typing_extensions import NotRequired
 
 from sentry.api import event_search
-from sentry.api.event_search import ParenExpression, SearchFilter
+from sentry.api.event_search import AggregateFilter, ParenExpression, SearchFilter
+from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import fields
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.snuba.models import SnubaQuery
-from sentry.utils.snuba import resolve_column
+from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
 
 logger = logging.getLogger(__name__)
 
@@ -98,19 +100,29 @@ _COUNTIF_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
 # Maps plain Discover functions to metric aggregation functions. Derived metrics
 # are not part of this mapping.
 _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
+    "eps": "sum",
+    "epm": "sum",
+    "tps": "sum",
+    "tpm": "sum",
     "count": "sum",
     "count_if": "sum",
     "avg": "avg",
+    "min": "min",
     "max": "max",
     "p50": "p50",
     "p75": "p75",
     "p95": "p95",
     "p99": "p99",
+    "count_unique": "count_unique",
     # generic percentile is not supported by metrics layer.
 }
 
 # Mapping to infer metric type from Discover function.
 _AGGREGATE_TO_METRIC_TYPE = {
+    "eps": "c",
+    "epm": "c",
+    "tps": "c",
+    "tpm": "c",
     "count": "c",
     "count_if": "c",
     "avg": "d",
@@ -119,6 +131,7 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "p75": "d",
     "p95": "d",
     "p99": "d",
+    "count_unique": "s",
 }
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
@@ -218,21 +231,114 @@ def is_on_demand_metric_query(
     dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
 ) -> bool:
     """Returns ``True`` if the dataset is performance metrics and query contains non-standard search fields."""
+    return should_use_on_demand_metrics(dataset, aggregate, query)
+
+
+@dataclass(frozen=True)
+class SupportedBy:
+    """Result of a check for standard and on-demand metric support."""
+
+    standard_metrics: bool
+    on_demand_metrics: bool
+
+    @classmethod
+    def neither(cls):
+        return cls(standard_metrics=False, on_demand_metrics=False)
+
+    @classmethod
+    def both(cls):
+        return cls(standard_metrics=True, on_demand_metrics=True)
+
+
+def should_use_on_demand_metrics(
+    dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
+) -> bool:
+    """On-demand metrics are used if the aggregate and query are supported by on-demand metrics but not standard"""
 
     if not dataset or Dataset(dataset) != Dataset.PerformanceMetrics:
         return False
 
-    if is_standard_metrics_compatible(dataset, aggregate, query):
-        return False
+    supported_by = get_supported_by(aggregate, query)
 
-    for field in _get_aggregate_fields(aggregate):
-        if not _is_on_demand_supported_field(field):
-            return False
+    return not supported_by.standard_metrics and supported_by.on_demand_metrics
+
+
+def get_supported_by(aggregate: str, query: Optional[str] = ""):
+    aggregate_supported_by = _get_aggregate_supported_by(aggregate)
+    query_supported_by = _get_query_supported_by(query)
+
+    standard_metrics = (
+        aggregate_supported_by.standard_metrics and query_supported_by.standard_metrics
+    )
+    on_demand_metrics = (
+        aggregate_supported_by.on_demand_metrics and query_supported_by.on_demand_metrics
+    )
+
+    return SupportedBy(standard_metrics=standard_metrics, on_demand_metrics=on_demand_metrics)
+
+
+def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
     try:
-        return _is_on_demand_supported_query(event_search.parse_search_query(query))
+        if is_equation(aggregate):
+            # TODO(Ogi): Implement support for equations
+            return SupportedBy.neither()
+
+        function, args, _ = fields.parse_function(aggregate)
+
+        return _get_fn_supported_by(function, args)
+
+    except InvalidSearchQuery:
+        logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)
+
+    return SupportedBy.neither()
+
+
+def _get_fn_supported_by(function: str, args: Sequence[str]) -> SupportedBy:
+    fn_support = _get_fn_support(function)
+    args_support = _get_args_support(args)
+
+    standard_metrics = fn_support.standard_metrics and args_support.standard_metrics
+    on_demand_metrics = fn_support.on_demand_metrics and args_support.on_demand_metrics
+
+    return SupportedBy(standard_metrics=standard_metrics, on_demand_metrics=on_demand_metrics)
+
+
+def _get_fn_support(function: str) -> SupportedBy:
+    standard_metrics, on_demand_metrics = False, False
+
+    if function in _SEARCH_TO_METRIC_AGGREGATES and function in _AGGREGATE_TO_METRIC_TYPE:
+        on_demand_metrics = True
+
+    # TODO(Ogi): Find an allow list of functions that can be supported by standard metrics
+    if function in _SEARCH_TO_METRIC_AGGREGATES or function in ["failure_rate, apdex"]:
+        standard_metrics = True
+
+    return SupportedBy(standard_metrics=standard_metrics, on_demand_metrics=on_demand_metrics)
+
+
+def _get_args_support(args: Sequence[str]) -> SupportedBy:
+    if len(args) == 0:
+        return SupportedBy.both()
+
+    arg = args[0]
+
+    standard_metrics = _is_standard_metrics_field(arg) or arg == "transaction.duration"
+    on_demand_metrics = _is_on_demand_supported_field(arg)
+
+    return SupportedBy(standard_metrics=standard_metrics, on_demand_metrics=on_demand_metrics)
+
+
+def _get_query_supported_by(query: Optional[str]) -> SupportedBy:
+    try:
+        parsed_query = event_search.parse_search_query(query)
+
+        standard_metrics = _is_standard_metrics_query(parsed_query)
+        on_demand_metrics = _is_on_demand_supported_query(parsed_query)
+
+        return SupportedBy(standard_metrics=standard_metrics, on_demand_metrics=on_demand_metrics)
     except InvalidSearchQuery:
         logger.error(f"Failed to parse search query: {query}", exc_info=True)
-        return False
+        return SupportedBy.neither()
 
 
 def is_standard_metrics_compatible(
@@ -243,14 +349,7 @@ def is_standard_metrics_compatible(
     if not dataset or Dataset(dataset) not in [Dataset.Metrics, Dataset.PerformanceMetrics]:
         return False
 
-    for field in _get_aggregate_fields(aggregate):
-        if not _is_standard_metrics_field(field):
-            return False
-    try:
-        return _is_standard_metrics_query(event_search.parse_search_query(query))
-    except InvalidSearchQuery:
-        logger.error(f"Failed to parse search query: {query}", exc_info=True)
-        return False
+    return get_supported_by(aggregate, query).standard_metrics
 
 
 def _get_aggregate_fields(aggregate: str) -> Sequence[str]:
@@ -293,6 +392,46 @@ def _is_standard_metrics_search_filter(token: QueryToken) -> bool:
         return _is_standard_metrics_query(token.children)
 
     return True
+
+
+def _is_on_demand_supported_query(tokens: Sequence[QueryToken]) -> bool:
+    """
+    Recursively checks if any of the supplied token contain search filters that can't be handled by standard metrics.
+    """
+
+    for token in tokens:
+        if not _is_on_demand_supported_search_filter(token):
+            return False
+
+    return True
+
+
+def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
+    if isinstance(token, AggregateFilter):
+        return False
+
+    if isinstance(token, SearchFilter):
+        if not _SEARCH_TO_RELAY_OPERATORS.get(token.operator):
+            return False
+
+        return _is_on_demand_supported_field(token.key.name)
+
+    if isinstance(token, ParenExpression):
+        return _is_on_demand_supported_query(token.children)
+
+    return True
+
+
+def _is_standard_metrics_field(field: str) -> bool:
+    return field in _STANDARD_METRIC_FIELDS or is_measurement(field) or is_span_op_breakdown(field)
+
+
+def _is_on_demand_supported_field(field: str) -> bool:
+    try:
+        _map_field_name(field)
+        return True
+    except ValueError:
+        return False
 
 
 def to_standard_metrics_query(query: str) -> str:
@@ -417,40 +556,6 @@ def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
         ret_val.append(previous_token)
 
     return ret_val
-
-
-def _is_on_demand_supported_query(tokens: Sequence[QueryToken]) -> bool:
-    """
-    Recursively checks if any of the supplied token contain search filters that can't be handled by standard metrics.
-    """
-
-    for token in tokens:
-        if not _is_on_demand_supported_search_filter(token):
-            return False
-
-    return True
-
-
-def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
-    if isinstance(token, SearchFilter):
-        return _is_on_demand_supported_field(token.key.name)
-
-    if isinstance(token, ParenExpression):
-        return _is_on_demand_supported_query(token.children)
-
-    return True
-
-
-def _is_standard_metrics_field(field: str) -> bool:
-    return field in _STANDARD_METRIC_FIELDS
-
-
-def _is_on_demand_supported_field(field: str) -> bool:
-    try:
-        _map_field_name(field)
-        return True
-    except ValueError:
-        return False
 
 
 class OndemandMetricSpec:
