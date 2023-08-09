@@ -81,7 +81,7 @@ class ConfigOptionsTest(CliTestCase):
             assert not options.isset("list_option")
 
         def assert_output(rv):
-            assert rv.exit_code == 1, rv.output
+            assert rv.exit_code == 2, rv.output
 
             # The script produces log lines when DRIFT is detected. This
             # makes it easier to surface these as Sentry errors.
@@ -137,7 +137,7 @@ class ConfigOptionsTest(CliTestCase):
             ).read_text(),
         )
 
-        assert rv.exit_code == 1
+        assert rv.exit_code == 2
         assert options.get("int_option") == 40
         assert options.get("str_option") == "new value"
         assert options.get("map_option") == {
@@ -153,7 +153,7 @@ class ConfigOptionsTest(CliTestCase):
             "tests/sentry/runner/commands/valid_patch.yaml",
             "sync",
         )
-        assert rv.exit_code == 1, rv.output
+        assert rv.exit_code == 2, rv.output
         expected_output = "\n".join(
             [
                 ConsolePresenter.DRIFT_MSG % "drifted_option",
@@ -190,7 +190,7 @@ class ConfigOptionsTest(CliTestCase):
             "patch",
         )
 
-        assert rv.exit_code == 1, rv.output
+        assert rv.exit_code == 2, rv.output
 
         assert ConsolePresenter.SET_MSG % ("int_option", 50) in rv.output
         assert (
