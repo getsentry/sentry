@@ -105,7 +105,7 @@ class OAuthRevokeTest(TestCase):
         with pytest.raises(ApiToken.DoesNotExist):
             ApiToken.objects.get(id=self.tokens[3].id)
 
-    def test_400_without_token(self):
+    def test_missing_token(self):
         resp = self.client.post(
             self.path,
             data={
@@ -114,3 +114,48 @@ class OAuthRevokeTest(TestCase):
             },
         )
         assert resp.status_code == 400
+        assert resp.json()["error"] == "invalid_request"
+        assert resp.json()["error_description"] == "token parameter not found"
+
+    def test_missing_client_id(self):
+        resp = self.client.post(
+            self.path,
+            data={
+                "client_secret": self.application.client_secret,
+                "token_type_hint": "access_token",  # provided access_token hint
+                "token": self.tokens[0].token,  # access_token
+            },
+        )
+        assert resp.status_code == 400
+        assert resp.json()["error"] == "invalid_client"
+        assert resp.json()["error_description"] == "client_id parameter not found"
+
+    def test_missing_client_secret(self):
+        resp = self.client.post(
+            self.path,
+            data={
+                "client_id": self.application.client_id,
+                "token_type_hint": "access_token",  # provided access_token hint
+                "token": self.tokens[0].token,  # access_token
+            },
+        )
+        assert resp.status_code == 400
+        assert resp.json()["error"] == "invalid_client"
+        assert resp.json()["error_description"] == "client_secret parameter not found"
+
+    def test_unsupported_token_type(self):
+        resp = self.client.post(
+            self.path,
+            data={
+                "client_id": self.application.client_id,
+                "client_secret": self.application.client_secret,
+                "token_type_hint": "lorem_ipsum_dolor",  # provided access_token hint
+                "token": self.tokens[0].token,  # access_token
+            },
+        )
+        assert resp.status_code == 400
+        assert resp.json()["error"] == "unsupported_token_type"
+        assert (
+            resp.json()["error_description"]
+            == "an unsupported token_type_hint was provided, must be either 'access_token' or 'refresh_token'"
+        )

@@ -31,7 +31,7 @@ class OAuthRevokeView(View):
         return super().dispatch(request, *args, **kwargs)
 
     # Note: the reason parameter is for internal use only
-    def error(self, request: HttpRequest, name, reason=None, status=400):
+    def error(self, request: HttpRequest, name, error_description=None, status=400):
         client_id = request.POST.get("client_id")
 
         logging.error(
@@ -40,15 +40,22 @@ class OAuthRevokeView(View):
                 "error_name": name,
                 "status": status,
                 "client_id": client_id,
-                "reason": reason,
+                "reason": error_description,
             },
         )
         return HttpResponse(
-            json.dumps({"error": name}), content_type="application/json", status=status
+            json.dumps({"error": name, "error_description": error_description}),
+            content_type="application/json",
+            status=status,
         )
 
     @method_decorator(never_cache)
     def post(self, request: HttpRequest) -> HttpResponse:
+        """
+        Handles POST request to revoke an access_token or refresh_token.
+        Will respond with errors aligned with RFC 6749 Section 5.2.
+        https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
+        """
         token = request.POST.get("token")
         token_type_hint = request.POST.get("token_type_hint")  # optional
         client_id = request.POST.get("client_id")
@@ -64,15 +71,32 @@ class OAuthRevokeView(View):
         )
 
         if not client_id:
-            return self.error(request=request, name="missing_client_id", reason="missing client_id")
+            return self.error(
+                request=request,
+                name="invalid_client",
+                error_description="client_id parameter not found",
+            )
 
         if not client_secret:
             return self.error(
-                request=request, name="missing_client_secret", reason="missing client_secret"
+                request=request,
+                name="invalid_client",
+                error_description="client_secret parameter not found",
             )
 
         if not token:
-            return self.error(request=request, name="missing_token", reason="missing token")
+            return self.error(
+                request=request,
+                name="invalid_request",
+                error_description="token parameter not found",
+            )
+
+        if token_type_hint is not None and token_type_hint not in ["access_token", "refresh_token"]:
+            return self.error(
+                request=request,
+                name="unsupported_token_type",
+                error_description="an unsupported token_type_hint was provided, must be either 'access_token' or 'refresh_token'",
+            )
 
         try:
             application = ApiApplication.objects.get(
