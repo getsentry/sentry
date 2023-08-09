@@ -1,8 +1,6 @@
 import pytest
 from django.urls import reverse
 
-from sentry.relay.config.measurements import BUILTIN_MEASUREMENTS, CUSTOM_MEASUREMENT_LIMIT
-from sentry.relay.config.metric_extraction import HISTOGRAM_OUTLIER_RULES
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
@@ -12,7 +10,8 @@ def call_endpoint(client, relay, private_key):
     def inner(version, global_):
         path = reverse("sentry-api-0-relay-projectconfigs") + f"?version={version}"
 
-        raw_json, signature = private_key.pack({"global": True} if global_ else {})
+        body = {"global": True} if global_ else {}
+        raw_json, signature = private_key.pack(body)
 
         resp = client.post(
             path,
@@ -45,10 +44,4 @@ def test_return_global_config_on_right_version(
     if not expect_global_config:
         assert result.get("global") is None
     else:
-        assert result.get("global") == {
-            "measurements": {
-                "builtinMeasurements": BUILTIN_MEASUREMENTS,
-                "maxCustomMeasurements": CUSTOM_MEASUREMENT_LIMIT,
-            },
-            "metricsConditionalTagging": HISTOGRAM_OUTLIER_RULES,
-        }
+        assert result.get("global") == {}
