@@ -20,6 +20,7 @@ from sentry.utils.env import in_test_environment
 class RpcServiceEndpoint(Endpoint):
     authentication_classes = (RpcSignatureAuthentication,)
     permission_classes = ()
+    enforce_rate_limit = False
 
     def _is_authorized(self, request: Request) -> bool:
         if request.auth and isinstance(
