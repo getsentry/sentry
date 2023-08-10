@@ -63,7 +63,7 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
         # if a member has user_email=None, then they have yet to accept an invite
         org_owners = organization.get_members_with_org_roles(
             roles=[roles.get_top_dog().id]
-        ).exclude(user_email=None)
+        ).exclude(Q(user_email=None) | Q(user_email=""))
 
         def _get_email_domain(email: str) -> str:
             return Address(addr_spec=email).domain

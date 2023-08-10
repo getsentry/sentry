@@ -2,7 +2,6 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -56,9 +55,6 @@ class OrganizationMissingMembersTestCase(APITestCase):
 
     def test_simple__shared_domain(self):
         # only returns users with example.com emails (shared domain)
-        OrganizationMember.objects.filter(
-            organization_id=self.organization.id, role="owner"
-        ).update(user_email="owner@example.com")
 
         response = self.get_success_response(self.organization.slug)
         assert response.data[0]["integration"] == "github"
@@ -114,9 +110,6 @@ class OrganizationMissingMembersTestCase(APITestCase):
             user=user,
             role="owner",
         )
-        OrganizationMember.objects.filter(
-            organization_id=self.organization.id, role="owner", user_id=user.id
-        ).update(user_email="owner@exampletwo.com")
 
         response = self.get_success_response(self.organization.slug)
 
@@ -125,6 +118,22 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
             {"email": "a@exampletwo.com", "externalId": "not", "commitCount": 1},
+        ]
+
+    def test_owners_no_user_email(self):
+        user = self.create_user(email="")
+        self.create_member(
+            organization=self.organization,
+            user=user,
+            role="owner",
+        )
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data[0]["integration"] == "github"
+        assert response.data[0]["users"] == [
+            {"email": "c@example.com", "externalId": "c", "commitCount": 2},
+            {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
 
     def test_query_on_author_email_and_external_id(self):
