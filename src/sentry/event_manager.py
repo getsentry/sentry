@@ -1807,8 +1807,9 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
 
 
 def _handle_regression(group: Group, event: Event, release: Optional[Release]) -> Optional[bool]:
-    should_log_extra_info = bool(group.project_id == 131616)
-
+    should_log_extra_info = features.has(
+        "organizations:detailed-alert-logging", group.project.organization
+    )
     logging_details = {
         "group_id": group.id,
         "event_id": event.event_id,

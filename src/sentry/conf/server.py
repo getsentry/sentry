@@ -1691,6 +1691,8 @@ SENTRY_FEATURES = {
     "organizations:sdk-crash-detection": False,
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
+    # Enable additional logging for alerts
+    "organizations:detailed-alert-logging": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.

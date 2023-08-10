@@ -8,7 +8,7 @@ from typing import Any, Callable, Collection, List, Mapping, MutableMapping, Seq
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.eventstore.models import GroupEvent
 from sentry.models import Environment, GroupRuleStatus, Rule
 from sentry.models.rulesnooze import RuleSnooze
@@ -166,7 +166,9 @@ class RuleProcessor:
         :param rule: `Rule` object
         :return: void
         """
-        should_log_extra_info = bool(self.project.id == 131616)
+        should_log_extra_info = features.has(
+            "organizations:detailed-alert-logging", self.project.organization
+        )
         logging_details = {
             "rule_id": rule.id,
             "group_id": self.group.id,
