@@ -24,11 +24,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"{memsize_bytes//(2*1024**3)}",
     ]
     if APPLE_ARM64:
-        args = [*args, "--vm-type=vz", "--vz-rosetta", "--mount-type=virtiofs"]
+        args = [*args, "--arch=aarch64", "--vm-type=vz", "--mount-type=virtiofs"]
     return subprocess.call(
         (
             "colima",
             "start",
+            "-v",
             f"--mount=/var/folders:w,/private/tmp/colima:w,{os.path.expanduser('~')}:r",
             *args,
         )
