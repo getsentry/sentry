@@ -12,6 +12,9 @@ def create_first_user(**kwargs):
     if not sys.stdin.isatty():
         return
 
+    if not kwargs["interactive"]:
+        return
+
     import click
 
     if not click.confirm("\nWould you like to create a user account now?", default=True):
