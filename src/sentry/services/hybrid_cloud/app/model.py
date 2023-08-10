@@ -72,6 +72,13 @@ class RpcSentryApp(RpcModel):
         return self.slug
 
 
+class RpcSentryAppComponent(RpcModel):
+    uuid: str = ""
+    sentry_app_id: int = -1
+    type: str = ""
+    app_schema: Mapping[str, Any] = Field(default_factory=dict)
+
+
 class RpcSentryAppInstallation(RpcModel):
     id: int = -1
     organization_id: int = -1
@@ -79,13 +86,7 @@ class RpcSentryAppInstallation(RpcModel):
     sentry_app: RpcSentryApp = Field(default_factory=lambda: RpcSentryApp())
     date_deleted: Optional[datetime.datetime] = None
     uuid: str = ""
-
-
-class RpcSentryAppComponent(RpcModel):
-    uuid: str = ""
-    sentry_app_id: int = -1
-    type: str = ""
-    app_schema: Mapping[str, Any] = Field(default_factory=dict)
+    app_component: Optional[RpcSentryAppComponent] = None
 
 
 class RpcAlertRuleActionResult(RpcModel):

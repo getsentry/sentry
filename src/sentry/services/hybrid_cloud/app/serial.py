@@ -2,11 +2,13 @@ from typing import Optional
 
 from sentry.constants import SentryAppStatus
 from sentry.models import ApiApplication, SentryApp, SentryAppInstallation
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.services.hybrid_cloud.app import (
     RpcApiApplication,
     RpcSentryApp,
     RpcSentryAppInstallation,
 )
+from sentry.services.hybrid_cloud.app.model import RpcSentryAppComponent
 
 
 def serialize_api_application(api_app: Optional[ApiApplication]) -> Optional[RpcApiApplication]:
@@ -40,12 +42,29 @@ def serialize_sentry_app(app: SentryApp) -> RpcSentryApp:
     )
 
 
+def serialize_sentry_app_component(app_component: SentryAppComponent) -> RpcSentryAppComponent:
+    return RpcSentryAppComponent(
+        uuid=str(app_component.uuid),
+        sentry_app_id=app_component.sentry_app_id,
+        type=app_component.type,
+        app_schema=app_component.schema,
+    )
+
+
 def serialize_sentry_app_installation(
-    installation: SentryAppInstallation, app: Optional[SentryApp] = None
+    installation: SentryAppInstallation,
+    app: Optional[SentryApp] = None,
+    prepare_sentry_app_components_type: Optional[str] = None,
 ) -> RpcSentryAppInstallation:
     if app is None:
         app = installation.sentry_app
         assert app is not None
+
+    app_component = None
+    if prepare_sentry_app_components_type is not None:
+        app_component = installation.prepare_sentry_app_components(
+            prepare_sentry_app_components_type
+        )
 
     return RpcSentryAppInstallation(
         id=installation.id,
@@ -54,4 +73,5 @@ def serialize_sentry_app_installation(
         sentry_app=serialize_sentry_app(app),
         date_deleted=installation.date_deleted,
         uuid=installation.uuid,
+        app_component=serialize_sentry_app_component(app_component) if app_component else None,
     )
