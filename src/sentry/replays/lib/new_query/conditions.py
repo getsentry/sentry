@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Generic, TypeVar, Union
+from typing import Generic, TypeVar
 from uuid import UUID
 
 from snuba_sdk import Condition, Function, Identifier, Lambda, Op
@@ -8,7 +8,6 @@ from snuba_sdk.expressions import Expression
 
 from sentry.replays.lib.new_query.utils import to_uuid, to_uuids
 
-Numeric = Union[int, float]
 T = TypeVar("T")
 
 
@@ -55,7 +54,7 @@ class GenericBase(Generic[T]):
 
 
 class BooleanScalar(GenericBase[bool]):
-    """Boolean scalar column condition class."""
+    """Boolean scalar condition class."""
 
     @staticmethod
     def visit_eq(expression: Expression, value: bool) -> Condition:
@@ -67,7 +66,7 @@ class BooleanScalar(GenericBase[bool]):
 
 
 class IntegerScalar(GenericBase[int]):
-    """Scalar numeric column condition class."""
+    """Integer scalar condition class."""
 
     @staticmethod
     def visit_eq(expression: Expression, value: int) -> Condition:
@@ -103,7 +102,7 @@ class IntegerScalar(GenericBase[int]):
 
 
 class StringScalar(GenericBase[str]):
-    """Scalar string column condition class."""
+    """String scalar condition class."""
 
     @staticmethod
     def visit_eq(expression: Expression, value: str) -> Condition:
@@ -133,7 +132,7 @@ class StringScalar(GenericBase[str]):
 
 
 class UUIDScalar(GenericBase[UUID]):
-    """Scalar UUID column condition class."""
+    """UUID scalar condition class."""
 
     @staticmethod
     def visit_eq(expression: Expression, value: UUID) -> Condition:
@@ -153,7 +152,7 @@ class UUIDScalar(GenericBase[UUID]):
 
 
 class IPv4Scalar(GenericBase[str]):
-    """Scalar string column condition class."""
+    """IPv4 scalar condition class."""
 
     @staticmethod
     def visit_eq(expression: Expression, value: str) -> Condition:
@@ -174,7 +173,7 @@ class IPv4Scalar(GenericBase[str]):
         return Condition(expression, Op.NOT_IN, values)
 
 
-class GenericComposite(GenericBase[T]):
+class GenericArray(GenericBase[T]):
     @staticmethod
     def visit_eq(expression: Expression, value: T) -> Condition:
         return Condition(Function("has", parameters=[expression, value]), Op.EQ, 1)
@@ -192,32 +191,12 @@ class GenericComposite(GenericBase[T]):
         return Condition(Function("hasAny", parameters=[expression, value]), Op.EQ, 0)
 
 
-class UUIDComposite(GenericComposite[UUID]):
-    """Composite UUID column condition class."""
-
-    @staticmethod
-    def visit_eq(expression: Expression, value: UUID) -> Condition:
-        return Condition(Function("has", parameters=[expression, to_uuid(value)]), Op.EQ, 1)
-
-    @staticmethod
-    def visit_neq(expression: Expression, value: UUID) -> Condition:
-        return Condition(Function("has", parameters=[expression, to_uuid(value)]), Op.EQ, 0)
-
-    @staticmethod
-    def visit_in(expression: Expression, value: list[UUID]) -> Condition:
-        return Condition(Function("hasAny", parameters=[expression, to_uuids(value)]), Op.EQ, 1)
-
-    @staticmethod
-    def visit_not_in(expression: Expression, value: list[UUID]) -> Condition:
-        return Condition(Function("hasAny", parameters=[expression, to_uuids(value)]), Op.EQ, 0)
+class IntegerArray(GenericArray[int]):
+    """Integer array condition class."""
 
 
-class NumericComposite(GenericComposite[Numeric]):
-    """Composite numeric column condition class."""
-
-
-class StringComposite(GenericComposite[str]):
-    """Composite string column condition class."""
+class StringArray(GenericArray[str]):
+    """String array condition class."""
 
     @staticmethod
     def visit_match(expression: Expression, value: str) -> Condition:
@@ -248,6 +227,26 @@ class StringComposite(GenericComposite[str]):
             Op.EQ,
             0,
         )
+
+
+class UUIDArray(GenericArray[UUID]):
+    """UUID array condition class."""
+
+    @staticmethod
+    def visit_eq(expression: Expression, value: UUID) -> Condition:
+        return Condition(Function("has", parameters=[expression, to_uuid(value)]), Op.EQ, 1)
+
+    @staticmethod
+    def visit_neq(expression: Expression, value: UUID) -> Condition:
+        return Condition(Function("has", parameters=[expression, to_uuid(value)]), Op.EQ, 0)
+
+    @staticmethod
+    def visit_in(expression: Expression, value: list[UUID]) -> Condition:
+        return Condition(Function("hasAny", parameters=[expression, to_uuids(value)]), Op.EQ, 1)
+
+    @staticmethod
+    def visit_not_in(expression: Expression, value: list[UUID]) -> Condition:
+        return Condition(Function("hasAny", parameters=[expression, to_uuids(value)]), Op.EQ, 0)
 
 
 def not_supported() -> None:

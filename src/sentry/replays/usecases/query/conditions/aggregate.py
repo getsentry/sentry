@@ -8,9 +8,9 @@ from snuba_sdk.expressions import Expression
 from sentry.replays.lib.new_query.conditions import (
     GenericBase,
     IPv4Scalar,
-    StringComposite,
+    StringArray,
     StringScalar,
-    UUIDComposite,
+    UUIDArray,
 )
 from sentry.replays.lib.new_query.utils import translate_condition_to_function
 from sentry.replays.usecases.query.conditions.tags import TagScalar
@@ -63,45 +63,45 @@ class SumOfStringScalar(GenericBase[str]):
 class SumOfStringComposite(GenericBase[str]):
     @staticmethod
     def visit_eq(expression: Expression, value: str) -> Condition:
-        return contains(StringComposite.visit_eq(expression, value))
+        return contains(StringArray.visit_eq(expression, value))
 
     @staticmethod
     def visit_neq(expression: Expression, value: str) -> Condition:
-        return does_not_contain(StringComposite.visit_eq(expression, value))
+        return does_not_contain(StringArray.visit_eq(expression, value))
 
     @staticmethod
     def visit_match(expression: Expression, value: str) -> Condition:
-        return contains(StringComposite.visit_match(expression, value))
+        return contains(StringArray.visit_match(expression, value))
 
     @staticmethod
     def visit_not_match(expression: Expression, value: str) -> Condition:
-        return does_not_contain(StringComposite.visit_match(expression, value))
+        return does_not_contain(StringArray.visit_match(expression, value))
 
     @staticmethod
     def visit_in(expression: Expression, value: list[str]) -> Condition:
-        return contains(StringComposite.visit_in(expression, value))
+        return contains(StringArray.visit_in(expression, value))
 
     @staticmethod
     def visit_not_in(expression: Expression, value: list[str]) -> Condition:
-        return does_not_contain(StringComposite.visit_in(expression, value))
+        return does_not_contain(StringArray.visit_in(expression, value))
 
 
 class SumOfUUIDComposite(GenericBase[UUID]):
     @staticmethod
     def visit_eq(expression: Expression, value: UUID) -> Condition:
-        return contains(UUIDComposite.visit_eq(expression, value))
+        return contains(UUIDArray.visit_eq(expression, value))
 
     @staticmethod
     def visit_neq(expression: Expression, value: UUID) -> Condition:
-        return does_not_contain(UUIDComposite.visit_eq(expression, value))
+        return does_not_contain(UUIDArray.visit_eq(expression, value))
 
     @staticmethod
     def visit_in(expression: Expression, value: list[UUID]) -> Condition:
-        return contains(UUIDComposite.visit_in(expression, value))
+        return contains(UUIDArray.visit_in(expression, value))
 
     @staticmethod
     def visit_not_in(expression: Expression, value: list[UUID]) -> Condition:
-        return does_not_contain(UUIDComposite.visit_in(expression, value))
+        return does_not_contain(UUIDArray.visit_in(expression, value))
 
 
 class SumOfTagScalar(GenericBase[str]):
