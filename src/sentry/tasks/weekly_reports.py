@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import heapq
 import logging
+import random
+import string
 from datetime import timedelta
 from functools import partial, reduce
 from typing import Tuple
@@ -19,7 +21,7 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Limit, Query
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
 from sentry.models import (
@@ -1031,6 +1033,8 @@ def render_template_context(ctx, user_id):
         "key_performance_issues": key_performance_issues(),
         "key_replays": key_replays() if has_replay_section else [],
         "issue_summary": issue_summary(),
+        "user_project_count": len(user_projects),
+        "notification_uuid": "".join(random.choices(string.ascii_letters + string.digits, k=16)),
     }
 
 
@@ -1052,6 +1056,14 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
     )
     if dry_run:
         return
+    else:
+        analytics.record(
+            "weekly_report.sent",
+            user_id=user_id,
+            organization=ctx.organization.id,
+            notification_uuid=template_ctx["notification_uuid"],
+            user_project_count=template_ctx["user_project_count"],
+        )
     if email_override:
         message.send(to=(email_override,))
     else:
