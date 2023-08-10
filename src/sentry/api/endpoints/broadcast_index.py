@@ -48,7 +48,9 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
 
         return (args, kwargs)
 
-    def get(self, request: Request, organization: RpcOrganization | None = None) -> Response:
+    def get(
+        self, request: Request, organization: RpcOrganization | None = None, **kwargs
+    ) -> Response:
         if request.GET.get("show") == "all" and request.access.has_permission("broadcasts.admin"):
             # superusers can slice and dice
             queryset = Broadcast.objects.all().order_by("-date_added")
