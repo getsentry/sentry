@@ -191,7 +191,7 @@ class SentryAppInstallation(ParanoidModel):
             for region_name in find_regions_for_orgs([self.organization_id])
         ]
 
-    def prepare_sentry_app_components(self, component_type, project=None, values=None):
+    def prepare_sentry_app_components(self, component_type: str, project=None, values=None):
         from sentry.models import SentryAppComponent
 
         try:
