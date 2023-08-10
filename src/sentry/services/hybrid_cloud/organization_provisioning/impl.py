@@ -3,7 +3,15 @@ from typing import Optional
 from django.db import IntegrityError, router, transaction
 from sentry_sdk import capture_exception
 
-from sentry.models import Organization, OutboxCategory, OutboxScope, RegionOutbox, outbox_context
+from sentry import roles
+from sentry.models import (
+    Organization,
+    OrganizationMember,
+    OutboxCategory,
+    OutboxScope,
+    RegionOutbox,
+    outbox_context,
+)
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.services.hybrid_cloud.organization_actions.impl import (
@@ -35,7 +43,14 @@ class DatabaseBackedOrganizationProvisioningService(OrganizationProvisioningServ
     def _validate_organization_belongs_to_user(
         self, user_id: int, organization: RpcOrganization
     ) -> bool:
-        return False
+        top_dog_id = roles.get_top_dog().id
+        try:
+            org_member = OrganizationMember.objects.get(
+                organization_id=organization.id, user_id=user_id
+            )
+            return top_dog_id == org_member.role
+        except OrganizationMember.DoesNotExist:
+            return False
 
     def provision_organization(
         self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
@@ -80,7 +95,7 @@ class DatabaseBackedOrganizationProvisioningService(OrganizationProvisioningServ
             if self._validate_organization_belongs_to_user(
                 user_id=sentry_org_options.owning_user_id, organization=existing_organization
             ):
-                return existing_organization
-            capture_exception()
+                return serialize_rpc_organization(existing_organization)
 
+            capture_exception()
             return None

@@ -3,6 +3,7 @@ from typing import Optional
 from sentry.models import (
     Organization,
     OrganizationMapping,
+    OrganizationMember,
     OutboxCategory,
     RegionOutbox,
     User,
@@ -121,13 +122,14 @@ class TestIdempotentProvisionOrganization(TestCase):
 
         assert_params_match_org(org=results, provisioning_options=org_args)
 
-    def test_organization_slug_collision(self):
+    def test_organization_slug_collision_with_non_member_user(self):
         user = self.create_user(email="test@example.com")
         org_args = get_default_org_provisioning_options(
             user=user, org_name="santry", org_slug="santry"
         )
         # Create a conflicting org owned by a different user
-        self.create_organization(slug="santry", name="santry", owner=self.create_user())
+        with outbox_runner():
+            self.create_organization(slug="santry", name="santry", owner=self.create_user())
 
         with assume_test_silo_mode(SiloMode.REGION):
             orgs_before_rpc = list(Organization.objects.filter())
@@ -141,5 +143,47 @@ class TestIdempotentProvisionOrganization(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             orgs_after_rpc = list(Organization.objects.filter())
         assert len(orgs_before_rpc) == len(orgs_after_rpc)
+
+        assert results is None
+
+    def test_organization_idempotent_org_creation(self):
+        user = self.create_user(email="test@example.com")
+        org_args = get_default_org_provisioning_options(
+            user=user, org_name="santry", org_slug="santry"
+        )
+
+        self.create_organization(slug="santry", name="santry", owner=user)
+        with outbox_context(flush=False):
+            results: Optional[
+                RpcOrganization
+            ] = organization_provisioning_service.idempotent_provision_organization(
+                region_name="na", org_provision_args=org_args
+            )
+
+        assert results
+        with outbox_runner():
+            pass
+
+        assert_params_match_org(org=results, provisioning_options=org_args)
+
+    def test_non_owner_attempts_idempotent_org_creation(self):
+        user = self.create_user(email="test@example.com")
+        org_args = get_default_org_provisioning_options(
+            user=user, org_name="santry", org_slug="santry"
+        )
+
+        org: Organization = self.create_organization(
+            slug="santry", name="santry", owner=self.create_user()
+        )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationMember.objects.create(organization=org, user_id=user.id, role="member")
+
+        with outbox_context(flush=False):
+            results: Optional[
+                RpcOrganization
+            ] = organization_provisioning_service.idempotent_provision_organization(
+                region_name="na", org_provision_args=org_args
+            )
 
         assert results is None
