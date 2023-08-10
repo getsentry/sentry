@@ -199,7 +199,7 @@ class QueryBuilder(BaseQueryBuilder):
         selected_columns: Optional[List[str]] = None,
         groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
-        orderby: Optional[List[str]] = None,
+        orderby: list[str] | str | None = None,
         auto_fields: bool = False,
         auto_aggregations: bool = False,
         use_aggregate_conditions: bool = False,
@@ -223,6 +223,7 @@ class QueryBuilder(BaseQueryBuilder):
         # of a top events request
         skip_tag_resolution: bool = False,
         on_demand_metrics_enabled: bool = False,
+        skip_issue_validation: bool = False,
     ):
         self.dataset = dataset
 
@@ -241,6 +242,7 @@ class QueryBuilder(BaseQueryBuilder):
         self.on_demand_metrics_enabled = on_demand_metrics_enabled
         self.auto_fields = auto_fields
         self.query = query
+        self.selected_columns = selected_columns
         self.groupby_columns = groupby_columns
         self.functions_acl = set() if functions_acl is None else functions_acl
         self.equation_config = {} if equation_config is None else equation_config
@@ -248,6 +250,7 @@ class QueryBuilder(BaseQueryBuilder):
             "query": set(),
             "columns": set(),
         }
+        self.skip_issue_validation = skip_issue_validation
 
         # Base Tenant IDs for any Snuba Request built/executed using a QueryBuilder
         org_id = self.organization_id or (
@@ -309,12 +312,16 @@ class QueryBuilder(BaseQueryBuilder):
             orderby=orderby,
         )
 
+    def are_columns_resolved(self) -> bool:
+        return self.columns and isinstance(self.columns[0], Function)
+
     def get_default_converter(self) -> Callable[[event_search.SearchFilter], Optional[WhereType]]:
         return self._default_filter_converter
 
     def resolve_time_conditions(self) -> None:
         if self.skip_time_conditions:
             return
+
         # start/end are required so that we can run a query in a reasonable amount of time
         if self.params.start is None or self.params.end is None:
             raise InvalidSearchQuery("Cannot query without a valid date range")
@@ -342,7 +349,7 @@ class QueryBuilder(BaseQueryBuilder):
         selected_columns: Optional[List[str]] = None,
         groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
-        orderby: Optional[List[str]] = None,
+        orderby: list[str] | str | None = None,
     ) -> None:
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
             # Has to be done early, since other conditions depend on start and end
@@ -878,7 +885,7 @@ class QueryBuilder(BaseQueryBuilder):
             rhs = Function("nullIf", [rhs, 0])
         return Function(equation.operator, [lhs, rhs], alias)
 
-    def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
+    def resolve_orderby(self, orderby: list[str] | str | None) -> List[OrderBy]:
         """Given a list of public aliases, optionally prefixed by a `-` to
         represent direction, construct a list of Snql Orderbys
         """
@@ -1605,7 +1612,7 @@ class UnresolvedQuery(QueryBuilder):
         selected_columns: Optional[List[str]] = None,
         groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
-        orderby: Optional[List[str]] = None,
+        orderby: list[str] | str | None = None,
     ) -> None:
         pass
 
@@ -1656,7 +1663,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         selected_columns: Optional[List[str]] = None,
         groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
-        orderby: Optional[List[str]] = None,
+        orderby: list[str] | str | None = None,
     ) -> None:
         self.resolve_time_conditions()
         self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)

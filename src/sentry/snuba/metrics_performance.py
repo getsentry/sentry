@@ -60,6 +60,7 @@ def query(
             transform_alias_to_input_format=transform_alias_to_input_format,
             use_metrics_layer=use_metrics_layer,
             granularity=granularity,
+            on_demand_metrics_enabled=on_demand_metrics_enabled,
         )
         metrics_referrer = referrer + ".metrics-enhanced"
         results = metrics_query.run_query(metrics_referrer)

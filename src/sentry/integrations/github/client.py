@@ -219,6 +219,15 @@ class GitHubClientMixin(GithubProxyClient):
         pullrequest: JSONData = self.get(f"/repos/{repo}/commits/{sha}/pulls")
         return pullrequest
 
+    def get_pullrequest(self, repo: str, pull_number: int) -> JSONData:
+        """
+        https://docs.github.com/en/free-pro-team@latest/rest/pulls/pulls?apiVersion=2022-11-28#get-a-pull-request
+
+        Returns the pull request details
+        """
+        pullrequest: JSONData = self.get(f"/repos/{repo}/pulls/{pull_number}")
+        return pullrequest
+
     def get_repo(self, repo: str) -> JSONData:
         """
         https://docs.github.com/en/rest/repos/repos#get-a-repository
@@ -627,34 +636,27 @@ class GitHubClientMixin(GithubProxyClient):
             }}
         }}"""
 
-        contents = self.post(
-            path="/graphql",
-            data={"query": query},
-        )
-
         try:
-            results: Sequence[Mapping[str, Any]] = (
-                contents.get("data", {})
-                .get("repository", {})
-                .get("ref", {})
-                .get("target", {})
-                .get("blame", {})
-                .get("ranges", [])
+            contents = self.post(
+                path="/graphql",
+                data={"query": query},
+                allow_text=False,
             )
-            return results
-        except AttributeError as e:
-            if contents.get("errors"):
-                err_message = ", ".join(
-                    [error.get("message", "") for error in contents.get("errors", [])]
-                )
-                raise ApiError(err_message)
-
-            if contents.get("data", {}).get("repository", {}).get("ref", {}) is None:
-                raise ApiError("Branch does not exist in GitHub.")
-
+        except ValueError as e:
             sentry_sdk.capture_exception(e)
-
             return []
+
+        if contents.get("errors"):
+            err_message = ", ".join(
+                [error.get("message", "") for error in contents.get("errors", [])]
+            )
+            raise ApiError(err_message)
+
+        ref = contents.get("data", {}).get("repository", {}).get("ref")
+        if ref is None:
+            raise ApiError("Branch does not exist in GitHub.")
+
+        return ref.get("target", {}).get("blame", {}).get("ranges", [])
 
 
 class GitHubAppsClient(GitHubClientMixin):

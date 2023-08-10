@@ -9,7 +9,7 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.conf import settings
 from django.test.utils import override_settings
 
-from sentry import killswitches, options
+from sentry import killswitches
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.consumers.monitor_consumer import StoreMonitorCheckInStrategyFactory
@@ -75,6 +75,28 @@ class MonitorConsumerTest(TestCase):
             "payload": json.dumps(payload),
             "sdk": "test/1.0",
         }
+
+        commit = mock.Mock()
+        partition = Partition(Topic("test"), 0)
+        StoreMonitorCheckInStrategyFactory().create_with_partitions(commit, {partition: 0}).submit(
+            Message(
+                BrokerValue(
+                    KafkaPayload(b"fake-key", msgpack.packb(wrapper), []),
+                    partition,
+                    1,
+                    ts,
+                )
+            )
+        )
+
+    def send_clock_pulse(
+        self,
+        ts: Optional[datetime] = None,
+    ) -> None:
+        if ts is None:
+            ts = datetime.now()
+
+        wrapper = {"message_type": "clock_pulse"}
 
         commit = mock.Mock()
         partition = Partition(Topic("test"), 0)
@@ -542,19 +564,15 @@ class MonitorConsumerTest(TestCase):
         opt_val = killswitches.validate_user_input(
             "crons.organization.disable-check-in", [{"organization_id": self.organization.id}]
         )
-        options.set("crons.organization.disable-check-in", opt_val)
 
-        self.send_checkin(monitor.slug)
-
-        opt_val = killswitches.validate_user_input("crons.organization.disable-check-in", [])
-        options.set("crons.organization.disable-check-in", opt_val)
+        with self.options({"crons.organization.disable-check-in": opt_val}):
+            self.send_checkin(monitor.slug)
 
         assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
 
-    @override_settings(SENTRY_MONITORS_HIGH_VOLUME_MODE=True)
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.CHECKIN_QUOTA_LIMIT", 20)
     @mock.patch("sentry.monitors.consumers.monitor_consumer._dispatch_tasks")
-    @mock.patch("sentry_sdk.capture_message")
-    def test_high_volume_task_trigger(self, capture_message, dispatch_tasks):
+    def test_monitor_task_trigger(self, dispatch_tasks):
         monitor = self._create_monitor(slug="my-monitor")
 
         assert dispatch_tasks.call_count == 0
@@ -578,7 +596,52 @@ class MonitorConsumerTest(TestCase):
         assert dispatch_tasks.call_count == 2
 
         # A skipped minute trigges the task AND captures an error
-        assert capture_message.call_count == 0
-        self.send_checkin(monitor.slug, ts=now + timedelta(minutes=3, seconds=5))
-        assert dispatch_tasks.call_count == 3
-        capture_message.assert_called_with("Monitor task dispatch minute skipped")
+        with mock.patch("sentry_sdk.capture_message") as capture_message:
+            assert capture_message.call_count == 0
+            self.send_checkin(monitor.slug, ts=now + timedelta(minutes=3, seconds=5))
+            assert dispatch_tasks.call_count == 3
+            capture_message.assert_called_with("Monitor task dispatch minute skipped")
+
+        # A clock pulse message also triggers the tasks
+        self.send_clock_pulse(ts=now + timedelta(minutes=4))
+        assert dispatch_tasks.call_count == 4
+
+        # An exception dispatching the tasks does NOT cause ingestion to fail
+        with mock.patch("sentry.monitors.consumers.monitor_consumer.logger") as logger:
+            dispatch_tasks.side_effect = Exception()
+            self.send_checkin(monitor.slug, ts=now + timedelta(minutes=5))
+            assert MonitorCheckIn.objects.filter(guid=self.guid).exists()
+            logger.exception.assert_called_with("Failed to trigger monitor tasks", exc_info=True)
+            dispatch_tasks.side_effect = None
+
+    @mock.patch("sentry.monitors.consumers.monitor_consumer._dispatch_tasks")
+    def test_monitor_task_trigger_partition_desync(self, dispatch_tasks):
+        """
+        When consumer partitions are not completely synchronized we may read
+        timestamps in a non-monotonic order. In this scenario we want to make
+        sure we still only trigger once
+        """
+        monitor = self._create_monitor(slug="my-monitor")
+
+        assert dispatch_tasks.call_count == 0
+
+        now = datetime.now().replace(second=0, microsecond=0)
+
+        # First message with timestamp just after the minute bounardary
+        # triggers the task
+        self.send_checkin(monitor.slug, ts=now + timedelta(seconds=1))
+        assert dispatch_tasks.call_count == 1
+
+        # Second message has a timestamp just before the minute boundary,
+        # should not trigger anything since we've already ticked ahead of this
+        self.send_checkin(monitor.slug, ts=now - timedelta(seconds=1))
+        assert dispatch_tasks.call_count == 1
+
+        # Third message again just after the minute bounadry does NOT trigger
+        # the task, we've already ticked at that time.
+        self.send_checkin(monitor.slug, ts=now + timedelta(seconds=1))
+        assert dispatch_tasks.call_count == 1
+
+        # Fourth message moves past a new minute boundary, tick
+        self.send_checkin(monitor.slug, ts=now + timedelta(minutes=1, seconds=1))
+        assert dispatch_tasks.call_count == 2
