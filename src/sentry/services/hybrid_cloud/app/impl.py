@@ -26,6 +26,7 @@ from sentry.services.hybrid_cloud.app import (
 )
 from sentry.services.hybrid_cloud.app.serial import (
     serialize_sentry_app,
+    serialize_sentry_app_component,
     serialize_sentry_app_installation,
 )
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
@@ -53,12 +54,7 @@ class DatabaseBackedAppService(AppService):
 
     def find_app_components(self, *, app_id: int) -> List[RpcSentryAppComponent]:
         return [
-            RpcSentryAppComponent(
-                uuid=str(c.uuid),
-                sentry_app_id=c.sentry_app_id,
-                type=c.type,
-                app_schema=c.schema,
-            )
+            serialize_sentry_app_component(c)
             for c in SentryAppComponent.objects.filter(sentry_app_id=app_id)
         ]
 
@@ -74,6 +70,7 @@ class DatabaseBackedAppService(AppService):
         *,
         organization_id: int,
         is_alertable: Optional[bool] = None,
+        prepare_sentry_app_components_type: Optional[str] = None,
     ) -> List[RpcSentryAppInstallation]:
         installations = SentryAppInstallation.objects.get_installed_for_organization(
             organization_id
@@ -84,7 +81,12 @@ class DatabaseBackedAppService(AppService):
             )
 
         fq = self._AppServiceFilterQuery()
-        return [fq.serialize_rpc(i) for i in installations]
+        return [
+            fq.serialize_rpc(
+                i, prepare_sentry_app_components_type=prepare_sentry_app_components_type
+            )
+            for i in installations
+        ]
 
     def find_alertable_services(self, *, organization_id: int) -> List[RpcSentryAppService]:
         result: List[RpcSentryAppService] = []
@@ -177,8 +179,15 @@ class DatabaseBackedAppService(AppService):
 
             return query
 
-        def serialize_rpc(self, object: SentryAppInstallation) -> RpcSentryAppInstallation:
-            return serialize_sentry_app_installation(object)
+        def serialize_rpc(
+            self,
+            object: SentryAppInstallation,
+            prepare_sentry_app_components_type: str | None = None,
+        ) -> RpcSentryAppInstallation:
+            return serialize_sentry_app_installation(
+                installation=object,
+                prepare_sentry_app_components_type=prepare_sentry_app_components_type,
+            )
 
     _FQ = _AppServiceFilterQuery()
 

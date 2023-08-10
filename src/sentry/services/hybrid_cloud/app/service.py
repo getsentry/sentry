@@ -64,6 +64,7 @@ class AppService(RpcService):
         *,
         organization_id: int,
         is_alertable: Optional[bool] = None,
+        prepare_sentry_app_components_type: Optional[str] = None,
     ) -> List[RpcSentryAppInstallation]:
         pass
 
