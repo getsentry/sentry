@@ -20,10 +20,10 @@ from sentry.replays.usecases.query.conditions import (
 )
 from sentry.replays.usecases.query.conditions.aggregate import (
     SumOfIPv4Scalar,
-    SumOfStringComposite,
+    SumOfStringArray,
     SumOfStringScalar,
     SumOfTagScalar,
-    SumOfUUIDComposite,
+    SumOfUUIDArray,
 )
 from sentry.replays.usecases.query.fields import ComputedField, TagField
 
@@ -48,7 +48,7 @@ def string_field(column_name: str) -> StringColumnField:
 
 
 def array_string_field(column_name: str) -> StringColumnField:
-    return StringColumnField(column_name, parse_str, SumOfStringComposite)
+    return StringColumnField(column_name, parse_str, SumOfStringArray)
 
 
 search_config: dict[str, Union[ColumnField, ComputedField]] = {
@@ -86,7 +86,7 @@ search_config: dict[str, Union[ColumnField, ComputedField]] = {
     "replay_type": string_field("replay_type"),
     "sdk.name": string_field("sdk_name"),
     "sdk.version": string_field("sdk_version"),
-    "trace_ids": StringColumnField("trace_ids", parse_uuid, SumOfUUIDComposite),
+    "trace_ids": StringColumnField("trace_ids", parse_uuid, SumOfUUIDArray),
     "urls": array_string_field("urls"),
     "user.email": string_field("user_email"),
     "user.id": string_field("user_id"),

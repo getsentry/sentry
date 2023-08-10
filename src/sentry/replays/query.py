@@ -208,7 +208,6 @@ def query_replays_dataset(
         ),
         tenant_ids=tenant_ids,
     )
-    raise Exception(snuba_request.query)
     return raw_snql_query(snuba_request, "replays.query.query_replays_dataset")
 
 

@@ -35,6 +35,7 @@ def aggregate_sum_of_has(error_id: str) -> Function:
             Function(
                 "has",
                 parameters=[
+                    # Because this is a row-wise condition we can use the index!
                     Column("_error_ids_hashed"),
                     Function("cityHash64", parameters=[to_uuid(error_id)]),
                 ],
@@ -50,6 +51,7 @@ def aggregate_sum_of_has_any(error_ids: list[str]) -> Function:
             Function(
                 "hasAny",
                 parameters=[
+                    # Because this is a row-wise condition we can use the index!
                     Column("_error_ids_hashed"),
                     [Function("cityHash64", parameters=[to_uuid(eid)]) for eid in error_ids],
                 ],

@@ -33,6 +33,11 @@ class TagScalar(GenericBase[str]):
         return Condition(match_key_value_wildcard(expression_name, value), Op.EQ, 0)
 
 
+# You may be wondering why the tags are not under any aggregate expression.  After all I've primed
+# you at this point to look for sum(condition).  Not to fear, we sum the output of the condition
+# in SumOfTagsScalar.
+
+
 def match_key_value_exact(key: str, value: str) -> Function:
     return Function("has", parameters=[_get_tag_values(key), value])
 
