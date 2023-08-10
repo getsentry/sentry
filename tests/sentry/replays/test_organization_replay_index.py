@@ -746,9 +746,22 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             # Run all the queries individually to determine compliance.
             queries = [
                 "activity",
-                "duration",
                 "browser.name",
+                "browser.version",
+                "device.brand",
+                "device.family",
+                "device.model",
+                "device.name",
+                "dist",
+                "duration",
                 "os.name",
+                "os.version",
+                "platform",
+                "project_id",
+                "sdk.name",
+                "user.email",
+                "user.id",
+                "user.username",
             ]
 
             for key in queries:

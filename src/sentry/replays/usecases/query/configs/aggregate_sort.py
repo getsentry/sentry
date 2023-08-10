@@ -17,11 +17,17 @@ def any_if(column_name):
 sort_config = {
     "activity": aggregate_activity(),
     "browser.name": any_if("browser_name"),
+    "browser.version": any_if("browser_version"),
     "count_dead_clicks": Function("sum", parameters=[Column("click_is_dead")]),
     "count_errors": Function(
         "sum", parameters=[Function("length", parameters=[Column("error_ids")])]
     ),
     "count_rage_clicks": Function("sum", parameters=[Column("click_is_rage")]),
+    "device.brand": any_if("device_brand"),
+    "device.family": any_if("device_family"),
+    "device.model": any_if("device_model"),
+    "device.name": any_if("device_name"),
+    "dist": any_if("dist"),
     "duration": Function(
         "dateDiff",
         parameters=[
@@ -32,9 +38,14 @@ sort_config = {
     ),
     "finished_at": Function("max", parameters=[Column("timestamp")]),
     "os.name": any_if("os_name"),
+    "os.version": any_if("os_version"),
     "platform": any_if("platform"),
     "project_id": Function("any", parameters=[Column("project_id")]),
     "started_at": Function("min", parameters=[Column("replay_start_timestamp")]),
+    "sdk.name": any_if("sdk_name"),
+    "user.email": any_if("user_email"),
+    "user.id": any_if("user_id"),
+    "user.username": any_if("user_name"),
 }
 
 sort_config["browser"] = sort_config["browser.name"]
