@@ -87,12 +87,18 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
       return setGithubLinkState({type: 'initial'});
     }
 
-    if (!isSupportedPlatformForGitHubLink(props.profileGroup.metadata.platform)) {
+    if (
+      !project ||
+      !props.hoveredNode ||
+      // the profile ids indicate this is an aggregate flamegraph
+      // and they do not support source code links
+      props.hoveredNode.profileIds
+    ) {
       return undefined;
     }
 
-    if (!project || !props.hoveredNode) {
-      return undefined;
+    if (!isSupportedPlatformForGitHubLink(props.profileGroup.metadata.platform)) {
+      return setGithubLinkState({type: 'errored', error: 'Unsupported platform'});
     }
 
     const metadata = props.profileGroup.metadata;
@@ -190,27 +196,31 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
             >
               {t('Copy function name')}
             </ProfilingContextMenuItemButton>
-            <ProfilingContextMenuItemButton
-              disabled={
-                githubLink.type !== 'resolved' ||
-                !(githubLink.type === 'resolved' && githubLink.data.sourceUrl)
-              }
-              tooltip={
-                !isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
-                  ? t('Open in GitHub is not yet supported for this platform')
-                  : githubLink.type === 'resolved' &&
-                    (!githubLink.data.sourceUrl ||
-                      githubLink.data.config?.provider?.key !== 'github')
-                  ? t('Could not find source code location in GitHub')
-                  : undefined
-              }
-              {...props.contextMenu.getMenuItemProps({
-                onClick: onOpenInGithubClick,
-              })}
-              icon={<IconGithub size="xs" />}
-            >
-              {t('Open in GitHub')}
-            </ProfilingContextMenuItemButton>
+            {githubLink.type !== 'initial' && (
+              <ProfilingContextMenuItemButton
+                disabled={
+                  githubLink.type !== 'resolved' ||
+                  !(githubLink.type === 'resolved' && githubLink.data.sourceUrl)
+                }
+                tooltip={
+                  !isSupportedPlatformForGitHubLink(
+                    props.profileGroup?.metadata?.platform
+                  )
+                    ? t('Open in GitHub is not yet supported for this platform')
+                    : githubLink.type === 'resolved' &&
+                      (!githubLink.data.sourceUrl ||
+                        githubLink.data.config?.provider?.key !== 'github')
+                    ? t('Could not find source code location in GitHub')
+                    : undefined
+                }
+                {...props.contextMenu.getMenuItemProps({
+                  onClick: onOpenInGithubClick,
+                })}
+                icon={<IconGithub size="xs" />}
+              >
+                {t('Open in GitHub')}
+              </ProfilingContextMenuItemButton>
+            )}
           </ProfilingContextMenuGroup>
         ) : null}
         <ProfilingContextMenuGroup>
