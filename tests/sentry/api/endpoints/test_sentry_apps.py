@@ -195,6 +195,7 @@ class SuperUserGetSentryAppsTest(SentryAppsTest):
         assert self.published_app.uuid not in response_uuids
 
 
+@control_silo_test(stable=True)
 class GetSentryAppsTest(SentryAppsTest):
     def setUp(self):
         super().setUp()
@@ -277,7 +278,7 @@ class GetSentryAppsTest(SentryAppsTest):
         assert internal_app.uuid not in [a["uuid"] for a in response.data]
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class SuperUserPostSentryAppsTest(SentryAppsTest):
     method = "post"
 
@@ -300,6 +301,7 @@ class SuperUserPostSentryAppsTest(SentryAppsTest):
         assert {"popularity": POPULARITY}.items() <= json.loads(response.content).items()
 
 
+@control_silo_test(stable=True)
 class PostWithTokenSentryAppsTest(SentryAppsTest):
     def setUp(self):
         super().setUp()
@@ -347,6 +349,7 @@ class PostWithTokenSentryAppsTest(SentryAppsTest):
         )
 
 
+@control_silo_test(stable=True)
 class PostSentryAppsTest(SentryAppsTest):
     method = "post"
 
