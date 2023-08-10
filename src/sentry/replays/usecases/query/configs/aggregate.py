@@ -58,7 +58,7 @@ def array_string_field(column_name: str) -> StringColumnField:
     return StringColumnField(column_name, parse_str, SumOfStringArray)
 
 
-search_config: dict[str, Union[ColumnField, ComputedField]] = {
+search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = {
     "activity": ComputedField(parse_int, AggregateActivityScalar),
     "browser.name": string_field("browser_name"),
     "browser.version": string_field("browser_version"),
