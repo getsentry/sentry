@@ -11,7 +11,18 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Mapping, MutableSequence, Optional, Tuple, TypeVar, overload
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Mapping,
+    MutableSequence,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+    overload,
+)
 from urllib.parse import urlparse
 
 import sentry
@@ -2133,11 +2144,37 @@ SENTRY_SCOPES = {
     "event:read",
     "event:write",
     "event:admin",
-    "alerts:write",
     "alerts:read",
+    "alerts:write",
     "openid",
     "profile",
     "email",
+}
+
+SENTRY_SCOPE_HIERARCHY_MAPPING: Dict[str, Set(str)] = {
+    "org:read": {"org:read"},
+    "org:write": {"org:read", "org:write"},
+    "org:admin": {"org:read", "org:write", "org:admin"},
+    "org:integrations": {"org:integrations"},
+    "org:ci": {"org:ci"},
+    "member:read": {"member:read"},
+    "member:write": {"member:read", "member:write"},
+    "member:admin": {"member:read", "member:write", "member:admin"},
+    "team:read": {"team:read"},
+    "team:write": {"team:read", "team:write"},
+    "team:admin": {"team:read", "team:write", "team:admin"},
+    "project:read": {"project:read"},
+    "project:write": {"project:read", "project:write"},
+    "project:admin": {"project:read", "project:write", "project:admin"},
+    "project:releases": {"project:releases"},
+    "event:read": {"event:read"},
+    "event:write": {"event:read", "event:write"},
+    "event:admin": {"event:read", "event:write", "event:admin"},
+    "alerts:read": {"alerts:read"},
+    "alerts:write": {"alerts:read", "alerts:write"},
+    "openid": {"openid"},
+    "profile": {"profile"},
+    "email": {"email"},
 }
 
 SENTRY_SCOPE_SETS = (

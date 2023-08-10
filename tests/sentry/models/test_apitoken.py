@@ -2,12 +2,13 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
 from sentry.models import ApiToken
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import control_silo_test
 
 
-@region_silo_test(stable=True)
+@control_silo_test(stable=True)
 class ApiTokenTest(TestCase):
     def test_is_expired(self):
         token = ApiToken(expires_at=None)
@@ -30,19 +31,12 @@ class ApiTokenTest(TestCase):
         assert token.get_scopes() == ["project:read"]
 
     def test_enforces_scope_hierarchy(self):
-        # token = self.create_user_auth_token(self.create_user(), scope_list=["org:admin"])
-        token = ApiToken.objects.create(
-            user_id=self.create_user().id,
-            scope_list=["org:admin"],
-        )
-        token.scope_list.append("org:read")
-        token.save()
+        user = self.create_user()
 
-        print(token.get_scopes())
-        assert token.get_scopes() == ["project:read"]
-
-        # token = ApiToken(scopes=4, scope_list=["project:read"])
-        # assert token.get_scopes() == ["project:read"]
-
-        # token = ApiToken(scope_list=["project:read"])
-        # assert token.get_scopes() == ["project:read"]
+        # Ensure hierarchy is enforced for all tokens
+        for scope in SENTRY_SCOPES:
+            token = ApiToken.objects.create(
+                user_id=user.id,
+                scope_list=[scope],
+            )
+            assert set(token.get_scopes()) == SENTRY_SCOPE_HIERARCHY_MAPPING[scope]
