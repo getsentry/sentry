@@ -17,7 +17,7 @@ from django.db import router, transaction
 from django.utils.text import slugify
 from typing_extensions import NotRequired
 
-from sentry import ratelimits
+from sentry import options, ratelimits
 from sentry.constants import ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models import Project
@@ -32,6 +32,7 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
     MonitorType,
 )
+from sentry.monitors.tasks import check_missing, check_timeout
 from sentry.monitors.utils import (
     get_new_timeout_at,
     get_timeout_at,
@@ -158,9 +159,7 @@ def _ensure_monitor_with_config(
 
 def _dispatch_tasks(ts: datetime):
     """
-    Dispatch monitor tasks triggered by the consumer clock. These will run
-    after the MONITOR_TASK_DELAY (in seconds), This is to give some breathing
-    room for check-ins to start and not be EXACTLY on the minute
+    Dispatch monitor tasks triggered by the consumer clock.
 
     These tasks are triggered via the consumer processing check-ins. This
     allows the monitor tasks to be synchronized to any backlog of check-ins
@@ -174,12 +173,11 @@ def _dispatch_tasks(ts: datetime):
     sentry.io, when we deploy we restart the celery beat worker and it will
     skip any tasks it missed)
     """
-    # For now we're going to have this do nothing. We want to validate that
-    # we're not going to be skipping any check-ins
-    return
+    if not options.get("monitors.use_consumer_clock_task_triggers"):
+        return
 
-    # check_missing.delay(current_datetime=ts)
-    # check_timeout.delay(current_datetime=ts)
+    check_missing.delay(current_datetime=ts)
+    check_timeout.delay(current_datetime=ts)
 
 
 def _try_monitor_tasks_trigger(ts: datetime):
