@@ -274,15 +274,13 @@ function CreateProject() {
 
   const canSubmitForm = !inFlight && canCreateProject && formErrorCount === 0;
 
-  let submitTooltipText: string | null = null;
+  let submitTooltipText: string = t('Please select a team');
   if (formErrorCount > 1) {
     submitTooltipText = t('Please fill out all the required fields');
   } else if (isMissingProjectName) {
     submitTooltipText = t('Please provide a project name');
   } else if (isMissingAlertThreshold) {
     submitTooltipText = t('Please provide an alert threshold');
-  } else {
-    submitTooltipText = t('Please select a team');
   }
 
   const alertFrequencyDefaultValues = useMemo(() => {
