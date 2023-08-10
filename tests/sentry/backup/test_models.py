@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from typing import Literal, Type
 from uuid import uuid4
 
-import pytest
 from django.core.management import call_command
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
@@ -93,9 +92,8 @@ from sentry.testutils.helpers.backups import (
     get_exportable_final_derivations_of,
     import_export_then_validate,
 )
-from sentry.testutils.hybrid_cloud import use_split_dbs
 from sentry.utils.json import JSONData
-from tests.sentry.backup import targets
+from tests.sentry.backup import run_backup_tests_only_on_single_db, targets
 
 UNIT_TESTED_MODELS = set()
 
@@ -119,12 +117,7 @@ def mark(*marking: Type | Literal["__all__"]):
     return marking
 
 
-@pytest.mark.skipif(
-    # TODO(Hybrid-Cloud): Support backup for individual silo DBs
-    # See comments on sentry.backup.imports.imports
-    use_split_dbs(),
-    reason="backup is currently supported only for single DB",
-)
+@run_backup_tests_only_on_single_db
 class ModelBackupTests(TransactionTestCase):
     """Test the JSON-ification of models marked `__include_in_export__ = True`. Each test here
     creates a fresh database, performs some writes to it, then exports that data into a temporary

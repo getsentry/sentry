@@ -7,13 +7,16 @@ from sentry.testutils.helpers.backups import (
     import_export_from_fixture_then_validate,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
+from tests.sentry.backup import run_backup_tests_only_on_single_db
 
 
+@run_backup_tests_only_on_single_db
 @django_db_all(transaction=True, reset_sequences=True)
 def test_good_fresh_install(tmp_path):
     import_export_from_fixture_then_validate(tmp_path, "fresh-install.json", DEFAULT_COMPARATORS)
 
 
+@run_backup_tests_only_on_single_db
 @django_db_all(transaction=True, reset_sequences=True)
 def test_bad_unequal_json(tmp_path):
     # Without the `DEFAULT_COMPARATORS`, the `date_updated` fields will not be compared using the
@@ -34,11 +37,13 @@ def test_bad_unequal_json(tmp_path):
     assert findings[1].right_pk == 1
 
 
+@run_backup_tests_only_on_single_db
 @django_db_all(transaction=True, reset_sequences=True)
 def test_date_updated_with_zeroed_milliseconds(tmp_path):
     import_export_from_fixture_then_validate(tmp_path, "datetime-with-zeroed-millis.json")
 
 
+@run_backup_tests_only_on_single_db
 @django_db_all(transaction=True, reset_sequences=True)
 def test_date_updated_with_unzeroed_milliseconds(tmp_path):
     with pytest.raises(ValidationError) as execinfo:
