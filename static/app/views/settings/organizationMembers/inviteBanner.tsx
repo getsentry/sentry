@@ -1,34 +1,80 @@
-import {useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
+import {openConfirmModal} from 'sentry/components/confirm';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconCommit, IconGithub, IconInfo, IconMail} from 'sentry/icons';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MissingMember, Organization} from 'sentry/types';
+import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
+import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   missingMembers: {integration: string; users: MissingMember[]};
-  onSendInvite: (email: string) => Promise<void>;
+  onSendInvite: (email: string) => void;
   organization: Organization;
 };
 
 export function InviteBanner({missingMembers, onSendInvite, organization}: Props) {
   // NOTE: this is currently used for Github only
-  // TODO(cathy): include snoozing, docs link
-  const [sendingInvite, setSendingInvite] = useState<boolean>(false);
 
-  if (
+  const hideBanner =
+    !organization.features.includes('integrations-gh-invite') ||
     !organization.access.includes('org:write') ||
     !missingMembers?.users ||
-    missingMembers?.users.length === 0
-  ) {
+    missingMembers?.users.length === 0;
+  const [sendingInvite, setSendingInvite] = useState<boolean>(false);
+  const [showBanner, setShowBanner] = useState<boolean>(false);
+
+  const api = useApi();
+  const integrationName = missingMembers?.integration;
+  const promptsFeature = `${integrationName}_missing_members`;
+
+  const snoozePrompt = useCallback(async () => {
+    setShowBanner(false);
+    await promptsUpdate(api, {
+      organizationId: organization.id,
+      feature: promptsFeature,
+      status: 'snoozed',
+    });
+  }, [api, organization, promptsFeature]);
+
+  useEffect(() => {
+    if (hideBanner) {
+      return;
+    }
+    promptsCheck(api, {
+      organizationId: organization.id,
+      feature: promptsFeature,
+    }).then(prompt => {
+      setShowBanner(!promptIsDismissed(prompt));
+    });
+  }, [api, organization, promptsFeature, hideBanner]);
+
+  if (hideBanner || !showBanner) {
     return null;
   }
+
+  // TODO(cathy): include docs link
+  const menuItems: MenuItemProps[] = [
+    {
+      key: 'invite-banner-snooze',
+      label: t('Hide Missing Members'),
+      onAction: () => {
+        openConfirmModal({
+          message: t('Are you sure you want to snooze this banner?'),
+          onConfirm: snoozePrompt,
+        });
+      },
+    },
+  ];
 
   const handleSendInvite = async (email: string) => {
     if (sendingInvite) {
@@ -71,7 +117,7 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
   cards.push(<SeeMoreCard key="see-more" missingUsers={users} />);
 
   return (
-    <StyledCard data-test-id="invite-banner">
+    <StyledCard>
       <CardTitleContainer>
         <CardTitleContent>
           <CardTitle>{t('Bring your full GitHub team on board in Sentry')}</CardTitle>
@@ -79,9 +125,10 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
             {tct('[missingMemberCount] missing members that are active in your GitHub', {
               missingMemberCount: users.length,
             })}
-            <Tooltip title="Based on the last 30 days of commit data">
-              <IconInfo size="xs" />
-            </Tooltip>
+            <QuestionTooltip
+              title={t('Based on the last 30 days of commit data')}
+              size="xs"
+            />
           </Subtitle>
         </CardTitleContent>
         <ButtonContainer>
@@ -89,10 +136,18 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
             priority="primary"
             size="xs"
             // TODO(cathy): open up invite modal
-            data-test-id="view-all-missing-members"
           >
             {t('View All')}
           </Button>
+          <DropdownMenu
+            items={menuItems}
+            triggerProps={{
+              size: 'xs',
+              showChevron: false,
+              icon: <IconEllipsis direction="down" size="sm" />,
+              'aria-label': t('Actions'),
+            }}
+          />
         </ButtonContainer>
       </CardTitleContainer>
       <MemberCardsContainer>{cards}</MemberCardsContainer>
@@ -127,7 +182,6 @@ function SeeMoreCard({missingUsers}: SeeMoreCardProps) {
         size="sm"
         priority="primary"
         // TODO(cathy): open up invite modal
-        data-test-id="view-all-missing-members"
       >
         {t('View All')}
       </Button>
@@ -151,7 +205,8 @@ const CardTitleContent = styled('div')`
   flex-direction: column;
 `;
 
-const CardTitle = styled('div')`
+const CardTitle = styled('h6')`
+  margin: 0;
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: bold;
   color: ${p => p.theme.gray400};

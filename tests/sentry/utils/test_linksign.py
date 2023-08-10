@@ -20,6 +20,14 @@ class LinkSignTestCase(TestCase):
         assert signed_user
         assert signed_user.id == self.user.id
 
+        with self.options({"system.url-prefix": "https://sentry.io"}):
+            url = linksign.generate_signed_link(self.user, "sentry")
+            assert url.startswith("https://")
+            req = rf.get("/" + url.split("/", 3)[-1])
+            signed_user = linksign.process_signature(req)
+            assert signed_user
+            assert signed_user.id == self.user.id
+
         req = rf.get("/what" + url.split("/", 3)[-1])
         signed_user = linksign.process_signature(req)
         assert signed_user is None

@@ -29,7 +29,12 @@ type Props = Omit<
   resetParamsOnChange?: string[];
 };
 
-function OldDatePageFilter({resetParamsOnChange, disabled, ...props}: Props) {
+function OldDatePageFilter({
+  resetParamsOnChange,
+  disabled,
+  storageNamespace,
+  ...props
+}: Props) {
   const router = useRouter();
   const {selection, desyncedFilters} = usePageFilters();
   const organization = useOrganization();
@@ -42,7 +47,11 @@ function OldDatePageFilter({resetParamsOnChange, disabled, ...props}: Props) {
       ...startEndUtc,
     };
 
-    updateDateTime(newTimePeriod, router, {save: true, resetParams: resetParamsOnChange});
+    updateDateTime(newTimePeriod, router, {
+      save: true,
+      resetParams: resetParamsOnChange,
+      storageNamespace,
+    });
   };
 
   const customDropdownButton = ({getActorProps, isOpen}) => {

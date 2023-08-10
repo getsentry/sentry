@@ -105,6 +105,9 @@ SENTRY_DISALLOWED_IPS = ()
 # search domains.
 SENTRY_ENSURE_FQDN = False
 
+# XXX [!!]: When adding a new key here BE SURE to configure it in getsentry, as
+#           it can not be `default`. The default cluster in sentry.io
+#           production is NOT a true redis cluster and WILL error in prod.
 SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER = "default"
 SENTRY_INCIDENT_RULES_REDIS_CLUSTER = "default"
 SENTRY_RATE_LIMIT_REDIS_CLUSTER = "default"
@@ -1354,6 +1357,8 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Allow disabling integrations when broken is detected
     "organizations:slack-disable-on-broken": False,
+    # Allow disabling sentryapps when broken is detected
+    "organizations:disable-sentryapps-on-broken": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1477,6 +1482,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-discord-notifications": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": False,
+    # Enable one-click migration from Opsgenie plugin
+    "organizations:integrations-opsgenie-migration": False,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
     # Enable data forwarding functionality for organizations.
@@ -1684,8 +1691,6 @@ SENTRY_FEATURES = {
     "organizations:org-auth-tokens": False,
     # Enable detecting SDK crashes during event processing
     "organizations:sdk-crash-detection": False,
-    # Enables slack channel lookup via schedule message
-    "organizations:slack-use-new-lookup": False,
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -3651,6 +3656,12 @@ SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
 # Feature flag to turn off role-swapping to help bridge getsentry transition.
 USE_ROLE_SWAPPING_IN_TESTS = True
 
+# Threshold for the number of timeouts needed in a day to disable an integration
+BROKEN_TIMEOUT_THRESHOLD = 1000
+
+# This webhook url can be configured to log the changes made to runtime options as they
+# are changed by sentry configoptions.
+OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: Optional[str] = None
 
 SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
 SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
