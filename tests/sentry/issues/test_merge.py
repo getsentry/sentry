@@ -10,7 +10,7 @@ from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.merge import handle_merge
 from sentry.models import Activity, Group, GroupInboxReason, GroupStatus, add_group_to_inbox
 from sentry.tasks.merge import merge_groups
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
@@ -95,5 +95,8 @@ class HandleIssueMergeTest(TestCase):
 
             handle_merge([primary, child], self.project_lookup, self.user)
 
+            # Check that fetch forecast returns the default count for one event
             for group in [primary, child]:
-                assert EscalatingGroupForecast.fetch(group.project.id, group.id) is None
+                forecast = EscalatingGroupForecast.fetch(group.project.id, group.id)
+                assert forecast is not None
+                assert forecast.forecast == [10] * 14
