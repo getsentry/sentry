@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import datetime
 from typing import Callable, Generic, Type
+from uuid import UUID
 
 from snuba_sdk import Column, Condition, Function
 from snuba_sdk.expressions import Expression
@@ -121,6 +122,10 @@ class ColumnField(BaseField[T]):
 
 class StringColumnField(ColumnField[str]):
     """String type conditional column field."""
+
+
+class UUIDColumnField(ColumnField[UUID]):
+    """UUID type conditional column field."""
 
 
 class CountField(ColumnField[int]):

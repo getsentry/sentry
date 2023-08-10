@@ -21,6 +21,7 @@ from sentry.replays.lib.new_query.fields import (
     StringColumnField,
     SumField,
     SumLengthField,
+    UUIDColumnField,
 )
 from sentry.replays.lib.new_query.parsers import parse_int, parse_str, parse_uuid
 from sentry.replays.lib.selector.parse import parse_selector
@@ -93,7 +94,7 @@ search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = {
     "replay_type": string_field("replay_type"),
     "sdk.name": string_field("sdk_name"),
     "sdk.version": string_field("sdk_version"),
-    "trace_ids": StringColumnField("trace_ids", parse_uuid, SumOfUUIDArray),
+    "trace_ids": UUIDColumnField("trace_ids", parse_uuid, SumOfUUIDArray),
     "urls": array_string_field("urls"),
     "user.email": string_field("user_email"),
     "user.id": string_field("user_id"),
