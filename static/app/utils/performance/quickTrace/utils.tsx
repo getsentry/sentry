@@ -11,10 +11,12 @@ import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {
   QuickTrace,
   QuickTraceEvent,
+  TraceError,
   TraceFull,
   TraceFullDetailed,
   TraceLite,
 } from 'sentry/utils/performance/quickTrace/types';
+import {TraceRoot} from 'sentry/views/performance/traceDetails/types';
 
 export function isTransaction(event: Event): event is EventTransaction {
   return event.type === 'transaction';
@@ -311,6 +313,14 @@ export function isTraceFull(transaction): transaction is TraceFull {
 
 export function isTraceFullDetailed(transaction): transaction is TraceFullDetailed {
   return Boolean((transaction as TraceFullDetailed).event_id);
+}
+
+export function isTraceError(transaction): transaction is TraceError {
+  return Boolean((transaction as TraceError).level);
+}
+
+export function isTraceRoot(transaction): transaction is TraceRoot {
+  return Boolean((transaction as TraceRoot).traceSlug);
 }
 
 function handleProjectMeta(organization: OrganizationSummary, projects: number) {

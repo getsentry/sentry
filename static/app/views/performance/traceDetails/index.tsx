@@ -13,7 +13,12 @@ import EventView from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullDetailedQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
-import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
+import {
+  TraceDetailedResults,
+  TraceError,
+  TraceFullDetailed,
+  TraceMeta,
+} from 'sentry/utils/performance/quickTrace/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -79,21 +84,58 @@ class TraceSummary extends Component<Props> {
       error: QueryError | null;
       isLoading: boolean;
       meta: TraceMeta | null;
-      traces: TraceFullDetailed[] | null;
-    }) => (
-      <TraceDetailsContent
-        location={location}
-        organization={organization}
-        params={params}
-        traceSlug={traceSlug}
-        traceEventView={this.getTraceEventView()}
-        dateSelected={dateSelected}
-        isLoading={isLoading}
-        error={error}
-        traces={traces}
-        meta={meta}
-      />
-    );
+      traces: (TraceFullDetailed[] & TraceDetailedResults) | null;
+    }) => {
+      let transactions: TraceFullDetailed[] | undefined;
+      let orphanErrors: TraceError[] | undefined;
+      if (organization.features.includes('performance-tracing-without-performance')) {
+        orphanErrors = traces?.orphan_errors;
+        transactions = traces?.transactions;
+      }
+
+      //   orphanErrors = [
+      //     {
+      //       "event_id": "9c65abc015f0445f82bce81ffcb31d8b",
+      //       "issue_id": 3899254784,
+      //       "span": "985f4b1fc8385888",
+      //       "project_id": 1,
+      //       "project_slug": "javascript",
+      //       "title": "MaybeEncodingError: Error sending result: ''(1, <ExceptionInfo: KafkaException(\\'KafkaError{code=MSG_SIZE_TOO_LARGE,v...",
+      //       "level": "error",
+      //       "timestamp": 1690805246.527113,
+      //       "generation": 0,
+      //       "issue": "sadfsdfsd"
+      //   },
+      //   {
+      //     "event_id": "9c65abc015f0445f82bce81ffcb31d8b",
+      //     "issue_id": 3899254784,
+      //     "span": "985f4b1fc8385888",
+      //     "project_id": 1,
+      //     "project_slug": "javascript",
+      //     "title": "MaybeEncodingError: Error sending result: ''(1, <ExceptionInfo: KafkaException(\\'KafkaError{code=MSG_SIZE_TOO_LARGE,v...",
+      //     "level": "error",
+      //     "timestamp": 1690805246.527113,
+      //     "generation": 0,
+      //     "issue": "sadfsdfsd"
+      // }
+      // ]
+
+      return (
+        <TraceDetailsContent
+          location={location}
+          organization={organization}
+          params={params}
+          traceSlug={traceSlug}
+          traceEventView={this.getTraceEventView()}
+          dateSelected={dateSelected}
+          isLoading={isLoading}
+          error={error}
+          orphanErrors={orphanErrors}
+          traces={transactions ?? traces}
+          meta={meta}
+        />
+      );
+    };
 
     if (!dateSelected) {
       return content({

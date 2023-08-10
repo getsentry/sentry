@@ -21,7 +21,11 @@ import {tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
-import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
+import {
+  TraceError,
+  TraceFullDetailed,
+  TraceMeta,
+} from 'sentry/utils/performance/quickTrace/types';
 import {
   TraceDetailBody,
   TracePanel,
@@ -49,8 +53,9 @@ type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
   organization: Organization;
   traceEventView: EventView;
   traceSlug: string;
-  traces: TraceFullDetailed[] | null;
-  filteredTransactionIds?: Set<string>;
+  traces: TraceFullDetailed[];
+  filteredEventIds?: Set<string>;
+  orphanErrors?: TraceError[];
   traceInfo?: TraceInfo;
 };
 
@@ -80,11 +85,11 @@ function TraceHiddenMessage({
   );
 }
 
-function isTransactionVisible(
-  transaction: TraceFullDetailed,
-  filteredTransactionIds?: Set<string>
+function isRowVisible(
+  row: TraceFullDetailed | TraceError,
+  filteredEventIds?: Set<string>
 ): boolean {
-  return filteredTransactionIds ? filteredTransactionIds.has(transaction.event_id) : true;
+  return filteredEventIds ? filteredEventIds.has(row.event_id) : true;
 }
 
 function generateBounds(traceInfo: TraceInfo) {
@@ -103,7 +108,8 @@ export default function TraceView({
   traces,
   traceSlug,
   traceEventView,
-  filteredTransactionIds,
+  filteredEventIds,
+  orphanErrors,
   ...props
 }: Props) {
   const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
@@ -111,6 +117,8 @@ export default function TraceView({
     op: 'trace.render',
     description: 'trace-view-content',
   });
+  const hasOrphanErrors = orphanErrors && orphanErrors.length > 0;
+
   useEffect(() => {
     trackAnalytics('performance_views.trace_view.view', {
       organization,
@@ -141,7 +149,7 @@ export default function TraceView({
     // Add 1 to the generation to make room for the "root trace"
     const generation = transaction.generation + 1;
 
-    const isVisible = isTransactionVisible(transaction, filteredTransactionIds);
+    const isVisible = isRowVisible(transaction, filteredEventIds);
 
     const accumulated: AccType = children.reduce(
       (acc: AccType, child: TraceFullDetailed, idx: number) => {
@@ -216,7 +224,9 @@ export default function TraceView({
   const traceViewRef = createRef<HTMLDivElement>();
   const virtualScrollbarContainerRef = createRef<HTMLDivElement>();
 
-  if (traces === null || traces.length <= 0) {
+  const hasData =
+    (traces && traces.length > 0) || (orphanErrors && orphanErrors.length > 0);
+  if (!hasData) {
     return (
       <TraceNotFound
         meta={meta}
@@ -242,6 +252,7 @@ export default function TraceView({
     transactionGroups: [],
   };
 
+  let lastIndex: number = 0;
   const {transactionGroups, numberOfHiddenTransactionsAbove} = traces.reduce(
     (acc, trace, index) => {
       const isLastTransaction = index === traces.length - 1;
@@ -253,15 +264,16 @@ export default function TraceView({
         ...acc,
         // if the root of a subtrace has a parent_span_id, then it must be an orphan
         isOrphan: !isRootTransaction(trace),
-        isLast: isLastTransaction,
+        isLast: isLastTransaction && !hasOrphanErrors,
         continuingDepths:
-          !isLastTransaction && hasChildren
-            ? [{depth: 0, isOrphanDepth: isNextChildOrphaned}]
+          (!isLastTransaction && hasChildren) || hasOrphanErrors
+            ? [{depth: 0, isOrphanDepth: isNextChildOrphaned || Boolean(hasOrphanErrors)}]
             : [],
         hasGuideAnchor: index === 0,
       });
 
       acc.index = result.lastIndex + 1;
+      lastIndex = Math.max(lastIndex, result.lastIndex);
       acc.numberOfHiddenTransactionsAbove = result.numberOfHiddenTransactionsAbove;
       acc.transactionGroups.push(result.transactionGroup);
       return acc;
@@ -269,9 +281,39 @@ export default function TraceView({
     accumulator
   );
 
+  if (hasOrphanErrors) {
+    orphanErrors.forEach((error, index) => {
+      const isLastError = index === orphanErrors.length - 1;
+      transactionGroups.push(
+        <TransactionGroup
+          location={location}
+          organization={organization}
+          traceInfo={traceInfo}
+          transaction={{
+            ...error,
+            generation: 1,
+          }}
+          generateBounds={generateBounds(traceInfo)}
+          measurements={
+            traces && traces.length > 0
+              ? getMeasurements(traces[0], generateBounds(traceInfo))
+              : undefined
+          }
+          continuingDepths={[]}
+          isOrphan
+          isLast={isLastError}
+          index={lastIndex + index + 1}
+          isVisible={isRowVisible(error, filteredEventIds)}
+          hasGuideAnchor
+          renderedChildren={[]}
+        />
+      );
+    });
+  }
+
   const bounds = generateBounds(traceInfo);
   const measurements =
-    Object.keys(traces[0].measurements ?? {}).length > 0
+    traces.length > 0 && Object.keys(traces[0].measurements ?? {}).length > 0
       ? getMeasurements(traces[0], bounds)
       : undefined;
 
@@ -348,6 +390,7 @@ export default function TraceView({
                     hasGuideAnchor={false}
                     renderedChildren={transactionGroups}
                     barColor={pickBarColor('')}
+                    numOfOrphanErrors={orphanErrors?.length}
                   />
                   <TraceHiddenMessage
                     isVisible

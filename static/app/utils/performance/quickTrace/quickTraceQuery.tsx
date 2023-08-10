@@ -10,6 +10,7 @@ import {
   getTraceTimeRangeFromEvent,
   isCurrentEvent,
 } from 'sentry/utils/performance/quickTrace/utils';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
   children: (props: QuickTraceQueryChildrenProps) => React.ReactNode;
@@ -17,6 +18,7 @@ type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
 };
 
 export default function QuickTraceQuery({children, event, ...props}: QueryProps) {
+  const organization = useOrganization();
   const renderEmpty = () => (
     <Fragment>
       {children({
@@ -63,7 +65,13 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               traceFullResults.error === null &&
               traceFullResults.traces !== null
             ) {
-              for (const subtrace of traceFullResults.traces) {
+              if (
+                organization.features.includes('performance-tracing-without-performance')
+              ) {
+                traceFullResults.traces = traceFullResults.traces.transactions as any;
+              }
+
+              for (const subtrace of traceFullResults.traces ?? []) {
                 try {
                   const trace = flattenRelevantPaths(event, subtrace);
                   return children({
