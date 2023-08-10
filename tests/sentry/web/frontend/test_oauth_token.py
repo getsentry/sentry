@@ -307,7 +307,7 @@ class OAuthTokenCodeTest(TestCase):
             user=self.user,
             application=self.application,
             redirect_uri="https://example.com",
-            scope_list=["openid", "profile", "email"],
+            scope_list=["email", "openid", "profile"],
         )
         with self.options({"codecov.signing_secret": "signing_secret"}):
             resp = self.client.post(
@@ -325,7 +325,7 @@ class OAuthTokenCodeTest(TestCase):
             data = json.loads(resp.content)
             token = ApiToken.objects.get(token=data["access_token"])
 
-            assert token.get_scopes() == ["openid", "profile", "email"]
+            assert token.get_scopes() == ["email", "openid", "profile"]
             assert data["refresh_token"] == token.refresh_token
             assert data["access_token"] == token.token
             assert isinstance(data["expires_in"], int)
