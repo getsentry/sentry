@@ -1386,6 +1386,8 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
+    # Enable profiling view
+    "organizations:profiling-view": False,
     # Enable ui frames in flamecharts
     "organizations:profiling-ui-frames": False,
     # Enable the transactions backed profiling views
