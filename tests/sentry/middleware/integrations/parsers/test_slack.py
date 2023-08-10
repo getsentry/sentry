@@ -1,11 +1,10 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, sentinel
 
 import pytest
 from django.test import RequestFactory
 from django.urls import reverse
 
 from sentry.integrations.slack.requests.command import SlackCommandRequest
-from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.base import RegionResult
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.models.outbox import ControlOutbox
@@ -19,7 +18,6 @@ from sentry.utils.signing import sign
 @control_silo_test(stable=True)
 class SlackRequestParserTest(TestCase):
     get_response = MagicMock()
-    middleware = IntegrationControlMiddleware(get_response)
     factory = RequestFactory()
     region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
 
@@ -58,7 +56,7 @@ class SlackRequestParserTest(TestCase):
         assert integration == self.integration
 
         # Returns response from region
-        region_response = RegionResult(response="mock_response")
+        region_response = RegionResult(response=sentinel.response)
         with patch.object(
             parser, "get_response_from_outbox_creation"
         ) as get_response_from_outbox_creation, patch.object(
@@ -77,7 +75,7 @@ class SlackRequestParserTest(TestCase):
         with pytest.raises(SiloClientError), patch.object(
             parser,
             "get_responses_from_region_silos",
-            return_value={self.region.name: RegionResult(error="mock_error")},
+            return_value={self.region.name: RegionResult(error=sentinel.error)},
         ) as mock_response_from_region:
             response = parser.get_response()
             assert mock_response_from_region.called

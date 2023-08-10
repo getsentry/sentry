@@ -5,9 +5,8 @@ import uuid
 from typing import Callable
 
 from django.conf import settings
-from django.http.response import HttpResponse
-from rest_framework.request import Request
-from rest_framework.response import Response
+from django.http.request import HttpRequest
+from django.http.response import HttpResponse, HttpResponseBase
 
 from sentry.ratelimits import (
     above_rate_limit_check,
@@ -32,16 +31,18 @@ class RatelimitMiddleware:
     See: https://docs.djangoproject.com/en/4.0/topics/http/middleware/#writing-your-own-middleware
     """
 
-    def __init__(self, get_response: Callable[[Request], Response]):
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponseBase]):
         self.get_response = get_response
 
-    def __call__(self, request: Request) -> Response:
+    def __call__(self, request: HttpRequest) -> HttpResponseBase:
         # process_view is automatically called by Django
         response = self.get_response(request)
         self.process_response(request, response)
         return response
 
-    def process_view(self, request: Request, view_func, view_args, view_kwargs) -> Response | None:
+    def process_view(
+        self, request: HttpRequest, view_func, view_args, view_kwargs
+    ) -> HttpResponseBase | None:
         """Check if the endpoint call will violate."""
 
         with metrics.timer("middleware.ratelimit.process_view"):
@@ -116,7 +117,9 @@ class RatelimitMiddleware:
                 )
         return None
 
-    def process_response(self, request: Request, response: Response) -> Response:
+    def process_response(
+        self, request: HttpRequest, response: HttpResponseBase
+    ) -> HttpResponseBase:
         with metrics.timer("middleware.ratelimit.process_response"):
             try:
                 rate_limit_metadata: RateLimitMeta | None = getattr(

@@ -45,6 +45,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 import CreateIntegrationButton from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
+import ReinstallAlert from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
 
 import {POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
@@ -505,15 +506,13 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
 
   renderBody() {
     const {organization} = this.props;
-    const {displayedList, list, searchInput, selectedCategory} = this.state;
-
+    const {displayedList, list, searchInput, selectedCategory, integrations} = this.state;
     const title = t('Integrations');
     const categoryList = uniq(flatten(list.map(getCategoriesForIntegration))).sort();
 
     return (
       <Fragment>
         <SentryDocumentTitle title={title} orgSlug={organization.slug} />
-
         {!this.props.hideHeader && (
           <SettingsPageHeader
             title={title}
@@ -544,8 +543,8 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
             action={<CreateIntegrationButton analyticsView="integrations_directory" />}
           />
         )}
-
         <PermissionAlert access={['org:integrations']} />
+        <ReinstallAlert integrations={integrations} />
         <Panel>
           <PanelBody data-test-id="integration-panel">
             {displayedList.length ? (

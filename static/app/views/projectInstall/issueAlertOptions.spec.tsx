@@ -105,14 +105,14 @@ describe('IssueAlertOptions', function () {
     );
   });
 
-  it('should not pre-fill threshold value after a valid server response', () => {
+  it('should pre-fill threshold value after a valid server response', () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: TestStubs.MOCK_RESP_VERBOSE,
     });
 
     render(<IssueAlertOptions {...props} />);
-    expect(screen.getByTestId('range-input')).toHaveValue(null);
+    expect(screen.getByTestId('range-input')).toHaveValue(10);
   });
 
   it('should provide fallthroughType with issue action for issue-alert-fallback-targeting', async () => {
