@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import datetime
-from typing import TypeVar
+from typing import Callable, Generic, Type, TypeVar
 
 from snuba_sdk import Condition
 
 from sentry.api.event_search import SearchFilter
 from sentry.replays.lib.new_query.fields import BaseField
+from sentry.replays.usecases.query.conditions.base import ComputedBase
 
 T = TypeVar("T")
 
@@ -20,7 +21,11 @@ T = TypeVar("T")
 # route to the correct visitor method.
 
 
-class ComputedField(BaseField[T]):
+class ComputedField(Generic[T]):
+    def __init__(self, parse: Callable[[str], T], query: Type[ComputedBase[T]]) -> None:
+        self.parse = parse
+        self.query = query
+
     def apply(self, search_filter: SearchFilter) -> Condition:
         """Apply a search operation against any named expression.
 
