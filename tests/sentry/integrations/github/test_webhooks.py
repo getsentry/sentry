@@ -148,7 +148,7 @@ class PushEventWebhookTest(APITestCase):
         assert repos[0].external_id == "35129377"
         assert repos[0].provider == "integrations:github"
         assert repos[0].name == "baxterthehacker/public-repo"
-        mock_metrics.incr.assert_called_with("github.webhook.create_repository")
+        mock_metrics.incr.assert_called_with("github.webhook.repository_created")
 
     @with_feature("organizations:integrations-auto-repo-linking")
     def test_ignores_hidden_repo(self):
@@ -316,7 +316,7 @@ class PushEventWebhookTest(APITestCase):
             assert repo.external_id == "35129377"
             assert repo.provider == "integrations:github"
             assert repo.name == "baxterthehacker/public-repo"
-        mock_metrics.incr.assert_called_with("github.webhook.create_repository")
+        mock_metrics.incr.assert_called_with("github.webhook.repository_created")
 
     @with_feature("organizations:integrations-auto-repo-linking")
     def test_multiple_orgs_ignores_hidden_repo(self):
@@ -440,7 +440,7 @@ class PullRequestEventWebhook(APITestCase):
         assert repos[0].external_id == "35129377"
         assert repos[0].provider == "integrations:github"
         assert repos[0].name == "baxterthehacker/public-repo"
-        mock_metrics.incr.assert_called_with("github.webhook.create_repository")
+        mock_metrics.incr.assert_called_with("github.webhook.repository_created")
 
     @with_feature("organizations:integrations-auto-repo-linking")
     def test_ignores_hidden_repo(self):
@@ -499,7 +499,7 @@ class PullRequestEventWebhook(APITestCase):
             assert repo.external_id == "35129377"
             assert repo.provider == "integrations:github"
             assert repo.name == "baxterthehacker/public-repo"
-        mock_metrics.incr.assert_called_with("github.webhook.create_repository")
+        mock_metrics.incr.assert_called_with("github.webhook.repository_created")
 
     @with_feature("organizations:integrations-auto-repo-linking")
     def test_multiple_orgs_ignores_hidden_repo(self):
