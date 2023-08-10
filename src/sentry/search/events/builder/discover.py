@@ -241,6 +241,7 @@ class QueryBuilder(BaseQueryBuilder):
         self.on_demand_metrics_enabled = on_demand_metrics_enabled
         self.auto_fields = auto_fields
         self.query = query
+        self.selected_columns = selected_columns
         self.groupby_columns = groupby_columns
         self.functions_acl = set() if functions_acl is None else functions_acl
         self.equation_config = {} if equation_config is None else equation_config
@@ -309,12 +310,16 @@ class QueryBuilder(BaseQueryBuilder):
             orderby=orderby,
         )
 
+    def are_columns_resolved(self) -> bool:
+        return self.columns and isinstance(self.columns[0], Function)
+
     def get_default_converter(self) -> Callable[[event_search.SearchFilter], Optional[WhereType]]:
         return self._default_filter_converter
 
     def resolve_time_conditions(self) -> None:
         if self.skip_time_conditions:
             return
+
         # start/end are required so that we can run a query in a reasonable amount of time
         if self.params.start is None or self.params.end is None:
             raise InvalidSearchQuery("Cannot query without a valid date range")

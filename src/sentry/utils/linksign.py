@@ -4,6 +4,7 @@ from urllib.parse import urlencode
 
 from django.core import signing
 from django.urls import reverse
+from sentry_sdk.api import capture_exception
 
 from sentry import options
 from sentry.models import User
@@ -50,10 +51,13 @@ def process_signature(request, max_age=60 * 60 * 24 * 10):
     if not sig or sig.count(":") < 2:
         return None
 
-    signed_data = "{}|{}|{}".format(request.build_absolute_uri("/").rstrip("/"), request.path, sig)
+    url_prefix = options.get("system.url-prefix")
+    request_path = request.path
+    signed_data = f"{url_prefix}|{request_path}|{sig}"
     try:
         data = get_signer().unsign(signed_data, max_age=max_age)
-    except signing.BadSignature:
+    except signing.BadSignature as e:
+        capture_exception(e)
         return None
 
     _, signed_path, user_id = data.rsplit("|", 2)

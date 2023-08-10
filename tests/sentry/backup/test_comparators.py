@@ -1,10 +1,10 @@
 from sentry.backup.comparators import (
-    DateAddedComparator,
+    DatetimeEqualityComparator,
     DateUpdatedComparator,
     EmailObfuscatingComparator,
     HashObfuscatingComparator,
 )
-from sentry.backup.findings import InstanceID
+from sentry.backup.findings import ComparatorFindingKind, InstanceID
 from sentry.utils.json import JSONData
 
 
@@ -55,7 +55,7 @@ def test_bad_comparator_only_one_side_existing():
     assert res
     assert res[0]
     assert res[0].on == id
-    assert res[0].kind == "UnexecutedDateUpdatedComparator"
+    assert res[0].kind == ComparatorFindingKind.DateUpdatedComparatorExistenceCheck
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "left" in res[0].reason
@@ -64,7 +64,7 @@ def test_bad_comparator_only_one_side_existing():
     res = cmp.existence(id, present, missing)
     assert res
     assert res[0]
-    assert res[0].kind == "UnexecutedDateUpdatedComparator"
+    assert res[0].kind == ComparatorFindingKind.DateUpdatedComparatorExistenceCheck
     assert res[0].on == id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
@@ -72,8 +72,8 @@ def test_bad_comparator_only_one_side_existing():
     assert "my_date_field" in res[0].reason
 
 
-def test_good_date_added_comparator():
-    cmp = DateAddedComparator("my_date_field")
+def test_good_datetime_equality_comparator():
+    cmp = DatetimeEqualityComparator("my_date_field")
     id = InstanceID("test", 0)
     left: JSONData = {
         "model": "test",
@@ -94,8 +94,8 @@ def test_good_date_added_comparator():
     assert not cmp.compare(id, left, right)
 
 
-def test_bad_date_added_comparator():
-    cmp = DateAddedComparator("my_date_field")
+def test_bad_datetime_equality_comparator():
+    cmp = DatetimeEqualityComparator("my_date_field")
     id = InstanceID("test", 0)
     left: JSONData = {
         "model": "test",
@@ -116,7 +116,7 @@ def test_bad_date_added_comparator():
     res = cmp.compare(id, left, right)
     assert res
     assert res[0]
-    assert res[0].kind == "DateAddedComparator"
+    assert res[0].kind == ComparatorFindingKind.DatetimeEqualityComparator
     assert res[0].on == id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
@@ -169,7 +169,7 @@ def test_bad_date_updated_comparator():
     res = cmp.compare(id, left, right)
     assert res
     assert res[0]
-    assert res[0].kind == "DateUpdatedComparator"
+    assert res[0].kind == ComparatorFindingKind.DateUpdatedComparator
     assert res[0].on == id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
@@ -227,7 +227,7 @@ def test_bad_email_obfuscating_comparator():
     assert res
 
     assert res[0]
-    assert res[0].kind == "EmailObfuscatingComparator"
+    assert res[0].kind == ComparatorFindingKind.EmailObfuscatingComparator
     assert res[0].on == id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
@@ -235,7 +235,7 @@ def test_bad_email_obfuscating_comparator():
     assert "b...@...ng.com" in res[0].reason
 
     assert res[1]
-    assert res[1].kind == "EmailObfuscatingComparator"
+    assert res[1].kind == ComparatorFindingKind.EmailObfuscatingComparator
     assert res[1].on == id
     assert res[1].left_pk == 1
     assert res[1].right_pk == 1
@@ -334,7 +334,7 @@ def test_bad_hash_obfuscating_comparator():
     assert res
 
     assert res[0]
-    assert res[0].kind == "HashObfuscatingComparator"
+    assert res[0].kind == ComparatorFindingKind.HashObfuscatingComparator
     assert res[0].on == id
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
@@ -342,7 +342,7 @@ def test_bad_hash_obfuscating_comparator():
     assert "2...f" in res[0].reason
 
     assert res[1]
-    assert res[1].kind == "HashObfuscatingComparator"
+    assert res[1].kind == ComparatorFindingKind.HashObfuscatingComparator
     assert res[1].on == id
     assert res[1].left_pk == 1
     assert res[1].right_pk == 1

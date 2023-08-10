@@ -43,9 +43,10 @@ class AvatarMigrationTestCase(TestCase):
         ):
             with self.tasks():
                 assert isinstance(avatar.get_file(), File)
-                avatar = UserAvatar.objects.get(id=avatar.id)
-                assert avatar.control_file_id is not None
-                assert isinstance(avatar.get_file(), ControlFile)
+            avatar = UserAvatar.objects.get(id=avatar.id)
+            assert avatar.control_file_id is not None
+            assert avatar.file_id is None
+            assert isinstance(avatar.get_file(), ControlFile)
 
 
 @region_silo_test(stable=True)
