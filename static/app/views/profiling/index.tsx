@@ -15,13 +15,14 @@ function ProfilingContainer({children}: Props) {
   return (
     <Feature
       hookName="feature-disabled:profiling-page"
-      features={['profiling']}
+      features={['performance-view', 'profiling']}
       organization={organization}
       renderDisabled={() => (
         <Layout.Page withPadding>
           <Alert type="warning">{t("You don't have access to this feature")}</Alert>
         </Layout.Page>
       )}
+      requireAll={false}
     >
       <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
     </Feature>

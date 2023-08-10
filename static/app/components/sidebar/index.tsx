@@ -331,7 +331,7 @@ function Sidebar({location, organization}: Props) {
   const profiling = hasOrganization && (
     <Feature
       hookName="feature-disabled:profiling-sidebar-item"
-      features={['profiling']}
+      features={['performance-view', 'profiling']}
       organization={organization}
       requireAll={false}
     >
