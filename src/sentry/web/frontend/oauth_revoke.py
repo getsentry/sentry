@@ -101,7 +101,9 @@ class OAuthRevokeView(View):
             )
 
         token_to_delete = self.get_token_to_delete(
-            token=token, token_type_hint=token_type_hint, application=application
+            token=token,
+            token_type_hint=token_type_hint,
+            application=application,  # an application can only revoke tokens it owns
         )
 
         # only delete the token if one was found
@@ -117,9 +119,9 @@ class OAuthRevokeView(View):
     ) -> Optional[ApiToken]:
         try:
             if token_type_hint == "access_token":
-                token_to_delete = ApiToken.objects.get(token=token)
+                token_to_delete = ApiToken.objects.get(token=token, application=application)
             elif token_type_hint == "refresh_token":
-                token_to_delete = ApiToken.objects.get(refresh_token=token)
+                token_to_delete = ApiToken.objects.get(refresh_token=token, application=application)
             else:
                 # the client request did not provide a token hint so we must check both token (aka. access_token)
                 # and refresh_token for a match

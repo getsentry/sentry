@@ -24,6 +24,12 @@ class OAuthRevokeTest(TestCase):
             redirect_uris="http://localhost:1234",
         )
 
+        # create a second application to test app ownership boundary
+        self.other_application = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="http://localhost:5678",
+        )
+
         # authorize the api application to act on behalf of the test user
         self.grants: List[ApiGrant] = []
 
@@ -215,3 +221,25 @@ class OAuthRevokeTest(TestCase):
         assert resp.status_code == 401
         assert resp.json()["error"] == "invalid_client"
         assert resp.json()["error_description"] == "failed to authenticate client"
+
+    def test_application_cannot_revoke_others_tokens(self):
+        resp = self.client.post(
+            self.path,
+            data={
+                # use another application's valid credentials that does not own
+                # the targeted token
+                "client_id": self.other_application.client_id,
+                "client_secret": self.other_application.client_secret,
+                "token": self.tokens[0].token,
+            },
+        )
+
+        # seems odd at first, but per the RFC (https://www.rfc-editor.org/rfc/rfc7009#section-2.2)
+        # this would just be treated as an invalid token in the context of tokens this client owns.
+        # In order to avoid enumeration attempts we return a 200 and just silently do nothing.
+        assert resp.status_code == 200
+
+        # even though the token was real, it should still exist. A client is only able to revoke
+        # tokens it owns.
+        api_token_count = ApiToken.objects.filter(id=self.tokens[0].id).count()
+        assert 1 == api_token_count
