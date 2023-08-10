@@ -3,6 +3,7 @@ from functools import cached_property
 from unittest import mock
 
 import pytest
+from django.contrib.sessions.backends.base import SessionBase
 from django.db.models import F
 from django.test import RequestFactory
 from django.utils import timezone
@@ -226,7 +227,7 @@ class BaseOrganizationEndpointTest(TestCase):
 
     def build_request(self, user=None, active_superuser=False, **params):
         request = RequestFactory().get("/", params)
-        request.session = {}
+        request.session = SessionBase()
         if active_superuser:
             request.superuser = MockSuperUser()
         if user is None:
@@ -335,7 +336,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
     def test_none_user(self):
         request = RequestFactory().get("/")
-        request.session = {}
+        request.session = SessionBase()
         request.access = NoAccess()
         result = self.endpoint.get_projects(request, self.org)
         assert [] == result

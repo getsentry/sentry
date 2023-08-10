@@ -7,7 +7,8 @@ import abc
 from typing import List, Optional, cast
 
 from sentry.services.hybrid_cloud.hook import RpcServiceHook
-from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
+from sentry.services.hybrid_cloud.region import ByOrganizationId
+from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.silo import SiloMode
 
 
@@ -21,7 +22,7 @@ class HookService(RpcService):
 
         return DatabaseBackedHookService()
 
-    @rpc_method
+    @regional_rpc_method(ByOrganizationId())
     @abc.abstractmethod
     def create_service_hook(
         self,
@@ -36,13 +37,14 @@ class HookService(RpcService):
     ) -> RpcServiceHook:
         pass
 
-    @rpc_method
+    @regional_rpc_method(ByOrganizationId())
     @abc.abstractmethod
     def update_webhook_and_events(
         self,
         *,
-        application_id: Optional[int] = None,
-        webhook_url: Optional[str] = None,
+        organization_id: int,
+        application_id: Optional[int],
+        webhook_url: Optional[str],
         events: List[str],
     ) -> List[RpcServiceHook]:
         pass

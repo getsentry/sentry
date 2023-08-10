@@ -33,6 +33,7 @@ from sentry.models import (
     OrganizationStatus,
 )
 from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.activity import ActivityType
@@ -82,8 +83,7 @@ class ProjectContext:
     existing_issue_count = 0
     reopened_issue_count = 0
     new_issue_count = 0
-    # we merged organizations:issue-states flag to organizations:escalating-issues, so delete when
-    # organizations:escalating-issues GA
+    # delete when organizations:escalating-issues GA
     new_substatus_count = 0
     ongoing_substatus_count = 0
     escalating_substatus_count = 0
@@ -150,6 +150,7 @@ def check_if_ctx_is_empty(ctx):
     queue="reports.prepare",
     max_retries=5,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry
 def schedule_organizations(dry_run=False, timestamp=None, duration=None):
@@ -175,6 +176,7 @@ def schedule_organizations(dry_run=False, timestamp=None, duration=None):
     queue="reports.prepare",
     max_retries=5,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry
 def prepare_organization_report(
@@ -654,8 +656,7 @@ def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
         }
 
         for user_id in user_set:
-            # We manually pick out user.options and use PickledObjectField to deserialize it. We get a list of organizations the user has unsubscribed from user reports
-            option = options_by_user_id.get(user_id, [])
+            option = list(options_by_user_id.get(user_id, []))
             user_subscribed_to_organization_reports = ctx.organization.id not in option
             if user_subscribed_to_organization_reports:
                 send_email(ctx, user_id, dry_run=dry_run)
@@ -691,9 +692,10 @@ group_status_to_color = {
     GroupHistoryStatus.DELETED_AND_DISCARDED: "#DBD6E1",
     GroupHistoryStatus.REVIEWED: "#FAD473",
     GroupHistoryStatus.NEW: "#FAD473",
-    GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING: "",
+    GroupHistoryStatus.ESCALATING: "#FAD473",
+    GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING: "#FAD473",
     GroupHistoryStatus.ARCHIVED_FOREVER: "#FAD473",
-    GroupHistoryStatus.ARCHIVED_FOREVER: "#FAD473",
+    GroupHistoryStatus.ARCHIVED_UNTIL_CONDITION_MET: "#FAD473",
 }
 
 

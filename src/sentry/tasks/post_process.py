@@ -19,6 +19,7 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.sentry_metrics.client import generic_metrics_backend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored, transaction_processed
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -424,7 +425,7 @@ def fetch_buffered_group_stats(group):
     from sentry import buffer
     from sentry.models import Group
 
-    result = buffer.get(Group, ["times_seen"], {"pk": group.id})
+    result = buffer.backend.get(Group, ["times_seen"], {"pk": group.id})
     group.times_seen_pending = result["times_seen"]
 
 
@@ -446,6 +447,7 @@ fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_dela
     name="sentry.tasks.post_process.post_process_group",
     time_limit=120,
     soft_time_limit=110,
+    silo_mode=SiloMode.REGION,
 )
 def post_process_group(
     is_new,

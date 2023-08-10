@@ -2,7 +2,9 @@ import logging
 
 from django.utils import timezone
 
+from sentry import options
 from sentry.constants import ObjectStatus
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
@@ -40,7 +42,25 @@ CHECKINS_LIMIT = 10_000
 SUBTITLE_DATETIME_FORMAT = "%b %d, %I:%M %p"
 
 
-@instrumented_task(name="sentry.monitors.tasks.check_missing", time_limit=15, soft_time_limit=10)
+@instrumented_task(name="sentry.monitors.tasks.temp_task_dispatcher", silo_mode=SiloMode.REGION)
+def temp_task_dispatcher():
+    """
+    Temporary task used to dispatch the monitor tasks. This is used to allow
+    for a clean switchover to the consumer driven clock pulse.
+    """
+    if options.get("monitors.use_consumer_clock_task_triggers"):
+        return
+
+    check_missing.delay()
+    check_timeout.delay()
+
+
+@instrumented_task(
+    name="sentry.monitors.tasks.check_missing",
+    time_limit=15,
+    soft_time_limit=10,
+    silo_mode=SiloMode.REGION,
+)
 def check_missing(current_datetime=None):
     if current_datetime is None:
         current_datetime = timezone.now()
@@ -56,7 +76,20 @@ def check_missing(current_datetime=None):
 
     qs = (
         MonitorEnvironment.objects.filter(
-            monitor__type__in=[MonitorType.CRON_JOB], next_checkin_latest__lt=current_datetime
+            monitor__type__in=[MonitorType.CRON_JOB],
+            # [!!]: Note that we use `lt` here to give a whole minute buffer
+            # for a check-in to be sent.
+            #
+            # As an example, if our next_checkin_latest for a monitor was
+            # 11:00:00, and our task runs at 11:00:05, the time is clamped down
+            # to 11:00:00, and then compared:
+            #
+            #  next_checkin_latest < 11:00:00
+            #
+            # Since they are equal this does not match. When the task is run a
+            # minute later if the check-in still hasn't been sent we will THEN
+            # mark it as missed.
+            next_checkin_latest__lt=current_datetime,
         )
         .exclude(
             status__in=[
@@ -106,7 +139,12 @@ def check_missing(current_datetime=None):
             logger.exception("Exception in check_monitors - mark missed")
 
 
-@instrumented_task(name="sentry.monitors.tasks.check_timeout", time_limit=15, soft_time_limit=10)
+@instrumented_task(
+    name="sentry.monitors.tasks.check_timeout",
+    time_limit=15,
+    soft_time_limit=10,
+    silo_mode=SiloMode.REGION,
+)
 def check_timeout(current_datetime=None):
     if current_datetime is None:
         current_datetime = timezone.now()

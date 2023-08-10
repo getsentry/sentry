@@ -277,7 +277,7 @@ export function RageClickCountCell({replay}: Props) {
   return (
     <Item data-test-id="replay-table-count-rage-clicks">
       {replay.count_rage_clicks ? (
-        <Count>{replay.count_rage_clicks}</Count>
+        <DeadRageCount>{replay.count_rage_clicks}</DeadRageCount>
       ) : (
         <Count>0</Count>
       )}
@@ -292,7 +292,7 @@ export function DeadClickCountCell({replay}: Props) {
   return (
     <Item data-test-id="replay-table-count-dead-clicks">
       {replay.count_dead_clicks ? (
-        <Count>{replay.count_dead_clicks}</Count>
+        <DeadRageCount>{replay.count_dead_clicks}</DeadRageCount>
       ) : (
         <Count>0</Count>
       )}
@@ -345,6 +345,11 @@ const Item = styled('div')<{isArchived?: boolean}>`
 
 const Count = styled('span')`
   font-variant-numeric: tabular-nums;
+`;
+
+const DeadRageCount = styled(Count)`
+  display: flex;
+  width: 40px;
 `;
 
 const ErrorCount = styled(Count)`

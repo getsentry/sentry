@@ -7,6 +7,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.avatar import AvatarMixin
 from sentry.api.bases.user import UserEndpoint
 from sentry.models import UserAvatar
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.services.hybrid_cloud.user.service import user_service
 
 
@@ -19,7 +20,7 @@ class UserAvatarEndpoint(AvatarMixin, UserEndpoint):
         user = kwargs.pop(self.object_type, None)
         serialized_user = user_service.serialize_many(
             filter=dict(user_ids=[user.id]),
-            as_user=user,
+            as_user=serialize_rpc_user(user),
         )[0]
         return Response(serialized_user)
 

@@ -203,7 +203,7 @@ class BaseNotification(abc.ABC):
             )
         )
 
-    def determine_recipients(self) -> Iterable[RpcActor]:
+    def determine_recipients(self) -> list[RpcActor]:
         raise NotImplementedError
 
     def get_notification_providers(self) -> Iterable[ExternalProviders]:
