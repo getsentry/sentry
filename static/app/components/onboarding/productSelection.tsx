@@ -274,7 +274,7 @@ export function ProductSelection({
               urlProducts.includes(ProductSolution.PROFILING)
                 ? {
                     reason: t(
-                      'Enabling Profiling requires Performance Monitoring, making it inseparable. As a result, disabling Performance Mornitoring is not possible while profiling is active.'
+                      'You must have Performance Monitoring set up to use Profiling. Disabling it is not possible while Profiling is selected.'
                     ),
                   }
                 : disabledProducts?.find(
