@@ -39,8 +39,8 @@ class ComputedField(BaseField[T]):
 
             return applicable(operator, parsed_value)
         else:
-            parsed_value = [self.parse(str(v)) for v in value]
-            return self._apply_composite(operator, parsed_value)
+            parsed_values = [self.parse(str(v)) for v in value]
+            return self._apply_composite(operator, parsed_values)
 
     def _apply_wildcard(self, operator: str, value: T) -> Condition:
         if operator == "=":

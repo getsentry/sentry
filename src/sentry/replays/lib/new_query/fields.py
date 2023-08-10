@@ -111,8 +111,8 @@ class ColumnField(BaseField[T]):
         else:
             # Again the types contained within the list are coerced to string to be re-coerced
             # back into their correct data-type.
-            parsed_value = [self.parse(str(v)) for v in value]
-            return self._apply_composite(self.expression, operator, parsed_value)
+            parsed_values = [self.parse(str(v)) for v in value]
+            return self._apply_composite(self.expression, operator, parsed_values)
 
     @property
     def expression(self) -> Column:
