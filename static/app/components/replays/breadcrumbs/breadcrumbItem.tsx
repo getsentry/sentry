@@ -26,11 +26,11 @@ type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => v
 interface BaseProps {
   frame: ReplayFrame;
   onClick: null | MouseCallback;
+  onMouseEnter: MouseCallback;
+  onMouseLeave: MouseCallback;
   startTimestampMs: number;
   className?: string;
   expandPaths?: string[];
-  onMouseEnter?: MouseCallback;
-  onMouseLeave?: MouseCallback;
   style?: CSSProperties;
 }
 interface NoDimensionChangeProps extends BaseProps {
@@ -76,20 +76,6 @@ function BreadcrumbItem({
   const {color, description, projectSlug, title, type, timestampMs} =
     getCrumbOrFrameData(frame);
 
-  const handleMouseEnter = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => onMouseEnter && onMouseEnter(frame, e),
-    [onMouseEnter, frame]
-  );
-  const handleMouseLeave = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => onMouseLeave && onMouseLeave(frame, e),
-    [onMouseLeave, frame]
-  );
-  const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => {
-      onClick?.(frame, e);
-    },
-    [frame, onClick]
-  );
   const handleDimensionChange = useCallback(
     (path, expandedState, e) =>
       onDimensionChange && onDimensionChange(index, path, expandedState, e),
@@ -99,9 +85,9 @@ function BreadcrumbItem({
   return (
     <CrumbItem
       as={onClick ? 'button' : 'span'}
-      onClick={handleClick}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onClick={e => onClick?.(frame, e)}
+      onMouseEnter={e => onMouseEnter(frame, e)}
+      onMouseLeave={e => onMouseLeave(frame, e)}
       style={style}
       className={className}
     >

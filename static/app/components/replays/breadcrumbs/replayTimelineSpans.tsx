@@ -32,7 +32,7 @@ type Props = {
   className?: string;
 };
 
-function ReplayTimelineEvents({className, durationMs, frames, startTimestampMs}: Props) {
+function ReplayTimelineSpans({className, durationMs, frames, startTimestampMs}: Props) {
   const flattened = flattenFrames(frames);
   const {setActiveTab} = useActiveReplayTab();
 
@@ -96,4 +96,4 @@ const Span = styled('li')<{isDark: boolean; startPct: number; widthPct: number}>
   pointer-events: auto;
 `;
 
-export default memo(ReplayTimelineEvents);
+export default memo(ReplayTimelineSpans);

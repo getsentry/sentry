@@ -10,6 +10,7 @@ import {useQuery} from '@tanstack/react-query';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import DomFilters from 'sentry/views/replays/detail/domMutations/domFilters';
 import DomMutationRow from 'sentry/views/replays/detail/domMutations/domMutationRow';
@@ -42,6 +43,7 @@ function useExtractedDomNodes({replay}: {replay: null | ReplayReader}) {
 function DomMutations({replay, startTimestampMs}: Props) {
   const {data: actions, isLoading} = useExtractedDomNodes({replay});
   const {currentTime, currentHoverTime} = useReplayContext();
+  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const filterProps = useDomFilters({actions: actions || []});
   const {items, setSearchTerm} = filterProps;
@@ -68,9 +70,12 @@ function DomMutations({replay, startTimestampMs}: Props) {
         rowIndex={index}
       >
         <DomMutationRow
-          currentTime={currentTime}
           currentHoverTime={currentHoverTime}
+          currentTime={currentTime}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
           mutation={mutation}
+          onClickTimestamp={onClickTimestamp}
           startTimestampMs={startTimestampMs}
           style={style}
         />

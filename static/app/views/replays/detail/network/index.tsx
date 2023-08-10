@@ -51,6 +51,7 @@ function NetworkList({
 }: Props) {
   const organization = useOrganization();
   const {currentTime, currentHoverTime} = useReplayContext();
+  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 
@@ -58,9 +59,6 @@ function NetworkList({
   const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
   const {handleSort, items, sortConfig} = useSortNetwork({items: filteredItems});
-
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<MultiGrid>(null);
@@ -154,14 +152,14 @@ function NetworkList({
               columnIndex={columnIndex}
               currentHoverTime={currentHoverTime}
               currentTime={currentTime}
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-              onClickTimestamp={handleClick}
+              frame={network}
+              onMouseEnter={onMouseEnter}
+              onMouseLeave={onMouseLeave}
               onClickCell={onClickCell}
+              onClickTimestamp={onClickTimestamp}
               ref={e => e && registerChild?.(e)}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
-              frame={network}
               startTimestampMs={startTimestampMs}
               style={{...style, height: BODY_HEIGHT}}
             />
