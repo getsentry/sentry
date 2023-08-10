@@ -35,7 +35,7 @@ REGRESSION = "regression"
 ANY = "any"
 TREND_TYPES = [IMPROVED, REGRESSION, ANY]
 
-TOP_EVENTS_LIMIT = 45
+DEFAULT_TOP_EVENTS_LIMIT = 45
 EVENTS_PER_QUERY = 15
 DAY_GRANULARITY_IN_SECONDS = METRICS_GRANULARITIES[0]
 ONE_DAY_IN_SECONDS = 24 * 60 * 60  # 86,400 seconds
@@ -233,7 +233,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             top_events = get_top_events(
                 user_query=user_query,
                 params=params,
-                event_limit=TOP_EVENTS_LIMIT,
+                event_limit=int(request.GET.get("topEvents", DEFAULT_TOP_EVENTS_LIMIT)),
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS.value,
             )
 
