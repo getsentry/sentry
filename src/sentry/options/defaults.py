@@ -1461,3 +1461,9 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "monitors.use_consumer_clock_task_triggers",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
