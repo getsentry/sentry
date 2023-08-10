@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from os.path import join
 from tempfile import TemporaryFile
+from typing import Any
 
 import pytest
 
@@ -267,7 +270,7 @@ def test_error_on_resolving(project, proguard_file_bug, android_profile):
 
 
 def test_process_symbolicator_results_for_sample():
-    profile = {
+    profile: dict[str, Any] = {
         "version": 1,
         "platform": "rust",
         "profile": {
@@ -355,7 +358,7 @@ def test_process_symbolicator_results_for_sample():
 
 
 def test_process_symbolicator_results_for_sample_js():
-    profile = {
+    profile: dict[str, Any] = {
         "version": 1,
         "platform": "javascript",
         "profile": {

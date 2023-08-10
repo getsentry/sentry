@@ -110,7 +110,7 @@ type ProfilingAM1OrMMXUpgrade = {
 
 type ProductSelectionAvailabilityProps = Pick<
   ProductSelectionProps,
-  'lazyLoader' | 'skipLazyLoader'
+  'lazyLoader' | 'skipLazyLoader' | 'platform'
 > & {
   organization: Organization;
 };
