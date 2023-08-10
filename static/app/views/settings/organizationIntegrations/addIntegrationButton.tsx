@@ -2,6 +2,7 @@ import {Button, ButtonProps} from 'sentry/components/button';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {IntegrationWithConfig} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import AddIntegration from './addIntegration';
 
@@ -34,7 +35,13 @@ export function AddIntegrationButton({
       : installStatus === 'Disabled'
       ? t('Reinstall')
       : t('Add %s', provider.metadata.noun);
-
+  if (label === t('Reinstall')) {
+    trackAnalytics('integrations.integration_reinstall_clicked', {
+      organization,
+      organization_id: organization.id,
+      provider: provider.name,
+    });
+  }
   return (
     <Tooltip
       disabled={provider.canAdd}

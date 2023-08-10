@@ -51,6 +51,10 @@ export type IssueEventParameters = {
     platform?: string;
     project_id?: string;
   };
+  'integrations.integration_reinstall_clicked': {
+    organization_id: string;
+    provider: string;
+  };
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
   'issue_details.copy_event_link_clicked': GroupEventParams;
