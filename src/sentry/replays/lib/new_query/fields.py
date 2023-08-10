@@ -7,11 +7,12 @@ condition system to return a condition clause for the query.
 
 Fields also contain the means to determine the expression being filtered.  Whereas a Condition
 visitor doesn't care what expression is given to it the Field instance certainly does.  One of its
-core responsibilities is to pass the correct the correct expression to be filtered against.
+core responsibilities is to pass the correct expression to be filtered against.
 
-Fields are polymorphic on the representation of the field in the API response.  Note just because
-a field appears as an array or as a scalar does not mean it is filtered in that way.  The field's
-job is to translate the display format to the expression format.
+Fields are polymorphic on the source they target and the data-type of the field in the API
+response.  Note just because a field appears as an array or as a scalar does not mean it is
+filtered in that way.  The field's job is to translate the display format to the expression
+format.
 """
 from __future__ import annotations
 
@@ -91,9 +92,10 @@ class ColumnField(BaseField[T]):
         value = search_filter.value.value
 
         # We need to check if the value is a scalar to determine the path we should follow.  This
-        # is not as simple as asking for isinstance(value, list).  Array values are typed as
-        # "Sequences".  Sequence[str] is the same type as str.  So we can't check for Sequence in
-        # the isinstance check.
+        # is not as simple as asking for isinstance(value, list).  Array values are provided to us
+        # as "Sequence" types.  Sequence[str] is the same type as str.  So we can't check for
+        # Sequence in the isinstance check.  We have to explicitly check for all the possible
+        # scalar values and then use the else to apply array based filtering techniques.
         if isinstance(value, (str, int, float, datetime.datetime)):
             # We don't care that the SearchFilter typed the value for us. We'll determine what we
             # want to parse it to.  There's too much polymorphism if we have to consider coercing

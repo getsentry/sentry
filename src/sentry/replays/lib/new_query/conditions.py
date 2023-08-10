@@ -2,7 +2,7 @@
 
 Each visitor (class) represents a unique data-type that is being acted upon.  For example, a class
 titled "StringScalar" points to a column, function, or aggregation whose end product is of type
-String.  The expression can then be acted upon using String like interactions.
+String.  The expression can then be interacted with using generic string operations.
 
 Visitor classes are polymorphic on their data type, their methods are polymorphic on the operator,
 and their values are polymorphic on data-type and operator.

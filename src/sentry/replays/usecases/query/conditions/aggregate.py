@@ -10,9 +10,11 @@ For example:
 
 In this operation the column is not under any aggregate function.  So any expression we write
 against it is necessarily considering row-wise data.  Further we place the row-wise condition
-under an aggregate function and assert its value is not the empty set.  We do this because we
-want to aggregate the results for every row in the aggregation set.  If we did not apply the
-aggregate function then this operation would not match correctly across rows.
+under an aggregate function and assert the truthy-ness of the aggregation (in this case we assert
+its value is not the empty set).  We do this because we want to aggregate the results for every
+row and not short-circuit at the first sight of a truthy value.  If we did not apply the aggregate
+function then this operation would not match correctly across multiple rows for a given aggregation
+key.
 
 Every class and every method in this module is interested in one of two outcomes. Either the
 aggregation of the row-wise condition visitor is 0 or not 0.  This works because we're looking

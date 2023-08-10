@@ -158,7 +158,8 @@ def query_using_aggregated_search(
             SearchFilter(SearchKey("environment"), "IN", SearchValue(environments))
         )
 
-    # Simple aggregation steps.
+    # First aggregation step.
+
     simple_aggregation_query = make_simple_aggregation_query(
         search_filters=search_filters,
         orderby=sorting,
@@ -248,8 +249,8 @@ def make_simple_aggregation_query(
     period_start: datetime,
     period_stop: datetime,
 ) -> Query:
-    # This is our entry-point to the SearchFilter to Condition transformation process.  You should
-    # not be filtering at any other step in this process.
+    # This is our entry-point to the SearchFilter to Condition transformation process.  We do not
+    # filter at any other step in this process.
     having: list[Condition] = handle_search_filters(agg_search_config, search_filters)
 
     return Query(
