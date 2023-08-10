@@ -6,10 +6,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Step, StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
-  ProductSelection,
-  ProductSolution,
-} from 'sentry/components/onboarding/productSelection';
+import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -48,11 +45,6 @@ export function Layout({
   const organization = useOrganization();
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
-  const isJavaScriptPlatform =
-    platformKey === 'javascript' || !!platformKey?.match('^javascript-([A-Za-z]+)$');
-
-  const displayProductSelection = !isSelfHosted && isJavaScriptPlatform;
-
   return (
     <Wrapper>
       {introduction && (
@@ -61,18 +53,16 @@ export function Layout({
           <Divider />
         </Fragment>
       )}
-      {displayProductSelection && newOrg && (
-        <ProductSelection
-          defaultSelectedProducts={[
-            ProductSolution.PERFORMANCE_MONITORING,
-            ProductSolution.SESSION_REPLAY,
-          ]}
+      {!isSelfHosted && newOrg && (
+        <ProductSelection platform={platformKey} withBottomMargin />
+      )}
+      {!isSelfHosted && !newOrg && (
+        <ProductSelectionAvailabilityHook
+          organization={organization}
+          platform={platformKey}
         />
       )}
-      {displayProductSelection && !newOrg && (
-        <ProductSelectionAvailabilityHook organization={organization} />
-      )}
-      <Steps withTopSpacing={!displayProductSelection && newOrg}>
+      <Steps>
         {steps.map(step => (
           <Step key={step.title ?? step.type} {...step} />
         ))}
@@ -103,11 +93,10 @@ const Divider = styled('hr')`
   border: none;
 `;
 
-const Steps = styled('div')<{withTopSpacing?: boolean}>`
+const Steps = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  ${p => p.withTopSpacing && `margin-top: ${space(3)}`}
 `;
 
 const Introduction = styled('div')`

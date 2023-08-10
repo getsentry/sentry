@@ -15,8 +15,9 @@ class DatabaseBackedHookService(HookService):
     def update_webhook_and_events(
         self,
         *,
-        application_id: Optional[int] = None,
-        webhook_url: Optional[str] = None,
+        organization_id: int,
+        application_id: Optional[int],
+        webhook_url: Optional[str],
         events: List[str],
     ) -> List[RpcServiceHook]:
         with transaction.atomic(router.db_for_write(ServiceHook)):

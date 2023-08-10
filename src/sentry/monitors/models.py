@@ -248,7 +248,7 @@ class Monitor(Model):
         default=MonitorType.UNKNOWN,
         choices=[(k, str(v)) for k, v in MonitorType.as_choices()],
     )
-    config = JSONField(default=dict)
+    config: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:

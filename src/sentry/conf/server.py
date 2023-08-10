@@ -878,6 +878,7 @@ CELERY_QUEUES_REGION = [
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("recap_servers", routing_key="recap_servers"),
     Queue("performance.statistical_detector", routing_key="performance.statistical_detector"),
+    Queue("profiling.statistical_detector", routing_key="profiling.statistical_detector"),
     CELERY_ISSUE_STATES_QUEUE,
 ]
 
@@ -1431,6 +1432,8 @@ SENTRY_FEATURES = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Adds search suggestions to the issue search bar
     "organizations:issue-search-shortcuts": False,
+    # Whether to make a side/parallel query against events -> group_attributes when searching issues
+    "organizations:issue-search-group-attributes-side-query": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
@@ -1482,6 +1485,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-discord-notifications": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": False,
+    # Enable one-click migration from Opsgenie plugin
+    "organizations:integrations-opsgenie-migration": False,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
     # Enable data forwarding functionality for organizations.
@@ -1689,8 +1694,6 @@ SENTRY_FEATURES = {
     "organizations:org-auth-tokens": False,
     # Enable detecting SDK crashes during event processing
     "organizations:sdk-crash-detection": False,
-    # Enables slack channel lookup via schedule message
-    "organizations:slack-use-new-lookup": False,
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -3658,6 +3661,10 @@ USE_ROLE_SWAPPING_IN_TESTS = True
 
 # Threshold for the number of timeouts needed in a day to disable an integration
 BROKEN_TIMEOUT_THRESHOLD = 1000
+
+# This webhook url can be configured to log the changes made to runtime options as they
+# are changed by sentry configoptions.
+OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: Optional[str] = None
 
 SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
 SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}

@@ -39,6 +39,16 @@ describe('generateReleaseWidgetFieldOptions', function () {
           },
         },
       },
+      'function:anr_rate': {
+        label: 'anr_rate(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'anr_rate',
+            parameters: [],
+          },
+        },
+      },
       'function:count_abnormal': {
         label: 'count_abnormal(…)',
         value: {
@@ -155,6 +165,16 @@ describe('generateReleaseWidgetFieldOptions', function () {
                 required: true,
               },
             ],
+          },
+        },
+      },
+      'function:foreground_anr_rate': {
+        label: 'foreground_anr_rate(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'foreground_anr_rate',
+            parameters: [],
           },
         },
       },

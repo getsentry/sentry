@@ -6,13 +6,13 @@ from django.utils import timezone
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
 now = datetime.utcnow().replace(tzinfo=pytz.utc)
 
 
-@region_silo_test
+@no_silo_test(stable=True)
 class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
