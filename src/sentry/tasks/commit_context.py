@@ -78,7 +78,9 @@ def queue_comment_task_if_needed(
     merge_commit_sha = response[0]["merge_commit_sha"]
 
     pr_query = PullRequest.objects.filter(
-        organization_id=commit.organization_id, merge_commit_sha=merge_commit_sha
+        organization_id=commit.organization_id,
+        repository_id=commit.repository_id,
+        merge_commit_sha=merge_commit_sha,
     )
     if not pr_query.exists():
         logger.info(
@@ -91,7 +93,7 @@ def queue_comment_task_if_needed(
         )
         return
 
-    pr = pr_query.get()
+    pr = pr_query.first()
     if pr.date_added >= datetime.now(tz=timezone.utc) - timedelta(days=PR_COMMENT_WINDOW) and (
         not pr.pullrequestcomment_set.exists()
         or group_owner.group_id not in pr.pullrequestcomment_set.get().group_ids
