@@ -1426,6 +1426,8 @@ SENTRY_FEATURES = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Adds search suggestions to the issue search bar
     "organizations:issue-search-shortcuts": False,
+    # Whether to make a side/parallel query against events -> group_attributes when searching issues
+    "organizations:issue-search-group-attributes-side-query": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
