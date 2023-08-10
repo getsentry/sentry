@@ -310,26 +310,6 @@ def _get_query_supported_by(query: Optional[str]) -> SupportedBy:
         return SupportedBy.neither()
 
 
-def _get_aggregate_fields(aggregate: str) -> Sequence[str]:
-    """
-    Returns any fields referenced by the arguments of supported aggregate
-    functions, otherwise ``None``.
-    """
-    _SUPPORTED_AGG_FNS = ("count_if", "count_unique")
-
-    if not aggregate.startswith(_SUPPORTED_AGG_FNS):
-        return []
-
-    try:
-        function, arguments, _ = fields.parse_function(aggregate)
-        if function in _SUPPORTED_AGG_FNS and arguments:
-            return [arguments[0]]
-    except InvalidSearchQuery:
-        logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)
-
-    return []
-
-
 def _is_standard_metrics_query(tokens: Sequence[QueryToken]) -> bool:
     """
     Recursively checks if any of the supplied token contain search filters that can't be handled by standard metrics.
