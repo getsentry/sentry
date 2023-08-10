@@ -375,6 +375,25 @@ class ReactPageViewTest(TestCase):
             self.assertTemplateUsed(response, "sentry/base-react.html")
 
             with assume_test_silo_mode(SiloMode.REGION):
+                assert not OrganizationOnboardingTask.objects.filter(
+                    organization=project.organization,
+                    project=project,
+                    user_id=self.user.id,
+                    task=OnboardingTask.FIRST_EVENT,
+                    status=OnboardingTaskStatus.PENDING,
+                ).exists()
+
+            with receivers_raise_on_send(), outbox_runner():
+                response = self.client.get(
+                    f"/projects/{project.slug}/?onboarding=1",
+                    SERVER_NAME=f"{org.slug}.testserver",
+                    follow=True,
+                )
+            assert response.status_code == 200
+            assert response.redirect_chain == []
+            self.assertTemplateUsed(response, "sentry/base-react.html")
+
+            with assume_test_silo_mode(SiloMode.REGION):
                 assert OrganizationOnboardingTask.objects.filter(
                     organization=project.organization,
                     project=project,
