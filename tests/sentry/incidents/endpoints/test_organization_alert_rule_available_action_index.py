@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 from sentry.constants import ObjectStatus, SentryAppStatus
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     build_action_response,
 )
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.models import Integration, OrganizationIntegration, PagerDutyService
+from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -37,7 +40,10 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def install_new_sentry_app(self, name, **kwargs):
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def install_new_sentry_app(
+        self, name: str, prepare_sentry_app_components_type: str | None = None, **kwargs
+    ):
         kwargs.update(
             name=name, organization=self.organization, is_alertable=True, verify_install=False
         )
@@ -45,7 +51,11 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         installation = self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=self.organization, user=self.user
         )
-        return installation
+        return serialize_sentry_app_installation(
+            installation=installation,
+            app=sentry_app,
+            prepare_sentry_app_components_type=prepare_sentry_app_components_type,
+        )
 
     def test_build_action_response_email(self):
         data = build_action_response(self.email)
@@ -65,13 +75,15 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
                 provider="opsgenie", name="test-app", external_id="test-app", metadata=METADATA
             )
             integration.add_organization(self.organization, self.user)
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=integration.id
-        )
-        org_integration.config = {
-            "team_table": [{"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}]
-        }
-        org_integration.save()
+            org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=integration.id
+            )
+            org_integration.config = {
+                "team_table": [
+                    {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
+                ]
+            }
+            org_integration.save()
         data = build_action_response(
             self.opsgenie, integration=integration, organization=self.organization
         )
@@ -90,13 +102,13 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
                 metadata={"services": SERVICES},
             )
             integration.add_organization(self.organization, self.user)
-        service = PagerDutyService.objects.create(
-            service_name=service_name,
-            integration_key=SERVICES[0]["integration_key"],
-            organization_integration_id=integration.organizationintegration_set.first().id,
-            organization_id=self.organization.id,
-            integration_id=integration.id,
-        )
+            service = PagerDutyService.objects.create(
+                service_name=service_name,
+                integration_key=SERVICES[0]["integration_key"],
+                organization_integration_id=integration.organizationintegration_set.first().id,
+                organization_id=self.organization.id,
+                integration_id=integration.id,
+            )
 
         data = build_action_response(
             self.pagerduty, integration=integration, organization=self.organization
@@ -107,7 +119,9 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert data["options"] == [{"value": service.id, "label": service_name}]
 
     def test_build_action_response_sentry_app(self):
-        installation = self.install_new_sentry_app("foo")
+        installation = self.install_new_sentry_app(
+            "foo", prepare_sentry_app_components_type="alert-rule-action"
+        )
 
         data = build_action_response(self.sentry_app, sentry_app_installation=installation)
 
@@ -172,7 +186,9 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         self.get_error_response(self.organization.slug, status_code=404)
 
     def test_sentry_apps(self):
-        installation = self.install_new_sentry_app("foo")
+        installation = self.install_new_sentry_app(
+            "foo", prepare_sentry_app_components_type="alert-rule-action"
+        )
 
         with self.feature("organizations:incidents"):
             response = self.get_success_response(self.organization.slug)
@@ -186,7 +202,9 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
 
     def test_published_sentry_apps(self):
         # Should show up in available actions.
-        installation = self.install_new_sentry_app("published", published=True)
+        installation = self.install_new_sentry_app(
+            "published", published=True, prepare_sentry_app_components_type="alert-rule-action"
+        )
 
         with self.feature("organizations:incidents"):
             response = self.get_success_response(self.organization.slug)
