@@ -10,6 +10,7 @@ export enum JavascriptProcessingErrors {
   JS_INVALID_SOURCEMAP_LOCATION = 'js_invalid_sourcemap_location',
   JS_TOO_LARGE = 'js_too_large',
   JS_FETCH_TIMEOUT = 'js_fetch_timeout',
+  JS_SCRAPING_DISABLED = 'js_scraping_disabled',
 }
 
 export enum HttpProcessingErrors {
