@@ -22,7 +22,7 @@ class PluginRequestParser(BaseRequestParser):
 
     def get_response(self):
         """
-        Used for identifying regions from Bitbucket and Bitbucket Server webhooks
+        Used for identifying regions from Github and Bitbucket plugin webhooks
         """
         organization_id = self.match.kwargs.get("organization_id")
         logging_extra: dict[str, Any] = {"path": self.request.path}
