@@ -432,7 +432,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                     )
                     logger.info(
                         "monitors.consumer.checkin_validation_failed",
-                        extra={**params},
+                        extra={"guid": guid, **params},
                     )
                     return
 
@@ -452,7 +452,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                     )
                     logger.info(
                         "monitors.consumer.monitor_validation_failed",
-                        extra={**params},
+                        extra={"guid": guid, **params},
                     )
                     return
             except MonitorLimitsExceeded:
@@ -460,10 +460,9 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_limits"},
                 )
-                logger.info(f"monitor exceeds limits for organization: {project.organization_id}")
                 logger.info(
                     "monitors.consumer.monitor_limit_exceeded",
-                    extra={"project": project.id, "slug": monitor_slug},
+                    extra={"guid": guid, "project": project.id, "slug": monitor_slug},
                 )
                 return
 
@@ -476,10 +475,14 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_environment_limits"},
                 )
-                logger.info(f"monitor environment exceeds limits for monitor: {monitor_slug}")
                 logger.info(
                     "monitors.consumer.monitor_environment_limit_exceeded",
-                    extra={"project": project.id, "slug": monitor_slug, "environment": environment},
+                    extra={
+                        "guid": guid,
+                        "project": project.id,
+                        "slug": monitor_slug,
+                        "environment": environment,
+                    },
                 )
                 return
             except MonitorEnvironmentValidationFailed:
@@ -487,10 +490,14 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_environment_name_length"},
                 )
-                logger.info(f"monitor environment name too long: {monitor_slug} - {environment}")
                 logger.info(
                     "monitors.consumer.monitor_environment_validation_failed",
-                    extra={"project": project.id, "slug": monitor_slug, "environment": environment},
+                    extra={
+                        "guid": guid,
+                        "project": project.id,
+                        "slug": monitor_slug,
+                        "environment": environment,
+                    },
                 )
                 return
 
@@ -522,8 +529,8 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                         logger.info(
                             "monitors.consumer.monitor_environment_mismatch",
                             extra={
-                                "organzation_id": project.organization_id,
                                 "guid": check_in_id,
+                                "organization_id": project.organization_id,
                                 "environment": monitor_environment.id,
                                 "payload_environment": check_in.monitor_environment_id,
                             },
@@ -586,7 +593,6 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_checkin_creation_lock"},
         )
-        logger.info(f"failed to acquire lock to create check-in: {guid}")
         logger.info(
             "monitors.consumer.lock_failed",
             extra={"guid": guid},
