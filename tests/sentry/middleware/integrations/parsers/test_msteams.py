@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
-from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
+from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.msteams import MsTeamsRequestParser
 from sentry.models import Integration
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
@@ -30,7 +30,7 @@ from tests.sentry.integrations.msteams.test_helpers import (
 class MsTeamsRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     factory = RequestFactory()
-    path = f"{IntegrationControlMiddleware.integration_prefix}msteams/webhook/"
+    path = f"{IntegrationClassification.integration_prefix}msteams/webhook/"
     region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
 
     def setUp(self):

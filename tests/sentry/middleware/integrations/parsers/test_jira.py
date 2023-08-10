@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import RequestFactory, override_settings
 
-from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
+from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.jira import JiraRequestParser
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
@@ -15,9 +15,8 @@ from sentry.types.region import Region, RegionCategory
 @control_silo_test(stable=True)
 class JiraRequestParserTest(TestCase):
     get_response = MagicMock()
-    middleware = IntegrationControlMiddleware(get_response)
     factory = RequestFactory()
-    path_base = f"{IntegrationControlMiddleware.integration_prefix}jira"
+    path_base = f"{IntegrationClassification.integration_prefix}jira"
     region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
 
     def setUp(self):

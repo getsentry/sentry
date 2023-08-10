@@ -5,7 +5,6 @@ from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
-from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.bitbucket_server import BitbucketServerRequestParser
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.organization_mapping.service import organization_mapping_service
@@ -20,7 +19,6 @@ from sentry.types.region import Region, RegionCategory
 @control_silo_test()
 class BitbucketServerRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
-    middleware = IntegrationControlMiddleware(get_response)
     factory = RequestFactory()
     region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
     region_config = (region,)
