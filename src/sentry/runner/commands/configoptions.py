@@ -195,12 +195,15 @@ def patch(ctx) -> None:
     if invalid_options:
         status = "update_failed"
         amount = 2
+        ret_val = 2
     elif ctx.obj["drifted_options"]:
         status = "drift"
         amount = 2
+        ret_val = 2
     else:
         status = "success"
         amount = 1
+        ret_val = 0
 
     metrics.incr(
         "options_automator.run",
@@ -208,6 +211,7 @@ def patch(ctx) -> None:
         tags={"status": status},
         sample_rate=1.0,
     )
+    exit(ret_val)
 
 
 @configoptions.command()
@@ -278,12 +282,15 @@ def sync(ctx):
     if invalid_options:
         status = "update_failed"
         amount = 2
+        ret_val = 2
     elif drift_found:
         status = "drift"
         amount = 2
+        ret_val = 2
     else:
         status = "success"
         amount = 1
+        ret_val = 0
 
     presenter_delegator.flush()
 
@@ -293,3 +300,5 @@ def sync(ctx):
         tags={"status": status},
         sample_rate=1.0,
     )
+
+    exit(ret_val)
