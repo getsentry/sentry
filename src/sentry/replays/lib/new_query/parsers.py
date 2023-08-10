@@ -1,3 +1,7 @@
+"""Parser module.
+
+Functions in this module coerce external types to internal types.  Else they die.
+"""
 import uuid
 
 

@@ -1,3 +1,4 @@
+"""Query utility module."""
 from __future__ import annotations
 
 from uuid import UUID
@@ -13,8 +14,9 @@ def to_uuids(value: list[UUID]) -> list[Function]:
     return [to_uuid(v) for v in value]
 
 
+# Work-around for https://github.com/getsentry/snuba-sdk/issues/115
 def translate_condition_to_function(condition: Condition) -> Function:
-    # Work-around for https://github.com/getsentry/snuba-sdk/issues/115
+    """Transforms infix operations to prefix operations."""
     if condition.op == Op.EQ:
         return Function("equals", parameters=[condition.lhs, condition.rhs])
     elif condition.op == Op.NEQ:

@@ -5,10 +5,10 @@ from typing import Union
 from sentry.replays.lib.new_query.conditions import IntegerScalar, UUIDScalar
 from sentry.replays.lib.new_query.fields import (
     ColumnField,
-    CountExpressionField,
+    CountField,
     StringColumnField,
-    SumExpressionField,
-    SumLengthExpressionField,
+    SumField,
+    SumLengthField,
 )
 from sentry.replays.lib.new_query.parsers import parse_int, parse_str, parse_uuid
 from sentry.replays.lib.selector.parse import parse_selector
@@ -31,16 +31,16 @@ from sentry.replays.usecases.query.fields import ComputedField, TagField
 # AggregatedIntegerField = NamedExpressionField(parse_int, NumericScalar)
 
 
-def count_field(column_name: str) -> CountExpressionField:
-    return CountExpressionField(column_name, parse_int, IntegerScalar)
+def count_field(column_name: str) -> CountField:
+    return CountField(column_name, parse_int, IntegerScalar)
 
 
-def sum_field(column_name: str) -> SumExpressionField:
-    return SumExpressionField(column_name, parse_int, IntegerScalar)
+def sum_field(column_name: str) -> SumField:
+    return SumField(column_name, parse_int, IntegerScalar)
 
 
-def sum_length_field(column_name: str) -> SumLengthExpressionField:
-    return SumLengthExpressionField(column_name, parse_int, IntegerScalar)
+def sum_length_field(column_name: str) -> SumLengthField:
+    return SumLengthField(column_name, parse_int, IntegerScalar)
 
 
 def string_field(column_name: str) -> StringColumnField:

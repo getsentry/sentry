@@ -4,6 +4,9 @@ Each visitor (class) represents a unique data-type that is being acted upon.  Fo
 titled "StringScalar" points to a column, function, or aggregation whose end product is of type
 String.  The expression can then be acted upon using String like interactions.
 
+Visitor classes are polymorphic on their data type, their methods are polymorphic on the operator,
+and their values are polymorphic on data-type and operator.
+
 It's important to note that condition visitors in this module (and elsewhere) do not assume the
 origin of the data.  The same visitor may be applied to aggregated output as easily as its applied
 to rows.

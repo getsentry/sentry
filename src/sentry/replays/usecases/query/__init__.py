@@ -1,3 +1,17 @@
+"""Query use-case module.
+
+For now, this is the search and sort entry-point.  Some of this code may be moved to
+replays/query.py when the pre-existing query module is deprecated.
+
+There are two important functions in this module: "search_filter_to_condition" and
+"query_using_aggregated_search".  "search_filter_to_condition" is responsible for transforming a
+SearchFilter into a Condition.  This is the only entry-point into the Field system.
+
+"query_using_aggregated_search" is the request processing engine.  It accepts raw data from an
+external source, makes decisions around what to query and when, and is responsible for returning
+intelligible output for the "post_process" module.  More information on its implementation can be
+found in the function.
+"""
 from __future__ import annotations
 
 from collections import namedtuple
@@ -34,8 +48,9 @@ def handle_search_filters(
     result: list[Condition] = []
     look_back = None
     for search_filter in search_filters:
-        # SearchFilters are appended to the result set.  If they are top level filters they are
-        # implicitly And'ed in the WHERE/HAVING clause.
+        # SearchFilters are transformed into Conditions and appended to the result set.  If they
+        # are top level filters they are implicitly AND'ed in the WHERE/HAVING clause.  Otherwise
+        # explicit operators are used.
         if isinstance(search_filter, SearchFilter):
             condition = search_filter_to_condition(search_config, search_filter)
             if look_back == "AND":
@@ -47,7 +62,7 @@ def handle_search_filters(
             else:
                 result.append(condition)
         # ParenExpressions are recursively computed.  If more than one condition is returned then
-        # those conditions are And'ed.
+        # those conditions are AND'ed.
         elif isinstance(search_filter, ParenExpression):
             conditions = handle_search_filters(search_config, search_filter.children)
             if len(conditions) < 2:
@@ -84,14 +99,27 @@ def search_filter_to_condition(
     search_config: dict[str, BaseField],
     search_filter: SearchFilter,
 ) -> Condition:
+    # The field-name is whatever the API says it is.  We take it at face value.
     field_name = search_filter.key.name
+
+    # If the field-name is in the search config then we can apply the search filter and return a
+    # result.  If its not then its a tag and the same operation is performed only with a few more
+    # steps.
     field = search_config.get(field_name)
     if field:
         return field.apply(search_filter)
     else:
+        # Tags are represented with an "*" field by convention.  We could name it `tags` and
+        # update our search config to point to this field-name.
         field = search_config["*"]
+
+        # Tags that are namespaced are stripped.
         if field_name.startswith("tags["):
             field_name = field_name[5:-1]
+
+        # The field_name in this case does not represent a column_name but instead it represents a
+        # dynamic value in the tags.key array.  For this reason we need to pass it into our "apply"
+        # function.
         return field.apply(field_name, search_filter)
 
 
@@ -142,6 +170,12 @@ def query_using_aggregated_search(
         simple_aggregation_query = simple_aggregation_query.set_limit(pagination.limit)
         simple_aggregation_query = simple_aggregation_query.set_offset(pagination.offset)
 
+    # The simple aggregation query does not select by anything other than replay_id.  Every filter
+    # is applies is ephemeral and calculated for its own purpose.  These filters _should_ be
+    # optimized to be memory sensitive in cases where its required.
+    #
+    # This query will aggregate the entire data-set contained within the period's start and end
+    # times.
     simple_aggregation_response = raw_snql_query(
         Request(
             dataset="replays",
@@ -152,10 +186,14 @@ def query_using_aggregated_search(
         "replays.query.browse_simple_aggregation",
     )
 
-    # Collection step.
+    # These replay_ids are ordered by the OrderBy expression in the query above.
     replay_ids = [row["replay_id"] for row in simple_aggregation_response.get("data", [])]
 
-    # Final aggregation step.
+    # The final aggregation step.  Here we pass the replay_ids as the only filter.  In this step
+    # we select everything and use as much memory as we need to complete the operation.
+    #
+    # If this step runs out of memory your pagination size is about 1,000,000 rows too large.
+    # That's a joke.  This will complete very quickly at normal pagination sizes.
     results = raw_snql_query(
         Request(
             dataset="replays",
@@ -190,6 +228,10 @@ def query_using_aggregated_search(
     ordered_results = []
 
     # TODO: O(n^2)! Very exciting.
+    #
+    # This shouldn't cause too much concern.  For a page size of 50 this will loop 2500 times at a
+    # maximum.  While that's certainly not the best thing ever, its an instantaneous operation
+    # compared to the two queries we just ran above.
     for replay_id in replay_ids:
         for result in results:
             if result["replay_id"] == replay_id:
@@ -206,7 +248,9 @@ def make_simple_aggregation_query(
     period_start: datetime,
     period_stop: datetime,
 ) -> Query:
-    having = handle_search_filters(agg_search_config, search_filters)
+    # This is our entry-point to the SearchFilter to Condition transformation process.  You should
+    # not be filtering at any other step in this process.
+    having: list[Condition] = handle_search_filters(agg_search_config, search_filters)
 
     return Query(
         match=Entity("replays"),
@@ -244,6 +288,8 @@ def make_full_aggregation_query(
         select=_select_from_fields(),
         where=[
             Condition(Column("project_id"), Op.IN, project_ids),
+            # Replay-ids were pre-calculated so no having clause and no aggregating significant
+            # amounts of data.
             Condition(Column("replay_id"), Op.IN, replay_ids),
             # We can scan an extended time range to account for replays which span either end of
             # the range.  These timestamps are an optimization and could be removed with minimal
