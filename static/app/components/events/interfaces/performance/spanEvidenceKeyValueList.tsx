@@ -5,6 +5,7 @@ import mapValues from 'lodash/mapValues';
 
 import {Button} from 'sentry/components/button';
 import ClippedBox from 'sentry/components/clippedBox';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Link from 'sentry/components/links/link';
@@ -27,12 +28,15 @@ import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import useOrganization from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
+import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 import KeyValueList from '../keyValueList';
 import {ProcessedSpanType, RawSpanType} from '../spans/types';
 import {getSpanSubTimings, SpanSubTimingName} from '../spans/utils';
 
 import {TraceContextSpanProxy} from './spanEvidence';
+
+const formatter = new SQLishFormatter();
 
 type Span = (RawSpanType | TraceContextSpanProxy) & {
   data?: any;
@@ -416,7 +420,7 @@ const makeRow = (
   };
 };
 
-function getSpanEvidenceValue(span: Span | null): string {
+function getSpanEvidenceValue(span: Span | null): string | Element {
   if (!span || (!span.op && !span.description)) {
     return t('(no value)');
   }
@@ -427,6 +431,12 @@ function getSpanEvidenceValue(span: Span | null): string {
 
   if (span.op && !span.description) {
     return span.op;
+  }
+
+  if (span.op === 'db' && span.description) {
+    return (
+      <CodeSnippet language="sql">{formatter.toString(span.description)}</CodeSnippet>
+    );
   }
 
   return `${span.op} - ${span.description}`;
