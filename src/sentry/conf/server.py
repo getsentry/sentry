@@ -878,6 +878,7 @@ CELERY_QUEUES_REGION = [
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("recap_servers", routing_key="recap_servers"),
     Queue("performance.statistical_detector", routing_key="performance.statistical_detector"),
+    Queue("profiling.statistical_detector", routing_key="profiling.statistical_detector"),
     CELERY_ISSUE_STATES_QUEUE,
 ]
 
