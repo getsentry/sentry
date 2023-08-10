@@ -114,9 +114,8 @@ class OAuthRevokeView(View):
                 "oauth.revoke-success",
                 extra={
                     "client_id": client_id,
-                    "sha256_token": sha256(
-                        token
-                    ).hexdigest(),  # don't log the actual token, just a hash of it
+                    # don't log the actual token, just a hash of it
+                    "sha256_token": sha256(bytes(token, "utf-8")).hexdigest(),
                 },
             )
 
