@@ -548,10 +548,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     def test_time_spent_percentage_local(self):
         super().test_time_spent_percentage_local()
 
-    @pytest.mark.xfail(reason="Not implemented")
-    def test_http_error_rate_and_count(self):
-        super().test_http_error_rate_and_count()
-
     @pytest.mark.xfail(reason="Cannot group by transform")
     def test_span_module(self):
         super().test_span_module()

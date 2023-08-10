@@ -749,3 +749,53 @@ def min_timestamp(aggregate_filter, org_id, use_case_id, alias=None):
 
 def max_timestamp(aggregate_filter, org_id, use_case_id, alias=None):
     return timestamp_column_snql("maxIf", aggregate_filter, org_id, use_case_id, alias)
+
+
+def http_error_count_span_snql(metric_column: str, tag_column: str, alias: str = None) -> Function:
+    return Function(
+        "countIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    Function(
+                        "equals",
+                        [
+                            Column("metric_id"),
+                            metric_column,
+                        ],
+                    ),
+                    Function(
+                        "in",
+                        [
+                            Column(name=tag_column),
+                            list(constants.HTTP_SERVER_ERROR_STATUS),
+                        ],
+                    ),
+                ],
+            ),
+        ],
+        alias,
+    )
+
+
+def http_error_rate_span_snql(metric_column: str, tag_column: str, alias: str = None) -> Function:
+    numerator = http_error_count_span_snql(
+        metric_column, tag_column, alias + "_numerator" if alias else None
+    )
+    denominator = Function(
+        "countIf",
+        [
+            Column("value"),
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    metric_column,
+                ],
+            ),
+        ],
+        alias + "_denominator" if alias else None,
+    )
+    return Function("divide", [numerator, denominator], alias)

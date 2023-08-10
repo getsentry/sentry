@@ -54,7 +54,9 @@ from sentry.snuba.metrics.fields.snql import (
     failure_count_transaction,
     foreground_anr_users,
     histogram_snql_factory,
+    http_error_count_span_snql,
     http_error_count_transaction,
+    http_error_rate_span_snql,
     max_timestamp,
     min_timestamp,
     miserable_users,
@@ -1713,6 +1715,22 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             snql_func=max_timestamp,
             meta_type="datetime",
             default_null_value=None,
+        ),
+        DerivedOp(
+            op="http_error_count",
+            can_groupby=False,
+            can_orderby=True,
+            can_filter=False,
+            snql_func=http_error_count_span_snql,
+            default_null_value=0,
+        ),
+        DerivedOp(
+            op="http_error_rate",
+            can_groupby=False,
+            can_orderby=True,
+            can_filter=False,
+            snql_func=http_error_rate_span_snql,
+            default_null_value=0,
         ),
     ]
 }

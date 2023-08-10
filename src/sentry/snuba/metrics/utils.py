@@ -95,6 +95,8 @@ MetricOperationType = Literal[
     "uniq_if_column",
     "min_timestamp",
     "max_timestamp",
+    "http_error_count",
+    "http_error_rate",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -282,6 +284,8 @@ DERIVED_OPERATIONS = (
     "uniq_if_column",
     "min_timestamp",
     "max_timestamp",
+    "http_error_count",
+    "http_error_rate",
 )
 OPERATIONS = (
     (

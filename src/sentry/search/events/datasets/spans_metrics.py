@@ -11,6 +11,8 @@ from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.utils import resolve, resolve_tag_key
 from sentry.snuba.referrer import Referrer
 
 
@@ -731,6 +733,54 @@ class SpansMetricsLayerDatasetConfig(DatasetConfig):
                         args=args, alias=alias, fixed_percentile=1
                     ),
                     default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "http_error_count",
+                    snql_metric_layer=lambda args, alias: Function(
+                        "http_error_count",
+                        [
+                            self.resolve_mri(
+                                "span.self_time"
+                            ),  # gets stripped by the mqb transformer
+                            resolve(
+                                UseCaseID.SPANS,
+                                self.builder.organization_id,
+                                self.resolve_mri("span.self_time").name,
+                            ),
+                            resolve_tag_key(
+                                UseCaseID.SPANS,
+                                self.builder.organization_id,
+                                "span.status_code",
+                            ),
+                        ],
+                        alias,
+                    ),
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "http_error_rate",
+                    snql_metric_layer=lambda args, alias: Function(
+                        "http_error_rate",
+                        [
+                            self.resolve_mri(
+                                "span.self_time"
+                            ),  # gets stripped by the mqb transformer
+                            resolve(
+                                UseCaseID.SPANS,
+                                self.builder.organization_id,
+                                self.resolve_mri("span.self_time").name,
+                            ),
+                            resolve_tag_key(
+                                UseCaseID.SPANS,
+                                self.builder.organization_id,
+                                "span.status_code",
+                            ),
+                        ],
+                        alias,
+                    ),
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="percentage",
                 ),
             ]
         }
