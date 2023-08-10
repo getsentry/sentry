@@ -2413,7 +2413,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             try:
                 self.make_query(search_filter_query=query)
             except SnubaError as e:
-                self.fail(f"Query {query} errored. Error info: {e}")
+                self.fail(f"Query {query} errored. Error info: {e}")  # type:ignore[attr-defined]
 
         for key in SENTRY_SNUBA_MAP:
             if key in ["project.id", "issue.id", "performance.issue_ids"]:
