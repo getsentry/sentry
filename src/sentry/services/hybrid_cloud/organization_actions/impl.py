@@ -10,6 +10,7 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     OrganizationStatus,
+    Team,
     outbox_context,
 )
 
@@ -33,7 +34,7 @@ def create_organization_and_member_for_monolith(
     organization_name,
     user_id,
     slug: str,
-) -> Tuple[Organization, OrganizationMember]:
+) -> Tuple[Organization, OrganizationMember, Team]:
     org = create_organization_with_outbox_message(
         create_options={"name": organization_name, "slug": slug}
     )
@@ -46,7 +47,7 @@ def create_organization_and_member_for_monolith(
 
     OrganizationMemberTeam.objects.create(team=team, organizationmember=om, is_active=True)
 
-    return org, om
+    return org, om, team
 
 
 def update_organization_with_outbox_message(

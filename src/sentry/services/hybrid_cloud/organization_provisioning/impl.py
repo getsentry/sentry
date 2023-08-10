@@ -1,0 +1,86 @@
+from typing import Optional
+
+from django.db import IntegrityError, router, transaction
+from sentry_sdk import capture_exception
+
+from sentry.models import Organization, OutboxCategory, OutboxScope, RegionOutbox, outbox_context
+from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    create_organization_and_member_for_monolith,
+)
+from sentry.services.hybrid_cloud.organization_provisioning import (
+    OrganizationProvisioningOptions,
+    OrganizationProvisioningService,
+)
+
+
+class SlugMismatchException(Exception):
+    pass
+
+
+def create_post_provision_outbox(
+    provisioning_options: OrganizationProvisioningOptions, org_id: int
+):
+    return RegionOutbox(
+        shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+        shard_identifier=org_id,
+        category=OutboxCategory.POST_ORGANIZATION_PROVISION,
+        object_identifier=org_id,
+        payload=provisioning_options.post_provision_options.json(),
+    )
+
+
+class DatabaseBackedOrganizationProvisioningService(OrganizationProvisioningService):
+    def _validate_organization_belongs_to_user(
+        self, user_id: int, organization: RpcOrganization
+    ) -> bool:
+        return False
+
+    def provision_organization(
+        self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
+    ) -> RpcOrganization:
+        provision_options = org_provision_args.provision_options
+        with outbox_context(transaction.atomic(router.db_for_write(Organization))):
+            org, org_member, team = create_organization_and_member_for_monolith(
+                user_id=provision_options.owning_user_id,
+                slug=provision_options.slug,
+                organization_name=provision_options.name,
+            )
+
+            create_post_provision_outbox(
+                provisioning_options=org_provision_args, org_id=org.id
+            ).save()
+
+            return serialize_rpc_organization(org)
+
+    def idempotent_provision_organization(
+        self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
+    ) -> Optional[RpcOrganization]:
+        sentry_org_options = org_provision_args.provision_options
+        try:
+            with outbox_context(transaction.atomic(router.db_for_write(Organization))):
+                org = self.provision_organization(
+                    region_name=region_name, org_provision_args=org_provision_args
+                )
+
+                if org.slug != sentry_org_options.slug:
+                    raise SlugMismatchException(
+                        f"Expected slug to be {sentry_org_options.slug}, received {org.slug}"
+                    )
+
+                return org
+        except (IntegrityError, SlugMismatchException):
+            # We've collided with another organization slug and can't fully
+            #  provision the org, so we rollback the insert and validate
+            #  whether the provided user ID owns the existing organization.
+            existing_organization = Organization.objects.get(
+                slug=org_provision_args.provision_options.slug
+            )
+            if self._validate_organization_belongs_to_user(
+                user_id=sentry_org_options.owning_user_id, organization=existing_organization
+            ):
+                return existing_organization
+            capture_exception()
+
+            return None
