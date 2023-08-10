@@ -16,7 +16,7 @@ list of supported operations can be found in the "GenericBase" visitor.
 """
 from __future__ import annotations
 
-from typing import Generic, TypeVar
+from typing import Any, TypeVar
 from uuid import UUID
 
 from snuba_sdk import Condition, Function, Identifier, Lambda, Op
@@ -27,49 +27,49 @@ from sentry.replays.lib.new_query.utils import to_uuid, to_uuids
 T = TypeVar("T")
 
 
-class GenericBase(Generic[T]):
+class GenericBase:
     @staticmethod
-    def visit_eq(expression: Expression, value: T) -> Condition:
+    def visit_eq(expression: Expression, value: Any) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_neq(expression: Expression, value: T) -> Condition:
+    def visit_neq(expression: Expression, value: Any) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_gt(expression: Expression, value: T) -> Condition:
+    def visit_gt(expression: Expression, value: Any) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_gte(expression: Expression, value: T) -> Condition:
+    def visit_gte(expression: Expression, value: Any) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_lt(expression: Expression, value: T) -> Condition:
+    def visit_lt(expression: Expression, value: Any) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_lte(expression: Expression, value: T) -> Condition:
+    def visit_lte(expression: Expression, value: Any) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_match(expression: Expression, value: T) -> Condition:
+    def visit_match(expression: Expression, value: Any) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_not_match(expression: Expression, value: T) -> Condition:
+    def visit_not_match(expression: Expression, value: Any) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_in(expression: Expression, value: list[T]) -> Condition:
+    def visit_in(expression: Expression, value: list[Any]) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_not_in(expression: Expression, value: list[T]) -> Condition:
+    def visit_not_in(expression: Expression, value: list[Any]) -> Condition:
         not_supported()
 
 
-class BooleanScalar(GenericBase[bool]):
+class BooleanScalar(GenericBase):
     """Boolean scalar condition class."""
 
     @staticmethod
@@ -81,7 +81,7 @@ class BooleanScalar(GenericBase[bool]):
         return Condition(expression, Op.NEQ, value)
 
 
-class IntegerScalar(GenericBase[int]):
+class IntegerScalar(GenericBase):
     """Integer scalar condition class."""
 
     @staticmethod
@@ -117,7 +117,7 @@ class IntegerScalar(GenericBase[int]):
         return Condition(expression, Op.NOT_IN, value)
 
 
-class StringScalar(GenericBase[str]):
+class StringScalar(GenericBase):
     """String scalar condition class."""
 
     @staticmethod
@@ -147,7 +147,7 @@ class StringScalar(GenericBase[str]):
         return Condition(expression, Op.NOT_IN, value)
 
 
-class UUIDScalar(GenericBase[UUID]):
+class UUIDScalar(GenericBase):
     """UUID scalar condition class."""
 
     @staticmethod
@@ -167,7 +167,7 @@ class UUIDScalar(GenericBase[UUID]):
         return Condition(expression, Op.NOT_IN, to_uuids(value))
 
 
-class IPv4Scalar(GenericBase[str]):
+class IPv4Scalar(GenericBase):
     """IPv4 scalar condition class."""
 
     @staticmethod
@@ -189,29 +189,29 @@ class IPv4Scalar(GenericBase[str]):
         return Condition(expression, Op.NOT_IN, values)
 
 
-class GenericArray(GenericBase[T]):
+class GenericArray(GenericBase):
     @staticmethod
-    def visit_eq(expression: Expression, value: T) -> Condition:
+    def visit_eq(expression: Expression, value: Any) -> Condition:
         return Condition(Function("has", parameters=[expression, value]), Op.EQ, 1)
 
     @staticmethod
-    def visit_neq(expression: Expression, value: T) -> Condition:
+    def visit_neq(expression: Expression, value: Any) -> Condition:
         return Condition(Function("has", parameters=[expression, value]), Op.EQ, 0)
 
     @staticmethod
-    def visit_in(expression: Expression, value: list[T]) -> Condition:
+    def visit_in(expression: Expression, value: list[Any]) -> Condition:
         return Condition(Function("hasAny", parameters=[expression, value]), Op.EQ, 1)
 
     @staticmethod
-    def visit_not_in(expression: Expression, value: list[T]) -> Condition:
+    def visit_not_in(expression: Expression, value: list[Any]) -> Condition:
         return Condition(Function("hasAny", parameters=[expression, value]), Op.EQ, 0)
 
 
-class IntegerArray(GenericArray[int]):
+class IntegerArray(GenericArray):
     """Integer array condition class."""
 
 
-class StringArray(GenericArray[str]):
+class StringArray(GenericArray):
     """String array condition class."""
 
     @staticmethod
@@ -245,24 +245,24 @@ class StringArray(GenericArray[str]):
         )
 
 
-class UUIDArray(GenericArray[UUID]):
+class UUIDArray(GenericArray):
     """UUID array condition class."""
 
     @staticmethod
     def visit_eq(expression: Expression, value: UUID) -> Condition:
-        return Condition(Function("has", parameters=[expression, to_uuid(value)]), Op.EQ, 1)
+        return GenericArray.visit_eq(expression, to_uuid(value))
 
     @staticmethod
     def visit_neq(expression: Expression, value: UUID) -> Condition:
-        return Condition(Function("has", parameters=[expression, to_uuid(value)]), Op.EQ, 0)
+        return GenericArray.visit_neq(expression, to_uuid(value))
 
     @staticmethod
     def visit_in(expression: Expression, value: list[UUID]) -> Condition:
-        return Condition(Function("hasAny", parameters=[expression, to_uuids(value)]), Op.EQ, 1)
+        return GenericArray.visit_in(expression, to_uuids(value))
 
     @staticmethod
     def visit_not_in(expression: Expression, value: list[UUID]) -> Condition:
-        return Condition(Function("hasAny", parameters=[expression, to_uuids(value)]), Op.EQ, 0)
+        return GenericArray.visit_not_in(expression, to_uuids(value))
 
 
 def not_supported() -> None:

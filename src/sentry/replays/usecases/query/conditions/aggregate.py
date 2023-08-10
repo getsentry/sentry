@@ -37,7 +37,7 @@ from sentry.replays.lib.new_query.conditions import (
 from sentry.replays.lib.new_query.utils import contains, does_not_contain
 
 
-class SumOfIPv4Scalar(GenericBase[str]):
+class SumOfIPv4Scalar(GenericBase):
     @staticmethod
     def visit_eq(expression: Expression, value: str) -> Condition:
         return contains(IPv4Scalar.visit_eq(expression, value))
@@ -55,7 +55,7 @@ class SumOfIPv4Scalar(GenericBase[str]):
         return does_not_contain(IPv4Scalar.visit_in(expression, value))
 
 
-class SumOfStringScalar(GenericBase[str]):
+class SumOfStringScalar(GenericBase):
     @staticmethod
     def visit_eq(expression: Expression, value: str) -> Condition:
         return contains(StringScalar.visit_eq(expression, value))
@@ -81,7 +81,7 @@ class SumOfStringScalar(GenericBase[str]):
         return does_not_contain(StringScalar.visit_in(expression, value))
 
 
-class SumOfStringArray(GenericBase[str]):
+class SumOfStringArray(GenericBase):
     @staticmethod
     def visit_eq(expression: Expression, value: str) -> Condition:
         return contains(StringArray.visit_eq(expression, value))
@@ -107,7 +107,7 @@ class SumOfStringArray(GenericBase[str]):
         return does_not_contain(StringArray.visit_in(expression, value))
 
 
-class SumOfUUIDArray(GenericBase[UUID]):
+class SumOfUUIDArray(GenericBase):
     @staticmethod
     def visit_eq(expression: Expression, value: UUID) -> Condition:
         return contains(UUIDArray.visit_eq(expression, value))

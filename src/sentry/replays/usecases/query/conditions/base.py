@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from typing import Generic, TypeVar
+from typing import Any
 
 from snuba_sdk import Condition
 
 from sentry.replays.lib.new_query.conditions import not_supported
 
-T = TypeVar("T")
 
-
-class ComputedBase(Generic[T]):
+class ComputedBase:
     """Computed expression base column.
 
     Computed expressions are not passed as arguments to the condition visitor methods. They are
@@ -17,41 +15,41 @@ class ComputedBase(Generic[T]):
     """
 
     @staticmethod
-    def visit_eq(value: T) -> Condition:
+    def visit_eq(value: Any) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_neq(value: T) -> Condition:
+    def visit_neq(value: Any) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_gt(value: T) -> Condition:
+    def visit_gt(value: Any) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_gte(value: T) -> Condition:
+    def visit_gte(value: Any) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_lt(value: T) -> Condition:
+    def visit_lt(value: Any) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_lte(value: T) -> Condition:
+    def visit_lte(value: Any) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_match(value: T) -> Condition:
+    def visit_match(value: Any) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_not_match(value: T) -> Condition:
+    def visit_not_match(value: Any) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_in(value: list[T]) -> Condition:
+    def visit_in(value: list[Any]) -> Condition:
         not_supported()
 
     @staticmethod
-    def visit_not_in(value: list[T]) -> Condition:
+    def visit_not_in(value: list[Any]) -> Condition:
         not_supported()

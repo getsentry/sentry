@@ -33,7 +33,6 @@ from sentry.replays.usecases.query.conditions import (
     SumOfIPv4Scalar,
     SumOfStringArray,
     SumOfStringScalar,
-    SumOfTagScalar,
     SumOfUUIDArray,
 )
 from sentry.replays.usecases.query.fields import ComputedField, TagField
@@ -124,4 +123,4 @@ search_config["user.ip"] = search_config["user.ip_address"]
 
 # Field-names which could not be found in the set are tag-keys and will, by default, look for
 # the `*` key to find their search instructions. If this is not defined an error is returned.
-search_config["*"] = TagField(parse_str, SumOfTagScalar)
+search_config["*"] = TagField()

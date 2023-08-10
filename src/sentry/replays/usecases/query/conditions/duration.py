@@ -5,7 +5,7 @@ from snuba_sdk import Column, Condition, Function, Op
 from sentry.replays.usecases.query.conditions.base import ComputedBase
 
 
-class SimpleAggregateDurationScalar(ComputedBase[int]):
+class SimpleAggregateDurationScalar(ComputedBase):
     """Duration scalar condition class."""
 
     @staticmethod

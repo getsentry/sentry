@@ -6,7 +6,8 @@ from typing import Callable, Generic, Type, TypeVar
 from snuba_sdk import Condition
 
 from sentry.api.event_search import SearchFilter
-from sentry.replays.lib.new_query.fields import BaseField
+from sentry.replays.lib.new_query.parsers import parse_str
+from sentry.replays.usecases.query.conditions import SumOfTagScalar
 from sentry.replays.usecases.query.conditions.base import ComputedBase
 
 T = TypeVar("T")
@@ -22,7 +23,7 @@ T = TypeVar("T")
 
 
 class ComputedField(Generic[T]):
-    def __init__(self, parse: Callable[[str], T], query: Type[ComputedBase[T]]) -> None:
+    def __init__(self, parse: Callable[[str], T], query: Type[ComputedBase]) -> None:
         self.parse = parse
         self.query = query
 
@@ -91,7 +92,11 @@ class ComputedField(Generic[T]):
 # highly specific to the replays dataset (hence why this is a use-case and not a lib module).
 
 
-class TagField(BaseField[T]):
+class TagField:
+    def __init__(self) -> None:
+        self.parse = parse_str
+        self.query = SumOfTagScalar
+
     def apply(self, key: str, search_filter: SearchFilter) -> Condition:
         """Apply a search operation against any named expression.
 
@@ -113,7 +118,7 @@ class TagField(BaseField[T]):
             parsed_values = [self.parse(str(v)) for v in value]
             return self._apply_composite(key, operator, parsed_values)
 
-    def _apply_wildcard(self, key: str, operator: str, value: T) -> Condition:
+    def _apply_wildcard(self, key: str, operator: str, value: str) -> Condition:
         if operator == "=":
             visitor = self.query.visit_match
         elif operator == "!=":
@@ -123,7 +128,7 @@ class TagField(BaseField[T]):
 
         return visitor(key, value)
 
-    def _apply_composite(self, key: str, operator: str, value: list[T]) -> Condition:
+    def _apply_composite(self, key: str, operator: str, value: list[str]) -> Condition:
         if operator == "IN":
             visitor = self.query.visit_in
         elif operator == "NOT IN":
@@ -133,7 +138,7 @@ class TagField(BaseField[T]):
 
         return visitor(key, value)
 
-    def _apply_scalar(self, key: str, operator: str, value: T) -> Condition:
+    def _apply_scalar(self, key: str, operator: str, value: str) -> Condition:
         if operator == "=":
             visitor = self.query.visit_eq
         elif operator == "!=":

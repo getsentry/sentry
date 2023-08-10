@@ -6,8 +6,6 @@ asking whether any row in the aggregation set contained a result.
 """
 from __future__ import annotations
 
-from typing import List
-
 from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.replays.lib.new_query.utils import contains, does_not_contain
@@ -15,7 +13,7 @@ from sentry.replays.lib.selector.parse import QueryType
 from sentry.replays.usecases.query.conditions.base import ComputedBase
 
 
-class ClickSelectorComposite(ComputedBase[List[QueryType]]):
+class ClickSelectorComposite(ComputedBase):
     """Click selector composite condition class."""
 
     @staticmethod
@@ -35,7 +33,7 @@ class ClickSelectorComposite(ComputedBase[List[QueryType]]):
             return Condition(search_selector(value), Op.EQ, 0)
 
 
-class SumOfClickSelectorComposite(ComputedBase[List[QueryType]]):
+class SumOfClickSelectorComposite(ComputedBase):
     """Click selector composite condition class."""
 
     @staticmethod
@@ -90,7 +88,7 @@ def comparator(comparison_fn: str, functions: list[Function]) -> Function:
     if len(functions) == 0:
         return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
 
-    inner_condition = None
+    inner_condition: Function | None = None
 
     for function in functions:
         if inner_condition is None:

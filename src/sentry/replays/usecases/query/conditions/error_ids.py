@@ -14,7 +14,7 @@ from sentry.replays.lib.new_query.utils import contains, does_not_contain, to_uu
 from sentry.replays.usecases.query.conditions.base import ComputedBase
 
 
-class ErrorIdsArray(ComputedBase[UUID]):
+class ErrorIdsArray(ComputedBase):
     """Error ids array condition visitor."""
 
     @staticmethod
@@ -34,7 +34,7 @@ class ErrorIdsArray(ComputedBase[UUID]):
         return Condition(has_any_error_id(value), Op.EQ, 0)
 
 
-class SumOfErrorIdsArray(ComputedBase[UUID]):
+class SumOfErrorIdsArray(ComputedBase):
     """Sum of error ids array condition visitor."""
 
     @staticmethod

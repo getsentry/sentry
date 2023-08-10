@@ -36,13 +36,13 @@ from snuba_sdk.expressions import Expression
 
 from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, SearchValue
 from sentry.models.organization import Organization
-from sentry.replays.lib.new_query.fields import BaseField
-from sentry.replays.usecases.query.fields import TagField
+from sentry.replays.lib.new_query.fields import ColumnField
+from sentry.replays.usecases.query.fields import ComputedField, TagField
 from sentry.utils.snuba import raw_snql_query
 
 
 def handle_search_filters(
-    search_config: dict[str, BaseField],
+    search_config: dict[str, Union[ColumnField, ComputedField, TagField]],
     search_filters: list[Union[SearchFilter, str, ParenExpression]],
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
@@ -97,7 +97,7 @@ def attempt_compressed_condition(
 
 
 def search_filter_to_condition(
-    search_config: dict[str, BaseField],
+    search_config: dict[str, Union[ColumnField, ComputedField, TagField]],
     search_filter: SearchFilter,
 ) -> Condition:
     # The field-name is whatever the API says it is.  We take it at face value.
@@ -107,21 +107,22 @@ def search_filter_to_condition(
     # result.  If its not then its a tag and the same operation is performed only with a few more
     # steps.
     field = search_config.get(field_name)
-    if field:
+    if isinstance(field, (ColumnField, ComputedField)):
         return field.apply(search_filter)
-    else:
+
+    if field is None:
         # Tags are represented with an "*" field by convention.  We could name it `tags` and
         # update our search config to point to this field-name.
         field = cast(TagField, search_config["*"])
 
-        # Tags that are namespaced are stripped.
-        if field_name.startswith("tags["):
-            field_name = field_name[5:-1]
+    # Tags that are namespaced are stripped.
+    if field_name.startswith("tags["):
+        field_name = field_name[5:-1]
 
-        # The field_name in this case does not represent a column_name but instead it represents a
-        # dynamic value in the tags.key array.  For this reason we need to pass it into our "apply"
-        # function.
-        return field.apply(field_name, search_filter)
+    # The field_name in this case does not represent a column_name but instead it represents a
+    # dynamic value in the tags.key array.  For this reason we need to pass it into our "apply"
+    # function.
+    return field.apply(field_name, search_filter)
 
 
 # Everything below here will move to replays/query.py once we deprecate the old query behavior.

@@ -5,7 +5,7 @@ from snuba_sdk import Column, Condition, Function, Op
 from sentry.replays.usecases.query.conditions.base import ComputedBase
 
 
-class AggregateActivityScalar(ComputedBase[int]):
+class AggregateActivityScalar(ComputedBase):
     """Activity scalar condition class."""
 
     @staticmethod

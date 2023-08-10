@@ -28,7 +28,7 @@ from sentry.replays.lib.new_query.conditions import GenericBase, T
 
 
 class BaseField(Generic[T]):
-    def __init__(self, parse: Callable[[str], T], query: Type[GenericBase[T]]) -> None:
+    def __init__(self, parse: Callable[[str], T], query: Type[GenericBase]) -> None:
         self.parse = parse
         self.query = query
 
@@ -78,7 +78,7 @@ class ColumnField(BaseField[T]):
     """Column fields target one column."""
 
     def __init__(
-        self, column_name: str, parse_fn: Callable[[str], T], query_type: Type[GenericBase[T]]
+        self, column_name: str, parse_fn: Callable[[str], T], query_type: Type[GenericBase]
     ) -> None:
         self.column_name = column_name
         self.parse = parse_fn

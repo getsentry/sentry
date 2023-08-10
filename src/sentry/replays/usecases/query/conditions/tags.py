@@ -7,7 +7,7 @@ from sentry.replays.lib.new_query.conditions import GenericBase
 from sentry.replays.lib.new_query.utils import contains, does_not_contain
 
 
-class TagScalar(GenericBase[str]):
+class TagScalar(GenericBase):
     """Tag scalar condition class."""
 
     @staticmethod
@@ -35,7 +35,7 @@ class TagScalar(GenericBase[str]):
         return Condition(_match_key_value_wildcard(expression_name, value), Op.EQ, 0)
 
 
-class SumOfTagScalar(GenericBase[str]):
+class SumOfTagScalar(GenericBase):
     @staticmethod
     def visit_eq(expression: Expression, value: str) -> Condition:
         return contains(TagScalar.visit_eq(expression, value))
