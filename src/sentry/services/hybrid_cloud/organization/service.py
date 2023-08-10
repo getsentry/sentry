@@ -17,6 +17,7 @@ from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcRegionUser,
+    RpcTeam,
     RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
@@ -301,6 +302,11 @@ class OrganizationService(RpcService):
         _organization_signal_service.schedule_signal(
             signal=signal, organization_id=organization_id, args=args
         )
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_teams_for_user(self, *, organization_id: int, user_id: int) -> List[RpcTeam]:
+        pass
 
 
 class OrganizationSignalService(abc.ABC):

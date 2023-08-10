@@ -40,10 +40,12 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
+from sentry.services.hybrid_cloud.organization.model import RpcTeam
 from sentry.services.hybrid_cloud.organization.serial import (
     serialize_member,
     serialize_organization_summary,
     serialize_rpc_organization,
+    serialize_rpc_team,
 )
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import flags_to_bits
@@ -280,7 +282,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
         updates: models.F | models.CombinedExpression = models.F("flags")
-        for (name, value) in flags.items():
+        for name, value in flags.items():
             if value is True:
                 updates = updates.bitor(getattr(Organization.flags, name))
             elif value is False:
@@ -517,6 +519,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
         args: Mapping[str, str | int | None],
     ) -> None:
         signal.signal.send_robust(None, organization_id=organization_id, **args)
+
+    def get_teams_for_user(self, *, organization_id: int, user_id: int) -> List[RpcTeam]:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+
+        if not organization:
+            return []
+
+        teams = Team.objects.get_for_user(
+            organization=organization,
+            user_id=user_id,
+        )
+        return [serialize_rpc_team(team) for team in teams]
 
 
 class OutboxBackedOrganizationSignalService(OrganizationSignalService):
