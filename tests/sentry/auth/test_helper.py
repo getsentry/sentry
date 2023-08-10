@@ -462,8 +462,9 @@ class AuthHelperTest(TestCase):
             "flow": flow,
             "provider_model_id": self.auth_provider_inst.id,
             "provider_key": None,
-            "referrer": referrer,
         }
+        if referrer:
+            initial_state["referrer"] = referrer
         local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
         local_client.set(self.auth_key, json.dumps(initial_state))
 

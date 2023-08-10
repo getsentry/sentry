@@ -688,7 +688,7 @@ class AuthHelper(Pipeline):
 
         # NOTE: pulling custom pipeline state (see get_initial_state)
         flow = req_state.state.flow
-        referrer = req_state.state.referrer
+        referrer = req_state.state.get("referrer", None)  # referrer is optional
 
         return cls(
             auth_provider=req_state.provider_model,
