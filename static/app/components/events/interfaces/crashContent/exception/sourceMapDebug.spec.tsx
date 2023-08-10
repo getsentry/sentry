@@ -197,12 +197,12 @@ describe('SourceMapDebug', () => {
     });
 
     expect(
-      await screen.findByText("Sentry isn't Sentry without source maps")
+      await screen.findByText("You're not a computer, so why parse minified code?")
     ).toBeInTheDocument();
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          "You're not a computer, so why parse minified code? Upload source maps with the Sentry Wizard to unlock readable stack traces and better error grouping. Learn more"
+          'Upload source maps with the Sentry Wizard to unlock readable stack traces and better error grouping. Learn more'
         )
       )
     ).toBeInTheDocument();
