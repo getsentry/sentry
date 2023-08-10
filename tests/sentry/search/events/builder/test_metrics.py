@@ -2233,7 +2233,49 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert len(meta) == 1
         assert meta[0]["name"] == "c:transactions/on_demand@none"
 
-    def test_run_query_with_on_demand_derived_metric(self):
+    def test_run_query_with_on_demand_failure_rate(self):
+        field = "failure_rate()"
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query)
+
+        self.store_transaction_metric(
+            value=1,
+            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            entity="metrics_counters",
+            tags={"query_hash": spec.query_hash, "failure": "true"},
+            timestamp=self.start,
+        )
+
+        self.store_transaction_metric(
+            value=1,
+            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            entity="metrics_counters",
+            tags={"query_hash": spec.query_hash},
+            timestamp=self.start,
+        )
+
+        query = AlertMetricsQueryBuilder(
+            self.params,
+            use_metrics_layer=False,
+            granularity=3600,
+            query=query,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[field],
+            on_demand_metrics_enabled=True,
+            skip_time_conditions=False,
+        )
+
+        result = query.run_query("test_query")
+
+        # (1 failure / 2 total) = 0.5
+        assert result["data"] == [{"c:transactions/on_demand@none": 0.5}]
+        meta = result["meta"]
+        assert len(meta) == 1
+        assert meta[0]["name"] == "c:transactions/on_demand@none"
+
+    def test_run_query_with_on_demand_apdex(self):
         field = "apdex(10)"
         query = "transaction.duration:>=100"
         spec = OnDemandMetricSpec(field=field, query=query)
