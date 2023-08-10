@@ -3,6 +3,9 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
+// import {useDimensions} from 'sentry/utils/useDimensions';
+// import {useLocation} from 'sentry/utils/useLocation';
+// import useOrganization from 'sentry/utils/useOrganization';
 import {IconClock, IconRefresh} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -10,8 +13,6 @@ import type EventView from 'sentry/utils/discover/eventView';
 // import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-// import {useLocation} from 'sentry/utils/useLocation';
-// import useOrganization from 'sentry/utils/useOrganization';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TraceGrid from 'sentry/views/replays/detail/perfTable/traceGrid';
 import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
