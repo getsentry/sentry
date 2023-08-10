@@ -1,4 +1,5 @@
 import logging
+from hashlib import sha256
 from typing import Optional
 
 from django.db.models import Q
@@ -33,7 +34,7 @@ class OAuthRevokeView(View):
     def error(self, request: HttpRequest, name, error_description=None, status=400):
         client_id = request.POST.get("client_id")
 
-        logging.error(
+        logger.error(
             "oauth.revoke-error",
             extra={
                 "error_name": name,
@@ -100,7 +101,7 @@ class OAuthRevokeView(View):
                 status=401,
             )
 
-        token_to_delete = self.get_token_to_delete(
+        token_to_delete = self._get_token_to_delete(
             token=token,
             token_type_hint=token_type_hint,
             application=application,  # an application can only revoke tokens it owns
@@ -109,12 +110,21 @@ class OAuthRevokeView(View):
         # only delete the token if one was found
         if token_to_delete:
             token_to_delete.delete()
+            logger.info(
+                "oauth.revoke-success",
+                extra={
+                    "client_id": client_id,
+                    "sha256_token": sha256(
+                        token
+                    ).hexdigest(),  # don't log the actual token, just a hash of it
+                },
+            )
 
         # even in the case of invalid tokens we are supposed to respond with an HTTP 200 per the RFC
         # See: https://www.rfc-editor.org/rfc/rfc7009#section-2.2
         return HttpResponse(status=200)
 
-    def get_token_to_delete(
+    def _get_token_to_delete(
         self, token: str, token_type_hint: Optional[str], application: ApiApplication
     ) -> Optional[ApiToken]:
         try:
