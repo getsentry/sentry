@@ -132,8 +132,6 @@ export function GettingStartedWithDjango({
       steps={steps({
         sentryInitContent: sentryInitContent.join('\n'),
       })}
-      includeProfiling
-      hideSessionReplay
       {...props}
     />
   );

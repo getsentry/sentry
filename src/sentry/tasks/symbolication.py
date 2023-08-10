@@ -14,6 +14,7 @@ from sentry.lang.javascript.processing import process_js_stacktraces
 from sentry.lang.native.symbolicator import RetrySymbolication, Symbolicator, SymbolicatorTaskKind
 from sentry.models import Organization, Project
 from sentry.processing import realtime_metrics
+from sentry.silo import SiloMode
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -367,6 +368,7 @@ def submit_symbolicate(
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def symbolicate_event(
     cache_key: str,
@@ -401,6 +403,7 @@ def symbolicate_event(
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def symbolicate_js_event(
     cache_key: str,
@@ -435,6 +438,7 @@ def symbolicate_js_event(
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def symbolicate_event_low_priority(
     cache_key: str,
@@ -472,6 +476,7 @@ def symbolicate_event_low_priority(
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def symbolicate_js_event_low_priority(
     cache_key: str,
@@ -509,6 +514,7 @@ def symbolicate_js_event_low_priority(
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def symbolicate_event_from_reprocessing(
     cache_key: str,
@@ -536,6 +542,7 @@ def symbolicate_event_from_reprocessing(
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def symbolicate_event_from_reprocessing_low_priority(
     cache_key: str,

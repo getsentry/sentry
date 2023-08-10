@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,21 +22,95 @@ export enum ProductSolution {
   PROFILING = 'profiling',
 }
 
+// This is the list of products that are available for each platform
+// Since the ProductSelection component is rendered in the onboarding/project creation flow only, it is ok to have this list here
+export const platformProductAvailability = {
+  'python-django': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
+  'javascript-react': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-vue': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-angular': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-ember': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-gatsby': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-nextjs': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-remix': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-svelte': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-sveltekit': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+} as Record<PlatformKey, ProductSolution[]>;
+
 export type DisabledProduct = {
-  product: ProductSolution;
   reason: string;
   onClick?: () => void;
+  product?: ProductSolution;
 };
 
 type ProductProps = {
+  /**
+   * If the product is checked. This information is grabbed from the URL.
+   */
   checked: boolean;
-  disabled: boolean;
+  /**
+   * The name of the product
+   */
   label: string;
+  /**
+   * Brief product description
+   */
+  description?: string;
+  /**
+   * If the product is disabled. It contains a reason and an optional onClick handler
+   */
+  disabled?: DisabledProduct;
+  /**
+   * Link of the product documentation. Rendered if there is also a description.
+   */
+  docLink?: string;
+  /**
+   * Click handler. If the product is enabled, by clicking on the button, the product is added or removed from the URL.
+   */
   onClick?: () => void;
+  /**
+   * A permanent disabled product is always disabled and cannot be enabled.
+   */
   permanentDisabled?: boolean;
 };
 
-function Product({disabled, permanentDisabled, checked, label, onClick}: ProductProps) {
+function Product({
+  disabled,
+  permanentDisabled,
+  checked,
+  label,
+  onClick,
+  docLink,
+  description,
+}: ProductProps) {
   const ProductWrapper = permanentDisabled
     ? PermanentDisabledProductWrapper
     : disabled
@@ -43,137 +118,129 @@ function Product({disabled, permanentDisabled, checked, label, onClick}: Product
     : ProductButtonWrapper;
 
   return (
-    <ProductWrapper
-      onClick={onClick}
-      disabled={onClick ?? permanentDisabled ? false : disabled}
-      priority={permanentDisabled || checked ? 'primary' : 'default'}
-      aria-label={label}
+    <Tooltip
+      title={
+        disabled?.reason ??
+        (description && (
+          <TooltipDescription>
+            {description}
+            {docLink && <ExternalLink href={docLink}>{t('Read the Docs')}</ExternalLink>}
+          </TooltipDescription>
+        ))
+      }
+      isHoverable
     >
-      <ProductButtonInner>
-        <Checkbox
-          checked={checked}
-          disabled={permanentDisabled ? false : disabled}
-          aria-label={label}
-          size="xs"
-          readOnly
-        />
-        <span>{label}</span>
-        <IconQuestion size="xs" color="subText" />
-      </ProductButtonInner>
-    </ProductWrapper>
+      <ProductWrapper
+        onClick={disabled?.onClick ?? onClick}
+        disabled={disabled?.onClick ?? permanentDisabled ? false : !!disabled}
+        priority={permanentDisabled || checked ? 'primary' : 'default'}
+        aria-label={label}
+      >
+        <ProductButtonInner>
+          <Checkbox
+            checked={checked}
+            disabled={permanentDisabled ? false : !!disabled}
+            aria-label={label}
+            size="xs"
+            readOnly
+          />
+          <span>{label}</span>
+          <IconQuestion size="xs" color="subText" />
+        </ProductButtonInner>
+      </ProductWrapper>
+    </Tooltip>
   );
 }
 
 export type ProductSelectionProps = {
-  defaultSelectedProducts?: ProductSolution[];
+  /**
+   * List of products that are disabled. All of them have to contain a reason by default and optionally an onClick handler.
+   */
   disabledProducts?: DisabledProduct[];
   /**
-   * Whether to hide the session replay product in the product selection.
+   * If true, the loader script is used instead of the npm/yarn guide.
    */
-  hideSessionReplay?: boolean;
-  /**
-   * Whether to include the profiling product in the product selection.
-   */
-  includeProfiling?: boolean;
   lazyLoader?: boolean;
+  /**
+   * The platform key of the project (e.g. javascript-react, python-django, etc.)
+   */
+  platform?: PlatformKey;
+  /**
+   * A custom list of products per platform. If not provided, the default list is used.
+   */
+  productsPerPlatform?: Record<PlatformKey, ProductSolution[]>;
   skipLazyLoader?: () => void;
+  /**
+   * If true, the component has a bottom margin of 20px
+   */
+  withBottomMargin?: boolean;
 };
 
 export function ProductSelection({
-  defaultSelectedProducts,
   disabledProducts,
   lazyLoader,
   skipLazyLoader,
-  includeProfiling,
-  hideSessionReplay,
+  platform,
+  withBottomMargin,
+  productsPerPlatform = platformProductAvailability,
 }: ProductSelectionProps) {
   const router = useRouter();
-  const products = decodeList(router.location.query.product);
+  const urlProducts = decodeList(router.location.query.product);
+  const products: ProductSolution[] | undefined = platform
+    ? productsPerPlatform[platform]
+    : undefined;
 
-  const performanceProductDisabled = disabledProducts?.find(
-    disabledProduct => disabledProduct.product === ProductSolution.PERFORMANCE_MONITORING
-  );
-
-  const sessionReplayProductDisabled = disabledProducts?.find(
-    disabledProduct => disabledProduct.product === ProductSolution.SESSION_REPLAY
-  );
-
-  const profilingProductDisabled = useMemo(() => {
-    if (!products.includes(ProductSolution.PERFORMANCE_MONITORING)) {
-      return {
-        reason: t('Profiling requires Performance Monitoring.'),
-        onClick: undefined,
-      };
-    }
-    return disabledProducts?.find(
-      disabledProduct => disabledProduct.product === ProductSolution.PROFILING
+  const defaultProducts = useMemo(() => {
+    return (
+      products?.filter(
+        product =>
+          !disabledProducts?.some(disabledProduct => disabledProduct.product === product)
+      ) ?? []
     );
-  }, [disabledProducts, products]);
+  }, [products, disabledProducts]);
 
   useEffect(() => {
-    if (!defaultSelectedProducts) {
-      return;
-    }
     router.replace({
       pathname: router.location.pathname,
       query: {
         ...router.location.query,
-        product: defaultSelectedProducts,
+        product: defaultProducts,
       },
     });
-    // Adding defaultSelectedProducts to the dependency array causes an max-depth error
+    // Adding defaultProducts to the dependency array causes an max-depth error
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
-  useEffect(() => {
-    if (
-      (sessionReplayProductDisabled || hideSessionReplay) &&
-      products.includes(ProductSolution.SESSION_REPLAY)
-    ) {
-      router.replace({
-        pathname: router.location.pathname,
-        query: {
-          ...router.location.query,
-          product: products.filter(p => p !== ProductSolution.SESSION_REPLAY),
-        },
-      });
-    }
-
-    if (
-      (profilingProductDisabled || !includeProfiling) &&
-      products.includes(ProductSolution.PROFILING)
-    ) {
-      router.replace({
-        pathname: router.location.pathname,
-        query: {
-          ...router.location.query,
-          product: products.filter(p => p !== ProductSolution.PROFILING),
-        },
-      });
-    }
-  }, [
-    router,
-    hideSessionReplay,
-    includeProfiling,
-    profilingProductDisabled,
-    sessionReplayProductDisabled,
-    products,
-  ]);
-
   const handleClickProduct = useCallback(
     (product: ProductSolution) => {
+      let newProduct = urlProducts.includes(product)
+        ? urlProducts.filter(p => p !== product)
+        : [...urlProducts, product];
+
+      if (defaultProducts?.includes(ProductSolution.PROFILING)) {
+        if (
+          !newProduct.includes(ProductSolution.PERFORMANCE_MONITORING) &&
+          newProduct.includes(ProductSolution.PROFILING)
+        ) {
+          newProduct = [...newProduct, ProductSolution.PERFORMANCE_MONITORING];
+        }
+      }
+
       router.replace({
         pathname: router.location.pathname,
         query: {
           ...router.location.query,
-          product: products.includes(product)
-            ? products.filter(p => p !== product)
-            : [...products, product],
+          product: newProduct,
         },
       });
     },
-    [router, products]
+    [router, urlProducts, defaultProducts]
   );
+
+  if (!products) {
+    // if the platform does not support any product, we don't render anything
+    return null;
+  }
 
   return (
     <Fragment>
@@ -188,90 +255,64 @@ export function ProductSelection({
             })}
       </TextBlock>
       <Products>
-        <Tooltip title={t("Let's admit it, we all have errors.")}>
-          <Product disabled checked permanentDisabled label={t('Error Monitoring')} />
-        </Tooltip>
-        <Tooltip
-          title={
-            performanceProductDisabled?.reason ?? (
-              <TooltipDescription>
-                {t(
-                  'Automatic performance issue detection with context like who it impacts and the release, line of code, or function causing the slowdown.'
-                )}
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/performance/">
-                  {t('Read the Docs')}
-                </ExternalLink>
-              </TooltipDescription>
-            )
-          }
-          isHoverable
-        >
+        <Product
+          label={t('Error Monitoring')}
+          disabled={{reason: t("Let's admit it, we all have errors.")}}
+          checked
+          permanentDisabled
+        />
+        {products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
           <Product
-            onClick={
-              performanceProductDisabled
-                ? performanceProductDisabled?.onClick
-                : () => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)
-            }
-            disabled={!!performanceProductDisabled}
-            checked={products.includes(ProductSolution.PERFORMANCE_MONITORING)}
             label={t('Performance Monitoring')}
+            description={t(
+              'Automatic performance issue detection and context on who is impacted, outliers, regressions, and the root cause of your slowdown. Trace issues across services to find poor-performing code.'
+            )}
+            docLink="https://docs.sentry.io/platforms/javascript/guides/react/performance/"
+            onClick={() => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)}
+            disabled={
+              urlProducts.includes(ProductSolution.PROFILING)
+                ? {
+                    reason: t(
+                      'Enabling Profiling requires Performance Monitoring, making it inseparable. As a result, disabling Performance Mornitoring is not possible while profiling is active.'
+                    ),
+                  }
+                : disabledProducts?.find(
+                    disabledProduct =>
+                      disabledProduct.product === ProductSolution.PERFORMANCE_MONITORING
+                  )
+            }
+            checked={urlProducts.includes(ProductSolution.PERFORMANCE_MONITORING)}
+            permanentDisabled={urlProducts.includes(ProductSolution.PROFILING)}
           />
-        </Tooltip>
-        {!hideSessionReplay && (
-          <Tooltip
-            title={
-              sessionReplayProductDisabled?.reason ?? (
-                <TooltipDescription>
-                  {t(
-                    'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
-                  )}
-                  <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/session-replay/">
-                    {t('Read the Docs')}
-                  </ExternalLink>
-                </TooltipDescription>
-              )
-            }
-            isHoverable
-          >
-            <Product
-              onClick={
-                sessionReplayProductDisabled
-                  ? sessionReplayProductDisabled?.onClick
-                  : () => handleClickProduct(ProductSolution.SESSION_REPLAY)
-              }
-              disabled={!!sessionReplayProductDisabled}
-              checked={products.includes(ProductSolution.SESSION_REPLAY)}
-              label={t('Session Replay')}
-            />
-          </Tooltip>
         )}
-        {includeProfiling && (
-          <Tooltip
-            title={
-              profilingProductDisabled?.reason ?? (
-                <TooltipDescription>
-                  {t(
-                    'Enable code-level visibility in production environments, helping you swiftly detect performance bottlenecks and visualize hot paths in your code. Requires Performance Monitoring.'
-                  )}
-                  <ExternalLink href="https://docs.sentry.io/platforms/python/profiling/">
-                    {t('Read the Docs')}
-                  </ExternalLink>
-                </TooltipDescription>
-              )
-            }
-            isHoverable
-          >
-            <Product
-              onClick={
-                profilingProductDisabled
-                  ? profilingProductDisabled?.onClick
-                  : () => handleClickProduct(ProductSolution.PROFILING)
-              }
-              disabled={!!profilingProductDisabled}
-              checked={products.includes(ProductSolution.PROFILING)}
-              label={t('Profiling')}
-            />
-          </Tooltip>
+        {products.includes(ProductSolution.SESSION_REPLAY) && (
+          <Product
+            label={t('Session Replay')}
+            description={t(
+              'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
+            )}
+            docLink="https://docs.sentry.io/platforms/javascript/guides/react/session-replay/"
+            onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
+            disabled={disabledProducts?.find(
+              disabledProduct =>
+                disabledProduct.product === ProductSolution.SESSION_REPLAY
+            )}
+            checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
+          />
+        )}
+        {products.includes(ProductSolution.PROFILING) && (
+          <Product
+            label={t('Profiling')}
+            description={t(
+              'See the exact functions and lines of code causing your performance bottlenecks, so you can speed up troubleshooting and optimize resource consumption. Must have Performance Monitoring set up to use Profiling.'
+            )}
+            docLink="https://docs.sentry.io/platforms/python/profiling/"
+            onClick={() => handleClickProduct(ProductSolution.PROFILING)}
+            disabled={disabledProducts?.find(
+              disabledProduct => disabledProduct.product === ProductSolution.PROFILING
+            )}
+            checked={urlProducts.includes(ProductSolution.PROFILING)}
+          />
         )}
       </Products>
       {lazyLoader && (
@@ -287,7 +328,7 @@ export function ProductSelection({
           })}
         </AlternativeInstallationAlert>
       )}
-      <Divider />
+      <Divider withBottomMargin={withBottomMargin} />
     </Fragment>
   );
 }
@@ -342,11 +383,12 @@ const ProductButtonInner = styled('div')`
   align-items: center;
 `;
 
-const Divider = styled('hr')`
+const Divider = styled('hr')<{withBottomMargin?: boolean}>`
   height: 1px;
   width: 100%;
   background: ${p => p.theme.border};
   border: none;
+  ${p => p.withBottomMargin && `margin-bottom: ${space(3)}`}
 `;
 
 const TooltipDescription = styled('div')`

@@ -6,10 +6,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Step, StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
-  ProductSelection,
-  ProductSolution,
-} from 'sentry/components/onboarding/productSelection';
+import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -30,14 +27,6 @@ type NextStep = {
 export type LayoutProps = {
   steps: StepProps[];
   /**
-   * Whether to hide the session replay product in the product selection
-   */
-  hideSessionReplay?: boolean;
-  /**
-   * Whether to include the profiling product in the product selection
-   */
-  includeProfiling?: boolean;
-  /**
    * An introduction displayed before the steps
    */
   introduction?: React.ReactNode;
@@ -46,43 +35,15 @@ export type LayoutProps = {
   platformKey?: PlatformKey;
 };
 
-function getDefaultSelectedProducts({
-  includeProfiling,
-  hideSessionReplay,
-}: {
-  hideSessionReplay?: boolean;
-  includeProfiling?: boolean;
-}) {
-  const defaultSelectedProducts = [ProductSolution.PERFORMANCE_MONITORING];
-
-  if (includeProfiling) {
-    defaultSelectedProducts.push(ProductSolution.PROFILING);
-  }
-
-  if (!hideSessionReplay) {
-    defaultSelectedProducts.push(ProductSolution.SESSION_REPLAY);
-  }
-
-  return defaultSelectedProducts;
-}
-
 export function Layout({
   steps,
   platformKey,
   nextSteps = [],
   newOrg,
   introduction,
-  includeProfiling,
-  hideSessionReplay,
 }: LayoutProps) {
   const organization = useOrganization();
   const {isSelfHosted} = useLegacyStore(ConfigStore);
-
-  const isJavaScriptPlatform =
-    platformKey === 'javascript' || !!platformKey?.match('^javascript-([A-Za-z]+)$');
-
-  const displayProductSelection =
-    !isSelfHosted && (isJavaScriptPlatform || includeProfiling);
 
   return (
     <Wrapper>
@@ -92,24 +53,16 @@ export function Layout({
           <Divider />
         </Fragment>
       )}
-      {displayProductSelection && newOrg && (
-        <ProductSelection
-          defaultSelectedProducts={getDefaultSelectedProducts({
-            includeProfiling,
-            hideSessionReplay,
-          })}
-          includeProfiling={includeProfiling}
-          hideSessionReplay={hideSessionReplay}
-        />
+      {!isSelfHosted && newOrg && (
+        <ProductSelection platform={platformKey} withBottomMargin />
       )}
-      {displayProductSelection && !newOrg && (
+      {!isSelfHosted && !newOrg && (
         <ProductSelectionAvailabilityHook
           organization={organization}
-          includeProfiling={includeProfiling}
-          hideSessionReplay={hideSessionReplay}
+          platform={platformKey}
         />
       )}
-      <Steps withTopSpacing={!displayProductSelection && newOrg}>
+      <Steps>
         {steps.map(step => (
           <Step key={step.title ?? step.type} {...step} />
         ))}
@@ -140,11 +93,10 @@ const Divider = styled('hr')`
   border: none;
 `;
 
-const Steps = styled('div')<{withTopSpacing?: boolean}>`
+const Steps = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  ${p => p.withTopSpacing && `margin-top: ${space(3)}`}
 `;
 
 const Introduction = styled('div')`

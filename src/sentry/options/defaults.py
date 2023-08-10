@@ -724,6 +724,13 @@ register(
 register(
     "store.save-event-highcpu-platforms", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+# For platform belongs to store.save-event-highcpu-platforms option, we want to reroute
+# events to highcpu dedicated queue. During rollout, I would like to have an option to control
+# the percentage of traffic to route to highcpu dedicated queue, so I can route
+# small amount of traffic to new highcpu worker pool, and observe the worker throughput
+# to adjust autoscaling. Once we verify the deployment, we can remove the usage for this
+# option.
+register("store.save-event-highcpu-percentage", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "store.symbolicate-event-lpq-never", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
@@ -1447,4 +1454,10 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "options_automator_slack_webhook_enabled",
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

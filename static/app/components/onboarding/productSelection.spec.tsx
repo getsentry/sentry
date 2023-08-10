@@ -3,6 +3,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
+  platformProductAvailability,
   ProductSelection,
   ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
@@ -12,13 +13,18 @@ describe('Onboarding Product Selection', function () {
     const {router, routerContext} = initializeOrg({
       router: {
         location: {
-          query: {product: ['performance-monitoring', 'session-replay']},
+          query: {
+            product: [
+              ProductSolution.PERFORMANCE_MONITORING,
+              ProductSolution.SESSION_REPLAY,
+            ],
+          },
         },
         params: {},
       },
     });
 
-    render(<ProductSelection />, {
+    render(<ProductSelection platform="javascript-react" />, {
       context: routerContext,
     });
 
@@ -58,7 +64,7 @@ describe('Onboarding Product Selection', function () {
     await waitFor(() =>
       expect(router.replace).toHaveBeenCalledWith({
         pathname: undefined,
-        query: {product: ['session-replay']},
+        query: {product: [ProductSolution.SESSION_REPLAY]},
       })
     );
 
@@ -71,7 +77,7 @@ describe('Onboarding Product Selection', function () {
     await waitFor(() =>
       expect(router.replace).toHaveBeenCalledWith({
         pathname: undefined,
-        query: {product: ['performance-monitoring']},
+        query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
       })
     );
 
@@ -86,7 +92,12 @@ describe('Onboarding Product Selection', function () {
     const {routerContext} = initializeOrg({
       router: {
         location: {
-          query: {product: ['performance-monitoring', 'session-replay']},
+          query: {
+            product: [
+              ProductSolution.PERFORMANCE_MONITORING,
+              ProductSolution.SESSION_REPLAY,
+            ],
+          },
         },
         params: {},
       },
@@ -94,9 +105,16 @@ describe('Onboarding Product Selection', function () {
 
     const skipLazyLoader = jest.fn();
 
-    render(<ProductSelection lazyLoader skipLazyLoader={skipLazyLoader} />, {
-      context: routerContext,
-    });
+    render(
+      <ProductSelection
+        lazyLoader
+        skipLazyLoader={skipLazyLoader}
+        platform="javascript-react"
+      />,
+      {
+        context: routerContext,
+      }
+    );
 
     // Introduction
     expect(
@@ -119,7 +137,7 @@ describe('Onboarding Product Selection', function () {
     const {router, routerContext} = initializeOrg({
       router: {
         location: {
-          query: {product: ['session-replay']},
+          query: {product: [ProductSolution.SESSION_REPLAY]},
         },
         params: {},
       },
@@ -132,9 +150,15 @@ describe('Onboarding Product Selection', function () {
       },
     ];
 
-    render(<ProductSelection disabledProducts={disabledProducts} />, {
-      context: routerContext,
-    });
+    render(
+      <ProductSelection
+        disabledProducts={disabledProducts}
+        platform="javascript-react"
+      />,
+      {
+        context: routerContext,
+      }
+    );
 
     // Performance Monitoring shall be unchecked and disabled by default
     expect(screen.getByRole('checkbox', {name: 'Performance Monitoring'})).toBeDisabled();
@@ -151,95 +175,60 @@ describe('Onboarding Product Selection', function () {
     await waitFor(() => expect(router.push).not.toHaveBeenCalled());
   });
 
-  it('does not render session replay', async function () {
-    const {routerContext, router} = initializeOrg({
+  it('does not render Session Replay', async function () {
+    platformProductAvailability['javascript-react'] = [
+      ProductSolution.PERFORMANCE_MONITORING,
+    ];
+
+    const {router, routerContext} = initializeOrg({
       router: {
         location: {
-          query: {product: ['performance-monitoring', 'session-replay']},
+          query: {product: [ProductSolution.SESSION_REPLAY]},
         },
         params: {},
       },
     });
 
-    render(<ProductSelection hideSessionReplay />, {
+    render(<ProductSelection platform="javascript-react" />, {
       context: routerContext,
     });
 
-    // Session Replay shall not be rendered, even if the query param contains it
     expect(
       screen.queryByRole('checkbox', {name: 'Session Replay'})
     ).not.toBeInTheDocument();
 
+    // router.replace is called to remove session-replay from query
     await waitFor(() =>
       expect(router.replace).toHaveBeenCalledWith({
         pathname: undefined,
-        query: {product: ['performance-monitoring']},
+        query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
       })
     );
   });
 
-  it('renders disabled Profiling', async function () {
+  it('render Profiling', async function () {
     const {router, routerContext} = initializeOrg({
       router: {
         location: {
-          query: {product: ['profiling']},
+          query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
         },
         params: {},
       },
     });
 
-    render(<ProductSelection includeProfiling />, {
+    render(<ProductSelection platform="python-django" />, {
       context: routerContext,
     });
 
-    // Performance Monitoring shall benot be enabled by default and NOT checked
-    expect(
-      screen.getByRole('checkbox', {name: 'Performance Monitoring'})
-    ).not.toBeChecked();
-    expect(screen.getByRole('checkbox', {name: 'Performance Monitoring'})).toBeEnabled();
+    expect(screen.getByRole('checkbox', {name: 'Profiling'})).toBeInTheDocument();
 
-    // Profiling shall be checked and enabled by default
-    expect(screen.getByRole('checkbox', {name: 'Profiling'})).toBeDisabled();
-
-    // Router shall be called removing Profiling from the query param, this will be responsible for unchecking Profiling
+    // router.replace is called to add profiling from query
     await waitFor(() =>
       expect(router.replace).toHaveBeenCalledWith({
         pathname: undefined,
-        query: {product: []},
-      })
-    );
-  });
-
-  it('renders enabled Profiling', async function () {
-    const {routerContext, router} = initializeOrg({
-      router: {
-        location: {
-          query: {product: ['performance-monitoring', 'profiling']},
+        query: {
+          product: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
         },
-        params: {},
-      },
-    });
-
-    render(<ProductSelection includeProfiling />, {
-      context: routerContext,
-    });
-
-    // Performance Monitoring shall be checked and enabled by default
-    expect(screen.getByRole('checkbox', {name: 'Performance Monitoring'})).toBeChecked();
-    expect(screen.getByRole('checkbox', {name: 'Performance Monitoring'})).toBeEnabled();
-
-    // Profiling shall be checked and enabled by default
-    expect(screen.getByRole('checkbox', {name: 'Profiling'})).toBeEnabled();
-    expect(screen.getByRole('checkbox', {name: 'Profiling'})).toBeChecked();
-
-    // Users can uncheck Profiling
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Profiling'}));
-
-    // Router shall be called removing Profiling from the query param, this will be responsible for unchecking Profiling
-    await waitFor(() =>
-      expect(router.replace).toHaveBeenCalledWith({
-        pathname: undefined,
-        query: {product: ['performance-monitoring']},
       })
     );
   });
