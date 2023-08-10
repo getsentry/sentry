@@ -11,13 +11,11 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Repository, RepositoryStatus} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
+import {Repository, RepositoryStatus} from 'sentry/types';
 
 type Props = {
   api: Client;
-  orgId: string;
-  organization: Organization;
+  orgSlug: string;
   repository: Repository;
   onRepositoryChange?: (data: {id: string; status: RepositoryStatus}) => void;
   showProvider?: boolean;
@@ -42,13 +40,13 @@ function RepositoryRow({
   api,
   repository,
   onRepositoryChange,
-  orgId,
+  orgSlug,
   showProvider = false,
 }: Props) {
   const isActive = repository.status === RepositoryStatus.ACTIVE;
 
   const cancelDelete = () =>
-    cancelDeleteRepository(api, orgId, repository.id).then(
+    cancelDeleteRepository(api, orgSlug, repository.id).then(
       data => {
         if (onRepositoryChange) {
           onRepositoryChange(data);
@@ -58,7 +56,7 @@ function RepositoryRow({
     );
 
   const deleteRepo = () =>
-    hideRepository(api, orgId, repository.id).then(
+    hideRepository(api, orgSlug, repository.id).then(
       data => {
         if (onRepositoryChange) {
           onRepositoryChange(data);
@@ -164,4 +162,4 @@ const RepositoryTitle = styled('div')`
   line-height: 26px;
 `;
 
-export default withOrganization(RepositoryRow);
+export default RepositoryRow;
