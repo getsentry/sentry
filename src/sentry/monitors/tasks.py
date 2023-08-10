@@ -8,7 +8,6 @@ from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_confi
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.monitors.types import ClockPulseMessage
 from sentry.silo import SiloMode
@@ -81,9 +80,6 @@ def _dispatch_tasks(ts: datetime):
     sentry.io, when we deploy we restart the celery beat worker and it will
     skip any tasks it missed)
     """
-    if not options.get("monitors.use_consumer_clock_task_triggers"):
-        return
-
     check_missing.delay(current_datetime=ts)
     check_timeout.delay(current_datetime=ts)
 
@@ -168,19 +164,6 @@ def clock_pulse(current_datetime=None):
     # Produce the pulse into the topic
     payload = KafkaPayload(None, msgpack.packb(message), [])
     _checkin_producer.produce(Topic(settings.KAFKA_INGEST_MONITORS), payload)
-
-
-@instrumented_task(name="sentry.monitors.tasks.temp_task_dispatcher", silo_mode=SiloMode.REGION)
-def temp_task_dispatcher():
-    """
-    Temporary task used to dispatch the monitor tasks. This is used to allow
-    for a clean switchover to the consumer driven clock pulse.
-    """
-    if options.get("monitors.use_consumer_clock_task_triggers"):
-        return
-
-    check_missing.delay()
-    check_timeout.delay()
 
 
 @instrumented_task(
