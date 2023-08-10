@@ -52,6 +52,7 @@ def get_user(request):
 class AuthenticationMiddleware(MiddlewareMixin):
     @property
     def impl(self) -> Any:
+        # return RequestAuthenticationMiddleware(self.get_response)
         return HybridCloudAuthenticationMiddleware(self.get_response)
 
     def process_request(self, request: Request):

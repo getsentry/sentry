@@ -21,6 +21,7 @@ from typing import (
 )
 
 from django.contrib.sessions.backends.base import SessionBase
+from django.core.handlers.wsgi import WSGIRequest
 from pydantic.fields import Field
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
@@ -165,14 +166,14 @@ class AuthenticationRequest(RpcModel):
         return self
 
 
-def authentication_request_from(request: Request) -> AuthenticationRequest:
+def authentication_request_from(request: Union[Request, WSGIRequest]) -> AuthenticationRequest:
     from sentry.utils.linksign import find_signature
 
     return AuthenticationRequest(
         sentry_relay_id=get_header_relay_id(request),
         sentry_relay_signature=get_header_relay_signature(request),
         remote_addr=request.META["REMOTE_ADDR"],
-        signature=find_signature(request),
+        signature=find_signature(request) if isinstance(request, WSGIRequest) else None,
         absolute_url=request.build_absolute_uri(),
         absolute_url_root=request.build_absolute_uri("/"),
         path=request.path,
