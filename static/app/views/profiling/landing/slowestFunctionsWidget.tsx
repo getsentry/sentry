@@ -113,8 +113,8 @@ export function SlowestFunctionsWidget({
   return (
     <WidgetContainer height={widgetHeight}>
       <HeaderContainer>
-        {header ?? <HeaderTitleLegend>{t('Suspect Functions')}</HeaderTitleLegend>}
-        <Subtitle>{t('Slowest functions by total time spent.')}</Subtitle>
+        {header ?? <HeaderTitleLegend>{t('Slowest Functions')}</HeaderTitleLegend>}
+        <Subtitle>{t('Slowest functions by total self time spent.')}</Subtitle>
         <StyledPagination
           pageLinks={functionsQuery.getResponseHeader?.('Link') ?? null}
           size="xs"
