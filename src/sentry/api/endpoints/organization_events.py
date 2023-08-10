@@ -138,6 +138,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             "organizations:dynamic-sampling",
             "organizations:use-metrics-layer",
             "organizations:starfish-view",
+            "organizations:on-demand-metrics-extraction",
+            "organizations:on-demand-metrics-extraction-experimental",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -233,6 +235,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             or batch_features.get("organizations:dashboards-mep", False)
         )
 
+        on_demand_metrics_enabled = batch_features.get(
+            "organizations:on-demand-metrics-extraction", False
+        ) and batch_features.get("organizations:on-demand-metrics-extraction-experimental", False)
+
         dataset = self.get_dataset(request)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
@@ -263,6 +269,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 # Whether the flag is enabled or not, regardless of the referrer
                 has_metrics=use_metrics,
                 use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
             )
 
         with self.handle_query_errors():

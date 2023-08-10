@@ -28,13 +28,20 @@ class SlackActionHandlerTest(FireTest, TestCase):
         self.channel_id = "some_id"
         self.channel_name = "#hello"
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
             body=json.dumps(
-                {"ok": "true", "channels": [{"name": self.channel_name[1:], "id": self.channel_id}]}
+                {"ok": "true", "channel": self.channel_id, "scheduled_message_id": "Q1298393284"}
             ),
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.deleteScheduledMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": True}),
         )
         self.action = self.create_alert_rule_trigger_action(
             target_identifier=self.channel_name,

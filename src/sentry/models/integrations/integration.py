@@ -106,7 +106,9 @@ class Integration(DefaultFieldsModel):
             for region_name in find_regions_for_orgs(org_ids)
         ]
 
-    def add_organization(self, organization: RpcOrganization, user=None, default_auth_id=None):
+    def add_organization(
+        self, organization_id: int | RpcOrganization, user=None, default_auth_id=None
+    ):
         """
         Add an organization to this integration.
 
@@ -114,10 +116,13 @@ class Integration(DefaultFieldsModel):
         """
         from sentry.models import OrganizationIntegration
 
+        if not isinstance(organization_id, int):
+            organization_id = organization_id.id
+
         try:
             with transaction.atomic(using=router.db_for_write(OrganizationIntegration)):
                 org_integration, created = OrganizationIntegration.objects.get_or_create(
-                    organization_id=organization.id,
+                    organization_id=organization_id,
                     integration_id=self.id,
                     defaults={"default_auth_id": default_auth_id, "config": {}},
                 )
@@ -128,7 +133,7 @@ class Integration(DefaultFieldsModel):
                 if created:
                     organization_service.schedule_signal(
                         integration_added,
-                        organization_id=organization.id,
+                        organization_id=organization_id,
                         args=dict(integration_id=self.id, user_id=user.id if user else None),
                     )
                 return org_integration
@@ -136,7 +141,7 @@ class Integration(DefaultFieldsModel):
             logger.info(
                 "add-organization-integrity-error",
                 extra={
-                    "organization_id": organization.id,
+                    "organization_id": organization_id,
                     "integration_id": self.id,
                     "default_auth_id": default_auth_id,
                 },

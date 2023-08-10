@@ -4,7 +4,7 @@ import base64
 from typing import Any, List, Mapping
 
 from django.contrib.auth.models import AnonymousUser
-from django.db import connections, router, transaction
+from django.db import router, transaction
 from django.db.models import Count, F, Q
 
 from sentry import roles
@@ -19,7 +19,6 @@ from sentry.models import (
     AuthProvider,
     OrganizationMemberMapping,
     OrgAuthToken,
-    SentryAppInstallationToken,
     User,
     outbox_context,
 )
@@ -42,7 +41,6 @@ from sentry.services.hybrid_cloud.organization import (
 )
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import unguarded_write
-from sentry.silo.base import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
 
 _SSO_BYPASS = RpcMemberSsoState(is_required=False, is_valid=True)
@@ -98,7 +96,9 @@ def _can_override_sso_as_owner(
     other owners with SSO enabled.
     """
 
-    org_roles = organization_service.get_all_org_roles(member_id=member.id)
+    org_roles = organization_service.get_all_org_roles(
+        member_id=member.id, organization_id=member.organization_id
+    )
     if roles.get_top_dog().id not in org_roles:
         return False
 
@@ -158,9 +158,6 @@ class DatabaseBackedAuthService(AuthService):
 
         return AuthenticationContext(auth=None, user=None)
 
-    def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
-        return SentryAppInstallationToken.objects.has_organization_access(token, organization_id)
-
     def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
         fake_request = FakeAuthenticationRequest(request)
         handler = RequestAuthenticationMiddleware(placeholder_get_response)
@@ -191,8 +188,6 @@ class DatabaseBackedAuthService(AuthService):
             with transaction.atomic(using=router.db_for_read(User)):
                 result.user = user_service.get_user(user_id=fake_request.user.id)
                 transaction.set_rollback(True, using=router.db_for_read(User))
-            if SiloMode.single_process_silo_mode():
-                connections.close_all()
 
         return result
 
