@@ -11,6 +11,15 @@ from sentry.replays.lib.new_query.fields import BaseField
 T = TypeVar("T")
 
 
+# Computed fields drop `expression` as their first argument to the `apply` method.  This means the
+# condition class determines the expression it targets.  ComputedFields exist to support
+# hard-coded expression use-cases where the implementation can-not or should-not be made generic.
+#
+# From a programmatic perspective, ComputedFields serve two purposes.  One, they expose an
+# interface which the caller understands.  And two, they validate operator and value inputs and
+# route to the correct visitor method.
+
+
 class ComputedField(BaseField[T]):
     def apply(self, search_filter: SearchFilter) -> Condition:
         """Apply a search operation against any named expression.
@@ -70,6 +79,11 @@ class ComputedField(BaseField[T]):
             raise Exception(f"Unsupported search operator: '{operator}'")
 
         return visitor(value)
+
+
+# TagFields accept a "key" as one of their arguments to the apply method.  This is a user-defined
+# tag name.  The expression is hard-coded to target tags.key.  This makes this implementation
+# highly specific to the replays dataset (hence why this is a use-case and not a lib module).
 
 
 class TagField(BaseField[T]):

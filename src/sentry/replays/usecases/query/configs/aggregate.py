@@ -1,3 +1,15 @@
+"""Aggregate query filtering configuration module.
+
+Every field present in the configuration is filterable.  If its not in the configuration then the
+user can not filter by it.
+
+Fields must point to the correct data source.  If they do not then the query will be wrong.
+
+Fields must validate their input.  Failure to validate a UUID, for example, could lead to
+exceptions being thrown by ClickHouse and 500 errors being returned to our customers.  Every field
+must parse to the data type of its source even if its later transformed into another type.  This
+acts as a validation step as must as a type coercion step.
+"""
 from __future__ import annotations
 
 from typing import Union
@@ -24,9 +36,6 @@ from sentry.replays.usecases.query.conditions import (
     SumOfUUIDArray,
 )
 from sentry.replays.usecases.query.fields import ComputedField, TagField
-
-# In-progress
-# AggregatedIntegerField = NamedExpressionField(parse_int, NumericScalar)
 
 
 def count_field(column_name: str) -> CountField:
