@@ -24,7 +24,7 @@ export function string(tokens: Token[]): string {
         typeof precedingNonWhitespaceToken?.content === 'string' &&
         PARENTHESIS_NEWLINE_KEYWORDS.has(precedingNonWhitespaceToken.content)
       ) {
-        accumulator += '\n';
+        accumulator += NEWLINE;
 
         indentation += 1;
         indentationLevels.push(parenthesisLevel);
@@ -35,7 +35,7 @@ export function string(tokens: Token[]): string {
       // If this right parenthesis closes a left parenthesis at a level where
       // we incremented the indentation, decrement the indentation
       if (indentationLevels.at(-1) === parenthesisLevel) {
-        accumulator += '\n';
+        accumulator += NEWLINE;
         indentation -= 1;
         accumulator += INDENTATION.repeat(indentation);
         indentationLevels.pop();
@@ -47,8 +47,8 @@ export function string(tokens: Token[]): string {
 
     if (typeof token.content === 'string') {
       if (token.type === 'Keyword' && NEWLINE_KEYWORDS.has(token.content)) {
-        if (!accumulator.endsWith('\n')) {
-          accumulator += '\n';
+        if (!accumulator.endsWith(NEWLINE)) {
+          accumulator += NEWLINE;
         }
 
         accumulator += INDENTATION.repeat(indentation);
@@ -60,7 +60,7 @@ export function string(tokens: Token[]): string {
         // Parenthesis contents are appended above, so we can skip them here
         accumulator += '';
       } else {
-        if (accumulator.endsWith('\n')) {
+        if (accumulator.endsWith(NEWLINE)) {
           accumulator += INDENTATION.repeat(indentation);
         }
         accumulator += token.content;
@@ -79,6 +79,7 @@ export function string(tokens: Token[]): string {
 }
 
 const INDENTATION = '  ';
+const NEWLINE = '\n';
 
 // Keywords that always trigger a newline
 const NEWLINE_KEYWORDS = new Set([
