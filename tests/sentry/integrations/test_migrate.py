@@ -1,5 +1,5 @@
 from sentry.integrations.example import ExampleIntegrationProvider
-from sentry.mediators.plugins import Migrator
+from sentry.mediators.plugins.migrator import Migrator
 from sentry.models import Integration, Repository
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2

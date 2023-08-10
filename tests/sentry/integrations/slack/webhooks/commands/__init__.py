@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Any, Mapping
 from urllib.parse import urlencode
 
+from django.http.response import HttpResponse
 from django.urls import reverse
-from requests import Response
 from rest_framework import status
 
 from sentry import options
@@ -64,8 +64,8 @@ class SlackCommandsTest(APITestCase, TestCase):
         )
 
     def get_slack_response(
-        self, payload: Mapping[str, str], status_code: str | None = None
-    ) -> Response:
+        self, payload: Mapping[str, str], status_code: int | None = None
+    ) -> HttpResponse:
         """Shadow get_success_response but with a non-JSON payload."""
         data = urlencode(payload).encode("utf-8")
         response = self.client.post(

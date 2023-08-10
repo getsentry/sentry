@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional
+from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, TypeVar
 
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 
 # Shortcut so that types don't explode.
-Notifiable = Callable[
+NotifyCallable = Callable[
     [
         BaseNotification,
         Iterable[RpcActor],
@@ -16,9 +16,10 @@ Notifiable = Callable[
     ],
     None,
 ]
+Notifiable = TypeVar("Notifiable", bound=NotifyCallable)
 
 # Global notifier registry.
-registry: MutableMapping[ExternalProviders, Notifiable] = {}
+registry: MutableMapping[ExternalProviders, NotifyCallable] = {}
 
 
 def notification_providers() -> Iterable[ExternalProviders]:

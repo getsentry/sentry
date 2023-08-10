@@ -31,7 +31,7 @@ class VstsRequestParserTest(TestCase):
 
     def set_workitem_state(self, old_value, new_value):
         work_item = deepcopy(WORK_ITEM_UPDATED_STATUS)
-        state = work_item["resource"]["fields"]["System.State"]  # type: ignore
+        state = work_item["resource"]["fields"]["System.State"]
 
         if old_value is None:
             del state["oldValue"]

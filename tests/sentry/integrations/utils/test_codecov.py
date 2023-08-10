@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import pytest
+import requests.exceptions
 import responses
 from django.db import router
 
@@ -96,11 +97,11 @@ class TestCodecovIntegration(APITestCase):
             status=404,
         )
 
-        with pytest.raises(Exception) as e:
+        with pytest.raises(requests.exceptions.HTTPError) as e:
             _, _ = get_codecov_data(
                 repo="testgit/abc",
                 service="github",
                 path="path/to/file.py",
             )
 
-            assert e.status == 404
+        assert e.value.response.status_code == 404

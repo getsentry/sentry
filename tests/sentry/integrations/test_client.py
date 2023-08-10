@@ -29,6 +29,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.GET, "http://example.com", json={})
 
         resp = ApiClient().get("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @responses.activate
@@ -36,6 +37,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.POST, "http://example.com", json={})
 
         resp = ApiClient().post("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @responses.activate
@@ -43,6 +45,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.DELETE, "http://example.com", json={})
 
         resp = ApiClient().delete("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @responses.activate
@@ -50,6 +53,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.PUT, "http://example.com", json={})
 
         resp = ApiClient().put("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @responses.activate
@@ -57,6 +61,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.PATCH, "http://example.com", json={})
 
         resp = ApiClient().patch("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @mock.patch("sentry.shared_integrations.client.base.cache")
@@ -131,6 +136,7 @@ class ApiClientTest(TestCase):
             responses.GET, "http://example.com/1", status=301, headers=destination_headers
         )
         resp = ApiClient().get("http://example.com/1")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == destination_status
 
         # By default, non GET requests are not allowed to redirect
@@ -142,6 +148,7 @@ class ApiClientTest(TestCase):
             json={},
         )
         resp = ApiClient().delete("http://example.com/2")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 301
 
         responses.add(
@@ -152,6 +159,7 @@ class ApiClientTest(TestCase):
             json={},
         )
         resp = ApiClient().delete("http://example.com/3", allow_redirects=True)
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == destination_status
 
     def test_connection_error_handling(self):
@@ -254,7 +262,7 @@ class ApiClientTest(TestCase):
         with mock.patch.object(
             client, "track_response_data", wraps=client.track_response_data
         ) as track_response_data_spy:
-            chained_error = InvalidChunkLength(mock_error_response, "")
+            chained_error = InvalidChunkLength(mock_error_response, b"")
             caught_error = Exception(
                 "Connection broken: InvalidChunkLength(got length b'', 0 bytes read)"
             )

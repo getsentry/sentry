@@ -107,11 +107,10 @@ class ReleaseTestCase(ActivityTestCase):
 
         context = email.get_context()
         assert context["environment"] == "production"
+        rpc_user_5 = user_service.get_user(user_id=self.user5.id)
+        assert rpc_user_5 is not None
         assert context["repos"][0]["commits"] == [
-            (
-                self.commit4,
-                user_service.get_user(user_id=self.user5.id).by_email(self.user5_alt_email),
-            ),
+            (self.commit4, rpc_user_5.by_email(self.user5_alt_email)),
             (self.commit3, user_service.get_user(user_id=self.user4.id)),
             (self.commit2, user_service.get_user(user_id=self.user2.id)),
             (self.commit1, user_service.get_user(user_id=self.user1.id)),

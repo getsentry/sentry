@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -16,18 +17,27 @@ def logger():
     return mock.MagicMock()
 
 
-def make_logrecord(**extra):
-    kwargs = dict(
-        name="name",
-        level=logging.INFO,
-        pathname="pathname",
-        lineno=10,
-        msg="msg",
-        args=None,
-        exc_info=None,
+def make_logrecord(
+    *,
+    name: str = "name",
+    level: int = logging.INFO,
+    pathname: str = "pathname",
+    lineno: int = 10,
+    msg: str = "msg",
+    args: Any = None,
+    exc_info: Any = None,
+    **extra: Any,
+) -> logging.LogRecord:
+    return logging.LogRecord(
+        name=name,
+        level=level,
+        pathname=pathname,
+        lineno=lineno,
+        msg=msg,
+        args=args,
+        exc_info=exc_info,
+        **extra,
     )
-    kwargs.update(extra or {})
-    return logging.LogRecord(**kwargs)
 
 
 @pytest.mark.parametrize(

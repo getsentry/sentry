@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
@@ -340,7 +343,9 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         integration = VstsIntegration(model, self.organization.id)
 
         # test validation
-        data = {"sync_status_forward": {1: {"on_resolve": "", "on_unresolve": "UnresolvedStatus1"}}}
+        data: dict[str, Any] = {
+            "sync_status_forward": {1: {"on_resolve": "", "on_unresolve": "UnresolvedStatus1"}}
+        }
         with pytest.raises(IntegrationError):
             integration.update_organization_config(data)
 

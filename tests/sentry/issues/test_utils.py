@@ -14,7 +14,6 @@ from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData
 from sentry.models import Group
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.cases import SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format
 
 
@@ -66,7 +65,7 @@ class OccurrenceTestMixin:
 
 class SearchIssueTestMixin(OccurrenceTestMixin):
     def store_search_issue(
-        self: SnubaTestCase,
+        self,
         project_id: int,
         user_id: int,
         fingerprints: Sequence[str],

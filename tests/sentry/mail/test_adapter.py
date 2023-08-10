@@ -60,7 +60,7 @@ from sentry.types.rules import RuleFuture
 from sentry.utils.dates import ensure_aware
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
-from tests.sentry.mail import make_event_data, send_notification
+from tests.sentry.mail import make_event_data, mock_notify
 
 
 class BaseMailAdapterTest(TestCase, PerformanceIssueTestCase):
@@ -405,7 +405,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         _get_title.assert_called_once_with()
         _to_email_html.assert_called_once_with(event)
 
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    @mock_notify
     def test_notify_users_does_email(self, mock_func):
         UserOption.objects.create(user=self.user, key="timezone", value="Europe/Vienna")
         event_manager = EventManager({"message": "hello world", "level": "error"})
@@ -443,7 +443,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.assertEqual(notification.reference, group)
         assert notification.get_subject() == "BAR-1 - hello world"
 
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    @mock_notify
     def test_email_notification_is_not_sent_to_deleted_email(self, mock_func):
         """
         Test that ensures if we still have some stale emails in UserOption, then upon attempting
@@ -502,7 +502,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert "ahmed@ahmed.io" in get_email_addresses(user_ids, self.project).values()
         assert not len(UserOption.objects.filter(key="mail:email", value="foo@bar.dodo"))
 
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    @mock_notify
     def test_multiline_error(self, mock_func):
         event_manager = EventManager({"message": "hello world\nfoo bar", "level": "error"})
         event_manager.normalize()
