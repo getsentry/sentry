@@ -482,6 +482,9 @@ class SearchConfig:
     # Enables free text email searches
     allow_free_text_email = False
 
+    # Which key we should return any free text email under
+    free_text_email_key = "user.email"
+
     @classmethod
     def create_from(cls, search_config: SearchConfig, **overrides):
         config = cls(**asdict(search_config))
@@ -566,7 +569,7 @@ class SearchVisitor(NodeVisitor):
     def visit_free_email_text(self, node, children):
         if not self.config.allow_free_text_email:
             raise InvalidSearchQuery("Please add a relevant tag to search an email")
-        return SearchFilter(SearchKey("user.email"), "=", SearchValue(node.text))
+        return SearchFilter(SearchKey(self.config.free_text_email_key), "=", SearchValue(node.text))
 
     def visit_free_text_unquoted(self, node, children):
         return node.text.strip(" ") or None
