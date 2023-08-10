@@ -70,11 +70,19 @@ class DatabaseBackedAppService(AppService):
             return None
 
     def get_installed_for_organization(
-        self, *, organization_id: int
+        self,
+        *,
+        organization_id: int,
+        is_alertable: Optional[bool] = None,
     ) -> List[RpcSentryAppInstallation]:
         installations = SentryAppInstallation.objects.get_installed_for_organization(
             organization_id
         ).select_related("sentry_app")
+        if is_alertable is not None:
+            installations = installations.filter(
+                sentry_app__is_alertable=is_alertable,
+            )
+
         fq = self._AppServiceFilterQuery()
         return [fq.serialize_rpc(i) for i in installations]
 

@@ -63,6 +63,7 @@ class AppService(RpcService):
         self,
         *,
         organization_id: int,
+        is_alertable: Optional[bool] = None,
     ) -> List[RpcSentryAppInstallation]:
         pass
 
