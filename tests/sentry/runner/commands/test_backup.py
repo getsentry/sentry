@@ -6,6 +6,7 @@ from sentry.runner.commands.backup import export, import_
 from sentry.silo import unguarded_write
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
+from tests.sentry.backup import run_backup_tests_only_on_single_db
 
 
 @pytest.fixture
@@ -16,6 +17,7 @@ def backup_json_filename(tmp_path):
     return backup_json
 
 
+@run_backup_tests_only_on_single_db
 @django_db_all
 def test_import(backup_json_filename):
     with unguarded_write(using="default"):
@@ -23,6 +25,7 @@ def test_import(backup_json_filename):
     assert rv.exit_code == 0, rv.output
 
 
+@run_backup_tests_only_on_single_db
 @django_db_all
 def test_import_duplicate_key(backup_json_filename):
     # Adding an element with the same key as the last item in the backed up file
