@@ -108,22 +108,6 @@ class ConfigValidator(serializers.Serializer):
         help_text="tz database style timezone string",
     )
 
-    failure_issue_threshold = EmptyIntegerField(
-        required=False,
-        allow_null=True,
-        default=None,
-        help_text="How many consecutive missed or failed check-ins in a row before creating a new issue.",
-        min_value=1,
-    )
-
-    recovery_threshold = EmptyIntegerField(
-        required=False,
-        allow_null=True,
-        default=None,
-        help_text="How many successful check-ins in a row before resolving an issue.",
-        min_value=1,
-    )
-
     def bind(self, *args, **kwargs):
         super().bind(*args, **kwargs)
         # Inherit instance data when used as a nested serializer
