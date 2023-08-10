@@ -2,11 +2,9 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
-import abc
 from abc import abstractmethod
 from typing import cast
 
-from sentry.services.hybrid_cloud import silo_mode_delegation
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.tombstone import RpcTombstone
 from sentry.silo import SiloMode
