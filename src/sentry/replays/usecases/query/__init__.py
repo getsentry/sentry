@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from collections import namedtuple
 from datetime import datetime, timedelta
-from typing import Union
+from typing import Union, cast
 
 from snuba_sdk import (
     And,
@@ -37,6 +37,7 @@ from snuba_sdk.expressions import Expression
 from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, SearchValue
 from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.fields import BaseField
+from sentry.replays.usecases.query.fields import TagField
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -111,7 +112,7 @@ def search_filter_to_condition(
     else:
         # Tags are represented with an "*" field by convention.  We could name it `tags` and
         # update our search config to point to this field-name.
-        field = search_config["*"]
+        field = cast(TagField, search_config["*"])
 
         # Tags that are namespaced are stripped.
         if field_name.startswith("tags["):
@@ -303,8 +304,8 @@ def make_full_aggregation_query(
     )
 
 
-def _make_tenant_ids(organization: Organization) -> dict[str, int]:
-    if organization:
-        return {"organization_id": organization.id}
-    else:
+def _make_tenant_ids(organization: Organization | None) -> dict[str, int]:
+    if organization is None:
         return {}
+    else:
+        return {"organization_id": organization.id}
