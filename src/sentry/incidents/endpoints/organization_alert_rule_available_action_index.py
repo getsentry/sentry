@@ -67,17 +67,16 @@ def build_action_response(
 
     elif sentry_app_installation:
         action_response["sentryAppName"] = sentry_app_installation.sentry_app.name
-        action_response["sentryAppId"] = sentry_app_installation.sentry_app_id
+        action_response["sentryAppId"] = sentry_app_installation.sentry_app.id
         action_response["sentryAppInstallationUuid"] = sentry_app_installation.uuid
         action_response["status"] = SentryAppStatus.as_str(
             sentry_app_installation.sentry_app.status
         )
 
         # Sentry Apps can be alertable but not have an Alert Rule UI Component
-        # TODO: fix for hybrid cloud
-        component = sentry_app_installation.prepare_sentry_app_components("alert-rule-action")
+        component = sentry_app_installation.app_component
         if component:
-            action_response["settings"] = component.schema.get("settings", {})
+            action_response["settings"] = component.app_schema.get("settings", {})
 
     return action_response
 
@@ -111,7 +110,9 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
             # Add all alertable SentryApps to the list.
             elif registered_type.type == AlertRuleTriggerAction.Type.SENTRY_APP:
                 app_installations = app_service.get_installed_for_organization(
-                    organization_id=organization.id, is_alertable=True
+                    organization_id=organization.id,
+                    is_alertable=True,
+                    prepare_sentry_app_components_type="alert-rule-action",
                 )
                 actions += [
                     build_action_response(registered_type, sentry_app_installation=install)
