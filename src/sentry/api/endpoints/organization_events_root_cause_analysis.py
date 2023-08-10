@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+import sentry_sdk
 from rest_framework.response import Response
 
 from sentry import features
@@ -23,27 +24,27 @@ def query_spans(transaction: str, regression_breakpoint, params):
     desired_end = regression_breakpoint + timedelta(days=15)
     desired_start = regression_breakpoint - timedelta(days=15)
 
-    # TODO: Monitor this data and see what the activity of the bounds is like
     start = max(datetime.now() - timedelta(days=90), desired_start)
     end = min(desired_end, datetime.now())
 
+    # Keep track of the time period we actually used
+    sentry_sdk.set_tag("start_timestamp", start.isoformat())
+    sentry_sdk.set_tag("end_timestamp", start.isoformat())
+
     builder = SpanQueryBuilder(
-        dataset=Dataset.Discover,
+        dataset=Dataset.Transactions,
         params={**params, "start": start, "end": end},
-        selected_columns=["id", "project.id"],
-        query="",
+        selected_columns=["id", "transaction"],
+        query="transaction:{transaction}",
         orderby=[],
     )
 
     snql_query = builder.get_snql_query()
-    results = raw_snql_query(snql_query, "api.organization-events-spans-performance-examples")
+    results = raw_snql_query(snql_query, "api.organization-events-root-cause-analysis")
 
     breakpoint()
+    # TODO: Split the spans into pre and post breakpoint
     return results, results
-
-
-def serialize_span(span):
-    pass
 
 
 @region_silo_endpoint
@@ -62,6 +63,7 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
 
         root_cause_results = {}
 
+        # TODO: Extract this into a custom serializer to handle validation
         transaction_name = request.GET.get("transaction")
         project_id = request.GET.get("project")
         regression_breakpoint = request.GET.get("breakpoint")
@@ -72,6 +74,9 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
 
         regression_breakpoint = datetime.fromisoformat(regression_breakpoint)
         params = self.get_snuba_params(request, organization)
+
+        if regression_breakpoint > datetime.now():
+            return Response(status=400, data="Breakpoint cannot be in the future")
 
         with self.handle_query_errors():
             transaction_count_query = metrics_query(
@@ -88,11 +93,6 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
             transaction=transaction_name, regression_breakpoint=regression_breakpoint, params=params
         )
 
-        # TODO: This is only a temporary stub for surfacing RCA data
-        root_cause_results["pre_breakpoint_spans"] = [
-            serialize_span(span) for span in pre_breakpoint_spans
-        ]
-        root_cause_results["post_breakpoint_spans"] = [
-            serialize_span(span) for span in post_breakpoint_spans
-        ]
+        root_cause_results["count_pre_breakpoint_spans"] = len(pre_breakpoint_spans)
+        root_cause_results["count_post_breakpoint_spans"] = len(post_breakpoint_spans)
         return Response(status=200, data=root_cause_results)
