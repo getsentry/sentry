@@ -2128,7 +2128,7 @@ SENTRY_SCOPES = {
     "event:admin",
     "alerts:write",
     "alerts:read",
-    # The following three scopes aren't prefixed to maintain compliance with the OIDC spec.
+    # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
     # https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes.
     "openid",
     "profile",
