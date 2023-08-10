@@ -107,6 +107,8 @@ def run_backup_tests_only_on_single_db(test_case: Type | Callable[..., Any]):
     individual Hybrid Cloud silos, update the affected tests and remove all instances
     of this decorator.
     """
+    # TODO(getsentry/team-ospo#185)
+
     delegate = pytest.mark.skipif(
         use_split_dbs(), reason="backup is currently supported only for single DB"
     )
