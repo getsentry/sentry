@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
-from random import random
+from random import randint, random
 from typing import Any, Callable, Literal, Mapping, Sequence, Type, Union, overload
 
 import sentry_sdk
@@ -376,6 +376,31 @@ class BaseApiClient(TrackResponseMixin):
                     return
                 if is_response_error(response):
                     buffer.record_error()
+            if randint(0, 99) == 0:
+                (
+                    rpc_integration,
+                    rpc_org_integration,
+                ) = integration_service.get_organization_contexts(
+                    integration_id=self.integration_id
+                )
+                if rpc_integration.provider == "github" or "gitlab":
+                    extra = {
+                        "integration_id": self.integration_id,
+                        "buffer_record": buffer._get_all_from_buffer(),
+                    }
+                    if len(rpc_org_integration) == 0 and rpc_integration is None:
+                        extra["provider"] = "unknown"
+                        extra["organization_id"] = "unknown"
+                    elif len(rpc_org_integration) == 0:
+                        extra["provider"] = rpc_integration.provider
+                        extra["organization_id"] = "unknown"
+                    else:
+                        extra["provider"] = rpc_integration.provider
+                        extra["organization_id"] = rpc_org_integration[0].organization_id
+                    self.logger.info(
+                        "integration.disabled",
+                        extra=extra,
+                    )
             if buffer.is_integration_broken():
                 self.disable_integration(buffer)
 
@@ -390,6 +415,31 @@ class BaseApiClient(TrackResponseMixin):
         try:
             buffer = IntegrationRequestBuffer(redis_key)
             buffer.record_error()
+            if randint(0, 99) == 0:
+                (
+                    rpc_integration,
+                    rpc_org_integration,
+                ) = integration_service.get_organization_contexts(
+                    integration_id=self.integration_id
+                )
+                if rpc_integration.provider == "github" or "gitlab":
+                    extra = {
+                        "integration_id": self.integration_id,
+                        "buffer_record": buffer._get_all_from_buffer(),
+                    }
+                    if len(rpc_org_integration) == 0 and rpc_integration is None:
+                        extra["provider"] = "unknown"
+                        extra["organization_id"] = "unknown"
+                    elif len(rpc_org_integration) == 0:
+                        extra["provider"] = rpc_integration.provider
+                        extra["organization_id"] = "unknown"
+                    else:
+                        extra["provider"] = rpc_integration.provider
+                        extra["organization_id"] = rpc_org_integration[0].organization_id
+                    self.logger.info(
+                        "integration.disabled",
+                        extra=extra,
+                    )
             if buffer.is_integration_broken():
                 self.disable_integration(buffer)
         except Exception:
