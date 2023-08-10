@@ -15,7 +15,7 @@ from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.ratelimits.cardinality import CardinalityLimiter
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
-from sentry.sentry_metrics.consumers.indexer.batch import invalid_metric_tags, valid_metric_name
+from sentry.sentry_metrics.consumers.indexer.batch import valid_metric_name
 from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MetricsBatchBuilder
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.indexer.limiters.cardinality import (
@@ -560,17 +560,6 @@ def test_valid_metric_name() -> None:
     assert valid_metric_name("") is True
     assert valid_metric_name("blah") is True
     assert valid_metric_name("invalid" * 200) is False
-
-
-def test_invalid_metric_tags() -> None:
-    bad_tag = "invalid" * 200
-    tags = {"environment": "", "release": "good_tag"}
-    assert invalid_metric_tags(tags) == []
-    assert invalid_metric_tags(tags) == []
-    tags["release"] = bad_tag
-    assert invalid_metric_tags(tags) == [bad_tag]
-    tags["release"] = None
-    assert invalid_metric_tags(tags) == [None]
 
 
 def test_process_messages_is_pickleable():

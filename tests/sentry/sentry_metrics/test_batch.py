@@ -12,6 +12,7 @@ from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch, PartitionIdxOffset
+from sentry.sentry_metrics.consumers.indexer.tags_validator import ReleaseHealthTagsValidator
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.testutils.helpers.options import override_options
@@ -243,6 +244,7 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
         should_index_tag_values,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
 
     assert batch.extract_strings() == expected
@@ -308,6 +310,7 @@ def test_extract_strings_with_multiple_use_case_ids():
         True,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == {
         MockUseCaseID.USE_CASE_1: {
@@ -396,6 +399,7 @@ def test_extract_strings_with_single_use_case_ids_blocked():
         True,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == {
         MockUseCaseID.USE_CASE_1: {
@@ -468,6 +472,7 @@ def test_extract_strings_with_multiple_use_case_ids_blocked():
         True,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == {
         MockUseCaseID.TRANSACTIONS: {
@@ -555,6 +560,7 @@ def test_extract_strings_with_invalid_mri():
         True,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == {
         MockUseCaseID.USE_CASE_1: {
@@ -642,6 +648,7 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
         True,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == {
         MockUseCaseID.USE_CASE_1: {
@@ -698,6 +705,7 @@ def test_resolved_with_aggregation_options(caplog, settings):
         False,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == (
         {
@@ -831,6 +839,7 @@ def test_all_resolved(caplog, settings):
         True,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == (
         {
@@ -978,6 +987,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
         True,
         True,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == (
         {
@@ -1139,6 +1149,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
         True,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == (
         {
@@ -1294,6 +1305,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
         False,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == (
         {
@@ -1428,7 +1440,13 @@ def test_metric_id_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(outer_message, True, False, input_codec=_INGEST_CODEC)
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
+    )
     assert batch.extract_strings() == (
         {
             MockUseCaseID.SESSIONS: {
@@ -1536,7 +1554,13 @@ def test_tag_key_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(outer_message, True, False, input_codec=_INGEST_CODEC)
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
+    )
     assert batch.extract_strings() == (
         {
             MockUseCaseID.SESSIONS: {
@@ -1621,7 +1645,13 @@ def test_tag_value_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(outer_message, True, False, input_codec=_INGEST_CODEC)
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
+    )
     assert batch.extract_strings() == (
         {
             MockUseCaseID.SESSIONS: {
@@ -1759,6 +1789,7 @@ def test_one_org_limited(caplog, settings):
         True,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     assert batch.extract_strings() == (
         {
@@ -1889,6 +1920,7 @@ def test_cardinality_limiter(caplog, settings):
         True,
         False,
         input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
     )
     keys_to_remove = list(batch.parsed_payloads_by_offset)[:2]
     # the messages come in a certain order, and Python dictionaries preserve
