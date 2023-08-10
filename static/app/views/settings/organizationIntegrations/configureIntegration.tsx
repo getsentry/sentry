@@ -194,7 +194,6 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
       provider &&
       provider.key === 'opsgenie' &&
       (plugins || []).find(this.isInstalledOpsgeniePlugin);
-    // console.log(this.props.organization.features);
     const action =
       provider && provider.key === 'pagerduty' ? (
         <AddIntegration
