@@ -28,7 +28,7 @@ class LinkSharedEventTest(BaseEventTest):
         "sentry.integrations.slack.webhooks.event.link_handlers",
         {
             "mock_link": Handler(
-                matcher=re.compile(r"test"),
+                matcher=[re.compile(r"test")],
                 arg_mapper=make_type_coercer({}),
                 fn=Mock(return_value={"link1": "unfurl", "link2": "unfurl"}),
             )
