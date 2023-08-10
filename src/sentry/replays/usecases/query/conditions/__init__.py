@@ -1,3 +1,18 @@
+__all__ = [
+    "AggregateActivityScalar",
+    "SumOfIPv4Scalar",
+    "SumOfStringArray",
+    "SumOfStringScalar",
+    "SimpleAggregateDurationScalar",
+    "ErrorIdsArray",
+    "SumOfErrorIdsArray",
+    "ClickSelectorComposite",
+    "SumOfClickSelectorComposite",
+    "SumOfTagScalar",
+    "TagScalar",
+]
+
+
 from .activity import AggregateActivityScalar  # noqa
 from .aggregate import SumOfIPv4Scalar, SumOfStringArray, SumOfStringScalar, SumOfUUIDArray  # noqa
 from .duration import SimpleAggregateDurationScalar  # noqa
