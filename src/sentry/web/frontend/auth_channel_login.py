@@ -40,11 +40,16 @@ class AuthChannelLoginView(AuthOrganizationLoginView):
             return self.redirect(reverse("sentry-login"))
 
         if request.user.is_authenticated:
-            next_uri = self.get_next_uri(request)
-            if is_valid_redirect(next_uri, allowed_hosts=(request.get_host())):
-                return self.redirect(next_uri)
-            return self.redirect(Organization.get_url(slug=organization_context.organization.slug))
+            if self.active_organization is not None:
+                if self.active_organization.organization.id == organization_id:
+                    next_uri = self.get_next_uri(request)
+                    if is_valid_redirect(next_uri, allowed_hosts=(request.get_host())):
+                        return self.redirect(next_uri)
+                    return self.redirect(
+                        Organization.get_url(slug=organization_context.organization.slug)
+                    )
 
         return self.redirect(
+            # TODO: Add next URI here as well
             reverse("sentry-auth-organization", args=[organization_context.organization.slug])
         )
