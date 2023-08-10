@@ -1,7 +1,7 @@
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
-from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING
+from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
 from sentry.models import ApiKey, ApiToken
 
 
@@ -10,8 +10,8 @@ from sentry.models import ApiKey, ApiToken
 def enforce_scope_hierarchy(instance, **kwargs) -> None:
     # It's impossible to know if the token scopes have been modified without
     # fetching it from the DB, so we always enforce scope hierarchy
-    old_scopes = set(instance.get_scopes())
-    new_scopes = old_scopes.copy()
-    for scope in old_scopes:
-        new_scopes = new_scopes.union(SENTRY_SCOPE_HIERARCHY_MAPPING[scope])
-    instance.scope_list = list(new_scopes)
+    new_scopes = set(instance.get_scopes())
+    for scope in instance.scope_list:
+        if scope in SENTRY_SCOPES:
+            new_scopes = new_scopes.union(SENTRY_SCOPE_HIERARCHY_MAPPING[scope])
+    instance.scope_list = sorted(new_scopes)

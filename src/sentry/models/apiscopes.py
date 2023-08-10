@@ -75,8 +75,8 @@ class HasApiScopes(models.Model):
 
     def get_scopes(self):
         if self.scope_list:
-            return self.scope_list
-        return [k for k, v in self.scopes.items() if v]
+            return sorted(self.scope_list)
+        return sorted([k for k, v in self.scopes.items() if v])
 
     def has_scope(self, scope):
         return scope in self.get_scopes()

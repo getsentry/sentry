@@ -10,4 +10,4 @@ class ApiTokenTest(TestCase):
         # Ensure hierarchy is enforced for all tokens
         for scope in SENTRY_SCOPES:
             token = self.create_api_key(org, scope_list=[scope])
-            assert set(token.get_scopes()) == SENTRY_SCOPE_HIERARCHY_MAPPING[scope]
+            assert token.get_scopes() == sorted(SENTRY_SCOPE_HIERARCHY_MAPPING[scope])

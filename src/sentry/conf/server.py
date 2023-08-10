@@ -11,18 +11,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Mapping,
-    MutableSequence,
-    Optional,
-    Set,
-    Tuple,
-    TypeVar,
-    overload,
-)
+from typing import Any, Callable, Dict, Mapping, MutableSequence, Optional, Tuple, TypeVar, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -2151,7 +2140,7 @@ SENTRY_SCOPES = {
     "email",
 }
 
-SENTRY_SCOPE_HIERARCHY_MAPPING: Dict[str, Set(str)] = {
+SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "org:read": {"org:read"},
     "org:write": {"org:read", "org:write"},
     "org:admin": {"org:read", "org:write", "org:admin", "org:integrations"},

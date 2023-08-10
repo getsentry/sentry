@@ -14,11 +14,8 @@ class ScopesTest(TestCase):
             resource, access_level = scope.split(":")
 
             if access_level == "write":
-                assert SENTRY_SCOPE_HIERARCHY_MAPPING[scope] == {scope, resource + ":read"}
+                assert resource + ":read" in SENTRY_SCOPE_HIERARCHY_MAPPING[scope]
 
             if access_level == "admin":
-                assert SENTRY_SCOPE_HIERARCHY_MAPPING[scope] == {
-                    scope,
-                    resource + ":read",
-                    resource + ":write",
-                }
+                assert resource + ":read" in SENTRY_SCOPE_HIERARCHY_MAPPING[scope]
+                assert resource + ":write" in SENTRY_SCOPE_HIERARCHY_MAPPING[scope]
