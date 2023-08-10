@@ -1,12 +1,12 @@
-from sentry.models import Project, User
+from sentry.models import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectManagerTest(TestCase):
     def test_get_for_user(self):
-        user = User.objects.create(username="foo")
+        user = self.create_user("foo@example.com")
         org = self.create_organization()
         team = self.create_team(organization=org, name="Test")
         project = self.create_project(teams=[team], name="foo")

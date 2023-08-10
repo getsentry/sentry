@@ -5,7 +5,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationDetailsDocs(APIDocsTestCase):
     def setUp(self):
         organization = self.create_organization(owner=self.user, name="Rowdy Tiger")

@@ -5,7 +5,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectGroupIssueDetailsDocs(APIDocsTestCase):
     def setUp(self):
         self.create_release(project=self.project, version="abcdabc")

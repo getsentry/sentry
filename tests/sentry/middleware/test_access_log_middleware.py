@@ -186,7 +186,7 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
 
 
 @override_settings(LOG_API_ACCESS=False)
-@control_silo_test
+@control_silo_test(stable=True)
 class TestAccessLogSuccessNotLoggedInDev(LogCaptureAPITestCase):
 
     endpoint = "dummy-endpoint"

@@ -5,7 +5,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationUsersDocs(APIDocsTestCase):
     def setUp(self):
         self.owner_user = self.create_user("foo@localhost", username="foo")
