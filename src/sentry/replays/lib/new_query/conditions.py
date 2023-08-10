@@ -1,3 +1,16 @@
+"""Condition visitor module.
+
+Each visitor (class) represents a unique data-type that is being acted upon.  For example, a class
+titled "StringScalar" points to a column, function, or aggregation whose end product is of type
+String.  The expression can then be acted upon using String like interactions.
+
+It's important to note that condition visitors in this module (and elsewhere) do not assume the
+origin of the data.  The same visitor may be applied to aggregated output as easily as its applied
+to rows.
+
+Every condition visitor must define a method for every operator supported by the caller.  A full
+list of supported operations can be found in the "GenericBase" visitor.
+"""
 from __future__ import annotations
 
 from typing import Generic, TypeVar
