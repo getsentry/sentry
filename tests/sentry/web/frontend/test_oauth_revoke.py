@@ -159,3 +159,59 @@ class OAuthRevokeTest(TestCase):
             resp.json()["error_description"]
             == "an unsupported token_type_hint was provided, must be either 'access_token' or 'refresh_token'"
         )
+
+    def test_non_existent_token_returns_200(self):
+        # even in the case of invalid tokens we are supposed to respond with an HTTP 200 per the RFC
+        # See: https://www.rfc-editor.org/rfc/rfc7009#section-2.2
+        resp = self.client.post(
+            self.path,
+            data={
+                "client_id": self.application.client_id,
+                "client_secret": self.application.client_secret,
+                "token": "token123456does123456not123456exist",
+            },
+        )
+
+        assert resp.status_code == 200
+
+    def test_invalid_client_id(self):
+        resp = self.client.post(
+            self.path,
+            data={
+                "client_id": "someclientid123456",
+                "client_secret": self.application.client_secret,
+                "token": self.tokens[0].token,
+            },
+        )
+
+        assert resp.status_code == 401
+        assert resp.json()["error"] == "invalid_client"
+        assert resp.json()["error_description"] == "failed to authenticate client"
+
+    def test_invalid_client_secret(self):
+        resp = self.client.post(
+            self.path,
+            data={
+                "client_id": self.application.client_id,
+                "client_secret": "someclientsecret123456",
+                "token": self.tokens[0].token,
+            },
+        )
+
+        assert resp.status_code == 401
+        assert resp.json()["error"] == "invalid_client"
+        assert resp.json()["error_description"] == "failed to authenticate client"
+
+    def test_invalid_client_credentials(self):
+        resp = self.client.post(
+            self.path,
+            data={
+                "client_id": "invalidclientid123456",
+                "client_secret": "someclientsecret123456",
+                "token": self.tokens[0].token,
+            },
+        )
+
+        assert resp.status_code == 401
+        assert resp.json()["error"] == "invalid_client"
+        assert resp.json()["error_description"] == "failed to authenticate client"

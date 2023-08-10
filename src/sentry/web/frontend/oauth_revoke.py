@@ -9,7 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 
 from sentry.models import ApiApplication, ApiApplicationStatus, ApiToken
-from sentry.utils import json, metrics
+from sentry.utils import json
 
 logger = logging.getLogger("sentry.api.oauth_revoke")
 
@@ -60,15 +60,6 @@ class OAuthRevokeView(View):
         client_id = request.POST.get("client_id")
         client_secret = request.POST.get("client_secret")
 
-        metrics.incr(
-            "oauth_revoke.post.start",
-            sample_rate=1.0,
-            tags={
-                "client_id_exists": bool(client_id),
-                "client_secret_exists": bool(client_secret),
-            },
-        )
-
         if not client_id:
             return self.error(
                 request=request,
@@ -102,15 +93,10 @@ class OAuthRevokeView(View):
                 client_id=client_id, client_secret=client_secret, status=ApiApplicationStatus.active
             )
         except ApiApplication.DoesNotExist:
-            metrics.incr(
-                "oauth_revoke.post.invalid",
-                sample_rate=1.0,
-            )
-            logger.warning("Invalid client_id / secret pair", extra={"client_id": client_id})
             return self.error(
                 request=request,
-                name="invalid_credentials",
-                error_description="invalid client_id or client_secret",
+                name="invalid_client",
+                error_description="failed to authenticate client",
                 status=401,
             )
 
