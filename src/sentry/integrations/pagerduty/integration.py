@@ -17,13 +17,13 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.models import Integration, OrganizationIntegration
+from sentry.models.integrations.organization_integration import PagerDutyServiceDict
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
-from ...models.integrations.organization_integration import PagerDutyServiceDict
 from .client import PagerDutyProxyClient
 
 logger = logging.getLogger("sentry.integrations.pagerduty")

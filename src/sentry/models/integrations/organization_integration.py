@@ -78,8 +78,6 @@ class OrganizationIntegration(DefaultFieldsModel):
     def add_pagerduty_service(
         self, integration_key: str, service_name: str
     ) -> PagerDutyServiceDict:
-        from sentry.models import OrganizationIntegration
-
         with transaction.atomic(router.db_for_write(OrganizationIntegration)):
             OrganizationIntegration.objects.filter(id=self.id).select_for_update()
 

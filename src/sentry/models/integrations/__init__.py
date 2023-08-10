@@ -6,6 +6,7 @@ __all__ = (
     "IntegrationExternalProject",
     "IntegrationFeature",
     "OrganizationIntegration",
+    "PagerDutyService",
     "ProjectIntegration",
     "RepositoryProjectPathConfig",
     "SentryApp",
@@ -25,6 +26,7 @@ from .integration import Integration
 from .integration_external_project import IntegrationExternalProject
 from .integration_feature import IntegrationFeature
 from .organization_integration import OrganizationIntegration
+from .pagerduty_service import PagerDutyService
 from .project_integration import ProjectIntegration
 from .repository_project_path_config import RepositoryProjectPathConfig
 from .sentry_app import SentryApp
