@@ -14,7 +14,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
-from sentry import features, options
+from sentry import analytics, features, options
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.utils.scope import clear_tags_and_context
@@ -110,11 +110,20 @@ class Webhook:
 
                     if features.has("organizations:integrations-auto-repo-linking", org):
                         try:
-                            provider.create_repository(repo_config=config, organization=rpc_org)
+                            _, repo = provider.create_repository(
+                                repo_config=config, organization=rpc_org
+                            )
                         except RepoExistsError:
                             metrics.incr("sentry.integration_repo_provider.repo_exists")
                             continue
-                        metrics.incr("github.webhook.create_repository")
+
+                        analytics.record(
+                            "webhook.repository_created",
+                            organization_id=org.id,
+                            repository_id=repo.id,
+                            integration="github",
+                        )
+                        metrics.incr("github.webhook.repository_created")
 
                 repos = repos.all()
 
