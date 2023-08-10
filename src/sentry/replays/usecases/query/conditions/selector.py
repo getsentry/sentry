@@ -85,7 +85,7 @@ def search_selector(queries: list[QueryType]) -> Function:
 # Tl;dr we're nesting conditions like this `and(a, and(b, c))` instead of chaining them like
 # this `a AND b AND c`.
 #
-# This is a horrific work-around for: https://github.com/getsentry/snuba-sdk/issues/115
+# This is a work-around for: https://github.com/getsentry/snuba-sdk/issues/115
 def comparator(comparison_fn: str, functions: list[Function]) -> Function:
     if len(functions) == 0:
         return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
