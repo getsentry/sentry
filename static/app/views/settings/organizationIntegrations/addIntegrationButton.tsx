@@ -57,7 +57,7 @@ export function AddIntegrationButton({
                 trackAnalytics('integrations.integration_reinstall_clicked', {
                   organization,
                   organization_id: organization.id,
-                  provider: provider.name,
+                  provider: provider.metadata.noun,
                 });
               }
               onClick();
