@@ -108,12 +108,6 @@ class TestIsOnDemandMetricQuery(TestCase):
     def test_unsupported_aggregate_functions(self):
         assert (
             is_on_demand_metric_query(
-                self.perf_metrics, "failure_rate()", "transaction.duration:>=1"
-            )
-            is False
-        )
-        assert (
-            is_on_demand_metric_query(
                 self.perf_metrics, "count_unique(transaction.duration)", "transaction.duration:>=1"
             )
             is False
@@ -141,14 +135,14 @@ class TestIsOnDemandMetricQuery(TestCase):
             is False
         )
 
-    def test_unsupported_operators(self):
+    def test_supported_operators(self):
         assert (
             is_on_demand_metric_query(self.perf_metrics, "count()", "transaction.duration:[1,2,3]")
-            is False
+            is True
         )
         assert (
             is_on_demand_metric_query(self.perf_metrics, "count()", "!transaction.duration:[1,2,3]")
-            is False
+            is True
         )
 
     def test_unsupported_equations(self):
@@ -168,12 +162,25 @@ class TestIsOnDemandMetricQuery(TestCase):
             is False
         )
 
-    def test_is_on_demand_query_apdex(self):
-        dataset = Dataset.PerformanceMetrics
+    def test_is_on_demand_query_failure_rate(self):
+        assert is_on_demand_metric_query(self.perf_metrics, "failure_rate()", "") is False
+        assert (
+            is_on_demand_metric_query(self.perf_metrics, "failure_rate()", "release:foo") is False
+        )
+        assert (
+            is_on_demand_metric_query(
+                self.perf_metrics, "failure_rate()", "transaction.duration:1000"
+            )
+            is True
+        )
 
-        assert is_on_demand_metric_query(dataset, "apdex()", "") is False
-        assert is_on_demand_metric_query(dataset, "apdex()", "release:foo") is False
-        assert is_on_demand_metric_query(dataset, "apdex()", "transaction.duration:1000") is True
+    def test_is_on_demand_query_apdex(self):
+        assert is_on_demand_metric_query(self.perf_metrics, "apdex()", "") is False
+        assert is_on_demand_metric_query(self.perf_metrics, "apdex()", "release:foo") is False
+        assert (
+            is_on_demand_metric_query(self.perf_metrics, "apdex()", "transaction.duration:1000")
+            is True
+        )
 
 
 class TestIsStandardMetricsCompatible(TestCase):
@@ -266,7 +273,11 @@ class TestIsStandardMetricsCompatible(TestCase):
             "transaction.duration:>1",
             True,
         ),  # transaction.duration not supported by standard metrics
-        ("failure_rate()", "transaction.duration:>1", False),  # has to fallback to indexed
+        (
+            "failure_rate()",
+            "transaction.duration:>1",
+            True,
+        ),  # failure rate is supported by on demand
         (
             "count_if(transaction.duration,equals,0)",
             "release:a",
@@ -310,14 +321,12 @@ class TestCreatesOndemandMetricSpec:
         "aggregate, query",
         [
             ("count()", "release:a"),
-            ("failure_rate()", "transaction.duration:>0"),
             ("count_unique(user)", "transaction.duration:>0"),
             ("last_seen()", "transaction.duration:>0"),
             ("any(user)", "transaction.duration:>0"),
             ("p95(transaction.duration)", ""),
             ("count()", "p75(transaction.duration):>0"),
             ("message", "transaction.duration:>0"),
-            ("count()", "transaction.duration:[1,2,3]"),
             ("equation| count() / count()", "transaction.duration:>0"),
         ],
     )
