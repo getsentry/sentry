@@ -89,7 +89,7 @@ function EventEntries({
         <EventDataSection title="User Feedback" type="user-feedback">
           <EventUserFeedback
             report={event.userReport}
-            orgId={orgSlug}
+            orgSlug={orgSlug}
             issueId={group.id}
           />
         </EventDataSection>
