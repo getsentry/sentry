@@ -8,7 +8,8 @@ from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.replays.usecases.reader import download_segments, fetch_segments_metadata, storage
+from sentry.replays.lib.storage import storage
+from sentry.replays.usecases.reader import download_segments, fetch_segments_metadata
 
 
 @region_silo_endpoint

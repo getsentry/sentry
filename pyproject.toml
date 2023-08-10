@@ -650,8 +650,6 @@ module = [
     "sentry.release_health.sessions",
     "sentry.release_health.tasks",
     "sentry.replays.endpoints.project_replay_clicks_index",
-    "sentry.replays.endpoints.project_replay_recording_segment_details",
-    "sentry.replays.endpoints.project_replay_recording_segment_index",
     "sentry.replays.lib.query",
     "sentry.replays.query",
     "sentry.reprocessing2",
