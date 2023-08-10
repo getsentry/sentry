@@ -219,7 +219,7 @@ def _try_monitor_tasks_trigger(ts: datetime):
 
     # Track the delay from the true time, ideally this should be pretty
     # close, but in the case of a backlog, this will be much higher
-    total_delay = datetime.now().timestamp()
+    total_delay = datetime.now().timestamp() - reference_ts
 
     logger.info(
         "monitors.consumer.clock_tick",
