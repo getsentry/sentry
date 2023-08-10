@@ -4,7 +4,7 @@ export function string(tokens: Token[]): string {
   const accumulator = new StringAccumulator();
 
   let precedingNonWhitespaceToken: Token | undefined = undefined;
-  let indentation: number = 0; // Track the current indent level
+  let indentation: number = 0; // Tracks the current indent level
   let parenthesisLevel: number = 0; // Tracks the current parenthesis nesting level
   const indentationLevels: number[] = []; // Tracks the parenthesis nesting levels at which we've incremented the indentation
 
