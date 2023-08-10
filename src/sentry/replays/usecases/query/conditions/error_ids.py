@@ -54,7 +54,7 @@ class SumOfErrorIdsArray(ComputedBase[UUID]):
         return does_not_contain(ErrorIdsArray.visit_in(value))
 
 
-def has_error_id(error_id: str) -> Function:
+def has_error_id(error_id: UUID) -> Function:
     return Function(
         "has",
         parameters=[
@@ -65,7 +65,7 @@ def has_error_id(error_id: str) -> Function:
     )
 
 
-def has_any_error_id(error_ids: list[str]) -> Function:
+def has_any_error_id(error_ids: list[UUID]) -> Function:
     return Function(
         "hasAny",
         parameters=[
