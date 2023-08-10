@@ -94,19 +94,19 @@ function MonitorDetails({params, location}: Props) {
             ) : (
               <Fragment>
                 <MonitorStats
-                  orgId={organization.slug}
+                  orgSlug={organization.slug}
                   monitor={monitor}
                   monitorEnvs={monitor.environments}
                 />
 
                 <MonitorIssues
-                  orgId={organization.slug}
+                  orgSlug={organization.slug}
                   monitor={monitor}
                   monitorEnvs={monitor.environments}
                 />
 
                 <MonitorCheckIns
-                  orgId={organization.slug}
+                  orgSlug={organization.slug}
                   monitor={monitor}
                   monitorEnvs={monitor.environments}
                 />

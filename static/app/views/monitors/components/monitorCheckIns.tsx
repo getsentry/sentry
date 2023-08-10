@@ -34,7 +34,7 @@ import {statusToText} from 'sentry/views/monitors/utils';
 type Props = {
   monitor: Monitor;
   monitorEnvs: MonitorEnvironment[];
-  orgId: string;
+  orgSlug: string;
 };
 
 const checkStatusToIndicatorStatus: Record<
@@ -48,11 +48,11 @@ const checkStatusToIndicatorStatus: Record<
   [CheckInStatus.TIMEOUT]: 'error',
 };
 
-function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
+function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const queryKey = [
-    `/organizations/${orgId}/monitors/${monitor.slug}/checkins/`,
+    `/organizations/${orgSlug}/monitors/${monitor.slug}/checkins/`,
     {
       query: {
         per_page: '10',
@@ -75,7 +75,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
   }
 
   const generateDownloadUrl = (checkin: CheckIn) =>
-    `/api/0/organizations/${orgId}/monitors/${monitor.slug}/checkins/${checkin.id}/attachment/`;
+    `/api/0/organizations/${orgSlug}/monitors/${monitor.slug}/checkins/${checkin.id}/attachment/`;
 
   const emptyCell = <Text>{'\u2014'}</Text>;
 

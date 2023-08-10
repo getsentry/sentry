@@ -23,10 +23,10 @@ import {Monitor, MonitorEnvironment, MonitorStat} from '../types';
 type Props = {
   monitor: Monitor;
   monitorEnvs: MonitorEnvironment[];
-  orgId: string;
+  orgSlug: string;
 };
 
-function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
+function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
 
@@ -43,7 +43,7 @@ function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
   }
 
   const queryKey = [
-    `/organizations/${orgId}/monitors/${monitor.slug}/stats/`,
+    `/organizations/${orgSlug}/monitors/${monitor.slug}/stats/`,
     {
       query: {
         since: since.toString(),
