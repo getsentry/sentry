@@ -43,6 +43,7 @@ from sentry.search.snuba.executors import (
     PostgresSnubaQueryExecutor,
     PrioritySortWeights,
 )
+from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 
 
@@ -501,24 +502,25 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         if not query_executor.has_sort_strategy(sort_by):
             raise InvalidSearchQuery(f"Sort key '{sort_by}' not supported.")
 
-        query_results = query_executor.query(
-            projects=projects,
-            retention_window_start=retention_window_start,
-            group_queryset=group_queryset,
-            environments=environments,
-            sort_by=sort_by,
-            limit=limit,
-            cursor=cursor,
-            count_hits=count_hits,
-            paginator_options=paginator_options,
-            search_filters=search_filters,
-            date_from=date_from,
-            date_to=date_to,
-            max_hits=max_hits,
-            referrer=referrer,
-            actor=actor,
-            aggregate_kwargs=aggregate_kwargs,
-        )
+        with metrics.timer("snuba.search.postgres_snuba.duration"):
+            query_results = query_executor.query(
+                projects=projects,
+                retention_window_start=retention_window_start,
+                group_queryset=group_queryset,
+                environments=environments,
+                sort_by=sort_by,
+                limit=limit,
+                cursor=cursor,
+                count_hits=count_hits,
+                paginator_options=paginator_options,
+                search_filters=search_filters,
+                date_from=date_from,
+                date_to=date_to,
+                max_hits=max_hits,
+                referrer=referrer,
+                actor=actor,
+                aggregate_kwargs=aggregate_kwargs,
+            )
 
         if len(projects) > 0 and features.has(
             "organizations:issue-search-group-attributes-side-query", projects[0].organization
