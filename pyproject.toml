@@ -232,7 +232,6 @@ module = [
     "sentry.api.endpoints.organization_events_stats",
     "sentry.api.endpoints.organization_events_trace",
     "sentry.api.endpoints.organization_events_trends",
-    "sentry.api.endpoints.organization_events_trendsv2",
     "sentry.api.endpoints.organization_group_index",
     "sentry.api.endpoints.organization_group_index_stats",
     "sentry.api.endpoints.organization_index",
