@@ -20,7 +20,7 @@ from sentry.snuba.metrics.extraction import (
     MetricSpec,
     OndemandMetricSpec,
     RuleCondition,
-    is_on_demand_metric_query,
+    should_use_on_demand_metrics,
 )
 from sentry.snuba.models import SnubaQuery
 
@@ -180,7 +180,7 @@ def _convert_aggregate_and_query_to_metric(
     dataset: str, aggregate: str, query: str
 ) -> Optional[HashMetricSpec]:
     try:
-        if not is_on_demand_metric_query(dataset, aggregate, query):
+        if not should_use_on_demand_metrics(dataset, aggregate, query):
             return None
 
         spec = OndemandMetricSpec(aggregate, query)

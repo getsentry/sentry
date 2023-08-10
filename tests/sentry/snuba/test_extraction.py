@@ -5,243 +5,89 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OndemandMetricSpec,
     cleanup_query,
-    is_on_demand_metric_query,
-    is_standard_metrics_compatible,
     query_tokens_to_string,
     should_use_on_demand_metrics,
     to_standard_metrics_query,
 )
 
 
-class TestIsOnDemandMetricQuery:
-    perf_metrics = Dataset.PerformanceMetrics
-
-    def test_wrong_dataset(self):
-        assert (
-            is_on_demand_metric_query(Dataset.Transactions, "count()", "geo.city:Vienna") is False
-        )
-        assert (
-            is_on_demand_metric_query(
-                Dataset.Metrics, "count()", "browser.version:1 os.name:android"
-            )
-            is False
-        )
-
-    def test_no_query(self):
-        assert is_on_demand_metric_query(Dataset.PerformanceMetrics, "count()", "") is False
-
-    def test_invalid_query(self):
-        assert is_on_demand_metric_query(self.perf_metrics, "count()", "AND") is False
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "count()", ")AND transaction.duration:>=1")
-            is False
-        )
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "count()", "transaction.duration:>=abc")
-            is False
-        )
-        assert is_on_demand_metric_query(self.perf_metrics, "count_if(}", "") is False
-
-    def test_on_demand_queries(self):
-        # # transaction.duration is a non-standard field
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "count()", "transaction.duration:>=1")
-            is True
-        )
-        # # geo.city is a non-standard field
-        assert is_on_demand_metric_query(self.perf_metrics, "count()", "geo.city:Vienna") is True
-        # os.name is a standard field, browser.version is not
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics, "count()", "geo.city:Vienna os.name:android"
-            )
-            is True
-        )
-        # os.version is not a standard field
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics,
-                "count()",
-                "(release:a OR transaction.op:b) transaction.duration:>1s",
-            )
-            is True
-        )
-
-    def test_standard_compatible_queries(self):
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "p75(transaction.duration)", "") is False
-        )
-        assert is_on_demand_metric_query(self.perf_metrics, "count()", "") is False
-        assert is_on_demand_metric_query(self.perf_metrics, "count()", "environment:dev") is False
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics, "count()", "release:initial OR os.name:android"
-            )
-            is False
-        )
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics,
-                "count()",
-                "(http.method:POST OR http.status_code:404) browser.name:chrome",
-            )
-            is False
-        )
-        assert is_on_demand_metric_query(self.perf_metrics, "foo.bar", "") is False
-        assert is_on_demand_metric_query(self.perf_metrics, "count()", "foo.bar") is False
-
-    def test_countif(self):
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics, "count_if(geo.city.duration,equals,vienna)", ""
-            )
-            is True
-        )
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, 'count_if(release,equals,"foo")', "")
-            is False
-        )
-
-    def test_unsupported_aggregate_functions(self):
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics, "failure_rate()", "transaction.duration:>=1"
-            )
-            is False
-        )
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics, "count_unique(transaction.duration)", "transaction.duration:>=1"
-            )
-            is False
-        )
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics, "min(transaction.duration)", "transaction.duration:>=1"
-            )
-            is False
-        )
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics, "any(transaction.duration)", "transaction.duration:>=1"
-            )
-            is False
-        )
-
-    def test_unsupported_aggregate_fields(self):
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "message", "transaction.duration:>=1")
-            is False
-        )
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "title", "transaction.duration:>=1")
-            is False
-        )
-
-    def test_unsupported_operators(self):
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "count()", "transaction.duration:[1,2,3]")
-            is False
-        )
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "count()", "!transaction.duration:[1,2,3]")
-            is False
-        )
-
-    def test_unsupported_equations(self):
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics, "equation|count() / count()", "transaction.duration:>0"
-            )
-            is False
-        )
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "equation|count() / count()", "") is False
-        )
-
-    def test_unsupported_aggregate_filter(self):
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "count()", "p75(measurements.fcp):>100")
-            is False
-        )
+@pytest.mark.parametrize(
+    "dataset",
+    [
+        Dataset.Events,
+        Dataset.Discover,
+        Dataset.Outcomes,
+        Dataset.Transactions,
+    ],
+)
+def test_wrong_dataset(dataset):
+    assert should_use_on_demand_metrics(dataset, "count()", "transaction.duration:>0") is False
 
 
-class TestIsStandardMetricsCompatible:
-    perf_metrics = Dataset.PerformanceMetrics
+@pytest.mark.parametrize(
+    "aggregate, query",
+    [
+        # no query
+        ("count()", ""),
+        # invalid query
+        ("count()", "AND"),
+        ("count()", ")AND transaction.duration:>0"),
+        ("count_if(}", ""),
+        # standard metrics supported queries
+        ("p75(transaction.duration)", ""),
+        ("count()", "environment:dev"),
+        ("count()", "release:initial OR os.name:android"),
+        ("count()", "(http.method:POST OR http.status_code:404) browser.name:chrome"),
+        ('count_if(release,equals,"foo")', ""),
+        # standard metrics unsupported queries
+        ("foo.bar", ""),
+        ("count()", "foo.bar"),
+    ],
+)
+def test_standard_or_invalid_queries(aggregate, query):
+    assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, aggregate, query) is False
 
-    def test_wrong_dataset(self):
-        assert is_standard_metrics_compatible(Dataset.Transactions, "count()", "") is False
-        assert (
-            is_standard_metrics_compatible(Dataset.Discover, "count()", "os.name:android") is False
-        )
 
-    def test_no_query(self):
-        assert is_standard_metrics_compatible(Dataset.PerformanceMetrics, "count()", "") is True
+@pytest.mark.parametrize(
+    "aggregate, query",
+    [
+        ("count()", "transaction.duration:>0"),  # transaction.duration is a non-standard field
+        ("count()", "geo.city:Vienna"),  # geo.city  is a non-standard field
+        (
+            "count()",
+            "geo.city:Vienna os.name:android",
+        ),  # os.name is a standard field, geo.city is not
+        ("count()", "(release:a OR transaction.op:b) transaction.duration:>1s"),
+        ("count_if(geo.city.duration,equals,vienna)", ""),  # geo.city is a non-standard field
+    ],
+)
+def test_on_demand_queries(aggregate, query):
+    assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, aggregate, query) is True
 
-    def test_invalid_query(self):
-        dataset = Dataset.PerformanceMetrics
 
-        assert is_standard_metrics_compatible(dataset, "count()", ")AND os.name:>=1") is False
-        assert is_standard_metrics_compatible(dataset, "count()", "os.name><=abc") is False
-
-    def test_on_demand_queries(self):
-        # # transaction.duration is a non-standard field
-        assert (
-            is_standard_metrics_compatible(self.perf_metrics, "count()", "transaction.duration:>=1")
-            is False
-        )
-        # # geo.city is a non-standard field
-        assert (
-            is_standard_metrics_compatible(self.perf_metrics, "count()", "geo.city:Vienna") is False
-        )
-        # os.name is a standard field, browser.version is not
-        assert (
-            is_standard_metrics_compatible(
-                self.perf_metrics, "count()", "geo.city:Vienna os.name:android"
-            )
-            is False
-        )
-        # os.version is not a standard field
-        assert (
-            is_standard_metrics_compatible(
-                self.perf_metrics,
-                "count()",
-                "(release:a OR transaction.op:b) transaction.duration:>1s",
-            )
-            is False
-        )
-
-    def test_standard_compatible_queries(self):
-        assert is_standard_metrics_compatible(self.perf_metrics, "count()", "") is True
-        assert (
-            is_standard_metrics_compatible(self.perf_metrics, "count()", "environment:dev") is True
-        )
-        assert (
-            is_standard_metrics_compatible(
-                self.perf_metrics, "count()", "release:initial OR os.name:android"
-            )
-            is True
-        )
-        assert (
-            is_standard_metrics_compatible(
-                self.perf_metrics,
-                "count()",
-                "(http.method:POST OR http.status_code:404) browser.name:chrome",
-            )
-            is True
-        )
-
-    def test_count_if(self):
-        assert (
-            is_standard_metrics_compatible(
-                self.perf_metrics, "count_if(transaction.duration,equals,300)", ""
-            )
-            is True
-        )
-        assert (
-            is_standard_metrics_compatible(self.perf_metrics, 'count_if(release,equals,"foo")', "")
-            is True
-        )
+@pytest.mark.parametrize(
+    "aggregate, query",
+    [
+        # unsupported aggregate functions
+        ("failure_rate()", "transaction.duration:>0"),
+        ("count_unique(transaction.duration)", "transaction.duration:>0"),
+        ("min(transaction.duration)", "transaction.duration:>0"),
+        ("any(transaction.duration)", "transaction.duration:>0"),
+        # unsupported aggregate fields
+        ("message", "transaction.duration:>0"),
+        ("title", "transaction.duration:>0"),
+        # unsupported operators
+        ("count()", "transaction.duration:[1,2,3]"),
+        ("count()", "!transaction.duration:[1,2,3]"),
+        # unsupported equations
+        ("equation|count() / count()", "transaction.duration:>0"),
+        ("equation|count() / count()", ""),
+        # unsupported aggregate filter
+        ("count()", "p75(measurements.fcp):>100"),
+    ],
+)
+def test_unsupported_queries(aggregate, query):
+    assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, aggregate, query) is False
 
 
 @pytest.mark.parametrize(
@@ -256,7 +102,7 @@ class TestIsStandardMetricsCompatible:
             "transaction.duration:>1",
             True,
         ),  # transaction.duration not supported by standard metrics
-        ("failure_rate()", "transaction.duration:>1", False),  # has to fallback to indexed
+        ("failure_rate()", "transaction.duration:>1", False),  # has to fall back to indexed
         (
             "count_if(transaction.duration,equals,0)",
             "release:a",
@@ -279,46 +125,44 @@ def create_spec_if_needed(dataset, agg, query):
         return OndemandMetricSpec(agg, query)
 
 
-class TestCreatesOndemandMetricSpec:
-    dataset = Dataset.PerformanceMetrics
+@pytest.mark.parametrize(
+    "aggregate, query",
+    [
+        ("count()", "transaction.duration:>0"),
+        ("p75(measurements.fp)", "transaction.duration:>0"),
+        ("p75(transaction.duration)", "transaction.duration:>0"),
+        ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
+        (
+            "count()",
+            "project:android-symbol-collector-server route.action:CloseBatch level:info",
+        ),
+    ],
+)
+def test_creates_on_demand_spec(aggregate, query):
+    assert create_spec_if_needed(Dataset.PerformanceMetrics, aggregate, query)
 
-    @pytest.mark.parametrize(
-        "aggregate, query",
-        [
-            ("count()", "transaction.duration:>0"),
-            ("p75(measurements.fp)", "transaction.duration:>0"),
-            ("p75(transaction.duration)", "transaction.duration:>0"),
-            ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
-            (
-                "count()",
-                "project:android-symbol-collector-server route.action:CloseBatch level:info",
-            ),
-        ],
-    )
-    def test_creates_on_demand_spec(self, aggregate, query):
-        assert create_spec_if_needed(self.dataset, aggregate, query)
 
-    @pytest.mark.parametrize(
-        "aggregate, query",
-        [
-            ("count()", "release:a"),
-            ("failure_rate()", "transaction.duration:>0"),
-            ("count_unique(user)", "transaction.duration:>0"),
-            ("last_seen()", "transaction.duration:>0"),
-            ("any(user)", "transaction.duration:>0"),
-            ("p95(transaction.duration)", ""),
-            ("count()", "p75(transaction.duration):>0"),
-            ("message", "transaction.duration:>0"),
-            ("count()", "transaction.duration:[1,2,3]"),
-            ("equation| count() / count()", "transaction.duration:>0"),
-            ("p75(measurements.lcp)", "!event.type:transaction"),
-            ("count_web_vitals(measurements.fcp,any)", "transaction.duration:>0"),
-            ("p95(measurements.lcp)", ""),
-            ("avg(spans.http)", ""),
-        ],
-    )
-    def test_does_not_create_on_demand_spec(self, aggregate, query):
-        assert not create_spec_if_needed(self.dataset, aggregate, query)
+@pytest.mark.parametrize(
+    "aggregate, query",
+    [
+        ("count()", "release:a"),
+        ("failure_rate()", "transaction.duration:>0"),
+        ("count_unique(user)", "transaction.duration:>0"),
+        ("last_seen()", "transaction.duration:>0"),
+        ("any(user)", "transaction.duration:>0"),
+        ("p95(transaction.duration)", ""),
+        ("count()", "p75(transaction.duration):>0"),
+        ("message", "transaction.duration:>0"),
+        ("count()", "transaction.duration:[1,2,3]"),
+        ("equation| count() / count()", "transaction.duration:>0"),
+        ("p75(measurements.lcp)", "!event.type:transaction"),
+        ("count_web_vitals(measurements.fcp,any)", "transaction.duration:>0"),
+        ("p95(measurements.lcp)", ""),
+        ("avg(spans.http)", ""),
+    ],
+)
+def test_does_not_create_on_demand_spec(aggregate, query):
+    assert not create_spec_if_needed(Dataset.PerformanceMetrics, aggregate, query)
 
 
 def test_spec_simple_query_count():
@@ -439,8 +283,8 @@ def test_spec_countif_with_query():
 
 
 def test_ignore_fields():
-    with_ignored_field = OndemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
-    without_ignored_field = OndemandMetricSpec("count()", "transaction.duration:>=1")
+    with_ignored_field = OndemandMetricSpec("count()", "transaction.duration:>0 project:sentry")
+    without_ignored_field = OndemandMetricSpec("count()", "transaction.duration:>0")
 
     assert with_ignored_field.condition() == without_ignored_field.condition()
 

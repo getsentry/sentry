@@ -212,18 +212,6 @@ class MetricSpec(TypedDict):
     tags: NotRequired[Sequence[TagSpec]]
 
 
-def is_on_demand_snuba_query(snuba_query: SnubaQuery) -> bool:
-    """Returns ``True`` if the snuba query can't be supported by standard metrics."""
-    return is_on_demand_metric_query(snuba_query.dataset, snuba_query.aggregate, snuba_query.query)
-
-
-def is_on_demand_metric_query(
-    dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
-) -> bool:
-    """Returns ``True`` if the dataset is performance metrics and query contains non-standard search fields."""
-    return should_use_on_demand_metrics(dataset, aggregate, query)
-
-
 @dataclass(frozen=True)
 class SupportedBy:
     """Result of a check for standard and on-demand metric support."""
@@ -245,6 +233,13 @@ class SupportedBy:
             standard_metrics=all(s.standard_metrics for s in supported_by),
             on_demand_metrics=all(s.on_demand_metrics for s in supported_by),
         )
+
+
+def is_on_demand_snuba_query(snuba_query: SnubaQuery) -> bool:
+    """Returns ``True`` if the snuba query can't be supported by standard metrics."""
+    return should_use_on_demand_metrics(
+        snuba_query.dataset, snuba_query.aggregate, snuba_query.query
+    )
 
 
 def should_use_on_demand_metrics(
@@ -313,20 +308,6 @@ def _get_query_supported_by(query: Optional[str]) -> SupportedBy:
     except InvalidSearchQuery:
         logger.error(f"Failed to parse search query: {query}", exc_info=True)
         return SupportedBy.neither()
-
-
-def is_standard_metrics_compatible(
-    dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
-) -> bool:
-    """Returns ``True`` if the query can be supported by standard metrics."""
-
-    if not dataset or Dataset(dataset) not in [Dataset.Metrics, Dataset.PerformanceMetrics]:
-        return False
-
-    aggregate_supported_by = _get_aggregate_supported_by(aggregate)
-    query_supported_by = _get_query_supported_by(query)
-
-    return SupportedBy.combine(aggregate_supported_by, query_supported_by).standard_metrics
 
 
 def _get_aggregate_fields(aggregate: str) -> Sequence[str]:

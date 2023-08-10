@@ -44,7 +44,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
     OndemandMetricSpec,
-    is_on_demand_metric_query,
+    should_use_on_demand_metrics,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.query import MetricField, MetricsQuery
@@ -119,7 +119,7 @@ class MetricsQueryBuilder(QueryBuilder):
         if self.query is None:
             return None
 
-        if not is_on_demand_metric_query(self.dataset, field, self.query):
+        if not should_use_on_demand_metrics(self.dataset, field, self.query):
             return None
 
         try:
