@@ -40,6 +40,7 @@ from sentry.search.events.constants import EQUALITY_OPERATORS, OPERATOR_TO_DJANG
 from sentry.search.snuba.executors import (
     AbstractQueryExecutor,
     CdcPostgresSnubaQueryExecutor,
+    InvalidQueryForExecutor,
     PostgresSnubaQueryExecutor,
     PrioritySortWeights,
 )
@@ -339,6 +340,11 @@ def _group_attributes_side_query(
                     "snuba.search.group_attributes_joined.events_compared",
                     tags={"comparison": comparison},
                 )
+        except InvalidQueryForExecutor:
+            logging.info(
+                "unsupported query received in GroupAttributesPostgresSnubaQueryExecutor",
+                exc_info=True,
+            )
         except Exception:
             logging.warning(
                 "failed to load side query from _group_attributes_side_query", exc_info=True

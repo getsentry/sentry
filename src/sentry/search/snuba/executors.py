@@ -1341,11 +1341,11 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "attrs": Entity("group_attributes", alias="g"),
     }
 
-    supported_cdc_conditions = [
+    supported_conditions = [
         SupportedConditions("status", frozenset(["IN"])),
     ]
-    supported_cdc_conditions_lookup = {
-        condition.field_name: condition for condition in supported_cdc_conditions
+    supported_conditions_lookup = {
+        condition.field_name: condition for condition in supported_conditions
     }
 
     last_seen_aggregation = Function(
@@ -1386,12 +1386,12 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         end = max([retention_date, end])
         return start, end, retention_date
 
-    def validate_cdc_search_filters(self, search_filters: Optional[Sequence[SearchFilter]]) -> bool:
+    def validate_search_filters(self, search_filters: Optional[Sequence[SearchFilter]]) -> bool:
         """
-        Validates whether a set of search filters can be handled by the cdc search backend.
+        Validates whether a set of search filters can be handled by this search backend.
         """
         for search_filter in search_filters or ():
-            supported_condition = self.supported_cdc_conditions_lookup.get(search_filter.key.name)
+            supported_condition = self.supported_conditions_lookup.get(search_filter.key.name)
             if not supported_condition:
                 return False
             if (
@@ -1420,7 +1420,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         actor: Optional[Any] = None,
         aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> CursorResult[Group]:
-        if not self.validate_cdc_search_filters(search_filters):
+        if not self.validate_search_filters(search_filters):
             raise InvalidQueryForExecutor("Search filters invalid for this query executor")
 
         start, end, retention_date = self.calculate_start_end(
@@ -1454,7 +1454,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         for search_filter in search_filters or ():
             where_conditions.append(
                 Condition(
-                    Column(search_filter.key.name, attr_entity),
+                    Column(f"group_{search_filter.key.name}", attr_entity),
                     Op.IN,
                     search_filter.value.raw_value,
                 )
