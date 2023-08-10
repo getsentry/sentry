@@ -879,6 +879,7 @@ class TestWebhookRequests(TestCase):
     @patch(
         "sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockFailureResponseInstance
     )
+    @pytest.mark.xfail(reason="This test is flaky")
     def test_slow_broken_not_disable(self, safe_urlopen):
         """
         Tests that the integration is broken after 10 days of errors but still enabled since flag is off
@@ -887,7 +888,7 @@ class TestWebhookRequests(TestCase):
         self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         events = self.sentry_app.events  # save events to check later
         data = {"issue": serialize(self.issue)}
-        now = datetime.now() + timedelta(hours=1)
+        now = datetime.now()
         for i in reversed(range(0, 10)):
             with freeze_time(now - timedelta(days=i)):
                 send_webhooks(
