@@ -183,7 +183,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "schedule": "0 0 * * *",
             "checkin_margin": None,
             "max_runtime": None,
-            "issue_threshold": None,
+            "failure_issue_threshold": None,
             "recovery_threshold": None,
         }
 

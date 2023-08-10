@@ -108,7 +108,7 @@ class ConfigValidator(serializers.Serializer):
         help_text="tz database style timezone string",
     )
 
-    issue_threshold = EmptyIntegerField(
+    failure_issue_threshold = EmptyIntegerField(
         required=False,
         allow_null=True,
         default=None,
