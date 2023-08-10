@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from typing import Dict, List
 
 from rest_framework import status
 from rest_framework.request import Request
@@ -18,8 +19,8 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
-from sentry.models import SentryAppInstallation
 from sentry.models.organization import Organization
+from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.app.model import RpcSentryAppInstallation
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.util import region_silo_function
@@ -73,6 +74,7 @@ def build_action_response(
         )
 
         # Sentry Apps can be alertable but not have an Alert Rule UI Component
+        # TODO: fix for hybrid cloud
         component = sentry_app_installation.prepare_sentry_app_components("alert-rule-action")
         if component:
             action_response["settings"] = component.schema.get("settings", {})
@@ -92,7 +94,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
         actions = []
 
         # Cache Integration objects in this data structure to save DB calls.
-        provider_integrations = defaultdict(list)
+        provider_integrations: Dict[str, List[RpcIntegration]] = defaultdict(list)
         for integration in get_available_action_integrations_for_org(organization):
             provider_integrations[integration.provider].append(integration)
 
@@ -108,13 +110,12 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
 
             # Add all alertable SentryApps to the list.
             elif registered_type.type == AlertRuleTriggerAction.Type.SENTRY_APP:
+                app_installations = app_service.get_installed_for_organization(
+                    organization_id=organization.id, is_alertable=True
+                )
                 actions += [
                     build_action_response(registered_type, sentry_app_installation=install)
-                    for install in SentryAppInstallation.objects.get_installed_for_organization(
-                        organization.id
-                    ).filter(
-                        sentry_app__is_alertable=True,
-                    )
+                    for install in app_installations
                 ]
 
             else:
