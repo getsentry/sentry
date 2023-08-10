@@ -692,7 +692,7 @@ class MetricsQueryBuilder(QueryBuilder):
             tenant_ids=self.tenant_ids,
         )
 
-    def _create_query_framework(self) -> Tuple[str, Dict[str, QueryFramework]]:
+    def _get_base_query_framework(self) -> Dict[str, QueryFramework]:
         prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
         query_framework: Dict[str, QueryFramework] = {
             "distribution": QueryFramework(
@@ -722,29 +722,20 @@ class MetricsQueryBuilder(QueryBuilder):
                 entity=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
             ),
         }
+        return query_framework
+
+    def _create_query_framework(self) -> Tuple[str, Dict[str, QueryFramework]]:
+        query_framework = self._get_base_query_framework()
         primary = None
         # if orderby spans more than one table, the query isn't possible with metrics
         for orderby in self.orderby:
-            if orderby.exp in self.sets:
-                query_framework["set"].orderby.append(orderby)
-                if primary not in [None, "set"]:
-                    raise IncompatibleMetricsQuery("Can't order across tables")
-                primary = "set"
-            elif orderby.exp in self.counters:
-                query_framework["counter"].orderby.append(orderby)
-                if primary not in [None, "counter"]:
-                    raise IncompatibleMetricsQuery("Can't order across tables")
-                primary = "counter"
-            elif orderby.exp in self.distributions:
-                query_framework["distribution"].orderby.append(orderby)
-                if primary not in [None, "distribution"]:
-                    raise IncompatibleMetricsQuery("Can't order across tables")
-                primary = "distribution"
-            elif orderby.exp in self.percentiles:
-                query_framework["percentiles"].orderby.append(orderby)
-                if primary not in [None, "percentiles"]:
-                    raise IncompatibleMetricsQuery("Can't order across tables")
-                primary = "percentiles"
+            for entity, framework in query_framework.items():
+                if orderby.exp in framework.functions:
+                    framework.orderby.append(orderby)
+                    if primary not in [None, entity]:
+                        raise IncompatibleMetricsQuery("Can't order across tables")
+                    primary = entity
+                    break
             else:
                 # An orderby that isn't on a function add it to all of them
                 for framework in query_framework.values():
@@ -752,34 +743,15 @@ class MetricsQueryBuilder(QueryBuilder):
 
         having_entity: Optional[str] = None
         for condition in self.flattened_having:
-            if condition.lhs in self.sets:
-                if having_entity is None:
-                    having_entity = "set"
-                elif having_entity != "set":
-                    raise IncompatibleMetricsQuery(
-                        "Can only have aggregate conditions on one entity"
-                    )
-            elif condition.lhs in self.counters:
-                if having_entity is None:
-                    having_entity = "counter"
-                elif having_entity != "counter":
-                    raise IncompatibleMetricsQuery(
-                        "Can only have aggregate conditions on one entity"
-                    )
-            elif condition.lhs in self.distributions:
-                if having_entity is None:
-                    having_entity = "distribution"
-                elif having_entity != "distribution":
-                    raise IncompatibleMetricsQuery(
-                        "Can only have aggregate conditions on one entity"
-                    )
-            elif condition.lhs in self.percentiles:
-                if having_entity is None:
-                    having_entity = "percentiles"
-                elif having_entity != "percentiles":
-                    raise IncompatibleMetricsQuery(
-                        "Can only have aggregate conditions on one entity"
-                    )
+            for entity, framework in query_framework.items():
+                if condition.lhs in framework.functions:
+                    if having_entity is None:
+                        having_entity = entity
+                    elif having_entity != entity:
+                        raise IncompatibleMetricsQuery(
+                            "Can only have aggregate conditions on one entity"
+                        )
+                    break
 
         if primary is not None and having_entity is not None and having_entity != primary:
             raise IncompatibleMetricsQuery(
@@ -790,16 +762,13 @@ class MetricsQueryBuilder(QueryBuilder):
         if primary is None:
             if having_entity is not None:
                 primary = having_entity
-            elif len(self.counters) > 0:
-                primary = "counter"
-            elif len(self.sets) > 0:
-                primary = "set"
-            elif len(self.distributions) > 0:
-                primary = "distribution"
-            elif len(self.percentiles) > 0:
-                primary = "percentiles"
             else:
-                raise IncompatibleMetricsQuery("Need at least one function")
+                for entity, framework in query_framework.items():
+                    if len(framework.functions) > 0:
+                        primary = entity
+                        break
+                else:
+                    raise IncompatibleMetricsQuery("Need at least one function")
 
         query_framework[primary].having = self.having
 
