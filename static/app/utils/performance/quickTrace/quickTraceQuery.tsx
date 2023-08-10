@@ -4,11 +4,15 @@ import {Event} from 'sentry/types/event';
 import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceLiteQuery from 'sentry/utils/performance/quickTrace/traceLiteQuery';
-import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
+import {
+  QuickTraceQueryChildrenProps,
+  TraceFull,
+} from 'sentry/utils/performance/quickTrace/types';
 import {
   flattenRelevantPaths,
   getTraceTimeRangeFromEvent,
   isCurrentEvent,
+  isTraceFullSplitResult,
 } from 'sentry/utils/performance/quickTrace/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -66,12 +70,15 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               traceFullResults.traces !== null
             ) {
               if (
-                organization.features.includes('performance-tracing-without-performance')
+                organization.features.includes(
+                  'performance-tracing-without-performance'
+                ) &&
+                isTraceFullSplitResult(traceFullResults.traces)
               ) {
-                traceFullResults.traces = traceFullResults.traces.transactions as any;
+                traceFullResults.traces = traceFullResults.traces.transactions;
               }
 
-              for (const subtrace of traceFullResults.traces ?? []) {
+              for (const subtrace of traceFullResults.traces as TraceFull[]) {
                 try {
                   const trace = flattenRelevantPaths(event, subtrace);
                   return children({
@@ -111,7 +118,11 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               // if we reach this point but there were some traces in the full results,
               // that means there were other transactions in the trace, but the current
               // event could not be found
-              type: traceFullResults.traces?.length ? 'missing' : 'empty',
+              type:
+                traceFullResults.traces &&
+                (traceFullResults.traces as TraceFull[])?.length
+                  ? 'missing'
+                  : 'empty',
               currentEvent: null,
             });
           }}

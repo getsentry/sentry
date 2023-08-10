@@ -14,11 +14,12 @@ import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullDetailedQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import {
-  TraceDetailedResults,
+  TraceDetailedSplitResults,
   TraceError,
   TraceFullDetailed,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';
+import {isTraceDetailedSplitResult} from 'sentry/utils/performance/quickTrace/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -84,13 +85,17 @@ class TraceSummary extends Component<Props> {
       error: QueryError | null;
       isLoading: boolean;
       meta: TraceMeta | null;
-      traces: (TraceFullDetailed[] & TraceDetailedResults) | null;
+      traces: (TraceFullDetailed[] | TraceDetailedSplitResults) | null;
     }) => {
       let transactions: TraceFullDetailed[] | undefined;
       let orphanErrors: TraceError[] | undefined;
-      if (organization.features.includes('performance-tracing-without-performance')) {
-        orphanErrors = traces?.orphan_errors;
-        transactions = traces?.transactions;
+      if (
+        traces &&
+        organization.features.includes('performance-tracing-without-performance') &&
+        isTraceDetailedSplitResult(traces)
+      ) {
+        orphanErrors = traces.orphan_errors;
+        transactions = traces.transactions;
       }
 
       //   orphanErrors = [
@@ -131,7 +136,7 @@ class TraceSummary extends Component<Props> {
           isLoading={isLoading}
           error={error}
           orphanErrors={orphanErrors}
-          traces={transactions ?? traces}
+          traces={transactions ?? (traces as TraceFullDetailed[])}
           meta={meta}
         />
       );

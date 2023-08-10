@@ -82,12 +82,12 @@ export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
   tags?: EventTag[];
 };
 
-export type TraceFullResults = {
+export type TraceFullSplitResults = {
   orphan_errors: TraceError[];
   transactions: TraceFull[];
 };
 
-export type TraceDetailedResults = {
+export type TraceDetailedSplitResults = {
   orphan_errors: TraceError[];
   transactions: TraceFullDetailed[];
 };

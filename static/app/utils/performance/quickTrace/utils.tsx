@@ -11,9 +11,11 @@ import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {
   QuickTrace,
   QuickTraceEvent,
+  TraceDetailedSplitResults,
   TraceError,
   TraceFull,
   TraceFullDetailed,
+  TraceFullSplitResults,
   TraceLite,
 } from 'sentry/utils/performance/quickTrace/types';
 import {TraceRoot} from 'sentry/views/performance/traceDetails/types';
@@ -321,6 +323,14 @@ export function isTraceError(transaction): transaction is TraceError {
 
 export function isTraceRoot(transaction): transaction is TraceRoot {
   return Boolean((transaction as TraceRoot).traceSlug);
+}
+
+export function isTraceDetailedSplitResult(result): result is TraceDetailedSplitResults {
+  return Boolean((result as TraceDetailedSplitResults).transactions);
+}
+
+export function isTraceFullSplitResult(result): result is TraceFullSplitResults {
+  return Boolean((result as TraceFullSplitResults).transactions);
 }
 
 function handleProjectMeta(organization: OrganizationSummary, projects: number) {

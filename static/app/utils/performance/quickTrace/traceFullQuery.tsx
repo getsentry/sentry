@@ -6,10 +6,10 @@ import GenericDiscoverQuery, {
 import {
   BaseTraceChildrenProps,
   FullQuickTrace,
-  TraceDetailedResults,
+  TraceDetailedSplitResults,
   TraceFull,
   TraceFullDetailed,
-  TraceFullResults,
+  TraceFullSplitResults,
   TraceRequestProps,
 } from 'sentry/utils/performance/quickTrace/types';
 import {
@@ -99,18 +99,21 @@ function GenericTraceFullQuery<T>({
 }
 
 export function TraceFullQuery(
-  props: Omit<QueryProps<TraceFull[] & TraceFullResults>, 'detailed'>
+  props: Omit<QueryProps<TraceFull[] | TraceFullSplitResults>, 'detailed'>
 ) {
   return (
-    <GenericTraceFullQuery<TraceFull[] & TraceFullResults> {...props} detailed={false} />
+    <GenericTraceFullQuery<TraceFull[] | TraceFullSplitResults>
+      {...props}
+      detailed={false}
+    />
   );
 }
 
 export function TraceFullDetailedQuery(
-  props: Omit<QueryProps<TraceFullDetailed[] & TraceDetailedResults>, 'detailed'>
+  props: Omit<QueryProps<TraceFullDetailed[] | TraceDetailedSplitResults>, 'detailed'>
 ) {
   return (
-    <GenericTraceFullQuery<TraceFullDetailed[] & TraceDetailedResults>
+    <GenericTraceFullQuery<TraceFullDetailed[] | TraceDetailedSplitResults>
       {...props}
       detailed
     />
