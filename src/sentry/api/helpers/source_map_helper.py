@@ -37,8 +37,12 @@ def source_map_debug(project, event_id, exception_idx, frame_idx):
         # already mapped
         return SourceMapDebug()
 
+    if event.platform == "node" and frame.context_line:
+        return SourceMapDebug()
+
     # We can't demangle node's internal modules therefore we only process
     # user-land frames (starting with /) or those created by bundle/webpack internals.
+
     if event.platform == "node" and not abs_path.startswith(("/", "app:", "webpack:")):
         return SourceMapDebug()
 
