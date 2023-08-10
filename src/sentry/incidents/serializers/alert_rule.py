@@ -428,8 +428,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 ip_address=self.context.get("ip_address"),
                 **validated_data,
             )
-        self._handle_triggers(alert_rule, triggers)
-        return alert_rule
+            self._handle_triggers(alert_rule, triggers)
+            return alert_rule
 
     def _handle_triggers(self, alert_rule, triggers):
         channel_lookup_timeout_error = None
