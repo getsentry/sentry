@@ -98,5 +98,4 @@ class HandleIssueMergeTest(TestCase):
             # Check that fetch forecast returns the default count for one event
             for group in [primary, child]:
                 forecast = EscalatingGroupForecast.fetch(group.project.id, group.id)
-                assert forecast is not None
-                assert forecast.forecast == [10] * 14
+                assert forecast and forecast.forecast == [10] * 14

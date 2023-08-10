@@ -366,9 +366,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         child = event_child.group
 
         generate_and_save_forecasts([primary, child])
-        before_merge_forecast = EscalatingGroupForecast.fetch(
-            primary.project.id, primary.id
-        ).forecast
+        before_merge_forecast = EscalatingGroupForecast.fetch(primary.project.id, primary.id)
 
         with self.tasks():
             eventstream_state = eventstream.backend.start_merge(project.id, [child.id], primary.id)
@@ -380,7 +378,9 @@ class MergeGroupTest(TestCase, SnubaTestCase):
                 merge_forecasts=True,
             )
         regenerate_primary_group_forecast(primary.id)
-        after_merge_forecast = EscalatingGroupForecast.fetch(
-            primary.project.id, primary.id
-        ).forecast
-        assert before_merge_forecast != after_merge_forecast
+        after_merge_forecast = EscalatingGroupForecast.fetch(primary.project.id, primary.id)
+        assert (
+            before_merge_forecast
+            and after_merge_forecast
+            and after_merge_forecast.forecast != before_merge_forecast.forecast
+        )
