@@ -6,16 +6,24 @@ from sentry.silo import SiloMode
 
 
 class RegionTombstoneService(TombstoneService):
-    def record_remote_tombstone(self, tombstone: RpcTombstone) -> None:
+    key = "region_tombstone"
+    local_mode = SiloMode.REGION
+
+    def record_remote_tombstone(self, *, tombstone: RpcTombstone) -> None:
         RegionTombstone.record_delete(tombstone.table_name, tombstone.identifier)
 
 
 class ControlTombstoneService(TombstoneService):
-    def record_remote_tombstone(self, tombstone: RpcTombstone) -> None:
+    key = "control_tombstone"
+    local_mode = SiloMode.CONTROL
+
+    def record_remote_tombstone(self, *, tombstone: RpcTombstone) -> None:
         ControlTombstone.record_delete(tombstone.table_name, tombstone.identifier)
 
 
 class MonolithTombstoneService(TombstoneService):
+    key = "monolith_tombstone"
+    local_mode = SiloMode.MONOLITH
     # In the future, no single deployment can be a source of truth about the location of all models due to
     # deployment drift, however the current deployment (for which this is a bridging implementation), can.
     # We use silo limits information to infer the correct destination.
@@ -39,7 +47,7 @@ class MonolithTombstoneService(TombstoneService):
                         return model
         raise ValueError(f"Could not find model by table name {table_name}")
 
-    def record_remote_tombstone(self, tombstone: RpcTombstone) -> None:
+    def record_remote_tombstone(self, *, tombstone: RpcTombstone) -> None:
         model = self._get_model(tombstone.table_name)
         if SiloMode.CONTROL in model._meta.silo_limit.modes:
             RegionTombstone.record_delete(tombstone.table_name, tombstone.identifier)
