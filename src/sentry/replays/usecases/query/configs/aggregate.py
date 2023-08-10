@@ -14,11 +14,9 @@ from sentry.replays.lib.new_query.parsers import parse_int, parse_str, parse_uui
 from sentry.replays.lib.selector.parse import parse_selector
 from sentry.replays.usecases.query.conditions import (
     AggregateActivityScalar,
-    ClickSelector,
     SimpleAggregateDurationScalar,
-    SimpleAggregateErrorIDScalar,
-)
-from sentry.replays.usecases.query.conditions.aggregate import (
+    SumOfClickSelectorComposite,
+    SumOfErrorIdsArray,
     SumOfIPv4Scalar,
     SumOfStringArray,
     SumOfStringScalar,
@@ -60,7 +58,7 @@ search_config: dict[str, Union[ColumnField, ComputedField]] = {
     "click.class": array_string_field("click_class"),
     "click.id": string_field("click_id"),
     "click.role": string_field("click_role"),
-    "click.selector": ComputedField(parse_selector, ClickSelector),
+    "click.selector": ComputedField(parse_selector, SumOfClickSelectorComposite),
     "click.tag": string_field("click_tag"),
     "click.testid": string_field("click_testid"),
     "click.textContent": string_field("click_text"),
@@ -77,7 +75,7 @@ search_config: dict[str, Union[ColumnField, ComputedField]] = {
     "dist": string_field("dist"),
     "duration": ComputedField(parse_int, SimpleAggregateDurationScalar),
     "environment": string_field("environment"),
-    "error_ids": ComputedField(parse_uuid, SimpleAggregateErrorIDScalar),
+    "error_ids": ComputedField(parse_uuid, SumOfErrorIdsArray),
     "os.name": string_field("os_name"),
     "os.version": string_field("os_version"),
     "platform": string_field("platform"),

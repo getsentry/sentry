@@ -1,6 +1,6 @@
 from .activity import AggregateActivityScalar  # noqa
-from .aggregate import SumOfIPv4Scalar, SumOfStringArray, SumOfStringScalar, SumOfTagScalar  # noqa
+from .aggregate import SumOfIPv4Scalar, SumOfStringArray, SumOfStringScalar, SumOfUUIDArray  # noqa
 from .duration import SimpleAggregateDurationScalar  # noqa
-from .error_ids import SimpleAggregateErrorIDScalar  # noqa
-from .selector import ClickSelector  # noqa
-from .tags import TagScalar  # noqa
+from .error_ids import ErrorIdsArray, SumOfErrorIdsArray  # noqa
+from .selector import ClickSelectorComposite, SumOfClickSelectorComposite  # noqa
+from .tags import SumOfTagScalar, TagScalar  # noqa

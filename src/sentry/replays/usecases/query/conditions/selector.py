@@ -1,22 +1,50 @@
+"""Composite click selector visitor module.
+
+This module demonstrates how funky condition visitors can become.  We're performing multiple
+row-wise operations against a complex type and aggregating the result into a single integer before
+asking whether any row in the aggregation set contained a result.
+"""
 from __future__ import annotations
 
 from typing import List
 
 from snuba_sdk import Column, Condition, Function, Op
 
+from sentry.replays.lib.new_query.utils import contains, does_not_contain
 from sentry.replays.lib.selector.parse import QueryType
 from sentry.replays.usecases.query.conditions.base import ComputedBase
 
 
-class ClickSelector(ComputedBase[List[QueryType]]):
-    """Click selector condition class."""
+class ClickSelectorComposite(ComputedBase[List[QueryType]]):
+    """Click selector composite condition class."""
 
     @staticmethod
     def visit_eq(value: list[QueryType]) -> Condition:
         if len(value) == 0:
+            # TODO: raise in the field or return the default condition in the field?
             return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
         else:
-            return search_selector(value)
+            return Condition(search_selector(value), Op.EQ, 1)
+
+    @staticmethod
+    def visit_neq(value: list[QueryType]) -> Condition:
+        if len(value) == 0:
+            # TODO: raise in the field or return the default condition in the field?
+            return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
+        else:
+            return Condition(search_selector(value), Op.EQ, 0)
+
+
+class SumOfClickSelectorComposite(ComputedBase[List[QueryType]]):
+    """Click selector composite condition class."""
+
+    @staticmethod
+    def visit_eq(value: list[QueryType]) -> Condition:
+        return contains(ClickSelectorComposite.visit_eq(value))
+
+    @staticmethod
+    def visit_neq(value: list[QueryType]) -> Condition:
+        return does_not_contain(ClickSelectorComposite.visit_eq(value))
 
 
 # We are not targetting an aggregated result set.  We are targetting a row.  We're asking does
@@ -24,7 +52,7 @@ class ClickSelector(ComputedBase[List[QueryType]]):
 # represented as a "0".
 #
 # If multiple selectors are provided then we are asking if any row matches any selector.
-def search_selector(queries: list[QueryType]) -> Condition:
+def search_selector(queries: list[QueryType]) -> Function:
     conditions: list[Function] = []
 
     for query in queries:
@@ -51,11 +79,7 @@ def search_selector(queries: list[QueryType]) -> Condition:
         if cmp_functions:
             conditions.append(comparator("and", cmp_functions))
 
-    return Condition(Function("sum", parameters=[comparator("or", conditions)]), Op.GT, 0)
-
-
-def equals(lhs: Column, rhs: str | int) -> Function:
-    return Function("equals", parameters=[lhs, rhs])
+    return comparator("or", conditions)
 
 
 # Tl;dr we're nesting conditions like this `and(a, and(b, c))` instead of chaining them like
@@ -74,3 +98,7 @@ def comparator(comparison_fn: str, functions: list[Function]) -> Function:
             inner_condition = function
 
     return inner_condition
+
+
+def equals(lhs: Column, rhs: str | int) -> Function:
+    return Function("equals", parameters=[lhs, rhs])

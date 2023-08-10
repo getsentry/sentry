@@ -12,8 +12,8 @@ T = TypeVar("T")
 class ComputedBase(Generic[T]):
     """Computed expression base column.
 
-    Computed expressions are not passed as arguments to the condition visitor. They are computed
-    on the fly within the visitor.
+    Computed expressions are not passed as arguments to the condition visitor methods. They are
+    computed on the fly within the visitor.
     """
 
     @staticmethod

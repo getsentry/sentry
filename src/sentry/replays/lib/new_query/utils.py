@@ -14,6 +14,20 @@ def to_uuids(value: list[UUID]) -> list[Function]:
     return [to_uuid(v) for v in value]
 
 
+def contains(condition: Condition) -> Condition:
+    """Return true if any of the rows in the aggregation set match the condition."""
+    return Condition(
+        Function("sum", parameters=[translate_condition_to_function(condition)]), Op.NEQ, 0
+    )
+
+
+def does_not_contain(condition: Condition) -> Condition:
+    """Return true if none of the rows in the aggregation set match the condition."""
+    return Condition(
+        Function("sum", parameters=[translate_condition_to_function(condition)]), Op.EQ, 0
+    )
+
+
 # Work-around for https://github.com/getsentry/snuba-sdk/issues/115
 def translate_condition_to_function(condition: Condition) -> Function:
     """Transforms infix operations to prefix operations."""

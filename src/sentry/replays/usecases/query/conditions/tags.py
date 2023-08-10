@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from snuba_sdk import Column, Condition, Function, Identifier, Lambda, Op
+from snuba_sdk.expressions import Expression
 
 from sentry.replays.lib.new_query.conditions import GenericBase
+from sentry.replays.lib.new_query.utils import contains, does_not_contain
 
 
 class TagScalar(GenericBase[str]):
@@ -10,43 +12,64 @@ class TagScalar(GenericBase[str]):
 
     @staticmethod
     def visit_eq(expression_name: str, value: str) -> Condition:
-        return Condition(match_key_value_exact(expression_name, value), Op.EQ, 1)
+        return Condition(_match_key_value_exact(expression_name, value), Op.EQ, 1)
 
     @staticmethod
     def visit_neq(expression_name: str, value: str) -> Condition:
-        return Condition(match_key_value_exact(expression_name, value), Op.EQ, 0)
+        return Condition(_match_key_value_exact(expression_name, value), Op.EQ, 0)
 
     @staticmethod
     def visit_in(expression_name: str, value: list[str]) -> Condition:
-        return Condition(match_key_values_exact(expression_name, value), Op.EQ, 1)
+        return Condition(_match_key_values_exact(expression_name, value), Op.EQ, 1)
 
     @staticmethod
     def visit_not_in(expression_name: str, value: list[str]) -> Condition:
-        return Condition(match_key_values_exact(expression_name, value), Op.EQ, 0)
+        return Condition(_match_key_values_exact(expression_name, value), Op.EQ, 0)
 
     @staticmethod
     def visit_match(expression_name: str, value: str) -> Condition:
-        return Condition(match_key_value_wildcard(expression_name, value), Op.EQ, 1)
+        return Condition(_match_key_value_wildcard(expression_name, value), Op.EQ, 1)
 
     @staticmethod
     def visit_not_match(expression_name: str, value: str) -> Condition:
-        return Condition(match_key_value_wildcard(expression_name, value), Op.EQ, 0)
+        return Condition(_match_key_value_wildcard(expression_name, value), Op.EQ, 0)
 
 
-# You may be wondering why the tags are not under any aggregate expression.  After all I've primed
-# you at this point to look for sum(condition).  Not to fear, we sum the output of the condition
-# in SumOfTagsScalar.
+class SumOfTagScalar(GenericBase[str]):
+    @staticmethod
+    def visit_eq(expression: Expression, value: str) -> Condition:
+        return contains(TagScalar.visit_eq(expression, value))
+
+    @staticmethod
+    def visit_neq(expression: Expression, value: str) -> Condition:
+        return does_not_contain(TagScalar.visit_eq(expression, value))
+
+    @staticmethod
+    def visit_match(expression: Expression, value: str) -> Condition:
+        return contains(TagScalar.visit_match(expression, value))
+
+    @staticmethod
+    def visit_not_match(expression: Expression, value: str) -> Condition:
+        return does_not_contain(TagScalar.visit_match(expression, value))
+
+    @staticmethod
+    def visit_in(expression: Expression, value: list[str]) -> Condition:
+        return contains(TagScalar.visit_in(expression, value))
+
+    @staticmethod
+    def visit_not_in(expression: Expression, value: list[str]) -> Condition:
+        return does_not_contain(TagScalar.visit_in(expression, value))
 
 
-def match_key_value_exact(key: str, value: str) -> Function:
+def _match_key_value_exact(key: str, value: str) -> Function:
     return Function("has", parameters=[_get_tag_values(key), value])
 
 
-def match_key_values_exact(key: str, values: list[str]) -> Function:
+def _match_key_values_exact(key: str, values: list[str]) -> Function:
     return Function("hasAny", parameters=[_get_tag_values(key), values])
 
 
-def match_key_value_wildcard(key: str, value: str) -> Function:
+def _match_key_value_wildcard(key: str, value: str) -> Function:
     return Function(
         "arrayExists",
         parameters=[
