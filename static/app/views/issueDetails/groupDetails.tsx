@@ -586,7 +586,7 @@ function useTrackView({
   const location = useLocation();
   const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
     location.query;
-  const eventType = useLoadedEventType();
+  const groupEventType = useLoadedEventType();
 
   useRouteAnalyticsEventNames('issue_details.viewed', 'Issue Details: Viewed');
   useRouteAnalyticsParams({
@@ -602,7 +602,7 @@ function useTrackView({
     alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
     alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     ref_fallback,
-    event_type: eventType,
+    group_event_type: groupEventType,
     // Will be updated by StacktraceLink if there is a stacktrace link
     stacktrace_link_viewed: false,
     // Will be updated by IssueQuickTrace if there is a trace
