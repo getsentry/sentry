@@ -89,13 +89,14 @@ def search_selector(queries: list[QueryType]) -> Function:
 def comparator(comparison_fn: str, functions: list[Function]) -> Function:
     if len(functions) == 0:
         return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
+
     inner_condition = None
 
     for function in functions:
-        if inner_condition:
-            inner_condition = Function(comparison_fn, parameters=[inner_condition, function])
-        else:
+        if inner_condition is None:
             inner_condition = function
+        else:
+            inner_condition = Function(comparison_fn, parameters=[inner_condition, function])
 
     return inner_condition
 
