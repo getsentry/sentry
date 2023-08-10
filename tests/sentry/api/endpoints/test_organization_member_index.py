@@ -80,7 +80,9 @@ class OrganizationMemberSerializerTest(TestCase):
 
             invite_state = get_invite_state(member.id, org.slug, user.id)
             assert invite_state, "Expected invite state, logic bug?"
-            invite_helper = ApiInviteHelper(request=request, invite_context=invite_state, token=None)  # type: ignore
+            invite_helper = ApiInviteHelper(
+                request=request, invite_context=invite_state, token=None
+            )
             invite_helper.accept_invite(user)
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
