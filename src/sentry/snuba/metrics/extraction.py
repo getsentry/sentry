@@ -401,7 +401,7 @@ def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
     return True
 
 
-def _is_excluding_transactions(token: QueryToken) -> bool:
+def _is_excluding_transactions(token: SearchFilter) -> bool:
     return (
         token.key.name == "event.type"
         and token.operator == "!="
