@@ -296,7 +296,7 @@ def _get_args_support(args: Sequence[str]) -> SupportedBy:
 
     arg = args[0]
 
-    standard_metrics = _is_standard_metrics_search_term(arg) or arg == "transaction.duration"
+    standard_metrics = _is_standard_metrics_field(arg)
     on_demand_metrics = _is_on_demand_supported_field(arg)
 
     return SupportedBy(standard_metrics=standard_metrics, on_demand_metrics=on_demand_metrics)
@@ -391,7 +391,9 @@ def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
         if not _SEARCH_TO_RELAY_OPERATORS.get(token.operator):
             return False
 
-        return _is_on_demand_supported_field(token.key.name)
+        return not _is_excluding_transactions(token) and _is_on_demand_supported_field(
+            token.key.name
+        )
 
     if isinstance(token, ParenExpression):
         return _is_on_demand_supported_query(token.children)
@@ -399,8 +401,21 @@ def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
     return True
 
 
+def _is_excluding_transactions(token: SearchFilter) -> bool:
+    return (
+        token.key.name == "event.type"
+        and token.operator == "!="
+        and token.value.raw_value == "transaction"
+    )
+
+
 def _is_standard_metrics_field(field: str) -> bool:
-    return _is_standard_metrics_field(field) or is_measurement(field) or is_span_op_breakdown(field)
+    return (
+        _is_standard_metrics_search_term(field)
+        or is_measurement(field)
+        or is_span_op_breakdown(field)
+        or field == "transaction.duration"
+    )
 
 
 def _is_standard_metrics_search_term(field: str) -> bool:
@@ -575,7 +590,7 @@ class OndemandMetricSpec:
         # filters from the query that can't be translated to a RuleCondition.
         query = re.sub(r"event\.type:transaction\s*", "", query)
         # extend the following to also support project:"some-project"
-        query = re.sub(r"project:[\w\"]+\s*", "", query)
+        query = re.sub(r"project:[\w\d\"\-_]+\s*", "", query)
 
         self._query = query.strip()
 
