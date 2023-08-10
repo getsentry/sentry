@@ -24,8 +24,8 @@ export enum ProductSolution {
 
 // This is the list of products that are available for each platform
 // Since the ProductSelection component is rendered in the onboarding/project creation flow only, it is ok to have this list here
+// NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
-  'python-django': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   'javascript-react': [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -63,6 +63,7 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
+  'python-django': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
 } as Record<PlatformKey, ProductSolution[]>;
 
 export type DisabledProduct = {
@@ -265,7 +266,7 @@ export function ProductSelection({
           <Product
             label={t('Performance Monitoring')}
             description={t(
-              'Automatic performance issue detection and context on who is impacted, outliers, regressions, and the root cause of your slowdown. Trace issues across services to find poor-performing code.'
+              'Automatic performance issue detection across services and context on who is impacted, outliers, regressions, and the root cause of your slowdown.'
             )}
             docLink="https://docs.sentry.io/platforms/javascript/guides/react/performance/"
             onClick={() => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)}
@@ -304,7 +305,7 @@ export function ProductSelection({
           <Product
             label={t('Profiling')}
             description={t(
-              'See the exact functions and lines of code causing your performance bottlenecks, so you can speed up troubleshooting and optimize resource consumption. Must have Performance Monitoring set up to use Profiling.'
+              'See the exact functions and lines of code causing your performance bottlenecks, so you can speed up troubleshooting and optimize resource consumption.'
             )}
             docLink="https://docs.sentry.io/platforms/python/profiling/"
             onClick={() => handleClickProduct(ProductSolution.PROFILING)}
