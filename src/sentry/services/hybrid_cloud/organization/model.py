@@ -50,7 +50,6 @@ class RpcTeam(RpcModel):
     actor_id: Optional[int] = None
     org_role: Optional[str] = None
     name: str = ""
-    project_ids: List[int] = Field(default_factory=list)
 
     def class_name(self) -> str:
         return "Team"

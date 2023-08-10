@@ -101,7 +101,6 @@ def serialize_rpc_team(team: Team) -> RpcTeam:
         slug=team.slug,
         org_role=team.org_role,
         name=team.name,
-        project_ids=list(team.teams.values_list("id", flat=True)),
     )
 
 
@@ -140,8 +139,7 @@ def serialize_rpc_organization(org: Organization) -> RpcOrganization:
     )
 
     projects: List[Project] = Project.objects.filter(organization=org)
-    teams: List[Team] = Team.objects.filter(organization=org).prefetch_related("teams")
-    rpc_org.teams.extend(serialize_rpc_team(team) for team in teams)
+    teams: List[Team] = Team.objects.filter(organization=org)
     rpc_org.projects.extend(serialize_project(project) for project in projects)
-
+    rpc_org.teams.extend(serialize_rpc_team(team) for team in teams)
     return rpc_org

@@ -43,9 +43,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
             raise ParseError(detail="A transaction name is required")
 
         project = self.get_project(request, organization)
-        teams = []
-        if request.user.is_authenticated:
-            teams = Team.objects.get_for_user(organization=organization, user_id=request.user.id)
+        teams = Team.objects.get_for_user(organization, request.user)
 
         key_teams = TeamKeyTransaction.objects.filter(
             organization=organization,

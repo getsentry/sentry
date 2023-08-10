@@ -421,13 +421,7 @@ class BaseView(View, OrganizationMixin):
         return res
 
     def get_team_list(self, user: User, organization: Organization) -> list[Team]:
-        if not user.is_authenticated:
-            return []
-        return Team.objects.get_for_user(
-            organization=organization,
-            user_id=user.id,
-            with_projects=True,
-        )
+        return Team.objects.get_for_user(organization=organization, user=user, with_projects=True)
 
     def create_audit_entry(
         self, request: HttpRequest, transaction_id: int | None = None, **kwargs: Any
