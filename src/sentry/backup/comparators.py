@@ -6,8 +6,8 @@ from typing import Callable, Dict, List, Literal
 from dateutil import parser
 from django.db import models
 
-from sentry.backup.findings import ComparatorFinding, InstanceID
-from sentry.backup.helpers import get_exportable_final_derivations_of
+from sentry.backup.findings import ComparatorFinding, ComparatorFindingKind, InstanceID
+from sentry.backup.helpers import Side, get_exportable_final_derivations_of
 from sentry.db.models import BaseModel
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.utils.json import JSONData
@@ -31,15 +31,15 @@ class JSONScrubbingComparator(ABC):
     def __init__(self, *fields: str):
         self.fields = set(fields)
 
-    def check(self, side: str, data: JSONData) -> None:
+    def check(self, side: Side, data: JSONData) -> None:
         """Ensure that we have received valid JSON data at runtime."""
 
         if "model" not in data or not isinstance(data["model"], str):
-            raise RuntimeError(f"The {side} input must have a `model` string assigned to it.")
-        if "pk" not in data or not isinstance(data["pk"], int):
-            raise RuntimeError(f"The {side} input must have a numerical `pk` entry.")
+            raise RuntimeError(f"The {side.name} input must have a `model` string assigned to it.")
+        if "ordinal" not in data or not isinstance(data["ordinal"], int):
+            raise RuntimeError(f"The {side.name} input must have a numerical `ordinal` entry.")
         if "fields" not in data or not isinstance(data["fields"], dict):
-            raise RuntimeError(f"The {side} input must have a `fields` dictionary.")
+            raise RuntimeError(f"The {side.name} input must have a `fields` dictionary.")
 
     @abstractmethod
     def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
@@ -59,16 +59,20 @@ class JSONScrubbingComparator(ABC):
             if f not in left["fields"]:
                 findings.append(
                     ComparatorFinding(
-                        kind="Unexecuted" + self.get_kind(),
+                        kind=self.get_kind_existence_check(),
                         on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
                         reason=f"the left `{f}` value was missing",
                     )
                 )
             if f not in right["fields"]:
                 findings.append(
                     ComparatorFinding(
-                        kind="Unexecuted" + self.get_kind(),
+                        kind=self.get_kind_existence_check(),
                         on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
                         reason=f"the right `{f}` value was missing",
                     )
                 )
@@ -92,8 +96,8 @@ class JSONScrubbingComparator(ABC):
             omitted, the scrubbed entry defaults to `True`.
         """
 
-        self.check("left", left)
-        self.check("right", right)
+        self.check(Side.left, left)
+        self.check(Side.right, right)
         if "scrubbed" not in left:
             left["scrubbed"] = {}
         if "scrubbed" not in right:
@@ -106,7 +110,7 @@ class JSONScrubbingComparator(ABC):
                 value = side["fields"][field]
                 value = [value] if isinstance(value, str) else value
                 del side["fields"][field]
-                side["scrubbed"][f"{self.get_kind()}::{field}"] = f(value)
+                side["scrubbed"][f"{self.get_kind().name}::{field}"] = f(value)
 
     def scrub(
         self,
@@ -115,11 +119,18 @@ class JSONScrubbingComparator(ABC):
     ) -> None:
         self.__scrub__(left, right)
 
-    def get_kind(self) -> str:
+    def get_kind(self) -> ComparatorFindingKind:
         """A unique identifier for this particular derivation of JSONScrubbingComparator, which will
         be bubbled up in ComparatorFindings when they are generated."""
 
-        return self.__class__.__name__
+        return ComparatorFindingKind.__members__[self.__class__.__name__]
+
+    def get_kind_existence_check(self) -> ComparatorFindingKind:
+        """A unique identifier for the existence check of this particular derivation of
+        JSONScrubbingComparator, which will be bubbled up in ComparatorFindings when they are
+        generated."""
+
+        return ComparatorFindingKind.__members__[self.__class__.__name__ + "ExistenceCheck"]
 
 
 class DateUpdatedComparator(JSONScrubbingComparator):
@@ -142,13 +153,15 @@ class DateUpdatedComparator(JSONScrubbingComparator):
                 ComparatorFinding(
                     kind=self.get_kind(),
                     on=on,
+                    left_pk=left["pk"],
+                    right_pk=right["pk"],
                     reason=f"""the left value ({left_date_updated}) of `{f}` was not less than or equal to the right value ({right_date_updated})""",
                 )
             ]
         return []
 
 
-class DateAddedComparator(JSONScrubbingComparator):
+class DatetimeEqualityComparator(JSONScrubbingComparator):
     """Some exports from before sentry@23.7.1 may trim milliseconds from timestamps if they end in
     exactly `.000` (ie, not milliseconds at all - what are the odds!). Because comparisons may fail
     in this case, we use a special comparator for these cases."""
@@ -170,6 +183,8 @@ class DateAddedComparator(JSONScrubbingComparator):
                     ComparatorFinding(
                         kind=self.get_kind(),
                         on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
                         reason=f"""the left value ({left_date_added}) of `{f}` was not equal to the right value ({right_date_added})""",
                     )
                 )
@@ -199,6 +214,8 @@ class ObfuscatingComparator(JSONScrubbingComparator, ABC):
                     ComparatorFinding(
                         kind=self.get_kind(),
                         on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
                         reason=f"""the left value ("{lv}") of `{f}` was not equal to the right value ("{rv}")""",
                     )
                 )
@@ -270,13 +287,15 @@ def auto_assign_date_added_comparator(comps: ComparatorMap) -> None:
                     assign.add(f.name)
 
         if name in comps:
-            found = next(filter(lambda e: isinstance(e, DateAddedComparator), comps[name]), None)
+            found = next(
+                filter(lambda e: isinstance(e, DatetimeEqualityComparator), comps[name]), None
+            )
             if found:
                 found.fields.update(assign)
             else:
-                comps[name].append(DateAddedComparator(*assign))
+                comps[name].append(DatetimeEqualityComparator(*assign))
         else:
-            comps[name] = [DateAddedComparator(*assign)]
+            comps[name] = [DatetimeEqualityComparator(*assign)]
 
 
 def auto_assign_email_obfuscating_comparator(comps: ComparatorMap) -> None:

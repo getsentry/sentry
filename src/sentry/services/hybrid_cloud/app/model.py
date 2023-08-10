@@ -99,18 +99,23 @@ class SentryAppEventDataInterface(Protocol):
     the minimum required properties.
     """
 
-    id: str
-    label: str
+    @property
+    def id(self) -> str:
+        ...
+
+    @property
+    def label(self) -> str:
+        ...
 
     @property
     def actionType(self) -> str:
-        pass
+        ...
 
     def is_enabled(self) -> bool:
-        pass
+        ...
 
 
-class RpcSentryAppEventData(RpcModel, SentryAppEventDataInterface, metaclass=RpcModelProtocolMeta):
+class RpcSentryAppEventData(RpcModel, metaclass=RpcModelProtocolMeta):
     id: str = ""
     label: str = ""
     action_type: str = ""
