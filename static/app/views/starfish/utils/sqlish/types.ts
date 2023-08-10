@@ -1,4 +1,11 @@
 export interface Token {
-  type: 'Keyword' | 'Parameter' | 'CollapsedColumns' | 'Whitespace' | 'GenericToken';
+  type:
+    | 'LeftParenthesis'
+    | 'RightParenthesis'
+    | 'Whitespace'
+    | 'Keyword'
+    | 'Parameter'
+    | 'CollapsedColumns'
+    | 'GenericToken';
   content?: string | Token | Token[];
 }
