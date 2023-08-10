@@ -7,7 +7,7 @@ from celery import Task
 from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
-from freezegun import freeze_time, freezegun
+from freezegun import freeze_time
 from requests.exceptions import Timeout
 
 from sentry import features
@@ -879,7 +879,7 @@ class TestWebhookRequests(TestCase):
     @patch(
         "sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockFailureResponseInstance
     )
-    @freezegun.freeze_time("2022-01-01 03:30:00")
+    @freeze_time("2022-01-01 03:30:00")
     def test_slow_broken_not_disable(self, safe_urlopen):
         """
         Tests that the integration is broken after 10 days of errors but still enabled since flag is off
