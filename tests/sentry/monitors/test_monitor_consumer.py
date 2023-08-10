@@ -590,3 +590,36 @@ class MonitorConsumerTest(TestCase):
                 "Failed try high-volume task trigger", exc_info=True
             )
             dispatch_tasks.side_effect = None
+
+    @override_settings(SENTRY_MONITORS_HIGH_VOLUME_MODE=True)
+    @mock.patch("sentry.monitors.consumers.monitor_consumer._dispatch_tasks")
+    def test_monitor_task_trigger_partition_desync(self, dispatch_tasks):
+        """
+        When consumer partitions are not completely synchronized we may read
+        timestamps in a non-monotonic order. In this scenario we want to make
+        sure we still only trigger once
+        """
+        monitor = self._create_monitor(slug="my-monitor")
+
+        assert dispatch_tasks.call_count == 0
+
+        now = datetime.now().replace(second=0, microsecond=0)
+
+        # First message with timestamp just after the minute bounardary
+        # triggers the task
+        self.send_checkin(monitor.slug, ts=now + timedelta(seconds=1))
+        assert dispatch_tasks.call_count == 1
+
+        # Second message has a timestamp just before the minute boundary,
+        # should not trigger anything since we've already ticked ahead of this
+        self.send_checkin(monitor.slug, ts=now - timedelta(seconds=1))
+        assert dispatch_tasks.call_count == 1
+
+        # Third message again just after the minute bounadry does NOT trigger
+        # the task, we've already ticked at that time.
+        self.send_checkin(monitor.slug, ts=now + timedelta(seconds=1))
+        assert dispatch_tasks.call_count == 1
+
+        # Fourth message moves past a new minute boundary, tick
+        self.send_checkin(monitor.slug, ts=now + timedelta(minutes=1, seconds=1))
+        assert dispatch_tasks.call_count == 2

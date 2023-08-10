@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import functools
+import os
 import threading
 from typing import Any, Callable, Iterator, List, Set, TypedDict
 
@@ -238,3 +239,7 @@ def simulate_on_commit(request: Any):
         transaction.Atomic.__exit__ = _old_atomic_exit  # type: ignore
         transaction.on_commit = _old_transaction_on_commit
         delattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks")
+
+
+def use_split_dbs() -> bool:
+    return bool(os.environ.get("SENTRY_USE_SPLIT_DBS"))
