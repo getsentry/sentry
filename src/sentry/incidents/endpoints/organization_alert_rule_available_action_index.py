@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 
 from rest_framework import status
@@ -17,10 +19,18 @@ from sentry.incidents.logic import (
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 from sentry.models import SentryAppInstallation
+from sentry.models.organization import Organization
+from sentry.services.hybrid_cloud.app.model import RpcSentryAppInstallation
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.services.hybrid_cloud.util import region_silo_function
 
 
+@region_silo_function
 def build_action_response(
-    registered_type, integration=None, organization=None, sentry_app_installation=None
+    registered_type,
+    integration: RpcIntegration | None = None,
+    organization: Organization | None = None,
+    sentry_app_installation: RpcSentryAppInstallation | None = None,
 ):
     """
     Build the "available action" objects for the API. Each one can have different fields.
@@ -72,7 +82,7 @@ def build_action_response(
 
 @region_silo_endpoint
 class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Fetches actions that an alert rule can perform for an organization
         """
