@@ -68,9 +68,7 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
         def _get_email_domain(email: str) -> str:
             return Address(addr_spec=email).domain
 
-        owner_email_domains = {
-            _get_email_domain(owner.user_email) for owner in org_owners if owner.user_email
-        }
+        owner_email_domains = {_get_email_domain(owner.user_email) for owner in org_owners}
 
         # all owners have the same email domain
         if len(owner_email_domains) == 1:
