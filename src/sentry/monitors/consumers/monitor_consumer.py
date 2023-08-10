@@ -208,7 +208,10 @@ def _try_handle_high_volume_task_trigger(ts: datetime):
     # close, but in the case of a backlog, this will be much higher
     total_delay = datetime.now().timestamp()
 
-    logger.info(f"Monitor consumer clock tick: {reference_datetime}")
+    logger.info(
+        "monitors.consumer.clock_tick",
+        extra={"reference_datetime": str(reference_datetime)},
+    )
     metrics.gauge("monitors.task.high_volume_clock_delay", total_delay, sample_rate=1.0)
 
     # If more than exactly a minute has passed then we've skipped a
