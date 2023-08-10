@@ -44,6 +44,29 @@ describe('SQLishFormatter', function () {
         ))"
       `);
     });
+
+    it('Adds indentation for SELECTS in conditions', () => {
+      expect(
+        formatter.toString(
+          'SELECT * FROM "sentry_users" WHERE (id IN (SELECT VO."id" FROM "sentry_vips" VO LIMIT 1)) AND (id IN (SELECT V1."id" FROM "sentry_currentusers" V1 LIMIT 1)) LIMIT 1'
+        )
+      ).toMatchInlineSnapshot(`
+        "SELECT *
+        FROM "sentry_users"
+        WHERE (
+          id IN (
+            SELECT VO."id"
+            FROM "sentry_vips" VO
+            LIMIT 1
+          )
+        ) AND (id IN (
+          SELECT V1."id"
+          FROM "sentry_currentusers" V1
+          LIMIT 1
+        ))
+        LIMIT 1"
+      `);
+    });
   });
 
   describe('SQLishFormatter.toSimpleMarkup()', () => {
