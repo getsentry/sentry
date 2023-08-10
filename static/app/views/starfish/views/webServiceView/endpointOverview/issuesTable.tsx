@@ -40,7 +40,7 @@ function IssuesTable(props: Props) {
 
   return (
     <GroupList
-      orgId={organization.slug}
+      orgSlug={organization.slug}
       withChart={false}
       withColumns={[]}
       narrowGroups

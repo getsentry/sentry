@@ -398,7 +398,7 @@ class ReleaseIssues extends Component<Props, State> {
         </ControlsWrapper>
         <div data-test-id="release-wrapper">
           <GroupList
-            orgId={organization.slug}
+            orgSlug={organization.slug}
             endpointPath={path}
             queryParams={queryParams}
             query={`release:${version}`}
