@@ -289,8 +289,10 @@ class TestCreatesOndemandMetricSpec:
             ("p75(measurements.fp)", "transaction.duration:>0"),
             ("p75(transaction.duration)", "transaction.duration:>0"),
             ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
-            ("count()", "transaction.duration:>0"),
-            ("count()", "transaction.duration:>0"),
+            (
+                "count()",
+                "project:android-symbol-collector-server route.action:CloseBatch level:info",
+            ),
         ],
     )
     def test_creates_on_demand_spec(self, aggregate, query):
@@ -309,6 +311,10 @@ class TestCreatesOndemandMetricSpec:
             ("message", "transaction.duration:>0"),
             ("count()", "transaction.duration:[1,2,3]"),
             ("equation| count() / count()", "transaction.duration:>0"),
+            ("p75(measurements.lcp)", "!event.type:transaction"),
+            ("count_web_vitals(measurements.fcp,any)", "transaction.duration:>0"),
+            ("p95(measurements.lcp)", ""),
+            ("avg(spans.http)", ""),
         ],
     )
     def test_does_not_create_on_demand_spec(self, aggregate, query):
