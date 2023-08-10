@@ -13,21 +13,36 @@ describe('SQLishFormatter', function () {
     });
 
     it('Adds newlines for keywords in SELECTs', () => {
-      expect(
-        formatter.toString('SELECT hello FROM users ORDER BY name DESC LIMIT 1;')
-      ).toEqual('SELECT hello \nFROM users \nORDER BY name DESC \nLIMIT 1;');
+      expect(formatter.toString('SELECT hello FROM users ORDER BY name DESC LIMIT 1;'))
+        .toMatchInlineSnapshot(`
+        "SELECT hello
+        FROM users
+        ORDER BY name DESC
+        LIMIT 1;"
+      `);
     });
 
     it('Adds newlines for keywords in INSERTs', () => {
       expect(
         formatter.toString('INSERT INTO users (id, name) VALUES (:c0, :c1) RETURNING *')
-      ).toEqual('INSERT INTO users (id, name) \nVALUES (\n  :c0, :c1\n) \nRETURNING *');
+      ).toMatchInlineSnapshot(`
+        "INSERT INTO users (id, name)
+        VALUES (
+          :c0, :c1
+        )
+        RETURNING *"
+      `);
     });
 
     it('Adds indentation for keywords followed by parentheses', () => {
-      expect(formatter.toString('SELECT * FROM (SELECT * FROM users))')).toEqual(
-        'SELECT * \nFROM (\n  SELECT * \n  FROM users\n))'
-      );
+      expect(formatter.toString('SELECT * FROM (SELECT * FROM users))'))
+        .toMatchInlineSnapshot(`
+        "SELECT *
+        FROM (
+          SELECT *
+          FROM users
+        ))"
+      `);
     });
   });
 
@@ -47,14 +62,14 @@ describe('SQLishFormatter', function () {
     });
 
     it('Capitalizes keywords', () => {
-      expect(getMarkup(formatter.toSimpleMarkup('select hello'))).toEqual(
-        '<b>SELECT</b><span> </span><span>hello</span>'
+      expect(getMarkup(formatter.toSimpleMarkup('select hello'))).toMatchInlineSnapshot(
+        `"<b>SELECT</b><span> </span><span>hello</span>"`
       );
     });
 
     it('Wraps every token in a `<span>` element', () => {
-      expect(getMarkup(formatter.toSimpleMarkup('SELECT hello;'))).toEqual(
-        '<b>SELECT</b><span> </span><span>hello;</span>'
+      expect(getMarkup(formatter.toSimpleMarkup('SELECT hello;'))).toMatchInlineSnapshot(
+        `"<b>SELECT</b><span> </span><span>hello;</span>"`
       );
     });
   });
