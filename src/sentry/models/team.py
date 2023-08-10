@@ -27,10 +27,20 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project
+    from sentry.models import Organization, Project, User
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 
 class TeamManager(BaseManager):
+    @overload
+    def get_for_user(
+        self,
+        *,
+        organization: Organization,
+        user: User | RpcUser,
+    ) -> list[Team]:
+        ...
+
     @overload
     def get_for_user(
         self,
@@ -56,7 +66,8 @@ class TeamManager(BaseManager):
         self,
         *,
         organization: Organization,
-        user_id: int,
+        user_id: int | None = None,
+        user: User | RpcUser | None = None,
         scope: Optional[str] = None,
         with_projects: bool = False,
     ) -> Union[Sequence[Team], Sequence[Tuple[Team, Sequence[Project]]]]:
@@ -66,6 +77,9 @@ class TeamManager(BaseManager):
         from sentry.auth.superuser import is_active_superuser
         from sentry.models import OrganizationMember, OrganizationMemberTeam, Project
         from sentry.models.projectteam import ProjectTeam
+
+        if (user_id is None) and (user is not None):
+            user_id = user.id
 
         base_team_qs = self.filter(organization=organization, status=TeamStatus.ACTIVE)
 
