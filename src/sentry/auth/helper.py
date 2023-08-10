@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Collection, Dict, Mapping, Sequence, Tuple, cast
+from typing import TYPE_CHECKING, Any, Collection, Dict, Mapping, Optional, Sequence, Tuple, cast
 from uuid import uuid4
 
 import sentry_sdk
@@ -86,6 +86,7 @@ class AuthHelperSessionStore(PipelineSessionStore):
         return "auth_key"
 
     flow = redis_property("flow")
+    referrer = redis_property("referrer")
 
     def mark_session(self) -> None:
         super().mark_session()
@@ -107,6 +108,7 @@ class AuthIdentityHandler:
     organization: RpcOrganization
     request: HttpRequest
     identity: Mapping[str, Any]
+    referrer: Optional[str] = "in-app"
 
     @cached_property
     def user(self) -> User | AnonymousUser:
@@ -635,7 +637,7 @@ class AuthIdentityHandler:
             user=user,
             source="sso",
             provider=provider,
-            referrer="in-app",
+            referrer=self.referrer,
         )
 
         self._handle_new_membership(auth_identity)
@@ -683,14 +685,18 @@ class AuthHelper(Pipeline):
         if not req_state.organization:
             logging.info("Invalid SSO data found")
             return None
+
+        # NOTE: pulling custom pipeline state (see get_initial_state)
         flow = req_state.state.flow
+        referrer = req_state.state.referrer
 
         return cls(
-            request=request,
-            organization=req_state.organization,
-            flow=flow,
             auth_provider=req_state.provider_model,
+            flow=flow,
+            organization=req_state.organization,
             provider_key=req_state.provider_key,
+            referrer=referrer,
+            request=request,
         )
 
     def __init__(
@@ -698,11 +704,13 @@ class AuthHelper(Pipeline):
         request: HttpRequest,
         organization: RpcOrganization,
         flow: int,
-        auth_provider: AuthProvider | None = None,
-        provider_key: str | None = None,
+        auth_provider: Optional[AuthProvider] = None,
+        provider_key: Optional[str] = None,
+        referrer: Optional[str] = "in-app",
     ) -> None:
         assert provider_key or auth_provider
         self.flow = flow
+        self.referrer = referrer
 
         # TODO: Resolve inconsistency with nullable provider_key.
         # Tagging with "type: ignore" because the superclass requires provider_key to
@@ -738,7 +746,7 @@ class AuthHelper(Pipeline):
 
     def get_initial_state(self) -> Mapping[str, Any]:
         state = dict(super().get_initial_state())
-        state.update({"flow": self.flow})
+        state.update({"flow": self.flow, "referrer": self.referrer})
         return state
 
     def get_redirect_url(self) -> str:
@@ -773,7 +781,12 @@ class AuthHelper(Pipeline):
 
     def auth_handler(self, identity: Mapping[str, Any]) -> AuthIdentityHandler:
         return AuthIdentityHandler(
-            self.provider_model, self.provider, self.organization, self.request, identity
+            auth_provider=self.provider_model,
+            provider=self.provider,
+            organization=self.organization,
+            request=self.request,
+            identity=identity,
+            referrer=self.referrer,
         )
 
     def _finish_login_pipeline(self, identity: Mapping[str, Any]) -> HttpResponse:

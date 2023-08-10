@@ -456,12 +456,13 @@ class AuthHelperTest(TestCase):
         self.request = _set_up_request()
         self.request.session["auth_key"] = self.auth_key
 
-    def _test_pipeline(self, flow):
+    def _test_pipeline(self, flow, referrer=None):
         initial_state = {
             "org_id": self.organization.id,
             "flow": flow,
             "provider_model_id": self.auth_provider_inst.id,
             "provider_key": None,
+            "referrer": referrer,
         }
         local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
         local_client.set(self.auth_key, json.dumps(initial_state))
@@ -470,6 +471,8 @@ class AuthHelperTest(TestCase):
         assert helper is not None
         helper.initialize()
         assert helper.is_valid()
+        assert helper.referrer == referrer
+        assert helper.flow == flow
 
         first_step = helper.current_step()
         assert first_step.status_code == 200
@@ -486,6 +489,11 @@ class AuthHelperTest(TestCase):
     @mock.patch("sentry.auth.helper.messages")
     def test_setup_provider(self, mock_messages):
         final_step = self._test_pipeline(AuthHelper.FLOW_SETUP_PROVIDER)
+        assert final_step.url == f"/settings/{self.organization.slug}/auth/"
+
+    @mock.patch("sentry.auth.helper.messages")
+    def test_referrer_state(self, mock_messages):
+        final_step = self._test_pipeline(flow=AuthHelper.FLOW_SETUP_PROVIDER, referrer="foobar")
         assert final_step.url == f"/settings/{self.organization.slug}/auth/"
 
 

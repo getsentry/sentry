@@ -18,12 +18,14 @@ class AuthOrganizationLoginView(AuthLoginView):
         return self.respond("sentry/organization-login.html", context)
 
     def handle_sso(self, request: Request, organization: RpcOrganization, auth_provider):
+        referrer = request.GET.get("referrer")
         if request.method == "POST":
             helper = AuthHelper(
                 request=request,
                 organization=organization,
                 auth_provider=auth_provider,
                 flow=AuthHelper.FLOW_LOGIN,
+                referrer=referrer,  # TODO: get referrer from the form submit - not the query parms
             )
 
             if request.POST.get("init"):
@@ -42,6 +44,7 @@ class AuthOrganizationLoginView(AuthLoginView):
             "provider_key": provider.key,
             "provider_name": provider.name,
             "authenticated": request.user.is_authenticated,
+            "referrer": referrer,
         }
 
         return self.respond("sentry/organization-login.html", context)
@@ -60,8 +63,11 @@ class AuthOrganizationLoginView(AuthLoginView):
         # check on POST to handle
         # multiple tabs case well now that we include redirect in url
         if request.method == "POST":
+            referrer = None
+            if request.session.get("_referrer") is not None:
+                referrer = request.session.pop("_referrer")
             next_uri = self.get_next_uri(request)
-            initiate_login(request, next_uri)
+            initiate_login(request, next_uri, referrer)
 
         try:
             auth_provider = AuthProvider.objects.get(organization_id=organization.id)

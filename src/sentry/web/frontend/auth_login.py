@@ -217,6 +217,7 @@ class AuthLoginView(BaseView):
         If the post call comes from the SSO tab, redirect the user to SSO login next steps.
         """
         auth_provider = self.get_auth_provider_if_exists(org_slug=request.POST["organization"])
+        query_params = request.GET
         if auth_provider:
             next_uri = reverse("sentry-auth-organization", args=[request.POST["organization"]])
         else:
@@ -224,7 +225,9 @@ class AuthLoginView(BaseView):
             next_uri = request.get_full_path()
             messages.add_message(request=request, level=messages.ERROR, message=ERR_NO_SSO)
 
-        return HttpResponseRedirect(redirect_to=next_uri)
+        redirect_uri = construct_link_with_query(path=next_uri, query_params=query_params)
+
+        return HttpResponseRedirect(redirect_to=redirect_uri)
 
     def get_auth_provider_if_exists(self, org_slug: str) -> Union[AuthProvider, None]:
         """
@@ -419,6 +422,7 @@ class AuthLoginView(BaseView):
         context = {
             "op": "login",
             "login_form": login_form,
+            "referrer": request.GET.get("referrer"),
         }
 
         context.update(additional_context.run_callbacks(request))
@@ -521,6 +525,7 @@ class AuthLoginView(BaseView):
             ),  # NOTE: not utilized in basic login page (only org login)
             "show_login_banner": settings.SHOW_LOGIN_BANNER,
             "banner_choice": randint(0, 1),  # 2 possible banners
+            "referrer": request.GET.get("referrer"),
         }
         default_context.update(additional_context.run_callbacks(request=request))
         return default_context
@@ -528,9 +533,6 @@ class AuthLoginView(BaseView):
     def get_join_request_link(
         self, organization: RpcOrganization, request: Request
     ) -> Union[str, None]:
-        """
-        Returns a join request link and does something else? TODO: FIGURE OUT WHAT THIS DOES IN REVIEW
-        """
         if not organization:
             return None
 
@@ -716,6 +718,7 @@ class AuthLoginView(BaseView):
             ),
             "show_login_banner": settings.SHOW_LOGIN_BANNER,
             "banner_choice": randint(0, 1),  # 2 possible banners
+            "referrer": request.GET.get("referrer"),
         }
 
         context.update(additional_context.run_callbacks(request))
