@@ -24,7 +24,7 @@ ON_DEMAND_METRICS = "organizations:on-demand-metrics-extraction"
 ON_DEMAND_METRICS_WIDGETS = "organizations:on-demand-metrics-extraction-experimental"
 
 
-def mock_alert(aggregate: str, query: str, project: Project) -> AlertRule:
+def create_alert(aggregate: str, query: str, project: Project) -> AlertRule:
     snuba_query = SnubaQuery.objects.create(
         aggregate=aggregate,
         query=query,
@@ -47,7 +47,7 @@ def mock_alert(aggregate: str, query: str, project: Project) -> AlertRule:
     return alert_rule
 
 
-def mock_widget(
+def create_widget(
     aggregates: Sequence[str], query: str, project: Project, title="Dashboard"
 ) -> DashboardWidgetQuery:
     dashboard = Dashboard.objects.create(
@@ -70,7 +70,7 @@ def mock_widget(
     return widget_query
 
 
-def mock_project_threshold(
+def create_project_threshold(
     project: Project, threshold: int, metric: int
 ) -> ProjectTransactionThreshold:
     return ProjectTransactionThreshold.objects.create(
@@ -86,7 +86,7 @@ def test_get_metric_extraction_config_empty_no_alerts(default_project):
 
 @django_db_all
 def test_get_metric_extraction_config_empty_feature_flag_off(default_project):
-    mock_alert("count()", "transaction.duration:>=1000", default_project)
+    create_alert("count()", "transaction.duration:>=1000", default_project)
 
     assert not get_metric_extraction_config(default_project)
 
@@ -95,7 +95,7 @@ def test_get_metric_extraction_config_empty_feature_flag_off(default_project):
 def test_get_metric_extraction_config_empty_standard_alerts(default_project):
     with Feature(ON_DEMAND_METRICS):
         # standard alerts are not included in the config
-        mock_alert("count()", "", default_project)
+        create_alert("count()", "", default_project)
 
         assert not get_metric_extraction_config(default_project)
 
@@ -103,7 +103,7 @@ def test_get_metric_extraction_config_empty_standard_alerts(default_project):
 @django_db_all
 def test_get_metric_extraction_config_single_alert(default_project):
     with Feature(ON_DEMAND_METRICS):
-        mock_alert("count()", "transaction.duration:>=1000", default_project)
+        create_alert("count()", "transaction.duration:>=1000", default_project)
 
         config = get_metric_extraction_config(default_project)
 
@@ -121,8 +121,8 @@ def test_get_metric_extraction_config_single_alert(default_project):
 @django_db_all
 def test_get_metric_extraction_config_multiple_alerts(default_project):
     with Feature(ON_DEMAND_METRICS):
-        mock_alert("count()", "transaction.duration:>=1000", default_project)
-        mock_alert("count()", "transaction.duration:>=2000", default_project)
+        create_alert("count()", "transaction.duration:>=1000", default_project)
+        create_alert("count()", "transaction.duration:>=2000", default_project)
 
         config = get_metric_extraction_config(default_project)
 
@@ -139,8 +139,8 @@ def test_get_metric_extraction_config_multiple_alerts(default_project):
 def test_get_metric_extraction_config_multiple_alerts_duplicated(default_project):
     # alerts with the same query should be deduplicated
     with Feature(ON_DEMAND_METRICS):
-        mock_alert("count()", "transaction.duration:>=1000", default_project)
-        mock_alert("count()", "transaction.duration:>=1000", default_project)
+        create_alert("count()", "transaction.duration:>=1000", default_project)
+        create_alert("count()", "transaction.duration:>=1000", default_project)
 
         config = get_metric_extraction_config(default_project)
 
@@ -151,7 +151,7 @@ def test_get_metric_extraction_config_multiple_alerts_duplicated(default_project
 @django_db_all
 def test_get_metric_extraction_config_single_standard_widget(default_project):
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
-        mock_widget(["count()"], "", default_project)
+        create_widget(["count()"], "", default_project)
 
         assert not get_metric_extraction_config(default_project)
 
@@ -159,7 +159,7 @@ def test_get_metric_extraction_config_single_standard_widget(default_project):
 @django_db_all
 def test_get_metric_extraction_config_single_widget(default_project):
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
-        mock_widget(["count()"], "transaction.duration:>=1000", default_project)
+        create_widget(["count()"], "transaction.duration:>=1000", default_project)
 
         config = get_metric_extraction_config(default_project)
 
@@ -178,7 +178,7 @@ def test_get_metric_extraction_config_single_widget(default_project):
 def test_get_metric_extraction_config_single_widget_multiple_aggregates(default_project):
     # widget with multiple fields should result in multiple metrics
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
-        mock_widget(
+        create_widget(
             ["count()", "avg(transaction.duration)"], "transaction.duration:>=1000", default_project
         )
 
@@ -211,7 +211,7 @@ def test_get_metric_extraction_config_single_widget_multiple_count_if(default_pr
             "count_if(transaction.duration, greater, 2000)",
             "count_if(transaction.duration, greaterOrEquals, 1000)",
         ]
-        mock_widget(aggregates, "transaction.duration:>=1000", default_project)
+        create_widget(aggregates, "transaction.duration:>=1000", default_project)
 
         config = get_metric_extraction_config(default_project)
 
@@ -256,7 +256,7 @@ def test_get_metric_extraction_config_single_widget_multiple_count_if(default_pr
 def test_get_metric_extraction_config_multiple_aggregates_single_field(default_project):
     # widget with multiple aggregates on the same field in a single metric
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
-        mock_widget(
+        create_widget(
             ["sum(transaction.duration)", "avg(transaction.duration)"],
             "transaction.duration:>=1000",
             default_project,
@@ -279,10 +279,10 @@ def test_get_metric_extraction_config_multiple_aggregates_single_field(default_p
 def test_get_metric_extraction_config_multiple_widgets_duplicated(default_project):
     # metrics should be deduplicated across widgets
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
-        mock_widget(
+        create_widget(
             ["count()", "avg(transaction.duration)"], "transaction.duration:>=1000", default_project
         )
-        mock_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
 
         config = get_metric_extraction_config(default_project)
 
@@ -308,8 +308,8 @@ def test_get_metric_extraction_config_multiple_widgets_duplicated(default_projec
 def test_get_metric_extraction_config_alerts_and_widgets_off(default_project):
     # widgets should be skipped if the feature is off
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: False}):
-        mock_alert("count()", "transaction.duration:>=1000", default_project)
-        mock_widget(["count()"], "transaction.duration:>=1000", default_project)
+        create_alert("count()", "transaction.duration:>=1000", default_project)
+        create_widget(["count()"], "transaction.duration:>=1000", default_project)
 
         config = get_metric_extraction_config(default_project)
 
@@ -328,8 +328,8 @@ def test_get_metric_extraction_config_alerts_and_widgets_off(default_project):
 def test_get_metric_extraction_config_alerts_and_widgets(default_project):
     # deduplication should work across alerts and widgets
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
-        mock_alert("count()", "transaction.duration:>=1000", default_project)
-        mock_widget(
+        create_alert("count()", "transaction.duration:>=1000", default_project)
+        create_widget(
             ["count()", "avg(transaction.duration)"], "transaction.duration:>=1000", default_project
         )
 
@@ -356,10 +356,10 @@ def test_get_metric_extraction_config_alerts_and_widgets(default_project):
 @pytest.mark.django_db
 def test_get_metric_extraction_config_with_apdex(default_project):
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
-        mock_alert("apdex(10)", "transaction.duration:>=1000", default_project)
+        create_alert("apdex(10)", "transaction.duration:>=1000", default_project)
         # The threshold stored in the database will not be considered and rather the one from the parameter will be
         # preferred.
-        mock_project_threshold(default_project, 200, TransactionMetric.DURATION.value)
+        create_project_threshold(default_project, 200, TransactionMetric.DURATION.value)
 
         config = get_metric_extraction_config(default_project)
 

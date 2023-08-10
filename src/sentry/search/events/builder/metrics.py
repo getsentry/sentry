@@ -213,7 +213,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         # Resolutions that we will perform only in case the query is not on demand. The reasoning for this is that
         # for building an on demand query we only require a time interval and granularity. All the other fields are
-        # automatically computed given the OnDemandMetricSpec.
+        # automatically computed given the OndemandMetricSpec.
         if not self._on_demand_metric_spec:
             with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
                 self.where, self.having = self.resolve_conditions(

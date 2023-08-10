@@ -34,7 +34,6 @@ _METRIC_EXTRACTION_VERSION = 1
 _MAX_ON_DEMAND_ALERTS = 100
 _MAX_ON_DEMAND_WIDGETS = 500
 
-
 HashMetricSpec = Tuple[str, MetricSpec]
 
 
@@ -122,10 +121,9 @@ def _merge_metric_specs(
 ) -> List[MetricSpec]:
     # We use a dict so that we can deduplicate metrics with the same hash.
     metrics: Dict[str, MetricSpec] = {}
-
     for query_hash, spec in alert_specs + widget_specs:
         already_present = metrics.get(query_hash)
-        if already_present is not None and already_present != spec:
+        if already_present and already_present != spec:
             logger.error(
                 "Duplicate metric spec found for hash %s with different specs: %s != %s",
                 query_hash,
