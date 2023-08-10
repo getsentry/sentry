@@ -19,6 +19,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         self.login_as(user=self.user)
         self.path = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/keys/{self.key.public_key}/stats/"
 
+    @pytest.mark.skip(reason="flakey: https://github.com/getsentry/sentry/issues/54520")
     def test_simple(self):
         # This outcome should not be included.
         other_key = ProjectKey.objects.create(project=self.project)
