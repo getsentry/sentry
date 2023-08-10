@@ -397,10 +397,19 @@ export function getSpanSubTimings(span: ProcessedSpanType): SubTimingInfo[] | nu
   const spanStart = subTimingMarkToTime(span, SpanSubTimingMark.SPAN_START);
   const spanEnd = subTimingMarkToTime(span, SpanSubTimingMark.SPAN_END);
 
+  const TEN_MS = 0.001;
+
   for (const def of timingDefinitions) {
     const start = subTimingMarkToTime(span, def.startMark);
     const end = subTimingMarkToTime(span, def.endMark);
-    if (!start || !end || !spanStart || !spanEnd || start < spanStart || end > spanEnd) {
+    if (
+      !start ||
+      !end ||
+      !spanStart ||
+      !spanEnd ||
+      start < spanStart - TEN_MS ||
+      end > spanEnd + TEN_MS
+    ) {
       return null;
     }
     timings.push({

@@ -31,16 +31,12 @@ import {
   getSpanOperationName,
   isEquation,
   isRelativeSpanOperationBreakdownField,
-  RATE_UNIT_LABELS,
+  RateUnits,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {getShortEventId} from 'sentry/utils/events';
-import {
-  formatAbbreviatedNumber,
-  formatFloat,
-  formatPercentage,
-} from 'sentry/utils/formatters';
+import {formatFloat, formatPercentage, formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import Projects from 'sentry/utils/projects';
 import toArray from 'sentry/utils/toArray';
@@ -236,12 +232,11 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data, baggage) => {
       const {unit} = baggage ?? {};
-      const renderedUnit = unit ? RATE_UNIT_LABELS[unit] : '';
-      const formattedNumber = `${formatAbbreviatedNumber(
-        data[field],
-        DEFAULT_RATE_SIG_DIGITS
-      )}${renderedUnit}`;
-      return <NumberContainer>{formattedNumber}</NumberContainer>;
+      return (
+        <NumberContainer>
+          {formatRate(data[field], unit as RateUnits, DEFAULT_RATE_SIG_DIGITS)}
+        </NumberContainer>
+      );
     },
   },
   integer: {
