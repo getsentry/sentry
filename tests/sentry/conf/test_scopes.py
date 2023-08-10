@@ -5,10 +5,9 @@ from sentry.testutils.cases import TestCase
 class ScopesTest(TestCase):
     def test_scope_hierarchy_maintained(self):
         for scope in SENTRY_SCOPES:
-
             assert scope in SENTRY_SCOPE_HIERARCHY_MAPPING
 
-            # exclude special scopes
+            # exclude special OAuth scopes
             if ":" not in scope:
                 continue
 
