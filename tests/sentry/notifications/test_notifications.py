@@ -42,9 +42,9 @@ def make_event(**kwargs):
     return result
 
 
-def get_attachment():
+def get_attachment(response_num):
     assert len(responses.calls) >= 1
-    data = parse_qs(responses.calls[0].request.body)
+    data = parse_qs(responses.calls[response_num].request.body)
     assert "text" in data
     assert "attachments" in data
     attachments = json.loads(data["attachments"][0])
@@ -131,7 +131,7 @@ class ActivityNotificationTest(APITestCase):
         assert isinstance(msg.alternatives[0][0], str)
         assert "blah blah</p></div>" in msg.alternatives[0][0]
 
-        attachment, text = get_attachment()
+        attachment, text = get_attachment(0)
         # check the Slack version
         assert text == f"New comment by {self.name}"
         assert attachment["title"] == f"{self.group.title}"
@@ -171,7 +171,7 @@ class ActivityNotificationTest(APITestCase):
         assert isinstance(msg.alternatives[0][0], str)
         assert f"{self.user.username}</strong> unassigned" in msg.alternatives[0][0]
 
-        attachment, text = get_attachment()
+        attachment, text = get_attachment(0)
 
         assert text == f"Issue unassigned by {self.name}"
         assert attachment["title"] == self.group.title
@@ -201,7 +201,7 @@ class ActivityNotificationTest(APITestCase):
         assert isinstance(msg.alternatives[0][0], str)
         assert f"{self.short_id}</a> as resolved</p>" in msg.alternatives[0][0]
 
-        attachment, text = get_attachment()
+        attachment, text = get_attachment(0)
 
         assert (
             text
@@ -258,7 +258,7 @@ class ActivityNotificationTest(APITestCase):
             in msg.alternatives[0][0]
         )
 
-        attachment, text = get_attachment()
+        attachment, text = get_attachment(0)
 
         assert (
             text
@@ -325,7 +325,7 @@ class ActivityNotificationTest(APITestCase):
         assert isinstance(msg.alternatives[0][0], str)
         assert f"{group.qualified_short_id}</a> as a regression</p>" in msg.alternatives[0][0]
 
-        attachment, text = get_attachment()
+        attachment, text = get_attachment(0)
 
         assert text == "Issue marked as regression"
         assert (
@@ -379,7 +379,7 @@ class ActivityNotificationTest(APITestCase):
             f'text-decoration: none">{self.short_id}</a> as resolved in' in msg.alternatives[0][0]
         )
 
-        attachment, text = get_attachment()
+        attachment, text = get_attachment(0)
         assert text == f"Issue marked as resolved in {parsed_version} by {self.name}"
         assert attachment["title"] == self.group.title
         assert (
@@ -440,6 +440,13 @@ class ActivityNotificationTest(APITestCase):
                 project_id=self.project.id,
             )
             cache_key = write_event_to_cache(event)
+            responses.add(
+                method=responses.POST,
+                url="http://127.0.0.1:1218/tests/entities/generic_metrics_counters/insert",
+                body='{"ok": true}',
+                status=200,
+                content_type="application/json",
+            )
             with self.tasks():
                 post_process_group(
                     is_new=True,
@@ -457,7 +464,7 @@ class ActivityNotificationTest(APITestCase):
         assert isinstance(msg.alternatives[0][0], str)
         assert "Hello world</pre>" in msg.alternatives[0][0]
 
-        attachment, text = get_attachment()
+        attachment, text = get_attachment(1)
 
         assert attachment["title"] == "Hello world"
         assert (
