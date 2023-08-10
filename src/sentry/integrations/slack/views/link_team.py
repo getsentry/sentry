@@ -95,15 +95,11 @@ class SlackLinkTeamView(BaseView):
             if is_valid_role(organization_membership)
         ]
 
-        teams_by_id = dict()
-        if request.user.is_authenticated:
-            for organization in organizations:
-                teams_list = Team.objects.get_for_user(
-                    organization=organization,
-                    user_id=request.user.id,
-                )
-                for team in teams_list:
-                    teams_by_id[team.id] = team
+        teams_by_id = {
+            team.id: team
+            for organization in organizations
+            for team in Team.objects.get_for_user(organization, request.user)
+        }
 
         channel_name = params["channel_name"]
         channel_id = params["channel_id"]

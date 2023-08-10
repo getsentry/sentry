@@ -263,12 +263,7 @@ class TeamKeyTransactionSerializer(serializers.Serializer):
     def validate_team(self, team_ids: Sequence[int]) -> Team:
         request = self.context["request"]
         organization = self.context["organization"]
-        team_list = []
-        if request.user.is_authenticated:
-            team_list = Team.objects.get_for_user(
-                organization=organization, user_id=request.user.id
-            )
-        verified_teams = {team.id for team in team_list}
+        verified_teams = {team.id for team in Team.objects.get_for_user(organization, request.user)}
 
         teams = Team.objects.filter(id__in=team_ids)
 

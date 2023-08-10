@@ -39,12 +39,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
         if group == "organization":
             keys = [organization.id]
         elif group == "project":
-            team_list = []
-            if request.user.is_authenticated:
-                team_list = Team.objects.get_for_user(
-                    organization=organization,
-                    user_id=request.user.id,
-                )
+            team_list = Team.objects.get_for_user(organization=organization, user=request.user)
 
             project_ids = request.GET.getlist("projectID")
             if not project_ids:
