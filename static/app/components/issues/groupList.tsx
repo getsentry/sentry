@@ -46,7 +46,7 @@ export type GroupListColumn = 'graph' | 'event' | 'users' | 'assignee' | 'lastTr
 type Props = WithRouterProps & {
   api: Client;
   endpointPath: string;
-  orgId: string;
+  orgSlug: string;
   query: string;
   customStatsPeriod?: TimePeriodType;
   onFetchSuccess?: (
@@ -104,7 +104,7 @@ class GroupList extends Component<Props, State> {
     const ignoredQueryParams = ['end'];
 
     if (
-      prevProps.orgId !== this.props.orgId ||
+      prevProps.orgSlug !== this.props.orgSlug ||
       prevProps.endpointPath !== this.props.endpointPath ||
       prevProps.query !== this.props.query ||
       !isEqual(
@@ -125,12 +125,12 @@ class GroupList extends Component<Props, State> {
 
   fetchData = async () => {
     GroupStore.loadInitialData([]);
-    const {api, orgId, queryParams} = this.props;
+    const {api, orgSlug, queryParams} = this.props;
     api.clear();
 
     this.setState({loading: true, error: false, errorData: null});
 
-    fetchOrgMembers(api, orgId).then(members => {
+    fetchOrgMembers(api, orgSlug).then(members => {
       this.setState({memberList: indexMembersByProject(members)});
     });
 
@@ -182,8 +182,8 @@ class GroupList extends Component<Props, State> {
   };
 
   getGroupListEndpoint() {
-    const {orgId, endpointPath, queryParams} = this.props;
-    const path = endpointPath ?? `/organizations/${orgId}/issues/`;
+    const {orgSlug, endpointPath, queryParams} = this.props;
+    const path = endpointPath ?? `/organizations/${orgSlug}/issues/`;
     const queryParameters = queryParams ?? this.getQueryParams();
 
     return `${path}?${qs.stringify(queryParameters)}`;
