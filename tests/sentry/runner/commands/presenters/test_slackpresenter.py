@@ -16,6 +16,7 @@ class TestSlackPresenter:
     def test_is_slack_enabled(self):
         responses.add(responses.POST, "https://test/", status=200)
 
+        assert self.slackPresenter.is_slack_enabled()
         self.slackPresenter.set("option1", "value1")
         self.slackPresenter.set("option2", "value2")
 
@@ -75,5 +76,47 @@ class TestSlackPresenter:
             ],
         }
 
-        assert responses.calls[0].response.status_code == 200
-        assert expected_json_data == json.loads(responses.calls[0].request.body)
+        assert responses.calls[1].response.status_code == 200
+        assert expected_json_data == json.loads(responses.calls[1].request.body)
+
+    @responses.activate
+    def test_slack_presenter_methods_with_different_types(self):
+        responses.add(responses.POST, "https://test/", status=200)
+
+        assert self.slackPresenter.is_slack_enabled()
+
+        self.slackPresenter.set("str_option", "string_value")
+        self.slackPresenter.set("bool_option", True)
+        self.slackPresenter.set("int_option", 123)
+        self.slackPresenter.set("float_option", 3.14)
+        self.slackPresenter.set("dict_option", {"key": "value"})
+        self.slackPresenter.invalid_type("key1", str, int)
+        self.slackPresenter.update("updated", 1.0, 0.0)
+        self.slackPresenter.drift("drifted", {"key": "value"})
+
+        self.slackPresenter.flush()
+
+        expected_json_data = {
+            "drifted_options": [{"option_name": "drifted", "option_value": "{'key': 'value'}"}],
+            "updated_options": [{"option_name": "updated", "db_value": "1.0", "value": "0.0"}],
+            "set_options": [
+                {"option_name": "str_option", "option_value": "string_value"},
+                {"option_name": "bool_option", "option_value": "True"},
+                {"option_name": "int_option", "option_value": "123"},
+                {"option_name": "float_option", "option_value": "3.14"},
+                {"option_name": "dict_option", "option_value": "{'key': 'value'}"},
+            ],
+            "unset_options": [],
+            "not_writable_options": [],
+            "unregistered_options": [],
+            "invalid_type_options": [
+                {
+                    "option_name": "key1",
+                    "got_type": "<class 'str'>",
+                    "expected_type": "<class 'int'>",
+                }
+            ],
+        }
+
+        assert responses.calls[1].response.status_code == 200
+        assert expected_json_data == json.loads(responses.calls[1].request.body)

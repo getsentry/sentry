@@ -48,17 +48,19 @@ describe('SQLishParser', function () {
     });
 
     it('Detects whitespace between generic tokens and JOIN commands', () => {
-      expect(parser.parse('table1 INNER JOIN table2')).toEqual([
+      expect(parser.parse('sentry_users INNER JOIN sentry_messages')).toEqual([
         {
           type: 'GenericToken',
-          content: 'table1',
+          content: 'sentry_users',
         },
         {type: 'Whitespace', content: ' '},
-        {type: 'Keyword', content: 'INNER JOIN'},
+        {type: 'Keyword', content: 'INNER'},
+        {type: 'Whitespace', content: ' '},
+        {type: 'Keyword', content: 'JOIN'},
         {type: 'Whitespace', content: ' '},
         {
           type: 'GenericToken',
-          content: 'table2',
+          content: 'sentry_messages',
         },
       ]);
     });
