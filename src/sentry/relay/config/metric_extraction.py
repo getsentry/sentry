@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple, TypedDict, Union
+from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, TypedDict, Union
 
 from sentry import features
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
@@ -80,7 +80,15 @@ def _get_alert_metric_specs(project: Project) -> List[HashMetricSpec]:
 
     specs = []
     for alert in alert_rules:
+        alert_snuba_query = alert.snuba_query
         if result := _convert_snuba_query_to_metric(alert.snuba_query):
+            _log_on_demand_metric_spec(
+                project_id=project.id,
+                spec_for="alert",
+                spec=result,
+                field=alert_snuba_query.aggregate,
+                query=alert_snuba_query.query,
+            )
             specs.append(result)
 
     if len(specs) > _MAX_ON_DEMAND_ALERTS:
@@ -106,7 +114,7 @@ def _get_widget_metric_specs(project: Project) -> List[HashMetricSpec]:
 
     specs = []
     for widget in widget_queries:
-        for result in _convert_widget_query_to_metric(widget):
+        for result in _convert_widget_query_to_metric(project, widget):
             specs.append(result)
 
     if len(specs) > _MAX_ON_DEMAND_WIDGETS:
@@ -152,6 +160,7 @@ def _convert_snuba_query_to_metric(snuba_query: SnubaQuery) -> Optional[HashMetr
 
 
 def _convert_widget_query_to_metric(
+    project: Project,
     widget_query: DashboardWidgetQuery,
 ) -> Sequence[HashMetricSpec]:
     """
@@ -171,6 +180,13 @@ def _convert_widget_query_to_metric(
             aggregate,
             widget_query.conditions,
         ):
+            _log_on_demand_metric_spec(
+                project_id=project.id,
+                spec_for="widget",
+                spec=result,
+                field=aggregate,
+                query=widget_query.conditions,
+            )
             metrics_specs.append(result)
 
     return metrics_specs
@@ -196,6 +212,28 @@ def _convert_aggregate_and_query_to_metric(
     except Exception as e:
         logger.error(e, exc_info=True)
         return None
+
+
+def _log_on_demand_metric_spec(
+    project_id: int,
+    spec_for: Literal["alert", "widget"],
+    spec: HashMetricSpec,
+    field: str,
+    query: str,
+) -> None:
+    spec_query_hash, spec_dict = spec
+
+    logger.info(
+        "on_demand_metrics.on_demand_metric_spec",
+        extra={
+            "project_id": project_id,
+            f"{spec_for}.field": field,
+            f"{spec_for}.query": query,
+            "spec_for": spec_for,
+            "spec_query_hash": spec_query_hash,
+            "spec": spec_dict,
+        },
+    )
 
 
 # CONDITIONAL TAGGING
