@@ -118,7 +118,7 @@ def _ensure_monitor_with_config(
     validator = ConfigValidator(data=config)
 
     if not validator.is_valid():
-        logger.debug(f"invalid monitor_config: {monitor_slug}")
+        logger.info(f"invalid monitor_config: {monitor_slug}")
         return monitor
 
     validated_config = validator.validated_data
@@ -208,7 +208,10 @@ def _try_handle_high_volume_task_trigger(ts: datetime):
     # close, but in the case of a backlog, this will be much higher
     total_delay = datetime.now().timestamp()
 
-    logger.info(f"Monitor consumer clock tick: {reference_datetime}")
+    logger.info(
+        "monitors.consumer.clock_tick",
+        extra={"reference_datetime": str(reference_datetime)},
+    )
     metrics.gauge("monitors.task.high_volume_clock_delay", total_delay, sample_rate=1.0)
 
     # If more than exactly a minute has passed then we've skipped a
@@ -261,7 +264,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
             "monitors.checkin.dropped.blocked",
             tags={**metric_kwargs},
         )
-        logger.debug(
+        logger.info(
             f"monitor check in blocked via killswitch: {project.organization_id} - {monitor_slug}"
         )
         return
@@ -275,7 +278,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
             "monitors.checkin.dropped.ratelimited",
             tags={**metric_kwargs},
         )
-        logger.debug(f"monitor check in rate limited: {monitor_slug}")
+        logger.info(f"monitor check in rate limited: {monitor_slug}")
         return
 
     def update_existing_check_in(
@@ -293,7 +296,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                 "monitors.checkin.result",
                 tags={"source": "consumer", "status": "guid_mismatch"},
             )
-            logger.debug(
+            logger.info(
                 f"check-in guid {existing_check_in} already associated with {existing_check_in.monitor_id} not payload monitor {monitor.id}"
             )
             return
@@ -303,7 +306,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                 "monitors.checkin.result",
                 tags={**metric_kwargs, "status": "checkin_finished"},
             )
-            logger.debug(
+            logger.info(
                 f"check-in was finished: attempted update from {existing_check_in.status} to {updated_status}"
             )
             return
@@ -318,7 +321,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                 "monitors.checkin.result",
                 tags={**metric_kwargs, "status": "failed_duration_check"},
             )
-            logger.debug(f"check-in implicit duration is invalid: {updated_duration}")
+            logger.info(f"check-in implicit duration is invalid: {updated_duration}")
             return
 
         # update date_added for heartbeat
@@ -408,7 +411,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_limits"},
                 )
-                logger.debug(f"monitor exceeds limits for organization: {project.organization_id}")
+                logger.info(f"monitor exceeds limits for organization: {project.organization_id}")
                 return
 
             try:
@@ -420,14 +423,14 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_environment_limits"},
                 )
-                logger.debug(f"monitor environment exceeds limits for monitor: {monitor_slug}")
+                logger.info(f"monitor environment exceeds limits for monitor: {monitor_slug}")
                 return
             except MonitorEnvironmentValidationFailed:
                 metrics.incr(
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_environment_name_length"},
                 )
-                logger.debug(f"monitor environment name too long: {monitor_slug} - {environment}")
+                logger.info(f"monitor environment name too long: {monitor_slug} - {environment}")
                 return
 
             status = getattr(CheckInStatus, validated_params["status"].upper())
@@ -455,7 +458,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
                                 "status": "failed_monitor_environment_guid_match",
                             },
                         )
-                        logger.debug(
+                        logger.info(
                             f"monitor environment does not match on existing guid: {environment} - {check_in_id}"
                         )
                         return
@@ -516,7 +519,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage) -> None:
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_checkin_creation_lock"},
         )
-        logger.debug(f"failed to acquire lock to create check-in: {guid}")
+        logger.info(f"failed to acquire lock to create check-in: {guid}")
     except Exception:
         # Skip this message and continue processing in the consumer.
         metrics.incr(

@@ -888,7 +888,7 @@ class TestWebhookRequests(TestCase):
         self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         events = self.sentry_app.events  # save events to check later
         data = {"issue": serialize(self.issue)}
-        now = datetime.now() + timedelta(hours=1)
+        now = datetime.now()
         for i in reversed(range(0, 10)):
             with freeze_time(now - timedelta(days=i)):
                 send_webhooks(
