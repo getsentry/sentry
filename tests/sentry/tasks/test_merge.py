@@ -10,7 +10,7 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.similarity import _make_index_backend
 from sentry.tasks.merge import merge_groups, regenerate_primary_group_forecast
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
