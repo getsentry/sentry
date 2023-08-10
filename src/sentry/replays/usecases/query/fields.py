@@ -110,8 +110,8 @@ class TagField(BaseField[T]):
 
             return applicable(key, operator, parsed_value)
         else:
-            parsed_value = [self.parse(str(v)) for v in value]
-            return self._apply_composite(key, operator, parsed_value)
+            parsed_values = [self.parse(str(v)) for v in value]
+            return self._apply_composite(key, operator, parsed_values)
 
     def _apply_wildcard(self, key: str, operator: str, value: T) -> Condition:
         if operator == "=":
