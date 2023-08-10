@@ -36,6 +36,7 @@ import TransactionGroup from 'sentry/views/performance/traceDetails/transactionG
 import {TraceInfo, TreeDepth} from 'sentry/views/performance/traceDetails/types';
 import {
   getTraceInfo,
+  hasTraceData,
   isRootTransaction,
 } from 'sentry/views/performance/traceDetails/utils';
 
@@ -224,9 +225,7 @@ export default function TraceView({
   const traceViewRef = createRef<HTMLDivElement>();
   const virtualScrollbarContainerRef = createRef<HTMLDivElement>();
 
-  const hasData =
-    (traces && traces.length > 0) || (orphanErrors && orphanErrors.length > 0);
-  if (!hasData) {
+  if (!hasTraceData(traces, orphanErrors)) {
     return (
       <TraceNotFound
         meta={meta}
@@ -281,6 +280,7 @@ export default function TraceView({
     accumulator
   );
 
+  // Build transaction groups for orphan errors
   if (hasOrphanErrors) {
     orphanErrors.forEach((error, index) => {
       const isLastError = index === orphanErrors.length - 1;

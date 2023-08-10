@@ -49,6 +49,15 @@ function transactionVisitor() {
   };
 }
 
+export function hasTraceData(
+  traces: TraceFullDetailed[] | null,
+  orphanErrors: TraceError[] | undefined
+): boolean {
+  return Boolean(
+    (traces && traces.length > 0) || (orphanErrors && orphanErrors.length > 0)
+  );
+}
+
 export function getTraceInfo(
   traces: TraceFullDetailed[] = [],
   orphanErrors: TraceError[] = []
@@ -69,6 +78,7 @@ export function getTraceInfo(
     initial
   );
 
+  // Accumulate orphan error information.
   return orphanErrors.reduce((accumulator: TraceInfo, event: TraceError) => {
     accumulator.errors.add(event.event_id);
 

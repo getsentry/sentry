@@ -35,7 +35,7 @@ import {TraceDetailHeader, TraceSearchBar, TraceSearchContainer} from './styles'
 import TraceNotFound from './traceNotFound';
 import TraceView from './traceView';
 import {TraceInfo} from './types';
-import {getTraceInfo, isRootTransaction} from './utils';
+import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
 
 type IndexedFusedTransaction = {
   event: TraceFullDetailed | TraceError;
@@ -79,16 +79,14 @@ class TraceDetailsContent extends Component<Props, State> {
   }
 
   fuse: Fuse<IndexedFusedTransaction> | null = null;
-  orphanErrorsFuse: Fuse<IndexedFusedTransaction> | null = null;
   traceViewRef = createRef<HTMLDivElement>();
   virtualScrollbarContainerRef = createRef<HTMLDivElement>();
 
   async initFuse() {
     const {traces, orphanErrors} = this.props;
-    const hasData =
-      (traces && traces.length > 0) || (orphanErrors && orphanErrors.length > 0);
-    if (hasData) {
-      const transformedTransactions: IndexedFusedTransaction[] =
+
+    if (hasTraceData(traces, orphanErrors)) {
+      const transformedEvents: IndexedFusedTransaction[] =
         this.props.traces?.flatMap(trace =>
           reduceTrace<IndexedFusedTransaction[]>(
             trace,
@@ -110,16 +108,17 @@ class TraceDetailsContent extends Component<Props, State> {
           )
         ) ?? [];
 
+      // Include orphan error titles and project slugs during fuzzy search
       this.props.orphanErrors?.forEach(orphanError => {
         const indexed: string[] = [orphanError.title, orphanError.project_slug];
 
-        transformedTransactions.push({
+        transformedEvents.push({
           indexed,
           event: orphanError,
         });
       });
 
-      this.fuse = await createFuzzySearch(transformedTransactions, {
+      this.fuse = await createFuzzySearch(transformedEvents, {
         keys: ['indexed'],
         includeMatches: true,
         threshold: 0.6,
@@ -146,9 +145,7 @@ class TraceDetailsContent extends Component<Props, State> {
     const {traces, orphanErrors} = this.props;
     const {filteredEventIds, searchQuery} = this.state;
 
-    const hasData =
-      (traces && traces.length > 0) || (orphanErrors && orphanErrors.length > 0);
-    if (!searchQuery || !hasData || !defined(this.fuse)) {
+    if (!searchQuery || !hasTraceData(traces, orphanErrors) || !defined(this.fuse)) {
       if (filteredEventIds !== undefined) {
         this.setState({
           filteredEventIds: undefined,
@@ -180,6 +177,8 @@ class TraceDetailsContent extends Component<Props, State> {
         )
       )
       .forEach(transaction => idMatches.push(transaction.event_id));
+
+    // Include orphan error event_ids and span_ids during substring search
     orphanErrors?.forEach(orphanError => {
       const {event_id, span} = orphanError;
       if (event_id.includes(searchQuery) || span.includes(searchQuery)) {
@@ -268,7 +267,7 @@ class TraceDetailsContent extends Component<Props, State> {
     let warning: React.ReactNode = null;
 
     const hasOnlyOrphanErrors =
-      (!traces || traces.length <= 0) && orphanErrors && orphanErrors.length > 0;
+      hasTraceData(traces, orphanErrors) && (!traces || traces.length <= 0);
 
     if (roots === 0 && orphans > 0) {
       warning = (
@@ -337,8 +336,7 @@ class TraceDetailsContent extends Component<Props, State> {
       return this.renderTraceLoading();
     }
 
-    const hasData =
-      (traces && traces.length > 0) || (orphanErrors && orphanErrors.length > 0);
+    const hasData = hasTraceData(traces, orphanErrors);
     if (error !== null || !hasData) {
       return (
         <TraceNotFound

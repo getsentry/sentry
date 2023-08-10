@@ -98,33 +98,6 @@ class TraceSummary extends Component<Props> {
         transactions = traces.transactions;
       }
 
-      //   orphanErrors = [
-      //     {
-      //       "event_id": "9c65abc015f0445f82bce81ffcb31d8b",
-      //       "issue_id": 3899254784,
-      //       "span": "985f4b1fc8385888",
-      //       "project_id": 1,
-      //       "project_slug": "javascript",
-      //       "title": "MaybeEncodingError: Error sending result: ''(1, <ExceptionInfo: KafkaException(\\'KafkaError{code=MSG_SIZE_TOO_LARGE,v...",
-      //       "level": "error",
-      //       "timestamp": 1690805246.527113,
-      //       "generation": 0,
-      //       "issue": "sadfsdfsd"
-      //   },
-      //   {
-      //     "event_id": "9c65abc015f0445f82bce81ffcb31d8b",
-      //     "issue_id": 3899254784,
-      //     "span": "985f4b1fc8385888",
-      //     "project_id": 1,
-      //     "project_slug": "javascript",
-      //     "title": "MaybeEncodingError: Error sending result: ''(1, <ExceptionInfo: KafkaException(\\'KafkaError{code=MSG_SIZE_TOO_LARGE,v...",
-      //     "level": "error",
-      //     "timestamp": 1690805246.527113,
-      //     "generation": 0,
-      //     "issue": "sadfsdfsd"
-      // }
-      // ]
-
       return (
         <TraceDetailsContent
           location={location}
