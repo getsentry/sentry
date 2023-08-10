@@ -1,7 +1,7 @@
 import type {Token} from 'sentry/views/starfish/utils/sqlish/types';
 
 export function string(tokens: Token[]): string {
-  let accumulator = '';
+  const accumulator = new StringAccumulator();
 
   let precedingNonWhitespaceToken: Token | undefined = undefined;
   let indentation: number = 0; // Track the current indent level
@@ -16,7 +16,7 @@ export function string(tokens: Token[]): string {
 
     if (token.type === 'LeftParenthesis') {
       parenthesisLevel += 1;
-      accumulator += '(';
+      accumulator.add('(');
 
       // If the previous legible token is a meaningful keyword that triggers a
       // newline, increase the current indentation level and note the parenthesis level where this happened
@@ -24,7 +24,7 @@ export function string(tokens: Token[]): string {
         typeof precedingNonWhitespaceToken?.content === 'string' &&
         PARENTHESIS_NEWLINE_KEYWORDS.has(precedingNonWhitespaceToken.content)
       ) {
-        accumulator += NEWLINE;
+        accumulator.break();
 
         indentation += 1;
         indentationLevels.push(parenthesisLevel);
@@ -35,35 +35,35 @@ export function string(tokens: Token[]): string {
       // If this right parenthesis closes a left parenthesis at a level where
       // we incremented the indentation, decrement the indentation
       if (indentationLevels.at(-1) === parenthesisLevel) {
-        accumulator += NEWLINE;
+        accumulator.break();
         indentation -= 1;
-        accumulator += INDENTATION.repeat(indentation);
+        accumulator.add(INDENTATION.repeat(indentation));
         indentationLevels.pop();
       }
 
       parenthesisLevel -= 1;
-      accumulator += ')';
+      accumulator.add(')');
     }
 
     if (typeof token.content === 'string') {
       if (token.type === 'Keyword' && NEWLINE_KEYWORDS.has(token.content)) {
         if (!accumulator.endsWith(NEWLINE)) {
-          accumulator += NEWLINE;
+          accumulator.break();
         }
 
-        accumulator += INDENTATION.repeat(indentation);
-        accumulator += token.content;
+        accumulator.indent(indentation);
+        accumulator.add(token.content);
       } else if (token.type === 'Whitespace') {
         // Convert all whitespace to single spaces
-        accumulator += ' ';
+        accumulator.space();
       } else if (['LeftParenthesis', 'RightParenthesis'].includes(token.type)) {
         // Parenthesis contents are appended above, so we can skip them here
-        accumulator += '';
+        accumulator.add('');
       } else {
         if (accumulator.endsWith(NEWLINE)) {
-          accumulator += INDENTATION.repeat(indentation);
+          accumulator.add(INDENTATION.repeat(indentation));
         }
-        accumulator += token.content;
+        accumulator.add(token.content);
       }
     }
 
@@ -75,11 +75,8 @@ export function string(tokens: Token[]): string {
   }
 
   tokens.forEach(contentize);
-  return accumulator.trim();
+  return accumulator.toString();
 }
-
-const INDENTATION = '  ';
-const NEWLINE = '\n';
 
 // Keywords that always trigger a newline
 const NEWLINE_KEYWORDS = new Set([
@@ -101,3 +98,47 @@ const NEWLINE_KEYWORDS = new Set([
 
 // Keywords that may or may not trigger a newline, but they always trigger a newlines if followed by a parenthesis
 const PARENTHESIS_NEWLINE_KEYWORDS = new Set([...NEWLINE_KEYWORDS, ...['IN']]);
+
+class StringAccumulator {
+  tokens: string[];
+
+  constructor() {
+    this.tokens = [];
+  }
+
+  add(token: string) {
+    if (!token) {
+      return;
+    }
+
+    this.tokens.push(token);
+  }
+
+  space() {
+    this.tokens.push(SPACE);
+  }
+
+  break() {
+    if (this.tokens.at(-1) === SPACE) {
+      this.tokens.pop();
+    }
+
+    this.tokens.push(NEWLINE);
+  }
+
+  indent(count: number = 1) {
+    this.tokens.push(INDENTATION.repeat(count));
+  }
+
+  endsWith(token: string) {
+    return this.tokens.at(-1) === token;
+  }
+
+  toString() {
+    return this.tokens.join('').trim();
+  }
+}
+
+const SPACE = ' ';
+const INDENTATION = '  ';
+const NEWLINE = '\n';
