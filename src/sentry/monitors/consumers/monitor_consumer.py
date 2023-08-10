@@ -125,7 +125,10 @@ def _ensure_monitor_with_config(
     validator = ConfigValidator(data=config)
 
     if not validator.is_valid():
-        logger.info(f"invalid monitor_config: {monitor_slug}")
+        logger.info(
+            "monitors.consumer.invalid_config",
+            extra={"slug": monitor_slug, **config},
+        )
         return monitor
 
     validated_config = validator.validated_data
@@ -281,7 +284,8 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
             tags={**metric_kwargs},
         )
         logger.info(
-            f"monitor check in blocked via killswitch: {project.organization_id} - {monitor_slug}"
+            "monitors.consumer.killswitch",
+            extra={"org_id": project.organization_id, "slug": monitor_slug},
         )
         return
 
@@ -294,7 +298,14 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
             "monitors.checkin.dropped.ratelimited",
             tags={**metric_kwargs},
         )
-        logger.info(f"monitor check in rate limited: {monitor_slug}")
+        logger.info(
+            "monitors.consumer.rate_limited",
+            extra={
+                "organization_id": project.organization_id,
+                "slug": monitor_slug,
+                "environment": environment,
+            },
+        )
         return
 
     def update_existing_check_in(
@@ -313,7 +324,12 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                 tags={"source": "consumer", "status": "guid_mismatch"},
             )
             logger.info(
-                f"check-in guid {existing_check_in} already associated with {existing_check_in.monitor_id} not payload monitor {monitor.id}"
+                "monitors.consumer.guid_exists",
+                extra={
+                    "guid": existing_check_in.guid,
+                    "slug": existing_check_in.monitor.slug,
+                    "payload_slug": monitor.slug,
+                },
             )
             return
 
@@ -323,7 +339,12 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                 tags={**metric_kwargs, "status": "checkin_finished"},
             )
             logger.info(
-                f"check-in was finished: attempted update from {existing_check_in.status} to {updated_status}"
+                "monitors.consumer.check_in_closed",
+                extra={
+                    "guid": existing_check_in.guid,
+                    "status": existing_check_in.status,
+                    "updated_status": updated_status,
+                },
             )
             return
 
@@ -337,7 +358,10 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                 "monitors.checkin.result",
                 tags={**metric_kwargs, "status": "failed_duration_check"},
             )
-            logger.info(f"check-in implicit duration is invalid: {updated_duration}")
+            logger.info(
+                "monitors.consumer.invalid_implicit_duration",
+                extra={"guid": existing_check_in.guid, "duration": updated_duration},
+            )
             return
 
         # update date_added for heartbeat
@@ -363,7 +387,10 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_guid_validation"},
         )
-        logger.info("monitor_checkin.validation.failed", extra={**params})
+        logger.info(
+            "monitors.consumer.guid_validation_failed",
+            extra={"guid": params["check_in_id"], "slug": params["monitor_slug"]},
+        )
         return
 
     # When the UUID is empty we will default to looking for the most
@@ -403,7 +430,10 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                         "monitors.checkin.result",
                         tags={**metric_kwargs, "status": "failed_checkin_validation"},
                     )
-                    logger.info("monitor_checkin.validation.failed", extra={**params})
+                    logger.info(
+                        "monitors.consumer.checkin_validation_failed",
+                        extra={"guid": guid, **params},
+                    )
                     return
 
                 validated_params = validator.validated_data
@@ -420,14 +450,20 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                         "monitors.checkin.result",
                         tags={**metric_kwargs, "status": "failed_validation"},
                     )
-                    logger.info("monitor.validation.failed", extra={**params})
+                    logger.info(
+                        "monitors.consumer.monitor_validation_failed",
+                        extra={"guid": guid, **params},
+                    )
                     return
             except MonitorLimitsExceeded:
                 metrics.incr(
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_limits"},
                 )
-                logger.info(f"monitor exceeds limits for organization: {project.organization_id}")
+                logger.info(
+                    "monitors.consumer.monitor_limit_exceeded",
+                    extra={"guid": guid, "project": project.id, "slug": monitor_slug},
+                )
                 return
 
             try:
@@ -439,14 +475,30 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_environment_limits"},
                 )
-                logger.info(f"monitor environment exceeds limits for monitor: {monitor_slug}")
+                logger.info(
+                    "monitors.consumer.monitor_environment_limit_exceeded",
+                    extra={
+                        "guid": guid,
+                        "project": project.id,
+                        "slug": monitor_slug,
+                        "environment": environment,
+                    },
+                )
                 return
             except MonitorEnvironmentValidationFailed:
                 metrics.incr(
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_environment_name_length"},
                 )
-                logger.info(f"monitor environment name too long: {monitor_slug} - {environment}")
+                logger.info(
+                    "monitors.consumer.monitor_environment_validation_failed",
+                    extra={
+                        "guid": guid,
+                        "project": project.id,
+                        "slug": monitor_slug,
+                        "environment": environment,
+                    },
+                )
                 return
 
             status = getattr(CheckInStatus, validated_params["status"].upper())
@@ -475,7 +527,13 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                             },
                         )
                         logger.info(
-                            f"monitor environment does not match on existing guid: {environment} - {check_in_id}"
+                            "monitors.consumer.monitor_environment_mismatch",
+                            extra={
+                                "guid": check_in_id,
+                                "organization_id": project.organization_id,
+                                "environment": monitor_environment.id,
+                                "payload_environment": check_in.monitor_environment_id,
+                            },
                         )
                         return
 
@@ -535,7 +593,10 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_checkin_creation_lock"},
         )
-        logger.info(f"failed to acquire lock to create check-in: {guid}")
+        logger.info(
+            "monitors.consumer.lock_failed",
+            extra={"guid": guid},
+        )
     except Exception:
         # Skip this message and continue processing in the consumer.
         metrics.incr(
