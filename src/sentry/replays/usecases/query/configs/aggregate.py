@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Union
 
-from sentry.replays.lib.new_query.conditions import IntegerScalar, UUIDScalar
+from sentry.replays.lib.new_query.conditions import IntegerScalar, StringScalar
 from sentry.replays.lib.new_query.fields import (
     ColumnField,
     CountField,
@@ -63,9 +63,9 @@ search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = {
     "browser.name": string_field("browser_name"),
     "browser.version": string_field("browser_version"),
     "click.alt": string_field("click_alt"),
-    "click.label": string_field("click_aria_label"),
     "click.class": array_string_field("click_class"),
     "click.id": string_field("click_id"),
+    "click.label": string_field("click_aria_label"),
     "click.role": string_field("click_role"),
     "click.selector": ComputedField(parse_selector, SumOfClickSelectorComposite),
     "click.tag": string_field("click_tag"),
@@ -85,11 +85,13 @@ search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = {
     "duration": ComputedField(parse_int, SimpleAggregateDurationScalar),
     "environment": string_field("environment"),
     "error_ids": ComputedField(parse_uuid, SumOfErrorIdsArray),
+    # Backwards Compat: We pass a simple string to the UUID column. Older versions of ClickHouse
+    # do not understand the UUID type.
+    "id": ColumnField("replay_id", lambda x: str(parse_uuid(x)), StringScalar),
     "os.name": string_field("os_name"),
     "os.version": string_field("os_version"),
     "platform": string_field("platform"),
     "releases": string_field("release"),
-    "id": ColumnField("replay_id", parse_uuid, UUIDScalar),
     "replay_type": string_field("replay_type"),
     "sdk.name": string_field("sdk_name"),
     "sdk.version": string_field("sdk_version"),
