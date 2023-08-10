@@ -52,7 +52,6 @@ export type IssueEventParameters = {
     project_id?: string;
   };
   'integrations.integration_reinstall_clicked': {
-    organization_id: string;
     provider: string;
   };
   'issue.search_sidebar_clicked': {};
