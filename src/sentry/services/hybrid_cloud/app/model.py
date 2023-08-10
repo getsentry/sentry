@@ -48,7 +48,7 @@ class RpcSentryApp(RpcModel):
     is_unpublished: bool = False
     is_internal: bool = True
     is_publish_request_inprogress: bool = False
-    status: str = ""
+    status: int = 0
 
     def show_auth_info(self, access: Any) -> bool:
         encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
