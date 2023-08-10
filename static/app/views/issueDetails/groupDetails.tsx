@@ -554,12 +554,16 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 }
 
 function useLoadedEventType() {
+  const organization = useOrganization();
   const params = useParams<{eventId?: string}>();
   const defaultIssueEvent = useDefaultIssueEvent();
+  const hasMostHelpfulEventFeature = organization.features.includes(
+    'issue-details-most-helpful-event'
+  );
 
   switch (params.eventId) {
     case undefined:
-      return defaultIssueEvent;
+      return hasMostHelpfulEventFeature ? defaultIssueEvent : 'latest';
     case 'latest':
     case 'oldest':
       return params.eventId;
