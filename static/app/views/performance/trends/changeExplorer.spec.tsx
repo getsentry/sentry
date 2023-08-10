@@ -8,16 +8,16 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {SuspectSpans} from 'sentry/utils/performance/suspectSpans/types';
 import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {PerformanceChangeExplorer} from 'sentry/views/performance/trends/changeExplorer';
-import {FunctionsList} from 'sentry/views/performance/trends/changeExplorerUtils/functionsList';
+import {
+  FunctionsField,
+  FunctionsList,
+} from 'sentry/views/performance/trends/changeExplorerUtils/functionsList';
 import {
   COLUMNS,
   MetricsTable,
   renderBodyCell,
 } from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
-import {
-  FunctionsField,
-  SpansList,
-} from 'sentry/views/performance/trends/changeExplorerUtils/spansList';
+import {SpansList} from 'sentry/views/performance/trends/changeExplorerUtils/spansList';
 import {
   NormalizedTrendsTransaction,
   TrendChangeType,

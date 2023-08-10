@@ -76,17 +76,6 @@ export const SpanChangeType = {
   improved: t('Improved'),
 };
 
-const functionsFields = [
-  'package',
-  'function',
-  'count()',
-  'p75()',
-  'sum()',
-  'examples()',
-] as const;
-
-export type FunctionsField = (typeof functionsFields)[number];
-
 export function SpansList(props: SpansListProps) {
   const {trendView, location, organization, breakpoint, transaction, trendChangeType} =
     props;
