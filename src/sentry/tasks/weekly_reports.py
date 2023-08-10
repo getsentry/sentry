@@ -83,8 +83,7 @@ class ProjectContext:
     existing_issue_count = 0
     reopened_issue_count = 0
     new_issue_count = 0
-    # we merged organizations:issue-states flag to organizations:escalating-issues, so delete when
-    # organizations:escalating-issues GA
+    # delete when organizations:escalating-issues GA
     new_substatus_count = 0
     ongoing_substatus_count = 0
     escalating_substatus_count = 0
