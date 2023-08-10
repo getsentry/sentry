@@ -165,13 +165,35 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
       addErrorMessage(t('Something went wrong! Please try again.'));
     }
   };
+
+  handleOpsgenieMigration = () => {
+    this.setState(
+      {
+        plugins: (this.state.plugins || []).filter(({id}) => id === 'opsgenie'),
+      },
+      () => addSuccessMessage(t("This doesn't do anything yet!"))
+    );
+  };
+
+  isInstalledOpsgeniePlugin = (plugin: PluginWithProjectList) => {
+    return (
+      plugin.id === 'opsgenie' &&
+      plugin.projectList.length >= 1 &&
+      plugin.projectList.find(({enabled}) => enabled === true)
+    );
+  };
+
   getAction = (provider: IntegrationProvider | undefined) => {
     const {integration, plugins} = this.state;
     const shouldMigrateJiraPlugin =
       provider &&
       ['jira', 'jira_server'].includes(provider.key) &&
       (plugins || []).find(({id}) => id === 'jira');
-
+    const shouldMigrateOpsgeniePlugin =
+      this.props.organization.features.includes('integrations-opsgenie-migration') &&
+      provider &&
+      provider.key === 'opsgenie' &&
+      (plugins || []).find(this.isInstalledOpsgeniePlugin);
     const action =
       provider && provider.key === 'pagerduty' ? (
         <AddIntegration
@@ -235,6 +257,41 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
         >
           Open in Discord
         </LinkButton>
+      ) : shouldMigrateOpsgeniePlugin ? (
+        <Access access={['org:integrations']}>
+          {({hasAccess}) => (
+            <Confirm
+              disabled={!hasAccess}
+              header="Migrate API Keys and Alert Rules from Opsgenie"
+              renderMessage={() => (
+                <Fragment>
+                  <p>
+                    {t(
+                      'This will automatically associate all the API keys and Alert Rules of your Opsgenie Plugins to this integration.'
+                    )}
+                  </p>
+                  <p>
+                    {t(
+                      'API keys will be automatically named after one of the projects with which they were associated.'
+                    )}
+                  </p>
+                  <p>
+                    {t(
+                      'Once the migration is complete, your Opsgenie Plugins will be disabled.'
+                    )}
+                  </p>
+                </Fragment>
+              )}
+              onConfirm={() => {
+                this.handleOpsgenieMigration();
+              }}
+            >
+              <Button priority="primary" size="md" disabled={!hasAccess}>
+                {t('Migrate Plugin')}
+              </Button>
+            </Confirm>
+          )}
+        </Access>
       ) : null;
 
     return action;

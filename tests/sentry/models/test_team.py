@@ -14,10 +14,11 @@ from sentry.models import (
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.projectteam import ProjectTeam
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
@@ -86,6 +87,7 @@ class TeamTest(TestCase):
             team.save()
 
 
+@region_silo_test(stable=True)
 class TransferTest(TestCase):
     def test_simple(self):
         user = self.create_user()
@@ -181,23 +183,28 @@ class TransferTest(TestCase):
         ).exists()
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamDeletionTest(TestCase):
     def test_hybrid_cloud_deletion(self):
-        team = self.create_team(self.organization)
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            team_id=team.id,
-        )
+        org = self.create_organization()
+        team = self.create_team(org)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.ALWAYS,
+                team_id=team.id,
+            )
 
         assert Team.objects.filter(id=team.id).exists()
-        assert NotificationSetting.objects.find_settings(
-            provider=ExternalProviders.EMAIL,
-            type=NotificationSettingTypes.ISSUE_ALERTS,
-            team_id=team.id,
-        ).exists()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert NotificationSetting.objects.find_settings(
+                provider=ExternalProviders.EMAIL,
+                type=NotificationSettingTypes.ISSUE_ALERTS,
+                team_id=team.id,
+            ).exists()
 
         team_id = team.id
         with outbox_runner():
@@ -205,15 +212,25 @@ class TeamDeletionTest(TestCase):
 
         assert not Team.objects.filter(id=team_id).exists()
 
-        with self.tasks():
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # cascade is asynchronous, ensure there is still related search,
+            assert NotificationSetting.objects.find_settings(
+                provider=ExternalProviders.EMAIL,
+                type=NotificationSettingTypes.ISSUE_ALERTS,
+                team_id=team_id,
+            ).exists()
+
+        # Assume monolith silo mode to ensure all tasks are run correctly
+        with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
             schedule_hybrid_cloud_foreign_key_jobs()
 
         assert not Team.objects.filter(id=team_id).exists()
-        assert not NotificationSetting.objects.find_settings(
-            provider=ExternalProviders.EMAIL,
-            type=NotificationSettingTypes.ISSUE_ALERTS,
-            team_id=team_id,
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not NotificationSetting.objects.find_settings(
+                provider=ExternalProviders.EMAIL,
+                type=NotificationSettingTypes.ISSUE_ALERTS,
+                team_id=team_id,
+            ).exists()
 
     def test_cannot_delete_last_owner_team(self):
         org = self.create_organization()
