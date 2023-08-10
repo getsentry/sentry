@@ -61,6 +61,32 @@ type RequiredNotNull<T> = {
 
 const sortFrames = (a, b) => a.timestampMs - b.timestampMs;
 
+function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
+  const slowClickFrames = frames.filter(
+    frame => frame.category === 'ui.slowClickDetected'
+  );
+
+  const clickFrames = frames.filter(frame => frame.category === 'ui.click');
+
+  const otherFrames = frames.filter(
+    frame => !(slowClickFrames.includes(frame) || clickFrames.includes(frame))
+  );
+
+  const uniqueClickFrames: BreadcrumbFrame[] = clickFrames.filter(clickFrame => {
+    return !slowClickFrames.some(
+      slowClickFrame =>
+        slowClickFrame.data &&
+        'nodeId' in slowClickFrame.data &&
+        clickFrame.data &&
+        'nodeId' in clickFrame.data &&
+        slowClickFrame.data.nodeId === clickFrame.data.nodeId &&
+        slowClickFrame.timestampMs === clickFrame.timestampMs
+    );
+  });
+
+  return uniqueClickFrames.concat(otherFrames).concat(slowClickFrames);
+}
+
 export default class ReplayReader {
   static factory({attachments, errors, replayRecord}: ReplayReaderParams) {
     if (!attachments || !replayRecord || !errors) {
@@ -188,10 +214,23 @@ export default class ReplayReader {
     )
   );
 
-  getDOMFrames = memoize(() => [
-    ...this._sortedBreadcrumbFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
-    ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
-  ]);
+  getDOMFrames = memoize(() =>
+    [
+      ...removeDuplicateClicks(
+        this._sortedBreadcrumbFrames
+          .filter(frame => 'nodeId' in (frame.data ?? {}))
+          .filter(
+            frame =>
+              !(
+                (frame.category === 'ui.slowClickDetected' &&
+                  !isDeadClick(frame as SlowClickFrame)) ||
+                frame.category === 'ui.multiClick'
+              )
+          )
+      ),
+      ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
+    ].sort(sortFrames)
+  );
 
   getDomNodes = memoize(() =>
     extractDomNodes({
@@ -207,32 +246,21 @@ export default class ReplayReader {
 
   getChapterFrames = memoize(() =>
     [
-      ...this._sortedBreadcrumbFrames.filter(
-        frame =>
-          ['navigation', 'replay.init', 'replay.mutations', 'ui.click'].includes(
-            frame.category
-          ) ||
-          (frame.category === 'ui.slowClickDetected' &&
-            (isDeadClick(frame as SlowClickFrame) ||
-              isDeadRageClick(frame as SlowClickFrame)))
-        // Hiding all ui.multiClick (multi or rage clicks)
+      ...removeDuplicateClicks(
+        this._sortedBreadcrumbFrames.filter(
+          frame =>
+            ['navigation', 'replay.init', 'replay.mutations', 'ui.click'].includes(
+              frame.category
+            ) ||
+            (frame.category === 'ui.slowClickDetected' &&
+              (isDeadClick(frame as SlowClickFrame) ||
+                isDeadRageClick(frame as SlowClickFrame)))
+        )
       ),
       ...this._sortedSpanFrames.filter(frame =>
         ['navigation.navigate', 'navigation.reload', 'navigation.back_forward'].includes(
           frame.op
         )
-      ),
-      ...this._errors,
-    ].sort(sortFrames)
-  );
-
-  getTimelineFrames = memoize(() =>
-    [
-      ...this._sortedBreadcrumbFrames.filter(frame =>
-        ['replay.init', 'ui.click'].includes(frame.category)
-      ),
-      ...this._sortedSpanFrames.filter(frame =>
-        ['navigation.navigate', 'navigation.reload'].includes(frame.op)
       ),
       ...this._errors,
     ].sort(sortFrames)

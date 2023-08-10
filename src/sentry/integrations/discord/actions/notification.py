@@ -1,6 +1,6 @@
 from typing import Any, Generator, Sequence
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.discord.actions.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.client import DiscordClient
@@ -41,6 +41,11 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             return
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
+            if not features.has(
+                "organizations:integrations-discord-notifications", event.organization
+            ):
+                return
+
             rules = [f.rule for f in futures]
             message = DiscordIssuesMessageBuilder(event.group, event=event, tags=tags, rules=rules)
 

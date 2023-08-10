@@ -11,6 +11,7 @@ from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.groupinbox import GroupInbox
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.tsdb.base import TSDBModel
 
@@ -26,6 +27,7 @@ EXTRA_MERGE_MODELS = []
     queue="merge",
     default_retry_delay=60 * 5,
     max_retries=None,
+    silo_mode=SiloMode.REGION,
 )
 @track_group_async_operation
 def merge_groups(

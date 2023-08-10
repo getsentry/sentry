@@ -34,6 +34,7 @@ from sentry.models.artifactbundle import (
     ReleaseArtifactBundle,
 )
 from sentry.models.releasefile import ReleaseArchive, update_artifact_index
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
@@ -191,7 +192,11 @@ def set_assemble_status(task, scope, checksum, state, detail=None):
     default_cache.set(cache_key, (state, detail), 600)
 
 
-@instrumented_task(name="sentry.tasks.assemble.assemble_dif", queue="assemble")
+@instrumented_task(
+    name="sentry.tasks.assemble.assemble_dif",
+    queue="assemble",
+    silo_mode=SiloMode.REGION,
+)
 def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     """
     Assembles uploaded chunks into a ``ProjectDebugFile``.
@@ -802,7 +807,11 @@ def prepare_post_assembler(
         )
 
 
-@instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
+@instrumented_task(
+    name="sentry.tasks.assemble.assemble_artifacts",
+    queue="assemble",
+    silo_mode=SiloMode.REGION,
+)
 def assemble_artifacts(
     org_id,
     version,

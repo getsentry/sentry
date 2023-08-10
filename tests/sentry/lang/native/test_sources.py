@@ -1,6 +1,5 @@
 from typing import Optional
 
-import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -9,6 +8,7 @@ from sentry.debug_files.artifact_bundles import get_redis_cluster_for_artifact_b
 from sentry.lang.native.sources import get_bundle_index_urls
 from sentry.models import ArtifactBundleFlatFileIndex
 from sentry.testutils.helpers import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 def _mock_flat_file_index(
@@ -30,7 +30,7 @@ def _clear_cache():
     redis_client.flushall()
 
 
-@pytest.mark.django_db
+@django_db_all
 @freeze_time("2023-07-26T10:00:00")
 @override_options({"symbolicator.sourcemaps-bundle-index-sample-rate": 0.0})
 def test_get_bundle_index_urls_with_no_zero_sample_rate(default_project):
@@ -49,7 +49,7 @@ def test_get_bundle_index_urls_with_no_zero_sample_rate(default_project):
     assert url_index is None
 
 
-@pytest.mark.django_db
+@django_db_all
 @freeze_time("2023-07-26T10:00:00")
 @override_options({"symbolicator.sourcemaps-bundle-index-sample-rate": 1.0})
 def test_get_bundle_index_urls_with_no_cached_values(default_project):
@@ -141,7 +141,7 @@ def test_get_bundle_index_urls_with_no_cached_values(default_project):
     )
 
 
-@pytest.mark.django_db
+@django_db_all
 @freeze_time("2023-07-26T10:00:00")
 @override_options({"symbolicator.sourcemaps-bundle-index-sample-rate": 1.0})
 def test_get_bundle_index_urls_with_cached_values(default_project):

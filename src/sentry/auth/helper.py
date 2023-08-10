@@ -108,11 +108,6 @@ class AuthIdentityHandler:
     request: HttpRequest
     identity: Mapping[str, Any]
 
-    def __post_init__(self) -> None:
-        # For debugging. TODO: Remove when tests are stable
-        if not isinstance(self.organization, RpcOrganization):
-            raise TypeError
-
     @cached_property
     def user(self) -> User | AnonymousUser:
         email = self.identity.get("email")
@@ -972,31 +967,31 @@ class AuthHelper(Pipeline):
         )
 
 
-@transaction.atomic
 def EnablePartnerSSO(provider_key, sentry_org, provider_config):
     """
     Simplified abstraction from AuthHelper for enabling an SSO AuthProvider for a Sentry organization.
     Fires appropriate Audit Log and signal emitter for SSO Enabled
     """
-    provider_model = AuthProvider.objects.create(
-        organization_id=sentry_org.id, provider=provider_key, config=provider_config
-    )
+    with transaction.atomic(router.db_for_write(AuthProvider)):
+        provider_model = AuthProvider.objects.create(
+            organization_id=sentry_org.id, provider=provider_key, config=provider_config
+        )
 
-    # TODO: Analytics requires a user id
-    # At provisioning time, no user is available so we cannot provide any user
-    # sso_enabled.send_robust(
-    #     organization=sentry_org,
-    #     provider=provider_key,
-    #     sender="EnablePartnerSSO",
-    # )
+        # TODO: Analytics requires a user id
+        # At provisioning time, no user is available so we cannot provide any user
+        # sso_enabled.send_robust(
+        #     organization=sentry_org,
+        #     provider=provider_key,
+        #     sender="EnablePartnerSSO",
+        # )
 
-    AuditLogEntry.objects.create(
-        organization_id=sentry_org.id,
-        actor_label=f"partner_provisioning_api:{provider_key}",
-        target_object=provider_model.id,
-        event=audit_log.get_event_id("SSO_ENABLE"),
-        data=provider_model.get_audit_log_data(),
-    )
+        AuditLogEntry.objects.create(
+            organization_id=sentry_org.id,
+            actor_label=f"partner_provisioning_api:{provider_key}",
+            target_object=provider_model.id,
+            event=audit_log.get_event_id("SSO_ENABLE"),
+            data=provider_model.get_audit_log_data(),
+        )
 
 
 CHANNEL_PROVIDER_MAP = {ChannelName.FLY_IO.value: FlyOAuth2Provider}

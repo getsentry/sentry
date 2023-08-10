@@ -2,6 +2,7 @@ from django.apps import apps
 from django.db import DatabaseError, IntegrityError, router
 
 from sentry.locks import locks
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.deletion.scheduled import MAX_RETRIES
 from sentry.utils.db import atomic_transaction
@@ -14,6 +15,7 @@ from sentry.utils.db import atomic_transaction
     max_retries=MAX_RETRIES,
     autoretry_for=(DatabaseError, IntegrityError),
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def delete_file_region(path, checksum, **kwargs):
     from sentry.models.files import FileBlob
@@ -28,6 +30,7 @@ def delete_file_region(path, checksum, **kwargs):
     max_retries=MAX_RETRIES,
     autoretry_for=(DatabaseError, IntegrityError),
     acks_late=True,
+    silo_mode=SiloMode.CONTROL,
 )
 def delete_file_control(path, checksum, **kwargs):
     from sentry.models.files import ControlFileBlob
@@ -51,6 +54,7 @@ def delete_file(file_blob_model, path, checksum, **kwargs):
     queue="files.delete",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    silo_mode=SiloMode.REGION,
 )
 @retry
 def delete_unreferenced_blobs_region(blob_ids):
@@ -64,6 +68,7 @@ def delete_unreferenced_blobs_region(blob_ids):
     queue="files.delete",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    silo_mode=SiloMode.CONTROL,
 )
 @retry
 def delete_unreferenced_blobs_control(blob_ids):
@@ -92,6 +97,7 @@ def delete_unreferenced_blobs(blob_model, blob_index_model, blob_ids):
                 pass
 
 
+# TODO(hybrid-cloud): Remove this once backfills are done?
 @instrumented_task(
     name="sentry.tasks.files.copy_to_control",
     queue="files.copy",
@@ -107,17 +113,15 @@ def copy_file_to_control_and_update_model(
     file_id: int,
     **kwargs,
 ):
-    from sentry.models.files import ControlFile, ControlFileBlob, File
-
-    if ControlFileBlob._storage_config() is None:
-        return
+    from sentry.models.files import ControlFile, File
 
     lock = f"copy-file-lock-{model_name}:{model_id}"
 
     with locks.get(lock, duration=60, name="copy-file-lock").acquire():
         # Short circuit duplicate copy calls
-        model = apps.get_app_config(app_name).get_model(model_name).objects.get(id=model_id)
-        if model.control_file_id:
+        model_class = apps.get_model(app_name, model_name)
+        instance = model_class.objects.get(id=model_id)
+        if instance.control_file_id:
             return
 
         file_model = File.objects.get(id=file_id)
@@ -133,5 +137,6 @@ def copy_file_to_control_and_update_model(
         )
         control_file.putfile(file_handle)
 
-        model.control_file_id = control_file.id
-        model.save()
+        instance.control_file_id = control_file.id
+        instance.file_id = None
+        instance.save()

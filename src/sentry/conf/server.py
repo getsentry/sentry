@@ -105,6 +105,9 @@ SENTRY_DISALLOWED_IPS = ()
 # search domains.
 SENTRY_ENSURE_FQDN = False
 
+# XXX [!!]: When adding a new key here BE SURE to configure it in getsentry, as
+#           it can not be `default`. The default cluster in sentry.io
+#           production is NOT a true redis cluster and WILL error in prod.
 SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER = "default"
 SENTRY_INCIDENT_RULES_REDIS_CLUSTER = "default"
 SENTRY_RATE_LIMIT_REDIS_CLUSTER = "default"
@@ -114,6 +117,7 @@ SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
 SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
 SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER = "default"
 SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
+SENTRY_MONITORS_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -752,6 +756,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.check_am2_compatibility",
     "sentry.dynamic_sampling.tasks.collect_orgs",
+    "sentry.tasks.statistical_detectors",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -872,6 +877,7 @@ CELERY_QUEUES_REGION = [
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("recap_servers", routing_key="recap_servers"),
+    Queue("performance.statistical_detector", routing_key="performance.statistical_detector"),
     CELERY_ISSUE_STATES_QUEUE,
 ]
 
@@ -1124,6 +1130,10 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 20 minutes
         "schedule": crontab(minute="*/20"),
     },
+    "statistical-detectors-detect-regressions": {
+        "task": "sentry.tasks.statistical_detectors.run_detection",
+        "schedule": crontab(minute=0, hour="*/1"),
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -1309,6 +1319,8 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_FEATURES = {
     # Enables user registration.
     "auth:register": True,
+    # Enables actionable items alerts and endpoint
+    "organizations:actionable-items": False,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     "organizations:alert-allow-indexed": False,
     # Enables tagging javascript errors from the browser console.
@@ -1316,7 +1328,7 @@ SENTRY_FEATURES = {
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
     # Enables automatically linking repositories using commit webhook data
-    "organizations:auto-repo-linking": False,
+    "organizations:integrations-auto-repo-linking": False,
     # The overall flag for codecov integration, gated by plans.
     "organizations:codecov-integration": False,
     # Enables getting commit sha from git blame for codecov.
@@ -1345,6 +1357,8 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Allow disabling integrations when broken is detected
     "organizations:slack-disable-on-broken": False,
+    # Allow disabling sentryapps when broken is detected
+    "organizations:disable-sentryapps-on-broken": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1468,6 +1482,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-discord-notifications": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": False,
+    # Enable one-click migration from Opsgenie plugin
+    "organizations:integrations-opsgenie-migration": False,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
     # Enable data forwarding functionality for organizations.
@@ -1675,8 +1691,6 @@ SENTRY_FEATURES = {
     "organizations:org-auth-tokens": False,
     # Enable detecting SDK crashes during event processing
     "organizations:sdk-crash-detection": False,
-    # Enables slack channel lookup via schedule message
-    "organizations:slack-use-new-lookup": False,
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -3641,3 +3655,42 @@ SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
 
 # Feature flag to turn off role-swapping to help bridge getsentry transition.
 USE_ROLE_SWAPPING_IN_TESTS = True
+
+# Threshold for the number of timeouts needed in a day to disable an integration
+BROKEN_TIMEOUT_THRESHOLD = 1000
+
+# This webhook url can be configured to log the changes made to runtime options as they
+# are changed by sentry configoptions.
+OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: Optional[str] = None
+
+SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
+SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
+
+# This setting configures how the Monitors (Crons) feature will run the tasks
+# responsible for marking monitors as having "Missed" check-ins and having
+# "Timed out" check-ins.
+#
+# These two tasks must be run every minute and should be run as close to the
+# leading minute boundary as possible. By default these tasks will be
+# triggered via a clock pulse that is generated by a celery beat task. The
+# sentry.monitors.consumer service is responsible for detecting this clock
+# pulse and dispatching the tasks.
+#
+# When high volume mode is enabled, a clock pulse will not be generated by
+# celery beat, instead the monitor consumer will use all processed check-in
+# messages as its clock. We track message timestamps (floored to the minute)
+# and any time that timestamp changes over a minute, the tasks will be
+# triggered
+#
+# NOTE: THERE MUST BE A HIGH VOLUME OF CHECK-INS TO USE THIS MODE!! If a
+#       check-in message is not consumed the tasks will not run, and missed
+#       check-ins will not be generated!
+#
+# The advantage of high volume mode is that we will not rely on celery beat to
+# accurately trigger clock pulses. This is important in scenarios where it is
+# not possible to guarantee that the celery beat tasks will run every minute.
+#
+# (For example, when sentry.io deploys, there is a short period where the
+# celery tasks are being restarted, if they are not running during the minute
+# boundary, the task will not run)
+SENTRY_MONITORS_HIGH_VOLUME_MODE = False

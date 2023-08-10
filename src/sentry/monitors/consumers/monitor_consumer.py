@@ -1,17 +1,21 @@
+from __future__ import annotations
+
 import logging
 import uuid
 from datetime import datetime, timedelta
-from typing import Dict, Mapping, Optional
+from typing import Dict, Literal, Mapping, Optional, TypedDict
 
 import msgpack
+import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
-from arroyo.types import Commit, Message, Partition
+from arroyo.types import BrokerValue, Commit, Message, Partition
 from django.conf import settings
 from django.db import router, transaction
 from django.utils.text import slugify
+from typing_extensions import NotRequired
 
 from sentry import ratelimits
 from sentry.constants import ObjectStatus
@@ -36,7 +40,7 @@ from sentry.monitors.utils import (
     valid_duration,
 )
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
-from sentry.utils import json, metrics
+from sentry.utils import json, metrics, redis
 from sentry.utils.dates import to_datetime
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.manager import LockManager
@@ -48,6 +52,41 @@ logger = logging.getLogger(__name__)
 
 CHECKIN_QUOTA_LIMIT = 5
 CHECKIN_QUOTA_WINDOW = 60
+
+# This key is used to store he last timestamp that the tasks were triggered.
+MONITOR_TASKS_LAST_TRIGGERED_KEY = "sentry.monitors.last_tasks_ts"
+
+
+class CheckinMessage(TypedDict):
+    # TODO(epurkhiser): We should make this required and ensure the message
+    # produced by relay includes this message type
+    message_type: NotRequired[Literal["check_in"]]
+    payload: str
+    start_time: float
+    project_id: str
+    sdk: str
+
+
+class ClockPulseMessage(TypedDict):
+    message_type: Literal["clock_pulse"]
+
+
+class CheckinTrace(TypedDict):
+    trace_id: str
+
+
+class CheckinContexts(TypedDict):
+    trace: NotRequired[CheckinTrace]
+
+
+class CheckinPayload(TypedDict):
+    check_in_id: str
+    monitor_slug: str
+    status: str
+    environment: NotRequired[str]
+    duration: NotRequired[int]
+    monitor_config: NotRequired[Dict]
+    contexts: NotRequired[CheckinContexts]
 
 
 def _ensure_monitor_with_config(
@@ -86,7 +125,7 @@ def _ensure_monitor_with_config(
     validator = ConfigValidator(data=config)
 
     if not validator.is_valid():
-        logger.debug("monitor_config for %s is not valid", monitor_slug)
+        logger.info(f"invalid monitor_config: {monitor_slug}")
         return monitor
 
     validated_config = validator.validated_data
@@ -114,8 +153,105 @@ def _ensure_monitor_with_config(
     return monitor
 
 
-def _process_message(wrapper: Dict) -> None:
-    params = json.loads(wrapper["payload"])
+def _dispatch_tasks(ts: datetime):
+    """
+    Dispatch monitor tasks triggered by the consumer clock. These will run
+    after the MONITOR_TASK_DELAY (in seconds), This is to give some breathing
+    room for check-ins to start and not be EXACTLY on the minute
+
+    These tasks are triggered via the consumer processing check-ins. This
+    allows the monitor tasks to be synchronized to any backlog of check-ins
+    that are being processed.
+
+    To ensure these tasks are always triggered there is an additional celery
+    beat task that produces a clock pulse message into the topic that can be
+    used to trigger these tasks when there is a low volume of check-ins. It is
+    however, preferred to have a high volume of check-ins, so we do not need to
+    rely on celery beat, which in some cases may fail to trigger (such as in
+    sentry.io, when we deploy we restart the celery beat worker and it will
+    skip any tasks it missed)
+    """
+    # For now we're going to have this do nothing. We want to validate that
+    # we're not going to be skipping any check-ins
+    return
+
+    # check_missing.delay(current_datetime=ts)
+    # check_timeout.delay(current_datetime=ts)
+
+
+def _try_monitor_tasks_trigger(ts: datetime):
+    """
+    Handles triggering the monitor tasks when we've rolled over the minute.
+    """
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+
+    # Trim the timestamp seconds off, these tasks are run once per minute and
+    # should have their timestamp clamped to the minute.
+    reference_datetime = ts.replace(second=0, microsecond=0)
+    reference_ts = int(reference_datetime.timestamp())
+
+    precheck_last_ts = redis_client.get(MONITOR_TASKS_LAST_TRIGGERED_KEY)
+    if precheck_last_ts is not None:
+        precheck_last_ts = int(precheck_last_ts)
+
+    # If we have the same or an older reference timestamp from the most recent
+    # tick there is nothing to do, we've already handled this tick.
+    #
+    # The scenario where the reference_ts is older is likely due to a partition
+    # being slightly behind another partition that we've already read from
+    if precheck_last_ts is not None and precheck_last_ts >= reference_ts:
+        return
+
+    # GETSET is atomic. This is critical to avoid another consumer also
+    # processing the same tick.
+    last_ts = redis_client.getset(MONITOR_TASKS_LAST_TRIGGERED_KEY, reference_ts)
+    if last_ts is not None:
+        last_ts = int(last_ts)
+
+    # Another consumer already handled the tick if the first LAST_TRIGGERED
+    # timestamp we got is different from the one we just got from the GETSET.
+    # Nothing needs to be done
+    if precheck_last_ts != last_ts:
+        return
+
+    # Track the delay from the true time, ideally this should be pretty
+    # close, but in the case of a backlog, this will be much higher
+    total_delay = datetime.now().timestamp()
+
+    logger.info(
+        "monitors.consumer.clock_tick",
+        extra={"reference_datetime": str(reference_datetime)},
+    )
+    metrics.gauge("monitors.task.clock_delay", total_delay, sample_rate=1.0)
+
+    # If more than exactly a minute has passed then we've skipped a
+    # task run, report that to sentry, it is a problem.
+    if last_ts is not None and reference_ts > last_ts + 60:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra("last_ts", last_ts)
+            scope.set_extra("reference_ts", reference_ts)
+            sentry_sdk.capture_message("Monitor task dispatch minute skipped")
+
+    _dispatch_tasks(ts)
+
+
+def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) -> None:
+    # XXX: Relay does not attach a message type, to properly discriminate the
+    # type we add it by default here. This can be removed once the message_type
+    # is guaranteed
+    if "message_type" not in wrapper:
+        wrapper["message_type"] = "check_in"
+
+    try:
+        _try_monitor_tasks_trigger(ts)
+    except Exception:
+        logger.exception("Failed to trigger monitor tasks", exc_info=True)
+
+    # Nothing else to do with clock pulses
+    if wrapper["message_type"] == "clock_pulse":
+        return
+
+    params: CheckinPayload = json.loads(wrapper["payload"])
     start_time = to_datetime(float(wrapper["start_time"]))
     project_id = int(wrapper["project_id"])
     source_sdk = wrapper["sdk"]
@@ -129,9 +265,12 @@ def _process_message(wrapper: Dict) -> None:
 
     ratelimit_key = f"{project.organization_id}:{monitor_slug}:{environment}"
 
+    # Strip sdk version to reduce metric cardinality
+    sdk_platform = source_sdk.split("/")[0] if source_sdk else "none"
+
     metric_kwargs = {
         "source": "consumer",
-        "source_sdk": source_sdk,
+        "sdk_platform": sdk_platform,
     }
 
     if killswitch_matches_context(
@@ -141,7 +280,9 @@ def _process_message(wrapper: Dict) -> None:
             "monitors.checkin.dropped.blocked",
             tags={**metric_kwargs},
         )
-        logger.debug("monitor check in blocked: %s", monitor_slug)
+        logger.info(
+            f"monitor check in blocked via killswitch: {project.organization_id} - {monitor_slug}"
+        )
         return
 
     if ratelimits.is_limited(
@@ -153,7 +294,7 @@ def _process_message(wrapper: Dict) -> None:
             "monitors.checkin.dropped.ratelimited",
             tags={**metric_kwargs},
         )
-        logger.debug("monitor check in rate limited: %s", monitor_slug)
+        logger.info(f"monitor check in rate limited: {monitor_slug}")
         return
 
     def update_existing_check_in(
@@ -171,11 +312,8 @@ def _process_message(wrapper: Dict) -> None:
                 "monitors.checkin.result",
                 tags={"source": "consumer", "status": "guid_mismatch"},
             )
-            logger.debug(
-                "check-in guid %s already associated with %s not payload %s",
-                existing_check_in,
-                existing_check_in.monitor_id,
-                monitor.id,
+            logger.info(
+                f"check-in guid {existing_check_in} already associated with {existing_check_in.monitor_id} not payload monitor {monitor.id}"
             )
             return
 
@@ -184,10 +322,8 @@ def _process_message(wrapper: Dict) -> None:
                 "monitors.checkin.result",
                 tags={**metric_kwargs, "status": "checkin_finished"},
             )
-            logger.debug(
-                "check-in was finished: attempted update from %s to %s",
-                existing_check_in.status,
-                updated_status,
+            logger.info(
+                f"check-in was finished: attempted update from {existing_check_in.status} to {updated_status}"
             )
             return
 
@@ -201,7 +337,7 @@ def _process_message(wrapper: Dict) -> None:
                 "monitors.checkin.result",
                 tags={**metric_kwargs, "status": "failed_duration_check"},
             )
-            logger.debug("check-in implicit duration is invalid: %s", project.organization_id)
+            logger.info(f"check-in implicit duration is invalid: {updated_duration}")
             return
 
         # update date_added for heartbeat
@@ -221,36 +357,57 @@ def _process_message(wrapper: Dict) -> None:
         return
 
     try:
-        with transaction.atomic(router.db_for_write(Monitor)):
-            monitor_config = params.pop("monitor_config", None)
+        check_in_id = uuid.UUID(params["check_in_id"])
+    except ValueError:
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "failed_guid_validation"},
+        )
+        logger.info("monitor_checkin.validation.failed", extra={**params})
+        return
 
-            params["duration"] = (
-                # Duration is specified in seconds from the client, it is
-                # stored in the checkin model as milliseconds
-                int(params["duration"] * 1000)
-                if params.get("duration") is not None
-                else None
-            )
+    # When the UUID is empty we will default to looking for the most
+    # recent check-in which is not in a terminal state.
+    use_latest_checkin = check_in_id.int == 0
 
-            validator = MonitorCheckInValidator(
-                data=params,
-                partial=True,
-                context={
-                    "project": project,
-                },
-            )
+    # If the UUID is unset (zero value) generate a new UUID
+    if check_in_id.int == 0:
+        guid = uuid.uuid4()
+    else:
+        guid = check_in_id
 
-            if not validator.is_valid():
-                metrics.incr(
-                    "monitors.checkin.result",
-                    tags={**metric_kwargs, "status": "failed_checkin_validation"},
-                )
-                logger.info("monitor_checkin.validation.failed", extra={**params})
-                return
-
-            validated_params = validator.validated_data
-
+    lock = locks.get(f"checkin-creation:{guid}", duration=2, name="checkin_creation")
+    try:
+        with lock.acquire(), transaction.atomic(router.db_for_write(Monitor)):
             try:
+                monitor_config = params.pop("monitor_config", None)
+
+                params["duration"] = (
+                    # Duration is specified in seconds from the client, it is
+                    # stored in the checkin model as milliseconds
+                    int(params["duration"] * 1000)
+                    if params.get("duration") is not None
+                    else None
+                )
+
+                validator = MonitorCheckInValidator(
+                    data=params,
+                    partial=True,
+                    context={
+                        "project": project,
+                    },
+                )
+
+                if not validator.is_valid():
+                    metrics.incr(
+                        "monitors.checkin.result",
+                        tags={**metric_kwargs, "status": "failed_checkin_validation"},
+                    )
+                    logger.info("monitor_checkin.validation.failed", extra={**params})
+                    return
+
+                validated_params = validator.validated_data
+
                 monitor = _ensure_monitor_with_config(
                     project,
                     monitor_slug,
@@ -270,7 +427,7 @@ def _process_message(wrapper: Dict) -> None:
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_limits"},
                 )
-                logger.debug("monitor exceeds limits for organization: %s", project.organization_id)
+                logger.info(f"monitor exceeds limits for organization: {project.organization_id}")
                 return
 
             try:
@@ -282,25 +439,18 @@ def _process_message(wrapper: Dict) -> None:
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_environment_limits"},
                 )
-                logger.debug("monitor environment exceeds limits for monitor: %s", monitor_slug)
+                logger.info(f"monitor environment exceeds limits for monitor: {monitor_slug}")
                 return
             except MonitorEnvironmentValidationFailed:
                 metrics.incr(
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_environment_name_length"},
                 )
-                logger.debug("monitor environment name too long: %s %s", monitor_slug, environment)
+                logger.info(f"monitor environment name too long: {monitor_slug} - {environment}")
                 return
 
             status = getattr(CheckInStatus, validated_params["status"].upper())
             trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
-
-            # Invalid UUIDs will raise ValueError
-            check_in_id = uuid.UUID(params["check_in_id"])
-
-            # When the UUID is empty we will default to looking for the most
-            # recent check-in which is not in a terminal state.
-            use_latest_checkin = check_in_id.int == 0
 
             try:
                 if use_latest_checkin:
@@ -313,9 +463,21 @@ def _process_message(wrapper: Dict) -> None:
                     )
                 else:
                     check_in = MonitorCheckIn.objects.select_for_update().get(
-                        monitor_environment=monitor_environment,
                         guid=check_in_id,
                     )
+
+                    if check_in.monitor_environment_id != monitor_environment.id:
+                        metrics.incr(
+                            "monitors.checkin.result",
+                            tags={
+                                **metric_kwargs,
+                                "status": "failed_monitor_environment_guid_match",
+                            },
+                        )
+                        logger.info(
+                            f"monitor environment does not match on existing guid: {environment} - {check_in_id}"
+                        )
+                        return
 
                 update_existing_check_in(check_in, status, validated_params["duration"], start_time)
 
@@ -336,43 +498,26 @@ def _process_message(wrapper: Dict) -> None:
                 monitor_config = monitor.get_validated_config()
                 timeout_at = get_timeout_at(monitor_config, status, date_added)
 
-                # If the UUID is unset (zero value) generate a new UUID
-                if check_in_id.int == 0:
-                    guid = uuid.uuid4()
+                check_in, created = MonitorCheckIn.objects.get_or_create(
+                    defaults={
+                        "duration": duration,
+                        "status": status,
+                        "date_added": date_added,
+                        "date_updated": start_time,
+                        "expected_time": expected_time,
+                        "timeout_at": timeout_at,
+                        "monitor_config": monitor_config,
+                        "trace_id": trace_id,
+                    },
+                    project_id=project_id,
+                    monitor=monitor,
+                    monitor_environment=monitor_environment,
+                    guid=guid,
+                )
+                if not created:
+                    update_existing_check_in(check_in, status, duration, start_time)
                 else:
-                    guid = check_in_id
-
-                lock = locks.get(f"checkin-creation:{guid}", duration=2, name="checkin_creation")
-                try:
-                    with lock.acquire():
-                        check_in, created = MonitorCheckIn.objects.get_or_create(
-                            defaults={
-                                "duration": duration,
-                                "status": status,
-                                "date_added": date_added,
-                                "date_updated": start_time,
-                                "expected_time": expected_time,
-                                "timeout_at": timeout_at,
-                                "monitor_config": monitor_config,
-                                "trace_id": trace_id,
-                            },
-                            project_id=project_id,
-                            monitor=monitor,
-                            monitor_environment=monitor_environment,
-                            guid=guid,
-                        )
-                        if not created:
-                            update_existing_check_in(check_in, status, duration, start_time)
-                        else:
-                            signal_first_checkin(project, monitor)
-
-                except UnableToAcquireLock:
-                    metrics.incr(
-                        "monitors.checkin.result",
-                        tags={**metric_kwargs, "status": "failed_checkin_creation_lock"},
-                    )
-                    logger.debug("failed to acquire lock to create check-in: %s", guid)
-                    return
+                    signal_first_checkin(project, monitor)
 
             if check_in.status == CheckInStatus.ERROR:
                 monitor_environment.mark_failed(
@@ -385,6 +530,12 @@ def _process_message(wrapper: Dict) -> None:
                 "monitors.checkin.result",
                 tags={**metric_kwargs, "status": "complete"},
             )
+    except UnableToAcquireLock:
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "failed_checkin_creation_lock"},
+        )
+        logger.info(f"failed to acquire lock to create check-in: {guid}")
     except Exception:
         # Skip this message and continue processing in the consumer.
         metrics.incr(
@@ -401,9 +552,10 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         def process_message(message: Message[KafkaPayload]) -> None:
+            assert isinstance(message.value, BrokerValue)
             try:
                 wrapper = msgpack.unpackb(message.payload.value)
-                _process_message(wrapper)
+                _process_message(message.value.timestamp, wrapper)
             except Exception:
                 logger.exception("Failed to process message payload")
 

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button, ButtonProps} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
@@ -41,6 +42,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
+import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 import QuickTrace from './quickTrace';
 
@@ -126,6 +128,7 @@ function EventNavigationDropdown({
   const theme = useTheme();
   const organization = useOrganization();
   const largeViewport = useMedia(`(min-width: ${theme.breakpoints.large})`);
+  const defaultIssueEvent = useDefaultIssueEvent();
 
   const isHelpfulEventUiEnabled =
     organization.features.includes('issue-details-most-helpful-event') &&
@@ -142,7 +145,7 @@ function EventNavigationDropdown({
       case EventNavDropdownOption.OLDEST:
         return params.eventId;
       case undefined:
-        return EventNavDropdownOption.RECOMMENDED;
+        return defaultIssueEvent;
       default:
         return undefined;
     }
@@ -185,45 +188,47 @@ function EventNavigationDropdown({
   ];
 
   return (
-    <CompactSelect
-      size="sm"
-      disabled={isDisabled}
-      options={eventNavDropdownOptions}
-      value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
-      triggerLabel={
-        !selectedValue ? (
-          <TimeSince date={relativeTime} disabledAbsoluteTooltip />
-        ) : selectedValue === EventNavDropdownOption.RECOMMENDED ? (
-          t('Recommended')
-        ) : undefined
-      }
-      menuWidth={232}
-      onChange={selectedOption => {
-        switch (selectedOption.value) {
-          case EventNavDropdownOption.RECOMMENDED:
-          case EventNavDropdownOption.LATEST:
-          case EventNavDropdownOption.OLDEST:
-            browserHistory.push({
-              pathname: normalizeUrl(
-                makeBaseEventsPath({organization, group}) + selectedOption.value + '/'
-              ),
-              query: {...location.query, referrer: `${selectedOption.value}-event`},
-            });
-            break;
-          case EventNavDropdownOption.ALL:
-            const searchTermWithoutQuery = omit(location.query, 'query');
-            browserHistory.push({
-              pathname: normalizeUrl(
-                `/organizations/${organization.slug}/issues/${group.id}/events/`
-              ),
-              query: searchTermWithoutQuery,
-            });
-            break;
-          default:
-            break;
+    <GuideAnchor target="issue_details_default_event" position="bottom">
+      <CompactSelect
+        size="sm"
+        disabled={isDisabled}
+        options={eventNavDropdownOptions}
+        value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
+        triggerLabel={
+          !selectedValue ? (
+            <TimeSince date={relativeTime} disabledAbsoluteTooltip />
+          ) : selectedValue === EventNavDropdownOption.RECOMMENDED ? (
+            t('Recommended')
+          ) : undefined
         }
-      }}
-    />
+        menuWidth={232}
+        onChange={selectedOption => {
+          switch (selectedOption.value) {
+            case EventNavDropdownOption.RECOMMENDED:
+            case EventNavDropdownOption.LATEST:
+            case EventNavDropdownOption.OLDEST:
+              browserHistory.push({
+                pathname: normalizeUrl(
+                  makeBaseEventsPath({organization, group}) + selectedOption.value + '/'
+                ),
+                query: {...location.query, referrer: `${selectedOption.value}-event`},
+              });
+              break;
+            case EventNavDropdownOption.ALL:
+              const searchTermWithoutQuery = omit(location.query, 'query');
+              browserHistory.push({
+                pathname: normalizeUrl(
+                  `/organizations/${organization.slug}/issues/${group.id}/events/`
+                ),
+                query: searchTermWithoutQuery,
+              });
+              break;
+            default:
+              break;
+          }
+        }}
+      />
+    </GuideAnchor>
   );
 }
 
