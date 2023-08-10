@@ -66,7 +66,6 @@
     "noEmitHelpers": true,
     "sourceMap": true,
     "pretty": false,
-    // "emitDecoratorMetadata": true,         /* Enables experimental support for emitting type metadata for decorators. */
 
     // We do not configure these, but are left here for documentation purposes
     //
