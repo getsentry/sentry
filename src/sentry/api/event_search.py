@@ -47,14 +47,16 @@ event_search_grammar = Grammar(
     r"""
 search = spaces term*
 
-term = (boolean_operator / paren_group / filter / free_text) spaces
+term = (boolean_operator / paren_group / filter / free_email_text / free_text) spaces
 
 boolean_operator = or_operator / and_operator
 
 paren_group = open_paren spaces term+ closed_paren
 
+free_email_text = ~r"[a-zA-Z0-9*_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
+
 free_text          = free_text_quoted / free_text_unquoted
-free_text_unquoted = (!filter !boolean_operator (free_parens / ~r"[^()\n ]+") spaces)+
+free_text_unquoted = (!filter !boolean_operator !free_email_text (free_parens / ~r"[^()\n ]+") spaces)+
 free_text_quoted   = quoted_value
 free_parens        = open_paren free_text? closed_paren
 
@@ -477,6 +479,9 @@ class SearchConfig:
     # Which key we should return any free text under
     free_text_key = "message"
 
+    # Enables free text email searches
+    allow_free_text_email = False
+
     @classmethod
     def create_from(cls, search_config: SearchConfig, **overrides):
         config = cls(**asdict(search_config))
@@ -557,6 +562,11 @@ class SearchVisitor(NodeVisitor):
             )
 
         return children[0]
+
+    def visit_free_email_text(self, node, children):
+        if not self.config.allow_free_text_email:
+            raise InvalidSearchQuery("Please add a relevant tag to search an email")
+        return SearchFilter(SearchKey("user.email"), "=", SearchValue(node.text))
 
     def visit_free_text_unquoted(self, node, children):
         return node.text.strip(" ") or None

@@ -15,6 +15,7 @@ from sentry.api.event_search import (
     SearchFilter,
     SearchKey,
     SearchValue,
+    default_config,
     parse_search_query,
 )
 from sentry.constants import MODULE_ROOT
@@ -525,40 +526,64 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     def test_allowed_keys(self):
-        config = SearchConfig(allowed_keys=["good_key"])
+        config = SearchConfig.create_from(
+            default_config, allowed_keys=["good_key"], allow_free_text_email=True
+        )
+        email_config = SearchConfig.create_from(default_config, allow_free_text_email=True)
 
-        assert parse_search_query("good_key:123 bad_key:123 text") == [
+        assert parse_search_query(
+            "good_key:123 bad_key:123 text abc@test.com", config=email_config
+        ) == [
             SearchFilter(key=SearchKey(name="good_key"), operator="=", value=SearchValue("123")),
             SearchFilter(key=SearchKey(name="bad_key"), operator="=", value=SearchValue("123")),
             SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("text")),
+            SearchFilter(
+                key=SearchKey(name="user.email"), operator="=", value=SearchValue("abc@test.com")
+            ),
         ]
 
         with pytest.raises(InvalidSearchQuery, match="Invalid key for this search"):
-            assert parse_search_query("good_key:123 bad_key:123 text", config=config)
+            assert parse_search_query("good_key:123 bad_key:123 text abc@test.com", config=config)
 
-        assert parse_search_query("good_key:123 text", config=config) == [
+        assert parse_search_query("good_key:123 text abc@test.com", config=config) == [
             SearchFilter(key=SearchKey(name="good_key"), operator="=", value=SearchValue("123")),
             SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("text")),
+            SearchFilter(
+                key=SearchKey(name="user.email"), operator="=", value=SearchValue("abc@test.com")
+            ),
         ]
 
     def test_blocked_keys(self):
-        config = SearchConfig(blocked_keys=["bad_key"])
+        config = SearchConfig.create_from(
+            default_config, blocked_keys=["bad_key"], allow_free_text_email=True
+        )
+        email_config = SearchConfig.create_from(default_config, allow_free_text_email=True)
 
-        assert parse_search_query("some_key:123 bad_key:123 text") == [
+        assert parse_search_query(
+            "some_key:123 bad_key:123 text *@test.com", config=email_config
+        ) == [
             SearchFilter(key=SearchKey(name="some_key"), operator="=", value=SearchValue("123")),
             SearchFilter(key=SearchKey(name="bad_key"), operator="=", value=SearchValue("123")),
             SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("text")),
+            SearchFilter(
+                key=SearchKey(name="user.email"), operator="=", value=SearchValue("*@test.com")
+            ),
         ]
 
         with pytest.raises(InvalidSearchQuery, match="Invalid key for this search: bad_key"):
-            assert parse_search_query("some_key:123 bad_key:123 text", config=config)
+            assert parse_search_query("some_key:123 bad_key:123 text *@test.com", config=config)
 
-        assert parse_search_query("some_key:123 some_other_key:456 text", config=config) == [
+        assert parse_search_query(
+            "some_key:123 some_other_key:456 text *@test.com", config=config
+        ) == [
             SearchFilter(key=SearchKey(name="some_key"), operator="=", value=SearchValue("123")),
             SearchFilter(
                 key=SearchKey(name="some_other_key"), operator="=", value=SearchValue("456")
             ),
             SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("text")),
+            SearchFilter(
+                key=SearchKey(name="user.email"), operator="=", value=SearchValue("*@test.com")
+            ),
         ]
 
     def test_invalid_aggregate_column_with_duration_filter(self):

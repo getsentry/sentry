@@ -597,6 +597,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "url:example.com",
                 "activity:3",
                 "activity:>2",
+                "username@example.com",
+                "*@example.com",
             ]
 
             for query in queries:

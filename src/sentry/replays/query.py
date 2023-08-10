@@ -531,6 +531,9 @@ replay_url_parser_config = SearchConfig(
         "activity",
     },
 )
+replay_url_parser_config = SearchConfig.create_from(
+    replay_url_parser_config, allow_free_text_email=True
+)
 
 
 class ReplayQueryConfig(QueryConfig):
