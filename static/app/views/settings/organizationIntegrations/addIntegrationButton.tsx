@@ -35,13 +35,7 @@ export function AddIntegrationButton({
       : installStatus === 'Disabled'
       ? t('Reinstall')
       : t('Add %s', provider.metadata.noun);
-  if (label === t('Reinstall')) {
-    trackAnalytics('integrations.integration_reinstall_clicked', {
-      organization,
-      organization_id: organization.id,
-      provider: provider.name,
-    });
-  }
+
   return (
     <Tooltip
       disabled={provider.canAdd}
@@ -58,7 +52,16 @@ export function AddIntegrationButton({
           <Button
             disabled={!provider.canAdd}
             {...buttonProps}
-            onClick={() => onClick()}
+            onClick={() => {
+              if (label === t('Reinstall')) {
+                trackAnalytics('integrations.integration_reinstall_clicked', {
+                  organization,
+                  organization_id: organization.id,
+                  provider: provider.name,
+                });
+              }
+              onClick();
+            }}
             aria-label={t('Add integration')}
           >
             {label}
