@@ -21,10 +21,11 @@ from sentry.models.transaction_threshold import (
     TransactionMetric,
 )
 from sentry.search.events import constants
+from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_not_arm64
 from sentry.utils import json
 from sentry.utils.samples import load_data
@@ -88,7 +89,7 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
         return load_data(platform, timestamp=timestamp, start_timestamp=start_timestamp, **kwargs)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, PerformanceIssueTestCase):
     def test_no_projects(self):
         response = self.do_request({})
@@ -111,9 +112,10 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
-        api_key = ApiKey.objects.create(
-            organization_id=self.organization.id, scope_list=["org:read"]
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            api_key = ApiKey.objects.create(
+                organization_id=self.organization.id, scope_list=["org:read"]
+            )
         query = {"field": ["project.name", "environment"], "project": [self.project.id]}
 
         url = self.reverse_url()
@@ -4199,9 +4201,10 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         mock.return_value = {}
         # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
-        api_key = ApiKey.objects.create(
-            organization_id=self.organization.id, scope_list=["org:read"]
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            api_key = ApiKey.objects.create(
+                organization_id=self.organization.id, scope_list=["org:read"]
+            )
 
         query = {
             "field": ["project.name", "environment"],
