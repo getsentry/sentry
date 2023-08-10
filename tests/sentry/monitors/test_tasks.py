@@ -577,7 +577,7 @@ class CheckMonitorsTest(TestCase):
         assert dispatch_tasks.call_count == 2
 
         # A skipped minute trigges the task AND captures an error
-        with patch("sentry_sdk.capture_message") as capture_message:
+        with mock.patch("sentry_sdk.capture_message") as capture_message:
             assert capture_message.call_count == 0
             try_monitor_tasks_trigger(ts=now + timedelta(minutes=3, seconds=5))
             assert dispatch_tasks.call_count == 3
