@@ -2154,7 +2154,7 @@ SENTRY_SCOPES = {
 SENTRY_SCOPE_HIERARCHY_MAPPING: Dict[str, Set(str)] = {
     "org:read": {"org:read"},
     "org:write": {"org:read", "org:write"},
-    "org:admin": {"org:read", "org:write", "org:admin"},
+    "org:admin": {"org:read", "org:write", "org:admin", "org:integrations"},
     "org:integrations": {"org:integrations"},
     "org:ci": {"org:ci"},
     "member:read": {"member:read"},
@@ -2165,7 +2165,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING: Dict[str, Set(str)] = {
     "team:admin": {"team:read", "team:write", "team:admin"},
     "project:read": {"project:read"},
     "project:write": {"project:read", "project:write"},
-    "project:admin": {"project:read", "project:write", "project:admin"},
+    "project:admin": {"project:read", "project:write", "project:admin", "project:releases"},
     "project:releases": {"project:releases"},
     "event:read": {"event:read"},
     "event:write": {"event:read", "event:write"},
