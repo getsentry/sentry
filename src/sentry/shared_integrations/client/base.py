@@ -398,7 +398,7 @@ class BaseApiClient(TrackResponseMixin):
                         extra["provider"] = rpc_integration.provider
                         extra["organization_id"] = rpc_org_integration[0].organization_id
                     self.logger.info(
-                        "integration.disabled",
+                        "integration.error.record",
                         extra=extra,
                     )
             if buffer.is_integration_broken():
@@ -437,7 +437,7 @@ class BaseApiClient(TrackResponseMixin):
                         extra["provider"] = rpc_integration.provider
                         extra["organization_id"] = rpc_org_integration[0].organization_id
                     self.logger.info(
-                        "integration.disabled",
+                        "integration.error.record",
                         extra=extra,
                     )
             if buffer.is_integration_broken():
