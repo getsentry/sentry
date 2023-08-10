@@ -283,8 +283,8 @@ def test_spec_countif_with_query():
 
 
 def test_ignore_fields():
-    with_ignored_field = OndemandMetricSpec("count()", "transaction.duration:>0 project:sentry")
-    without_ignored_field = OndemandMetricSpec("count()", "transaction.duration:>0")
+    with_ignored_field = OndemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
+    without_ignored_field = OndemandMetricSpec("count()", "transaction.duration:>=1")
 
     assert with_ignored_field.condition() == without_ignored_field.condition()
 
