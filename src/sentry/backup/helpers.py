@@ -4,7 +4,7 @@ from enum import Enum
 from typing import Type
 
 # Django apps we take care to never import or export from.
-EXCLUDED_APPS = frozenset(("auth", "contenttypes"))
+EXCLUDED_APPS = frozenset(("auth", "contenttypes", "fixtures"))
 
 
 def get_final_derivations_of(model: Type) -> set[Type]:
