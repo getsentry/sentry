@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, NamedTuple, Optional, Sequence, Tuple, TypedDict, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, TypedDict, Union
 
 from sentry import features
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
@@ -16,7 +16,7 @@ from sentry.models import (
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     MetricSpec,
-    OnDemandMetricSpec,
+    OndemandMetricSpec,
     RuleCondition,
     is_on_demand_metric_query,
 )
@@ -35,9 +35,7 @@ _MAX_ON_DEMAND_ALERTS = 100
 _MAX_ON_DEMAND_WIDGETS = 500
 
 
-class HashedMetricSpec(NamedTuple):
-    metric_spec: MetricSpec
-    query_hash: str
+HashMetricSpec = Tuple[str, MetricSpec]
 
 
 class MetricExtractionConfig(TypedDict):
@@ -73,7 +71,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     }
 
 
-def _get_alert_metric_specs(project: Project) -> List[HashedMetricSpec]:
+def _get_alert_metric_specs(project: Project) -> List[HashMetricSpec]:
     alert_rules = AlertRule.objects.fetch_for_project(project).filter(
         status=AlertRuleStatus.PENDING.value,
         snuba_query__dataset=Dataset.PerformanceMetrics.value,
@@ -93,7 +91,7 @@ def _get_alert_metric_specs(project: Project) -> List[HashedMetricSpec]:
     return specs
 
 
-def _get_widget_metric_specs(project: Project) -> List[HashedMetricSpec]:
+def _get_widget_metric_specs(project: Project) -> List[HashMetricSpec]:
     if not features.has(
         "organizations:on-demand-metrics-extraction-experimental", project.organization
     ):
@@ -120,30 +118,30 @@ def _get_widget_metric_specs(project: Project) -> List[HashedMetricSpec]:
 
 
 def _merge_metric_specs(
-    alert_specs: List[HashedMetricSpec], widget_specs: List[HashedMetricSpec]
+    alert_specs: List[HashMetricSpec], widget_specs: List[HashMetricSpec]
 ) -> List[MetricSpec]:
     # We use a dict so that we can deduplicate metrics with the same hash.
     metrics: Dict[str, MetricSpec] = {}
 
-    for hashed_spec in alert_specs + widget_specs:
-        existing_spec = metrics.get(hashed_spec.query_hash)
-        if existing_spec is not None and existing_spec != hashed_spec.metric_spec:
+    for query_hash, spec in alert_specs + widget_specs:
+        already_present = metrics.get(query_hash)
+        if already_present is not None and already_present != spec:
             logger.error(
                 "Duplicate metric spec found for hash %s with different specs: %s != %s",
-                hashed_spec.query_hash,
-                existing_spec,
-                hashed_spec.metric_spec,
+                query_hash,
+                already_present,
+                spec,
             )
             continue
 
-        metrics[hashed_spec.query_hash] = hashed_spec.metric_spec
+        metrics[query_hash] = spec
 
     return [metric for metric in metrics.values()]
 
 
 def _convert_snuba_query_to_metric(
     project: Project, snuba_query: SnubaQuery
-) -> Optional[HashedMetricSpec]:
+) -> Optional[HashMetricSpec]:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
     returns a tuple of (hash, MetricSpec) for the query. Otherwise, returns None.
@@ -159,12 +157,12 @@ def _convert_snuba_query_to_metric(
 def _convert_widget_query_to_metric(
     project: Project,
     widget_query: DashboardWidgetQuery,
-) -> Sequence[HashedMetricSpec]:
+) -> Sequence[HashMetricSpec]:
     """
     Converts a passed metrics widget query to one or more MetricSpecs.
     Widget query can result in multiple metric specs if it selects multiple fields
     """
-    metrics_specs: List[HashedMetricSpec] = []
+    metrics_specs: List[HashMetricSpec] = []
 
     if not widget_query.aggregates:
         return metrics_specs
@@ -185,7 +183,7 @@ def _convert_widget_query_to_metric(
 
 def _convert_aggregate_and_query_to_metric(
     project: Project, dataset: str, aggregate: str, query: str
-) -> Optional[HashedMetricSpec]:
+) -> Optional[HashMetricSpec]:
     """
     Converts an aggregate and a query to a metric spec with its hash value.
     """
@@ -193,12 +191,12 @@ def _convert_aggregate_and_query_to_metric(
         if not is_on_demand_metric_query(dataset, aggregate, query):
             return None
 
-        on_demand_spec = OnDemandMetricSpec(
+        on_demand_spec = OndemandMetricSpec(
             field=aggregate,
             query=query,
         )
 
-        return HashedMetricSpec(
+        return HashMetricSpec(
             metric_spec=on_demand_spec.to_metric_spec(project), query_hash=on_demand_spec.query_hash
         )
     except Exception as e:

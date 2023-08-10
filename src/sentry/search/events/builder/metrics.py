@@ -43,7 +43,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
-    OnDemandMetricSpec,
+    OndemandMetricSpec,
     is_on_demand_metric_query,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
@@ -108,7 +108,7 @@ class MetricsQueryBuilder(QueryBuilder):
         return super().are_columns_resolved()
 
     @cached_property
-    def _on_demand_metric_spec(self) -> Optional[OnDemandMetricSpec]:
+    def _on_demand_metric_spec(self) -> Optional[OndemandMetricSpec]:
         if not self.on_demand_metrics_enabled:
             return None
 
@@ -123,13 +123,13 @@ class MetricsQueryBuilder(QueryBuilder):
             return None
 
         try:
-            return OnDemandMetricSpec(field, self.query)
+            return OndemandMetricSpec(field, self.query)
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return None
 
     def _get_metrics_query_from_on_demand_spec(
-        self, spec: OnDemandMetricSpec, require_time_range: bool = True
+        self, spec: OndemandMetricSpec, require_time_range: bool = True
     ) -> MetricsQuery:
         if self.params.organization is None:
             raise InvalidSearchQuery("An on demand metrics query requires an organization")

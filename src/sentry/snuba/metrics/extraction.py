@@ -111,8 +111,7 @@ _COUNTIF_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
     "greaterOrEquals": "gte",
 }
 
-# Maps plain Discover functions to metric aggregation functions. Derived metrics
-# are not part of this mapping.
+# Maps plain Discover functions to metric aggregation functions.
 _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "count": "sum",
     "count_if": "sum",
@@ -123,9 +122,13 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "p75": "p75",
     "p95": "p95",
     "p99": "p99",
+    # generic percentile is not supported by metrics layer.
+}
+
+# Maps plain Discover functions to derived metric functions which are understood by the metrics layer.
+_SEARCH_TO_DERIVED_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "failure_rate": "on_demand_failure_rate",
     "apdex": "on_demand_apdex",
-    # generic percentile is not supported by metrics layer.
 }
 
 # Mapping to infer metric type from Discover function.
@@ -305,7 +308,10 @@ def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
 def _get_function_support(function: str) -> SupportedBy:
     return SupportedBy(
         standard_metrics=True,
-        on_demand_metrics=function in _SEARCH_TO_METRIC_AGGREGATES
+        on_demand_metrics=(
+            function in _SEARCH_TO_METRIC_AGGREGATES
+            or function in _SEARCH_TO_DERIVED_METRIC_AGGREGATES
+        )
         and function in _AGGREGATE_TO_METRIC_TYPE,
     )
 
@@ -643,7 +649,7 @@ class QueryParsingResult:
 
 
 @dataclass
-class OnDemandMetricSpec:
+class OndemandMetricSpec:
     # Base fields from outside.
     field: str
     query: str
@@ -802,7 +808,9 @@ class OnDemandMetricSpec:
 
     @staticmethod
     def _get_op(function: str) -> MetricOperationType:
-        op = _SEARCH_TO_METRIC_AGGREGATES.get(function)
+        op = _SEARCH_TO_METRIC_AGGREGATES.get(function) or _SEARCH_TO_DERIVED_METRIC_AGGREGATES.get(
+            function
+        )
         if op is not None:
             return op
 

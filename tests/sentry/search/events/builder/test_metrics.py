@@ -22,7 +22,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics import TransactionMRI
-from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, OnDemandMetricSpec
+from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, OndemandMetricSpec
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 
@@ -1958,7 +1958,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_count(self):
         field = "count()"
         query = "transaction.duration:>0"
-        spec = OnDemandMetricSpec(field=field, query=query)
+        spec = OndemandMetricSpec(field=field, query=query)
 
         for hour in range(0, 5):
             self.store_transaction_metric(
@@ -2012,7 +2012,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_distribution(self):
         field = "p75(measurements.fp)"
         query = "transaction.duration:>0"
-        spec = OnDemandMetricSpec(field=field, query=query)
+        spec = OndemandMetricSpec(field=field, query=query)
 
         for hour in range(0, 5):
             self.store_transaction_metric(
@@ -2172,7 +2172,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_distribution(self):
         field = "p75(measurements.fp)"
         query = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query)
+        spec = OndemandMetricSpec(field=field, query=query)
 
         self.store_transaction_metric(
             value=200,
@@ -2204,7 +2204,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_count(self):
         field = "count(measurements.fp)"
         query = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query)
+        spec = OndemandMetricSpec(field=field, query=query)
 
         self.store_transaction_metric(
             value=100,
@@ -2236,7 +2236,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_failure_rate(self):
         field = "failure_rate()"
         query = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query)
+        spec = OndemandMetricSpec(field=field, query=query)
 
         self.store_transaction_metric(
             value=1,
@@ -2278,7 +2278,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_apdex(self):
         field = "apdex(10)"
         query = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query)
+        spec = OndemandMetricSpec(field=field, query=query)
 
         self.store_transaction_metric(
             value=1,
