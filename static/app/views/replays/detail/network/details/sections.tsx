@@ -86,7 +86,7 @@ export function ResponseHeadersSection({item}: SectionProps) {
   const data = isRequestFrame(item) ? item.data : {};
   return (
     <SectionItem title={t('Response Headers')}>
-      {keyValueTableOrNotFound(data.request?.headers, t('Headers not captured'))}
+      {keyValueTableOrNotFound(data.response?.headers, t('Headers not captured'))}
     </SectionItem>
   );
 }

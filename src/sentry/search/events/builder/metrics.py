@@ -99,6 +99,14 @@ class MetricsQueryBuilder(QueryBuilder):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
         self.organization_id: int = org_id
 
+    def are_columns_resolved(self) -> bool:
+        # If we have an on demand spec, we want to mark the columns as resolved, since we are not running the
+        # `resolve_query` method.
+        if self._on_demand_metric_spec:
+            return True
+
+        return super().are_columns_resolved()
+
     @cached_property
     def _on_demand_metric_spec(self) -> Optional[OnDemandMetricSpec]:
         if not self.on_demand_metrics_enabled:

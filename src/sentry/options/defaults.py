@@ -1455,3 +1455,9 @@ register(
     default=[],
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "options_automator_slack_webhook_enabled",
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

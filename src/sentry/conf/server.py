@@ -1482,6 +1482,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-discord-notifications": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": False,
+    # Enable one-click migration from Opsgenie plugin
+    "organizations:integrations-opsgenie-migration": False,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
     # Enable data forwarding functionality for organizations.
@@ -3656,6 +3658,10 @@ USE_ROLE_SWAPPING_IN_TESTS = True
 
 # Threshold for the number of timeouts needed in a day to disable an integration
 BROKEN_TIMEOUT_THRESHOLD = 1000
+
+# This webhook url can be configured to log the changes made to runtime options as they
+# are changed by sentry configoptions.
+OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: Optional[str] = None
 
 SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
 SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}

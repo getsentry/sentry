@@ -31,8 +31,8 @@ _METRIC_EXTRACTION_VERSION = 1
 
 # Maximum number of custom metrics that can be extracted for alerts and widgets with
 # advanced filter expressions.
-# TODO(Ogi): remove this, or enforce limits for alerts and widgets separately.
-_MAX_ON_DEMAND_METRICS = 100
+_MAX_ON_DEMAND_ALERTS = 100
+_MAX_ON_DEMAND_WIDGETS = 500
 
 
 class HashedMetricSpec(NamedTuple):
@@ -67,10 +67,6 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     if not metrics:
         return None
 
-    if len(metrics) > _MAX_ON_DEMAND_METRICS:
-        logger.error("Too many on demand metrics for project")
-        metrics = metrics[:_MAX_ON_DEMAND_METRICS]
-
     return {
         "version": _METRIC_EXTRACTION_VERSION,
         "metrics": metrics,
@@ -87,6 +83,12 @@ def _get_alert_metric_specs(project: Project) -> List[HashedMetricSpec]:
     for alert in alert_rules:
         if result := _convert_snuba_query_to_metric(project, alert.snuba_query):
             specs.append(result)
+
+    if len(specs) > _MAX_ON_DEMAND_ALERTS:
+        logger.error(
+            "Too many (%s) on demand metric alerts for project %s", len(specs), project.slug
+        )
+        specs = specs[:_MAX_ON_DEMAND_ALERTS]
 
     return specs
 
@@ -107,6 +109,12 @@ def _get_widget_metric_specs(project: Project) -> List[HashedMetricSpec]:
     for widget in widget_queries:
         for result in _convert_widget_query_to_metric(project, widget):
             specs.append(result)
+
+    if len(specs) > _MAX_ON_DEMAND_WIDGETS:
+        logger.error(
+            "Too many (%s) on demand metric widgets for project %s", len(specs), project.slug
+        )
+        specs = specs[:_MAX_ON_DEMAND_WIDGETS]
 
     return specs
 

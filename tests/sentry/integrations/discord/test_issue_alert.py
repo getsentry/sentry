@@ -80,7 +80,7 @@ class DiscordIssueAlertTest(RuleTestCase):
                 None,
                 ExternalProviders.DISCORD,
             ),
-            "color": LEVEL_TO_COLOR["info"],
+            "color": LEVEL_TO_COLOR["error"],
             "footer": {"text": build_footer(self.event.group, self.event.project, None, "{text}")},
             "fields": [],
             "timestamp": self.event.timestamp,
