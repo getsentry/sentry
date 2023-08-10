@@ -8,6 +8,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {SuspectSpans} from 'sentry/utils/performance/suspectSpans/types';
 import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {PerformanceChangeExplorer} from 'sentry/views/performance/trends/changeExplorer';
+import {FunctionsList} from 'sentry/views/performance/trends/changeExplorerUtils/functionsList';
 import {
   COLUMNS,
   MetricsTable,
@@ -571,22 +572,33 @@ describe('Performance > Trends > Performance Change Explorer', function () {
     });
 
     render(
-      <SpansList
-        location={data.location}
-        organization={data.organization}
-        trendView={data.eventView}
-        breakpoint={transaction.breakpoint!}
-        transaction={transaction}
-        trendChangeType={TrendChangeType.REGRESSION}
-      />
+      <div>
+        <SpansList
+          location={data.location}
+          organization={data.organization}
+          trendView={data.eventView}
+          breakpoint={transaction.breakpoint!}
+          transaction={transaction}
+          trendChangeType={TrendChangeType.REGRESSION}
+        />
+        <FunctionsList
+          location={data.location}
+          organization={data.organization}
+          trendView={data.eventView}
+          breakpoint={transaction.breakpoint!}
+          transaction={transaction}
+          trendChangeType={TrendChangeType.REGRESSION}
+        />
+      </div>
     );
 
     await waitForMockCall(spansMock);
     await waitForMockCall(emptyEventsMock);
 
     await waitFor(() => {
-      expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+      expect(screen.getAllByTestId('empty-state')).toHaveLength(2);
       expect(screen.getByTestId('spans-no-results')).toBeInTheDocument();
+      expect(screen.getByTestId('functions-no-results')).toBeInTheDocument();
     });
   });
 
@@ -602,18 +614,29 @@ describe('Performance > Trends > Performance Change Explorer', function () {
     const data = initializeData();
 
     render(
-      <SpansList
-        location={data.location}
-        organization={data.organization}
-        trendView={data.eventView}
-        breakpoint={transaction.breakpoint!}
-        transaction={transaction}
-        trendChangeType={TrendChangeType.REGRESSION}
-      />
+      <div>
+        <SpansList
+          location={data.location}
+          organization={data.organization}
+          trendView={data.eventView}
+          breakpoint={transaction.breakpoint!}
+          transaction={transaction}
+          trendChangeType={TrendChangeType.REGRESSION}
+        />
+        <FunctionsList
+          location={data.location}
+          organization={data.organization}
+          trendView={data.eventView}
+          breakpoint={transaction.breakpoint!}
+          transaction={transaction}
+          trendChangeType={TrendChangeType.REGRESSION}
+        />
+      </div>
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
+      expect(screen.getByTestId('error-indicator-spans')).toBeInTheDocument();
+      expect(screen.getByTestId('error-indicator-functions')).toBeInTheDocument();
     });
   });
 
@@ -632,19 +655,30 @@ describe('Performance > Trends > Performance Change Explorer', function () {
     const data = initializeData();
 
     render(
-      <SpansList
-        location={data.location}
-        organization={data.organization}
-        trendView={data.eventView}
-        breakpoint={transaction.breakpoint!}
-        transaction={transaction}
-        trendChangeType={TrendChangeType.REGRESSION}
-      />
+      <div>
+        <SpansList
+          location={data.location}
+          organization={data.organization}
+          trendView={data.eventView}
+          breakpoint={transaction.breakpoint!}
+          transaction={transaction}
+          trendChangeType={TrendChangeType.REGRESSION}
+        />
+        <FunctionsList
+          location={data.location}
+          organization={data.organization}
+          trendView={data.eventView}
+          breakpoint={transaction.breakpoint!}
+          transaction={transaction}
+          trendChangeType={TrendChangeType.REGRESSION}
+        />
+      </div>
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+      expect(screen.getAllByTestId('empty-state')).toHaveLength(2);
       expect(screen.getByTestId('spans-no-changes')).toBeInTheDocument();
+      expect(screen.getByTestId('functions-no-changes')).toBeInTheDocument();
     });
   });
 });
