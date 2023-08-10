@@ -490,29 +490,30 @@ describe('CreateProject', function () {
     it('should enabled the submit button if and only if all the required information has been filled', async function () {
       render(<CreateProject />);
 
-      const createProjectButton = screen.getByRole('button', {name: 'Create Project'});
+      // We need to query for the submit button every time we want to access it
+      // as re-renders can create new DOM nodes
+      const getSubmitButton = () => screen.getByRole('button', {name: 'Create Project'});
+
+      expect(getSubmitButton()).toBeDisabled();
+
+      // Selecting the platform pre-fills the project name
+      await userEvent.click(screen.getByTestId('platform-apple-ios'));
+      expect(getSubmitButton()).toBeEnabled();
 
       await userEvent.click(screen.getByText(/When there are more than/));
-      expect(createProjectButton).toBeDisabled();
-
-      await userEvent.type(screen.getByTestId('range-input'), '2');
-      expect(screen.getByTestId('range-input')).toHaveValue(2);
-      expect(createProjectButton).toBeDisabled();
-
-      await userEvent.click(screen.getByTestId('platform-apple-ios'));
-      expect(createProjectButton).toBeEnabled();
+      expect(getSubmitButton()).toBeEnabled();
 
       await userEvent.clear(screen.getByTestId('range-input'));
-      expect(createProjectButton).toBeDisabled();
+      expect(getSubmitButton()).toBeDisabled();
 
       await userEvent.type(screen.getByTestId('range-input'), '2712');
-      expect(createProjectButton).toBeEnabled();
+      expect(getSubmitButton()).toBeEnabled();
 
       await userEvent.clear(screen.getByTestId('range-input'));
-      expect(createProjectButton).toBeDisabled();
+      expect(getSubmitButton()).toBeDisabled();
 
       await userEvent.click(screen.getByText("I'll create my own alerts later"));
-      expect(createProjectButton).toBeEnabled();
+      expect(getSubmitButton()).toBeEnabled();
     });
   });
 });

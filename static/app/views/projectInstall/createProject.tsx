@@ -18,6 +18,7 @@ import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggesti
 import PlatformPicker, {Platform} from 'sentry/components/platformPicker';
 import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
 import TeamSelector from 'sentry/components/teamSelector';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -260,12 +261,27 @@ function CreateProject() {
   const canCreateTeam = organization.access.includes('project:admin');
   const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
 
-  const canSubmitForm =
-    !inFlight &&
-    (team || isOrgMemberWithNoAccess) &&
-    canCreateProject &&
-    projectName !== '' &&
-    (!shouldCreateCustomRule || conditions?.every?.(condition => condition.value));
+  const isMissingTeam = !isOrgMemberWithNoAccess && !team;
+  const isMissingProjectName = projectName === '';
+  const isMissingAlertThreshold =
+    shouldCreateCustomRule && !conditions?.every?.(condition => condition.value);
+
+  const formErrorCount = [
+    isMissingTeam,
+    isMissingProjectName,
+    isMissingAlertThreshold,
+  ].filter(value => value).length;
+
+  const canSubmitForm = !inFlight && canCreateProject && formErrorCount === 0;
+
+  let submitTooltipText: string = t('Please select a team');
+  if (formErrorCount > 1) {
+    submitTooltipText = t('Please fill out all the required fields');
+  } else if (isMissingProjectName) {
+    submitTooltipText = t('Please provide a project name');
+  } else if (isMissingAlertThreshold) {
+    submitTooltipText = t('Please provide an alert threshold');
+  }
 
   const alertFrequencyDefaultValues = useMemo(() => {
     if (!autoFill) {
@@ -358,14 +374,16 @@ function CreateProject() {
           </div>
         )}
         <div>
-          <Button
-            type="submit"
-            data-test-id="create-project"
-            priority="primary"
-            disabled={!canSubmitForm}
-          >
-            {t('Create Project')}
-          </Button>
+          <Tooltip title={submitTooltipText} disabled={formErrorCount === 0}>
+            <Button
+              type="submit"
+              data-test-id="create-project"
+              priority="primary"
+              disabled={!canSubmitForm}
+            >
+              {t('Create Project')}
+            </Button>
+          </Tooltip>
         </div>
       </CreateProjectForm>
     </Fragment>
