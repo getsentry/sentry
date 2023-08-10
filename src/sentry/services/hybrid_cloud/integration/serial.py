@@ -1,7 +1,8 @@
 from typing import Any, Dict
 
-from sentry.models import Integration, OrganizationIntegration, PagerDutyService
+from sentry.models import Integration, OrganizationIntegration
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.models.integrations.pagerduty_service import PagerDutyService
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.services.hybrid_cloud.integration.model import RpcIntegrationExternalProject
 from sentry.types.integrations import ExternalProviders
@@ -20,7 +21,10 @@ def serialize_integration(integration: Integration) -> RpcIntegration:
 
 def serialize_organization_integration(oi: OrganizationIntegration) -> RpcOrganizationIntegration:
     config: Dict[str, Any] = dict(**oi.config)
-    if oi.integration.provider == ExternalProviders.PAGERDUTY.name:
+    if (
+        oi.integration.provider == ExternalProviders.PAGERDUTY.name
+        and "pagerduty_services" not in config
+    ):
         config["pagerduty_services"] = [
             pds.as_dict()
             for pds in PagerDutyService.objects.filter(organization_integration_id=oi.id)
