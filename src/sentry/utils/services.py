@@ -278,7 +278,7 @@ class Delegator:
         if not inspect.isroutine(base_value):
             return base_value
 
-        def execute(*args: Sequence[Any], **kwargs: Mapping[str, Any]) -> Any:
+        def execute(*args: Any, **kwargs: Any) -> Any:
             context = type(self).__state.context
 
             # If there is no context object already set in the thread local
