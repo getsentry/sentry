@@ -9,13 +9,14 @@ __all__ = [
     "ClickSelectorComposite",
     "SumOfClickSelectorComposite",
     "SumOfTagScalar",
+    "SumOfUUIDArray",
     "TagScalar",
 ]
 
 
-from .activity import AggregateActivityScalar  # noqa
-from .aggregate import SumOfIPv4Scalar, SumOfStringArray, SumOfStringScalar, SumOfUUIDArray  # noqa
-from .duration import SimpleAggregateDurationScalar  # noqa
-from .error_ids import ErrorIdsArray, SumOfErrorIdsArray  # noqa
-from .selector import ClickSelectorComposite, SumOfClickSelectorComposite  # noqa
-from .tags import SumOfTagScalar, TagScalar  # noqa
+from .activity import AggregateActivityScalar
+from .aggregate import SumOfIPv4Scalar, SumOfStringArray, SumOfStringScalar, SumOfUUIDArray
+from .duration import SimpleAggregateDurationScalar
+from .error_ids import ErrorIdsArray, SumOfErrorIdsArray
+from .selector import ClickSelectorComposite, SumOfClickSelectorComposite
+from .tags import SumOfTagScalar, TagScalar
