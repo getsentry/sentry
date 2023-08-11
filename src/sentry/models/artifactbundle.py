@@ -4,13 +4,13 @@ import zipfile
 from enum import Enum
 from typing import IO, Callable, Dict, List, Mapping, Optional, Set, Tuple
 
+from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_delete
 from django.utils import timezone
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
-from sentry import nodestore
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -18,8 +18,10 @@ from sentry.db.models import (
     Model,
     region_silo_only_model,
 )
+from sentry.nodestore.base import NodeStorage
 from sentry.utils import json
 from sentry.utils.hashlib import sha1_text
+from sentry.utils.services import LazyServiceWrapper
 
 # Sentinel values used to represent a null state in the database. This is done since the `NULL` type in the db is
 # always different from `NULL`.
@@ -115,6 +117,13 @@ def delete_file_for_artifact_bundle(instance, **kwargs):
 
 post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
 
+indexstore = LazyServiceWrapper(
+    NodeStorage,
+    settings.SENTRY_INDEXSTORE,
+    settings.SENTRY_INDEXSTORE_OPTIONS,
+    metrics_path="indexstore",
+)
+
 
 @region_silo_only_model
 class ArtifactBundleFlatFileIndex(Model):
@@ -137,7 +146,7 @@ class ArtifactBundleFlatFileIndex(Model):
         return f"bundle_index:{self.project_id}:{self.id}"
 
     def update_flat_file_index(self, data: str):
-        nodestore.set_bytes(self._nodestore_id(), data.encode())
+        indexstore.set_bytes(self._nodestore_id(), data.encode())
 
         current_file = self.flat_file_index
         if current_file:
@@ -146,7 +155,7 @@ class ArtifactBundleFlatFileIndex(Model):
         self.update(flat_file_index=None, date_added=timezone.now())
 
     def load_flat_file_index(self) -> Optional[bytes]:
-        return nodestore.get_bytes(self._nodestore_id())
+        return indexstore.get_bytes(self._nodestore_id())
 
 
 @region_silo_only_model
