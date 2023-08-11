@@ -6,12 +6,17 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.models import OrganizationMapping, OrganizationMemberMapping, OrganizationStatus, User
 
 
 @control_silo_endpoint
 class UserOrganizationsEndpoint(UserEndpoint):
-    def get(self, request: Request, user) -> Response:
-        queryset = user.get_orgs()
+    def get(self, request: Request, user: User) -> Response:
+        org_ids = OrganizationMemberMapping.objects.filter(user_id=user.id)
+        queryset = OrganizationMapping.objects.filter(
+            id__in=org_ids,
+            status=OrganizationStatus.ACTIVE,
+        )
 
         query = request.GET.get("query")
         if query:
