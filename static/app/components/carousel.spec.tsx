@@ -20,6 +20,7 @@ function setIntersectionObserver(
     } as any);
   })();
 }
+
 describe('Carousel', function () {
   beforeEach(() => {});
   it('hides arrows if content does not overflow in x', function () {
