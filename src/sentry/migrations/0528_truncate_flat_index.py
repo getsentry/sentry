@@ -11,8 +11,7 @@ def delete_flat_files(apps, schema_editor):
     ArtifactBundleFlatFileIndex = apps.get_model("sentry", "ArtifactBundleFlatFileIndex")
 
     # step 1: truncate all of `FlatFileIndexState`:
-    # TODO: maybe doing a manual `TRUNCATE` is preferable here?
-    FlatFileIndexState.objects.all().delete()
+    FlatFileIndexState.objects.raw("TRUNCATE sentry_flatfileindexstate")
 
     # step 2: delete all the associated `File`s,
     # and delete all the `ArtifactBundleFlatFileIndex` records:
