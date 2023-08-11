@@ -51,15 +51,21 @@ def notify_disable(
         integration_slug if "sentry-app" in redis_key and integration_slug else integration_name,
     )
 
+    referrer = (
+        "?referrer=disabled-sentry-app/"
+        if "sentry-app" in redis_key
+        else "?referrer=disabled-integration/"
+    )
+
     for user in organization.get_owners():
 
         msg = MessageBuilder(
             subject=get_subject(integration_name.title()),
             context={
                 "integration_name": integration_name.title(),
-                "integration_link": integration_link,
+                "integration_link": f"{integration_link}{referrer}",
                 "webhook_url": webhook_url if "sentry-app" in redis_key and webhook_url else "",
-                "dashboard_link": f"{integration_link}dashboard/"
+                "dashboard_link": f"{integration_link}dashboard/{referrer}"
                 if "sentry-app" in redis_key
                 else "",
             },
