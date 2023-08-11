@@ -142,11 +142,11 @@ class ArtifactBundleFlatFileIndex(Model):
 
         index_together = (("project_id", "release_name", "dist_name"),)
 
-    def _nodestore_id(self) -> str:
+    def _indexstore_id(self) -> str:
         return f"bundle_index:{self.project_id}:{self.id}"
 
     def update_flat_file_index(self, data: str):
-        indexstore.set_bytes(self._nodestore_id(), data.encode())
+        indexstore.set_bytes(self._indexstore_id(), data.encode())
 
         current_file = self.flat_file_index
         if current_file:
@@ -155,7 +155,7 @@ class ArtifactBundleFlatFileIndex(Model):
         self.update(flat_file_index=None, date_added=timezone.now())
 
     def load_flat_file_index(self) -> Optional[bytes]:
-        return indexstore.get_bytes(self._nodestore_id())
+        return indexstore.get_bytes(self._indexstore_id())
 
 
 @region_silo_only_model
