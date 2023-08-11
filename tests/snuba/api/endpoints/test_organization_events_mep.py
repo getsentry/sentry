@@ -2330,7 +2330,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": [
                     "title",
-                    "transaction",
                     "project",
                     "p75()",
                     "count()",
@@ -2365,6 +2364,43 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert field_meta["count()"] == "integer"
         assert field_meta["count_unique(user)"] == "integer"
 
+    def test_title_and_transaction_alias(self):
+        # Title and transaction are aliases to the same column
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "title",
+                    "transaction",
+                    "p75()",
+                ],
+                "query": "event.type:transaction",
+                "orderby": "p75()",
+                "dataset": "metrics",
+                "project": self.project.id,
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+        field_meta = meta["fields"]
+
+        assert data[0]["title"] == "foo_transaction"
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[0]["p75()"] == 1
+
+        assert meta["isMetricsData"]
+        assert field_meta["title"] == "string"
+        assert field_meta["transaction"] == "string"
+        assert field_meta["p75()"] == "duration"
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
@@ -2396,3 +2432,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not supported")
     def test_http_error_rate(self):
         super().test_http_error_rate()
+
+    @pytest.mark.xfail(reason="Multiple aliases to same column not supported")
+    def test_title_and_transaction_alias(self):
+        super().test_title_and_transaction_alias()
