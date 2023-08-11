@@ -13,6 +13,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     # 12.3.1: arm64
     APPLE_ARM64 = sys.platform == "darwin" and platform.processor() in {"arm", "arm64"}
 
+    if APPLE_ARM64:
+        # We need to ensure that Rosetta is running, because colima will only warn
+        # if --vz-rosetta is set but Rosetta isn't available.
+        # Clickhouse images do not tend to work without Rosetta (plain Virtualization.Framework).
+        pass
+
     cpus = int(subprocess.run(("sysctl", "-n", "hw.ncpu"), check=True, capture_output=True).stdout)
     memsize_bytes = int(
         subprocess.run(("sysctl", "-n", "hw.memsize"), check=True, capture_output=True).stdout
@@ -24,7 +30,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"{memsize_bytes//(2*1024**3)}",
     ]
     if APPLE_ARM64:
-        args = [*args, "--arch=aarch64", "--vm-type=vz", "--mount-type=virtiofs"]
+        args = [*args, "--arch=aarch64", "--vm-type=vz", "--vz-rosetta", "--mount-type=virtiofs"]
     return subprocess.call(
         (
             "colima",
