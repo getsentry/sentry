@@ -3,8 +3,31 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import Carousel from 'sentry/components/carousel';
 import Placeholder from 'sentry/components/placeholder';
 
+function setIntersectionObserver(
+  entries: {isIntersecting: boolean; target: {id: string}}[]
+) {
+  (() => {
+    return (global.IntersectionObserver = class IntersectionObserver {
+      [x: string]: any;
+      constructor(cb: any) {
+        this.cb = cb;
+      }
+      observe() {
+        this.cb(entries);
+      }
+      unobserve() {}
+      disconnect() {}
+    } as any);
+  })();
+}
 describe('Carousel', function () {
+  beforeEach(() => {});
   it('hides arrows if content does not overflow in x', function () {
+    setIntersectionObserver([
+      {target: {id: 'left-anchor'}, isIntersecting: true},
+      {target: {id: 'right-anchor'}, isIntersecting: true},
+    ]);
+
     render(
       <Placeholder width="200px" height="100px">
         <Carousel>
@@ -18,14 +41,10 @@ describe('Carousel', function () {
   });
 
   it('does not show left arrow if all the way to the left', function () {
-    Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
-      configurable: true,
-      value: 200,
-    });
-    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
-      configurable: true,
-      value: 100,
-    });
+    setIntersectionObserver([
+      {target: {id: 'left-anchor'}, isIntersecting: true},
+      {target: {id: 'right-anchor'}, isIntersecting: false},
+    ]);
 
     render(
       <Carousel>
@@ -40,18 +59,11 @@ describe('Carousel', function () {
   });
 
   it('does not show right arrow if all the way to the right', async function () {
-    Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
-      configurable: true,
-      value: 200,
-    });
-    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
-      configurable: true,
-      value: 100,
-    });
-    Object.defineProperty(HTMLElement.prototype, 'scrollLeft', {
-      configurable: true,
-      value: 100,
-    });
+    setIntersectionObserver([
+      {target: {id: 'left-anchor'}, isIntersecting: false},
+      {target: {id: 'right-anchor'}, isIntersecting: true},
+    ]);
+
     render(
       <Carousel>
         <Placeholder />

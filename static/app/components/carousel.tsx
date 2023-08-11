@@ -26,9 +26,9 @@ function Carousel({children}: Props) {
     const observer = new IntersectionObserver(
       entries => {
         entries.forEach(e => {
-          if (e.target === anchorRefs[0]) {
+          if (e.target.id === anchorRefs[0].id) {
             setIsAtStart(e.isIntersecting);
-          } else if (e.target === anchorRefs[1]) {
+          } else if (e.target.id === anchorRefs[1].id) {
             setIsAtEnd(e.isIntersecting);
           }
         });
@@ -48,10 +48,11 @@ function Carousel({children}: Props) {
       return;
     }
     setChildrenRefs(Array.from(ref.current.children) as HTMLElement[]);
-    setAnchorRefs([
+    const anchors = [
       ref.current.children[0],
       ref.current.children[ref.current.children.length - 1],
-    ] as HTMLElement[]);
+    ] as HTMLElement[];
+    setAnchorRefs(anchors);
   }, [children]);
 
   const handleScroll = (direction: string) => {
@@ -107,7 +108,7 @@ const CarouselItems = styled('div')`
     height: 8px;
   }
   &::-webkit-scrollbar-thumb {
-    background: ${p => p.theme.gray400};
+    background: ${p => p.theme.gray300};
     border-radius: 8px;
   }
 `;
