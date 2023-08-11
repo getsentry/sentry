@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Any, List, Mapping
 
 from django.db import models, router, transaction
 
@@ -56,3 +56,32 @@ class OrganizationIntegration(DefaultFieldsModel):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             super().delete(*args, **kwds)
+
+    @staticmethod
+    def services_in(config: Mapping[str, Any]) -> List[Any]:
+        return config.get("pagerduty_services", [])
+
+    def add_pagerduty_service(self, integration_key: str, service_name: str) -> Any:
+        with transaction.atomic(router.db_for_write(OrganizationIntegration)):
+            OrganizationIntegration.objects.filter(id=self.id).select_for_update()
+
+            with transaction.get_connection(
+                router.db_for_write(OrganizationIntegration)
+            ).cursor() as cursor:
+                cursor.execute(
+                    "SELECT nextval(%s)", [f"{OrganizationIntegration._meta.db_table}_id_seq"]
+                )
+                next_id: int = cursor.fetchone()[0]
+
+            service: Any = {
+                "id": next_id,
+                "integration_key": integration_key,
+                "service_name": service_name,
+                "integration_id": self.integration_id,
+            }
+
+            existing: list[Any] = OrganizationIntegration.services_in(self.config)
+            new_services: list[Any] = existing + [service]
+            self.config["pagerduty_services"] = new_services
+            self.save()
+        return service
