@@ -321,6 +321,7 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None) -> None:
     if grouping_config is not None:
         with sentry_sdk.start_span(op=op, description="apply_modifications_to_frame"):
             for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
+                # This call has a caching mechanism when the same stacktrace and rules are used
                 grouping_config.enhancements.apply_modifications_to_frame(
                     frames, platform, stacktrace_container
                 )

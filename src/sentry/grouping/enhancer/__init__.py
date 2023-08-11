@@ -4,7 +4,6 @@ import base64
 import logging
 import os
 import zlib
-from copy import deepcopy
 from hashlib import md5
 from typing import Any, Sequence
 
@@ -157,10 +156,11 @@ class Enhancements:
         cache_key = f"stacktrace_hash.{stacktrace_fingerprint}"
         use_cache = bool(stacktrace_fingerprint)
         if use_cache:
-            merged, merged_frames = _merge_cached_values(frames, cache_key, platform)
+            frames_changed = _merge_cached_values(frames, cache_key, platform)
+            # XXX: Before merging, remove this if statement so we can test the logic live
             # We use a boolean for faster checking if frames and merged_frames are still the same
-            if merged:
-                frames = merged_frames
+            if frames_changed:
+                logger.info("The stacktrace frame modifications have been loaded from the cache.")
                 return
 
         with sentry_sdk.start_span(op="stacktrace_processing", description="apply_rules_to_frames"):
@@ -515,38 +515,38 @@ def _merge_cached_values(
     frames: Sequence[dict[str, Any]],
     cache_key: str,
     platform: str,
-) -> tuple[bool, Sequence[dict[str, Any]]]:
+) -> bool:
     """
     This will merge the cached values if any are found for this stacktrace.
-    Returns if the merged has correctly happened and the updated frames if so.
+    Returns if the merged has correctly happened.
     """
-    merged_frames: Sequence[dict[str, Any]] = []
-    frames_merged = False
-    changed_frames_values = cache.get(cache_key, False)
+    frames_changed = False
+    # XXX: Try the fallback value
+    changed_frames_values = cache.get(cache_key, {})
     # This helps tracking changes in the hit/miss ratio of the cache
     metrics.incr(
         "save_event.stacktrace.cache.get",
-        tags={"success": changed_frames_values is True, "platform": platform},
+        tags={"success": bool(changed_frames_values), "platform": platform},
     )
     if changed_frames_values:
         try:
-            # We duplicate the stacktrace and only return if everything has been applied correctly
-            merged_frames = deepcopy(frames)
-            for frame, changed_frame_values in zip(merged_frames, changed_frames_values):
+            for frame, changed_frame_values in zip(frames, changed_frames_values):
                 frame["in_app"] = changed_frame_values["in_app"]
                 set_path(frame, "data", "category", value=changed_frame_values["category"])
 
             logger.info("We have merged the cached stacktrace to the incoming one.")
 
-            frames_merged = True
+            frames_changed = True
         except Exception:
-            logger.exception("We have failed to update the stacktrace from the cache.")
+            logger.exception(
+                "We have failed to update the stacktrace from the cache. Not aborting execution."
+            )
 
     metrics.incr(
         "save_event.stacktrace.merged_cached_values",
-        tags={"success": frames_merged, "platform": platform},
+        tags={"success": frames_changed, "platform": platform},
     )
-    return frames_merged, merged_frames
+    return frames_changed
 
 
 def _cache_changed_frame_values(
