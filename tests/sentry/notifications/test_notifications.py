@@ -5,6 +5,7 @@ from unittest.mock import patch
 from urllib.parse import parse_qs
 
 import responses
+from django.conf import settings
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.utils import timezone
@@ -105,6 +106,9 @@ class ActivityNotificationTest(APITestCase):
             body='{"ok": true}',
             status=200,
             content_type="application/json",
+        )
+        responses.add_passthru(
+            settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
         )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
@@ -440,13 +444,6 @@ class ActivityNotificationTest(APITestCase):
                 project_id=self.project.id,
             )
             cache_key = write_event_to_cache(event)
-            responses.add(
-                method=responses.POST,
-                url="http://127.0.0.1:1218/tests/entities/generic_metrics_counters/insert",
-                body='{"ok": true}',
-                status=200,
-                content_type="application/json",
-            )
             with self.tasks():
                 post_process_group(
                     is_new=True,
