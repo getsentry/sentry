@@ -35,18 +35,8 @@ class TeamManager(BaseManager):
     @overload
     def get_for_user(
         self,
-        *,
         organization: Organization,
         user: User | RpcUser,
-    ) -> list[Team]:
-        ...
-
-    @overload
-    def get_for_user(
-        self,
-        *,
-        organization: Organization,
-        user_id: int,
         scope: str | None = None,
     ) -> list[Team]:
         ...
@@ -54,20 +44,18 @@ class TeamManager(BaseManager):
     @overload
     def get_for_user(
         self,
-        *,
         organization: Organization,
-        user_id: int,
+        user: User | RpcUser,
         scope: str | None = None,
+        *,
         with_projects: Literal[True],
     ) -> list[tuple[Team, list[Project]]]:
         ...
 
     def get_for_user(
         self,
-        *,
         organization: Organization,
-        user_id: int | None = None,
-        user: User | RpcUser | None = None,
+        user: Union[User, RpcUser],
         scope: Optional[str] = None,
         with_projects: bool = False,
     ) -> Union[Sequence[Team], Sequence[Tuple[Team, Sequence[Project]]]]:
@@ -78,8 +66,8 @@ class TeamManager(BaseManager):
         from sentry.models import OrganizationMember, OrganizationMemberTeam, Project
         from sentry.models.projectteam import ProjectTeam
 
-        if (user_id is None) and (user is not None):
-            user_id = user.id
+        if not user.is_authenticated:
+            return []
 
         base_team_qs = self.filter(organization=organization, status=TeamStatus.ACTIVE)
 
@@ -87,7 +75,7 @@ class TeamManager(BaseManager):
             team_list = list(base_team_qs)
         else:
             try:
-                om = OrganizationMember.objects.get(user_id=user_id, organization=organization)
+                om = OrganizationMember.objects.get(user_id=user.id, organization=organization)
             except OrganizationMember.DoesNotExist:
                 # User is not a member of the organization at all
                 return []

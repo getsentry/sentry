@@ -17,7 +17,7 @@ from sentry.utils.snuba import SnubaTSResult
 
 
 class CountResult(TypedDict):
-    count: float
+    count: Optional[float]
 
 
 # Type returned by get_events_stats_data is actually a [int, List[CountResult]] where the first
@@ -149,7 +149,10 @@ def estimate_volume(
 
 
 def _get_value(elm: MetricVolumeRow) -> float:
-    return cast(List[CountResult], elm[1])[0].get("count", 0.0)
+    ret_val = cast(List[CountResult], elm[1])[0].get("count")
+    if ret_val is None:
+        return 0.0
+    return ret_val
 
 
 def _set_value(elm: MetricVolumeRow, value: float) -> None:

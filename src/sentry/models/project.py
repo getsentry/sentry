@@ -100,11 +100,9 @@ class ProjectManager(BaseManager):
             return []
 
         if not _skip_team_check:
-            team_list = []
-            if user.is_authenticated:
-                team_list = Team.objects.get_for_user(
-                    organization=team.organization, user_id=user.id, scope=scope
-                )
+            team_list = Team.objects.get_for_user(
+                organization=team.organization, user=user, scope=scope
+            )
 
             try:
                 team = team_list[team_list.index(team)]

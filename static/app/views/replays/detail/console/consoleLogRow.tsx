@@ -7,13 +7,13 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
 import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import {OnDimensionChange} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
-type Props = {
+interface Props extends ReturnType<typeof useCrumbHandlers> {
   currentHoverTime: number | undefined;
   currentTime: number;
   frame: BreadcrumbFrame;
@@ -22,30 +22,21 @@ type Props = {
   style: CSSProperties;
   expandPaths?: string[];
   onDimensionChange?: OnDimensionChange;
-};
+}
 
 function UnmemoizedConsoleLogRow({
-  index,
-  frame,
-  currentTime,
   currentHoverTime,
+  currentTime,
+  expandPaths,
+  frame,
+  onMouseEnter,
+  onMouseLeave,
+  index,
+  onClickTimestamp,
+  onDimensionChange,
   startTimestampMs,
   style,
-  expandPaths,
-  onDimensionChange,
 }: Props) {
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
-
-  const onClickTimestamp = useCallback(() => handleClick(frame), [handleClick, frame]);
-  const onMouseEnter = useCallback(
-    () => handleMouseEnter(frame),
-    [handleMouseEnter, frame]
-  );
-  const onMouseLeave = useCallback(
-    () => handleMouseLeave(frame),
-    [handleMouseLeave, frame]
-  );
   const handleDimensionChange = useCallback(
     (path, expandedState, e) =>
       onDimensionChange && onDimensionChange(index, path, expandedState, e),
@@ -66,8 +57,8 @@ function UnmemoizedConsoleLogRow({
       })}
       hasOccurred={hasOccurred}
       level={(frame as ConsoleFrame).level}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      onMouseEnter={() => onMouseEnter(frame)}
+      onMouseLeave={() => onMouseLeave(frame)}
       style={style}
     >
       <ConsoleLevelIcon level={(frame as ConsoleFrame).level} />
@@ -81,7 +72,10 @@ function UnmemoizedConsoleLogRow({
         </ErrorBoundary>
       </Message>
       <TimestampButton
-        onClick={onClickTimestamp}
+        onClick={event => {
+          event.stopPropagation();
+          onClickTimestamp(frame);
+        }}
         startTimestampMs={startTimestampMs}
         timestampMs={frame.timestampMs}
       />

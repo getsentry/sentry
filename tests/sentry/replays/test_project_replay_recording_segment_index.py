@@ -81,7 +81,7 @@ class ProjectReplayRecordingSegmentIndexMixin:
         assert b'[[{"test":"hello 1"}],[{"test":"hello 2"}]]' == close_streaming_response(response)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class FilestoreProjectReplayRecordingSegmentIndexTestCase(
     ProjectReplayRecordingSegmentIndexMixin, TransactionTestCase
 ):
@@ -109,7 +109,7 @@ class FilestoreProjectReplayRecordingSegmentIndexTestCase(
         FilestoreBlob().set(metadata, zlib.compress(data) if compressed else data)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class StorageProjectReplayRecordingSegmentIndexTestCase(
     ProjectReplayRecordingSegmentIndexMixin, APITestCase, ReplaysSnubaTestCase
 ):

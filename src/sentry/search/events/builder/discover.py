@@ -223,6 +223,7 @@ class QueryBuilder(BaseQueryBuilder):
         # of a top events request
         skip_tag_resolution: bool = False,
         on_demand_metrics_enabled: bool = False,
+        skip_issue_validation: bool = False,
     ):
         self.dataset = dataset
 
@@ -249,6 +250,7 @@ class QueryBuilder(BaseQueryBuilder):
             "query": set(),
             "columns": set(),
         }
+        self.skip_issue_validation = skip_issue_validation
 
         # Base Tenant IDs for any Snuba Request built/executed using a QueryBuilder
         org_id = self.organization_id or (
