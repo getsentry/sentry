@@ -45,11 +45,12 @@ export function SpanDescriptionCell({
 
   const queryString = {
     ...location.query,
+    project: projectId,
     endpoint,
     endpointMethod,
   };
 
-  const sort: string | undefined = queryString?.[QueryParameterNames.SORT];
+  const sort: string | undefined = queryString[QueryParameterNames.SORT];
 
   // the spans page uses time_spent_percentage(local), so to persist the sort upon navigation we need to replace
   if (sort?.includes(`${StarfishFunctions.TIME_SPENT_PERCENTAGE}()`)) {
@@ -76,9 +77,9 @@ export function SpanDescriptionCell({
         <OverflowEllipsisTextContainer>
           {group ? (
             <Link
-              to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${group}${
-                queryString ? `?${qs.stringify(queryString)}` : ''
-              }`}
+              to={`/starfish/${
+                extractRoute(location) ?? 'spans'
+              }/span/${group}?${qs.stringify(queryString)}`}
             >
               {formattedDescription}
             </Link>
