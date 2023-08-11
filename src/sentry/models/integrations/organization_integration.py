@@ -97,9 +97,7 @@ class OrganizationIntegration(DefaultFieldsModel):
             }
 
             existing: list[PagerDutyServiceDict] = OrganizationIntegration.services_in(self.config)
-            new_services: list[PagerDutyServiceDict] = [
-                row for row in existing if row["id"] != service["id"]
-            ] + [service]
+            new_services: list[PagerDutyServiceDict] = existing + [service]
             self.config["pagerduty_services"] = new_services
             self.save()
         return service

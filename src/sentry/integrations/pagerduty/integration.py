@@ -111,24 +111,23 @@ class PagerDutyIntegration(IntegrationInstallation):
                     updated_items.append(
                         {
                             "id": matched_row["id"],
-                            "integation_key": matched_row["integration_key"],
+                            "integration_key": matched_row["integration_key"],
                             "service_name": matched_row["service"],
                             "integration_id": service_item["integration_id"],
                         }
                     )
 
+            oi = OrganizationIntegration.objects.get(id=self.org_integration.id)
             with transaction.atomic(router.db_for_write(OrganizationIntegration)):
-                self.org_integration.set_services(updated_items)
-                self.org_integration.save()
+                oi.set_services(updated_items)
+                oi.save()
 
                 # new rows don't have an id
                 new_rows = list(filter(lambda x: not x["id"], service_rows))
                 for row in new_rows:
                     service_name = row["service"]
                     key = row["integration_key"]
-                    self.org_integration.add_pagerduty_service(
-                        integration_key=key, service_name=service_name
-                    )
+                    oi.add_pagerduty_service(integration_key=key, service_name=service_name)
 
     def get_config_data(self):
         service_list = []
