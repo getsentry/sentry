@@ -13,39 +13,46 @@ type Props = {
 
 function Carousel({children}: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
+  const [anchorRefs, setAnchorRefs] = useState<HTMLElement[]>([]);
+  const [childrenRefs, setChildrenRefs] = useState<HTMLElement[]>([]);
   const [isAtStart, setIsAtStart] = useState(true);
   const [isAtEnd, setIsAtEnd] = useState(false);
-  const [showArrows, setShowArrows] = useState(true);
 
-  /**
-   * @param scrollLeft The amount scrolled horizontally
-   * @param totalScrollDist The maximum horizontal scroll value
-   */
-  const setStartAndEnd = (scrollLeft: number, totalScrollDist: number) => {
-    if (scrollLeft <= 0) {
-      setIsAtStart(true);
-      setIsAtEnd(false);
-    } else if (scrollLeft >= totalScrollDist) {
-      setIsAtStart(false);
-      setIsAtEnd(true);
-    } else {
-      setIsAtStart(false);
-      setIsAtEnd(false);
+  useEffect(() => {
+    if (!ref.current) {
+      return () => {};
     }
-  };
+
+    const observer = new IntersectionObserver(
+      entries => {
+        entries.forEach(e => {
+          if (e.target === anchorRefs[0]) {
+            setIsAtStart(e.isIntersecting);
+          } else if (e.target === anchorRefs[1]) {
+            setIsAtEnd(e.isIntersecting);
+          }
+        });
+      },
+      {root: ref.current, threshold: [1]}
+    );
+
+    if (anchorRefs) {
+      anchorRefs.map(anchor => observer.observe(anchor));
+    }
+
+    return () => observer.disconnect();
+  }, [anchorRefs]);
 
   useEffect(() => {
     if (!ref.current) {
       return;
     }
-    const contentWidth = ref.current.scrollWidth - ref.current.clientWidth;
-    if (contentWidth === 0) {
-      setShowArrows(false);
-    }
-
-    const scrollLeft = ref.current.scrollLeft;
-    setStartAndEnd(scrollLeft, contentWidth);
-  }, []);
+    setChildrenRefs(Array.from(ref.current.children) as HTMLElement[]);
+    setAnchorRefs([
+      ref.current.children[0],
+      ref.current.children[ref.current.children.length - 1],
+    ] as HTMLElement[]);
+  }, [children]);
 
   const handleScroll = (direction: string) => {
     requestAnimationFrame(() => {
@@ -54,35 +61,27 @@ function Carousel({children}: Props) {
       }
 
       const scrollLeft = ref.current.scrollLeft;
-      const itemWidth = parseInt(getComputedStyle(ref.current.children[0]).width, 10);
 
-      let scrollDist = 0;
       if (direction === 'left') {
-        scrollDist = scrollLeft - itemWidth;
+        // scroll to the last child to the left of the left side of the container
+        const elements = childrenRefs.filter(child => child.offsetLeft < scrollLeft);
+        ref.current.scrollTo(elements[elements.length - 1].offsetLeft, 0);
       } else if (direction === 'right') {
-        scrollDist = scrollLeft + itemWidth;
+        // scroll to the first child to the right of the left side of the container
+        const elements = childrenRefs.filter(child => child.offsetLeft > scrollLeft);
+        ref.current.scrollTo(elements[0].offsetLeft, 0);
       }
-      ref.current.scrollLeft = scrollDist;
     });
   };
 
-  const setArrows = () => {
-    requestAnimationFrame(() => {
-      if (!ref.current) {
-        return;
-      }
-
-      const scrollLeft = ref.current.scrollLeft;
-      const totalScrollDist = ref.current.scrollWidth - ref.current.clientWidth;
-
-      setStartAndEnd(scrollLeft, totalScrollDist);
-    });
-  };
+  const showArrows = !(isAtStart && isAtEnd);
 
   return (
     <CarouselContainer>
-      <CarouselItems ref={ref} onScroll={setArrows}>
+      <CarouselItems ref={ref}>
+        <Anchor id="left-anchor" />
         {children}
+        <Anchor id="right-anchor" />
       </CarouselItems>
       {showArrows && !isAtStart && (
         <ScrollButton onClick={() => handleScroll('left')} direction="left" />
@@ -112,6 +111,8 @@ const CarouselItems = styled('div')`
     border-radius: 8px;
   }
 `;
+
+const Anchor = styled('div')``;
 
 type ScrollButtonProps = {
   direction: ArrowProps['direction'];
