@@ -2549,7 +2549,12 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                     if DARWIN
                     else "INTERNAL://127.0.0.1:9093"
                 )
-                + ",EXTERNAL://{containers[kafka][ports][9092/tcp][0]}:{containers[kafka][ports][9092/tcp][1]}",
+                + (
+                    ",EXTERNAL://{containers[kafka][name]}:9092"
+                    if DARWIN
+                    else ",EXTERNAL://127.0.0.1:9092"
+                )
+                + ":{containers[kafka][ports][9092/tcp][1]}",
                 "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
                 "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
                 "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
