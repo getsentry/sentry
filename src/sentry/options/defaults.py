@@ -1471,7 +1471,7 @@ register(
 register(
     "on_demand.max_alert_specs",
     default=50,
-    flags=FLAG_MODIFIABLE_RATE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
