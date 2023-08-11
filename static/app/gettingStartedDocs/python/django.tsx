@@ -2,13 +2,36 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
+
+const profilingConfiguration = `
+# To set a uniform sample rate
+# Set profiles_sample_rate to 1.0 to profile 100%
+# of sampled transactions.
+# We recommend adjusting this value in production,
+profiles_sample_rate=1.0,
+`;
+
+const performanceConfiguration = `
+# Set traces_sample_rate to 1.0 to capture 100%
+# of transactions for performance monitoring.
+# We recommend adjusting this value in production.
+traces_sample_rate=1.0,
+`;
+
+const piiConfiguration = `
+# If you wish to associate users to errors (assuming you are using
+# django.contrib.auth) you may enable sending PII data.
+send_default_pii=True,
+`;
+
 export const steps = ({
-  dsn,
+  sentryInitContent,
 }: {
-  dsn?: string;
+  sentryInitContent?: string;
 } = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
@@ -44,21 +67,9 @@ export const steps = ({
         code: `
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
-
 sentry_sdk.init(
-  dsn="${dsn}",
-  integrations=[DjangoIntegration()],
-
-  # Set traces_sample_rate to 1.0 to capture 100%
-  # of transactions for performance monitoring.
-  # We recommend adjusting this value in production.
-  traces_sample_rate=1.0,
-
-  # If you wish to associate users to errors (assuming you are using
-  # django.contrib.auth) you may enable sending PII data.
-  send_default_pii=True
-)
-        `,
+${sentryInitContent}
+)`,
       },
     ],
   },
@@ -91,8 +102,39 @@ def trigger_error(request):
 ];
 // Configuration End
 
-export function GettingStartedWithDjango({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
+export function GettingStartedWithDjango({
+  dsn,
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
+  const otherConfigs: string[] = [];
+
+  let sentryInitContent: string[] = [
+    `dsn="${dsn}",`,
+    `integrations=[DjangoIntegration()],`,
+    piiConfiguration.trim(),
+  ];
+
+  if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
+    otherConfigs.push(performanceConfiguration.trim());
+  }
+
+  if (activeProductSelection.includes(ProductSolution.PROFILING)) {
+    otherConfigs.push(profilingConfiguration.trim());
+  }
+
+  if (otherConfigs.length > 0) {
+    sentryInitContent = sentryInitContent.concat(otherConfigs);
+  }
+
+  return (
+    <Layout
+      steps={steps({
+        sentryInitContent: sentryInitContent.join('\n'),
+      })}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithDjango;

@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -19,10 +19,12 @@ export enum ProductSolution {
   ERROR_MONITORING = 'error-monitoring',
   PERFORMANCE_MONITORING = 'performance-monitoring',
   SESSION_REPLAY = 'session-replay',
+  PROFILING = 'profiling',
 }
 
 // This is the list of products that are available for each platform
-// Since the ProductSelection component is rendered in the onboarding flow, it is ok to have this list here
+// Since the ProductSelection component is rendered in the onboarding/project creation flow only, it is ok to have this list here
+// NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
   javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   'javascript-react': [
@@ -61,7 +63,8 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
-};
+  'python-django': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+} as Record<PlatformKey, ProductSolution[]>;
 
 export type DisabledProduct = {
   reason: string;
@@ -152,10 +155,6 @@ function Product({
 
 export type ProductSelectionProps = {
   /**
-   * List of products that are checked by default
-   */
-  defaultSelectedProducts?: ProductSolution[];
-  /**
    * List of products that are disabled. All of them have to contain a reason by default and optionally an onClick handler.
    */
   disabledProducts?: DisabledProduct[];
@@ -167,6 +166,10 @@ export type ProductSelectionProps = {
    * The platform key of the project (e.g. javascript-react, python-django, etc.)
    */
   platform?: PlatformKey;
+  /**
+   * A custom list of products per platform. If not provided, the default list is used.
+   */
+  productsPerPlatform?: Record<PlatformKey, ProductSolution[]>;
   skipLazyLoader?: () => void;
   /**
    * If true, the component has a bottom margin of 20px
@@ -175,24 +178,27 @@ export type ProductSelectionProps = {
 };
 
 export function ProductSelection({
-  defaultSelectedProducts,
   disabledProducts,
   lazyLoader,
   skipLazyLoader,
   platform,
   withBottomMargin,
+  productsPerPlatform = platformProductAvailability,
 }: ProductSelectionProps) {
   const router = useRouter();
   const urlProducts = decodeList(router.location.query.product);
   const products: ProductSolution[] | undefined = platform
-    ? platformProductAvailability[platform]
+    ? productsPerPlatform[platform]
     : undefined;
 
-  const defaultProducts = defaultSelectedProducts
-    ? defaultSelectedProducts.filter(defaultSelectedProduct =>
-        (products ?? []).includes(defaultSelectedProduct)
-      )
-    : products;
+  const defaultProducts = useMemo(() => {
+    return (
+      products?.filter(
+        product =>
+          !disabledProducts?.some(disabledProduct => disabledProduct.product === product)
+      ) ?? []
+    );
+  }, [products, disabledProducts]);
 
   useEffect(() => {
     router.replace({
@@ -208,17 +214,28 @@ export function ProductSelection({
 
   const handleClickProduct = useCallback(
     (product: ProductSolution) => {
+      let newProduct = urlProducts.includes(product)
+        ? urlProducts.filter(p => p !== product)
+        : [...urlProducts, product];
+
+      if (defaultProducts?.includes(ProductSolution.PROFILING)) {
+        if (
+          !newProduct.includes(ProductSolution.PERFORMANCE_MONITORING) &&
+          newProduct.includes(ProductSolution.PROFILING)
+        ) {
+          newProduct = [...newProduct, ProductSolution.PERFORMANCE_MONITORING];
+        }
+      }
+
       router.replace({
         pathname: router.location.pathname,
         query: {
           ...router.location.query,
-          product: urlProducts.includes(product)
-            ? urlProducts.filter(p => p !== product)
-            : [...urlProducts, product],
+          product: newProduct,
         },
       });
     },
-    [router, urlProducts]
+    [router, urlProducts, defaultProducts]
   );
 
   if (!products) {
@@ -249,15 +266,24 @@ export function ProductSelection({
           <Product
             label={t('Performance Monitoring')}
             description={t(
-              'Automatic performance issue detection with context like who it impacts and the release, line of code, or function causing the slowdown.'
+              'Automatic performance issue detection across services and context on who is impacted, outliers, regressions, and the root cause of your slowdown.'
             )}
             docLink="https://docs.sentry.io/platforms/javascript/guides/react/performance/"
             onClick={() => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)}
-            disabled={disabledProducts?.find(
-              disabledProduct =>
-                disabledProduct.product === ProductSolution.PERFORMANCE_MONITORING
-            )}
+            disabled={
+              urlProducts.includes(ProductSolution.PROFILING)
+                ? {
+                    reason: t(
+                      'You must have Performance Monitoring set up to use Profiling. Disabling it is not possible while Profiling is selected.'
+                    ),
+                  }
+                : disabledProducts?.find(
+                    disabledProduct =>
+                      disabledProduct.product === ProductSolution.PERFORMANCE_MONITORING
+                  )
+            }
             checked={urlProducts.includes(ProductSolution.PERFORMANCE_MONITORING)}
+            permanentDisabled={urlProducts.includes(ProductSolution.PROFILING)}
           />
         )}
         {products.includes(ProductSolution.SESSION_REPLAY) && (
@@ -273,6 +299,20 @@ export function ProductSelection({
                 disabledProduct.product === ProductSolution.SESSION_REPLAY
             )}
             checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
+          />
+        )}
+        {products.includes(ProductSolution.PROFILING) && (
+          <Product
+            label={t('Profiling')}
+            description={t(
+              'See the exact functions and lines of code causing your performance bottlenecks, so you can speed up troubleshooting and optimize resource consumption.'
+            )}
+            docLink="https://docs.sentry.io/platforms/python/profiling/"
+            onClick={() => handleClickProduct(ProductSolution.PROFILING)}
+            disabled={disabledProducts?.find(
+              disabledProduct => disabledProduct.product === ProductSolution.PROFILING
+            )}
+            checked={urlProducts.includes(ProductSolution.PROFILING)}
           />
         )}
       </Products>
