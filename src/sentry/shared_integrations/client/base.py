@@ -501,6 +501,9 @@ class BaseApiClient(TrackResponseMixin):
         if (
             features.has("organizations:slack-disable-on-broken", org)
             and rpc_integration.provider == "slack"
+        ) or (
+            features.has("organizations:github-disable-on-broken", org)
+            and rpc_integration.provider == "github"
         ):
             integration_service.update_integration(
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED

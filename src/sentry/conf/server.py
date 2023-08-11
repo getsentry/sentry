@@ -1350,7 +1350,9 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
-    # Allow disabling integrations when broken is detected
+    # Allow disabling github integrations when broken is detected
+    "organizations:github-disable-on-broken": False,
+    # Allow disabling slack integrations when broken is detected
     "organizations:slack-disable-on-broken": False,
     # Allow disabling sentryapps when broken is detected
     "organizations:disable-sentryapps-on-broken": False,
