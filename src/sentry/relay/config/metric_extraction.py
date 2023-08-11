@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, TypedDict, Union
 
-from sentry import features
+from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.constants import DataCategory
 from sentry.incidents.models import AlertRule, AlertRuleStatus
@@ -34,7 +34,7 @@ _METRIC_EXTRACTION_VERSION = 1
 # Maximum number of custom metrics that can be extracted for alerts and widgets with
 # advanced filter expressions.
 _MAX_ON_DEMAND_ALERTS = 100
-_MAX_ON_DEMAND_WIDGETS = 500
+_MAX_ON_DEMAND_WIDGETS = 300
 
 HashMetricSpec = Tuple[str, MetricSpec]
 
@@ -97,11 +97,12 @@ def _get_alert_metric_specs(project: Project) -> List[HashMetricSpec]:
             )
             specs.append(result)
 
-    if len(specs) > _MAX_ON_DEMAND_ALERTS:
+    max_alert_specs = options.get("on_demand.max_alert_specs") or _MAX_ON_DEMAND_ALERTS
+    if len(specs) > max_alert_specs:
         logger.error(
             "Too many (%s) on demand metric alerts for project %s", len(specs), project.slug
         )
-        specs = specs[:_MAX_ON_DEMAND_ALERTS]
+        specs = specs[:max_alert_specs]
 
     return specs
 
@@ -123,11 +124,12 @@ def _get_widget_metric_specs(project: Project) -> List[HashMetricSpec]:
         for result in _convert_widget_query_to_metric(project, widget):
             specs.append(result)
 
-    if len(specs) > _MAX_ON_DEMAND_WIDGETS:
+    max_widget_specs = options.get("on_demand.max_widget_specs") or _MAX_ON_DEMAND_WIDGETS
+    if len(specs) > max_widget_specs:
         logger.error(
             "Too many (%s) on demand metric widgets for project %s", len(specs), project.slug
         )
-        specs = specs[:_MAX_ON_DEMAND_WIDGETS]
+        specs = specs[:max_widget_specs]
 
     return specs
 
