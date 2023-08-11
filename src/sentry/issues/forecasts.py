@@ -17,6 +17,7 @@ from sentry.issues.escalating_issues_alg import generate_issue_forecast, standar
 from sentry.models import Group
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,24 @@ def generate_and_save_forecasts(groups: Sequence[Group]) -> None:
     Generates and saves a list of forecasted values for each group.
     `groups`: Sequence of groups to be forecasted
     """
+
+    # Check if any of the groups are source groups involved in an unmerge in the last 24 hrs
+    # If a group was a source group in an unmerge in the last 24 hr, then we must query all the
+    # groups involved in the unmerge to get accurate event counts due to a Clickhouse bug.
+    if groups:
+        project_id = groups[0].project.id
+        source_key = f"source-groups:{project_id}"
+        source_ids = cache.get(source_key)
+        if source_ids:
+            source_groups_ids = [id for id in groups if id in source_ids]
+            for source_id in source_groups_ids:
+                unmerge_key = f"unmerged-groups:{project_id}:{source_id}"
+                unmerge_groups_ids = cache.get(unmerge_key)
+                unmerge_groups = Group.objects.filter(
+                    project=groups[0].project, id__in=unmerge_groups_ids
+                )
+                groups = groups + unmerge_groups
+
     past_counts = query_groups_past_counts(groups)
     group_counts = parse_groups_past_counts(past_counts)
     save_forecast_per_group(groups, group_counts)

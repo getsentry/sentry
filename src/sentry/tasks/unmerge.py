@@ -7,10 +7,12 @@ from typing import Any, Mapping, Optional, Tuple
 
 from django.db import router, transaction
 
-from sentry import eventstore, similarity, tsdb
+from sentry import eventstore, features, similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import generate_culprit
 from sentry.eventstore.models import BaseEvent
+from sentry.issues.escalating import invalidate_group_hourly_count_cache
+from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.models import (
     Activity,
     Environment,
@@ -24,15 +26,22 @@ from sentry.models import (
     Release,
     UserReport,
 )
+from sentry.models.group import GroupStatus
+from sentry.models.grouphistory import GroupHistory, record_group_history
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.unmerge import InitialUnmergeArgs, SuccessiveUnmergeArgs, UnmergeArgs, UnmergeArgsBase
+from sentry.utils.cache import cache as utils_cache
 from sentry.utils.query import celery_run_batch_query
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
+
+SOURCE_MERGE_GROUPS_TTL = 86400  # 24 hour TTL
 
 
 def cache(function):
@@ -231,6 +240,21 @@ def migrate_events(
             user_id=args.actor_id,
             data={"destination_id": destination_id, **args.replacement.get_activity_args()},
         )
+        # Update GroupStatus for unmerged group
+        source_group = Group.objects.get(id=args.source_id)
+        destination.status, destination.substatus = source_group.status, source_group.substatus
+        destination.save()
+        # Update GroupInbox for unmerged group
+        source_group_inbox = GroupInbox.objects.filter(group=source_group)
+        if source_group_inbox:
+            add_group_to_inbox(destination, reason=GroupInboxReason(source_group_inbox[0].reason))
+        # Update GroupHistory for unmerged group
+        source_group_histories = GroupHistory.objects.filter(group=source_group).order_by(
+            "-date_added"
+        )
+        if source_group_histories:
+            record_group_history(destination, source_group_histories[0].status)
+
     else:
         eventstream_state = opt_eventstream_state
 
@@ -504,10 +528,38 @@ def unmerge(*posargs, **kwargs):
     # If there are no more events to process, we're done with the migration.
     if not events:
         unlock_hashes(args.project_id, locked_primary_hashes)
+        unmerged_groups_ids = []
         for unmerge_key, (group_id, eventstream_state) in args.destinations.items():
             logger.warning("Unmerge complete (eventstream state: %s)", eventstream_state)
             if eventstream_state:
                 args.replacement.stop_snuba_replacement(eventstream_state)
+            unmerged_groups_ids.append(group_id)
+        # Generate new forecast for child issues
+        if (
+            features.has("organizations:escalating-issues-v2", source.organization)
+            and source.status == GroupStatus.IGNORED
+            and source.substatus == GroupSubStatus.UNTIL_ESCALATING
+        ):
+            unmerged_groups_ids.append(source.id)
+            unmerged_groups = Group.objects.filter(
+                project=source.project, id__in=unmerged_groups_ids
+            )
+            for group in unmerged_groups:
+                invalidate_group_hourly_count_cache(group)
+
+            # Save groups involved in unmerge to cache for 24 hours until snuba updates
+            # This is needed to get accurate event counts due to a Clickhouse bug
+            source_key = f"source-groups:{source.project.id}"
+            source_ids = utils_cache.get(source_key)
+            if source_ids:
+                source_ids.append(source.id)
+            else:
+                source_ids = [source.id]
+            utils_cache.set(source_key, source_ids, SOURCE_MERGE_GROUPS_TTL)
+            unmerge_key = f"unmerged-groups:{source.project.id}:{source.id}"
+            utils_cache.set(unmerge_key, unmerged_groups_ids, SOURCE_MERGE_GROUPS_TTL)
+
+            generate_and_save_forecasts(unmerged_groups)
         return
 
     source_events = []

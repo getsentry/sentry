@@ -3,7 +3,7 @@ This is later used for generating group forecasts for determining when a group m
 """
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, TypedDict
 
 import jsonschema
@@ -226,6 +226,8 @@ def _extract_project_and_group_ids(groups: Sequence[Group]) -> Dict[int, List[in
 
 def get_group_hourly_count(group: Group) -> int:
     """Return the number of events a group has had today in the last hour"""
+    hourly_count = get_hourly_count_unmerged_group(group)
+
     key = f"hourly-group-count:{group.project.id}:{group.id}"
     hourly_count = cache.get(key)
 
@@ -263,6 +265,41 @@ def get_group_hourly_count(group: Group) -> int:
 def invalidate_group_hourly_count_cache(group: Group) -> None:
     key = f"hourly-group-count:{group.project.id}:{group.id}"
     cache.delete(key)
+
+
+def get_hourly_count_unmerged_group(group: Group) -> Optional[int]:
+    """
+    Get the accurate hourly event count for the source group in an unmerge.
+    If a group was a source group in an unmerge in the last 24 hr, then we must query all the
+    groups involved in the unmerge to get accurate event counts due to a Clickhouse bug.
+    """
+    # Check if the group is a source groups involved in an unmerge in the last 24 hrs
+    project_id = group.project.id
+    source_key = f"source-groups:{project_id}"
+    source_ids = cache.get(source_key)
+
+    if source_ids and group.id in source_ids:
+        unmerge_key = f"unmerged-groups:{project_id}:{group.id}"
+        unmerge_groups_ids = cache.get(unmerge_key)
+        unmerge_groups = Group.objects.filter(project=group.project, id__in=unmerge_groups_ids)
+        unmerge_groups_counts = query_groups_past_counts(unmerge_groups)
+        parsed_unmerge_groups_counts = parse_groups_past_counts(unmerge_groups_counts)
+
+        # Need to choose the current hour's count
+        now = datetime.now(timezone.utc)
+        current_hour = now.replace(minute=0, second=0, microsecond=0)
+        source_data = parsed_unmerge_groups_counts[group.id]
+        index = -1
+        for i, interval in enumerate(source_data["intervals"]):
+            if datetime.strptime(interval, "%Y-%m-%dT%H:%M:%S%f%z") == current_hour:
+                index = i
+                break
+        unmerge_hourly_count = source_data["data"][index] if index > -1 else 0
+        key = f"hourly-group-count:{project_id}:{group.id}"
+        cache.set(key, unmerge_hourly_count, GROUP_HOURLY_COUNT_TTL)
+        return unmerge_hourly_count
+
+    return None
 
 
 def is_escalating(group: Group) -> Tuple[bool, Optional[int]]:
