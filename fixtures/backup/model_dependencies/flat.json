@@ -9,7 +9,6 @@
   "sentry.AlertRule": [
     "sentry.Actor",
     "sentry.Organization",
-    "sentry.Project",
     "sentry.SnubaQuery"
   ],
   "sentry.AlertRuleActivity": [
@@ -20,8 +19,7 @@
     "sentry.Project"
   ],
   "sentry.AlertRuleTrigger": [
-    "sentry.AlertRule",
-    "sentry.Incident"
+    "sentry.AlertRule"
   ],
   "sentry.AlertRuleTriggerAction": [
     "sentry.AlertRuleTrigger"
@@ -86,9 +84,7 @@
   "sentry.CommitFileChange": [
     "sentry.Commit"
   ],
-  "sentry.ControlFile": [
-    "sentry.ControlFileBlob"
-  ],
+  "sentry.ControlFile": [],
   "sentry.ControlFileBlob": [],
   "sentry.ControlFileBlobIndex": [
     "sentry.ControlFile",
@@ -104,8 +100,7 @@
     "sentry.Project"
   ],
   "sentry.Dashboard": [
-    "sentry.Organization",
-    "sentry.Project"
+    "sentry.Organization"
   ],
   "sentry.DashboardProject": [
     "sentry.Dashboard",
@@ -130,8 +125,7 @@
     "sentry.Release"
   ],
   "sentry.DiscoverSavedQuery": [
-    "sentry.Organization",
-    "sentry.Project"
+    "sentry.Organization"
   ],
   "sentry.DiscoverSavedQueryProject": [
     "sentry.DiscoverSavedQuery",
@@ -145,9 +139,7 @@
     "sentry.DocIntegration"
   ],
   "sentry.Email": [],
-  "sentry.Environment": [
-    "sentry.Project"
-  ],
+  "sentry.Environment": [],
   "sentry.EnvironmentProject": [
     "sentry.Environment",
     "sentry.Project"
@@ -277,8 +269,7 @@
   "sentry.IdentityProvider": [],
   "sentry.Incident": [
     "sentry.AlertRule",
-    "sentry.Organization",
-    "sentry.Project"
+    "sentry.Organization"
   ],
   "sentry.IncidentActivity": [
     "sentry.Incident"
@@ -324,8 +315,7 @@
   ],
   "sentry.MonitorLocation": [],
   "sentry.NotificationAction": [
-    "sentry.Organization",
-    "sentry.Project"
+    "sentry.Organization"
   ],
   "sentry.NotificationActionProject": [
     "sentry.NotificationAction",
@@ -351,8 +341,7 @@
   ],
   "sentry.OrganizationMapping": [],
   "sentry.OrganizationMember": [
-    "sentry.Organization",
-    "sentry.Team"
+    "sentry.Organization"
   ],
   "sentry.OrganizationMemberMapping": [
     "sentry.User"
@@ -386,8 +375,7 @@
     "sentry.ProjectDebugFile"
   ],
   "sentry.Project": [
-    "sentry.Organization",
-    "sentry.Team"
+    "sentry.Organization"
   ],
   "sentry.ProjectArtifactBundle": [
     "sentry.ArtifactBundle"
@@ -461,8 +449,7 @@
   "sentry.Relay": [],
   "sentry.RelayUsage": [],
   "sentry.Release": [
-    "sentry.Organization",
-    "sentry.Project"
+    "sentry.Organization"
   ],
   "sentry.ReleaseActivity": [
     "sentry.Release"
@@ -588,9 +575,7 @@
     "sentry.User"
   ],
   "sentry.UserReport": [],
-  "sentry.UserRole": [
-    "sentry.User"
-  ],
+  "sentry.UserRole": [],
   "sentry.UserRoleUser": [
     "sentry.User",
     "sentry.UserRole"

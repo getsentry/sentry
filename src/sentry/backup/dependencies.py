@@ -4,7 +4,7 @@ from enum import Enum, auto, unique
 from typing import NamedTuple
 
 from django.db import models
-from django.db.models.fields.related import ForeignKey, ManyToManyField, OneToOneField
+from django.db.models.fields.related import ForeignKey, OneToOneField
 
 from sentry.backup.helpers import EXCLUDED_APPS
 from sentry.silo import SiloMode
@@ -24,9 +24,6 @@ class ForeignFieldKind(Enum):
     # Uses our `OneToOneCascadeDeletes` wrapper.
     OneToOneCascadeDeletes = auto()
 
-    # A naked usage of Django's `ManyToManyField`.
-    ManyToManyField = auto()
-
     # A naked usage of Django's `ForeignKey`.
     DefaultForeignKey = auto()
 
@@ -45,13 +42,13 @@ class ModelRelations(NamedTuple):
     """What other models does this model depend on, and how?"""
 
     model: models.base.ModelBase
-    relations: dict[str, ForeignField]
+    foreign_keys: dict[str, ForeignField]
     silos: list[SiloMode]
 
     def flatten(self) -> set[models.base.ModelBase]:
         """Returns a flat list of all related models, omitting the kind of relation they have."""
 
-        return {ff.model for ff in self.relations.values()}
+        return {ff.model for ff in self.foreign_keys.values()}
 
 
 def normalize_model_name(model):
@@ -95,7 +92,7 @@ def dependencies() -> dict[str, ModelRelations]:
         model_iterator = app_config.get_models()
 
         for model in model_iterator:
-            relations: dict[str, ForeignField] = dict()
+            foreign_keys: dict[str, ForeignField] = dict()
 
             # Now add a dependency for any FK relation with a model that defines a natural key.
             for field in model._meta.fields:
@@ -108,34 +105,22 @@ def dependencies() -> dict[str, ModelRelations]:
                         continue
 
                     if isinstance(field, FlexibleForeignKey):
-                        relations[field.name] = ForeignField(
+                        foreign_keys[field.name] = ForeignField(
                             model=rel_model,
                             kind=ForeignFieldKind.FlexibleForeignKey,
                         )
                     elif isinstance(field, HybridCloudForeignKey):
-                        relations[field.name] = ForeignField(
+                        foreign_keys[field.name] = ForeignField(
                             model=rel_model,
                             kind=ForeignFieldKind.HybridCloudForeignKey,
                         )
                     elif isinstance(field, ForeignKey):
-                        relations[field.name] = ForeignField(
+                        foreign_keys[field.name] = ForeignField(
                             model=rel_model,
                             kind=ForeignFieldKind.DefaultForeignKey,
                         )
 
-            # Also add a dependency for any simple M2M relation.
-            many_to_many_fields = [
-                field for field in model._meta.get_fields() if isinstance(field, ManyToManyField)
-            ]
-            for field in many_to_many_fields:
-                rel_model = getattr(field.remote_field, "model", None)
-                if rel_model is not None and rel_model != model:
-                    relations[field.name] = ForeignField(
-                        model=rel_model,
-                        kind=ForeignFieldKind.ManyToManyField,
-                    )
-
-            # Finally, get all simple O2O relations as well.
+            # Get all simple O2O relations as well.
             one_to_one_fields = [
                 field for field in model._meta.get_fields() if isinstance(field, OneToOneField)
             ]
@@ -143,12 +128,12 @@ def dependencies() -> dict[str, ModelRelations]:
                 rel_model = getattr(field.remote_field, "model", None)
                 if rel_model is not None and rel_model != model:
                     if isinstance(field, OneToOneCascadeDeletes):
-                        relations[field.name] = ForeignField(
+                        foreign_keys[field.name] = ForeignField(
                             model=rel_model,
                             kind=ForeignFieldKind.OneToOneCascadeDeletes,
                         )
                     elif isinstance(field, OneToOneField):
-                        relations[field.name] = ForeignField(
+                        foreign_keys[field.name] = ForeignField(
                             model=rel_model,
                             kind=ForeignFieldKind.DefaultOneToOneField,
                         )
@@ -157,7 +142,7 @@ def dependencies() -> dict[str, ModelRelations]:
 
             model_dependencies_list[normalize_model_name(model)] = ModelRelations(
                 model=model,
-                relations=relations,
+                foreign_keys=foreign_keys,
                 silos=list(
                     getattr(model._meta, "silo_limit", ModelSiloLimit(SiloMode.MONOLITH)).modes
                 ),
