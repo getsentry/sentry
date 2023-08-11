@@ -31,7 +31,8 @@ def main() -> None:
         "sentry_kafka",
         "kafka-topics",
         "--zookeeper",
-        "sentry_zookeeper:2181",
+        # TODO: we'll have to conditionally make this sentry_zookeeper:2181 locally
+        "127.0.0.1:2181",
         "--list",
     ]
 
