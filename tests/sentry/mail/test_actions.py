@@ -1,7 +1,8 @@
 from django.core import mail
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
-from sentry.mail.actions import NotifyEmailAction, NotifyEmailForm
+from sentry.mail.actions import NotifyEmailAction
+from sentry.mail.forms.notify_email import NotifyEmailForm
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Rule
 from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType

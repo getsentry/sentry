@@ -25,7 +25,7 @@ def setup():
             yield
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-details"
 
