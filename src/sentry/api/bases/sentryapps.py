@@ -16,7 +16,6 @@ from sentry.api.permissions import SentryPermission
 from sentry.auth.superuser import is_active_superuser
 from sentry.coreapi import APIError
 from sentry.middleware.stats import add_request_metric_tags
-from sentry.models import OrganizationMemberMapping
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.organization import OrganizationStatus
 from sentry.services.hybrid_cloud.app import RpcSentryApp, app_service
@@ -81,22 +80,17 @@ class SentryAppsPermission(SentryPermission):
         "POST": ("org:write", "org:admin"),
     }
 
-    def has_object_permission(self, request: Request, view, organization):
+    def has_object_permission(self, request: Request, view, context: RpcUserOrganizationContext):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        self.determine_access(request, organization)
+        self.determine_access(request, context)
 
         if is_active_superuser(request):
             return True
 
         # User must be a part of the Org they're trying to create the app in.
-        if (
-            organization.status != OrganizationStatus.ACTIVE
-            or not OrganizationMemberMapping.objects.filter(
-                user_id=request.user.id, organization_id=organization.id
-            ).exists()
-        ):
+        if context.organization.status != OrganizationStatus.ACTIVE or not context.member:
             raise Http404
 
         return ensure_scoped_permission(request, self.scope_map.get(request.method))

@@ -45,7 +45,9 @@ def requires_feature(
             # flag enabled.
             if any_org:
                 if not any_organization_has_feature(
-                    feature, request.user.get_orgs(), actor=request.user
+                    feature,
+                    Organization.objects.get_for_user_ids({request.user.id}),
+                    actor=request.user,
                 ):
                     return Response(status=404)
 

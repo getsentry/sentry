@@ -12,7 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
-from sentry.models import SentryApp
+from sentry.models import Organization, SentryApp
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.utils import json
 
@@ -30,11 +30,19 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
         elif status == "unpublished":
             queryset = SentryApp.objects.filter(status=SentryAppStatus.UNPUBLISHED)
             if not is_active_superuser(request):
-                queryset = queryset.filter(owner_id__in=[o.id for o in request.user.get_orgs()])
+                queryset = queryset.filter(
+                    owner_id__in=[
+                        o.id for o in Organization.objects.get_for_user_ids({request.user.id})
+                    ]
+                )
         elif status == "internal":
             queryset = SentryApp.objects.filter(status=SentryAppStatus.INTERNAL)
             if not is_active_superuser(request):
-                queryset = queryset.filter(owner_id__in=[o.id for o in request.user.get_orgs()])
+                queryset = queryset.filter(
+                    owner_id__in=[
+                        o.id for o in Organization.objects.get_for_user_ids({request.user.id})
+                    ]
+                )
         else:
             if is_active_superuser(request):
                 queryset = SentryApp.objects.all()
