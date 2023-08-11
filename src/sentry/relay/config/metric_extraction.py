@@ -33,8 +33,8 @@ _METRIC_EXTRACTION_VERSION = 1
 
 # Maximum number of custom metrics that can be extracted for alerts and widgets with
 # advanced filter expressions.
-_MAX_ON_DEMAND_ALERTS = 100
-_MAX_ON_DEMAND_WIDGETS = 300
+_MAX_ON_DEMAND_ALERTS = 50
+_MAX_ON_DEMAND_WIDGETS = 100
 
 HashMetricSpec = Tuple[str, MetricSpec]
 
