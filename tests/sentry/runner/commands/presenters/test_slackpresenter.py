@@ -11,6 +11,7 @@ class TestSlackPresenter:
     def setup(self):
         self.slackPresenter = SlackPresenter()
         settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL = "https://test/"
+        settings.SENTRY_REGION_OR_CUSTOMER = "test_region"
 
     @responses.activate
     def test_is_slack_enabled(self):
@@ -44,6 +45,7 @@ class TestSlackPresenter:
         self.slackPresenter.flush()
 
         expected_json_data = {
+            "region": "test_region",
             "drifted_options": [
                 {"option_name": "option9", "option_value": "db_value9"},
                 {"option_name": "option10", "option_value": "db_value10"},
@@ -97,6 +99,7 @@ class TestSlackPresenter:
         self.slackPresenter.flush()
 
         expected_json_data = {
+            "region": "test_region",
             "drifted_options": [{"option_name": "drifted", "option_value": "{'key': 'value'}"}],
             "updated_options": [{"option_name": "updated", "db_value": "1.0", "value": "0.0"}],
             "set_options": [

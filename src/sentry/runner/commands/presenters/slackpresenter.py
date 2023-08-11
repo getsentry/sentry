@@ -66,7 +66,11 @@ class SlackPresenter(OptionsPresenter):
             raise
 
     def flush(self) -> None:
+
+        region = settings.SENTRY_REGION_OR_CUSTOMER
+
         json_data = {
+            "region": region,
             "drifted_options": [
                 {"option_name": key, "option_value": self.truncate_value(value)}
                 for key, value in self.drifted_options
