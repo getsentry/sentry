@@ -81,6 +81,8 @@ def env(
 
 _env_cache: dict[str, object] = {}
 
+DARWIN = sys.platform == "darwin"
+
 ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 
 IS_DEV = ENVIRONMENT == "development"
@@ -2538,10 +2540,16 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:5.5.13-1-ubi8",
             "ports": {"9092/tcp": 9092},
             "environment": {
-                "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
+                "KAFKA_ZOOKEEPER_CONNECT": (
+                    "{containers[zookeeper][name]}:2181" if DARWIN else "127.0.0.1:2181"
+                ),
                 "KAFKA_LISTENERS": "INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092",
-                "KAFKA_ADVERTISED_LISTENERS": "INTERNAL://{containers[kafka][name]}:9093,EXTERNAL://{containers[kafka]"
-                "[ports][9092/tcp][0]}:{containers[kafka][ports][9092/tcp][1]}",
+                "KAFKA_ADVERTISED_LISTENERS": (
+                    "INTERNAL://{containers[kafka][name]}:9093"
+                    if DARWIN
+                    else "INTERNAL://127.0.0.1:9093"
+                )
+                + ",EXTERNAL://{containers[kafka][ports][9092/tcp][0]}:{containers[kafka][ports][9092/tcp][1]}",
                 "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
                 "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
                 "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
@@ -2588,13 +2596,13 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 "PYTHONUNBUFFERED": "1",
                 "SNUBA_SETTINGS": "docker",
                 "DEBUG": "1",
-                "CLICKHOUSE_HOST": "{containers[clickhouse][name]}",
+                "CLICKHOUSE_HOST": ("{containers[clickhouse][name]}" if DARWIN else "127.0.0.1"),
                 "CLICKHOUSE_PORT": "9000",
                 "CLICKHOUSE_HTTP_PORT": "8123",
                 "DEFAULT_BROKERS": ""
                 if "snuba" in settings.SENTRY_EVENTSTREAM
-                else "{containers[kafka][name]}:9093",
-                "REDIS_HOST": "{containers[redis][name]}",
+                else ("{containers[kafka][name]}:9093" if DARWIN else "127.0.0.1:9093"),
+                "REDIS_HOST": ("{containers[redis][name]}" if DARWIN else "127.0.0.1"),
                 "REDIS_PORT": "6379",
                 "REDIS_DB": "1",
                 "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",

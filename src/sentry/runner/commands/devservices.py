@@ -308,13 +308,13 @@ def _prepare_containers(
                 click.secho(f"! Skipping {name} due to only_if condition", err=True, fg="cyan")
             continue
 
-        if sys.platform.startswith("linux"):
+        if DARWIN:
             # This isn't ideal, but it's an easy solution to make everything work
             # in CI. docker-py doesn't support resolving the magic "host-internal" string
             # so we can't extra_host that as host.docker.internal.
-            options["network_mode"] = "host"
-        else:
             options["network"] = project
+        else:
+            options["network_mode"] = "host"
 
         options["detach"] = True
         options["name"] = project + "_" + name
