@@ -590,14 +590,18 @@ def _generate_stacktrace_fingerprint(
     try:
         stacktrace_frames_fingerprint = _generate_match_frames_fingerprint(stacktrace_match_frames)
         rules_fingerprint = _generate_rules_fingerprint(rules, platform)
+        stacktrace_type_value = ""
+        if stacktrace_container:
+            stacktrace_type_value = (
+                f'{stacktrace_container.get("type", "")}.stacktrace_container.get("value", "")'
+            )
         # Hash of the three components involved for fingerprinting a stacktrace
         stacktrace_hash = md5()
         hash_value(
             stacktrace_hash,
             (
                 stacktrace_frames_fingerprint,
-                stacktrace_container.get("type", ""),
-                stacktrace_container.get("value", ""),
+                stacktrace_type_value,
                 rules_fingerprint,
             ),
         )
