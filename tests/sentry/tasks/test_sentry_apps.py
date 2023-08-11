@@ -924,7 +924,19 @@ class TestWebhookRequests(TestCase):
         )
         assert (
             self.organization.absolute_url(
+                f"/settings/{self.organization.slug}/developer-settings/{self.sentry_app.slug}/referrer=disabled-sentry-app"
+            )
+            in msg.body
+        )
+        assert (
+            self.organization.absolute_url(
                 f"/settings/{self.organization.slug}/developer-settings/{self.sentry_app.slug}/dashboard"
+            )
+            in msg.body
+        )
+        assert (
+            self.organization.absolute_url(
+                f"/settings/{self.organization.slug}/developer-settings/{self.sentry_app.slug}/dashboard/referrer=disabled-sentry-app/"
             )
             in msg.body
         )
