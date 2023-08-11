@@ -9,7 +9,6 @@ from django.test import override_settings
 from requests import Request
 from responses import matchers
 
-from sentry.constants import ObjectStatus
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models import Repository
@@ -421,6 +420,14 @@ class GithubProxyClientTest(TestCase):
             match=[matchers.header_matcher({"Authorization": f"Bearer {self.jwt}"})],
             status=200,
         )
+        self.repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/foo",
+            url="https://github.com/Test-Organization/foo",
+            provider="integrations:github",
+            external_id=123,
+            integration_id=self.integration.id,
+        )
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
@@ -570,27 +577,25 @@ class GithubProxyClientTest(TestCase):
             assert client.base_url not in request.url
             client.assert_proxy_request(request, is_proxy=True)
 
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=ApiError)
     @responses.activate
-    def test_fatal_disable(self):
-        jwt_request = Request(
-            method=responses.POST,
-            url=f"{self.gh_client.base_url}/app/installations/{self.installation_id}/access_tokens",
-        ).prepare()
+    def test_fatal_disable(self, get_jwt):
+
         responses.add(
             responses.POST,
             status=403,
-            url=f"https://api.github.com/app/installations/{self.installation_id}/access_tokens",
+            url="https://api.github.com/graphql",
             json={
                 "message": "This installation has been suspended",
                 "documentation_url": "https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app",
             },
         )
 
-        with pytest.raises(ApiError):
-            self.gh_client.authorize_request(prepared_request=jwt_request)
+        self.gh_client.integration = None
 
+        with pytest.raises(Exception) as excinfo:
+            self.gh_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+        (msg,) = excinfo.value.args
         buffer = IntegrationRequestBuffer(self.gh_client._get_redis_key())
         assert buffer.is_integration_broken() is True
-        assert self.integration.status == ObjectStatus.DISABLED
-        assert [len(item) == 0 for item in buffer._get_broken_range_from_buffer()]
-        assert len(buffer._get_all_from_buffer()) == 0
+        assert int(buffer._get_all_from_buffer()[0]["fatal_count"]) == 1

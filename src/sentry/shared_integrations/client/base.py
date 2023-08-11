@@ -381,8 +381,6 @@ class BaseApiClient(TrackResponseMixin):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
-        if not self.is_considered_error(error) and not self.is_error_fatal(error):
-            return
         try:
             buffer = IntegrationRequestBuffer(redis_key)
             if self.is_response_fatal(response):
@@ -431,7 +429,10 @@ class BaseApiClient(TrackResponseMixin):
             return
         try:
             buffer = IntegrationRequestBuffer(redis_key)
-            buffer.record_error()
+            if self.is_error_fatal(error):
+                buffer.record_fatal()
+            else:
+                buffer.record_error()
             if randint(0, 99) == 0:
                 (
                     rpc_integration,
