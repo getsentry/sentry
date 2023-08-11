@@ -263,6 +263,7 @@ describe('Performance > Trends', function () {
             'tps()': 3.7226926286168966,
             'count()': 34872349,
             'failure_rate()': 0.43428379,
+            'examples()': ['djk3w308er', '3298a9ui3h'],
           },
         ],
         meta: {
@@ -272,6 +273,7 @@ describe('Performance > Trends', function () {
             'tps()': 'number',
             'count()': 'number',
             'failure_rate()': 'number',
+            'examples()': 'Array',
           },
           units: {
             'p95()': 'millisecond',
@@ -279,6 +281,7 @@ describe('Performance > Trends', function () {
             'tps()': null,
             'count()': null,
             'failure_rate()': null,
+            'examples()': null,
           },
           isMetricsData: true,
           tips: {},

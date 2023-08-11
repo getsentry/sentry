@@ -1,4 +1,4 @@
-import {CSSProperties, MouseEvent, useCallback} from 'react';
+import {CSSProperties, MouseEvent} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -10,6 +10,7 @@ import type {ReplayFrame} from 'sentry/utils/replays/types';
 interface Props {
   frame: ReplayFrame;
   index: number;
+  onClick: ReturnType<typeof useCrumbHandlers>['onClickTimestamp'];
   onDimensionChange: (
     index: number,
     path: string,
@@ -23,27 +24,17 @@ interface Props {
 }
 
 function BreadcrumbRow({
-  frame,
   expandPaths,
+  frame,
   index,
+  onClick,
   onDimensionChange,
   startTimestampMs,
   style,
 }: Props) {
   const {currentTime, currentHoverTime} = useReplayContext();
 
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
-
-  const onClickTimestamp = useCallback(() => handleClick(frame), [handleClick, frame]);
-  const onMouseEnter = useCallback(
-    () => handleMouseEnter(frame),
-    [handleMouseEnter, frame]
-  );
-  const onMouseLeave = useCallback(
-    () => handleMouseLeave(frame),
-    [handleMouseLeave, frame]
-  );
+  const {onMouseEnter, onMouseLeave} = useCrumbHandlers();
 
   const hasOccurred = currentTime >= frame.offsetMs;
   const isBeforeHover =
@@ -62,7 +53,7 @@ function BreadcrumbRow({
       <BreadcrumbItem
         index={index}
         frame={frame}
-        onClick={onClickTimestamp}
+        onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         startTimestampMs={startTimestampMs}

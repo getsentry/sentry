@@ -93,7 +93,7 @@ from sentry.testutils.helpers.backups import (
     import_export_then_validate,
 )
 from sentry.utils.json import JSONData
-from tests.sentry.backup import targets
+from tests.sentry.backup import run_backup_tests_only_on_single_db, targets
 
 UNIT_TESTED_MODELS = set()
 
@@ -117,6 +117,7 @@ def mark(*marking: Type | Literal["__all__"]):
     return marking
 
 
+@run_backup_tests_only_on_single_db
 class ModelBackupTests(TransactionTestCase):
     """Test the JSON-ification of models marked `__include_in_export__ = True`. Each test here
     creates a fresh database, performs some writes to it, then exports that data into a temporary

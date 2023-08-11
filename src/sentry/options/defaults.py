@@ -1455,3 +1455,27 @@ register(
     default=[],
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "options_automator_slack_webhook_enabled",
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "monitors.use_consumer_clock_task_triggers",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "on_demand.max_alert_specs",
+    default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "on_demand.max_widget_specs",
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

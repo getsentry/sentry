@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators.token_exchange import Refresher
+from sentry.mediators.token_exchange.refresher import Refresher
 from sentry.models import ApiApplication, ApiToken, SentryApp, SentryAppInstallation
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.testutils.cases import TestCase
