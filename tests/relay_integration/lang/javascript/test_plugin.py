@@ -1,5 +1,4 @@
 import os.path
-import re
 import zipfile
 from base64 import b64encode
 from datetime import timedelta
@@ -1309,7 +1308,13 @@ class TestJavascriptIntegration(RelayStoreHelper):
             body=load_fixture("node_app.min.js.map"),
             content_type="application/javascript; charset=utf-8",
         )
-        responses.add_passthru(re.compile(".*/tests/entities/generic_metrics_counters/insert"))
+        responses.add(
+            method=responses.POST,
+            url="http://127.0.0.1:1218/tests/entities/generic_metrics_counters/insert",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
 
         data = {
             "timestamp": self.min_ago,
@@ -1385,7 +1390,13 @@ class TestJavascriptIntegration(RelayStoreHelper):
                 "<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>"
             ),
         )
-        responses.add_passthru(re.compile(".*/tests/entities/generic_metrics_counters/insert"))
+        responses.add(
+            method=responses.POST,
+            url="http://127.0.0.1:1218/tests/entities/generic_metrics_counters/insert",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
 
         data = {
             "timestamp": self.min_ago,
