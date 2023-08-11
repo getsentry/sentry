@@ -20,6 +20,7 @@ import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 interface Props {
   moduleName: ModuleName;
+  projectId: number;
   description?: string;
   endpoint?: string;
   endpointMethod?: string;
@@ -34,6 +35,7 @@ export function SpanDescriptionCell({
   moduleName,
   endpoint,
   endpointMethod,
+  projectId,
 }: Props) {
   const location = useLocation();
 
