@@ -52,9 +52,9 @@ def notify_disable(
     )
 
     referrrer = (
-        "referrer=disabled-sentry-app/"
+        "?referrer=disabled-sentry-app/"
         if "sentry-app" in redis_key
-        else "referrer=disabled-integration/"
+        else "?referrer=disabled-integration/"
     )
 
     for user in organization.get_owners():
