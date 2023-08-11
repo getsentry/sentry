@@ -568,7 +568,7 @@ class SearchVisitor(NodeVisitor):
 
     def visit_free_email_text(self, node, children):
         if not self.config.allow_free_text_email:
-            raise InvalidSearchQuery("Please add a relevant tag to search an email")
+            return SearchFilter(SearchKey(self.config.free_text_key), "=", SearchValue(node.text))
         return SearchFilter(SearchKey(self.config.free_text_email_key), "=", SearchValue(node.text))
 
     def visit_free_text_unquoted(self, node, children):

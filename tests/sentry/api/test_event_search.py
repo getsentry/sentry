@@ -581,10 +581,24 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("@name")),
         ]
 
-        with pytest.raises(
-            InvalidSearchQuery, match="Please add a relevant tag to search an email"
-        ):
-            assert parse_search_query("some_key:123 test.com @name *@test.com a_1@test.com.uk")
+        assert parse_search_query("some_key:123 text", config=config) == [
+            SearchFilter(key=SearchKey(name="some_key"), operator="=", value=SearchValue("123")),
+            SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("text")),
+        ]
+
+        assert parse_search_query("some_key:123 test.com *@test.com a_1@test.com.uk @name") == [
+            SearchFilter(key=SearchKey(name="some_key"), operator="=", value=SearchValue("123")),
+            SearchFilter(
+                key=SearchKey(name="message"), operator="=", value=SearchValue("test.com")
+            ),
+            SearchFilter(
+                key=SearchKey(name="message"), operator="=", value=SearchValue("*@test.com")
+            ),
+            SearchFilter(
+                key=SearchKey(name="message"), operator="=", value=SearchValue("a_1@test.com.uk")
+            ),
+            SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("@name")),
+        ]
 
     def test_invalid_aggregate_column_with_duration_filter(self):
         with self.assertRaisesMessage(
