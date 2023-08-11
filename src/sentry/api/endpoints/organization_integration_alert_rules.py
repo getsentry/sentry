@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
-from sentry.integrations.mixins import NotifyBasicMixin
+from sentry.integrations.opsgenie.integration import OpsgenieIntegration
 from sentry.models import Organization
 
 
@@ -26,7 +26,7 @@ class OrganizationIntegrationAlertRulesEndpoint(RegionOrganizationIntegrationBas
         """
         integration = self.get_integration(organization.id, integration_id)
         installation = integration.get_installation(organization_id=organization.id)
-        if isinstance(installation, NotifyBasicMixin):
+        if isinstance(installation, OpsgenieIntegration):
             installation.migrate_alert_rules()
             return Response(status=204)
         return Response(status=400)
