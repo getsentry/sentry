@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, TypedDict, Union
 
-from sentry import features
+from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.constants import DataCategory
 from sentry.incidents.models import AlertRule, AlertRuleStatus
@@ -33,8 +33,8 @@ _METRIC_EXTRACTION_VERSION = 1
 
 # Maximum number of custom metrics that can be extracted for alerts and widgets with
 # advanced filter expressions.
-_MAX_ON_DEMAND_ALERTS = 100
-_MAX_ON_DEMAND_WIDGETS = 500
+_MAX_ON_DEMAND_ALERTS = 50
+_MAX_ON_DEMAND_WIDGETS = 100
 
 HashMetricSpec = Tuple[str, MetricSpec]
 
@@ -73,9 +73,14 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
 
 
 def _get_alert_metric_specs(project: Project) -> List[HashMetricSpec]:
-    alert_rules = AlertRule.objects.fetch_for_project(project).filter(
-        status=AlertRuleStatus.PENDING.value,
-        snuba_query__dataset=Dataset.PerformanceMetrics.value,
+    alert_rules = (
+        AlertRule.objects.fetch_for_project(project)
+        .filter(
+            organization=project.organization,
+            status=AlertRuleStatus.PENDING.value,
+            snuba_query__dataset=Dataset.PerformanceMetrics.value,
+        )
+        .select_related("snuba_query")
     )
 
     specs = []
@@ -86,16 +91,18 @@ def _get_alert_metric_specs(project: Project) -> List[HashMetricSpec]:
                 project_id=project.id,
                 spec_for="alert",
                 spec=result,
+                id=alert.id,
                 field=alert_snuba_query.aggregate,
                 query=alert_snuba_query.query,
             )
             specs.append(result)
 
-    if len(specs) > _MAX_ON_DEMAND_ALERTS:
+    max_alert_specs = options.get("on_demand.max_alert_specs") or _MAX_ON_DEMAND_ALERTS
+    if len(specs) > max_alert_specs:
         logger.error(
             "Too many (%s) on demand metric alerts for project %s", len(specs), project.slug
         )
-        specs = specs[:_MAX_ON_DEMAND_ALERTS]
+        specs = specs[:max_alert_specs]
 
     return specs
 
@@ -117,11 +124,12 @@ def _get_widget_metric_specs(project: Project) -> List[HashMetricSpec]:
         for result in _convert_widget_query_to_metric(project, widget):
             specs.append(result)
 
-    if len(specs) > _MAX_ON_DEMAND_WIDGETS:
+    max_widget_specs = options.get("on_demand.max_widget_specs") or _MAX_ON_DEMAND_WIDGETS
+    if len(specs) > max_widget_specs:
         logger.error(
             "Too many (%s) on demand metric widgets for project %s", len(specs), project.slug
         )
-        specs = specs[:_MAX_ON_DEMAND_WIDGETS]
+        specs = specs[:max_widget_specs]
 
     return specs
 
@@ -184,6 +192,7 @@ def _convert_widget_query_to_metric(
                 project_id=project.id,
                 spec_for="widget",
                 spec=result,
+                id=widget_query.id,
                 field=aggregate,
                 query=widget_query.conditions,
             )
@@ -218,6 +227,7 @@ def _log_on_demand_metric_spec(
     project_id: int,
     spec_for: Literal["alert", "widget"],
     spec: HashMetricSpec,
+    id: int,
     field: str,
     query: str,
 ) -> None:
@@ -227,6 +237,7 @@ def _log_on_demand_metric_spec(
         "on_demand_metrics.on_demand_metric_spec",
         extra={
             "project_id": project_id,
+            f"{spec_for}.id": id,
             f"{spec_for}.field": field,
             f"{spec_for}.query": query,
             "spec_for": spec_for,
