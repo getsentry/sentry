@@ -570,78 +570,24 @@ class MonitorConsumerTest(TestCase):
 
         assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
 
-    @mock.patch("sentry.monitors.consumers.monitor_consumer.CHECKIN_QUOTA_LIMIT", 20)
-    @mock.patch("sentry.monitors.consumers.monitor_consumer._dispatch_tasks")
-    def test_monitor_task_trigger(self, dispatch_tasks):
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_tasks_trigger")
+    def test_monitor_tasks_trigger(self, try_monitor_tasks_trigger):
         monitor = self._create_monitor(slug="my-monitor")
-
-        assert dispatch_tasks.call_count == 0
 
         now = datetime.now().replace(second=0, microsecond=0)
 
         # First checkin triggers tasks
-        self.send_checkin(monitor.slug, ts=now)
-        assert dispatch_tasks.call_count == 1
-
-        # 5 seconds later does NOT trigger the task
-        self.send_checkin(monitor.slug, ts=now + timedelta(seconds=5))
-        assert dispatch_tasks.call_count == 1
-
-        # a minute later DOES trigger the task
-        self.send_checkin(monitor.slug, ts=now + timedelta(minutes=1))
-        assert dispatch_tasks.call_count == 2
-
-        # Same time does NOT trigger the task
-        self.send_checkin(monitor.slug, ts=now + timedelta(minutes=1))
-        assert dispatch_tasks.call_count == 2
-
-        # A skipped minute trigges the task AND captures an error
-        with mock.patch("sentry_sdk.capture_message") as capture_message:
-            assert capture_message.call_count == 0
-            self.send_checkin(monitor.slug, ts=now + timedelta(minutes=3, seconds=5))
-            assert dispatch_tasks.call_count == 3
-            capture_message.assert_called_with("Monitor task dispatch minute skipped")
+        self.send_checkin(monitor.slug)
+        assert try_monitor_tasks_trigger.call_count == 1
 
         # A clock pulse message also triggers the tasks
-        self.send_clock_pulse(ts=now + timedelta(minutes=4))
-        assert dispatch_tasks.call_count == 4
+        self.send_clock_pulse()
+        assert try_monitor_tasks_trigger.call_count == 2
 
         # An exception dispatching the tasks does NOT cause ingestion to fail
         with mock.patch("sentry.monitors.consumers.monitor_consumer.logger") as logger:
-            dispatch_tasks.side_effect = Exception()
+            try_monitor_tasks_trigger.side_effect = Exception()
             self.send_checkin(monitor.slug, ts=now + timedelta(minutes=5))
             assert MonitorCheckIn.objects.filter(guid=self.guid).exists()
             logger.exception.assert_called_with("Failed to trigger monitor tasks", exc_info=True)
-            dispatch_tasks.side_effect = None
-
-    @mock.patch("sentry.monitors.consumers.monitor_consumer._dispatch_tasks")
-    def test_monitor_task_trigger_partition_desync(self, dispatch_tasks):
-        """
-        When consumer partitions are not completely synchronized we may read
-        timestamps in a non-monotonic order. In this scenario we want to make
-        sure we still only trigger once
-        """
-        monitor = self._create_monitor(slug="my-monitor")
-
-        assert dispatch_tasks.call_count == 0
-
-        now = datetime.now().replace(second=0, microsecond=0)
-
-        # First message with timestamp just after the minute bounardary
-        # triggers the task
-        self.send_checkin(monitor.slug, ts=now + timedelta(seconds=1))
-        assert dispatch_tasks.call_count == 1
-
-        # Second message has a timestamp just before the minute boundary,
-        # should not trigger anything since we've already ticked ahead of this
-        self.send_checkin(monitor.slug, ts=now - timedelta(seconds=1))
-        assert dispatch_tasks.call_count == 1
-
-        # Third message again just after the minute bounadry does NOT trigger
-        # the task, we've already ticked at that time.
-        self.send_checkin(monitor.slug, ts=now + timedelta(seconds=1))
-        assert dispatch_tasks.call_count == 1
-
-        # Fourth message moves past a new minute boundary, tick
-        self.send_checkin(monitor.slug, ts=now + timedelta(minutes=1, seconds=1))
-        assert dispatch_tasks.call_count == 2
+            try_monitor_tasks_trigger.side_effect = None
