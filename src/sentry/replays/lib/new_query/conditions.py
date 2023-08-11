@@ -22,6 +22,7 @@ from uuid import UUID
 from snuba_sdk import Condition, Function, Identifier, Lambda, Op
 from snuba_sdk.expressions import Expression
 
+from sentry.replays.lib.new_query.errors import OperatorNotSupported
 from sentry.replays.lib.new_query.utils import to_uuid, to_uuids
 
 T = TypeVar("T")
@@ -267,4 +268,4 @@ class UUIDArray(GenericArray):
 
 def not_supported() -> None:
     """Raise not supported exception."""
-    raise Exception("Not supported.")
+    raise OperatorNotSupported("Not supported.")
