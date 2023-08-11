@@ -323,7 +323,7 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None) -> None:
             for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
                 # This call has a caching mechanism when the same stacktrace and rules are used
                 grouping_config.enhancements.apply_modifications_to_frame(
-                    frames, platform, stacktrace_container
+                    frames, platform, stacktrace_container, extra_fingerprint=grouping_config.id
                 )
 
     # normalize in-app

@@ -139,17 +139,17 @@ class Enhancements:
         frames: Sequence[dict[str, Any]],
         platform: str,
         exception_data: dict[str, Any],
-        rule=None,
+        extra_fingerprint: str,
     ) -> None:
-        """This applies the frame modifications to the frames itself. This
-        does not affect grouping.
-        """
+        """This applies the frame modifications to the frames itself. This does not affect grouping."""
         in_memory_cache: dict[str, str] = {}
 
         # Matching frames are used for matching rules
         match_frames = [create_match_frame(frame, platform) for frame in frames]
+        # The extra fingerprint mostly makes sense during test execution when two different group configs
+        # can share the same set of rules and bases
         stacktrace_fingerprint = _generate_stacktrace_fingerprint(
-            match_frames, exception_data, self._modifier_rules, platform
+            match_frames, exception_data, f"{extra_fingerprint}.{self.dumps()}", platform
         )
         # The most expensive part of creating groups is applying the rules to frames (next code block)
         cache_key = f"stacktrace_hash.{stacktrace_fingerprint}"
@@ -356,17 +356,6 @@ class Rule:
         for matcher in self.matchers:
             matchers[matcher.key] = matcher.pattern
         return {"match": matchers, "actions": [str(x) for x in self.actions]}
-
-    def serialized(self) -> tuple[list[str], list[str]] | None:
-        """This helps to serialize a rule in order to create a fingerprint."""
-        matchers_actions = None
-        matchers = []
-        for matcher in self.matchers:
-            matchers.append(matcher.description)
-
-        matchers_actions = (matchers, [str(x) for x in self.actions])
-
-        return matchers_actions
 
     def get_matching_frame_actions(
         self,
@@ -576,14 +565,13 @@ def _cache_changed_frame_values(
 def _generate_stacktrace_fingerprint(
     stacktrace_match_frames: Sequence[dict[str, Any]],
     stacktrace_container: dict[str, Any],
-    rules: Sequence[Rule],
+    enhancements_dumps: str,
     platform: str,
 ) -> str:
     """Create a fingerprint for the stacktrace. Empty string if unsuccesful."""
     stacktrace_fingerprint = ""
     try:
         stacktrace_frames_fingerprint = _generate_match_frames_fingerprint(stacktrace_match_frames)
-        rules_fingerprint = _generate_rules_fingerprint(rules)
         stacktrace_type_value = ""
         if stacktrace_container:
             stacktrace_type_value = (
@@ -593,11 +581,7 @@ def _generate_stacktrace_fingerprint(
         stacktrace_hash = md5()
         hash_value(
             stacktrace_hash,
-            (
-                stacktrace_frames_fingerprint,
-                stacktrace_type_value,
-                rules_fingerprint,
-            ),
+            (stacktrace_frames_fingerprint, stacktrace_type_value, enhancements_dumps),
         )
 
         stacktrace_fingerprint = stacktrace_hash.hexdigest()
@@ -630,16 +614,6 @@ def _generate_match_frames_fingerprint(match_frames: Sequence[dict[str, Any]]) -
         hash_value(stacktrace_hash, match_frame)
 
     return stacktrace_hash.hexdigest()
-
-
-def _generate_rules_fingerprint(rules: Sequence[Rule]) -> str:
-    """Fingerprint representing this list of rules."""
-    rules_hash = md5()
-    for rule in rules:
-        rule_serialized = rule.serialized()
-        hash_value(rules_hash, rule_serialized)
-
-    return rules_hash.hexdigest()
 
 
 def _load_configs():
