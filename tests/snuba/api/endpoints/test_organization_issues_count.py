@@ -83,14 +83,24 @@ class OrganizationIssuesCountTest(APITestCase, SnubaTestCase):
             org = args[0]
         return super().get_response(org, **kwargs)
 
-    def test_sort_by_date_with_tag(self):
-        # XXX(dcramer): this tests a case where an ambiguous column name existed
+    @with_feature("organizations:global-views")
+    def test_simple(self):
         event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
             project_id=self.project.id,
         )
+        projects = [
+            {"name": "web-beta", "slug": "web-beta"},
+            {"name": "desktop-beta", "slug": "desktop-beta"},
+        ]
+
+        for project in projects:
+            self.create_project(name=project["name"], slug=project["slug"])
+
         group = event.group
         self.login_as(user=self.user)
 
-        response = self.get_success_response(query=["is:unresolved", "is:archived"])
+        response = self.get_success_response(
+            query=["is:for_review assigned_or_suggested:[me, my_teams, none]"]
+        )
         assert True
