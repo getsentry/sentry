@@ -57,12 +57,13 @@ class DatabaseBackedOrganizationProvisioningService(OrganizationProvisioningServ
     ) -> RpcOrganization:
         provision_options = org_provision_args.provision_options
         with outbox_context(transaction.atomic(router.db_for_write(Organization))):
-            org, org_member, team = create_organization_and_member_for_monolith(
+            org_creation_result = create_organization_and_member_for_monolith(
                 user_id=provision_options.owning_user_id,
                 slug=provision_options.slug,
                 organization_name=provision_options.name,
             )
 
+            org = org_creation_result.organization
             create_post_provision_outbox(
                 provisioning_options=org_provision_args, org_id=org.id
             ).save()
