@@ -96,7 +96,7 @@ function GroupEventDetailsContent({
         <EventDataSection title="User Feedback" type="user-feedback">
           <EventUserFeedback
             report={event.userReport}
-            orgId={organization.slug}
+            orgSlug={organization.slug}
             issueId={group.id}
           />
         </EventDataSection>

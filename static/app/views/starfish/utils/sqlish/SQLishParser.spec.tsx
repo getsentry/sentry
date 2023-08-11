@@ -21,6 +21,7 @@ describe('SQLishParser', function () {
       'LIMIT $2', // PHP-style II
       'created >= %s', // Python-style
       'created >= $1', // Rails-style
+      '@@ to_tsquery', // Postgres full-text search
     ])('Parses %s', sql => {
       expect(() => {
         parser.parse(sql);

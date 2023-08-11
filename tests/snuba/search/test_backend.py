@@ -2606,9 +2606,9 @@ class EventsJoinedGroupAttributesSnubaSearchTest(TransactionTestCase, EventsSnub
 
     @mock.patch("sentry.utils.metrics.timer")
     @mock.patch("sentry.utils.metrics.incr")
-    def test_empty_query_logs_metric(self, metrics_incr, metrics_timer):
-        results = self.make_query()
-        assert set(results) == {self.group1, self.group2}
+    def test_is_unresolved_query_logs_metric(self, metrics_incr, metrics_timer):
+        results = self.make_query(search_filter_query="is:unresolved")
+        assert set(results) == {self.group1}
 
         # introduce a slight delay so the async future has time to run and log the metric
         time.sleep(0.10)
