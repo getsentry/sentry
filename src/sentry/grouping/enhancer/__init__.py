@@ -138,7 +138,7 @@ class Enhancements:
         self,
         frames: Sequence[dict[str, Any]],
         platform: str,
-        stacktrace_container: dict[str, Any],
+        exception_data: dict[str, Any],
         rule=None,
     ) -> None:
         """This applies the frame modifications to the frames itself. This
@@ -149,14 +149,13 @@ class Enhancements:
         # Matching frames are used for matching rules
         match_frames = [create_match_frame(frame, platform) for frame in frames]
         stacktrace_fingerprint = _generate_stacktrace_fingerprint(
-            match_frames, stacktrace_container, self._modifier_rules, platform
+            match_frames, exception_data, self._modifier_rules, platform
         )
         # The most expensive part of creating groups is applying the rules to frames (next code block)
-        # We include the rules fingerprint to make sure that the set of rules are still the same
         cache_key = f"stacktrace_hash.{stacktrace_fingerprint}"
         use_cache = bool(stacktrace_fingerprint)
         if use_cache:
-            frames_changed = _merge_cached_values(frames, cache_key, platform)
+            frames_changed = _update_frames_from_cached_values(frames, cache_key, platform)
             # XXX: Before merging, remove this if statement so we can test the logic live
             # We use a boolean for faster checking if frames and merged_frames are still the same
             if frames_changed:
@@ -166,7 +165,7 @@ class Enhancements:
         with sentry_sdk.start_span(op="stacktrace_processing", description="apply_rules_to_frames"):
             for rule in self._modifier_rules:
                 for idx, action in rule.get_matching_frame_actions(
-                    match_frames, platform, stacktrace_container, in_memory_cache
+                    match_frames, platform, exception_data, in_memory_cache
                 ):
                     # Both frames and match_frames are updated
                     action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
@@ -359,16 +358,13 @@ class Rule:
         return {"match": matchers, "actions": [str(x) for x in self.actions]}
 
     def serialized(self) -> tuple[list[str], list[str]] | None:
+        """This helps to serialize a rule in order to create a fingerprint."""
         matchers_actions = None
-        try:
-            matchers = []
-            for matcher in self.matchers:
-                matchers.append(matcher.description)
+        matchers = []
+        for matcher in self.matchers:
+            matchers.append(matcher.description)
 
-            matchers_actions = (matchers, [str(x) for x in self.actions])
-        except Exception:
-            # XXX: Add metric
-            logger.exception("Failed to serialize Rule.")
+        matchers_actions = (matchers, [str(x) for x in self.actions])
 
         return matchers_actions
 
@@ -511,13 +507,11 @@ class EnhancementsVisitor(NodeVisitor):
         return node.match.groups()[0].lstrip("!")
 
 
-def _merge_cached_values(
-    frames: Sequence[dict[str, Any]],
-    cache_key: str,
-    platform: str,
+def _update_frames_from_cached_values(
+    frames: Sequence[dict[str, Any]], cache_key: str, platform: str
 ) -> bool:
     """
-    This will merge the cached values if any are found for this stacktrace.
+    This will update the frames of the stacktrace if it's been cached.
     Returns if the merged has correctly happened.
     """
     frames_changed = False
@@ -585,11 +579,11 @@ def _generate_stacktrace_fingerprint(
     rules: Sequence[Rule],
     platform: str,
 ) -> str:
-    """Create a fingerprint for the complete stacktrace + the rules used. Empty string if unsuccesful."""
+    """Create a fingerprint for the stacktrace. Empty string if unsuccesful."""
     stacktrace_fingerprint = ""
     try:
         stacktrace_frames_fingerprint = _generate_match_frames_fingerprint(stacktrace_match_frames)
-        rules_fingerprint = _generate_rules_fingerprint(rules, platform)
+        rules_fingerprint = _generate_rules_fingerprint(rules)
         stacktrace_type_value = ""
         if stacktrace_container:
             stacktrace_type_value = (
@@ -608,7 +602,7 @@ def _generate_stacktrace_fingerprint(
 
         stacktrace_fingerprint = stacktrace_hash.hexdigest()
     except Exception as e:
-        # This will create an error in Sentry and help us evaluate why it failed
+        # This will create an error in Sentry to help us evaluate why it failed
         logger.exception(
             "Stacktrace hashing failure. Investigate and fix.", extra={"platform": platform}
         )
@@ -638,8 +632,8 @@ def _generate_match_frames_fingerprint(match_frames: Sequence[dict[str, Any]]) -
     return stacktrace_hash.hexdigest()
 
 
-def _generate_rules_fingerprint(rules: Sequence[Rule], platform: str) -> str:
-    """Fingerprint representing this list of rules. Raises error if it fails."""
+def _generate_rules_fingerprint(rules: Sequence[Rule]) -> str:
+    """Fingerprint representing this list of rules."""
     rules_hash = md5()
     for rule in rules:
         rule_serialized = rule.serialized()

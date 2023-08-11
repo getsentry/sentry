@@ -52,7 +52,6 @@ import uuid
 from unittest import mock
 
 import pytest
-from django.core.cache import cache
 from django.utils.functional import cached_property
 
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
@@ -121,9 +120,6 @@ INPUTS = [
 
 @pytest.mark.parametrize("input", INPUTS, ids=lambda x: x.filename[:-5].replace("-", "_"))
 def test_categorization(input: CategorizationInput, insta_snapshot, track_enhancers_coverage):
-    # We now use a caching mechanism to save on processing stacktraces.
-    # To run the tests we need to keep a clean state
-    cache.clear()
     # XXX: In-process re-runs using pytest-watch or whatever will behave
     # wrongly because input.data is reused between tests, we do this for perf.
     data = input.data
