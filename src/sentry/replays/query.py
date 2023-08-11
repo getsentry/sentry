@@ -16,6 +16,7 @@ from snuba_sdk import (
     Limit,
     Offset,
     Op,
+    Or,
     Query,
     Request,
 )
@@ -392,7 +393,12 @@ def query_replays_dataset_tagkey_values(
                 Condition(Column("project_id"), Op.IN, project_ids),
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("timestamp"), Op.GTE, start),
-                Condition(Column("is_archived"), Op.IS_NULL),
+                Or(
+                    [
+                        Condition(Column("is_archived"), Op.EQ, 0),
+                        Condition(Column("is_archived"), Op.IS_NULL),
+                    ]
+                ),
                 *where,
             ],
             orderby=[OrderBy(Column("times_seen"), Direction.DESC)],
