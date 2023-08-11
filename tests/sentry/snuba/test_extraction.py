@@ -138,14 +138,14 @@ class TestIsOnDemandMetricQuery:
             is False
         )
 
-    def test_unsupported_operators(self):
+    def test_supported_operators(self):
         assert (
             is_on_demand_metric_query(self.perf_metrics, "count()", "transaction.duration:[1,2,3]")
-            is False
+            is True
         )
         assert (
             is_on_demand_metric_query(self.perf_metrics, "count()", "!transaction.duration:[1,2,3]")
-            is False
+            is True
         )
 
     def test_unsupported_equations(self):
@@ -435,6 +435,17 @@ def test_spec_countif_with_query():
             },
             {"name": "event.duration", "op": "eq", "value": 300.0},
         ],
+    }
+
+
+def test_spec_in_operator():
+    in_spec = OndemandMetricSpec("count()", "transaction.duration:[1,2,3]")
+    not_in_spec = OndemandMetricSpec("count()", "!transaction.duration:[1,2,3]")
+
+    assert in_spec.condition() == {"name": "event.duration", "op": "eq", "value": [1.0, 2.0, 3.0]}
+    assert not_in_spec.condition() == {
+        "inner": {"name": "event.duration", "op": "eq", "value": [1.0, 2.0, 3.0]},
+        "op": "not",
     }
 
 
