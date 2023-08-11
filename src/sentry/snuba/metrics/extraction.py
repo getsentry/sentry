@@ -32,7 +32,7 @@ from sentry.api.event_search import (
 from sentry.constants import DataCategory
 from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import TRANSACTION_METRICS, Project, ProjectTransactionThreshold
+from sentry.models import Project, ProjectTransactionThreshold, TransactionMetric
 from sentry.search.events import fields
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricOperationType
@@ -82,7 +82,6 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "http.status_code": "contexts.response.status_code",
     # Computed fields
     "transaction.duration": "duration",
-    "transaction.lcp": "lcp",
     "release.build": "release.build",
     "release.package": "release.package",
     "release.version": "release.version.short",
@@ -906,9 +905,14 @@ def _get_apdex_project_transaction_threshold(project: Project) -> Tuple[int, str
 
     # We will extract the threshold from the apdex(x) field where x is the threshold.
     threshold, metric = result[0]
-    metric_id = TRANSACTION_METRICS[metric]
 
-    return threshold, f"transaction.{metric_id}"
+    if metric == TransactionMetric.DURATION:
+        metric_field = "transaction.duration"
+    else:
+        # We assume it's lcp since the enumerator contains only two possibilities.
+        metric_field = "measurements.lcp"
+
+    return threshold, metric_field
 
 
 T = TypeVar("T")
