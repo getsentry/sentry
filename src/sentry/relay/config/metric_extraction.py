@@ -73,9 +73,14 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
 
 
 def _get_alert_metric_specs(project: Project) -> List[HashMetricSpec]:
-    alert_rules = AlertRule.objects.fetch_for_project(project).filter(
-        status=AlertRuleStatus.PENDING.value,
-        snuba_query__dataset=Dataset.PerformanceMetrics.value,
+    alert_rules = (
+        AlertRule.objects.fetch_for_project(project)
+        .filter(
+            organization=project.organization,
+            status=AlertRuleStatus.PENDING.value,
+            snuba_query__dataset=Dataset.PerformanceMetrics.value,
+        )
+        .select_related("snuba_query")
     )
 
     specs = []
