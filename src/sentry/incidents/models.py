@@ -9,6 +9,7 @@ from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     ArrayField,
     FlexibleForeignKey,
@@ -32,6 +33,7 @@ from sentry.utils.retries import TimedRetryPolicy
 @region_silo_only_model
 class IncidentProject(Model):
     __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False)
     incident = FlexibleForeignKey("sentry.Incident")
@@ -45,6 +47,7 @@ class IncidentProject(Model):
 @region_silo_only_model
 class IncidentSeen(Model):
     __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     incident = FlexibleForeignKey("sentry.Incident")
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", db_index=False)
@@ -168,6 +171,7 @@ INCIDENT_STATUS = {
 @region_silo_only_model
 class Incident(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     objects = IncidentManager()
 
@@ -215,6 +219,7 @@ class Incident(Model):
 @region_silo_only_model
 class PendingIncidentSnapshot(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     incident = OneToOneCascadeDeletes("sentry.Incident", db_constraint=False)
     target_run_date = models.DateTimeField(db_index=True, default=timezone.now)
@@ -228,6 +233,7 @@ class PendingIncidentSnapshot(Model):
 @region_silo_only_model
 class IncidentSnapshot(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     incident = OneToOneCascadeDeletes("sentry.Incident", db_constraint=False)
     event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot", db_constraint=False)
@@ -243,6 +249,7 @@ class IncidentSnapshot(Model):
 @region_silo_only_model
 class TimeSeriesSnapshot(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     start = models.DateTimeField()
     end = models.DateTimeField()
@@ -265,6 +272,7 @@ class IncidentActivityType(Enum):
 @region_silo_only_model
 class IncidentActivity(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     incident = FlexibleForeignKey("sentry.Incident")
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
@@ -283,6 +291,7 @@ class IncidentActivity(Model):
 @region_silo_only_model
 class IncidentSubscription(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     incident = FlexibleForeignKey("sentry.Incident", db_index=False)
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
@@ -366,6 +375,7 @@ class AlertRuleManager(BaseManager):
 @region_silo_only_model
 class AlertRuleExcludedProjects(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule", db_index=False)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
@@ -380,6 +390,7 @@ class AlertRuleExcludedProjects(Model):
 @region_silo_only_model
 class AlertRule(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     objects = AlertRuleManager()
     objects_with_snapshots = BaseManager()
@@ -471,6 +482,7 @@ class IncidentTriggerManager(BaseManager):
 @region_silo_only_model
 class IncidentTrigger(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     objects = IncidentTriggerManager()
 
@@ -519,6 +531,7 @@ class AlertRuleTriggerManager(BaseManager):
 @region_silo_only_model
 class AlertRuleTrigger(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule")
     label = models.TextField()
@@ -541,6 +554,7 @@ class AlertRuleTrigger(Model):
 @region_silo_only_model
 class AlertRuleTriggerExclusion(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger", related_name="exclusions")
     query_subscription = FlexibleForeignKey("sentry.QuerySubscription")
@@ -560,6 +574,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     """
 
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Global
 
     # Aliases from NotificationAction
     Type = ActionService
@@ -666,6 +681,7 @@ class AlertRuleActivityType(Enum):
 @region_silo_only_model
 class AlertRuleActivity(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule")
     previous_alert_rule = FlexibleForeignKey(
