@@ -282,7 +282,7 @@ describe('Performance > Trends', function () {
           },
           isMetricsData: true,
           tips: {},
-          dataset: 'metricsEnhanced',
+          dataset: 'metrics',
         },
       },
     });

@@ -228,7 +228,7 @@ describe('Performance > Trends > Performance Change Explorer', function () {
           },
           isMetricsData: true,
           tips: {},
-          dataset: 'metricsEnhanced',
+          dataset: 'metrics',
         },
       },
     });
