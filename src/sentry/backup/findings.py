@@ -62,6 +62,13 @@ class ComparatorFindingKind(IntEnum):
     # `None`.
     HashObfuscatingComparatorExistenceCheck = auto()
 
+    # Failed to compare an ignored field.
+    IgnoredComparator = auto()
+
+    # Failed to compare an ignored field because one of the fields being compared was not present or
+    # `None`.
+    IgnoredComparatorExistenceCheck = auto()
+
 
 class ComparatorFinding(NamedTuple):
     """Store all information about a single failed matching between expected and actual output."""

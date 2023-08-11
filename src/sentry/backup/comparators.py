@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Callable, Dict, List, Literal
+from typing import Callable, Dict, List
 
 from dateutil import parser
 from django.db import models
@@ -11,6 +11,17 @@ from sentry.backup.findings import ComparatorFinding, ComparatorFindingKind, Ins
 from sentry.backup.helpers import Side, get_exportable_final_derivations_of
 from sentry.db.models import BaseModel
 from sentry.utils.json import JSONData
+
+
+class ScrubbedData:
+    """A singleton class used to indicate data has been scrubbed, without indicating what that data is. A unit type indicating "scrubbing was successful" only."""
+
+    instance: ScrubbedData
+
+    def __new__(cls):
+        if getattr(cls, "instance", None) is None:
+            cls.instance = super().__new__(cls)
+        return cls.instance
 
 
 class JSONScrubbingComparator(ABC):
@@ -82,7 +93,8 @@ class JSONScrubbingComparator(ABC):
         self,
         left: JSONData,
         right: JSONData,
-        f: Callable[[list[str]], list[str]] | Callable[[list[str]], Literal[True]] = lambda _: True,
+        f: Callable[[list[str]], list[str]]
+        | Callable[[list[str]], ScrubbedData] = lambda _: ScrubbedData(),
     ) -> None:
         """Removes all of the fields compared by this comparator from the `fields` dict, so that the
         remaining fields may be compared for equality. Public callers should use the inheritance-safe wrapper, `scrub`, rather than using this internal method directly.
@@ -267,6 +279,17 @@ class HashObfuscatingComparator(ObfuscatingComparator):
         return truncated
 
 
+class IgnoredComparator(JSONScrubbingComparator):
+    """Ensures that two fields are tested for mutual existence, and nothing else.
+
+    Using this class means that you are foregoing comparing the relevant field(s), so please make sure you are validating them some other way!"""
+
+    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        """Noop - there is nothing to compare once we've checked for existence."""
+
+        return []
+
+
 def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
     """Automatically assigns the DateAddedComparator to any `DateTimeField` that is not already claimed by the `DateUpdatedComparator`."""
 
@@ -344,7 +367,10 @@ def build_default_comparators():
             "sentry.sentryapp": [EmailObfuscatingComparator("creator_label")],
             "sentry.servicehook": [HashObfuscatingComparator("secret")],
             "sentry.user": [HashObfuscatingComparator("password")],
-            "sentry.useremail": [HashObfuscatingComparator("validation_hash")],
+            "sentry.useremail": [
+                DateUpdatedComparator("date_hash_added"),
+                IgnoredComparator("validation_hash", "is_verified"),
+            ],
             "sentry.userrole": [DateUpdatedComparator("date_updated")],
             "sentry.userroleuser": [DateUpdatedComparator("date_updated")],
         },

@@ -1,8 +1,12 @@
+from copy import deepcopy
+
 from sentry.backup.comparators import (
     DatetimeEqualityComparator,
     DateUpdatedComparator,
     EmailObfuscatingComparator,
     HashObfuscatingComparator,
+    IgnoredComparator,
+    ScrubbedData,
 )
 from sentry.backup.findings import ComparatorFindingKind, InstanceID
 from sentry.utils.json import JSONData
@@ -390,3 +394,40 @@ def test_good_hash_obfuscating_comparator_scrubbed():
         "2...f",
         "...",
     ]
+
+
+def test_good_ignored_comparator():
+    cmp = IgnoredComparator("ignored_field")
+    id = InstanceID("test", 0)
+    model: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "ignored_field": "IGNORE_ME!",
+            "other_field": "...but still look at me",
+        },
+    }
+    assert not cmp.compare(id, model, model)
+
+
+def test_good_ignored_comparator_scrubbed():
+    cmp = IgnoredComparator("ignored_field")
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "ignored_field": "IGNORE_ME!",
+            "other_field": "...but still look at me",
+        },
+    }
+    right = deepcopy(left)
+    cmp.scrub(left, right)
+    assert left["scrubbed"]
+    assert left["scrubbed"]["IgnoredComparator::ignored_field"] is ScrubbedData()
+    assert left["scrubbed"].get("IgnoredComparator::other_field") is None
+
+    assert right["scrubbed"]
+    assert right["scrubbed"]["IgnoredComparator::ignored_field"] is ScrubbedData()
+    assert right["scrubbed"].get("IgnoredComparator::other_field") is None

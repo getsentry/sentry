@@ -388,7 +388,7 @@ def test_auto_assign_email_obfuscating_comparator(tmp_path):
     assert """right value ("f...@...e.fake")""" in findings[0].reason
 
 
-def test_auto_assign_date_added_comparator(tmp_path):
+def test_auto_assign_date_updated_comparator(tmp_path):
     with open(get_fixture_path("backup", "single-option.json")) as backup_file:
         left = json.load(backup_file)
     right = deepcopy(left)
@@ -419,6 +419,69 @@ def test_auto_assign_date_added_comparator(tmp_path):
                     "date_updated": "2023-06-22T23:00:00.456Z",
                     "name": "Admin",
                     "permissions": "['users.admin']"
+                }
+            }
+        """
+    )
+    left.append(userrole_left)
+    right.append(userrole_right)
+    out = validate(left, right)
+    findings = out.findings
+    assert not findings
+
+
+def test_auto_assign_ignored_comparator(tmp_path):
+    left = [
+        json.loads(
+            """
+            {
+                "model": "sentry.user",
+                "pk": 1,
+                "fields": {
+                    "password": "abc123",
+                    "last_login": null,
+                    "username": "testing@example.com",
+                    "name": "",
+                    "email": "testing@example.com",
+                    "is_staff": true,
+                    "is_active": true,
+                    "is_superuser": true,
+                    "is_managed": false,
+                    "is_sentry_app": null,
+                    "is_password_expired": false
+                }
+            }
+        """
+        )
+    ]
+    right = deepcopy(left)
+
+    userrole_left = json.loads(
+        """
+            {
+                "model": "sentry.useremail",
+                "pk": 1,
+                "fields": {
+                    "user": 1,
+                    "email": "testing@example.com",
+                    "validation_hash": "ABC123",
+                    "date_hash_added": "2023-06-22T22:59:55.521Z",
+                    "is_verified": false
+                }
+            }
+        """
+    )
+    userrole_right = json.loads(
+        """
+            {
+                "model": "sentry.useremail",
+                "pk": 1,
+                "fields": {
+                    "user": 1,
+                    "email": "testing@example.com",
+                    "validation_hash": "DEF456",
+                    "date_hash_added": "2023-06-23T00:00:00.000Z",
+                    "is_verified": true
                 }
             }
         """
