@@ -138,10 +138,12 @@ class MetricsQueryBuilder(QueryBuilder):
             limit = Limit(1)
             alias = "count"
             include_series = True
+            interval = self.interval
         else:
             limit = self.limit or Limit(1)
             alias = spec.mri
             include_series = False
+            interval = None
 
         # Since the query builder is very convoluted, we first try to get the start and end from the validated
         # parameters but in case it's none it can be that the `skip_time_conditions` was True, thus in that case we
@@ -169,6 +171,7 @@ class MetricsQueryBuilder(QueryBuilder):
             limit=limit,
             offset=self.offset,
             granularity=self.granularity,
+            interval=interval,
             is_alerts_query=True,
             org_id=self.params.organization.id,
             project_ids=[p.id for p in self.params.projects],
@@ -1154,6 +1157,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                 if granularity <= interval:
                     self.granularity = Granularity(granularity)
                     break
+        self.interval = interval
 
         self.time_column = self.resolve_time_column(interval)
         self.limit = None if limit is None else Limit(limit)
