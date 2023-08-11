@@ -1477,5 +1477,5 @@ register(
 register(
     "on_demand.max_widget_specs",
     default=100,
-    flags=FLAG_MODIFIABLE_RATE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
