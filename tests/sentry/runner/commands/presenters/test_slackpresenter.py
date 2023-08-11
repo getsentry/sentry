@@ -11,7 +11,7 @@ class TestSlackPresenter:
     def setup(self):
         self.slackPresenter = SlackPresenter()
         settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL = "https://test/"
-        settings.SENTRY_REGION_OR_CUSTOMER = "test_region"
+        settings.SENTRY_REGION = "test_region"
 
     @responses.activate
     def test_is_slack_enabled(self):

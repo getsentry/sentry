@@ -1,3 +1,4 @@
+import os
 from typing import Any, List, Tuple
 
 import requests
@@ -67,7 +68,10 @@ class SlackPresenter(OptionsPresenter):
 
     def flush(self) -> None:
 
-        region = settings.SENTRY_REGION_OR_CUSTOMER
+        region = settings.SENTRY_REGION
+
+        if not region:
+            region = os.environ.get("CUSTOMER_ID")
 
         json_data = {
             "region": region,
