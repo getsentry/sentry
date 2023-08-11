@@ -223,29 +223,32 @@ export function FunctionsList(props: FunctionsListProps) {
   );
 
   return (
-    <NumberedFunctionsList
-      functions={
-        trendChangeType === TrendChangeType.REGRESSION
-          ? functionList
-          : functionList?.reverse()
-      }
-      project={projects.find(project => project.id === projectID)}
-      organization={organization}
-      transactionName={transaction.transaction}
-      limit={4}
-      isLoading={
-        transactionsLoadingBefore ||
-        transactionsLoadingAfter ||
-        beforeFunctionsQuery.isLoading ||
-        afterFunctionsQuery.isLoading
-      }
-      isError={
-        transactionsErrorBefore ||
-        transactionsErrorAfter ||
-        beforeFunctionsQuery.isError ||
-        afterFunctionsQuery.isError
-      }
-    />
+    <div>
+      <h6>{t('Relevant Suspect Functions')}</h6>
+      <NumberedFunctionsList
+        functions={
+          trendChangeType === TrendChangeType.REGRESSION
+            ? functionList
+            : functionList?.reverse()
+        }
+        project={projects.find(project => project.id === projectID)}
+        organization={organization}
+        transactionName={transaction.transaction}
+        limit={4}
+        isLoading={
+          transactionsLoadingBefore ||
+          transactionsLoadingAfter ||
+          beforeFunctionsQuery.isLoading ||
+          afterFunctionsQuery.isLoading
+        }
+        isError={
+          transactionsErrorBefore ||
+          transactionsErrorAfter ||
+          beforeFunctionsQuery.isError ||
+          afterFunctionsQuery.isError
+        }
+      />
+    </div>
   );
 }
 
@@ -431,10 +434,5 @@ export function NumberedFunctionsList(props: NumberedFunctionsListProps) {
     );
   }
 
-  return (
-    <div style={{marginTop: space(4)}}>
-      <h6>{t('Relevant Suspect Functions')}</h6>
-      <ol>{formattedFunctions}</ol>
-    </div>
-  );
+  return <ol>{formattedFunctions}</ol>;
 }

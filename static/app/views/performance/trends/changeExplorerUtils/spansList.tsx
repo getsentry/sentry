@@ -256,30 +256,33 @@ export function SpansList(props: SpansListProps) {
               );
               // reverse the span list when trendChangeType is improvement so most negative (improved) change is first
               return (
-                <NumberedSpansList
-                  spans={
-                    trendChangeType === TrendChangeType.REGRESSION
-                      ? spanList
-                      : spanList?.reverse()
-                  }
-                  projectID={projectID}
-                  location={location}
-                  organization={organization}
-                  transactionName={transaction.transaction}
-                  limit={4}
-                  isLoading={
-                    transactionsLoadingBefore ||
-                    transactionsLoadingAfter ||
-                    spansLoadingBefore ||
-                    spansLoadingAfter
-                  }
-                  isError={
-                    transactionsErrorBefore ||
-                    transactionsErrorAfter ||
-                    hasSpansErrorBefore ||
-                    hasSpansErrorAfter
-                  }
-                />
+                <div style={{marginTop: space(4)}}>
+                  <h6>{t('Relevant Suspect Spans')}</h6>
+                  <NumberedSpansList
+                    spans={
+                      trendChangeType === TrendChangeType.REGRESSION
+                        ? spanList
+                        : spanList?.reverse()
+                    }
+                    projectID={projectID}
+                    location={location}
+                    organization={organization}
+                    transactionName={transaction.transaction}
+                    limit={4}
+                    isLoading={
+                      transactionsLoadingBefore ||
+                      transactionsLoadingAfter ||
+                      spansLoadingBefore ||
+                      spansLoadingAfter
+                    }
+                    isError={
+                      transactionsErrorBefore ||
+                      transactionsErrorAfter ||
+                      hasSpansErrorBefore ||
+                      hasSpansErrorAfter
+                    }
+                  />
+                </div>
               );
             }}
           </SuspectSpansQuery>
@@ -513,12 +516,7 @@ export function NumberedSpansList(props: NumberedSpansListProps) {
     );
   }
 
-  return (
-    <div style={{marginTop: space(4)}}>
-      <h6>{t('Relevant Suspect Spans')}</h6>
-      <ol>{formattedSpans}</ol>
-    </div>
-  );
+  return <ol>{formattedSpans}</ol>;
 }
 
 export const ListLink = styled(Link)`
