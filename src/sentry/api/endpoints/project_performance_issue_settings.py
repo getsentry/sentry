@@ -205,14 +205,21 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         )
         if body_has_invalid_options:
             return Response(
-                {"detail": "Invalid settings option"},
+                {
+                    "detail": "Invalid settings option",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         body_has_admin_options = any([option in request.data for option in internal_only_settings])
         if body_has_admin_options and not is_active_superuser(request):
             return Response(
-                {"detail": "Passed options are only modifiable internally"},
+                {
+                    "detail": {
+                        "message": "Passed options are only modifiable internally",
+                        "code": "superuser-required",
+                    },
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
 
