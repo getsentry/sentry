@@ -3660,9 +3660,7 @@ BROKEN_TIMEOUT_THRESHOLD = 1000
 # are changed by sentry configoptions.
 OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: Optional[str] = None
 
-SENTRY_REGION_OR_CUSTOMER: Optional[str] = os.environ.get("SENTRY_REGION") or os.environ.get(
-    "CUSTOMER_ID"
-)
+SENTRY_REGION_OR_CUSTOMER: str = os.environ.get("SENTRY_REGION") or os.environ.get("CUSTOMER_ID")
 
 SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
 SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
