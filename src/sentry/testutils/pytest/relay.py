@@ -111,13 +111,17 @@ def relay_server_setup(live_server, tmpdir_factory):
 
     options = {
         "image": RELAY_TEST_IMAGE,
-        "ports": {"%s/tcp" % relay_port: relay_port},
-        "network": network,
         "detach": True,
         "name": container_name,
         "volumes": {config_path: {"bind": "/etc/relay"}},
         "command": ["run", "--config", "/etc/relay"],
     }
+
+    if network == "host":
+        options["network_mode"] = "host"
+    else:
+        options["network"] = network
+        options["ports"] = {f"{relay_port}/tcp": relay_port}
 
     # Some structure similar to what the live_server fixture returns
     server_info = {"url": f"http://127.0.0.1:{relay_port}", "options": options}
