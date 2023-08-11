@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import zipfile
 from enum import Enum
-from io import BytesIO
 from typing import IO, Callable, Dict, List, Mapping, Optional, Set, Tuple
 
-from django.db import models, router
+from django.conf import settings
+from django.db import models
 from django.db.models.signals import post_delete
 from django.utils import timezone
 from symbolic.debuginfo import normalize_debug_id
@@ -18,9 +18,10 @@ from sentry.db.models import (
     Model,
     region_silo_only_model,
 )
+from sentry.nodestore.base import NodeStorage
 from sentry.utils import json
-from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import sha1_text
+from sentry.utils.services import LazyServiceWrapper
 
 # Sentinel values used to represent a null state in the database. This is done since the `NULL` type in the db is
 # always different from `NULL`.
@@ -116,6 +117,13 @@ def delete_file_for_artifact_bundle(instance, **kwargs):
 
 post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
 
+indexstore = LazyServiceWrapper(
+    NodeStorage,
+    settings.SENTRY_INDEXSTORE,
+    settings.SENTRY_INDEXSTORE_OPTIONS,
+    metrics_path="indexstore",
+)
+
 
 @region_silo_only_model
 class ArtifactBundleFlatFileIndex(Model):
@@ -134,41 +142,20 @@ class ArtifactBundleFlatFileIndex(Model):
 
         index_together = (("project_id", "release_name", "dist_name"),)
 
-    def update_flat_file_index(self, file_contents: str):
-        from sentry.models import File
+    def _indexstore_id(self) -> str:
+        return f"bundle_index:{self.project_id}:{self.id}"
 
-        with atomic_transaction(
-            using=(router.db_for_write(File), router.db_for_write(ArtifactBundleFlatFileIndex))
-        ):
-            current_file = self.flat_file_index
+    def update_flat_file_index(self, data: str):
+        indexstore.set_bytes(self._indexstore_id(), data.encode())
 
-            updated_file = self._create_flat_file_index_object(file_contents)
+        current_file = self.flat_file_index
+        if current_file:
+            current_file.delete()
 
-            # We have to update the new index file and also the date added, which is required for expiration.
-            self.update(flat_file_index=updated_file, date_added=timezone.now())
+        self.update(flat_file_index=None, date_added=timezone.now())
 
-            if current_file is not None:
-                # It's important to also delete the old file, otherwise we will end up with orphan files in the
-                # database.
-                current_file.delete()
-
-    def load_flat_file_index(self) -> Optional[str]:
-        if self.flat_file_index is None:
-            return None
-
-        return self.flat_file_index.getfile().read().decode()
-
-    @classmethod
-    def _create_flat_file_index_object(cls, file_contents: str):
-        from sentry.models import File
-
-        file = File.objects.create(
-            name="artifact_bundle_flat_file_index",
-            type="flat_file_index",
-        )
-        file.putfile(BytesIO(file_contents.encode()))
-
-        return file
+    def load_flat_file_index(self) -> Optional[bytes]:
+        return indexstore.get_bytes(self._indexstore_id())
 
 
 @region_silo_only_model
