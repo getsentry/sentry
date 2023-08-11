@@ -9,7 +9,7 @@ from sentry.backup.comparators import ComparatorMap
 from sentry.backup.exports import OldExportConfig, exports
 from sentry.backup.findings import ComparatorFindings
 from sentry.backup.helpers import get_exportable_final_derivations_of, get_final_derivations_of
-from sentry.backup.imports import imports
+from sentry.backup.imports import OldImportConfig, imports
 from sentry.backup.validate import validate
 from sentry.silo import unguarded_write
 from sentry.testutils.factories import get_fixture_path
@@ -63,7 +63,7 @@ def import_export_then_validate(method_name: str) -> JSONData:
         with unguarded_write(using="default"), open(tmp_expect) as tmp_file:
             # Reset the Django database.
             call_command("flush", verbosity=0, interactive=False)
-            imports(tmp_file, NOOP_PRINTER)
+            imports(tmp_file, OldImportConfig(), NOOP_PRINTER)
 
         # Validate that the "expected" and "actual" JSON matches.
         actual = export_to_file(tmp_actual)
@@ -91,7 +91,7 @@ def import_export_from_fixture_then_validate(
 
     # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
     with unguarded_write(using="default"), open(fixture_file_path) as fixture_file:
-        imports(fixture_file, NOOP_PRINTER)
+        imports(fixture_file, OldImportConfig(), NOOP_PRINTER)
 
     res = validate(expect, export_to_file(tmp_path.joinpath("tmp_test_file.json")), map)
     if res.findings:

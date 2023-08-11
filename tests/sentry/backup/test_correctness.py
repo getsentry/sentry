@@ -348,62 +348,44 @@ def test_auto_assign_email_obfuscating_comparator(tmp_path):
     with open(get_fixture_path("backup", "single-option.json")) as backup_file:
         left = json.load(backup_file)
     right = deepcopy(left)
-    useremail_left = json.loads(
+    email_left = json.loads(
         """
             {
-                "model": "sentry.useremail",
+                "model": "sentry.email",
                 "pk": 1,
                 "fields": {
-                    "user": [
-                        "testing@example.com"
-                    ],
                     "email": "testing@example.com",
-                    "validation_hash": "XXXXXXXX",
-                    "date_hash_added": "2023-06-22T00:00:00.000Z",
-                    "is_verified": false
+                    "date_added": "2023-06-22T00:00:00.000Z"
                 }
             }
         """
     )
-    useremail_right = json.loads(
+    email_right = json.loads(
         """
             {
-                "model": "sentry.useremail",
+                "model": "sentry.email",
                 "pk": 1,
                 "fields": {
-                    "user": [
-                        "foo@example.fake"
-                    ],
                     "email": "foo@example.fake",
-                    "validation_hash": "XXXXXXXX",
-                    "date_hash_added": "2023-06-22T00:00:00.000Z",
-                    "is_verified": false
+                    "date_added": "2023-06-22T00:00:00.000Z"
                 }
             }
         """
     )
-    left.append(useremail_left)
-    right.append(useremail_right)
+    left.append(email_left)
+    right.append(email_right)
     out = validate(left, right)
     findings = out.findings
 
-    assert len(findings) == 2
+    assert len(findings) == 1
 
     assert findings[0].kind == ComparatorFindingKind.EmailObfuscatingComparator
-    assert findings[0].on == InstanceID("sentry.useremail", 1)
+    assert findings[0].on == InstanceID("sentry.email", 1)
     assert findings[0].left_pk == 1
     assert findings[0].right_pk == 1
     assert """`email`""" in findings[0].reason
     assert """left value ("t...@...le.com")""" in findings[0].reason
     assert """right value ("f...@...e.fake")""" in findings[0].reason
-
-    assert findings[1].kind == ComparatorFindingKind.EmailObfuscatingComparator
-    assert findings[1].on == InstanceID("sentry.useremail", 1)
-    assert findings[0].left_pk == 1
-    assert findings[0].right_pk == 1
-    assert """`user`""" in findings[1].reason
-    assert """left value ("t...@...le.com")""" in findings[1].reason
-    assert """right value ("f...@...e.fake")""" in findings[1].reason
 
 
 def test_auto_assign_date_added_comparator(tmp_path):
