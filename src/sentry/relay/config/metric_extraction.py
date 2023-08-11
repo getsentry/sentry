@@ -86,6 +86,7 @@ def _get_alert_metric_specs(project: Project) -> List[HashMetricSpec]:
                 project_id=project.id,
                 spec_for="alert",
                 spec=result,
+                id=alert.id,
                 field=alert_snuba_query.aggregate,
                 query=alert_snuba_query.query,
             )
@@ -184,6 +185,7 @@ def _convert_widget_query_to_metric(
                 project_id=project.id,
                 spec_for="widget",
                 spec=result,
+                id=widget_query.id,
                 field=aggregate,
                 query=widget_query.conditions,
             )
@@ -218,6 +220,7 @@ def _log_on_demand_metric_spec(
     project_id: int,
     spec_for: Literal["alert", "widget"],
     spec: HashMetricSpec,
+    id: int,
     field: str,
     query: str,
 ) -> None:
@@ -227,6 +230,7 @@ def _log_on_demand_metric_spec(
         "on_demand_metrics.on_demand_metric_spec",
         extra={
             "project_id": project_id,
+            f"{spec_for}.id": id,
             f"{spec_for}.field": field,
             f"{spec_for}.query": query,
             "spec_for": spec_for,
