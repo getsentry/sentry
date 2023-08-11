@@ -2063,6 +2063,69 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    def test_run_query_with_on_demand_apdex(self):
+        field = "apdex(10)"
+        query = "transaction.duration:>=100"
+        spec = OndemandMetricSpec(field=field, query=query)
+
+        for hour in range(0, 5):
+            self.store_transaction_metric(
+                value=1,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                tags={"query_hash": spec.query_hash, "satisfaction": "satisfactory"},
+                timestamp=self.start + datetime.timedelta(hours=hour),
+            )
+
+            self.store_transaction_metric(
+                value=1,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                tags={"query_hash": spec.query_hash, "satisfaction": "tolerable"},
+                timestamp=self.start + datetime.timedelta(hours=hour),
+            )
+
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query,
+            selected_columns=[field],
+            on_demand_metrics_enabled=True,
+        )
+        result = query.run_query("test_query")
+        assert result["data"][:5] == [
+            {
+                "time": self.start.isoformat(),
+                "count": 0.75,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+                "count": 0.75,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+                "count": 0.75,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
+                "count": 0.75,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
+                "count": 0.75,
+            },
+        ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "count", "type": "Float64"},
+            ],
+        )
+
 
 class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_histogram_columns_set_on_builder(self):
