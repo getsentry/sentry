@@ -4,13 +4,15 @@ Functions in this module coerce external types to internal types.  Else they die
 """
 import uuid
 
+from sentry.replays.lib.new_query.errors import CouldNotParseValue
+
 
 def parse_float(value: str) -> float:
     """Coerce to float or fail."""
     try:
         return float(value)
     except ValueError:
-        raise Exception("Failed to parse float.")
+        raise CouldNotParseValue("Failed to parse float.")
 
 
 def parse_int(value: str) -> int:

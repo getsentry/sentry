@@ -18,6 +18,7 @@ from collections import namedtuple
 from datetime import datetime, timedelta
 from typing import Union, cast
 
+from rest_framework.exceptions import ParseError
 from snuba_sdk import (
     And,
     Column,
@@ -36,6 +37,7 @@ from snuba_sdk.expressions import Expression
 
 from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, SearchValue
 from sentry.models.organization import Organization
+from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
 from sentry.replays.lib.new_query.fields import ColumnField
 from sentry.replays.usecases.query.fields import ComputedField, TagField
 from sentry.utils.snuba import raw_snql_query
@@ -53,7 +55,13 @@ def handle_search_filters(
         # are top level filters they are implicitly AND'ed in the WHERE/HAVING clause.  Otherwise
         # explicit operators are used.
         if isinstance(search_filter, SearchFilter):
-            condition = search_filter_to_condition(search_config, search_filter)
+            try:
+                condition = search_filter_to_condition(search_config, search_filter)
+            except OperatorNotSupported:
+                raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
+            except CouldNotParseValue:
+                raise ParseError(f"Could not parse value for `{search_filter.key.name}`")
+
             if look_back == "AND":
                 look_back = None
                 attempt_compressed_condition(result, condition, And)
