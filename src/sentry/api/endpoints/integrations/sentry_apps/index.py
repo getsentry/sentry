@@ -12,8 +12,9 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
-from sentry.models import Organization, SentryApp
+from sentry.models import SentryApp
 from sentry.sentry_apps.apps import SentryAppCreator
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,10 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             if not is_active_superuser(request):
                 queryset = queryset.filter(
                     owner_id__in=[
-                        o.id for o in Organization.objects.get_for_user_ids({request.user.id})
+                        o.organization_id
+                        for o in user_service.get_organizations(
+                            user_id=request.user.id, only_visible=True
+                        )
                     ]
                 )
         elif status == "internal":
@@ -40,7 +44,10 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             if not is_active_superuser(request):
                 queryset = queryset.filter(
                     owner_id__in=[
-                        o.id for o in Organization.objects.get_for_user_ids({request.user.id})
+                        o.organization_id
+                        for o in user_service.get_organizations(
+                            user_id=request.user.id, only_visible=True
+                        )
                     ]
                 )
         else:
