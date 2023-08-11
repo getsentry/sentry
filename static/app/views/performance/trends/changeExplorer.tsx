@@ -17,6 +17,7 @@ import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
+import {FunctionsList} from 'sentry/views/performance/trends/changeExplorerUtils/functionsList';
 import {MetricsTable} from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
 import {SpansList} from 'sentry/views/performance/trends/changeExplorerUtils/spansList';
 import {Chart} from 'sentry/views/performance/trends/chart';
@@ -174,6 +175,14 @@ function ExplorerBody(props: ExplorerBodyProps) {
         organization={organization}
       />
       <SpansList
+        location={location}
+        organization={organization}
+        trendView={trendView}
+        transaction={transaction}
+        breakpoint={transaction.breakpoint!}
+        trendChangeType={trendChangeType}
+      />
+      <FunctionsList
         location={location}
         organization={organization}
         trendView={trendView}

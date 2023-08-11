@@ -58,7 +58,7 @@ export type ChangedSuspectSpan = AveragedSuspectSpan & {
   percentChange: number;
 };
 
-type NumberedListProps = {
+type NumberedSpansListProps = {
   isError: boolean;
   isLoading: boolean;
   limit: number;
@@ -157,7 +157,9 @@ export function SpansList(props: SpansListProps) {
     )
   );
 
-  const transactionCountBefore = totalTransactionsBefore?.data[0]['count()'] as number;
+  const transactionCountBefore = totalTransactionsBefore?.data
+    ? (totalTransactionsBefore?.data[0]['count()'] as number)
+    : 0;
 
   const {
     data: totalTransactionsAfter,
@@ -177,7 +179,9 @@ export function SpansList(props: SpansListProps) {
     )
   );
 
-  const transactionCountAfter = totalTransactionsAfter?.data[0]['count()'] as number;
+  const transactionCountAfter = totalTransactionsAfter?.data
+    ? (totalTransactionsAfter?.data[0]['count()'] as number)
+    : 0;
 
   return (
     <SuspectSpansQuery
@@ -219,11 +223,11 @@ export function SpansList(props: SpansListProps) {
                 transactionCountBefore
               );
 
-              const addedSpans = addChangeFields(
+              const addedSpans = addSpanChangeFields(
                 findSpansNotIn(spansAveragedAfter, spansAveragedBefore),
                 true
               );
-              const removedSpans = addChangeFields(
+              const removedSpans = addSpanChangeFields(
                 findSpansNotIn(spansAveragedBefore, spansAveragedAfter),
                 false
               );
@@ -237,7 +241,7 @@ export function SpansList(props: SpansListProps) {
                 spansAveragedBefore
               );
 
-              const remainingSpansWithChange = addPercentChange(
+              const remainingSpansWithChange = addPercentChangeInSpans(
                 remainingSpansBefore,
                 remainingSpansAfter
               );
@@ -252,30 +256,33 @@ export function SpansList(props: SpansListProps) {
               );
               // reverse the span list when trendChangeType is improvement so most negative (improved) change is first
               return (
-                <NumberedList
-                  spans={
-                    trendChangeType === TrendChangeType.REGRESSION
-                      ? spanList
-                      : spanList?.reverse()
-                  }
-                  projectID={projectID}
-                  location={location}
-                  organization={organization}
-                  transactionName={transaction.transaction}
-                  limit={6}
-                  isLoading={
-                    transactionsLoadingBefore ||
-                    transactionsLoadingAfter ||
-                    spansLoadingBefore ||
-                    spansLoadingAfter
-                  }
-                  isError={
-                    hasSpansErrorBefore ||
-                    hasSpansErrorAfter ||
-                    transactionsErrorBefore ||
-                    transactionsErrorAfter
-                  }
-                />
+                <div style={{marginTop: space(4)}}>
+                  <h6>{t('Relevant Suspect Spans')}</h6>
+                  <NumberedSpansList
+                    spans={
+                      trendChangeType === TrendChangeType.REGRESSION
+                        ? spanList
+                        : spanList?.reverse()
+                    }
+                    projectID={projectID}
+                    location={location}
+                    organization={organization}
+                    transactionName={transaction.transaction}
+                    limit={4}
+                    isLoading={
+                      transactionsLoadingBefore ||
+                      transactionsLoadingAfter ||
+                      spansLoadingBefore ||
+                      spansLoadingAfter
+                    }
+                    isError={
+                      transactionsErrorBefore ||
+                      transactionsErrorAfter ||
+                      hasSpansErrorBefore ||
+                      hasSpansErrorAfter
+                    }
+                  />
+                </div>
               );
             }}
           </SuspectSpansQuery>
@@ -380,7 +387,7 @@ function addAvgSumExclusiveTime(
   });
 }
 
-function addPercentChange(
+function addPercentChangeInSpans(
   before: AveragedSuspectSpan[] | undefined,
   after: AveragedSuspectSpan[] | undefined
 ) {
@@ -405,7 +412,7 @@ function addPercentChange(
   });
 }
 
-function addChangeFields(
+function addSpanChangeFields(
   spans: AveragedSuspectSpan[] | undefined,
   added: boolean
 ): ChangedSuspectSpan[] | undefined {
@@ -429,7 +436,7 @@ function addChangeFields(
   });
 }
 
-export function NumberedList(props: NumberedListProps) {
+export function NumberedSpansList(props: NumberedSpansListProps) {
   const {
     spans,
     projectID,
@@ -448,16 +455,16 @@ export function NumberedList(props: NumberedListProps) {
   if (isError) {
     return (
       <ErrorWrapper>
-        <IconWarning data-test-id="error-indicator" color="gray200" size="xxl" />
+        <IconWarning data-test-id="error-indicator-spans" color="gray200" size="xxl" />
         <p>{t('There was an issue finding suspect spans for this transaction')}</p>
       </ErrorWrapper>
     );
   }
 
-  if (spans?.length === 0) {
+  if (spans?.length === 0 || !spans) {
     return (
       <EmptyStateWarning>
-        <p data-test-id="spans-no-results">{t('No results found for your query')}</p>
+        <p data-test-id="spans-no-results">{t('No results found for suspect spans')}</p>
       </EmptyStateWarning>
     );
   }
@@ -493,9 +500,9 @@ export function NumberedList(props: NumberedListProps) {
             <p style={{marginLeft: space(2)}}>
               {tct('[changeType] suspect span', {changeType: span.changeType})}
             </p>
-            <SpanLink to={spanDetailsPage} onClick={handleClickAnalytics}>
+            <ListLink to={spanDetailsPage} onClick={handleClickAnalytics}>
               {span.description ? `${span.op} - ${span.description}` : span.op}
-            </SpanLink>
+            </ListLink>
           </ListItemWrapper>
         </li>
       );
@@ -509,23 +516,19 @@ export function NumberedList(props: NumberedListProps) {
     );
   }
 
-  return (
-    <div style={{marginTop: space(4)}}>
-      <ol>{formattedSpans}</ol>
-    </div>
-  );
+  return <ol>{formattedSpans}</ol>;
 }
 
-const SpanLink = styled(Link)`
+export const ListLink = styled(Link)`
   margin-left: ${space(1)};
   ${p => p.theme.overflowEllipsis}
 `;
-const ListItemWrapper = styled('div')`
+export const ListItemWrapper = styled('div')`
   display: flex;
   white-space: nowrap;
 `;
 
-const ErrorWrapper = styled('div')`
+export const ErrorWrapper = styled('div')`
   display: flex;
   margin-top: ${space(4)};
   flex-direction: column;
