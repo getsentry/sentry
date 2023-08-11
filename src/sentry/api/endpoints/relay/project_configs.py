@@ -55,10 +55,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         if version == "4":
             if request.relay_request_data.get("global"):
-                metrics.incr("relay.project_configs.global.fetched", tags={"version": version})
                 response["global"] = get_global_config()
 
-        if self._should_use_v3(version, request):
+        if self._should_full_build_projconfig(version, request):
             # Always compute the full config. It's invalid to send partial
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
@@ -78,16 +77,14 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         return Response(response, status=200)
 
-    def _should_use_v3(self, version, request):
-        """Determine whether the v3 computation should be used for project configs.
+    def _should_full_build_projconfig(self, version, request):
+        """Determine whether the full build should be used for project configs.
 
-        - When v4 is requested, the project config should have the same behavior
-        as v3.
-        - When v3 is requested with full config, v3 should be used.
-        - When v3 is requested with partial configs, v2 should be used since v3
-        doesn't support partial configs. By default, Relay will request full
-        configs and the amount of partial configs should be low, so we can
-        handle them per-request instead of considering them for v3.
+        The full build should be used for v3 requests with full config and v4.
+
+        By default, Relay requests full configs and the number of partial config
+        requests should be low enough to handle them per-request, instead of
+        considering them for the full build.
         """
         set_tag("relay_endpoint_version", version)
         no_cache = request.relay_request_data.get("noCache") or False
@@ -95,23 +92,23 @@ class RelayProjectConfigsEndpoint(Endpoint):
         is_full_config = request.relay_request_data.get("fullConfig")
         set_tag("relay_full_config", is_full_config)
 
-        use_v3 = True
+        full_build = True
         reason = "version"
 
         if version not in ["3", "4"]:
-            use_v3 = False
+            full_build = False
             reason = "version"
         elif not is_full_config:
-            use_v3 = False
+            full_build = False
             reason = "fullConfig"
             version = "2"  # Downgrade to 2 for reporting metrics
         elif no_cache:
-            use_v3 = False
+            full_build = False
             reason = "noCache"
             version = "2"  # Downgrade to 2 for reporting metrics
 
-        set_tag("relay_use_v3", use_v3)
-        set_tag("relay_use_v3_rejected", reason)
+        set_tag("relay_use_full_build", full_build)
+        set_tag("relay_use_full_build_rejected", reason)
         if version == "2":
             metrics.incr(
                 "api.endpoints.relay.project_configs.post",
@@ -124,7 +121,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 tags={"version": version, "reason": reason},
             )
 
-        return use_v3
+        return full_build
 
     def _post_or_schedule_by_key(self, request: Request):
         public_keys = set(request.relay_request_data.get("publicKeys") or ())
@@ -138,6 +135,10 @@ class RelayProjectConfigsEndpoint(Endpoint):
             else:
                 proj_configs[key] = computed
 
+        # Originally, these metrics were emitted for the latest endpoint version
+        # at the time, v3. Since there's no effective way to know where these
+        # metrics are used, changing the name can result in empty data. As a
+        # result, we're keeping the same name.
         metrics.incr("relay.project_configs.post_v3.pending", amount=len(pending))
         metrics.incr("relay.project_configs.post_v3.fetched", amount=len(proj_configs))
         return {"configs": proj_configs, "pending": pending}
