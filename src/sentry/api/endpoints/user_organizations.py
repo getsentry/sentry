@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
+from typing_extensions import override
 
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.user import UserPermission
@@ -18,16 +19,16 @@ from sentry.services.hybrid_cloud.user.service import user_service
 class UserOrganizationsEndpoint(Endpoint):
     permission_classes = (UserPermission,)
 
-    def convert_args(self, request: Request, user_id: int, *args, **kwargs):
+    @override
+    def convert_args(self, request: Request, user_id: str | None = None, *args, **kwargs):
         user: RpcUser | User | None = None
 
         if user_id == "me":
             if not request.user.is_authenticated:
                 raise ResourceDoesNotExist
-            if isinstance(request.user, User) or isinstance(request.user, RpcUser):
-                user = request.user
-        else:
-            user = user_service.get_user(user_id=user_id)
+            user = request.user
+        elif user_id is not None:
+            user = user_service.get_user(user_id=int(user_id))
 
         if not user:
             raise ResourceDoesNotExist

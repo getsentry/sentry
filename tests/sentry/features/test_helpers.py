@@ -24,11 +24,11 @@ class TestFeatureHelpers(TestCase):
 
     def test_any_organization_has_feature(self):
         assert not any_organization_has_feature(
-            "foo", Organization.objects.get_for_user_ids({self.user.id})
+            "foo", list(Organization.objects.get_for_user_ids({self.user.id}).all())
         )
         with org_with_feature(self.org, "foo"):
             assert any_organization_has_feature(
-                "foo", Organization.objects.get_for_user_ids({self.user.id})
+                "foo", list(Organization.objects.get_for_user_ids({self.user.id}))
             )
 
     def test_org_missing_from_request_fails(self):
