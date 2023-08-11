@@ -85,48 +85,50 @@ class TraceDetailsContent extends Component<Props, State> {
   async initFuse() {
     const {traces, orphanErrors} = this.props;
 
-    if (hasTraceData(traces, orphanErrors)) {
-      const transformedEvents: IndexedFusedTransaction[] =
-        this.props.traces?.flatMap(trace =>
-          reduceTrace<IndexedFusedTransaction[]>(
-            trace,
-            (acc, transaction) => {
-              const indexed: string[] = [
-                transaction['transaction.op'],
-                transaction.transaction,
-                transaction.project_slug,
-              ];
-
-              acc.push({
-                event: transaction,
-                indexed,
-              });
-
-              return acc;
-            },
-            []
-          )
-        ) ?? [];
-
-      // Include orphan error titles and project slugs during fuzzy search
-      this.props.orphanErrors?.forEach(orphanError => {
-        const indexed: string[] = [orphanError.title, orphanError.project_slug];
-
-        transformedEvents.push({
-          indexed,
-          event: orphanError,
-        });
-      });
-
-      this.fuse = await createFuzzySearch(transformedEvents, {
-        keys: ['indexed'],
-        includeMatches: true,
-        threshold: 0.6,
-        location: 0,
-        distance: 100,
-        maxPatternLength: 32,
-      });
+    if (!hasTraceData(traces, orphanErrors)) {
+      return;
     }
+
+    const transformedEvents: IndexedFusedTransaction[] =
+      traces?.flatMap(trace =>
+        reduceTrace<IndexedFusedTransaction[]>(
+          trace,
+          (acc, transaction) => {
+            const indexed: string[] = [
+              transaction['transaction.op'],
+              transaction.transaction,
+              transaction.project_slug,
+            ];
+
+            acc.push({
+              event: transaction,
+              indexed,
+            });
+
+            return acc;
+          },
+          []
+        )
+      ) ?? [];
+
+    // Include orphan error titles and project slugs during fuzzy search
+    orphanErrors?.forEach(orphanError => {
+      const indexed: string[] = [orphanError.title, orphanError.project_slug, 'Unknown'];
+
+      transformedEvents.push({
+        indexed,
+        event: orphanError,
+      });
+    });
+
+    this.fuse = await createFuzzySearch(transformedEvents, {
+      keys: ['indexed'],
+      includeMatches: true,
+      threshold: 0.6,
+      location: 0,
+      distance: 100,
+      maxPatternLength: 32,
+    });
   }
 
   renderTraceLoading() {

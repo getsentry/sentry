@@ -1,4 +1,5 @@
 import {Component, createRef, Fragment} from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -14,6 +15,7 @@ import {
   VerticalMark,
 } from 'sentry/components/events/interfaces/spans/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import Link from 'sentry/components/links/link';
 import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {
   Row,
@@ -46,6 +48,7 @@ import {
   getHumanDuration,
   toPercent,
 } from 'sentry/components/performance/waterfall/utils';
+import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -85,6 +88,7 @@ type Props = {
   isOrphanError?: boolean;
   measurements?: Map<number, VerticalMark>;
   numOfOrphanErrors?: number;
+  traceHasSingleOrphanError?: boolean;
 };
 
 type State = {
@@ -339,8 +343,10 @@ class TransactionBar extends Component<Props, State> {
       <Fragment>
         {projectBadge}
         <RowTitleContent errored>
-          <strong>{'Unknown \u2014 '}</strong>
-          {shortenErrorTitle(transaction.title)}
+          <ErrorLink to={generateIssueEventTarget(transaction, organization)}>
+            <strong>{'Unknown \u2014 '}</strong>
+            {shortenErrorTitle(transaction.title)}
+          </ErrorLink>
         </RowTitleContent>
       </Fragment>
     ) : isTraceFullDetailed(transaction) ? (
@@ -472,6 +478,10 @@ class TransactionBar extends Component<Props, State> {
   }
 
   renderRectangle() {
+    if (this.props.traceHasSingleOrphanError) {
+      return null;
+    }
+
     const {transaction, traceInfo, barColor} = this.props;
     const {showDetail} = this.state;
 
@@ -585,6 +595,7 @@ class TransactionBar extends Component<Props, State> {
             width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
             paddingTop: 0,
             alignItems: isTraceError(transaction) ? 'normal' : 'center',
+            overflow: isTraceError(transaction) ? 'visible' : 'hidden',
           }}
           showDetail={showDetail}
           onClick={this.toggleDisplayDetail}
@@ -636,7 +647,7 @@ class TransactionBar extends Component<Props, State> {
     const {isVisible, transaction} = this.props;
     const {showDetail} = this.state;
     return (
-      <Row
+      <StyledRow
         ref={this.transactionRowDOMRef}
         visible={isVisible}
         showBorder={showDetail}
@@ -655,7 +666,7 @@ class TransactionBar extends Component<Props, State> {
           )}
         </ScrollbarManager.Consumer>
         {this.renderDetail()}
-      </Row>
+      </StyledRow>
     );
   }
 }
@@ -665,3 +676,14 @@ function getOffset(generation) {
 }
 
 export default TransactionBar;
+
+const StyledRow = styled(Row)`
+  &,
+  ${RowCellContainer} {
+    overflow: visible;
+  }
+`;
+
+const ErrorLink = styled(Link)`
+  color: ${p => p.theme.error};
+`;

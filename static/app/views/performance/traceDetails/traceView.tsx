@@ -1,5 +1,6 @@
 import React, {createRef, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
@@ -119,6 +120,7 @@ export default function TraceView({
     description: 'trace-view-content',
   });
   const hasOrphanErrors = orphanErrors && orphanErrors.length > 0;
+  const traceHasSingleOrphanError = orphanErrors?.length === 1 && traces.length <= 0;
 
   useEffect(() => {
     trackAnalytics('performance_views.trace_view.view', {
@@ -286,6 +288,7 @@ export default function TraceView({
       const isLastError = index === orphanErrors.length - 1;
       transactionGroups.push(
         <TransactionGroup
+          key={error.event_id}
           location={location}
           organization={organization}
           traceInfo={traceInfo}
@@ -326,7 +329,7 @@ export default function TraceView({
               dividerPosition={dividerPosition}
               interactiveLayerRef={virtualScrollbarContainerRef}
             >
-              <TracePanel>
+              <StyledTracePanel>
                 <TraceViewHeaderContainer>
                   <ScrollbarManager.Consumer>
                     {({virtualScrollbarRef, scrollBarAreaRef, onDragStart, onScroll}) => {
@@ -390,6 +393,7 @@ export default function TraceView({
                     hasGuideAnchor={false}
                     renderedChildren={transactionGroups}
                     barColor={pickBarColor('')}
+                    traceHasSingleOrphanError={traceHasSingleOrphanError}
                     numOfOrphanErrors={orphanErrors?.length}
                   />
                   <TraceHiddenMessage
@@ -403,7 +407,7 @@ export default function TraceView({
                     meta={meta}
                   />
                 </TraceViewContainer>
-              </TracePanel>
+              </StyledTracePanel>
             </ScrollbarManager.Provider>
           )}
         </DividerHandlerManager.Consumer>
@@ -415,3 +419,11 @@ export default function TraceView({
 
   return traceView;
 }
+
+const StyledTracePanel = styled(TracePanel)`
+  overflow: visible;
+
+  ${TraceViewContainer} {
+    overflow-x: visible;
+  }
+`;

@@ -33,6 +33,7 @@ type Props = ScrollbarManagerChildrenProps & {
   isOrphanError?: boolean;
   measurements?: Map<number, VerticalMark>;
   numOfOrphanErrors?: number;
+  traceHasSingleOrphanError?: boolean;
 };
 
 type State = {
@@ -75,6 +76,7 @@ class TransactionGroup extends Component<Props, State> {
       generateBounds,
       numOfOrphanErrors,
       isOrphanError,
+      traceHasSingleOrphanError,
     } = this.props;
     const {isExpanded} = this.state;
 
@@ -101,6 +103,7 @@ class TransactionGroup extends Component<Props, State> {
           onWheel={onWheel}
           numOfOrphanErrors={numOfOrphanErrors}
           isOrphanError={isOrphanError}
+          traceHasSingleOrphanError={traceHasSingleOrphanError}
         />
         {isExpanded && renderedChildren}
       </Fragment>
