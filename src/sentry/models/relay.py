@@ -9,7 +9,6 @@ from sentry.db.models import Model, region_silo_only_model
 
 @region_silo_only_model
 class RelayUsage(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Global
 
     relay_id = models.CharField(max_length=64)
@@ -26,7 +25,6 @@ class RelayUsage(Model):
 
 @region_silo_only_model
 class Relay(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Global
 
     relay_id = models.CharField(max_length=64, unique=True)

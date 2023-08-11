@@ -209,7 +209,6 @@ class OutboxBase(Model):
     class Meta:
         abstract = True
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     # Different shard_scope, shard_identifier pairings of messages are always deliverable in parallel

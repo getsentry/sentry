@@ -174,7 +174,6 @@ class GroupSubscription(Model):
     Identifies a subscription relationship between a user and an issue.
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project", related_name="subscription_set")

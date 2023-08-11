@@ -196,7 +196,6 @@ class ChunkedFileBlobIndexWrapper:
 
 
 class AbstractFile(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     name = models.TextField()

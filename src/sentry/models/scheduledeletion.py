@@ -47,7 +47,6 @@ class BaseScheduledDeletion(Model):
     class Meta:
         abstract = True
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     guid = models.CharField(max_length=32, unique=True, default=default_guid)

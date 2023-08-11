@@ -32,7 +32,6 @@ SERVICE_HOOK_EVENTS = [
 
 @region_silo_only_model
 class ServiceHookProject(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     service_hook = FlexibleForeignKey("sentry.ServiceHook")
@@ -52,7 +51,6 @@ def generate_secret():
 
 @region_silo_only_model
 class ServiceHook(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Global
 
     guid = models.CharField(max_length=32, unique=True, null=True)

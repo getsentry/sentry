@@ -226,7 +226,6 @@ class FeatureAdoptionManager(BaseManager):
 
 @region_silo_only_model
 class FeatureAdoption(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization")

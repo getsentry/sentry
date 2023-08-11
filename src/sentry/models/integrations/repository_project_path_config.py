@@ -16,7 +16,6 @@ from sentry.models.integrations.organization_integrity_backfill_mixin import (
 
 @region_silo_only_model
 class RepositoryProjectPathConfig(OrganizationIntegrityBackfillMixin, DefaultFieldsModel):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     repository = FlexibleForeignKey("sentry.Repository")

@@ -24,7 +24,6 @@ class AppConnectBuild(Model):
     bundle_short_version, bundle_version).
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)

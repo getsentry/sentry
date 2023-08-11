@@ -23,7 +23,6 @@ class GroupResolution(Model):
     Describes when a group was marked as resolved.
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     class Type:
