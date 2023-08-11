@@ -47,7 +47,9 @@ function Carousel({children}: Props) {
     if (!ref.current) {
       return;
     }
+
     setChildrenRefs(Array.from(ref.current.children) as HTMLElement[]);
+
     const anchors = [
       ref.current.children[0],
       ref.current.children[ref.current.children.length - 1],
@@ -56,26 +58,22 @@ function Carousel({children}: Props) {
   }, [children]);
 
   const handleScroll = (direction: string) => {
-    requestAnimationFrame(() => {
-      if (!ref.current) {
-        return;
-      }
+    if (!ref.current) {
+      return;
+    }
 
-      const scrollLeft = ref.current.scrollLeft;
+    const scrollLeft = ref.current.scrollLeft;
 
-      if (direction === 'left') {
-        // scroll to the last child to the left of the left side of the container
-        const elements = childrenRefs.filter(child => child.offsetLeft < scrollLeft);
-        ref.current.scrollTo(elements[elements.length - 1].offsetLeft, 0);
-      } else if (direction === 'right') {
-        // scroll to the first child to the right of the left side of the container
-        const elements = childrenRefs.filter(child => child.offsetLeft > scrollLeft);
-        ref.current.scrollTo(elements[0].offsetLeft, 0);
-      }
-    });
+    if (direction === 'left') {
+      // scroll to the last child to the left of the left side of the container
+      const elements = childrenRefs.filter(child => child.offsetLeft < scrollLeft);
+      ref.current.scrollTo(elements[elements.length - 1].offsetLeft, 0);
+    } else if (direction === 'right') {
+      // scroll to the first child to the right of the left side of the container
+      const elements = childrenRefs.filter(child => child.offsetLeft > scrollLeft);
+      ref.current.scrollTo(elements[0].offsetLeft, 0);
+    }
   };
-
-  const showArrows = !(isAtStart && isAtEnd);
 
   return (
     <CarouselContainer>
@@ -84,10 +82,10 @@ function Carousel({children}: Props) {
         {children}
         <Anchor id="right-anchor" />
       </CarouselItems>
-      {showArrows && !isAtStart && (
+      {!isAtStart && (
         <ScrollButton onClick={() => handleScroll('left')} direction="left" />
       )}
-      {showArrows && !isAtEnd && (
+      {!isAtEnd && (
         <ScrollButton onClick={() => handleScroll('right')} direction="right" />
       )}
     </CarouselContainer>
