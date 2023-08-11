@@ -3,7 +3,7 @@ import pytest
 from sentry.api.event_search import ParenExpression, parse_search_query
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
-    OndemandMetricSpec,
+    OnDemandMetricSpec,
     cleanup_query,
     query_tokens_to_string,
     should_use_on_demand_metrics,
@@ -122,7 +122,7 @@ def test_should_use_on_demand(agg, query, result):
 
 def create_spec_if_needed(dataset, agg, query):
     if should_use_on_demand_metrics(dataset, agg, query):
-        return OndemandMetricSpec(agg, query)
+        return OnDemandMetricSpec(agg, query)
 
 
 @pytest.mark.parametrize(
@@ -166,7 +166,7 @@ def test_does_not_create_on_demand_spec(aggregate, query):
 
 
 def test_spec_simple_query_count():
-    spec = OndemandMetricSpec("count()", "transaction.duration:>1s")
+    spec = OnDemandMetricSpec("count()", "transaction.duration:>1s")
 
     assert spec.metric_type == "c"
     assert spec.field is None
@@ -175,7 +175,7 @@ def test_spec_simple_query_count():
 
 
 def test_spec_simple_query_distribution():
-    spec = OndemandMetricSpec("p75(measurements.fp)", "transaction.duration:>1s")
+    spec = OnDemandMetricSpec("p75(measurements.fp)", "transaction.duration:>1s")
 
     assert spec.metric_type == "d"
     assert spec.field == "event.measurements.fp"
@@ -184,7 +184,7 @@ def test_spec_simple_query_distribution():
 
 
 def test_spec_or_condition():
-    spec = OndemandMetricSpec("count()", "transaction.duration:>=100 OR transaction.duration:<1000")
+    spec = OnDemandMetricSpec("count()", "transaction.duration:>=100 OR transaction.duration:<1000")
 
     assert spec.condition() == {
         "inner": [
@@ -196,7 +196,7 @@ def test_spec_or_condition():
 
 
 def test_spec_and_condition():
-    spec = OndemandMetricSpec("count()", "release:foo transaction.duration:<10s")
+    spec = OnDemandMetricSpec("count()", "release:foo transaction.duration:<10s")
     assert spec.condition() == {
         "inner": [
             {"name": "event.release", "op": "eq", "value": "foo"},
@@ -207,7 +207,7 @@ def test_spec_and_condition():
 
 
 def test_spec_nested_condition():
-    spec = OndemandMetricSpec("count()", "(release:a OR transaction.op:b) transaction.duration:>1s")
+    spec = OnDemandMetricSpec("count()", "(release:a OR transaction.op:b) transaction.duration:>1s")
     assert spec.condition() == {
         "op": "and",
         "inner": [
@@ -224,7 +224,7 @@ def test_spec_nested_condition():
 
 
 def test_spec_boolean_precedence():
-    spec = OndemandMetricSpec("count()", "release:a OR transaction.op:b transaction.duration:>1s")
+    spec = OnDemandMetricSpec("count()", "release:a OR transaction.op:b transaction.duration:>1s")
     assert spec.condition() == {
         "op": "or",
         "inner": [
@@ -241,7 +241,7 @@ def test_spec_boolean_precedence():
 
 
 def test_spec_wildcard():
-    spec = OndemandMetricSpec("count()", "release.version:1.*")
+    spec = OnDemandMetricSpec("count()", "release.version:1.*")
     assert spec.condition() == {
         "name": "event.release.version.short",
         "op": "glob",
@@ -250,7 +250,7 @@ def test_spec_wildcard():
 
 
 def test_spec_countif():
-    spec = OndemandMetricSpec("count_if(transaction.duration,equals,300)", "")
+    spec = OnDemandMetricSpec("count_if(transaction.duration,equals,300)", "")
 
     assert spec.metric_type == "c"
     assert spec.field is None
@@ -263,7 +263,7 @@ def test_spec_countif():
 
 
 def test_spec_countif_with_query():
-    spec = OndemandMetricSpec(
+    spec = OnDemandMetricSpec(
         "count_if(transaction.duration,equals,300)", "release:a OR transaction.op:b"
     )
 
@@ -283,8 +283,8 @@ def test_spec_countif_with_query():
 
 
 def test_ignore_fields():
-    with_ignored_field = OndemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
-    without_ignored_field = OndemandMetricSpec("count()", "transaction.duration:>=1")
+    with_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
+    without_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1")
 
     assert with_ignored_field.condition() == without_ignored_field.condition()
 

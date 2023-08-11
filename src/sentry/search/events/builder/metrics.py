@@ -43,7 +43,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
-    OndemandMetricSpec,
+    OnDemandMetricSpec,
     should_use_on_demand_metrics,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
@@ -108,7 +108,7 @@ class MetricsQueryBuilder(QueryBuilder):
         return super().are_columns_resolved()
 
     @cached_property
-    def _on_demand_metric_spec(self) -> Optional[OndemandMetricSpec]:
+    def _on_demand_metric_spec(self) -> Optional[OnDemandMetricSpec]:
         if not self.on_demand_metrics_enabled:
             return None
 
@@ -123,13 +123,13 @@ class MetricsQueryBuilder(QueryBuilder):
             return None
 
         try:
-            return OndemandMetricSpec(field, self.query)
+            return OnDemandMetricSpec(field, self.query)
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return None
 
     def _get_metrics_query_from_on_demand_spec(
-        self, spec: OndemandMetricSpec, require_time_range: bool = True
+        self, spec: OnDemandMetricSpec, require_time_range: bool = True
     ) -> MetricsQuery:
         if self.params.organization is None:
             raise InvalidSearchQuery("An on demand metrics query requires an organization")
@@ -213,7 +213,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         # Resolutions that we will perform only in case the query is not on demand. The reasoning for this is that
         # for building an on demand query we only require a time interval and granularity. All the other fields are
-        # automatically computed given the OndemandMetricSpec.
+        # automatically computed given the OnDemandMetricSpec.
         if not self._on_demand_metric_spec:
             with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
                 self.where, self.having = self.resolve_conditions(

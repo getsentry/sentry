@@ -515,7 +515,7 @@ def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     return ret_val
 
 
-class OndemandMetricSpec:
+class OnDemandMetricSpec:
     """
     Contains the information required to query or extract an on-demand metric.
     """
