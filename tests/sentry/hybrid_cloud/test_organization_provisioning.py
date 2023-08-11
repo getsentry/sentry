@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sentry import roles
 from sentry.models import (
     Organization,
     OrganizationMapping,
@@ -46,6 +47,17 @@ def assert_params_match_org(
         assert org_mapping.slug == db_org.slug
         assert org_mapping.name == db_org.name
         assert org_mapping.status == db_org.status
+
+
+def is_org_member(user_id: int, org_id: int):
+    with assume_test_silo_mode(SiloMode.REGION):
+        return OrganizationMember.objects.filter(user_id=user_id, organization_id=org_id).exists()
+
+
+def is_org_owner(user_id: int, org_id: int):
+    with assume_test_silo_mode(SiloMode.REGION):
+        org_members = OrganizationMember.objects.filter(user_id=user_id, organization_id=org_id)
+    return len(org_members) == 1 and org_members[0].role == roles.get_top_dog().id
 
 
 def assert_post_install_outbox_created(
@@ -129,7 +141,11 @@ class TestIdempotentProvisionOrganization(TestCase):
         )
         # Create a conflicting org owned by a different user
         with outbox_runner():
-            self.create_organization(slug="santry", name="santry", owner=self.create_user())
+            unowned_org = self.create_organization(
+                slug="santry", name="santry", owner=self.create_user()
+            )
+
+        assert not is_org_member(user_id=user.id, org_id=unowned_org.id)
 
         with assume_test_silo_mode(SiloMode.REGION):
             orgs_before_rpc = list(Organization.objects.filter())
@@ -152,7 +168,10 @@ class TestIdempotentProvisionOrganization(TestCase):
             user=user, org_name="santry", org_slug="santry"
         )
 
-        self.create_organization(slug="santry", name="santry", owner=user)
+        owned_org = self.create_organization(slug="santry", name="santry", owner=user)
+
+        assert is_org_owner(user_id=user.id, org_id=owned_org.id)
+
         with outbox_context(flush=False):
             results: Optional[
                 RpcOrganization
@@ -177,7 +196,12 @@ class TestIdempotentProvisionOrganization(TestCase):
         )
 
         with assume_test_silo_mode(SiloMode.REGION):
-            OrganizationMember.objects.create(organization=org, user_id=user.id, role="member")
+            OrganizationMember.objects.create(
+                user_id=user.id, organization_id=org.id, role=roles.get_default()
+            )
+
+        assert is_org_member(user_id=user.id, org_id=org.id)
+        assert not is_org_owner(user_id=user.id, org_id=org.id)
 
         with outbox_context(flush=False):
             results: Optional[
