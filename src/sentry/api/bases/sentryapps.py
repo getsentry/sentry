@@ -16,14 +16,11 @@ from sentry.api.permissions import SentryPermission
 from sentry.auth.superuser import is_active_superuser
 from sentry.coreapi import APIError
 from sentry.middleware.stats import add_request_metric_tags
+from sentry.models import Organization
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.organization import OrganizationStatus
 from sentry.services.hybrid_cloud.app import RpcSentryApp, app_service
-from sentry.services.hybrid_cloud.organization import (
-    RpcUserOrganizationContext,
-    organization_service,
-)
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.sdk import configure_scope
 from sentry.utils.strings import to_single_line_str
@@ -80,17 +77,17 @@ class SentryAppsPermission(SentryPermission):
         "POST": ("org:write", "org:admin"),
     }
 
-    def has_object_permission(self, request: Request, view, context: RpcUserOrganizationContext):
+    def has_object_permission(self, request: Request, view, organization):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        self.determine_access(request, context)
+        self.determine_access(request, organization)
 
         if is_active_superuser(request):
             return True
 
         # User must be a part of the Org they're trying to create the app in.
-        if context.organization.status != OrganizationStatus.ACTIVE or not context.member:
+        if organization not in request.user.get_orgs():
             raise Http404
 
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
@@ -112,36 +109,27 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
             raise ValidationError({"organization": to_single_line_str(error_message)})
         return organization_slug
 
-    def _get_organization_for_superuser(
-        self, user: RpcUser, organization_slug: str
-    ) -> RpcUserOrganizationContext:
-        context = organization_service.get_organization_by_slug(
-            slug=organization_slug, only_visible=False, user_id=user.id
-        )
-
-        if context is None:
+    def _get_organization_for_superuser(self, organization_slug):
+        try:
+            return Organization.objects.get(slug=organization_slug)
+        except Organization.DoesNotExist:
             error_message = f"Organization '{organization_slug}' does not exist."
             raise ValidationError({"organization": to_single_line_str(error_message)})
 
-        return context
-
-    def _get_organization_for_user(
-        self, user: RpcUser, organization_slug: str
-    ) -> RpcUserOrganizationContext:
-        context = organization_service.get_organization_by_slug(
-            slug=organization_slug, only_visible=True, user_id=user.id
-        )
-        if context is None or context.member is None:
+    def _get_organization_for_user(self, user, organization_slug):
+        try:
+            return user.get_orgs().get(slug=organization_slug)
+        except Organization.DoesNotExist:
             error_message = f"User does not belong to the '{organization_slug}' organization."
             raise PermissionDenied(to_single_line_str(error_message))
-        return context
 
-    def _get_org_context(self, request: Request) -> RpcUserOrganizationContext:
+    def _get_organization(self, request: Request):
         organization_slug = self._get_organization_slug(request)
         if is_active_superuser(request):
-            return self._get_organization_for_superuser(request.user, organization_slug)
+            return self._get_organization_for_superuser(organization_slug)
         else:
-            return self._get_organization_for_user(request.user, organization_slug)
+            user = request.user
+            return self._get_organization_for_user(user, organization_slug)
 
     def convert_args(self, request: Request, *args, **kwargs):
         """
@@ -166,9 +154,9 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         if not request.json_body:
             return (args, kwargs)
 
-        context = self._get_org_context(request)
-        self.check_object_permissions(request, context)
-        kwargs["organization"] = context.organization
+        organization = self._get_organization(request)
+        self.check_object_permissions(request, organization)
+        kwargs["organization"] = organization
 
         return (args, kwargs)
 
