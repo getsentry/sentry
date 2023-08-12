@@ -13,6 +13,7 @@ import webpack from 'webpack';
 import {Configuration as DevServerConfig} from 'webpack-dev-server';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
+import ComponentPropsPlugin from './build-utils/component-props-plugin';
 import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
 import LastBuiltPlugin from './build-utils/last-built-plugin';
 import ListFilesPlugin from './build-utils/list-files-plugin';
@@ -352,10 +353,32 @@ const appConfig: Configuration = {
      */
     new FixStyleOnlyEntriesPlugin({verbose: false}),
 
+    /**
+     * Read typescript props for all component files, so we can auto-generate
+     * docs and widgets inside our story files.
+     */
+    new ComponentPropsPlugin({
+      cwd: staticPrefix,
+      pattern: 'app/components/**/*.tsx',
+      output: path.join(
+        staticPrefix,
+        'app',
+        'constants',
+        'generated-ui-component-props.tsx'
+      ),
+    }),
+    /**
+     * List all story files, so we can render links to them at the /stories page
+     */
     new ListFilesPlugin({
       cwd: staticPrefix,
       pattern: 'app/components/**/*.stories.tsx',
-      output: path.join(staticPrefix, 'app', 'constants', 'ui-stories-list.tsx'),
+      output: path.join(
+        staticPrefix,
+        'app',
+        'constants',
+        'generated-ui-stories-list.tsx'
+      ),
     }),
 
     ...(SHOULD_FORK_TS

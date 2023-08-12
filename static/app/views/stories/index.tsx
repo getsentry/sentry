@@ -2,7 +2,7 @@ import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
-import {FilesList} from 'sentry/constants/ui-stories-list';
+import {FilesList} from 'sentry/constants/generated-ui-stories-list';
 import {space} from 'sentry/styles/space';
 import EmptyStory from 'sentry/views/stories/emptyStory';
 import StoryFile from 'sentry/views/stories/storyFile';

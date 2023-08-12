@@ -4,7 +4,7 @@ interface Props {
   component: any;
 }
 
-export default function KitchenSink({component}: Props) {
+export default function Knobs({component}: Props) {
   const Comp = component;
   console.log({component});
 

@@ -8,7 +8,7 @@ const StyledNotificationBarIconInfo = styled(IconInfo)`
   color: ${p => p.theme.alert.info.iconColor};
 `;
 
-export const NotificationBar = styled('div')`
+const NotificationBar = styled('div')`
   display: flex;
   align-items: center;
   color: ${p => p.theme.textColor};
@@ -21,3 +21,6 @@ export const NotificationBar = styled('div')`
     color: ${p => p.theme.alert.info.iconColor};
   }
 `;
+
+export default NotificationBar;
+export {NotificationBar};

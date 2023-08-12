@@ -1,6 +1,6 @@
 import {Button} from 'sentry/components/button';
 // import Story from 'sentry/story';
-import KitchenSink from 'sentry/components/stories/kitchenSink';
+import KitchenSink from 'sentry/components/stories/knobs';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 
 export default function Main() {
