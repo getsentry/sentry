@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Sequence
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,16 +18,11 @@ def any_organization_has_feature(
     return any([features.has(feature, organization, **kwargs) for organization in organizations])
 
 
-def requires_feature(
-    feature: str, any_org: Optional[bool] = None
-) -> Callable[[EndpointFunc], EndpointFunc]:
+def requires_feature(feature: str) -> Callable[[EndpointFunc], EndpointFunc]:
     """
     Require a feature flag to access an endpoint.
 
-    If ``any_org`` is ``True``, this will check all of the request User's
-    Organizations for the flag. If any are flagged in, the endpoint is accessible.
-
-    Without ``any_org=True``, the endpoint must resolve an Organization via
+    The endpoint must resolve an Organization via
     ``convert_args`` (and therefor be in ``kwargs``). The resolved Org must have
     the passed feature.
 
@@ -41,24 +36,13 @@ def requires_feature(
 
     def decorator(func: EndpointFunc) -> EndpointFunc:
         def wrapped(self: Any, request: Request, *args: Any, **kwargs: Any) -> Response:
-            # The endpoint is accessible if any of the User's Orgs have the feature
-            # flag enabled.
-            if any_org:
-                if not any_organization_has_feature(
-                    feature, request.user.get_orgs(), actor=request.user
-                ):
-                    return Response(status=404)
+            if "organization" not in kwargs:
+                return Response(status=404)
 
-                return func(self, request, *args, **kwargs)
-            # The Org in scope for the request must have the feature flag enabled.
-            else:
-                if "organization" not in kwargs:
-                    return Response(status=404)
+            if not features.has(feature, kwargs["organization"], actor=request.user):
+                return Response(status=404)
 
-                if not features.has(feature, kwargs["organization"], actor=request.user):
-                    return Response(status=404)
-
-                return func(self, request, *args, **kwargs)
+            return func(self, request, *args, **kwargs)
 
         return wrapped
 

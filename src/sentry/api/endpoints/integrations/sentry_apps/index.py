@@ -14,6 +14,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
 from sentry.models import SentryApp
 from sentry.sentry_apps.apps import SentryAppCreator
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -30,11 +31,25 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
         elif status == "unpublished":
             queryset = SentryApp.objects.filter(status=SentryAppStatus.UNPUBLISHED)
             if not is_active_superuser(request):
-                queryset = queryset.filter(owner_id__in=[o.id for o in request.user.get_orgs()])
+                queryset = queryset.filter(
+                    owner_id__in=[
+                        o.id
+                        for o in user_service.get_organizations(
+                            user_id=request.user.id, only_visible=True
+                        )
+                    ]
+                )
         elif status == "internal":
             queryset = SentryApp.objects.filter(status=SentryAppStatus.INTERNAL)
             if not is_active_superuser(request):
-                queryset = queryset.filter(owner_id__in=[o.id for o in request.user.get_orgs()])
+                queryset = queryset.filter(
+                    owner_id__in=[
+                        o.id
+                        for o in user_service.get_organizations(
+                            user_id=request.user.id, only_visible=True
+                        )
+                    ]
+                )
         else:
             if is_active_superuser(request):
                 queryset = SentryApp.objects.all()
