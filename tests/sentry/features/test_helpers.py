@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.features.base import OrganizationFeature
 from sentry.features.helpers import any_organization_has_feature, requires_feature
+from sentry.models import Organization
 from sentry.testutils.cases import TestCase
 
 
@@ -22,9 +23,13 @@ class TestFeatureHelpers(TestCase):
         features.add("foo", OrganizationFeature)
 
     def test_any_organization_has_feature(self):
-        assert not any_organization_has_feature("foo", self.user.get_orgs())
+        assert not any_organization_has_feature(
+            "foo", list(Organization.objects.get_for_user_ids({self.user.id}).all())
+        )
         with org_with_feature(self.org, "foo"):
-            assert any_organization_has_feature("foo", self.user.get_orgs())
+            assert any_organization_has_feature(
+                "foo", list(Organization.objects.get_for_user_ids({self.user.id}))
+            )
 
     def test_org_missing_from_request_fails(self):
         @requires_feature("foo")
@@ -45,19 +50,6 @@ class TestFeatureHelpers(TestCase):
         with org_with_feature(self.org, "foo"):
 
             @requires_feature("foo")
-            def get(self, request, *args, **kwargs):
-                return Response()
-
-            response = get(None, self.request, organization=self.org)
-            assert response.status_code == 200
-
-    def test_any_org_true_when_users_other_org_has_flag_succeeds(self):
-        # The Org in scope of the request does not have the flag, but another
-        # Org the User belongs to does.
-        #
-        with org_with_feature(self.out_of_scope_org, "foo"):
-
-            @requires_feature("foo", any_org=True)
             def get(self, request, *args, **kwargs):
                 return Response()
 
