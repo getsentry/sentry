@@ -67,7 +67,7 @@ class PushEventWebhookTest(APITestCase):
     def test_user_email(self):
         project = self.project  # force creation
         user = self.create_user(email="alberto@sentry.io")
-        self.create_usersocialauth(provider="github", user=user, uid=6752317)
+        self.create_usersocialauth(provider="github", user=user, uid="6752317")
         self.create_member(organization=project.organization, user=user, role="member")
 
         url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
