@@ -33,7 +33,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             if not is_active_superuser(request):
                 queryset = queryset.filter(
                     owner_id__in=[
-                        o.organization_id
+                        o.id
                         for o in user_service.get_organizations(
                             user_id=request.user.id, only_visible=True
                         )
@@ -44,7 +44,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             if not is_active_superuser(request):
                 queryset = queryset.filter(
                     owner_id__in=[
-                        o.organization_id
+                        o.id
                         for o in user_service.get_organizations(
                             user_id=request.user.id, only_visible=True
                         )
