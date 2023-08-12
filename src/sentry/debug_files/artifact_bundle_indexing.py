@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import logging
 from dataclasses import dataclass
@@ -44,7 +46,7 @@ class FlatFileMeta:
     date: datetime
 
     @staticmethod
-    def from_str(bundle_meta: str) -> "FlatFileMeta":
+    def from_str(bundle_meta: str) -> FlatFileMeta:
         parsed = bundle_meta.split("/")
         if len(parsed) != 3:
             raise Exception(f"Can't build FlatFileMeta from str {bundle_meta}")
@@ -139,7 +141,7 @@ class FlatFileIdentifier(NamedTuple):
     dist: str
 
     @staticmethod
-    def for_debug_id(project_id: int) -> "FlatFileIdentifier":
+    def for_debug_id(project_id: int) -> FlatFileIdentifier:
         return FlatFileIdentifier(project_id, release=NULL_STRING, dist=NULL_STRING)
 
     def is_indexing_by_release(self) -> bool:
@@ -183,7 +185,7 @@ class FlatFileIdentifier(NamedTuple):
         result = ArtifactBundleFlatFileIndex.objects.filter(
             project_id=self.project_id, release_name=self.release, dist_name=self.dist
         ).first()
-        if result is None or result.flat_file_index is None:
+        if result is None:
             return None
 
         return FlatFileMeta(id=result.id, date=result.date_added)
@@ -236,7 +238,7 @@ class FlatFileIdentifier(NamedTuple):
 
 @sentry_sdk.tracing.trace
 def update_artifact_bundle_index(
-    bundle_meta: "BundleMeta", bundle_archive: ArtifactBundleArchive, identifier: FlatFileIdentifier
+    bundle_meta: BundleMeta, bundle_archive: ArtifactBundleArchive, identifier: FlatFileIdentifier
 ):
     """
     This will merge the `ArtifactBundle` given via `bundle_meta` and `bundle_archive`
@@ -310,8 +312,8 @@ class FlatFileIndex:
         self._files_by_url: FilesByUrl = {}
         self._files_by_debug_id: FilesByDebugID = {}
 
-    def from_json(self, json_str: str) -> None:
-        json_idx = json.loads(json_str)
+    def from_json(self, raw_json: str | bytes) -> None:
+        json_idx = json.loads(raw_json, use_rapid_json=True)
 
         bundles = json_idx.get("bundles", [])
         self._bundles = [

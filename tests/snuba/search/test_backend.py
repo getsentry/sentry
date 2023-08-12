@@ -1,3 +1,4 @@
+import time
 import uuid
 from datetime import datetime, timedelta
 from typing import Any
@@ -5,7 +6,9 @@ from unittest import mock
 
 import pytest
 import pytz
+import urllib3
 from django.utils import timezone
+from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
 
 from sentry import options
 from sentry.api.issue_search import convert_query_values, issue_search_config, parse_search_query
@@ -39,11 +42,12 @@ from sentry.search.snuba.backend import (
 )
 from sentry.search.snuba.executors import InvalidQueryForExecutor, PrioritySortWeights
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers import Feature
+from sentry.testutils.cases import SnubaTestCase, TestCase, TransactionTestCase
+from sentry.testutils.helpers import Feature, apply_feature_flag_on_cls
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import xfail_if_not_postgres
 from sentry.types.group import GroupSubStatus
+from sentry.utils import json
 from sentry.utils.snuba import SENTRY_SNUBA_MAP, SnubaError
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -52,7 +56,7 @@ def date_to_query_format(date):
     return date.strftime("%Y-%m-%dT%H:%M:%S")
 
 
-class SharedSnubaTest(TestCase, SnubaTestCase):
+class SharedSnubaMixin(SnubaTestCase):
     @property
     def backend(self) -> SnubaSearchBackendBase:
         raise NotImplementedError(self)
@@ -113,7 +117,7 @@ class SharedSnubaTest(TestCase, SnubaTestCase):
         return event
 
 
-class EventsSnubaSearchTest(SharedSnubaTest):
+class EventsDatasetTestSetup(SharedSnubaMixin):
     @property
     def backend(self):
         return EventsDatasetSnubaSearchBackend()
@@ -286,6 +290,8 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             results = self.make_query(search_filter_query=f"!{query}", user=user)
             assert sorted(results, key=sort_key) == sorted(expected_negative_groups, key=sort_key)
 
+
+class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
     def test_query(self):
         results = self.make_query(search_filter_query="foo")
         assert set(results) == {self.group1}
@@ -2407,7 +2413,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             try:
                 self.make_query(search_filter_query=query)
             except SnubaError as e:
-                self.fail(f"Query {query} errored. Error info: {e}")
+                self.fail(f"Query {query} errored. Error info: {e}")  # type:ignore[attr-defined]
 
         for key in SENTRY_SNUBA_MAP:
             if key in ["project.id", "issue.id", "performance.issue_ids"]:
@@ -2568,7 +2574,61 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert len(results) == 0
 
 
-class EventsPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
+class EventsSnubaSearchTest(TestCase, EventsSnubaSearchTestCases):
+    pass
+
+
+@apply_feature_flag_on_cls("organizations:issue-search-group-attributes-side-query")
+class EventsJoinedGroupAttributesSnubaSearchTest(TransactionTestCase, EventsSnubaSearchTestCases):
+    def setUp(self):
+        def post_insert(snapshot: GroupAttributesSnapshot):
+            from sentry.utils import snuba
+
+            try:
+                resp = snuba._snuba_pool.urlopen(
+                    "POST",
+                    "/tests/entities/group_attributes/insert",
+                    body=json.dumps([snapshot]),
+                    headers={},
+                )
+                if resp.status != 200:
+                    raise snuba.SnubaError(
+                        f"HTTP {resp.status} response from Snuba! {json.loads(resp.data)}"
+                    )
+                return None
+            except urllib3.exceptions.HTTPError as err:
+                raise snuba.SnubaError(err)
+
+        with self.options({"issues.group_attributes.send_kafka": True}), mock.patch(
+            "sentry.issues.attributes.produce_snapshot_to_kafka", post_insert
+        ):
+            super().setUp()
+
+    @mock.patch("sentry.utils.metrics.timer")
+    @mock.patch("sentry.utils.metrics.incr")
+    def test_is_unresolved_query_logs_metric(self, metrics_incr, metrics_timer):
+        results = self.make_query(search_filter_query="is:unresolved")
+        assert set(results) == {self.group1}
+
+        # introduce a slight delay so the async future has time to run and log the metric
+        time.sleep(0.10)
+
+        metrics_incr_called = False
+        for call in metrics_incr.call_args_list:
+            args, kwargs = call
+            if "snuba.search.group_attributes_joined.events_compared" in set(args):
+                metrics_incr_called = True
+        assert metrics_incr_called
+
+        metrics_timer_called = False
+        for call in metrics_timer.call_args_list:
+            args, kwargs = call
+            if "snuba.search.group_attributes_joined.duration" in set(args):
+                metrics_timer_called = True
+        assert metrics_timer_called
+
+
+class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
     @property
     def backend(self):
         return EventsDatasetSnubaSearchBackend()
@@ -2973,7 +3033,7 @@ class EventsPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
         assert profile_group_score > 0
 
 
-class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
+class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
     @property
     def backend(self):
         return EventsDatasetSnubaSearchBackend()
@@ -3344,7 +3404,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         assert set(error_and_perf_issues) > set(error_issues_only)
 
 
-class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
+class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
     @property
     def backend(self):
         return EventsDatasetSnubaSearchBackend()
@@ -3630,7 +3690,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
             )
 
 
-class CdcEventsSnubaSearchTest(SharedSnubaTest):
+class CdcEventsSnubaSearchTest(TestCase, SharedSnubaMixin):
     @property
     def backend(self):
         return CdcEventsDatasetSnubaSearchBackend()

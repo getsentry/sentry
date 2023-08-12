@@ -5,7 +5,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
   ChangedSuspectSpan,
-  NumberedList,
+  NumberedSpansList,
   SpanChangeType,
 } from 'sentry/views/performance/trends/changeExplorerUtils/spansList';
 import {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
@@ -303,7 +303,7 @@ describe('Performance > Trends > Performance Change Explorer > Spans List', func
     const data = initializeData();
 
     render(
-      <NumberedList
+      <NumberedSpansList
         spans={longSpanList}
         location={data.location}
         organization={data.organization}
@@ -334,7 +334,7 @@ describe('Performance > Trends > Performance Change Explorer > Spans List', func
     const data = initializeData();
 
     render(
-      <NumberedList
+      <NumberedSpansList
         spans={longSpanList.reverse()}
         location={data.location}
         organization={data.organization}
@@ -365,7 +365,7 @@ describe('Performance > Trends > Performance Change Explorer > Spans List', func
     const data = initializeData();
 
     render(
-      <NumberedList
+      <NumberedSpansList
         spans={shortSpanList}
         location={data.location}
         organization={data.organization}

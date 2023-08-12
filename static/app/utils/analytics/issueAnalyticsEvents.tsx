@@ -21,6 +21,13 @@ type SourceMapWizardParam = {
 
 interface GroupEventParams extends CommonGroupAnalyticsData, BaseEventAnalyticsParams {}
 
+interface EventDropdownParams {
+  event_id: string;
+  from_event_type: string;
+  group_id: string;
+  selected_event_type: string;
+}
+
 interface ExternalIssueParams extends CommonGroupAnalyticsData {
   external_issue_provider: string;
   external_issue_type: IntegrationType;
@@ -57,6 +64,7 @@ export type IssueEventParameters = {
     reason?: string;
   };
   'issue_details.event_details_clicked': GroupEventParams;
+  'issue_details.event_dropdown_option_selected': EventDropdownParams;
   'issue_details.external_issue_created': ExternalIssueParams;
   'issue_details.external_issue_loaded': ExternalIssueParams & {success: boolean};
   'issue_details.external_issue_modal_opened': ExternalIssueParams;
@@ -277,6 +285,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'source_map_debug.expand_clicked': 'Source Map Debug: Expand Clicked',
   'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',
   'issue_details.event_details_clicked': 'Issue Details: Full Event Details Clicked',
+  'issue_details.event_dropdown_option_selected':
+    'Issue Details: Event Dropdown Option Selected',
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
   'issue_group_details.anr_root_cause_detected': 'Detected ANR Root Cause',
   'issue_details.external_issue_loaded': 'Issue Details: External Issue Loaded',

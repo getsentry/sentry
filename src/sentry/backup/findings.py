@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum, unique
+from enum import IntEnum, auto, unique
 from typing import NamedTuple
 
 
@@ -23,44 +23,51 @@ class InstanceID(NamedTuple):
 
 
 @unique
-class ComparatorFindingKind(Enum):
+class ComparatorFindingKind(IntEnum):
     # The instances of a particular model did not maintain total ordering of pks (that is, pks did not appear in ascending order, or appear multiple times).
-    UnorderedInput = 1
+    UnorderedInput = auto()
 
     # The number of instances of a particular model on the left and right side of the input were not
     # equal.
-    UnequalCounts = 2
+    UnequalCounts = auto()
 
     # The JSON of two instances of a model, after certain fields have been scrubbed by all applicable comparators, were not byte-for-byte equivalent.
-    UnequalJSON = 3
+    UnequalJSON = auto()
 
     # Two datetime fields were not equal.
-    DatetimeEqualityComparator = 4
+    DatetimeEqualityComparator = auto()
 
     # Failed to compare datetimes because one of the fields being compared was not present or
     # `None`.
-    DatetimeEqualityComparatorExistenceCheck = 5
+    DatetimeEqualityComparatorExistenceCheck = auto()
 
     # The right side field's datetime value was not greater (ie, "newer") than the left side's.
-    DateUpdatedComparator = 6
+    DateUpdatedComparator = auto()
 
     # Failed to compare datetimes because one of the fields being compared was not present or
     # `None`.
-    DateUpdatedComparatorExistenceCheck = 7
+    DateUpdatedComparatorExistenceCheck = auto()
 
     # Email equality comparison failed.
-    EmailObfuscatingComparator = 8
+    EmailObfuscatingComparator = auto()
 
     # Failed to compare emails because one of the fields being compared was not present or
     # `None`.
-    EmailObfuscatingComparatorExistenceCheck = 9
+    EmailObfuscatingComparatorExistenceCheck = auto()
 
     # Hash equality comparison failed.
-    HashObfuscatingComparator = 10
+    HashObfuscatingComparator = auto()
 
     # Failed to compare hashes because one of the fields being compared was not present or
     # `None`.
-    HashObfuscatingComparatorExistenceCheck = 11
+    HashObfuscatingComparatorExistenceCheck = auto()
+
+    # Failed to compare an ignored field.
+    IgnoredComparator = auto()
+
+    # Failed to compare an ignored field because one of the fields being compared was not present or
+    # `None`.
+    IgnoredComparatorExistenceCheck = auto()
 
 
 class ComparatorFinding(NamedTuple):
