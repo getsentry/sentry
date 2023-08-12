@@ -24,7 +24,6 @@ class OrganizationMapping(Model):
 
     organization_id = BoundedBigIntegerField(db_index=True, unique=True)
     slug = models.SlugField(unique=True)
-    # TODO(hybrid-cloud): Name is currently blank for all records. Updating an org name should happen for all applicable slugs.
     name = models.CharField(max_length=64)
     date_created = models.DateTimeField(default=timezone.now)
     customer_id = models.CharField(max_length=255, db_index=True, null=True)

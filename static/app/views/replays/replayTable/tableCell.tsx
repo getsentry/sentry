@@ -29,7 +29,7 @@ type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
 };
 
-export type ReferrerTableType = 'main' | 'dead-rage-table' | 'errors-table';
+export type ReferrerTableType = 'main' | 'dead-table' | 'errors-table' | 'rage-table';
 
 function getUserBadgeUser(replay: Props['replay']) {
   return replay.is_archived
@@ -97,7 +97,9 @@ export function ReplayCell({
     switch (referrer_table) {
       case 'errors-table':
         return replayDetailsErrorTab;
-      case 'dead-rage-table':
+      case 'dead-table':
+        return replayDetailsDOMEventsTab;
+      case 'rage-table':
         return replayDetailsDOMEventsTab;
       default:
         return replayDetails;

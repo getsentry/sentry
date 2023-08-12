@@ -306,6 +306,7 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1016
     slug = "performance_http_overhead"
     description = "HTTP/1.1 Overhead"
+    noise_config = NoiseConfig(ignore_limit=100)
     category = GroupCategory.PERFORMANCE.value
 
 
@@ -360,6 +361,14 @@ class ProfileRegexType(GroupType):
     description = "Regex on Main Thread"
     category = GroupCategory.PERFORMANCE.value
     released = True
+
+
+@dataclass(frozen=True)
+class ProfileFrameDropExperimentalType(GroupType):
+    type_id = 2008
+    slug = "profile_frame_drop_experimental"
+    description = "Frame Drop"
+    category = GroupCategory.PERFORMANCE.value
 
 
 @dataclass(frozen=True)

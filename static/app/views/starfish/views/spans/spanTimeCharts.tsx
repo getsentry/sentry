@@ -18,11 +18,14 @@ import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
 import {
   DataTitles,
+  getDurationChartTitle,
   getThroughputChartTitle,
 } from 'sentry/views/starfish/views/spans/types';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const {SPAN_SELF_TIME, SPAN_OP, SPAN_MODULE, SPAN_DESCRIPTION} = SpanMetricsFields;
+
+const CHART_HEIGHT = 140;
 
 type Props = {
   appliedFilters: AppliedFilters;
@@ -65,7 +68,7 @@ export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props
   > = {
     [ModuleName.ALL]: [
       {title: getThroughputChartTitle(moduleName), Comp: ThroughputChart},
-      {title: DataTitles.avg, Comp: DurationChart},
+      {title: getDurationChartTitle(moduleName), Comp: DurationChart},
     ],
     [ModuleName.DB]: [],
     [ModuleName.HTTP]: [{title: DataTitles.errorCount, Comp: ErrorChart}],
@@ -122,7 +125,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
 
   return (
     <Chart
-      height={100}
+      height={CHART_HEIGHT}
       data={throughputTimeSeries}
       loading={isLoading}
       utc={false}
@@ -178,7 +181,7 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
 
   return (
     <Chart
-      height={100}
+      height={CHART_HEIGHT}
       data={[...avgSeries]}
       loading={isLoading}
       utc={false}
@@ -212,7 +215,7 @@ function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
 
   return (
     <Chart
-      height={100}
+      height={CHART_HEIGHT}
       data={[errorRateSeries]}
       loading={isLoading}
       utc={false}

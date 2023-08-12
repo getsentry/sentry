@@ -42,6 +42,12 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
   const organization = useOrganization();
   const {query} = useLocation();
 
+  const onOpenDetailPanel = useCallback(() => {
+    if (query.transaction) {
+      trackAnalytics('starfish.panel.open', {organization});
+    }
+  }, [organization, query.transaction]);
+
   return (
     <PageErrorProvider>
       <DetailPanel
@@ -52,11 +58,7 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
             query: omit(router.location.query, 'transaction', 'transactionMethod'),
           });
         }}
-        onOpen={useCallback(() => {
-          if (query.transaction) {
-            trackAnalytics('starfish.panel.open', {organization});
-          }
-        }, [organization, query.transaction])}
+        onOpen={onOpenDetailPanel}
       >
         <h3>{`${transactionMethod} ${transactionName}`}</h3>
         <PageErrorAlert />

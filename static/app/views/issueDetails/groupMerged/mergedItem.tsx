@@ -104,7 +104,7 @@ class MergedItem extends Component<Props, State> {
     return (
       <MergedGroup busy={busy}>
         <Controls expanded={!collapsed}>
-          <FingerprintLabel onClick={this.handleLabelClick}>
+          <FingerprintLabel onClick={this.handleToggle}>
             <Tooltip
               containerDisplayMode="flex"
               disabled={!checkboxDisabled}

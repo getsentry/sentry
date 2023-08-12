@@ -59,7 +59,6 @@ function ReplayTable({
   const routes = useRoutes();
   const newLocation = useLocation();
   const organization = useOrganization();
-  const showBottomBorder = visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS);
 
   const {
     selection: {projects},
@@ -96,7 +95,7 @@ function ReplayTable({
         data-test-id="replay-table"
         gridRows={undefined}
       >
-        <StyledAlert type="error" showIcon showBottomBorder={showBottomBorder}>
+        <StyledAlert type="error" showIcon>
           {typeof fetchError === 'string'
             ? fetchError
             : t(
@@ -109,7 +108,8 @@ function ReplayTable({
 
   if (
     needSDKUpgrade.needsUpdate &&
-    visibleColumns.includes(ReplayColumn.COUNT_DEAD_CLICKS)
+    (visibleColumns.includes(ReplayColumn.COUNT_DEAD_CLICKS) ||
+      visibleColumns.includes(ReplayColumn.COUNT_RAGE_CLICKS))
   ) {
     return (
       <StyledPanelTable
@@ -120,13 +120,11 @@ function ReplayTable({
         loader={<LoadingIndicator style={{margin: '54px auto'}} />}
         disablePadding
       >
-        <StyledAlert type="info" showIcon showBottomBorder={showBottomBorder}>
+        <StyledAlert type="info" showIcon>
           {tct('[data] requires [sdkPrompt]. [link:Upgrade now.]', {
             data: <strong>Rage and dead clicks</strong>,
             sdkPrompt: <strong>{t('SDK version >= 7.60.1')}</strong>,
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/npm/" />
-            ),
+            link: <ExternalLink href="https://docs.sentry.io/platforms/javascript/" />,
           })}
         </StyledAlert>
       </StyledPanelTable>
@@ -205,7 +203,20 @@ function ReplayTable({
                       referrer={referrer}
                       showUrl={false}
                       eventView={eventView}
-                      referrer_table="dead-rage-table"
+                      referrer_table="rage-table"
+                    />
+                  );
+
+                case ReplayColumn.MOST_DEAD_CLICKS:
+                  return (
+                    <ReplayCell
+                      key="mostDeadClicks"
+                      replay={replay}
+                      organization={organization}
+                      referrer={referrer}
+                      showUrl={false}
+                      eventView={eventView}
+                      referrer_table="dead-table"
                     />
                   );
 
@@ -237,6 +248,7 @@ function ReplayTable({
 const flexibleColumns = [
   ReplayColumn.REPLAY,
   ReplayColumn.MOST_RAGE_CLICKS,
+  ReplayColumn.MOST_DEAD_CLICKS,
   ReplayColumn.MOST_ERRONEOUS_REPLAYS,
 ];
 
@@ -246,6 +258,7 @@ const StyledPanelTable = styled(PanelTable)<{
 }>`
   ${props =>
     props.visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS) ||
+    props.visibleColumns.includes(ReplayColumn.MOST_DEAD_CLICKS) ||
     props.visibleColumns.includes(ReplayColumn.MOST_ERRONEOUS_REPLAYS)
       ? `border-bottom-left-radius: 0; border-bottom-right-radius: 0;`
       : ``}
@@ -264,12 +277,11 @@ const StyledPanelTable = styled(PanelTable)<{
       : `grid-template-rows: 44px max-content;`}
 `;
 
-const StyledAlert = styled(Alert)<{showBottomBorder?: boolean}>`
+const StyledAlert = styled(Alert)`
   border-radius: 0;
+  border-width: 1px 0 0 0;
   grid-column: 1/-1;
   margin-bottom: 0;
-  ${props =>
-    props.showBottomBorder ? `border-width: 1px 0 1px 0;` : `border-width: 1px 0 0 0;`}
 `;
 
 export default ReplayTable;

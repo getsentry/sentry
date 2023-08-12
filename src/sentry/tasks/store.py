@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from time import time
 from typing import Any, Callable, Dict, List, Optional
@@ -16,6 +17,7 @@ from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
 from sentry.models import Activity, Organization, Project, ProjectOption
+from sentry.silo import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
@@ -77,19 +79,28 @@ def submit_process(
     )
 
 
+@dataclass(frozen=True)
+class SaveEventTaskKind:
+    has_attachments: bool = False
+    from_reprocessing: bool = False
+
+
 def submit_save_event(
+    task_kind: SaveEventTaskKind,
     project_id: int,
-    from_reprocessing: bool,
     cache_key: Optional[str],
     event_id: Optional[str],
     start_time: Optional[int],
     data: Optional[Event],
-    has_attachments: bool,
 ) -> None:
     if cache_key:
         data = None
 
     # XXX: honor from_reprocessing
+    if task_kind.has_attachments:
+        task = save_event_attachments
+    else:
+        task = save_event
 
     task_kwargs = {
         "cache_key": cache_key,
@@ -99,7 +110,7 @@ def submit_save_event(
         "project_id": project_id,
     }
 
-    (save_event_attachments if has_attachments else save_event).delay(**task_kwargs)
+    task.delay(**task_kwargs)
 
 
 def _do_preprocess_event(
@@ -183,14 +194,16 @@ def _do_preprocess_event(
         )
         return
 
+    task_kind = SaveEventTaskKind(
+        has_attachments=has_attachments, from_reprocessing=from_reprocessing
+    )
     submit_save_event(
+        task_kind,
         project_id=project_id,
-        from_reprocessing=from_reprocessing,
         cache_key=cache_key,
         event_id=event_id,
         start_time=start_time,
         data=original_data,
-        has_attachments=has_attachments,
     )
 
 
@@ -199,6 +212,7 @@ def _do_preprocess_event(
     queue="events.preprocess_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def preprocess_event(
     cache_key: str,
@@ -225,6 +239,7 @@ def preprocess_event(
     queue="events.reprocessing.preprocess_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def preprocess_event_from_reprocessing(
     cache_key: str,
@@ -249,6 +264,7 @@ def preprocess_event_from_reprocessing(
     queue="sleep",
     time_limit=(60 * 5) + 5,
     soft_time_limit=60 * 5,
+    silo_mode=SiloMode.REGION,
 )
 def retry_process_event(process_task_name: str, task_kwargs: Dict[str, Any], **kwargs: Any) -> None:
     """
@@ -298,15 +314,17 @@ def do_process_event(
     event_id = data["event_id"]
 
     def _continue_to_save_event() -> None:
-        from_reprocessing = process_task is process_event_from_reprocessing
+        task_kind = SaveEventTaskKind(
+            from_reprocessing=process_task is process_event_from_reprocessing,
+            has_attachments=has_attachments,
+        )
         submit_save_event(
+            task_kind,
             project_id=project_id,
-            from_reprocessing=from_reprocessing,
             cache_key=cache_key,
             event_id=event_id,
             start_time=start_time,
             data=data,
-            has_attachments=has_attachments,
         )
 
     if killswitch_matches_context(
@@ -448,6 +466,7 @@ def do_process_event(
     queue="events.process_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def process_event(
     cache_key: str,
@@ -484,6 +503,7 @@ def process_event(
     queue="events.reprocessing.process_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def process_event_from_reprocessing(
     cache_key: str,
@@ -802,6 +822,7 @@ def time_synthetic_monitoring_event(
     queue="events.save_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def save_event(
     cache_key: Optional[str] = None,
@@ -819,6 +840,7 @@ def save_event(
     queue="events.save_event_transaction",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def save_event_transaction(
     cache_key: Optional[str] = None,
@@ -836,6 +858,7 @@ def save_event_transaction(
     queue="events.save_event_attachments",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def save_event_attachments(
     cache_key: Optional[str] = None,
