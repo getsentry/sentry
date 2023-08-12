@@ -82,7 +82,9 @@ class SentryAppSerializer(Serializer):
         user_org_ids = attrs["user_org_ids"]
 
         if owner:
-            if (env.request and is_active_superuser(env.request)) or owner.id in user_org_ids:
+            if (env.request and is_active_superuser(env.request)) or (
+                hasattr(user, "get_orgs") and owner.id in user_org_ids
+            ):
                 client_secret = (
                     obj.application.client_secret if obj.show_auth_info(access) else MASKED_VALUE
                 )

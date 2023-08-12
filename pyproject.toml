@@ -405,6 +405,7 @@ module = [
     "sentry.discover.endpoints.serializers",
     "sentry.eventstore.models",
     "sentry.features.handler",
+    "sentry.features.helpers",
     "sentry.features.manager",
     "sentry.filestore.gcs",
     "sentry.filestore.s3",
