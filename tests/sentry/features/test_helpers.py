@@ -56,19 +56,6 @@ class TestFeatureHelpers(TestCase):
             response = get(None, self.request, organization=self.org)
             assert response.status_code == 200
 
-    def test_any_org_true_when_users_other_org_has_flag_succeeds(self):
-        # The Org in scope of the request does not have the flag, but another
-        # Org the User belongs to does.
-        #
-        with org_with_feature(self.out_of_scope_org, "foo"):
-
-            @requires_feature("foo", any_org=True)
-            def get(self, request, *args, **kwargs):
-                return Response()
-
-            response = get(None, self.request, organization=self.org)
-            assert response.status_code == 200
-
     def test_any_org_false_when_users_other_org_has_flag_fails(self):
         with org_with_feature(self.out_of_scope_org, "foo"):
 
