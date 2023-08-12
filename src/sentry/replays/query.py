@@ -22,6 +22,7 @@ from snuba_sdk import (
 from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry import features
 from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import (
@@ -73,17 +74,19 @@ def query_replays_collection(
 
     paginators = make_pagination_values(limit, offset)
 
-    return query_using_aggregated_search(
-        fields,
-        search_filters,
-        environment,
-        sort,
-        paginators,
-        organization,
-        project_ids,
-        start,
-        end,
-    )
+    if features.has("organizations:replays-optimized-search", organization, actor=actor):
+        raise Exception("proof!")
+        return query_using_aggregated_search(
+            fields,
+            search_filters,
+            environment,
+            sort,
+            paginators,
+            organization,
+            project_ids,
+            start,
+            end,
+        )
 
     # Attempt to eager return with subquery.
 
