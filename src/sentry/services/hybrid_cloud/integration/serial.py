@@ -20,7 +20,10 @@ def serialize_integration(integration: Integration) -> RpcIntegration:
 
 def serialize_organization_integration(oi: OrganizationIntegration) -> RpcOrganizationIntegration:
     config: Dict[str, Any] = dict(**oi.config)
-    if oi.integration.provider == ExternalProviders.PAGERDUTY.name:
+    if (
+        oi.integration.provider == ExternalProviders.PAGERDUTY.name
+        and "pagerduty_services" not in config
+    ):
         config["pagerduty_services"] = [
             pds.as_dict()
             for pds in PagerDutyService.objects.filter(organization_integration_id=oi.id)
