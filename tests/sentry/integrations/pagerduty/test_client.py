@@ -55,7 +55,7 @@ class PagerDutyProxyClientTest(APITestCase):
 
     @responses.activate
     def test_send_trigger(self):
-        integration_key = self.service.integration_key
+        integration_key = self.service["integration_key"]
 
         event = self.store_event(
             data={
