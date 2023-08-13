@@ -7,12 +7,13 @@ import TraceLiteQuery from 'sentry/utils/performance/quickTrace/traceLiteQuery';
 import {
   QuickTraceQueryChildrenProps,
   TraceFull,
+  TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {
   flattenRelevantPaths,
   getTraceTimeRangeFromEvent,
   isCurrentEvent,
-  isTraceFullSplitResult,
+  isTraceSplitResult,
 } from 'sentry/utils/performance/quickTrace/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -73,22 +74,30 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
                 organization.features.includes(
                   'performance-tracing-without-performance'
                 ) &&
-                isTraceFullSplitResult(traceFullResults.traces)
+                isTraceSplitResult<TraceSplitResults<TraceFull>, TraceFull[]>(
+                  traceFullResults.traces
+                )
               ) {
                 traceFullResults.traces = traceFullResults.traces.transactions;
               }
 
-              for (const subtrace of traceFullResults.traces as TraceFull[]) {
-                try {
-                  const trace = flattenRelevantPaths(event, subtrace);
-                  return children({
-                    ...traceFullResults,
-                    trace,
-                    currentEvent: trace.find(e => isCurrentEvent(e, event)) ?? null,
-                  });
-                } catch {
-                  // let this fall through and check the next subtrace
-                  // or use the trace lite results
+              if (
+                !isTraceSplitResult<TraceSplitResults<TraceFull>, TraceFull[]>(
+                  traceFullResults.traces
+                )
+              ) {
+                for (const subtrace of traceFullResults.traces) {
+                  try {
+                    const trace = flattenRelevantPaths(event, subtrace);
+                    return children({
+                      ...traceFullResults,
+                      trace,
+                      currentEvent: trace.find(e => isCurrentEvent(e, event)) ?? null,
+                    });
+                  } catch {
+                    // let this fall through and check the next subtrace
+                    // or use the trace lite results
+                  }
                 }
               }
             }
@@ -120,7 +129,10 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               // event could not be found
               type:
                 traceFullResults.traces &&
-                (traceFullResults.traces as TraceFull[])?.length
+                !isTraceSplitResult<TraceSplitResults<TraceFull>, TraceFull[]>(
+                  traceFullResults.traces
+                ) &&
+                traceFullResults.traces?.length
                   ? 'missing'
                   : 'empty',
               currentEvent: null,

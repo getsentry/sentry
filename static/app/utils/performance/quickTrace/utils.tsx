@@ -11,11 +11,9 @@ import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {
   QuickTrace,
   QuickTraceEvent,
-  TraceDetailedSplitResults,
   TraceError,
   TraceFull,
   TraceFullDetailed,
-  TraceFullSplitResults,
   TraceLite,
 } from 'sentry/utils/performance/quickTrace/types';
 import {TraceRoot} from 'sentry/views/performance/traceDetails/types';
@@ -309,28 +307,28 @@ export function filterTrace(
   );
 }
 
-export function isTraceFull(transaction): transaction is TraceFull {
-  return Boolean((transaction as TraceFull).event_id);
+export function isTraceTransaction<U extends TraceFull | TraceFullDetailed>(
+  transaction: TraceRoot | TraceError | QuickTraceEvent | U
+): transaction is U {
+  return 'event_id' in transaction;
 }
 
-export function isTraceFullDetailed(transaction): transaction is TraceFullDetailed {
-  return Boolean((transaction as TraceFullDetailed).event_id);
+export function isTraceError(
+  transaction: TraceRoot | TraceError | TraceFullDetailed
+): transaction is TraceError {
+  return 'level' in transaction;
 }
 
-export function isTraceError(transaction): transaction is TraceError {
-  return Boolean((transaction as TraceError).level);
+export function isTraceRoot(
+  transaction: TraceRoot | TraceError | TraceFullDetailed
+): transaction is TraceRoot {
+  return 'traceSlug' in transaction;
 }
 
-export function isTraceRoot(transaction): transaction is TraceRoot {
-  return Boolean((transaction as TraceRoot).traceSlug);
-}
-
-export function isTraceDetailedSplitResult(result): result is TraceDetailedSplitResults {
-  return Boolean((result as TraceDetailedSplitResults).transactions);
-}
-
-export function isTraceFullSplitResult(result): result is TraceFullSplitResults {
-  return Boolean((result as TraceFullSplitResults).transactions);
+export function isTraceSplitResult<U extends object, V extends object>(
+  result: U | V
+): result is U {
+  return 'transactions' in result;
 }
 
 function handleProjectMeta(organization: OrganizationSummary, projects: number) {

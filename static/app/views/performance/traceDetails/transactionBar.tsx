@@ -55,8 +55,8 @@ import {defined} from 'sentry/utils';
 import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {
   isTraceError,
-  isTraceFullDetailed,
   isTraceRoot,
+  isTraceTransaction,
 } from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
 
@@ -134,7 +134,7 @@ class TransactionBar extends Component<Props, State> {
       return;
     }
 
-    if (isTraceFullDetailed(transaction)) {
+    if (isTraceTransaction<TraceFullDetailed>(transaction)) {
       this.setState(state => ({
         showDetail: !state.showDetail,
       }));
@@ -204,7 +204,7 @@ class TransactionBar extends Component<Props, State> {
 
     const {generation = 0} = transaction;
     const eventId =
-      isTraceFullDetailed(transaction) || isTraceError(transaction)
+      isTraceTransaction<TraceFullDetailed>(transaction) || isTraceError(transaction)
         ? transaction.event_id
         : transaction.traceSlug;
 
@@ -314,12 +314,12 @@ class TransactionBar extends Component<Props, State> {
     const {organization, transaction, addContentSpanBarRef, removeContentSpanBarRef} =
       this.props;
     const left = this.getCurrentOffset();
-    const errored = isTraceFullDetailed(transaction)
+    const errored = isTraceTransaction<TraceFullDetailed>(transaction)
       ? transaction.errors &&
         transaction.errors.length + transaction.performance_issues.length > 0
       : false;
 
-    const projectBadge = (isTraceFullDetailed(transaction) ||
+    const projectBadge = (isTraceTransaction<TraceFullDetailed>(transaction) ||
       isTraceError(transaction)) && (
       <Projects orgId={organization.slug} slugs={[transaction.project_slug]}>
         {({projects}) => {
@@ -349,7 +349,7 @@ class TransactionBar extends Component<Props, State> {
           </ErrorLink>
         </RowTitleContent>
       </Fragment>
-    ) : isTraceFullDetailed(transaction) ? (
+    ) : isTraceTransaction<TraceFullDetailed>(transaction) ? (
       <Fragment>
         {projectBadge}
         <RowTitleContent errored={errored}>
@@ -651,7 +651,9 @@ class TransactionBar extends Component<Props, State> {
         ref={this.transactionRowDOMRef}
         visible={isVisible}
         showBorder={showDetail}
-        cursor={isTraceFullDetailed(transaction) ? 'pointer' : 'default'}
+        cursor={
+          isTraceTransaction<TraceFullDetailed>(transaction) ? 'pointer' : 'default'
+        }
       >
         <ScrollbarManager.Consumer>
           {scrollbarManagerChildrenProps => (
