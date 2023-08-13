@@ -261,6 +261,7 @@ describe('Performance > Trends', function () {
             'p95()': 1010.9232499999998,
             'p50()': 47.34580982348902,
             'tps()': 3.7226926286168966,
+            'examples()': ['djk3w308er', '3298a9ui3h'],
           },
         ],
         meta: {
@@ -268,11 +269,13 @@ describe('Performance > Trends', function () {
             'p95()': 'duration',
             '950()': 'duration',
             'tps()': 'number',
+            'examples()': 'Array',
           },
           units: {
             'p95()': 'millisecond',
             'p50()': 'millisecond',
             'tps()': null,
+            'examples()': null,
           },
           isMetricsData: true,
           tips: {},
