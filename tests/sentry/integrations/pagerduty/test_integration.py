@@ -144,7 +144,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         oi.refresh_from_db()
         services = OrganizationIntegration.services_in(oi.config)
         assert services[1]["id"]
-        del services[1]["id"]
+        del services[1]["id"]  # type: ignore
         assert services == [
             service,
             dict(
@@ -173,7 +173,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         oi.refresh_from_db()
         services = OrganizationIntegration.services_in(oi.config)
 
-        del services[1]["id"]
+        del services[1]["id"]  # type: ignore
 
         assert services == [
             dict(
