@@ -1,7 +1,9 @@
 from sentry.models import (
     Authenticator,
+    Organization,
     OrganizationMember,
     OrganizationMemberTeam,
+    Project,
     SavedSearch,
     User,
     UserEmail,
@@ -22,7 +24,7 @@ class UserTest(TestCase, HybridCloudTestMixin):
         member = OrganizationMember.objects.get(user_id=user.id, organization=org)
         OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
 
-        organizations = user.get_orgs()
+        organizations = Organization.objects.get_for_user_ids({user.id})
         assert {_.id for _ in organizations} == {org.id}
 
     def test_hybrid_cloud_deletion(self):
@@ -51,7 +53,7 @@ class UserTest(TestCase, HybridCloudTestMixin):
         OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
         project = self.create_project(teams=[team], name="name")
 
-        projects = user.get_projects()
+        projects = Project.objects.get_for_user_ids({user.id})
         assert {_.id for _ in projects} == {project.id}
 
     def test_get_full_name(self):

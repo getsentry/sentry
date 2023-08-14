@@ -356,16 +356,6 @@ class User(BaseModel, AbstractBaseUser):
         if request is not None:
             request.session["_nonce"] = self.session_nonce
 
-    def get_orgs(self):
-        from sentry.models import Organization
-
-        return Organization.objects.get_for_user_ids({self.id})
-
-    def get_projects(self):
-        from sentry.models import Project
-
-        return Project.objects.get_for_user_ids({self.id})
-
     def get_orgs_require_2fa(self):
         from sentry.models import Organization, OrganizationStatus
 

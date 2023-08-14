@@ -20,50 +20,6 @@ def intersect_dict_set(d: Dict[int, Any], s: Set[int]) -> Dict[int, Any]:
     return {k: v for k, v in d.items() if k in s}
 
 
-def validate_organizations(
-    organization_ids_to_look_up: Set[int],
-    user: Optional[Any] = None,
-    team: Optional[Any] = None,
-) -> Mapping[int, Any]:
-    if not organization_ids_to_look_up:
-        return {}
-
-    if user:
-        organizations_by_id = {organization.id: organization for organization in user.get_orgs()}
-    elif team:
-        organizations_by_id = {team.organization.id: team.organization}
-    else:
-        raise Exception("User or Team must be set.")
-
-    missing_organization_ids = organization_ids_to_look_up - organizations_by_id.keys()
-    if missing_organization_ids:
-        raise ParameterValidationError(f"Invalid organization IDs: {missing_organization_ids}")
-
-    return intersect_dict_set(organizations_by_id, organization_ids_to_look_up)
-
-
-def validate_projects(
-    project_ids_to_look_up: Set[int],
-    user: Optional[Any] = None,
-    team: Optional[Any] = None,
-) -> Mapping[int, Any]:
-    if not project_ids_to_look_up:
-        return {}
-
-    if user:
-        projects_by_id = {project.id: project for project in user.get_projects()}
-    elif team:
-        projects_by_id = {project.id: project for project in team.get_projects()}
-    else:
-        raise Exception("User or Team must be set.")
-
-    missing_project_ids = project_ids_to_look_up - projects_by_id.keys()
-    if missing_project_ids:
-        raise ParameterValidationError(f"Invalid project IDs: {missing_project_ids}")
-
-    return intersect_dict_set(projects_by_id, project_ids_to_look_up)
-
-
 def validate_type_option(type: Optional[str]) -> Optional[NotificationSettingTypes]:
     return validate_type(type) if type else None
 
@@ -128,7 +84,6 @@ def get_valid_items(
 def validate(
     data: Mapping[str, Mapping[str, Mapping[int, Mapping[str, str]]]],
     user: Optional[Any] = None,
-    team: Optional[Any] = None,
 ) -> Iterable[
     Tuple[
         ExternalProviders,
@@ -157,8 +112,6 @@ def validate(
         ],
         NotificationSettingOptionValues,
     ] = {}
-    project_ids_to_look_up: Set[int] = set()
-    organization_ids_to_look_up: Set[int] = set()
     for type_key, notifications_by_type in get_valid_items(data, context):
         type = validate_type(type_key, context)
         context = parent_context + [type_key]
@@ -173,20 +126,12 @@ def validate(
             ):
                 scope_id = validate_scope(scope_id, scope_type, user, context)
 
-                if scope_type == NotificationScopeType.PROJECT:
-                    project_ids_to_look_up.add(scope_id)
-                elif scope_type == NotificationScopeType.ORGANIZATION:
-                    organization_ids_to_look_up.add(scope_id)
-
                 context = parent_context + [type_key, scope_type_key, str(scope_id)]
                 for provider_key, value_key in get_valid_items(notifications_by_scope_id, context):
                     provider = validate_provider(provider_key, context=context)
                     value = validate_value(type, value_key, context)
 
                     notification_settings_to_update[(type, scope_type, scope_id, provider)] = value
-
-    validate_projects(project_ids_to_look_up, user=user, team=team)
-    validate_organizations(organization_ids_to_look_up, user=user, team=team)
 
     return {
         (provider, type, scope_type, scope_id, value)
