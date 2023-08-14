@@ -74,8 +74,7 @@ def query_replays_collection(
 
     paginators = make_pagination_values(limit, offset)
 
-    if features.has("organizations:replays-optimized-search", organization, actor=actor):
-        raise Exception("proof!")
+    if features.has("organizations:session-replay-optimized-search", organization, actor=actor):
         return query_using_aggregated_search(
             fields,
             search_filters,

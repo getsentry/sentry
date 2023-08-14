@@ -1321,7 +1321,7 @@ class OrganizationReplayIndexTest(OrganizationReplayIndexMixin, APITestCase, Rep
 
 @region_silo_test
 @apply_feature_flag_on_cls("organizations:global-views")
-@apply_feature_flag_on_cls("organizations:replays-optimized-search")
+@apply_feature_flag_on_cls("organizations:session-replay-optimized-search")
 class OrganizationReplayIndexOptimizedSearchTest(
     OrganizationReplayIndexMixin, APITestCase, ReplaysSnubaTestCase
 ):
