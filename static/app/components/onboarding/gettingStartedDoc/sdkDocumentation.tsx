@@ -18,12 +18,12 @@ type SdkDocumentationProps = {
 
 export type ModuleProps = {
   dsn: string;
-  sourcePackageRegistries: ReturnType<typeof useSourcePackageRegistries>;
   activeProductSelection?: ProductSolution[];
   newOrg?: boolean;
   organization?: Organization;
   platformKey?: PlatformKey;
   projectId?: Project['id'];
+  sourcePackageRegistries?: ReturnType<typeof useSourcePackageRegistries>;
 };
 
 // Loads the component containing the documentation for the specified platform
