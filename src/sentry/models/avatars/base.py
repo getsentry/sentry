@@ -8,6 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, router
 from django.utils.encoding import force_bytes
 from PIL import Image
+from typing_extensions import Self
 
 from sentry.db.models import BoundedBigIntegerField, Model
 from sentry.models.files.file import File
@@ -119,7 +120,7 @@ class AvatarBase(Model):
         return "file_id"
 
     @classmethod
-    def save_avatar(cls, relation, type, avatar=None, filename=None, color=None):
+    def save_avatar(cls, relation, type, avatar=None, filename=None, color=None) -> Self:
         if avatar:
             # Create an instance of the current class so we can
             # access where new files should be stored.
