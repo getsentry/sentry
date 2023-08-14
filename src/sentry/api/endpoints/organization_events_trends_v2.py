@@ -36,6 +36,7 @@ ANY = "any"
 TREND_TYPES = [IMPROVED, REGRESSION, ANY]
 
 DEFAULT_TOP_EVENTS_LIMIT = 45
+MAX_TOP_EVENTS_LIMIT = 1000
 EVENTS_PER_QUERY = 15
 DAY_GRANULARITY_IN_SECONDS = METRICS_GRANULARITIES[0]
 ONE_DAY_IN_SECONDS = 24 * 60 * 60  # 86,400 seconds
@@ -231,7 +232,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         def get_event_stats_metrics(_, user_query, params, rollup, zerofill_results, __):
             top_event_limit = min(
                 int(request.GET.get("topEvents", DEFAULT_TOP_EVENTS_LIMIT)),
-                DEFAULT_TOP_EVENTS_LIMIT,
+                MAX_TOP_EVENTS_LIMIT,
             )
             # Fetch transactions names with the highest event count
             top_events = get_top_events(
