@@ -229,11 +229,15 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             return formatted_results
 
         def get_event_stats_metrics(_, user_query, params, rollup, zerofill_results, __):
+            top_event_limit = min(
+                int(request.GET.get("topEvents", DEFAULT_TOP_EVENTS_LIMIT)),
+                DEFAULT_TOP_EVENTS_LIMIT,
+            )
             # Fetch transactions names with the highest event count
             top_events = get_top_events(
                 user_query=user_query,
                 params=params,
-                event_limit=int(request.GET.get("topEvents", DEFAULT_TOP_EVENTS_LIMIT)),
+                event_limit=top_event_limit,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS.value,
             )
 
