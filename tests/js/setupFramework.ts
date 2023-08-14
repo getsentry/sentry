@@ -37,10 +37,8 @@ failOnConsole({
       return true;
     }
 
-    // This warning was removed in React 18, can be ignored in most cases
-    // https://github.com/reactwg/react-18/discussions/82
     if (
-      /Warning: Can't perform a React state update on an unmounted component/.test(
+      /ReactDOM.render is no longer supported in React 18. Use createRoot instead. Until you switch to the new API, your app will behave as if it's running React 17./.test(
         errorMessage
       )
     ) {
