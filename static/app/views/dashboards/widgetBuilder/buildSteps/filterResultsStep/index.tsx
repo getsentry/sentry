@@ -106,9 +106,9 @@ export function FilterResultsStep({
 
   const getOnDemandFilterWarning = createOnDemandFilterWarning(
     tct(
-      'We don’t routinely collect metrics from this property. However, we’ll do so [bold:once this widget has been saved.]',
+      'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
       {
-        bold: <Bold />,
+        strong: <strong />,
       }
     )
   );
@@ -256,8 +256,4 @@ const SearchConditionsWrapper = styled('div')`
 const StyledReleaseQuery = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
   color: ${p => p.theme.pink300};
-`;
-
-const Bold = styled('span')`
-  font-weight: bold;
 `;
