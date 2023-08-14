@@ -133,7 +133,7 @@ function FilterToken({
   return (
     <Tooltip
       disabled={!showTooltip}
-      title={filter.invalid?.reason || filter.warning}
+      title={filter.invalid?.reason ?? filter.warning}
       overlayStyle={{maxWidth: '350px'}}
       forceVisible
       skipWrapper

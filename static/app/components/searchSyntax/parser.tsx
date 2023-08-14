@@ -322,7 +322,6 @@ type FilterMap = {
     value: KVConverter<FilterTypeConfig[F]['validValues'][number]>;
     /**
      * A warning message associated with this filter
-     * The FE will render it as a tooltip
      */
     warning: React.ReactNode;
   };
@@ -676,10 +675,12 @@ export class TokenConverter {
    * Checks a filter against some non-grammar validation rules
    */
   checkFilterWarning = <T extends FilterType>(key: FilterMap[T]['key']) => {
-    if (key.type !== Token.KEY_SIMPLE) {
+    if (![Token.KEY_SIMPLE, Token.KEY_EXPLICIT_TAG].includes(key.type)) {
       return null;
     }
-    const keyName = getKeyName(key as TokenResult<Token.KEY_SIMPLE>);
+    const keyName = getKeyName(
+      key as TokenResult<Token.KEY_SIMPLE | Token.KEY_EXPLICIT_TAG>
+    );
     return this.config.getFilterTokenWarning?.(keyName) ?? null;
   };
 

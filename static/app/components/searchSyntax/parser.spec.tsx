@@ -88,7 +88,7 @@ describe('searchSyntax/parser', function () {
   );
 
   it('returns token warnings', () => {
-    const result = parseSearch('foo:bar bar:baz', {
+    const result = parseSearch('foo:bar bar:baz tags[foo]:bar tags[bar]:baz', {
       getFilterTokenWarning: key => (key === 'foo' ? 'foo warning' : null),
     });
 
@@ -96,12 +96,16 @@ describe('searchSyntax/parser', function () {
     if (result === null) {
       throw new Error('Parsed result as null');
     }
-    expect(result).toHaveLength(5);
+    expect(result).toHaveLength(9);
 
     const foo = result[1] as TokenResult<Token.FILTER>;
     const bar = result[3] as TokenResult<Token.FILTER>;
+    const fooTag = result[5] as TokenResult<Token.FILTER>;
+    const barTag = result[7] as TokenResult<Token.FILTER>;
 
     expect(foo.warning).toBe('foo warning');
     expect(bar.warning).toBe(null);
+    expect(fooTag.warning).toBe('foo warning');
+    expect(barTag.warning).toBe(null);
   });
 });

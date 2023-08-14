@@ -218,7 +218,7 @@ type Props = WithRouterProps &
      * A function that returns a warning message for a given filter key
      * will only show a render a warning if the value is truthy
      */
-    getFilterWarning?: (key) => React.ReactNode | null;
+    getFilterWarning?: (key) => React.ReactNode;
     /**
      * List user's recent searches
      */
