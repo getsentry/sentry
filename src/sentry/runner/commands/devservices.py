@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import contextlib
 import os
-import platform
 import shutil
 import signal
 import subprocess
@@ -20,11 +19,6 @@ if TYPE_CHECKING:
 # assigned as a constant so mypy's "unreachable" detection doesn't fail on linux
 # https://github.com/python/mypy/issues/12286
 DARWIN = sys.platform == "darwin"
-
-# platform.processor() changed at some point between these:
-# 11.2.3: arm
-# 12.3.1: arm64
-APPLE_ARM64 = DARWIN and platform.processor() in {"arm", "arm64"}
 
 USE_COLIMA = bool(shutil.which("colima"))
 

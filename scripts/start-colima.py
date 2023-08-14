@@ -17,7 +17,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         # We need to ensure that Rosetta is running, because colima will only WARN
         # if --vz-rosetta and continue on using Virtualization.Framework without Rosetta.
         # Clickhouse images do not work without Rosetta.
-        if subprocess.call(("pgrep", "oahd")) != 0:
+        if subprocess.call(("pgrep", "oahd", ">/dev/null")) != 0:
             # Going through this is the only way I've found to start rosetta, even
             # if it is installed.
             sys.stdout.write("Rosetta 2 isn't running. Expect a prompt to install/start it.\n")
