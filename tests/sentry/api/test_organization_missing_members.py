@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -53,7 +54,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
 
         self.login_as(self.user)
 
-    def test_simple__shared_domain(self):
+    def test_shared_domain_filter(self):
         # only returns users with example.com emails (shared domain)
 
         response = self.get_success_response(self.organization.slug)
@@ -63,7 +64,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
 
-    def test_need_org_write(self):
+    def test_requires_org_write(self):
         user = self.create_user()
         self.create_member(organization=self.organization, user=user, role="member")
         self.login_as(user)
@@ -95,6 +96,22 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
 
+    def test_filters_authors_with_no_external_id(self):
+        no_external_id_author = self.create_commit_author(
+            project=self.project, email="e@example.com"
+        )
+        self.create_commit(
+            repo=self.repo,
+            author=no_external_id_author,
+        )
+
+        response = self.get_success_response(self.organization.slug)
+        assert response.data[0]["integration"] == "github"
+        assert response.data[0]["users"] == [
+            {"email": "c@example.com", "externalId": "c", "commitCount": 2},
+            {"email": "d@example.com", "externalId": "d", "commitCount": 1},
+        ]
+
     def test_no_authors(self):
         org = self.create_organization(owner=self.create_user())
         self.create_member(user=self.user, organization=org, role="manager")
@@ -103,7 +120,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
         assert response.data[0]["integration"] == "github"
         assert response.data[0]["users"] == []
 
-    def test_owners_with_different_domains(self):
+    def test_owners_filters_with_different_domains(self):
         user = self.create_user(email="owner@exampletwo.com")
         self.create_member(
             organization=self.organization,
@@ -120,7 +137,21 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "a@exampletwo.com", "externalId": "not", "commitCount": 1},
         ]
 
-    def test_owners_no_user_email(self):
+    def test_owners_invalid_domain_no_filter(self):
+        OrganizationMember.objects.filter(role="owner", organization=self.organization).update(
+            user_email="example"
+        )
+
+        response = self.get_success_response(self.organization.slug)
+        assert response.data[0]["users"] == [
+            {"email": "c@example.com", "externalId": "c", "commitCount": 2},
+            {"email": "d@example.com", "externalId": "d", "commitCount": 1},
+            {"email": "a@exampletwo.com", "externalId": "not", "commitCount": 1},
+        ]
+
+    def test_excludes_empty_owner_emails(self):
+        # ignores this second owner with an empty email
+
         user = self.create_user(email="")
         self.create_member(
             organization=self.organization,

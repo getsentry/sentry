@@ -3,7 +3,6 @@ from unittest import mock
 
 import pytest
 from django.urls import reverse
-from pytz import utc
 from rest_framework.exceptions import ParseError
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
@@ -182,7 +181,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=utc)
+        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
         with self.feature(self.features):
             # Don't quantize short time periods
             self.client.get(

@@ -1,4 +1,8 @@
-export function OrganizationIntegrations(params = {}) {
+import {OrganizationIntegration} from 'sentry/types';
+
+export function OrganizationIntegrations(
+  params: Partial<OrganizationIntegration> = {}
+): OrganizationIntegration {
   return {
     id: '15',
     name: 'hb-testing',
@@ -27,6 +31,9 @@ export function OrganizationIntegrations(params = {}) {
       installationType: 'born_as_bot',
     },
     externalId: 'TA99AB9CD',
+    gracePeriodEnd: '',
+    organizationId: '',
+    organizationIntegrationStatus: 'active',
     ...params,
   };
 }
