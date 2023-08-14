@@ -40,11 +40,14 @@ from sentry.search.events.constants import EQUALITY_OPERATORS, OPERATOR_TO_DJANG
 from sentry.search.snuba.executors import (
     AbstractQueryExecutor,
     CdcPostgresSnubaQueryExecutor,
+    InvalidQueryForExecutor,
     PostgresSnubaQueryExecutor,
     PrioritySortWeights,
 )
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
+
+logger = logging.getLogger(__name__)
 
 
 def assigned_to_filter(
@@ -300,9 +303,10 @@ def _group_attributes_side_query(
         actor: Optional[Any] = None,
         aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ):
+        from sentry.utils import metrics
+
         try:
             from sentry.search.snuba.executors import GroupAttributesPostgresSnubaQueryExecutor
-            from sentry.utils import metrics
 
             executor = GroupAttributesPostgresSnubaQueryExecutor()
             with metrics.timer("snuba.search.group_attributes_joined.duration"):
@@ -339,9 +343,28 @@ def _group_attributes_side_query(
                     "snuba.search.group_attributes_joined.events_compared",
                     tags={"comparison": comparison},
                 )
-        except Exception:
-            logging.warning(
+
+            metrics.incr("snuba.search.group_attributes_joined.query", tags={"exception": "none"})
+        except InvalidQueryForExecutor as e:
+            logger.info(
+                "unsupported query received in GroupAttributesPostgresSnubaQueryExecutor",
+                exc_info=True,
+            )
+            metrics.incr(
+                "snuba.search.group_attributes_joined.query",
+                tags={
+                    "exception": f"{type(e).__module__}.{type(e).__qualname__}",
+                },
+            )
+        except Exception as e:
+            logger.warning(
                 "failed to load side query from _group_attributes_side_query", exc_info=True
+            )
+            metrics.incr(
+                "snuba.search.group_attributes_joined.query",
+                tags={
+                    "exception": f"{type(e).__module__}.{type(e).__qualname__}",
+                },
             )
         finally:
             # since this code is running in a thread and django establishes a connection per thread, we need to
@@ -373,7 +396,7 @@ def _group_attributes_side_query(
             aggregate_kwargs,
         )
     except Exception:
-        logging.exception(
+        logger.exception(
             "failed to submit group-attributes search side-query to pool", exc_info=True
         )
 

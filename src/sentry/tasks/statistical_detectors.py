@@ -7,9 +7,9 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.models.project import Project
-from sentry.profiles.statistical_detectors import TrendPayload
 from sentry.snuba import functions
 from sentry.snuba.referrer import Referrer
+from sentry.statistical_detectors.detector import TrendPayload
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors")
@@ -79,7 +79,7 @@ def detect_transaction_trends(project_ids: List[int], **kwargs) -> None:
 
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.detect_function_trends",
-    queue="performance.statistical_detector",
+    queue="profiling.statistical_detector",
     max_retries=0,
 )
 def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) -> None:

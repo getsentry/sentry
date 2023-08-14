@@ -1,12 +1,11 @@
-from datetime import timedelta
+from datetime import timedelta, timezone
 from functools import cached_property
 from unittest import mock
 from unittest.mock import Mock, call, patch
 
 import pytest
-import pytz
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from freezegun import freeze_time
 
 from sentry.incidents.logic import (
@@ -44,13 +43,13 @@ from sentry.utils.http import absolute_uri
 pytestmark = pytest.mark.sentry_metrics
 
 
-class BaseIncidentActivityTest:
+class BaseIncidentActivityTest(TestCase):
     @property
     def incident(self):
         return self.create_incident(title="hello")
 
 
-class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
+class TestSendSubscriberNotifications(BaseIncidentActivityTest):
     @pytest.fixture(autouse=True)
     def _setup_send_async_patch(self):
         with mock.patch("sentry.utils.email.MessageBuilder.send_async") as self.send_async:
@@ -89,7 +88,7 @@ class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
 
 
 @region_silo_test(stable=True)
-class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest, TestCase):
+class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest):
     @freeze_time()
     def test_simple(self):
         activity = create_incident_activity(
@@ -104,7 +103,7 @@ class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest, TestCase):
 
 
 @region_silo_test(stable=True)
-class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
+class TestBuildActivityContext(BaseIncidentActivityTest):
     def run_test(
         self, activity, expected_username, expected_action, expected_comment, expected_recipient
     ):
@@ -136,9 +135,11 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
             self.incident, IncidentActivityType.COMMENT, user=self.user, comment="hello"
         )
         recipient = self.create_user()
+        user = user_service.get_user(user_id=activity.user_id)
+        assert user is not None
         self.run_test(
             activity,
-            expected_username=user_service.get_user(user_id=activity.user_id).name,
+            expected_username=user.name,
             expected_action="left a comment",
             expected_comment=activity.comment,
             expected_recipient=recipient,
@@ -146,9 +147,11 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
         activity.type = IncidentActivityType.STATUS_CHANGE
         activity.value = str(IncidentStatus.CLOSED.value)
         activity.previous_value = str(IncidentStatus.WARNING.value)
+        user = user_service.get_user(user_id=activity.user_id)
+        assert user is not None
         self.run_test(
             activity,
-            expected_username=user_service.get_user(user_id=activity.user_id).name,
+            expected_username=user.name,
             expected_action="changed status from %s to %s"
             % (INCIDENT_STATUS[IncidentStatus.WARNING], INCIDENT_STATUS[IncidentStatus.CLOSED]),
             expected_comment=activity.comment,
@@ -243,7 +246,7 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
         return create_snuba_subscription(self.project, SUBSCRIPTION_METRICS_LOGGER, snuba_query)
 
     def build_subscription_update(self):
-        timestamp = timezone.now().replace(tzinfo=pytz.utc, microsecond=0)
+        timestamp = django_timezone.now().replace(tzinfo=timezone.utc, microsecond=0)
         data = {
             "count": 100,
             "crashed": 2.0,
@@ -284,7 +287,7 @@ class TestHandleSubscriptionMetricsLoggerV1(TestHandleSubscriptionMetricsLogger)
     """
 
     def build_subscription_update(self):
-        timestamp = timezone.now().replace(tzinfo=pytz.utc, microsecond=0)
+        timestamp = django_timezone.now().replace(tzinfo=timezone.utc, microsecond=0)
         values = {
             "data": [
                 {

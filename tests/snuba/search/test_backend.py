@@ -1,13 +1,12 @@
 import time
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest import mock
 
 import pytest
-import pytz
 import urllib3
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
 
 from sentry import options
@@ -124,7 +123,7 @@ class EventsDatasetTestSetup(SharedSnubaMixin):
 
     def setUp(self):
         super().setUp()
-        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=timezone.utc)
 
         event1_timestamp = iso_format(self.base_datetime - timedelta(days=21))
         self.event1 = self.store_event(
@@ -1844,7 +1843,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
 
         assert (
             self.make_query(
-                search_filter_query="last_seen:>%s" % date_to_query_format(timezone.now()),
+                search_filter_query="last_seen:>%s" % date_to_query_format(django_timezone.now()),
                 sort_by="date",
             ).results
             == []
@@ -1860,7 +1859,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
 
         assert (
             self.make_query(
-                search_filter_query="last_seen:>%s" % date_to_query_format(timezone.now()),
+                search_filter_query="last_seen:>%s" % date_to_query_format(django_timezone.now()),
                 sort_by="date",
             ).results
             == []
@@ -1876,7 +1875,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
 
         assert (
             self.make_query(
-                search_filter_query="last_seen:>%s" % date_to_query_format(timezone.now()),
+                search_filter_query="last_seen:>%s" % date_to_query_format(django_timezone.now()),
                 sort_by="date",
             ).results
             == []
@@ -1917,7 +1916,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             options.set("snuba.search.pre-snuba-candidates-optimizer", prev_optimizer_enabled)
 
     def test_search_out_of_range(self):
-        the_date = datetime(2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc)
+        the_date = datetime(2000, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         results = self.make_query(
             search_filter_query=f"event.timestamp:>{the_date} event.timestamp:<{the_date}",
             date_from=the_date,
@@ -2606,9 +2605,9 @@ class EventsJoinedGroupAttributesSnubaSearchTest(TransactionTestCase, EventsSnub
 
     @mock.patch("sentry.utils.metrics.timer")
     @mock.patch("sentry.utils.metrics.incr")
-    def test_empty_query_logs_metric(self, metrics_incr, metrics_timer):
-        results = self.make_query()
-        assert set(results) == {self.group1, self.group2}
+    def test_is_unresolved_query_logs_metric(self, metrics_incr, metrics_timer):
+        results = self.make_query(search_filter_query="is:unresolved")
+        assert set(results) == {self.group1}
 
         # introduce a slight delay so the async future has time to run and log the metric
         time.sleep(0.10)
@@ -2636,7 +2635,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
     def test_priority_sort_old_and_new_events(self):
         """Test that an issue with only one old event is ranked lower than an issue with only one new event"""
         new_project = self.create_project(organization=self.project.organization)
-        base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+        base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=timezone.utc)
 
         recent_event = self.store_event(
             data={
@@ -2686,7 +2685,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
     def test_priority_sort_v2(self):
         """Test that the v2 formula works."""
         new_project = self.create_project(organization=self.project.organization)
-        base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+        base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=timezone.utc)
 
         recent_event = self.store_event(
             data={
@@ -2735,7 +2734,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
 
     def test_priority_log_level_results(self):
         """Test that the scoring results change when we pass in different log level weights"""
-        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=pytz.utc)
+        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=timezone.utc)
         event1 = self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
@@ -2811,7 +2810,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
 
     def test_priority_has_stacktrace_results(self):
         """Test that the scoring results change when we pass in different has_stacktrace weights"""
-        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=pytz.utc)
+        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=timezone.utc)
         agg_kwargs = {
             "priority": {
                 "log_level": 0,
@@ -2893,7 +2892,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
 
     def test_priority_event_halflife_results(self):
         """Test that the scoring results change when we pass in different event halflife weights"""
-        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=pytz.utc)
+        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=timezone.utc)
         event1 = self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
@@ -2966,7 +2965,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
         assert group1_score_after < group2_score_after
 
     def test_priority_mixed_group_types(self):
-        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=pytz.utc)
+        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=timezone.utc)
 
         error_event = self.store_event(
             data={
@@ -3040,7 +3039,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
 
     def setUp(self):
         super().setUp()
-        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=timezone.utc)
 
         transaction_event_data = {
             "level": "info",
@@ -3411,7 +3410,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
 
     def setUp(self):
         super().setUp()
-        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=timezone.utc)
 
         event_id_1 = uuid.uuid4().hex
         _, group_info = process_event_and_issue_occurrence(
@@ -3697,7 +3696,7 @@ class CdcEventsSnubaSearchTest(TestCase, SharedSnubaMixin):
 
     def setUp(self):
         super().setUp()
-        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=timezone.utc)
 
         self.event1 = self.store_event(
             data={
