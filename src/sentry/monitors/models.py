@@ -67,7 +67,7 @@ MONITOR_CONFIG = {
     },
     # TODO(davidenwang): Old monitors may not have timezone or schedule_type, these should be added here once we've cleaned up old data
     "required": ["checkin_margin", "max_runtime", "schedule"],
-    "additionalProperties": False,
+    "additionalProperties": True,
 }
 
 MAX_SLUG_LENGTH = 50

@@ -18,6 +18,7 @@ from sentry.integrations.utils.code_mapping import (
 from sentry.models import Integration, Repository
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -583,11 +584,8 @@ class GitHubClientMixin(GithubProxyClient):
         """
         return self.get(f"/users/{gh_username}")
 
-    def check_file(self, repo: Repository, path: str, version: str) -> str | None:
-        file: str = self.head_cached(
-            path=f"/repos/{repo.name}/contents/{path}", params={"ref": version}
-        )
-        return file
+    def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
+        return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
     def get_file(self, repo: Repository, path: str, ref: str) -> str:
         """Get the contents of a file

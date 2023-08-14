@@ -7,7 +7,10 @@ from abc import abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
-from sentry.models.integrations.pagerduty_service import PagerDutyService, PagerDutyServiceDict
+from sentry.models.integrations.organization_integration import (
+    OrganizationIntegration,
+    PagerDutyServiceDict,
+)
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.services.hybrid_cloud.integration.model import RpcIntegrationExternalProject
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
@@ -137,7 +140,7 @@ class IntegrationService(RpcService):
         if not org_integration:
             return None
         try:
-            return PagerDutyService.find_service(org_integration.config, service_id)
+            return OrganizationIntegration.find_service(org_integration.config, service_id)
         except StopIteration:
             return None
 
