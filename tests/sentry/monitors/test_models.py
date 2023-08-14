@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from itertools import cycle
 from unittest.mock import patch
 
 import pytest
@@ -570,6 +571,130 @@ class MonitorEnvironmentTestCase(TestCase):
                 "trace_id": None,
             },
         ) == dict(event)
+
+    def test_mark_ok_recovery_threshold(self):
+        recovery_threshold = 8
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "recovery_threshold": recovery_threshold,
+            },
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=self.environment,
+            status=MonitorStatus.OK,
+        )
+
+        MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.ERROR,
+        )
+
+        for i in range(0, recovery_threshold - 1):
+            checkin = MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                status=CheckInStatus.OK,
+            )
+            monitor_environment.mark_ok(checkin, checkin.date_added)
+
+        # failure has not hit threshold, monitor should be in an OK status
+        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        assert monitor_environment.status != MonitorStatus.OK
+
+        # create another failed check-in to break the chain
+        MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.ERROR,
+        )
+
+        for i in range(0, recovery_threshold):
+            checkin = MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                status=CheckInStatus.OK,
+            )
+            monitor_environment.mark_ok(checkin, checkin.date_added)
+
+        # recovery has hit threshold, monitor should be in an ok state
+        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        assert monitor_environment.status != MonitorStatus.OK
+
+    def test_mark_failed_issue_threshold(self):
+        failure_issue_threshold = 8
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "failure_issue_threshold": failure_issue_threshold,
+            },
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=self.environment,
+            status=MonitorStatus.OK,
+        )
+
+        MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.OK,
+        )
+
+        failure_statuses = cycle([CheckInStatus.ERROR, CheckInStatus.TIMEOUT, CheckInStatus.MISSED])
+
+        for i in range(0, failure_issue_threshold - 1):
+            status = next(failure_statuses)
+            MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                status=status,
+            )
+            monitor_environment.mark_failed(reason=status)
+
+        # failure has not hit threshold, monitor should be in an OK status
+        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+
+        # create another OK check-in to break the chain
+        MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.OK,
+        )
+
+        for i in range(0, failure_issue_threshold):
+            status = next(failure_statuses)
+            MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                status=status,
+            )
+            monitor_environment.mark_failed(reason=status)
+
+        # failure has hit threshold, monitor should be in a failed state
+        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        assert monitor_environment.status != MonitorStatus.OK
 
     @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=2)
     def test_monitor_environment_limits(self):

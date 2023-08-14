@@ -507,6 +507,20 @@ class MonitorEnvironment(Model):
     ):
         from sentry.signals import monitor_environment_failed
 
+        failure_issue_threshold = self.monitor.config.get("failure_issue_threshold", 0)
+        if failure_issue_threshold:
+            previous_checkins = MonitorCheckIn.objects.filter(monitor_environment=self).order_by(
+                "-date_added"
+            )[:failure_issue_threshold]
+            # check for successive failed previous check-ins
+            if not all(
+                [
+                    checkin.status not in [CheckInStatus.IN_PROGRESS, CheckInStatus.OK]
+                    for checkin in previous_checkins
+                ]
+            ):
+                return False
+
         if last_checkin is None:
             next_checkin_base = timezone.now()
             last_checkin = self.last_checkin or timezone.now()
@@ -642,6 +656,15 @@ class MonitorEnvironment(Model):
         return True
 
     def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
+        recovery_threshold = self.monitor.config.get("recovery_threshold", 0)
+        if recovery_threshold:
+            previous_checkins = MonitorCheckIn.objects.filter(monitor_environment=self).order_by(
+                "-date_added"
+            )[:recovery_threshold]
+            # check for successive OK previous check-ins
+            if not all(checkin.status == CheckInStatus.OK for checkin in previous_checkins):
+                return
+
         next_checkin_latest = self.monitor.get_next_scheduled_checkin_with_margin(ts)
         params = {
             "last_checkin": ts,
