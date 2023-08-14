@@ -14,7 +14,7 @@ from confluent_kafka import Producer
 
 from sentry import quotas
 from sentry.models import Project
-from sentry.spans.span import SPAN_SCHEMA_VERSION, Span
+from sentry.spans.span import SPAN_SCHEMA_VERSION
 from sentry.utils import json, kafka_config
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
@@ -55,9 +55,6 @@ def _build_snuba_payload(payload: Mapping[str, Any]) -> MutableMapping[str, Any]
 def process_message(message: Message[KafkaPayload]) -> KafkaPayload:
     payload = msgpack.unpackb(message.payload.value)
     payload["span"]["project_id"] = payload["project_id"]
-    span = Span.from_dict(payload)
-    span.save()
-
     snuba_payload = _build_snuba_payload(payload)
     data = json.dumps(snuba_payload).encode("utf-8")
     return KafkaPayload(key=None, value=data, headers=[])
