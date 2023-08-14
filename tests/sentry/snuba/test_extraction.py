@@ -3,245 +3,12 @@ import pytest
 from sentry.api.event_search import ParenExpression, parse_search_query
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
-    OndemandMetricSpec,
+    OnDemandMetricSpec,
     cleanup_query,
-    is_on_demand_metric_query,
-    is_standard_metrics_compatible,
     query_tokens_to_string,
     should_use_on_demand_metrics,
     to_standard_metrics_query,
 )
-
-
-class TestIsOnDemandMetricQuery:
-    perf_metrics = Dataset.PerformanceMetrics
-
-    def test_wrong_dataset(self):
-        assert (
-            is_on_demand_metric_query(Dataset.Transactions, "count()", "geo.city:Vienna") is False
-        )
-        assert (
-            is_on_demand_metric_query(
-                Dataset.Metrics, "count()", "browser.version:1 os.name:android"
-            )
-            is False
-        )
-
-    def test_no_query(self):
-        assert is_on_demand_metric_query(Dataset.PerformanceMetrics, "count()", "") is False
-
-    def test_invalid_query(self):
-        assert is_on_demand_metric_query(self.perf_metrics, "count()", "AND") is False
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "count()", ")AND transaction.duration:>=1")
-            is False
-        )
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "count()", "transaction.duration:>=abc")
-            is False
-        )
-        assert is_on_demand_metric_query(self.perf_metrics, "count_if(}", "") is False
-
-    def test_on_demand_queries(self):
-        # # transaction.duration is a non-standard field
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "count()", "transaction.duration:>=1")
-            is True
-        )
-        # # geo.city is a non-standard field
-        assert is_on_demand_metric_query(self.perf_metrics, "count()", "geo.city:Vienna") is True
-        # os.name is a standard field, browser.version is not
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics, "count()", "geo.city:Vienna os.name:android"
-            )
-            is True
-        )
-        # os.version is not a standard field
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics,
-                "count()",
-                "(release:a OR transaction.op:b) transaction.duration:>1s",
-            )
-            is True
-        )
-
-    def test_standard_compatible_queries(self):
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "p75(transaction.duration)", "") is False
-        )
-        assert is_on_demand_metric_query(self.perf_metrics, "count()", "") is False
-        assert is_on_demand_metric_query(self.perf_metrics, "count()", "environment:dev") is False
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics, "count()", "release:initial OR os.name:android"
-            )
-            is False
-        )
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics,
-                "count()",
-                "(http.method:POST OR http.status_code:404) browser.name:chrome",
-            )
-            is False
-        )
-        assert is_on_demand_metric_query(self.perf_metrics, "foo.bar", "") is False
-        assert is_on_demand_metric_query(self.perf_metrics, "count()", "foo.bar") is False
-
-    def test_countif(self):
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics, "count_if(geo.city.duration,equals,vienna)", ""
-            )
-            is True
-        )
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, 'count_if(release,equals,"foo")', "")
-            is False
-        )
-
-    def test_unsupported_aggregate_functions(self):
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics, "failure_rate()", "transaction.duration:>=1"
-            )
-            is False
-        )
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics, "count_unique(transaction.duration)", "transaction.duration:>=1"
-            )
-            is False
-        )
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics, "min(transaction.duration)", "transaction.duration:>=1"
-            )
-            is False
-        )
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics, "any(transaction.duration)", "transaction.duration:>=1"
-            )
-            is False
-        )
-
-    def test_unsupported_aggregate_fields(self):
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "message", "transaction.duration:>=1")
-            is False
-        )
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "title", "transaction.duration:>=1")
-            is False
-        )
-
-    def test_supported_operators(self):
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "count()", "transaction.duration:[1,2,3]")
-            is True
-        )
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "count()", "!transaction.duration:[1,2,3]")
-            is True
-        )
-
-    def test_unsupported_equations(self):
-        assert (
-            is_on_demand_metric_query(
-                self.perf_metrics, "equation|count() / count()", "transaction.duration:>0"
-            )
-            is False
-        )
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "equation|count() / count()", "") is False
-        )
-
-    def test_unsupported_aggregate_filter(self):
-        assert (
-            is_on_demand_metric_query(self.perf_metrics, "count()", "p75(measurements.fcp):>100")
-            is False
-        )
-
-
-class TestIsStandardMetricsCompatible:
-    perf_metrics = Dataset.PerformanceMetrics
-
-    def test_wrong_dataset(self):
-        assert is_standard_metrics_compatible(Dataset.Transactions, "count()", "") is False
-        assert (
-            is_standard_metrics_compatible(Dataset.Discover, "count()", "os.name:android") is False
-        )
-
-    def test_no_query(self):
-        assert is_standard_metrics_compatible(Dataset.PerformanceMetrics, "count()", "") is True
-
-    def test_invalid_query(self):
-        dataset = Dataset.PerformanceMetrics
-
-        assert is_standard_metrics_compatible(dataset, "count()", ")AND os.name:>=1") is False
-        assert is_standard_metrics_compatible(dataset, "count()", "os.name><=abc") is False
-
-    def test_on_demand_queries(self):
-        # # transaction.duration is a non-standard field
-        assert (
-            is_standard_metrics_compatible(self.perf_metrics, "count()", "transaction.duration:>=1")
-            is False
-        )
-        # # geo.city is a non-standard field
-        assert (
-            is_standard_metrics_compatible(self.perf_metrics, "count()", "geo.city:Vienna") is False
-        )
-        # os.name is a standard field, browser.version is not
-        assert (
-            is_standard_metrics_compatible(
-                self.perf_metrics, "count()", "geo.city:Vienna os.name:android"
-            )
-            is False
-        )
-        # os.version is not a standard field
-        assert (
-            is_standard_metrics_compatible(
-                self.perf_metrics,
-                "count()",
-                "(release:a OR transaction.op:b) transaction.duration:>1s",
-            )
-            is False
-        )
-
-    def test_standard_compatible_queries(self):
-        assert is_standard_metrics_compatible(self.perf_metrics, "count()", "") is True
-        assert (
-            is_standard_metrics_compatible(self.perf_metrics, "count()", "environment:dev") is True
-        )
-        assert (
-            is_standard_metrics_compatible(
-                self.perf_metrics, "count()", "release:initial OR os.name:android"
-            )
-            is True
-        )
-        assert (
-            is_standard_metrics_compatible(
-                self.perf_metrics,
-                "count()",
-                "(http.method:POST OR http.status_code:404) browser.name:chrome",
-            )
-            is True
-        )
-
-    def test_count_if(self):
-        assert (
-            is_standard_metrics_compatible(
-                self.perf_metrics, "count_if(transaction.duration,equals,300)", ""
-            )
-            is True
-        )
-        assert (
-            is_standard_metrics_compatible(self.perf_metrics, 'count_if(release,equals,"foo")', "")
-            is True
-        )
 
 
 @pytest.mark.parametrize(
@@ -256,7 +23,7 @@ class TestIsStandardMetricsCompatible:
             "transaction.duration:>1",
             True,
         ),  # transaction.duration not supported by standard metrics
-        ("failure_rate()", "transaction.duration:>1", False),  # has to fall back to indexed
+        ("failure_rate()", "transaction.duration:>1", False),  # has to fallback to indexed
         (
             "count_if(transaction.duration,equals,0)",
             "release:a",
@@ -276,7 +43,7 @@ def test_should_use_on_demand(agg, query, result):
 
 def create_spec_if_needed(dataset, agg, query):
     if should_use_on_demand_metrics(dataset, agg, query):
-        return OndemandMetricSpec(agg, query)
+        return OnDemandMetricSpec(agg, query)
 
 
 class TestCreatesOndemandMetricSpec:
@@ -323,7 +90,7 @@ class TestCreatesOndemandMetricSpec:
 
 
 def test_spec_simple_query_count():
-    spec = OndemandMetricSpec("count()", "transaction.duration:>1s")
+    spec = OnDemandMetricSpec("count()", "transaction.duration:>1s")
 
     assert spec.metric_type == "c"
     assert spec.field is None
@@ -332,7 +99,7 @@ def test_spec_simple_query_count():
 
 
 def test_spec_simple_query_distribution():
-    spec = OndemandMetricSpec("p75(measurements.fp)", "transaction.duration:>1s")
+    spec = OnDemandMetricSpec("p75(measurements.fp)", "transaction.duration:>1s")
 
     assert spec.metric_type == "d"
     assert spec.field == "event.measurements.fp"
@@ -341,7 +108,7 @@ def test_spec_simple_query_distribution():
 
 
 def test_spec_or_condition():
-    spec = OndemandMetricSpec("count()", "transaction.duration:>=100 OR transaction.duration:<1000")
+    spec = OnDemandMetricSpec("count()", "transaction.duration:>=100 OR transaction.duration:<1000")
 
     assert spec.condition() == {
         "inner": [
@@ -353,7 +120,7 @@ def test_spec_or_condition():
 
 
 def test_spec_and_condition():
-    spec = OndemandMetricSpec("count()", "release:foo transaction.duration:<10s")
+    spec = OnDemandMetricSpec("count()", "release:foo transaction.duration:<10s")
     assert spec.condition() == {
         "inner": [
             {"name": "event.release", "op": "eq", "value": "foo"},
@@ -364,7 +131,7 @@ def test_spec_and_condition():
 
 
 def test_spec_nested_condition():
-    spec = OndemandMetricSpec("count()", "(release:a OR transaction.op:b) transaction.duration:>1s")
+    spec = OnDemandMetricSpec("count()", "(release:a OR transaction.op:b) transaction.duration:>1s")
     assert spec.condition() == {
         "op": "and",
         "inner": [
@@ -381,7 +148,7 @@ def test_spec_nested_condition():
 
 
 def test_spec_boolean_precedence():
-    spec = OndemandMetricSpec("count()", "release:a OR transaction.op:b transaction.duration:>1s")
+    spec = OnDemandMetricSpec("count()", "release:a OR transaction.op:b transaction.duration:>1s")
     assert spec.condition() == {
         "op": "or",
         "inner": [
@@ -398,7 +165,7 @@ def test_spec_boolean_precedence():
 
 
 def test_spec_wildcard():
-    spec = OndemandMetricSpec("count()", "release.version:1.*")
+    spec = OnDemandMetricSpec("count()", "release.version:1.*")
     assert spec.condition() == {
         "name": "event.release.version.short",
         "op": "glob",
@@ -406,8 +173,8 @@ def test_spec_wildcard():
     }
 
 
-def test_spec_countif():
-    spec = OndemandMetricSpec("count_if(transaction.duration,equals,300)", "")
+def test_spec_count_if():
+    spec = OnDemandMetricSpec("count_if(transaction.duration,equals,300)", "")
 
     assert spec.metric_type == "c"
     assert spec.field is None
@@ -419,8 +186,8 @@ def test_spec_countif():
     }
 
 
-def test_spec_countif_with_query():
-    spec = OndemandMetricSpec(
+def test_spec_count_if_with_query():
+    spec = OnDemandMetricSpec(
         "count_if(transaction.duration,equals,300)", "release:a OR transaction.op:b"
     )
 
@@ -440,8 +207,8 @@ def test_spec_countif_with_query():
 
 
 def test_spec_in_operator():
-    in_spec = OndemandMetricSpec("count()", "transaction.duration:[1,2,3]")
-    not_in_spec = OndemandMetricSpec("count()", "!transaction.duration:[1,2,3]")
+    in_spec = OnDemandMetricSpec("count()", "transaction.duration:[1,2,3]")
+    not_in_spec = OnDemandMetricSpec("count()", "!transaction.duration:[1,2,3]")
 
     assert in_spec.condition() == {"name": "event.duration", "op": "eq", "value": [1.0, 2.0, 3.0]}
     assert not_in_spec.condition() == {
@@ -451,8 +218,8 @@ def test_spec_in_operator():
 
 
 def test_ignore_fields():
-    with_ignored_field = OndemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
-    without_ignored_field = OndemandMetricSpec("count()", "transaction.duration:>=1")
+    with_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
+    without_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1")
 
     assert with_ignored_field.condition() == without_ignored_field.condition()
 
