@@ -26,6 +26,30 @@ def get_notification_scope_name(value: int) -> Optional[str]:
     return NOTIFICATION_SCOPE_TYPE.get(NotificationScopeType(value))
 
 
+def get_notification_scope_type_from_string(value: str) -> NotificationScopeType:
+    # iterate through NOTIFICATION_SCOPE_TYPE and find the match
+    for k, v in NOTIFICATION_SCOPE_TYPE.items():
+        if v == value:
+            return k
+    raise ValueError(f"Invalid value for NotificationScopeType: {value}")
+
+
+def get_notification_setting_type_from_string(value: str) -> NotificationSettingTypes:
+    # iterate through NOTIFICATION_SETTING_OPTION_VALUES and find the match
+    for k, v in NOTIFICATION_SETTING_TYPES.items():
+        if v == value:
+            return k
+    raise ValueError(f"Invalid value for NotificationSettingTypes: {value}")
+
+
+def get_notification_value_from_string(value: str) -> NotificationSettingOptionValues:
+    # iterate through NOTIFICATION_SETTING_OPTION_VALUES and find the match
+    for k, v in NOTIFICATION_SETTING_OPTION_VALUES.items():
+        if v == value:
+            return k
+    raise ValueError(f"Invalid value for NotificationSettingOptionValues: {value}")
+
+
 class NotificationSettingTypes(ValueEqualityEnum):
     """
     Each of these categories of Notification settings has at least an option for

@@ -26,6 +26,20 @@ export type NotificationSettingsByProviderObject = {[key: string]: string};
 export type NotificationSettingsObject = {
   [key: string]: {[key: string]: {[key: string]: NotificationSettingsByProviderObject}};
 };
+interface NotificaitonBaseObject {
+  notificationType: string;
+  scopeIdentifier: string;
+  scopeType: string;
+}
+
+export interface NotificationOptionsObject extends NotificaitonBaseObject {
+  value: 'always' | 'never' | 'subscribe_only' | 'committed_only';
+}
+
+export interface NotificationProvidersObject extends NotificaitonBaseObject {
+  provider: 'email' | 'slack' | 'msteams';
+  value: 'always' | 'never';
+}
 
 export const NOTIFICATION_SETTINGS_TYPES = [
   'alerts',

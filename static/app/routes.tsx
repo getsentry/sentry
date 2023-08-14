@@ -302,6 +302,22 @@ function buildRoutes() {
           )}
         />
       </Route>
+
+      <Route path="notifications-v2/" name={t('Notifications')}>
+        <IndexRoute
+          component={make(
+            () =>
+              import('sentry/views/settings/account/notifications/notificationSettings')
+          )}
+        />
+        <Route
+          path=":fineTuneType/"
+          name={t('Fine Tune Alerts')}
+          component={make(
+            () => import('sentry/views/settings/account/accountNotificationFineTuningV2')
+          )}
+        />
+      </Route>
       <Route
         path="emails/"
         name={t('Emails')}
