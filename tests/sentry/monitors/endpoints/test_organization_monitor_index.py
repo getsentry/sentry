@@ -183,6 +183,8 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "schedule": "0 0 * * *",
             "checkin_margin": None,
             "max_runtime": None,
+            "failure_issue_threshold": None,
+            "recovery_threshold": None,
         }
 
         self.project.refresh_from_db()

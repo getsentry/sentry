@@ -1,13 +1,5 @@
 [
 {
-  "model": "sites.site",
-  "pk": 1,
-  "fields": {
-    "domain": "example.com",
-    "name": "example.com"
-  }
-},
-{
   "model": "sentry.option",
   "pk": 1,
   "fields": {
@@ -142,9 +134,7 @@
   "model": "sentry.useremail",
   "pk": 1,
   "fields": {
-    "user": [
-      "testing@example.com"
-    ],
+    "user": 1,
     "email": "testing@example.com",
     "validation_hash": "mCnWesSVvYQcq7qXQ36AZHwosAd6cghE",
     "date_hash_added": "2023-06-22T22:59:55.521Z",
@@ -167,9 +157,7 @@
   "fields": {
     "date_updated": "2023-06-22T23:00:00.123Z",
     "date_added": "2023-06-22T22:59:57.000Z",
-    "user": [
-      "testing@example.com"
-    ],
+    "user": 1,
     "role": 1
   }
 },

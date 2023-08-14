@@ -31,7 +31,7 @@ import {
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
-const MIN_DEAD_RAGE_CLICK_SDK = '7.60.1';
+export const MIN_DEAD_RAGE_CLICK_SDK = '7.60.1';
 
 type Props = {
   fetchError: undefined | Error;
@@ -158,10 +158,16 @@ function ReplayTable({
                 case ReplayColumn.COUNT_DEAD_CLICKS:
                   return <DeadClickCountCell key="countDeadClicks" replay={replay} />;
 
+                case ReplayColumn.COUNT_DEAD_CLICKS_NO_HEADER:
+                  return <DeadClickCountCell key="countDeadClicks" replay={replay} />;
+
                 case ReplayColumn.COUNT_ERRORS:
                   return <ErrorCountCell key="countErrors" replay={replay} />;
 
                 case ReplayColumn.COUNT_RAGE_CLICKS:
+                  return <RageClickCountCell key="countRageClicks" replay={replay} />;
+
+                case ReplayColumn.COUNT_RAGE_CLICKS_NO_HEADER:
                   return <RageClickCountCell key="countRageClicks" replay={replay} />;
 
                 case ReplayColumn.DURATION:

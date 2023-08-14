@@ -17,7 +17,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
-export interface Props {
+interface Props {
   group: Group;
   issueId: string;
   location: Location;
