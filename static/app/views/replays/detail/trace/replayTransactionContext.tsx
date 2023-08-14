@@ -22,11 +22,11 @@ import {
 } from 'sentry/utils/performance/quickTrace/types';
 import {
   getTraceRequestPayload,
-  isTraceSplitResult,
   makeEventView,
 } from 'sentry/utils/performance/quickTrace/utils';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getTraceSplitResults} from 'sentry/views/performance/traceDetails/utils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Options = {
@@ -123,18 +123,10 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
           TraceSplitResults<TraceFullDetailed> | TraceFullDetailed[]
         >(api, `/organizations/${orgSlug}/events-trace/${traceId}/`, singleTracePayload);
 
-        let transactions: TraceFullDetailed[] | undefined;
-        let orphanErrors: TraceError[] | undefined;
-        if (
-          trace &&
-          organization.features.includes('performance-tracing-without-performance') &&
-          isTraceSplitResult<TraceSplitResults<TraceFullDetailed>, TraceFullDetailed[]>(
-            trace
-          )
-        ) {
-          orphanErrors = trace.orphan_errors;
-          transactions = trace.transactions;
-        }
+        const {transactions, orphanErrors} = getTraceSplitResults<TraceFullDetailed>(
+          trace,
+          organization
+        );
 
         setState(prev => {
           return {
@@ -156,7 +148,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
         }));
       }
     },
-    [api, orgSlug, singleTracePayload, organization.features]
+    [api, orgSlug, singleTracePayload, organization]
   );
 
   const fetchTransactionData = useCallback(async () => {

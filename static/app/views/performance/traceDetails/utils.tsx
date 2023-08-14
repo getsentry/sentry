@@ -1,9 +1,14 @@
 import {LocationDescriptor, Query} from 'history';
 
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {OrganizationSummary} from 'sentry/types';
-import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
-import {reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
+import {Organization, OrganizationSummary} from 'sentry/types';
+import {
+  TraceError,
+  TraceFull,
+  TraceFullDetailed,
+  TraceSplitResults,
+} from 'sentry/utils/performance/quickTrace/types';
+import {isTraceSplitResult, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 
 import {TraceInfo} from './types';
 
@@ -56,6 +61,24 @@ export function hasTraceData(
   return Boolean(
     (traces && traces.length > 0) || (orphanErrors && orphanErrors.length > 0)
   );
+}
+
+export function getTraceSplitResults<U extends TraceFullDetailed | TraceFull>(
+  trace: TraceSplitResults<U> | U[],
+  organization: Organization
+) {
+  let transactions: U[] | undefined;
+  let orphanErrors: TraceError[] | undefined;
+  if (
+    trace &&
+    organization.features.includes('performance-tracing-without-performance') &&
+    isTraceSplitResult<TraceSplitResults<U>, U[]>(trace)
+  ) {
+    orphanErrors = trace.orphan_errors;
+    transactions = trace.transactions;
+  }
+
+  return {transactions, orphanErrors};
 }
 
 export function getTraceInfo(
