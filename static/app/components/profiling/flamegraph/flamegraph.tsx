@@ -706,10 +706,12 @@ function Flamegraph(): ReactElement {
           uiFramesView.setConfigView(rect);
         }
         if (cpuChartView) {
-          cpuChartView.setConfigView(rect);
+          const {y, height} = cpuChartView.configView;
+          cpuChartView.setConfigView(rect.withY(y).withHeight(height));
         }
         if (memoryChartView) {
-          memoryChartView.setConfigView(rect);
+          const {y, height} = memoryChartView.configView;
+          memoryChartView.setConfigView(rect.withY(y).withHeight(height));
         }
       }
 
@@ -723,10 +725,16 @@ function Flamegraph(): ReactElement {
           uiFramesView.setConfigView(rect);
         }
         if (cpuChartView) {
-          cpuChartView.setConfigView(rect);
+          const beforeYChart = cpuChartView.configView.y;
+          cpuChartView.setConfigView(
+            rect.withHeight(cpuChartView.configView.height).withY(beforeYChart)
+          );
         }
         if (memoryChartView) {
-          memoryChartView.setConfigView(rect);
+          const beforeYChart = memoryChartView.configView.y;
+          memoryChartView.setConfigView(
+            rect.withHeight(memoryChartView.configView.height).withY(beforeYChart)
+          );
         }
       }
 
@@ -753,10 +761,10 @@ function Flamegraph(): ReactElement {
           uiFramesView.transformConfigView(mat);
         }
         if (cpuChartView) {
-          cpuChartView.transformConfigView(mat);
+          cpuChartView.transformChartConfigView(mat);
         }
         if (memoryChartView) {
-          memoryChartView.transformConfigView(mat);
+          memoryChartView.transformChartConfigView(mat);
         }
       }
 
@@ -769,10 +777,10 @@ function Flamegraph(): ReactElement {
           uiFramesView.transformConfigView(mat);
         }
         if (cpuChartView) {
-          cpuChartView.transformConfigView(mat);
+          cpuChartView.transformChartConfigView(mat);
         }
         if (memoryChartView) {
-          memoryChartView.transformConfigView(mat);
+          memoryChartView.transformChartConfigView(mat);
         }
       }
 
@@ -813,13 +821,15 @@ function Flamegraph(): ReactElement {
         );
       }
       if (cpuChartView) {
+        const beforeY = cpuChartView.configView.y;
         cpuChartView.setConfigView(
-          newConfigView.withHeight(cpuChartView.configView.height)
+          newConfigView.withHeight(cpuChartView.configView.height).withY(beforeY)
         );
       }
       if (memoryChartView) {
+        const beforeY = memoryChartView.configView.y;
         memoryChartView.setConfigView(
-          newConfigView.withHeight(memoryChartView.configView.height)
+          newConfigView.withHeight(memoryChartView.configView.height).withY(beforeY)
         );
       }
       canvasPoolManager.draw();
@@ -848,13 +858,15 @@ function Flamegraph(): ReactElement {
         );
       }
       if (cpuChartView) {
+        const beforeY = cpuChartView.configView.y;
         cpuChartView.setConfigView(
-          newConfigView.withHeight(cpuChartView.configView.height)
+          newConfigView.withHeight(cpuChartView.configView.height).withY(beforeY)
         );
       }
       if (memoryChartView) {
+        const beforeY = memoryChartView.configView.y;
         memoryChartView.setConfigView(
-          newConfigView.withHeight(memoryChartView.configView.height)
+          newConfigView.withHeight(memoryChartView.configView.height).withY(beforeY)
         );
       }
       canvasPoolManager.draw();
