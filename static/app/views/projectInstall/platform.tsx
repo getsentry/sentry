@@ -236,7 +236,9 @@ export function ProjectInstallPlatform({location, params}: Props) {
             busy={loadingProjects}
             to={{
               pathname: issueStreamLink,
-              query: project?.id,
+              query: {
+                project: project?.id,
+              },
               hash: '#welcome',
             }}
           >
@@ -246,7 +248,9 @@ export function ProjectInstallPlatform({location, params}: Props) {
             busy={loadingProjects}
             to={{
               pathname: performanceOverviewLink,
-              query: project?.id,
+              query: {
+                project: project?.id,
+              },
             }}
           >
             {t('Take me to Performance')}
