@@ -879,7 +879,7 @@ class TestWebhookRequests(TestCase):
     @patch(
         "sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockFailureResponseInstance
     )
-    @pytest.mark.xfail(reason="This test is flaky")
+    @freeze_time("2022-01-01 03:30:00")
     def test_slow_broken_not_disable(self, safe_urlopen):
         """
         Tests that the integration is broken after 10 days of errors but still enabled since flag is off
@@ -924,7 +924,19 @@ class TestWebhookRequests(TestCase):
         )
         assert (
             self.organization.absolute_url(
+                f"/settings/{self.organization.slug}/developer-settings/{self.sentry_app.slug}/?referrer=disabled-sentry-app"
+            )
+            in msg.body
+        )
+        assert (
+            self.organization.absolute_url(
                 f"/settings/{self.organization.slug}/developer-settings/{self.sentry_app.slug}/dashboard"
+            )
+            in msg.body
+        )
+        assert (
+            self.organization.absolute_url(
+                f"/settings/{self.organization.slug}/developer-settings/{self.sentry_app.slug}/dashboard/?referrer=disabled-sentry-app/"
             )
             in msg.body
         )

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timezone
 from unittest import mock
 
@@ -22,7 +24,8 @@ def test_outcomes_consumed(track_outcome):
 
     topic = Topic("snuba-generic-metrics")
 
-    buckets = [
+    empty_tags: dict[str, str] = {}
+    buckets: list[MetricsBucket] = [
         {  # Counter metric with wrong ID will not generate an outcome
             "metric_id": 123,
             "type": "c",
@@ -30,7 +33,7 @@ def test_outcomes_consumed(track_outcome):
             "project_id": 2,
             "timestamp": 123,
             "value": 123.4,
-            "tags": {},
+            "tags": empty_tags,
         },
         {  # Distribution metric with wrong ID will not generate an outcome
             "metric_id": 123,
@@ -39,7 +42,7 @@ def test_outcomes_consumed(track_outcome):
             "project_id": 2,
             "timestamp": 123456,
             "value": [1.0, 2.0],
-            "tags": {},
+            "tags": empty_tags,
         },
         {  # Empty distribution will not generate an outcome
             # NOTE: Should not be emitted by Relay anyway
@@ -49,7 +52,7 @@ def test_outcomes_consumed(track_outcome):
             "project_id": 2,
             "timestamp": 123456,
             "value": [],
-            "tags": {},
+            "tags": empty_tags,
         },
         {  # Valid distribution bucket emits an outcome
             "metric_id": TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"],
@@ -58,7 +61,7 @@ def test_outcomes_consumed(track_outcome):
             "project_id": 2,
             "timestamp": 123456,
             "value": [1.0, 2.0, 3.0],
-            "tags": {},
+            "tags": empty_tags,
         },
         {  # Another bucket to introduce some noise
             "metric_id": 123,
@@ -67,7 +70,7 @@ def test_outcomes_consumed(track_outcome):
             "project_id": 2,
             "timestamp": 123456,
             "value": 123.4,
-            "tags": {},
+            "tags": empty_tags,
         },
         {  # Bucket with profiles
             "metric_id": TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"],
@@ -86,21 +89,23 @@ def test_outcomes_consumed(track_outcome):
         commit=fake_commit,
     )
 
+    generate_kafka_message_counter = 0
+
     def generate_kafka_message(bucket: MetricsBucket) -> Message[KafkaPayload]:
+        nonlocal generate_kafka_message_counter
+
         encoded = json.dumps(bucket).encode()
         payload = KafkaPayload(key=None, value=encoded, headers=[])
         message = Message(
             BrokerValue(
                 payload,
                 Partition(topic, index=0),
-                generate_kafka_message.counter,
+                generate_kafka_message_counter,
                 datetime.now(timezone.utc),
             )
         )
-        generate_kafka_message.counter += 1
+        generate_kafka_message_counter += 1
         return message
-
-    generate_kafka_message.counter = 0
 
     # Mimick the behavior of StreamProcessor._run_once: Call poll repeatedly,
     # then call submit when there is a message.
