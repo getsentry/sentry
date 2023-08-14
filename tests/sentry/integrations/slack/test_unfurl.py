@@ -189,6 +189,7 @@ class UnfurlTest(TestCase):
         event = self.store_event(
             data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
+        assert event.group is not None
         group2 = event.group
 
         links = [
@@ -207,7 +208,9 @@ class UnfurlTest(TestCase):
         assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
         assert (
             unfurls[links[1].url]
-            == SlackIssuesMessageBuilder(group2, event, link_to_event=True).build()
+            == SlackIssuesMessageBuilder(
+                group2, next(iter(event.build_group_events())), link_to_event=True
+            ).build()
         )
 
     def test_escape_issue(self):

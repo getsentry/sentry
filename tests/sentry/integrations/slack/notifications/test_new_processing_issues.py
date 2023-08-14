@@ -3,7 +3,9 @@ from unittest import mock
 import responses
 
 from sentry.models import Activity
-from sentry.notifications.notifications.activity import NewProcessingIssuesActivityNotification
+from sentry.notifications.notifications.activity.new_processing_issues import (
+    NewProcessingIssuesActivityNotification,
+)
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_attachment, send_notification

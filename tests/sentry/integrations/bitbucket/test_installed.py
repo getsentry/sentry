@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 import responses
 
 from sentry.integrations.bitbucket.installed import BitbucketInstalledEndpoint
@@ -68,7 +72,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
         self.user_metadata["type"] = self.user_data["type"]
         self.user_metadata["domain_name"] = self.user_display_name
 
-        self.team_data_from_bitbucket = {
+        self.team_data_from_bitbucket: dict[str, Any] = {
             "key": "sentry-bitbucket",
             "eventType": "installed",
             "baseUrl": self.base_url,

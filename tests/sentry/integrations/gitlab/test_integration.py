@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
+import pytest
 import responses
 from django.core.cache import cache
 from django.test import override_settings
@@ -16,6 +17,7 @@ from sentry.models import (
     OrganizationIntegration,
     Repository,
 )
+from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegrationTestCase
@@ -301,13 +303,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
             json={},
         )
 
-        try:
+        with pytest.raises(ApiUnauthorized) as excinfo:
             installation.get_stacktrace_link(repo, "README.md", ref, version)
-        except Exception as e:
-            assert e.code == 401
-        else:
-            # check that the call throws.
-            assert False
+        assert excinfo.value.code == 401
 
     @responses.activate
     def test_get_stacktrace_link_use_default_if_version_404(self):

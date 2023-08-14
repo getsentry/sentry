@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Generator, Mapping, Sequence
+from typing import Any, Generator, Sequence
 
 from django import forms
 
@@ -31,8 +31,8 @@ PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack"]
 def build_incident_attachment(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: str | None = None,
-) -> Mapping[str, str]:
+    metric_value: int | None = None,
+) -> dict[str, str]:
     from sentry.api.serializers.rest_framework.base import (
         camel_to_snake_case,
         convert_dict_key_case,

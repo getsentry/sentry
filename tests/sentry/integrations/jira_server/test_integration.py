@@ -7,8 +7,9 @@ import pytest
 import responses
 from django.urls import reverse
 
-from fixtures.integrations.jira import StubJiraApiClient
+from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
+from sentry.integrations.jira_server.integration import JiraServerIntegration
 from sentry.models import (
     ExternalIssue,
     GroupLink,
@@ -42,7 +43,9 @@ class JiraServerIntegrationTest(APITestCase):
         super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.integration = get_integration(self.organization, self.user)
-        self.installation = self.integration.get_installation(self.organization.id)
+        installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, JiraServerIntegration)
+        self.installation = installation
         self.login_as(self.user)
 
     def test_get_create_issue_config(self):
@@ -952,7 +955,9 @@ class JiraMigrationIntegrationTest(APITestCase):
         self.plugin.set_option("default_project", "SEN", self.project)
         self.plugin.set_option("instance_url", "https://example.atlassian.net", self.project)
         self.plugin.set_option("ignored_fields", "hellboy, meow", self.project)
-        self.installation = self.integration.get_installation(self.organization.id)
+        installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, JiraServerIntegration)
+        self.installation = installation
         self.login_as(self.user)
 
     def test_migrate_plugin(self):

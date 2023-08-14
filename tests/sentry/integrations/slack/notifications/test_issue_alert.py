@@ -114,10 +114,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         event = self.store_event(
             data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
         )
-        event = event.for_group(event.groups[0])
+        group_event = event.for_group(event.groups[0])
 
         notification = AlertRuleNotification(
-            Notification(event=event, rule=self.rule), ActionTargetType.MEMBER, self.user.id
+            Notification(event=group_event, rule=self.rule), ActionTargetType.MEMBER, self.user.id
         )
         with self.tasks():
             notification.send()

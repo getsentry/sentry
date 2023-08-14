@@ -7,7 +7,6 @@ from sentry.incidents.action_handlers import OpsgenieActionHandler
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus, IncidentStatusMethod
 from sentry.models import Integration, OrganizationIntegration
-from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
 from . import FireTest
@@ -20,7 +19,7 @@ METADATA = {
 
 
 @freeze_time()
-class OpsgenieActionHandlerTest(FireTest, TestCase):
+class OpsgenieActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):
         self.og_team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}

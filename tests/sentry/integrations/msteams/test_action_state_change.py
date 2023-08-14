@@ -67,6 +67,7 @@ class StatusActionTest(APITestCase):
             data={"message": "oh no"},
             project_id=self.project1.id,
         )
+        assert self.event1.group is not None
         self.group1 = self.event1.group
 
     def post_webhook(

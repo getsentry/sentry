@@ -4,7 +4,7 @@ from urllib.parse import parse_qs
 import responses
 
 from sentry.models import Activity, Identity, IdentityProvider, IdentityStatus, Integration
-from sentry.notifications.notifications.activity import AssignedActivityNotification
+from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_attachment, send_notification
@@ -145,10 +145,10 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         event = self.store_event(
             data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
         )
-        event = event.for_group(event.groups[0])
+        group_event = event.for_group(event.groups[0])
 
         with self.tasks():
-            self.create_notification(event.group, AssignedActivityNotification).send()
+            self.create_notification(group_event.group, AssignedActivityNotification).send()
         attachment, text = get_attachment()
         assert text == f"Issue assigned to {self.name} by themselves"
         self.assert_generic_issue_attachments(

@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, Mock, patch
 
 from sentry.models import Activity
-from sentry.notifications.notifications.activity import UnassignedActivityNotification
+from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.testutils.cases import MSTeamsActivityNotificationTest
 from sentry.types.activity import ActivityType
 

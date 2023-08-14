@@ -4,7 +4,7 @@ import responses
 from django.utils import timezone
 
 from sentry.models import Activity, Deploy, Release
-from sentry.notifications.notifications.activity import ReleaseActivityNotification
+from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.testutils.silo import region_silo_test
@@ -65,6 +65,7 @@ class SlackDeployNotificationTest(SlackActivityNotificationTest):
                 == f"http://testserver/organizations/{self.organization.slug}/releases/"
                 f"{release.version}/?project={project.id}&unselectedSeries=Healthy/"
             )
+        assert first_project is not None
 
         assert (
             attachment["footer"]

@@ -9,7 +9,7 @@ from sentry.models import (
     ScheduledDeletion,
     User,
 )
-from sentry.notifications.helpers import NOTIFICATION_SETTING_DEFAULTS
+from sentry.notifications.defaults import NOTIFICATION_SETTING_DEFAULTS
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test

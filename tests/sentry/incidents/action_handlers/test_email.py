@@ -38,7 +38,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 @freeze_time()
-class EmailActionHandlerTest(FireTest, TestCase):
+class EmailActionHandlerTest(FireTest):
     @responses.activate
     def run_test(self, incident, method):
         action = self.create_alert_rule_trigger_action(

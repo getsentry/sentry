@@ -461,7 +461,7 @@ class AlertRuleTriggerActionTargetTest(TestCase):
 
 
 class AlertRuleTriggerActionActivateBaseTest:
-    method = None
+    method: str
 
     def setUp(self):
         self.old_handlers = AlertRuleTriggerAction._type_registrations

@@ -777,7 +777,7 @@ def build_trigger_stat_keys(
 
 
 def build_alert_rule_trigger_stat_key(
-    alert_rule_id: int, project_id: int, trigger_id: str, stat_key: str
+    alert_rule_id: int, project_id: int, trigger_id: int, stat_key: str
 ) -> str:
     key_base = ALERT_RULE_BASE_KEY % (alert_rule_id, project_id)
     return ALERT_RULE_BASE_TRIGGER_STAT_KEY % (key_base, trigger_id, stat_key)
@@ -830,8 +830,8 @@ def update_alert_rule_stats(
     alert_rule: AlertRule,
     subscription: QuerySubscription,
     last_update: datetime,
-    alert_counts: Dict[str, int],
-    resolve_counts: Dict[str, int],
+    alert_counts: Dict[int, int],
+    resolve_counts: Dict[int, int],
 ) -> None:
     """
     Updates stats about the alert rule, subscription and triggers if they've changed.

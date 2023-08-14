@@ -67,6 +67,7 @@ class PagerDutyProxyClientTest(APITestCase):
             project_id=self.project.id,
         )
         custom_details = serialize(event, None, ExternalEventSerializer())
+        assert event.group is not None
         group = event.group
         expected_data = {
             "routing_key": integration_key,

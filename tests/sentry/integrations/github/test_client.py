@@ -10,8 +10,10 @@ from requests import Request
 from responses import matchers
 
 from sentry.integrations.github.client import GitHubAppsClient
+from sentry.integrations.github.integration import GitHubIntegration
 from sentry.models import Repository
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
@@ -42,8 +44,10 @@ class GitHubAppsClientTest(TestCase):
             external_id=123,
             integration_id=integration.id,
         )
-        self.install = integration.get_installation(organization_id=self.organization.id)
-        self.client = self.install.get_client()
+        install = integration.get_installation(organization_id=self.organization.id)
+        assert isinstance(install, GitHubIntegration)
+        self.install = install
+        self.github_client = self.install.get_client()
         responses.add(
             method=responses.POST,
             url="https://api.github.com/app/installations/1/access_tokens",
@@ -66,19 +70,19 @@ class GitHubAppsClientTest(TestCase):
             },
         )
         with mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1"):
-            gh_rate_limit = self.client.get_rate_limit()
+            gh_rate_limit = self.github_client.get_rate_limit()
             assert gh_rate_limit.limit == 5000
             assert gh_rate_limit.remaining == 4999
             assert gh_rate_limit.used == 1
             assert gh_rate_limit.next_window() == "17:47:53"
 
-            gh_rate_limit = self.client.get_rate_limit("search")
+            gh_rate_limit = self.github_client.get_rate_limit("search")
             assert gh_rate_limit.limit == 30
             assert gh_rate_limit.remaining == 18
             assert gh_rate_limit.used == 12
             assert gh_rate_limit.next_window() == "16:50:52"
 
-            gh_rate_limit = self.client.get_rate_limit("graphql")
+            gh_rate_limit = self.github_client.get_rate_limit("graphql")
             assert gh_rate_limit.limit == 5000
             assert gh_rate_limit.remaining == 4993
             assert gh_rate_limit.used == 7
@@ -86,7 +90,7 @@ class GitHubAppsClientTest(TestCase):
 
     def test_get_rate_limit_non_existant_resouce(self):
         with pytest.raises(AssertionError):
-            self.client.get_rate_limit("foo")
+            self.github_client.get_rate_limit("foo")
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
@@ -101,7 +105,8 @@ class GitHubAppsClientTest(TestCase):
             json={"text": 200},
         )
 
-        resp = self.client.check_file(self.repo, path, version)
+        resp = self.github_client.check_file(self.repo, path, version)
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
@@ -114,7 +119,7 @@ class GitHubAppsClientTest(TestCase):
         responses.add(method=responses.HEAD, url=url, status=404)
 
         with pytest.raises(ApiError):
-            self.client.check_file(self.repo, path, version)
+            self.github_client.check_file(self.repo, path, version)
         assert responses.calls[1].response.status_code == 404
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
@@ -141,7 +146,7 @@ class GitHubAppsClientTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_get_with_pagination(self, get_jwt):
-        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.client.page_size}"
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
 
         responses.add(
             method=responses.GET,
@@ -170,18 +175,18 @@ class GitHubAppsClientTest(TestCase):
             # The code only cares about the `next` value which is not included here
             headers={"link": f'<{url}&page=1>; rel="first", <{url}&page=3>; rel="prev"'},
         )
-        self.client.get_with_pagination(f"/repos/{self.repo.name}/assignees")
+        self.github_client.get_with_pagination(f"/repos/{self.repo.name}/assignees")
         assert len(responses.calls) == 5
         assert responses.calls[1].response.status_code == 200
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_get_with_pagination_only_one_page(self, get_jwt):
-        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.client.page_size}"
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
 
         # No link in the headers because there are no more pages
         responses.add(method=responses.GET, url=url, json={}, headers={})
-        self.client.get_with_pagination(f"/repos/{self.repo.name}/assignees")
+        self.github_client.get_with_pagination(f"/repos/{self.repo.name}/assignees")
         # One call is for getting the token for the installation
         assert len(responses.calls) == 2
         assert responses.calls[1].response.status_code == 200
@@ -246,7 +251,7 @@ class GitHubAppsClientTest(TestCase):
             json={"query": query, "data": {"repository": {"ref": {"target": {}}}}},
             content_type="application/json",
         )
-        resp = self.client.get_blame_for_file(self.repo, path, ref, 1)
+        resp = self.github_client.get_blame_for_file(self.repo, path, ref, 1)
         assert (
             responses.calls[1].request.body
             == b'{"query": "query {\\n            repository(name: \\"foo\\", owner: \\"Test-Organization\\") {\\n                ref(qualifiedName: \\"master\\") {\\n                    target {\\n                        ... on Commit {\\n                            blame(path: \\"src/sentry/integrations/github/client.py\\") {\\n                                ranges {\\n                                        commit {\\n                                            oid\\n                                            author {\\n                                                name\\n                                                email\\n                                            }\\n                                            message\\n                                            committedDate\\n                                        }\\n                                    startingLine\\n                                    endingLine\\n                                    age\\n                                }\\n                            }\\n                        }\\n                    }\\n                }\\n            }\\n        }"}'
@@ -264,7 +269,7 @@ class GitHubAppsClientTest(TestCase):
             content_type="application/json",
         )
         with pytest.raises(ApiError) as excinfo:
-            self.client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+            self.github_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
         (msg,) = excinfo.value.args
         assert msg == "something, went wrong"
 
@@ -278,7 +283,7 @@ class GitHubAppsClientTest(TestCase):
             content_type="application/json",
         )
         with pytest.raises(ApiError) as excinfo:
-            self.client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+            self.github_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
         (msg,) = excinfo.value.args
         assert msg == "Branch does not exist in GitHub."
 
@@ -294,14 +299,14 @@ class GitHubAppsClientTest(TestCase):
         repo_key = f"github:repo:{self.repo.name}:source-code"
         assert cache.get(repo_key) is None
         with mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1"):
-            files = self.client.get_cached_repo_files(self.repo.name, "master")
+            files = self.github_client.get_cached_repo_files(self.repo.name, "master")
             assert cache.get(repo_key) == files
             # Calling a second time should work
-            files = self.client.get_cached_repo_files(self.repo.name, "master")
+            files = self.github_client.get_cached_repo_files(self.repo.name, "master")
             assert cache.get(repo_key) == files
             # Calling again after the cache has been cleared should still work
             cache.delete(repo_key)
-            files = self.client.get_cached_repo_files(self.repo.name, "master")
+            files = self.github_client.get_cached_repo_files(self.repo.name, "master")
             assert cache.get(repo_key) == files
 
     @responses.activate
@@ -321,7 +326,7 @@ class GitHubAppsClientTest(TestCase):
         repo_key = f"github:repo:{self.repo.name}:all"
         assert cache.get(repo_key) is None
         with mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1"):
-            files = self.client.get_cached_repo_files(self.repo.name, "master")
+            files = self.github_client.get_cached_repo_files(self.repo.name, "master")
             assert files == ["src/foo.py"]
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
@@ -343,7 +348,7 @@ class GitHubAppsClientTest(TestCase):
                 "author_association": "COLLABORATOR",
             },
         )
-        self.client.create_comment(repo=self.repo.name, issue_id="1", data={"body": "hello"})
+        self.github_client.create_comment(repo=self.repo.name, issue_id="1", data={"body": "hello"})
 
         responses.add(
             method=responses.PATCH,
@@ -361,7 +366,9 @@ class GitHubAppsClientTest(TestCase):
             },
         )
 
-        self.client.update_comment(repo=self.repo.name, comment_id="1", data={"body": "world"})
+        self.github_client.update_comment(
+            repo=self.repo.name, comment_id="1", data={"body": "world"}
+        )
         assert responses.calls[2].response.status_code == 200
         assert responses.calls[2].request.body == b'{"body": "world"}'
 
@@ -382,7 +389,7 @@ class GitHubAppsClientTest(TestCase):
             json=comment_reactions,
         )
 
-        reactions = self.client.get_comment_reactions(repo=self.repo.name, comment_id="2")
+        reactions = self.github_client.get_comment_reactions(repo=self.repo.name, comment_id="2")
         stored_reactions = comment_reactions["reactions"]
         del stored_reactions["url"]
         assert reactions == stored_reactions
@@ -423,15 +430,16 @@ class GithubProxyClientTest(TestCase):
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
     def test__refresh_access_token(self, mock_jwt):
-        assert self.integration.metadata["access_token"] is not self.access_token
-        assert self.integration.metadata["expires_at"] is None
+        assert self.integration.metadata == {"access_token": None, "expires_at": None}
 
         self.gh_client._refresh_access_token()
         assert mock_jwt.called
 
         self.integration.refresh_from_db()
-        assert self.integration.metadata["access_token"] == self.access_token
-        assert self.integration.metadata["expires_at"] in self.expires_at
+        assert self.integration.metadata == {
+            "access_token": self.access_token,
+            "expires_at": self.expires_at.rstrip("Z"),
+        }
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
@@ -499,7 +507,7 @@ class GithubProxyClientTest(TestCase):
         assert self.access_token in access_token_request.headers["Authorization"]
 
         mock_jwt.reset_mock()
-        access_token_request.headers = {}
+        access_token_request.headers.clear()
 
         # Following requests should just add headers
         self.gh_client.authorize_request(prepared_request=access_token_request)

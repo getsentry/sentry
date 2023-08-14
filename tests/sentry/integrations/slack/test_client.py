@@ -35,14 +35,18 @@ class SlackClientTest(TestCase):
         self.mock_user_access_token_response = {"ok": True, "auth": "user"}
         self.mock_access_token_response = {"ok": True, "auth": "token"}
         self.mock_not_authed_response = {"ok": True, "auth": None}
-        base_response_kwargs = {
-            "method": responses.POST,
-            "url": re.compile(r"\S+chat.postMessage$"),
-            "status": 200,
-            "content_type": "application/json",
-        }
-        responses.add(
-            **base_response_kwargs,
+
+        def _add_response(*, json, match):
+            responses.add(
+                method=responses.POST,
+                url=re.compile(r"\S+chat.postMessage$"),
+                status=200,
+                content_type="application/json",
+                json=json,
+                match=match,
+            )
+
+        _add_response(
             json=self.mock_user_access_token_response,
             match=[
                 matchers.header_matcher(
@@ -50,13 +54,11 @@ class SlackClientTest(TestCase):
                 )
             ],
         )
-        responses.add(
-            **base_response_kwargs,
+        _add_response(
             json=self.mock_access_token_response,
             match=[matchers.header_matcher({"Authorization": f"Bearer {self.access_token}"})],
         )
-        responses.add(
-            **base_response_kwargs,
+        _add_response(
             json=self.mock_not_authed_response,
             match=[matchers.header_matcher({})],
         )

@@ -1,3 +1,4 @@
+from unittest import mock
 from urllib.parse import parse_qs
 
 import responses
@@ -23,9 +24,6 @@ class SlackNotifyActionTest(RuleTestCase):
 
     def setUp(self):
         self.integration = install_slack(self.get_event().project.organization)
-
-    def tearDown(self):
-        manager.attachment_generators[ExternalProviders.SLACK] = None
 
     def assert_form_valid(self, form, expected_channel_id, expected_channel):
         assert form.is_valid()
@@ -351,33 +349,36 @@ class SlackNotifyActionTest(RuleTestCase):
 
     @responses.activate
     def test_additional_attachment(self):
-        manager.attachment_generators[ExternalProviders.SLACK] = additional_attachment_generator
-        event = self.get_event()
+        with mock.patch.dict(
+            manager.attachment_generators,
+            {ExternalProviders.SLACK: additional_attachment_generator},
+        ):
+            event = self.get_event()
 
-        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+            rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
 
-        results = list(rule.after(event=event, state=self.get_state()))
-        assert len(results) == 1
+            results = list(rule.after(event=event, state=self.get_state()))
+            assert len(results) == 1
 
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
+            responses.add(
+                method=responses.POST,
+                url="https://slack.com/api/chat.postMessage",
+                body='{"ok": true}',
+                status=200,
+                content_type="application/json",
+            )
 
-        # Trigger rule callback
-        results[0].callback(event, futures=[])
-        data = parse_qs(responses.calls[0].request.body)
+            # Trigger rule callback
+            results[0].callback(event, futures=[])
+            data = parse_qs(responses.calls[0].request.body)
 
-        assert "attachments" in data
-        attachments = json.loads(data["attachments"][0])
+            assert "attachments" in data
+            attachments = json.loads(data["attachments"][0])
 
-        assert len(attachments) == 2
-        assert attachments[0]["title"] == event.title
-        assert attachments[1]["title"] == self.organization.slug
-        assert attachments[1]["text"] == self.integration.id
+            assert len(attachments) == 2
+            assert attachments[0]["title"] == event.title
+            assert attachments[1]["title"] == self.organization.slug
+            assert attachments[1]["text"] == self.integration.id
 
     @responses.activate
     def test_multiple_integrations(self):

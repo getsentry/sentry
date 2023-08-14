@@ -1,10 +1,14 @@
-GENERIC_EVENT = {
+from __future__ import annotations
+
+from typing import Any
+
+GENERIC_EVENT: dict[str, Any] = {
     "serviceUrl": "https://smba.trafficmanager.net/amer/",
     "channelData": {"eventType": "otherEvent"},
     "type": "conversationUpdate",
 }
 
-EXAMPLE_TEAM_MEMBER_ADDED = {
+EXAMPLE_TEAM_MEMBER_ADDED: dict[str, Any] = {
     "recipient": {"id": "28:5710acff-f313-453f-8b75-44fff54bab14", "name": "Steve-Bot-5"},
     "from": {
         "aadObjectId": "a6de2a64-9501-4e16-9e50-74df223570a3",
@@ -33,7 +37,7 @@ EXAMPLE_TEAM_MEMBER_ADDED = {
     "id": "f:8e005ef8-f848-156f-55b1-0a5bb3207225",
 }
 
-EXAMPLE_TEAM_MEMBER_REMOVED = {
+EXAMPLE_TEAM_MEMBER_REMOVED: dict[str, Any] = {
     "membersRemoved": [{"id": "28:5710acff-f313-453f-8b75-44fff54bab14"}],
     "type": "conversationUpdate",
     "timestamp": "2020-07-16T23:47:29.7965243Z",
@@ -62,7 +66,7 @@ EXAMPLE_TEAM_MEMBER_REMOVED = {
     },
 }
 
-EXAMPLE_PERSONAL_MEMBER_ADDED = {
+EXAMPLE_PERSONAL_MEMBER_ADDED: dict[str, Any] = {
     "recipient": {"id": "28:5710acff-f313-453f-8b75-44fff54bab14", "name": "Steve-Bot-5"},
     "from": {
         "aadObjectId": "a6de2a64-9501-4e16-9e50-74df223570a3",
@@ -82,7 +86,7 @@ EXAMPLE_PERSONAL_MEMBER_ADDED = {
     "id": "f:d4414f98-25be-6cc7-b8c7-f01d51e3afd0",
 }
 
-EXAMPLE_UNLINK_COMMAND = {
+EXAMPLE_UNLINK_COMMAND: dict[str, Any] = {
     "text": "unlink ",
     "recipient": {"id": "28:5710acff-f313-453f-8b75-44fff54bab14", "name": "Steve-Bot-5"},
     "from": {
@@ -103,7 +107,7 @@ EXAMPLE_UNLINK_COMMAND = {
 }
 
 
-EXAMPLE_MENTIONED = {
+EXAMPLE_MENTIONED: dict[str, Any] = {
     "text": "<at>SentryTest</at> help\n",
     "recipient": {"id": "28:5710acff-f313-453f-8b75-44fff54bab14", "name": "Steve-Bot-5"},
     "from": {
@@ -153,7 +157,7 @@ DECODED_TOKEN = {
     "aud": "msteams-client-id",
 }
 
-OPEN_ID_CONFIG = {
+OPEN_ID_CONFIG: dict[str, Any] = {
     "issuer": "https://api.botframework.com",
     "authorization_endpoint": "https://invalid.botframework.com",
     "jwks_uri": "https://login.botframework.com/v1/.well-known/keys",

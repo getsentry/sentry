@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from functools import cached_property
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -288,7 +291,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert trigger.alert_threshold == alert_threshold
 
     def test_simple_below_threshold(self):
-        payload = {
+        payload: dict[str, Any] = {
             "name": "hello_im_a_test",
             "time_window": 10,
             "query": "level:error",
@@ -356,7 +359,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert serializer.validated_data["resolve_threshold"] == resolve_threshold
 
     def test_boundary(self):
-        payload = {
+        payload: dict[str, Any] = {
             "name": "hello_im_a_test",
             "time_window": 10,
             "query": "level:error",
@@ -720,6 +723,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert serializer.is_valid(), serializer.errors
         with pytest.raises(serializers.ValidationError) as excinfo:
             serializer.save()
+        assert isinstance(excinfo.value.detail, list)
         assert excinfo.value.detail[0] == "You may not exceed 1 metric alerts per organization"
 
 

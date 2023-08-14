@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from django.http import Http404
 
@@ -20,8 +21,8 @@ logger = logging.getLogger("sentry.integrations.pagerduty")
 
 
 def build_incident_attachment(
-    incident, integration_key, new_status: IncidentStatus, metric_value=None
-):
+    incident, integration_key, new_status: IncidentStatus, metric_value: int | None = None
+) -> dict[str, Any]:
     data = incident_attachment_info(incident, new_status, metric_value)
     severity = "info"
     if new_status == IncidentStatus.CRITICAL:

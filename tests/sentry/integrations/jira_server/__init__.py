@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from sentry.models import (
     ExternalIssue,
     Group,
@@ -55,7 +59,7 @@ EXAMPLE_USER_SEARCH_RESPONSE = """
 ]
 """
 
-EXAMPLE_PAYLOAD = {
+EXAMPLE_PAYLOAD: dict[str, Any] = {
     "changelog": {
         "items": [
             {
