@@ -1814,7 +1814,8 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
         "group_id": group.id,
         "event_id": event.event_id,
     }
-    logger.info("_handle_regression", extra={**logging_details})
+    if should_log_extra_info:
+        logger.info("_handle_regression", extra={**logging_details})
 
     if not group.is_resolved():
         if should_log_extra_info:
