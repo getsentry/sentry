@@ -54,8 +54,12 @@ import {
   QuickTraceContext,
   QuickTraceContextChildrenProps,
 } from 'sentry/utils/performance/quickTrace/quickTraceContext';
-import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
-import {isTraceFull} from 'sentry/utils/performance/quickTrace/utils';
+import {
+  QuickTraceEvent,
+  TraceError,
+  TraceFull,
+} from 'sentry/utils/performance/quickTrace/types';
+import {isTraceTransaction} from 'sentry/utils/performance/quickTrace/utils';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
 import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
 
@@ -842,7 +846,11 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     const {span} = this.props;
     const {currentEvent} = quickTrace;
 
-    if (isGapSpan(span) || !currentEvent || !isTraceFull(currentEvent)) {
+    if (
+      isGapSpan(span) ||
+      !currentEvent ||
+      !isTraceTransaction<TraceFull>(currentEvent)
+    ) {
       return null;
     }
 

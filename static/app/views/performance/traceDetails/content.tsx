@@ -21,7 +21,11 @@ import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getDuration} from 'sentry/utils/formatters';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
+import {
+  TraceError,
+  TraceFullDetailed,
+  TraceMeta,
+} from 'sentry/utils/performance/quickTrace/types';
 import {filterTrace, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
@@ -31,11 +35,11 @@ import {TraceDetailHeader, TraceSearchBar, TraceSearchContainer} from './styles'
 import TraceNotFound from './traceNotFound';
 import TraceView from './traceView';
 import {TraceInfo} from './types';
-import {getTraceInfo, isRootTransaction} from './utils';
+import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
 
 type IndexedFusedTransaction = {
+  event: TraceFullDetailed | TraceError;
   indexed: string[];
-  transaction: TraceFullDetailed;
 };
 
 type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
@@ -47,17 +51,18 @@ type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'loca
   traceEventView: EventView;
   traceSlug: string;
   traces: TraceFullDetailed[] | null;
+  orphanErrors?: TraceError[];
 };
 
 type State = {
-  filteredTransactionIds: Set<string> | undefined;
+  filteredEventIds: Set<string> | undefined;
   searchQuery: string | undefined;
 };
 
 class TraceDetailsContent extends Component<Props, State> {
   state: State = {
     searchQuery: undefined,
-    filteredTransactionIds: undefined,
+    filteredEventIds: undefined,
   };
 
   componentDidMount() {
@@ -65,7 +70,10 @@ class TraceDetailsContent extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (this.props.traces !== prevProps.traces) {
+    if (
+      this.props.traces !== prevProps.traces ||
+      this.props.orphanErrors !== prevProps.orphanErrors
+    ) {
       this.initFuse();
     }
   }
@@ -75,8 +83,14 @@ class TraceDetailsContent extends Component<Props, State> {
   virtualScrollbarContainerRef = createRef<HTMLDivElement>();
 
   async initFuse() {
-    if (defined(this.props.traces) && this.props.traces.length > 0) {
-      const transformed: IndexedFusedTransaction[] = this.props.traces.flatMap(trace =>
+    const {traces, orphanErrors} = this.props;
+
+    if (!hasTraceData(traces, orphanErrors)) {
+      return;
+    }
+
+    const transformedEvents: IndexedFusedTransaction[] =
+      traces?.flatMap(trace =>
         reduceTrace<IndexedFusedTransaction[]>(
           trace,
           (acc, transaction) => {
@@ -87,7 +101,7 @@ class TraceDetailsContent extends Component<Props, State> {
             ];
 
             acc.push({
-              transaction,
+              event: transaction,
               indexed,
             });
 
@@ -95,17 +109,26 @@ class TraceDetailsContent extends Component<Props, State> {
           },
           []
         )
-      );
+      ) ?? [];
 
-      this.fuse = await createFuzzySearch(transformed, {
-        keys: ['indexed'],
-        includeMatches: true,
-        threshold: 0.6,
-        location: 0,
-        distance: 100,
-        maxPatternLength: 32,
+    // Include orphan error titles and project slugs during fuzzy search
+    orphanErrors?.forEach(orphanError => {
+      const indexed: string[] = [orphanError.title, orphanError.project_slug, 'Unknown'];
+
+      transformedEvents.push({
+        indexed,
+        event: orphanError,
       });
-    }
+    });
+
+    this.fuse = await createFuzzySearch(transformedEvents, {
+      keys: ['indexed'],
+      includeMatches: true,
+      threshold: 0.6,
+      location: 0,
+      distance: 100,
+      maxPatternLength: 32,
+    });
   }
 
   renderTraceLoading() {
@@ -121,13 +144,13 @@ class TraceDetailsContent extends Component<Props, State> {
   };
 
   filterTransactions = () => {
-    const {traces} = this.props;
-    const {filteredTransactionIds, searchQuery} = this.state;
+    const {traces, orphanErrors} = this.props;
+    const {filteredEventIds, searchQuery} = this.state;
 
-    if (!searchQuery || traces === null || traces.length <= 0 || !defined(this.fuse)) {
-      if (filteredTransactionIds !== undefined) {
+    if (!searchQuery || !hasTraceData(traces, orphanErrors) || !defined(this.fuse)) {
+      if (filteredEventIds !== undefined) {
         this.setState({
-          filteredTransactionIds: undefined,
+          filteredEventIds: undefined,
         });
       }
       return;
@@ -140,24 +163,33 @@ class TraceDetailsContent extends Component<Props, State> {
        * indices. These matches are often noise, so exclude them.
        */
       .filter(({matches}) => matches?.length)
-      .map(({item}) => item.transaction.event_id);
+      .map(({item}) => item.event.event_id);
 
     /**
      * Fuzzy search on ids result in seemingly random results. So switch to
      * doing substring matches on ids to provide more meaningful results.
      */
-    const idMatches = traces
-      .flatMap(trace =>
+    const idMatches: string[] = [];
+    traces
+      ?.flatMap(trace =>
         filterTrace(
           trace,
           ({event_id, span_id}) =>
             event_id.includes(searchQuery) || span_id.includes(searchQuery)
         )
       )
-      .map(transaction => transaction.event_id);
+      .forEach(transaction => idMatches.push(transaction.event_id));
+
+    // Include orphan error event_ids and span_ids during substring search
+    orphanErrors?.forEach(orphanError => {
+      const {event_id, span} = orphanError;
+      if (event_id.includes(searchQuery) || span.includes(searchQuery)) {
+        idMatches.push(event_id);
+      }
+    });
 
     this.setState({
-      filteredTransactionIds: new Set([...fuseMatches, ...idMatches]),
+      filteredEventIds: new Set([...fuseMatches, ...idMatches]),
     });
   };
 
@@ -220,7 +252,7 @@ class TraceDetailsContent extends Component<Props, State> {
   }
 
   renderTraceWarnings() {
-    const {traces} = this.props;
+    const {traces, orphanErrors} = this.props;
 
     const {roots, orphans} = (traces ?? []).reduce(
       (counts, trace) => {
@@ -235,6 +267,9 @@ class TraceDetailsContent extends Component<Props, State> {
     );
 
     let warning: React.ReactNode = null;
+
+    const hasOnlyOrphanErrors =
+      hasTraceData(traces, orphanErrors) && (!traces || traces.length <= 0);
 
     if (roots === 0 && orphans > 0) {
       warning = (
@@ -264,6 +299,19 @@ class TraceDetailsContent extends Component<Props, State> {
           </ExternalLink>
         </Alert>
       );
+    } else if (hasOnlyOrphanErrors) {
+      warning = (
+        <Alert type="info" showIcon>
+          {tct(
+            "The good news is we know these errors are related to each other. The bad news is you haven't enabled tracing to tell you more than that. [tracingLink: Configure Tracing]",
+            {
+              tracingLink: (
+                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/distributed-tracing/" />
+              ),
+            }
+          )}
+        </Alert>
+      );
     }
 
     return warning;
@@ -280,6 +328,7 @@ class TraceDetailsContent extends Component<Props, State> {
       traceSlug,
       traces,
       meta,
+      orphanErrors,
     } = this.props;
 
     if (!dateSelected) {
@@ -288,7 +337,9 @@ class TraceDetailsContent extends Component<Props, State> {
     if (isLoading) {
       return this.renderTraceLoading();
     }
-    if (error !== null || traces === null || traces.length <= 0) {
+
+    const hasData = hasTraceData(traces, orphanErrors);
+    if (error !== null || !hasData) {
       return (
         <TraceNotFound
           meta={meta}
@@ -299,27 +350,26 @@ class TraceDetailsContent extends Component<Props, State> {
         />
       );
     }
-    const traceInfo = getTraceInfo(traces);
+
+    const traceInfo = traces ? getTraceInfo(traces, orphanErrors) : undefined;
 
     return (
       <Fragment>
         {this.renderTraceWarnings()}
-        {this.renderTraceHeader(traceInfo)}
+        {traceInfo && this.renderTraceHeader(traceInfo)}
         {this.renderSearchBar()}
         <Margin>
-          <VisuallyCompleteWithData
-            id="PerformanceDetails-TraceView"
-            hasData={!!traces.length}
-          >
+          <VisuallyCompleteWithData id="PerformanceDetails-TraceView" hasData={hasData}>
             <TraceView
-              filteredTransactionIds={this.state.filteredTransactionIds}
+              filteredEventIds={this.state.filteredEventIds}
               traceInfo={traceInfo}
               location={location}
               organization={organization}
               traceEventView={traceEventView}
               traceSlug={traceSlug}
-              traces={traces}
+              traces={traces || []}
               meta={meta}
+              orphanErrors={orphanErrors || []}
             />
           </VisuallyCompleteWithData>
         </Margin>

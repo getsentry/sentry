@@ -4,12 +4,18 @@ import {Event} from 'sentry/types/event';
 import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceLiteQuery from 'sentry/utils/performance/quickTrace/traceLiteQuery';
-import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
+import {
+  QuickTraceQueryChildrenProps,
+  TraceFull,
+  TraceSplitResults,
+} from 'sentry/utils/performance/quickTrace/types';
 import {
   flattenRelevantPaths,
   getTraceTimeRangeFromEvent,
   isCurrentEvent,
+  isTraceSplitResult,
 } from 'sentry/utils/performance/quickTrace/utils';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
   children: (props: QuickTraceQueryChildrenProps) => React.ReactNode;
@@ -17,6 +23,7 @@ type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
 };
 
 export default function QuickTraceQuery({children, event, ...props}: QueryProps) {
+  const organization = useOrganization();
   const renderEmpty = () => (
     <Fragment>
       {children({
@@ -63,17 +70,34 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               traceFullResults.error === null &&
               traceFullResults.traces !== null
             ) {
-              for (const subtrace of traceFullResults.traces) {
-                try {
-                  const trace = flattenRelevantPaths(event, subtrace);
-                  return children({
-                    ...traceFullResults,
-                    trace,
-                    currentEvent: trace.find(e => isCurrentEvent(e, event)) ?? null,
-                  });
-                } catch {
-                  // let this fall through and check the next subtrace
-                  // or use the trace lite results
+              if (
+                organization.features.includes(
+                  'performance-tracing-without-performance'
+                ) &&
+                isTraceSplitResult<TraceSplitResults<TraceFull>, TraceFull[]>(
+                  traceFullResults.traces
+                )
+              ) {
+                traceFullResults.traces = traceFullResults.traces.transactions;
+              }
+
+              if (
+                !isTraceSplitResult<TraceSplitResults<TraceFull>, TraceFull[]>(
+                  traceFullResults.traces
+                )
+              ) {
+                for (const subtrace of traceFullResults.traces) {
+                  try {
+                    const trace = flattenRelevantPaths(event, subtrace);
+                    return children({
+                      ...traceFullResults,
+                      trace,
+                      currentEvent: trace.find(e => isCurrentEvent(e, event)) ?? null,
+                    });
+                  } catch {
+                    // let this fall through and check the next subtrace
+                    // or use the trace lite results
+                  }
                 }
               }
             }
@@ -103,7 +127,14 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               // if we reach this point but there were some traces in the full results,
               // that means there were other transactions in the trace, but the current
               // event could not be found
-              type: traceFullResults.traces?.length ? 'missing' : 'empty',
+              type:
+                traceFullResults.traces &&
+                !isTraceSplitResult<TraceSplitResults<TraceFull>, TraceFull[]>(
+                  traceFullResults.traces
+                ) &&
+                traceFullResults.traces?.length
+                  ? 'missing'
+                  : 'empty',
               currentEvent: null,
             });
           }}

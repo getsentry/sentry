@@ -32,6 +32,8 @@ export type TraceError = {
   project_slug: string;
   span: string;
   title: string;
+  generation?: number;
+  timestamp?: number;
 };
 
 export type TracePerformanceIssue = Omit<TraceError, 'issue' | 'span'> & {
@@ -78,6 +80,11 @@ export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
   measurements?: Record<string, Measurement>;
   profile_id?: string;
   tags?: EventTag[];
+};
+
+export type TraceSplitResults<U extends TraceFull | TraceFullDetailed> = {
+  orphan_errors: TraceError[];
+  transactions: U[];
 };
 
 export type TraceProps = {

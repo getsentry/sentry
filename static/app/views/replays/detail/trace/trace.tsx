@@ -53,7 +53,7 @@ function TraceFound({
     <FluidHeight>
       <TraceView
         meta={null}
-        traces={traces ?? null}
+        traces={traces || []}
         location={location}
         organization={organization}
         traceEventView={eventView!}
