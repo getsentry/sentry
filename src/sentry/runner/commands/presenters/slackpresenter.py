@@ -1,5 +1,4 @@
-import os
-from typing import Any, List, Tuple
+from typing import Any, List, Optional, Tuple
 
 import requests
 from django.conf import settings
@@ -67,11 +66,9 @@ class SlackPresenter(OptionsPresenter):
             raise
 
     def flush(self) -> None:
-
-        region = settings.SENTRY_REGION
-
+        region: Optional[str] = settings.SENTRY_REGION
         if not region:
-            region = os.environ.get("CUSTOMER_ID")
+            region = settings.CUSTOMER_ID
 
         json_data = {
             "region": region,
