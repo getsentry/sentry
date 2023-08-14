@@ -1,6 +1,9 @@
 from django.conf.urls import include
 from django.urls import re_path
 
+from sentry.api.endpoints.experimental.enterprise.organization_projects_experiment import (
+    OrganizationProjectsExperimentEndpoint,
+)
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
 from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
@@ -13,9 +16,6 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
 )
 from sentry.api.endpoints.organization_events_starfish import OrganizationEventsStarfishEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
-from sentry.api.endpoints.organization_projects_experiment import (
-    OrganizationProjectsExperimentEndpoint,
-)
 from sentry.api.utils import method_dispatch
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
