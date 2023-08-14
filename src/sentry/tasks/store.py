@@ -203,7 +203,7 @@ def _do_preprocess_event(
     task_kind = SaveEventTaskKind(
         has_attachments=has_attachments,
         from_reprocessing=from_reprocessing,
-        is_highcpu=data["platform"] in options.get("store.save-event-highcpu-platforms"),
+        is_highcpu=data["platform"] in options.get("store.save-event-highcpu-platforms", []),
     )
     submit_save_event(
         task_kind,
