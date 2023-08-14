@@ -1378,6 +1378,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-msteams": False,
     # Enable archive/escalating issue workflow features in v2
     "organizations:escalating-issues-v2": False,
+    # Enable emiting escalating data to the metrics backend
+    "organizations:escalating-metrics-backend": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
@@ -1570,6 +1572,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-m-n-plus-one-db-detector": False,
     # Enable FE/BE for tracing without performance
     "organizations:performance-tracing-without-performance": False,
+    # Enable database view powered by span metrics
+    "organizations:performance-database-view": False,
     # Enable root cause analysis for statistical detector perf issues
     "organizations:statistical-detectors-root-cause-analysis": False,
     # Enable the new Related Events feature
@@ -1882,7 +1886,7 @@ SENTRY_ALLOW_PUBLIC_PROJECTS = True
 SENTRY_ENABLE_INVITES = True
 
 # Origins allowed for session-based API access (via the Access-Control-Allow-Origin header)
-SENTRY_ALLOW_ORIGIN = None
+SENTRY_ALLOW_ORIGIN: str | None = None
 
 # Buffer backend
 SENTRY_BUFFER = "sentry.buffer.Buffer"
@@ -3225,20 +3229,15 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
 
-# Log error and abort processing (without dropping event) when process_event is
-# taking more than n seconds to process event
-SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT = 600
+# Log error and abort processing (without dropping event, but marking it as failed to process)
+# when `symbolicate_event` is taking more than n seconds to process an event.
+SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT = 15 * 60
 
-# Log warning when process_event is taking more than n seconds to process event
-SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120
+# Log warning when `symbolicate_event` is taking more than n seconds to process an event.
+SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 2 * 60
 
-# Block symbolicate_event for this many seconds to wait for a initial response
-# from symbolicator after the task submission.
+# Block `symbolicate_event` for this many seconds to wait for a response from Symbolicator.
 SYMBOLICATOR_POLL_TIMEOUT = 5
-
-# When retrying symbolication requests or querying for the result this set the
-# max number of second to wait between subsequent attempts.
-SYMBOLICATOR_MAX_RETRY_AFTER = 2
 
 # The `url` of the different Symbolicator pools.
 # We want to route different workloads to a different set of Symbolicator pools.
@@ -3360,7 +3359,7 @@ SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
 # See `RealtimeMetricsStore.record_project_duration` for an explanation of how
 # this works.
 # The "regular interval" at which symbolication time is submitted is defined by
-# a combination of `SYMBOLICATOR_POLL_TIMEOUT` and `SYMBOLICATOR_MAX_RETRY_AFTER`.
+# `SYMBOLICATOR_POLL_TIMEOUT`.
 #
 # This value is already adjusted according to the
 # `symbolicate-event.low-priority.metrics.submission-rate` option.

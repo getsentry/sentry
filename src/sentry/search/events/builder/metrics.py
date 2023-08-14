@@ -43,8 +43,8 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
-    OndemandMetricSpec,
-    is_on_demand_metric_query,
+    OnDemandMetricSpec,
+    should_use_on_demand_metrics,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.query import MetricField, MetricsQuery
@@ -108,7 +108,7 @@ class MetricsQueryBuilder(QueryBuilder):
         return super().are_columns_resolved()
 
     @cached_property
-    def _on_demand_metric_spec(self) -> Optional[OndemandMetricSpec]:
+    def _on_demand_metric_spec(self) -> Optional[OnDemandMetricSpec]:
         if not self.on_demand_metrics_enabled:
             return None
 
@@ -119,17 +119,17 @@ class MetricsQueryBuilder(QueryBuilder):
         if self.query is None:
             return None
 
-        if not is_on_demand_metric_query(self.dataset, field, self.query):
+        if not should_use_on_demand_metrics(self.dataset, field, self.query):
             return None
 
         try:
-            return OndemandMetricSpec(field, self.query)
+            return OnDemandMetricSpec(field, self.query)
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return None
 
     def _get_metrics_query_from_on_demand_spec(
-        self, spec: OndemandMetricSpec, require_time_range: bool = True
+        self, spec: OnDemandMetricSpec, require_time_range: bool = True
     ) -> MetricsQuery:
         if self.params.organization is None:
             raise InvalidSearchQuery("An on demand metrics query requires an organization")
@@ -216,7 +216,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         # Resolutions that we will perform only in case the query is not on demand. The reasoning for this is that
         # for building an on demand query we only require a time interval and granularity. All the other fields are
-        # automatically computed given the OndemandMetricSpec.
+        # automatically computed given the OnDemandMetricSpec.
         if not self._on_demand_metric_spec:
             with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
                 self.where, self.having = self.resolve_conditions(
@@ -1140,6 +1140,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         on_demand_metrics_enabled: Optional[bool] = False,
         parser_config_overrides: Optional[Mapping[str, Any]] = None,
     ):
+        self.interval = interval
         super().__init__(
             params=params,
             query=query,
@@ -1152,12 +1153,6 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             on_demand_metrics_enabled=on_demand_metrics_enabled,
             parser_config_overrides=parser_config_overrides,
         )
-        if self.granularity.granularity > interval:
-            for granularity in constants.METRICS_GRANULARITIES:
-                if granularity <= interval:
-                    self.granularity = Granularity(granularity)
-                    break
-        self.interval = interval
 
         self.time_column = self.resolve_time_column(interval)
         self.limit = None if limit is None else Limit(limit)
@@ -1168,6 +1163,20 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         # If additional groupby is provided it will be used first before time
         if groupby is not None:
             self.groupby.insert(0, groupby)
+
+    def resolve_granularity(self) -> Granularity:
+        """Find the largest granularity that is smaller than the interval"""
+        granularity = super().resolve_granularity()
+        if granularity.granularity > self.interval:
+            for available_granularity in constants.METRICS_GRANULARITIES:
+                if available_granularity <= self.interval:
+                    return Granularity(available_granularity)
+            # if we are here the user requested an interval smaller than the smallest granularity available.
+            # We'll force the interval to be the smallest granularity (since we don't have data at the requested interval)
+            # and return the smallest granularity
+            self.interval = constants.METRICS_GRANULARITIES[-1]
+            return Granularity(self.interval)
+        return granularity
 
     def resolve_split_granularity(self) -> Tuple[List[Condition], Optional[Granularity]]:
         """Don't do this for timeseries"""

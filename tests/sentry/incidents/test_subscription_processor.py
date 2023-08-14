@@ -142,6 +142,10 @@ class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
         assert incidents
         return incidents[0]
 
+    @property
+    def sub(self):
+        raise NotImplementedError
+
     def active_incident_exists(self, rule, subscription=None):
         if subscription is None:
             subscription = self.sub
@@ -2147,6 +2151,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
                     numerator = int(value * denominator)
             processor.process_update(
                 {
+                    "entity": "entity",
                     "subscription_id": subscription.subscription_id
                     if subscription
                     else uuid4().hex,
@@ -2160,9 +2165,6 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
                         ]
                     },
                     "timestamp": timestamp,
-                    "interval": 1,
-                    "partition": 1,
-                    "offset": 1,
                 }
             )
         return processor
@@ -2594,6 +2596,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         processor = SubscriptionProcessor(subscription)
         processor.process_update(
             {
+                "entity": "entity",
                 "subscription_id": subscription.subscription_id,
                 "values": {
                     # 1001 is a random int that doesn't map to anything in the indexer
@@ -2606,9 +2609,6 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
                     ]
                 },
                 "timestamp": timezone.now(),
-                "interval": 1,
-                "partition": 1,
-                "offset": 1,
             }
         )
         self.assert_no_active_incident(rule)
@@ -2661,6 +2661,7 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
             tag_value_crashed = resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "crashed")
             processor.process_update(
                 {
+                    "entity": "entity",
                     "subscription_id": subscription.subscription_id
                     if subscription
                     else uuid4().hex,
@@ -2675,9 +2676,6 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
                         ]
                     },
                     "timestamp": timestamp,
-                    "interval": 1,
-                    "partition": 1,
-                    "offset": 1,
                 }
             )
         return processor

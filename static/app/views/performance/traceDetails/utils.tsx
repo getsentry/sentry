@@ -2,7 +2,7 @@ import {LocationDescriptor, Query} from 'history';
 
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {OrganizationSummary} from 'sentry/types';
-import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 
 import {TraceInfo} from './types';
@@ -25,7 +25,7 @@ export function getTraceDetailsUrl(
   };
 }
 
-function traceVisitor() {
+function transactionVisitor() {
   return (accumulator: TraceInfo, event: TraceFullDetailed) => {
     for (const error of event.errors ?? []) {
       accumulator.errors.add(error.event_id);
@@ -49,7 +49,19 @@ function traceVisitor() {
   };
 }
 
-export function getTraceInfo(traces: TraceFullDetailed[]) {
+export function hasTraceData(
+  traces: TraceFullDetailed[] | null,
+  orphanErrors: TraceError[] | undefined
+): boolean {
+  return Boolean(
+    (traces && traces.length > 0) || (orphanErrors && orphanErrors.length > 0)
+  );
+}
+
+export function getTraceInfo(
+  traces: TraceFullDetailed[] = [],
+  orphanErrors: TraceError[] = []
+) {
   const initial = {
     projects: new Set<string>(),
     errors: new Set<string>(),
@@ -60,11 +72,27 @@ export function getTraceInfo(traces: TraceFullDetailed[]) {
     maxGeneration: 0,
   };
 
-  return traces.reduce(
+  const transactionsInfo = traces.reduce(
     (info: TraceInfo, trace: TraceFullDetailed) =>
-      reduceTrace<TraceInfo>(trace, traceVisitor(), info),
+      reduceTrace<TraceInfo>(trace, transactionVisitor(), info),
     initial
   );
+
+  // Accumulate orphan error information.
+  return orphanErrors.reduce((accumulator: TraceInfo, event: TraceError) => {
+    accumulator.errors.add(event.event_id);
+
+    if (event.timestamp) {
+      accumulator.startTimestamp = Math.min(accumulator.startTimestamp, event.timestamp);
+      accumulator.endTimestamp = Math.max(accumulator.endTimestamp, event.timestamp);
+    }
+
+    return accumulator;
+  }, transactionsInfo);
+}
+
+export function shortenErrorTitle(title: string): string {
+  return title.split(':')[0];
 }
 
 export function isRootTransaction(trace: TraceFullDetailed): boolean {

@@ -7,9 +7,9 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.models.project import Project
-from sentry.profiles.statistical_detectors import TrendPayload
 from sentry.snuba import functions
 from sentry.snuba.referrer import Referrer
+from sentry.statistical_detectors.detector import TrendPayload
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors")

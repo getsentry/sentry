@@ -348,65 +348,47 @@ def test_auto_assign_email_obfuscating_comparator(tmp_path):
     with open(get_fixture_path("backup", "single-option.json")) as backup_file:
         left = json.load(backup_file)
     right = deepcopy(left)
-    useremail_left = json.loads(
+    email_left = json.loads(
         """
             {
-                "model": "sentry.useremail",
+                "model": "sentry.email",
                 "pk": 1,
                 "fields": {
-                    "user": [
-                        "testing@example.com"
-                    ],
                     "email": "testing@example.com",
-                    "validation_hash": "XXXXXXXX",
-                    "date_hash_added": "2023-06-22T00:00:00.000Z",
-                    "is_verified": false
+                    "date_added": "2023-06-22T00:00:00.000Z"
                 }
             }
         """
     )
-    useremail_right = json.loads(
+    email_right = json.loads(
         """
             {
-                "model": "sentry.useremail",
+                "model": "sentry.email",
                 "pk": 1,
                 "fields": {
-                    "user": [
-                        "foo@example.fake"
-                    ],
                     "email": "foo@example.fake",
-                    "validation_hash": "XXXXXXXX",
-                    "date_hash_added": "2023-06-22T00:00:00.000Z",
-                    "is_verified": false
+                    "date_added": "2023-06-22T00:00:00.000Z"
                 }
             }
         """
     )
-    left.append(useremail_left)
-    right.append(useremail_right)
+    left.append(email_left)
+    right.append(email_right)
     out = validate(left, right)
     findings = out.findings
 
-    assert len(findings) == 2
+    assert len(findings) == 1
 
     assert findings[0].kind == ComparatorFindingKind.EmailObfuscatingComparator
-    assert findings[0].on == InstanceID("sentry.useremail", 1)
+    assert findings[0].on == InstanceID("sentry.email", 1)
     assert findings[0].left_pk == 1
     assert findings[0].right_pk == 1
     assert """`email`""" in findings[0].reason
     assert """left value ("t...@...le.com")""" in findings[0].reason
     assert """right value ("f...@...e.fake")""" in findings[0].reason
 
-    assert findings[1].kind == ComparatorFindingKind.EmailObfuscatingComparator
-    assert findings[1].on == InstanceID("sentry.useremail", 1)
-    assert findings[0].left_pk == 1
-    assert findings[0].right_pk == 1
-    assert """`user`""" in findings[1].reason
-    assert """left value ("t...@...le.com")""" in findings[1].reason
-    assert """right value ("f...@...e.fake")""" in findings[1].reason
 
-
-def test_auto_assign_date_added_comparator(tmp_path):
+def test_auto_assign_date_updated_comparator(tmp_path):
     with open(get_fixture_path("backup", "single-option.json")) as backup_file:
         left = json.load(backup_file)
     right = deepcopy(left)
@@ -437,6 +419,69 @@ def test_auto_assign_date_added_comparator(tmp_path):
                     "date_updated": "2023-06-22T23:00:00.456Z",
                     "name": "Admin",
                     "permissions": "['users.admin']"
+                }
+            }
+        """
+    )
+    left.append(userrole_left)
+    right.append(userrole_right)
+    out = validate(left, right)
+    findings = out.findings
+    assert not findings
+
+
+def test_auto_assign_ignored_comparator(tmp_path):
+    left = [
+        json.loads(
+            """
+            {
+                "model": "sentry.user",
+                "pk": 1,
+                "fields": {
+                    "password": "abc123",
+                    "last_login": null,
+                    "username": "testing@example.com",
+                    "name": "",
+                    "email": "testing@example.com",
+                    "is_staff": true,
+                    "is_active": true,
+                    "is_superuser": true,
+                    "is_managed": false,
+                    "is_sentry_app": null,
+                    "is_password_expired": false
+                }
+            }
+        """
+        )
+    ]
+    right = deepcopy(left)
+
+    userrole_left = json.loads(
+        """
+            {
+                "model": "sentry.useremail",
+                "pk": 1,
+                "fields": {
+                    "user": 1,
+                    "email": "testing@example.com",
+                    "validation_hash": "ABC123",
+                    "date_hash_added": "2023-06-22T22:59:55.521Z",
+                    "is_verified": false
+                }
+            }
+        """
+    )
+    userrole_right = json.loads(
+        """
+            {
+                "model": "sentry.useremail",
+                "pk": 1,
+                "fields": {
+                    "user": 1,
+                    "email": "testing@example.com",
+                    "validation_hash": "DEF456",
+                    "date_hash_added": "2023-06-23T00:00:00.000Z",
+                    "is_verified": true
                 }
             }
         """

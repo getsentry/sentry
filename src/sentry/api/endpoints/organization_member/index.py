@@ -13,7 +13,6 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization_member as organization_member_serializers
-from sentry.api.serializers.rest_framework import ListField
 from sentry.api.validators import AllowedEmailField
 from sentry.models import ExternalActor, InviteStatus, OrganizationMember, Team, TeamStatus
 from sentry.models.authenticator import available_authenticators
@@ -49,8 +48,10 @@ class OrganizationMemberSerializer(serializers.Serializer):
     orgRole = serializers.ChoiceField(
         choices=roles.get_choices(), default=organization_roles.get_default().id
     )
-    teams = ListField(required=False, allow_null=False, default=[])  # deprecated, use teamRoles
-    teamRoles = ListField(required=False, allow_null=True, default=[])
+    teams = serializers.ListField(
+        required=False, allow_null=False, default=[]
+    )  # deprecated, use teamRoles
+    teamRoles = serializers.ListField(required=False, allow_null=True, default=[])
     sendInvite = serializers.BooleanField(required=False, default=True, write_only=True)
     reinvite = serializers.BooleanField(required=False)
     regenerate = serializers.BooleanField(required=False)
