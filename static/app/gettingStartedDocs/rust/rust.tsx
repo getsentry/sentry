@@ -26,7 +26,7 @@ export const steps = ({
         loading: sourcePackageRegistries?.isLoading,
         code: `
 [dependencies]
-sentry = "${sourcePackageRegistries?.data?.['sentry.rust'] ?? '0.30.0'}"
+sentry = "${sourcePackageRegistries?.data?.['sentry.rust'] ?? '0.31.5'}"
         `,
       },
     ],
