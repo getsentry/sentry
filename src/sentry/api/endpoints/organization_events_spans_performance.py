@@ -18,7 +18,6 @@ from sentry import eventstore
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.serializers.rest_framework import ListField
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.models import Organization
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
@@ -113,13 +112,15 @@ class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):
 
 
 class SpansPerformanceSerializer(serializers.Serializer):
-    field = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    field = serializers.ListField(child=serializers.CharField(), required=False, allow_null=True)
     query = serializers.CharField(required=False, allow_null=True)
-    spanOp = ListField(child=serializers.CharField(), required=False, allow_null=True, max_length=5)
-    excludeSpanOp = ListField(
+    spanOp = serializers.ListField(
         child=serializers.CharField(), required=False, allow_null=True, max_length=5
     )
-    spanGroup = ListField(
+    excludeSpanOp = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True, max_length=5
+    )
+    spanGroup = serializers.ListField(
         child=serializers.CharField(), required=False, allow_null=True, max_length=4
     )
     min_exclusive_time = serializers.FloatField(required=False)
