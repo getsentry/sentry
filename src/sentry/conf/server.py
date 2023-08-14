@@ -3225,20 +3225,15 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
 
-# Log error and abort processing (without dropping event) when process_event is
-# taking more than n seconds to process event
-SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT = 600
+# Log error and abort processing (without dropping event, but marking it as failed to process)
+# when `symbolicate_event` is taking more than n seconds to process an event.
+SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT = 15 * 60
 
-# Log warning when process_event is taking more than n seconds to process event
-SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120
+# Log warning when `symbolicate_event` is taking more than n seconds to process an event.
+SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 2 * 60
 
-# Block symbolicate_event for this many seconds to wait for a initial response
-# from symbolicator after the task submission.
+# Block `symbolicate_event` for this many seconds to wait for a response from Symbolicator.
 SYMBOLICATOR_POLL_TIMEOUT = 5
-
-# When retrying symbolication requests or querying for the result this set the
-# max number of second to wait between subsequent attempts.
-SYMBOLICATOR_MAX_RETRY_AFTER = 2
 
 # The `url` of the different Symbolicator pools.
 # We want to route different workloads to a different set of Symbolicator pools.
@@ -3360,7 +3355,7 @@ SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
 # See `RealtimeMetricsStore.record_project_duration` for an explanation of how
 # this works.
 # The "regular interval" at which symbolication time is submitted is defined by
-# a combination of `SYMBOLICATOR_POLL_TIMEOUT` and `SYMBOLICATOR_MAX_RETRY_AFTER`.
+# `SYMBOLICATOR_POLL_TIMEOUT`.
 #
 # This value is already adjusted according to the
 # `symbolicate-event.low-priority.metrics.submission-rate` option.
