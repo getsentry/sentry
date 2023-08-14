@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -186,7 +188,7 @@ class MockErroringJiraEndpoint(JiraWebhookBase):
     # In order to be able to use `as_view`'s `initkwargs` (in other words, in order to be able to
     # pass kwargs to `as_view` and have `as_view` pass them onto the `__init__` method below), any
     # kwarg we'd like to pass must already be an attibute of the class
-    error = None
+    error = BaseException("unreachable")
 
     def __init__(self, error: Exception = dummy_exception, *args, **kwargs):
         # We allow the error to be passed in so that we have access to it in the test for use

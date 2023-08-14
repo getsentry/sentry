@@ -1,14 +1,13 @@
 import copy
 import functools
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-import pytz
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.db import router
 from django.db.models import F
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from freezegun import freeze_time
 
 from sentry.constants import DataCategory
@@ -46,7 +45,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
-        now = datetime.now().replace(tzinfo=pytz.utc)
+        now = datetime.now().replace(tzinfo=timezone.utc)
 
         project = self.create_project(
             organization=self.organization, teams=[self.team], date_added=now - timedelta(days=90)
@@ -69,7 +68,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_with_empty_string_user_option(self):
-        now = datetime.now().replace(tzinfo=pytz.utc)
+        now = datetime.now().replace(tzinfo=timezone.utc)
 
         project = self.create_project(
             organization=self.organization, teams=[self.team], date_added=now - timedelta(days=90)
@@ -96,7 +95,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
-        now = datetime.now().replace(tzinfo=pytz.utc)
+        now = datetime.now().replace(tzinfo=timezone.utc)
 
         project = self.create_project(
             organization=self.organization, teams=[self.team], date_added=now - timedelta(days=90)
@@ -169,7 +168,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     def test_organization_project_issue_summaries(self):
         self.login_as(user=self.user)
 
-        now = timezone.now()
+        now = django_timezone.now()
         min_ago = iso_format(now - timedelta(minutes=1))
 
         self.store_event(
@@ -209,7 +208,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     def test_organization_project_issue_substatus_summaries(self):
         self.login_as(user=self.user)
 
-        now = timezone.now()
+        now = django_timezone.now()
         min_ago = iso_format(now - timedelta(minutes=1))
 
         event1 = self.store_event(
@@ -252,7 +251,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_message_builder_simple(self, message_builder):
-        now = timezone.now()
+        now = django_timezone.now()
 
         two_days_ago = now - timedelta(days=2)
         three_days_ago = now - timedelta(days=3)
@@ -349,7 +348,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     @with_feature("organizations:escalating-issues")
     def test_message_builder_substatus_simple(self, message_builder):
-        now = timezone.now()
+        now = django_timezone.now()
         three_days_ago = now - timedelta(days=3)
 
         self.create_member(
@@ -409,7 +408,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_message_builder_advanced(self, message_builder):
 
-        now = timezone.now()
+        now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
         three_days_ago = now - timedelta(days=3)
 
@@ -479,7 +478,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
     @mock.patch("sentry.tasks.weekly_reports.send_email")
     def test_empty_report(self, mock_send_email):
-        now = timezone.now()
+        now = django_timezone.now()
 
         # date is out of range
         ten_days_ago = now - timedelta(days=10)
@@ -503,7 +502,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_message_builder_replays(self, message_builder):
 
-        now = timezone.now()
+        now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
         timestamp = to_timestamp(floor_to_utc_day(now))
 

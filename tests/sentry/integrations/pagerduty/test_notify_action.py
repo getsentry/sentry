@@ -2,7 +2,7 @@ from datetime import timezone
 
 import responses
 
-from sentry.integrations.pagerduty import PagerDutyNotifyServiceAction
+from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
 from sentry.models import Integration, OrganizationIntegration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
@@ -116,11 +116,11 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             },
             project_id=self.project.id,
         )
-        event = event.for_group(event.groups[0])
-        event.occurrence = occurrence
+        group_event = event.for_group(event.groups[0])
+        group_event.occurrence = occurrence
 
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=group_event, state=self.get_state()))
         assert len(results) == 1
 
         responses.add(
@@ -132,12 +132,12 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         # Trigger rule callback
-        results[0].callback(event, futures=[])
+        results[0].callback(group_event, futures=[])
         data = json.loads(responses.calls[0].request.body)
 
         assert data["event_action"] == "trigger"
-        assert data["payload"]["summary"] == event.occurrence.issue_title
-        assert data["payload"]["custom_details"]["title"] == event.occurrence.issue_title
+        assert data["payload"]["summary"] == group_event.occurrence.issue_title
+        assert data["payload"]["custom_details"]["title"] == group_event.occurrence.issue_title
 
     def test_render_label(self):
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
