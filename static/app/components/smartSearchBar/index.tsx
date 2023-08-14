@@ -215,6 +215,11 @@ type Props = WithRouterProps &
      */
     excludedTags?: string[];
     /**
+     * A function that returns a warning message for a given filter key
+     * will only show a render a warning if the value is truthy
+     */
+    getFilterWarning?: (key: string) => React.ReactNode | null;
+    /**
      * List user's recent searches
      */
     hasRecentSearches?: boolean;
@@ -1944,6 +1949,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
               <HighlightQuery
                 parsedQuery={parsedQuery}
                 cursorPosition={this.state.showDropdown ? cursor : -1}
+                getFilterWarning={this.props.getFilterWarning}
               />
             ) : (
               query
