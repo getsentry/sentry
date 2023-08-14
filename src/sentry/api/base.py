@@ -22,6 +22,7 @@ from rest_framework.views import APIView
 from sentry_sdk import Scope
 
 from sentry import analytics, options, tsdb
+from sentry.api.api_owners import ApiOwner
 from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
@@ -145,6 +146,7 @@ class Endpoint(APIView):
     cursor_name = "cursor"
 
     public: Optional[HTTP_METHODS_SET] = None
+    owner: ApiOwner = ApiOwner.UNOWNED
 
     rate_limits: RateLimitConfig | dict[
         str, dict[RateLimitCategory, RateLimit]
