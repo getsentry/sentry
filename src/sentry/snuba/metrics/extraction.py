@@ -567,7 +567,7 @@ class OndemandMetricSpec:
     op: MetricOperationType
 
     # Parsed query tokens from the original query string. Already cleaned of unsupported/redundant filters.
-    parsed_query: [QueryToken]
+    parsed_query: Sequence[QueryToken]
     # Rule condition parsed from the aggregate field expression.
     _field_condition: Optional[RuleCondition]
 
