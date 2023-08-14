@@ -79,7 +79,7 @@ class TrendPayload:
     timestamp: datetime
 
 
-def run_functions_trend_detection(
+def run_trend_detection(
     client: RedisCluster | StrictRedis,
     project: Project,
     start: datetime,
@@ -92,9 +92,7 @@ def run_functions_trend_detection(
         results = pipeline.execute()
 
     old_states = [TrendState.from_dict(result) for result in results]
-    new_states, regressed_functions, improved_functions = compute_new_trend_states(
-        project.id, old_states, payloads
-    )
+    new_states, regressed, improved = compute_new_trend_states(project.id, old_states, payloads)
 
     with client.pipeline() as pipeline:
         for key, value in new_states:
@@ -103,7 +101,7 @@ def run_functions_trend_detection(
 
         pipeline.execute()
 
-    return regressed_functions, improved_functions
+    return regressed, improved
 
 
 def compute_new_trend_states(
@@ -112,8 +110,8 @@ def compute_new_trend_states(
     payloads: List[TrendPayload],
 ) -> Tuple[List[Tuple[str, TrendState]], List[TrendPayload], List[TrendPayload]]:
     new_states: List[Tuple[str, TrendState]] = []
-    regressed_functions: List[TrendPayload] = []
-    improved_functions: List[TrendPayload] = []
+    regressed: List[TrendPayload] = []
+    improved: List[TrendPayload] = []
 
     for payload, old_state in zip(payloads, old_states):
         if old_state.timestamp is not None and old_state.timestamp > payload.timestamp:
@@ -122,7 +120,7 @@ def compute_new_trend_states(
             #
             # This should not happen other than in some error state.
             logger.warning(
-                "Function trend detection out of order. Processing %s, but last processed was %s",
+                "Trend detection out of order. Processing %s, but last processed was %s",
                 payload.timestamp.isoformat(),
                 old_state.timestamp.isoformat(),
             )
@@ -132,13 +130,13 @@ def compute_new_trend_states(
         trend, value = detect_trend(old_state, payload)
 
         if trend == TrendType.Regressed:
-            regressed_functions.append(payload)
+            regressed.append(payload)
         elif trend == TrendType.Improved:
-            improved_functions.append(payload)
+            improved.append(payload)
 
         new_states.append((key, value))
 
-    return new_states, regressed_functions, improved_functions
+    return new_states, regressed, improved
 
 
 def make_key(project_id: int, payload: TrendPayload, version: int) -> str:

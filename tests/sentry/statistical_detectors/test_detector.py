@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from sentry.profiles.statistical_detectors import TrendPayload, TrendState, compute_new_trend_states
+from sentry.statistical_detectors.detector import TrendPayload, TrendState, compute_new_trend_states
 
 
 @pytest.mark.parametrize(
@@ -100,7 +100,7 @@ def test_trend_state(data, expected):
         ),
     ],
 )
-def test_run_functions_trend_detection(initial, p95s, regressed_indices, improved_indices):
+def test_run_trend_detection(initial, p95s, regressed_indices, improved_indices):
     states = [initial]
     all_regressed = []
     all_improved = []
