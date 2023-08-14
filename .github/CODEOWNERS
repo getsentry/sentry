@@ -349,7 +349,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/models/groupresolution.py         @getsentry/data
 /src/sentry/models/integration.py             @getsentry/data @getsentry/issues
 /src/sentry/models/organization.py            @getsentry/data
-/src/sentry/models/organizationmember.py      @getsentry/data @AniketDas-Tekky
+/src/sentry/models/organizationmember.py      @getsentry/data
 /src/sentry/models/organizationoption.py      @getsentry/data
 /src/sentry/models/project.py                 @getsentry/data
 /src/sentry/models/projectoption.py           @getsentry/data
@@ -373,7 +373,7 @@ yarn.lock                                                @getsentry/owners-js-de
 
 /src/sentry/scim/                                     @getsentry/enterprise
 /tests/sentry/api/test_scim*.py                       @getsentry/enterprise
-/src/sentry/tasks/integrations/github/pr_comment.py   @getsentry/enterprise @AniketDas-Tekky
+/src/sentry/tasks/integrations/github/pr_comment.py   @getsentry/enterprise
 ## End of Enterprise
 
 
