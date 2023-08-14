@@ -162,6 +162,7 @@ class Enhancements:
                 frames, cache_key, platform, load_from_cache=org_can_use_cache
             )
             if frames_changed:
+                print("BOO BOO")  # noqa: S002
                 logger.info("The frames have been loaded from the cache. Skipping some work.")
                 return
 
@@ -520,9 +521,11 @@ def _update_frames_from_cached_values(
         try:
             for frame, changed_frame_values in zip(frames, changed_frames_values):
                 if changed_frame_values["in_app"] is not None:
+                    print(f'FOO - {changed_frame_values["in_app"]}')  # noqa: S002
                     frame["in_app"] = changed_frame_values["in_app"]
                     frames_changed = True
-                if changed_frame_values["in_app"] is not None:
+                if changed_frame_values["category"] is not None:
+                    print(f'FOO - {changed_frame_values["category"]}')  # noqa: S002
                     set_path(frame, "data", "category", value=changed_frame_values["category"])
                     frames_changed = True
 
