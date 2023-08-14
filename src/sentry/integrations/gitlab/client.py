@@ -93,7 +93,7 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         self.base_url = self.metadata["base_url"]
         org_integration_id = installation.org_integration.id
         super().__init__(
-            integration_id=installation.id,
+            integration_id=installation.model.id,
             org_integration_id=org_integration_id,
             verify_ssl=verify_ssl,
         )
