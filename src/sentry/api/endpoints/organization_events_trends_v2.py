@@ -99,16 +99,21 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             return Response([])
 
         modified_params = params.copy()
-        delta = modified_params["end"] - modified_params["start"]
-        duration = delta.total_seconds()
-        if duration >= 14 * ONE_DAY_IN_SECONDS and duration <= 30 * ONE_DAY_IN_SECONDS:
-            new_start = modified_params["end"] - timedelta(days=30)
-            min_start = timezone.now() - timedelta(days=90)
-            modified_params["start"] = new_start if min_start < new_start else min_start
-            sentry_sdk.set_tag("performance.trendsv2.extra_data_fetched", True)
-            sentry_sdk.set_tag(
-                "performance.trendsv2.optimized_start_out_of_bounds", new_start > min_start
-            )
+        if not features.has(
+            "organizations:performance-trends-new-data-date-range-default",
+            organization,
+            actor=request.user,
+        ):
+            delta = modified_params["end"] - modified_params["start"]
+            duration = delta.total_seconds()
+            if duration >= 14 * ONE_DAY_IN_SECONDS and duration <= 30 * ONE_DAY_IN_SECONDS:
+                new_start = modified_params["end"] - timedelta(days=30)
+                min_start = timezone.now() - timedelta(days=90)
+                modified_params["start"] = new_start if min_start < new_start else min_start
+                sentry_sdk.set_tag("performance.trendsv2.extra_data_fetched", True)
+                sentry_sdk.set_tag(
+                    "performance.trendsv2.optimized_start_out_of_bounds", new_start > min_start
+                )
 
         trend_type = request.GET.get("trendType", REGRESSION)
         if trend_type not in TREND_TYPES:
