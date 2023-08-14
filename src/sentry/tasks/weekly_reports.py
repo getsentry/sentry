@@ -83,8 +83,7 @@ class ProjectContext:
     existing_issue_count = 0
     reopened_issue_count = 0
     new_issue_count = 0
-    # we merged organizations:issue-states flag to organizations:escalating-issues, so delete when
-    # organizations:escalating-issues GA
+    # delete when organizations:escalating-issues GA
     new_substatus_count = 0
     ongoing_substatus_count = 0
     escalating_substatus_count = 0
@@ -657,8 +656,7 @@ def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
         }
 
         for user_id in user_set:
-            # We manually pick out user.options and use PickledObjectField to deserialize it. We get a list of organizations the user has unsubscribed from user reports
-            option = options_by_user_id.get(user_id, [])
+            option = list(options_by_user_id.get(user_id, []))
             user_subscribed_to_organization_reports = ctx.organization.id not in option
             if user_subscribed_to_organization_reports:
                 send_email(ctx, user_id, dry_run=dry_run)

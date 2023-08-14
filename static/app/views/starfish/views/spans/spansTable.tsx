@@ -55,7 +55,7 @@ type Props = {
   spanCategory?: string;
 };
 
-const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP, SPAN_OP} =
+const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
   SpanMetricsFields;
 const {TIME_SPENT_PERCENTAGE, SPS, SPM, HTTP_ERROR_COUNT} = StarfishFunctions;
 
@@ -158,6 +158,7 @@ function renderBodyCell(
         moduleName={moduleName}
         description={row[SPAN_DESCRIPTION]}
         group={row[SPAN_GROUP]}
+        projectId={row[PROJECT_ID]}
         endpoint={endpoint}
         endpointMethod={endpointMethod}
       />

@@ -63,6 +63,7 @@ class OrganizationReplayIndexMixin:
                     "http://localhost:3000/login",
                 ],  # duplicate urls are okay,
                 tags={"test": "hello", "other": "hello"},
+                release="test",
             )
         )
         self.store_replays(
@@ -74,6 +75,7 @@ class OrganizationReplayIndexMixin:
                 urls=["http://localhost:3000/"],  # duplicate urls are okay
                 tags={"test": "world", "other": "hello"},
                 error_ids=[],
+                release="",
             )
         )
         self.store_replays(
@@ -93,6 +95,7 @@ class OrganizationReplayIndexMixin:
                 is_dead=1,
                 is_rage=1,
                 text="Hello",
+                release=None,
             )
         )
 
@@ -122,6 +125,7 @@ class OrganizationReplayIndexMixin:
                 activity=4,
                 count_dead_clicks=1,
                 count_rage_clicks=1,
+                releases=["test"],
                 clicks=[
                     {
                         "click.alt": "Alt",
@@ -1313,13 +1317,13 @@ class OrganizationReplayIndexMixin:
             assert item["count_rage_clicks"] == 1, item["count_rage_clicks"]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @apply_feature_flag_on_cls("organizations:global-views")
 class OrganizationReplayIndexTest(OrganizationReplayIndexMixin, APITestCase, ReplaysSnubaTestCase):
     pass
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @apply_feature_flag_on_cls("organizations:global-views")
 @apply_feature_flag_on_cls("organizations:session-replay-optimized-search")
 class OrganizationReplayIndexOptimizedSearchTest(

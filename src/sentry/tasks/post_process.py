@@ -16,6 +16,8 @@ from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
+from sentry.sentry_metrics.client import generic_metrics_backend
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -114,6 +116,21 @@ def _capture_event_stats(event: Event) -> None:
     metrics.incr("events.processed", tags={"platform": platform}, skip_internal=False)
     metrics.incr(f"events.processed.{platform}", skip_internal=False)
     metrics.timing("events.size.data", event.size, tags=tags)
+
+
+def _update_escalating_metrics(event: Event) -> None:
+    """
+    Update metrics for escalating issues when an event is processed.
+    """
+    generic_metrics_backend.counter(
+        UseCaseID.ESCALATING_ISSUES,
+        org_id=event.project.organization_id,
+        project_id=event.project.id,
+        metric_name="event_ingested",
+        value=1,
+        tags={"group": str(event.group_id)},
+        unit=None,
+    )
 
 
 def _capture_group_stats(job: PostProcessJob) -> None:
@@ -408,7 +425,7 @@ def fetch_buffered_group_stats(group):
     from sentry import buffer
     from sentry.models import Group
 
-    result = buffer.get(Group, ["times_seen"], {"pk": group.id})
+    result = buffer.backend.get(Group, ["times_seen"], {"pk": group.id})
     group.times_seen_pending = result["times_seen"]
 
 
@@ -573,6 +590,8 @@ def post_process_group(
         update_event_groups(event, group_states)
         bind_organization_context(event.project.organization)
         _capture_event_stats(event)
+        if features.has("organizations:escalating-metrics-backend", event.project.organization):
+            _update_escalating_metrics(event)
 
         group_events: Mapping[int, GroupEvent] = {
             ge.group_id: ge for ge in list(event.build_group_events())

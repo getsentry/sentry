@@ -6,6 +6,8 @@ from datetime import timedelta
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Type
 
+import sentry_sdk
+
 from sentry import features
 from sentry.features.base import OrganizationFeature
 from sentry.utils import metrics
@@ -50,22 +52,28 @@ class GroupTypeRegistry:
     def get_visible(
         self, organization: Organization, actor: Optional[Any] = None
     ) -> List[Type[GroupType]]:
-        released = [gt for gt in self.all() if gt.released]
-        feature_to_grouptype = {
-            gt.build_visible_feature_name(): gt for gt in self.all() if not gt.released
-        }
-        batch_features = features.batch_has(
-            list(feature_to_grouptype.keys()), actor=actor, organization=organization
-        )
-        enabled = []
-        if batch_features:
-            feature_results = batch_features.get(f"organization:{organization.id}", {})
-            enabled = [
-                feature_to_grouptype[feature]
-                for feature, active in feature_results.items()
-                if active
-            ]
-        return released + enabled
+        with sentry_sdk.start_span(op="GroupTypeRegistry.get_visible") as span:
+            released = [gt for gt in self.all() if gt.released]
+            feature_to_grouptype = {
+                gt.build_visible_feature_name(): gt for gt in self.all() if not gt.released
+            }
+            batch_features = features.batch_has(
+                list(feature_to_grouptype.keys()), actor=actor, organization=organization
+            )
+            enabled = []
+            if batch_features:
+                feature_results = batch_features.get(f"organization:{organization.id}", {})
+                enabled = [
+                    feature_to_grouptype[feature]
+                    for feature, active in feature_results.items()
+                    if active
+                ]
+            span.set_tag("organization_id", organization.id)
+            span.set_tag("has_batch_features", batch_features is not None)
+            span.set_tag("released", released)
+            span.set_tag("enabled", enabled)
+            span.set_data("feature_to_grouptype", feature_to_grouptype)
+            return released + enabled
 
     def get_all_group_type_ids(self) -> Set[int]:
         return {type.type_id for type in self._registry.values()}
@@ -306,7 +314,7 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1016
     slug = "performance_http_overhead"
     description = "HTTP/1.1 Overhead"
-    noise_config = NoiseConfig(ignore_limit=100)
+    noise_config = NoiseConfig(ignore_limit=20)
     category = GroupCategory.PERFORMANCE.value
 
 

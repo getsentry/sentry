@@ -11,8 +11,8 @@ from sentry.integrations.discord.requests.base import (
     DiscordRequestTypes,
 )
 from sentry.integrations.discord.webhooks.message_component import (
+    ARCHIVE_UNTIL_ESCALATES,
     ASSIGNEE_UPDATED,
-    IGNORE_UNTIL_ESCALATES,
     MARKED_ONGOING,
     NO_IDENTITY,
     NOT_IN_ORG,
@@ -207,4 +207,4 @@ class DiscordMessageComponentInteractionTest(APITestCase):
                 "custom_id": f"{CustomIds.ARCHIVE}:{self.group.id}",
             }
         )
-        assert self.get_message_content(response) == IGNORE_UNTIL_ESCALATES
+        assert self.get_message_content(response) == ARCHIVE_UNTIL_ESCALATES

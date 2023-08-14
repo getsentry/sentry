@@ -24,8 +24,7 @@ from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
     TrustedRelaySerializer,
 )
-from sentry.api.serializers.rest_framework import ListField
-from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, SentryAppStatus
+from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
@@ -34,7 +33,6 @@ from sentry.lang.native.utils import (
     convert_crashreport_count,
 )
 from sentry.models import (
-    AuthProvider,
     Organization,
     OrganizationAvatar,
     OrganizationOption,
@@ -43,8 +41,9 @@ from sentry.models import (
     RegionScheduledDeletion,
     UserEmail,
 )
-from sentry.models.integrations import SentryApp
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
+from sentry.services.hybrid_cloud.app import app_service
+from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     mark_organization_as_pending_deletion_with_outbox_message,
 )
@@ -166,8 +165,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     enhancedPrivacy = serializers.BooleanField(required=False)
     dataScrubber = serializers.BooleanField(required=False)
     dataScrubberDefaults = serializers.BooleanField(required=False)
-    sensitiveFields = ListField(child=serializers.CharField(), required=False)
-    safeFields = ListField(child=serializers.CharField(), required=False)
+    sensitiveFields = serializers.ListField(child=serializers.CharField(), required=False)
+    safeFields = serializers.ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.IntegerField(
         min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False
     )
@@ -183,7 +182,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubPRBot = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
-    trustedRelays = ListField(child=TrustedRelaySerializer(), required=False)
+    trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
@@ -197,7 +196,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     def _has_sso_enabled(self):
         org = self.context["organization"]
-        return AuthProvider.objects.filter(organization_id=org.id).exists()
+        org_auth_providers = auth_service.get_auth_providers(organization_id=org.id)
+        return len(org_auth_providers) > 0
 
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
@@ -578,9 +578,12 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond({"detail": ERR_NO_USER}, status=401)
         if organization.is_default:
             return self.respond({"detail": ERR_DEFAULT_ORG}, status=400)
-        if SentryApp.objects.filter(
-            owner_id=organization.id, status=SentryAppStatus.PUBLISHED
-        ).exists():
+
+        published_sentry_apps = app_service.get_published_sentry_apps_for_organization(
+            organization_id=organization.id
+        )
+
+        if len(published_sentry_apps) > 0:
             return self.respond({"detail": ERR_3RD_PARTY_PUBLISHED_APP}, status=400)
 
         user_name = request.user.get_username()

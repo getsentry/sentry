@@ -16,6 +16,7 @@ from snuba_sdk import (
     Limit,
     Offset,
     Op,
+    Or,
     Query,
     Request,
 )
@@ -148,7 +149,7 @@ def query_replay_instance(
 
 
 def query_replays_dataset(
-    project_ids: List[str],
+    project_ids: List[int],
     start: datetime,
     end: datetime,
     where: List[Condition],
@@ -214,7 +215,7 @@ def query_replays_dataset(
 
 
 def query_replays_dataset_with_subquery(
-    project_ids: List[str],
+    project_ids: List[int],
     start: datetime,
     end: datetime,
     environments: List[str],
@@ -362,7 +363,7 @@ def query_replays_count(
 
 
 def query_replays_dataset_tagkey_values(
-    project_ids: List[str],
+    project_ids: List[int],
     start: datetime,
     end: datetime,
     environment: str | None,
@@ -407,7 +408,12 @@ def query_replays_dataset_tagkey_values(
                 Condition(Column("project_id"), Op.IN, project_ids),
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("timestamp"), Op.GTE, start),
-                Condition(Column("is_archived"), Op.IS_NULL),
+                Or(
+                    [
+                        Condition(Column("is_archived"), Op.EQ, 0),
+                        Condition(Column("is_archived"), Op.IS_NULL),
+                    ]
+                ),
                 *where,
             ],
             orderby=[OrderBy(Column("times_seen"), Direction.DESC)],
@@ -451,21 +457,6 @@ def make_select_statement(
         unique_fields.add(sort.exp.name)
 
     return select_from_fields(list(unique_fields))
-
-
-def _grouped_unique_values(
-    column_name: str, alias: Optional[str] = None, aliased: bool = False
-) -> Function:
-    """Returns an array of unique, non-null values.
-
-    E.g.
-        [1, 2, 2, 3, 3, 3, null] => [1, 2, 3]
-    """
-    return Function(
-        "groupUniqArray",
-        parameters=[Column(column_name)],
-        alias=alias or column_name if aliased else None,
-    )
 
 
 def anyIfNonZeroIP(
@@ -945,7 +936,11 @@ QUERY_ALIAS_COLUMN_MAP = {
         alias="isArchived",
     ),
     "activity": _activity_score(),
-    "releases": _grouped_unique_values(column_name="release", alias="releases", aliased=True),
+    "releases": Function(
+        "groupUniqArrayIf",
+        parameters=[Column("release"), Function("notEmpty", [Column("release")])],
+        alias="releases",
+    ),
     "replay_type": anyIf(column_name="replay_type", alias="replay_type"),
     "platform": anyIf(column_name="platform"),
     "agg_environment": anyIf(column_name="environment", alias="agg_environment"),

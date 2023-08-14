@@ -227,7 +227,6 @@ def confirm_email(request, user_id, hash):
 @csrf_protect
 @never_cache
 @signed_auth_required
-@transaction.atomic
 def email_unsubscribe_project(request, project_id):
     # For now we only support getting here from the signed link.
     if not request.user_from_signed_request:
@@ -239,13 +238,14 @@ def email_unsubscribe_project(request, project_id):
 
     if request.method == "POST":
         if "cancel" not in request.POST:
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
-                user_id=request.user.id,
-                project=project,
-            )
+            with transaction.atomic(router.db_for_write(NotificationSetting)):
+                NotificationSetting.objects.update_settings(
+                    ExternalProviders.EMAIL,
+                    NotificationSettingTypes.ISSUE_ALERTS,
+                    NotificationSettingOptionValues.NEVER,
+                    user_id=request.user.id,
+                    project=project,
+                )
         return HttpResponseRedirect(auth.get_login_url())
 
     context = csrf(request)

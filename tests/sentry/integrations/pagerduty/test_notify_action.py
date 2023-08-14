@@ -2,8 +2,8 @@ from datetime import timezone
 
 import responses
 
-from sentry.integrations.pagerduty import PagerDutyNotifyServiceAction
-from sentry.models import Integration, OrganizationIntegration, PagerDutyService
+from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
+from sentry.models import Integration, OrganizationIntegration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -38,12 +38,11 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             )
             self.integration.add_organization(self.organization, self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.service = PagerDutyService.objects.create(
+            self.service = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id, organization_id=self.organization.id
+            ).add_pagerduty_service(
                 service_name=SERVICES[0]["service_name"],
                 integration_key=SERVICES[0]["integration_key"],
-                organization_integration_id=self.integration.organizationintegration_set.first().id,
-                organization_id=self.organization.id,
-                integration_id=self.integration.id,
             )
         self.installation = self.integration.get_installation(self.organization.id)
 
@@ -59,7 +58,9 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             project_id=self.project.id,
         )
 
-        rule = self.get_rule(data={"account": self.integration.id, "service": str(self.service.id)})
+        rule = self.get_rule(
+            data={"account": self.integration.id, "service": str(self.service["id"])}
+        )
 
         results = list(rule.after(event=event, state=self.get_state()))
         assert len(results) == 1
@@ -83,7 +84,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     @responses.activate
     def test_applies_correctly_performance_issue(self):
         event = self.create_performance_issue()
-        rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
+        rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
         results = list(rule.after(event=event, state=self.get_state()))
         assert len(results) == 1
 
@@ -115,11 +116,11 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             },
             project_id=self.project.id,
         )
-        event = event.for_group(event.groups[0])
-        event.occurrence = occurrence
+        group_event = event.for_group(event.groups[0])
+        group_event.occurrence = occurrence
 
-        rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
-        results = list(rule.after(event=event, state=self.get_state()))
+        rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
+        results = list(rule.after(event=group_event, state=self.get_state()))
         assert len(results) == 1
 
         responses.add(
@@ -131,15 +132,15 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         # Trigger rule callback
-        results[0].callback(event, futures=[])
+        results[0].callback(group_event, futures=[])
         data = json.loads(responses.calls[0].request.body)
 
         assert data["event_action"] == "trigger"
-        assert data["payload"]["summary"] == event.occurrence.issue_title
-        assert data["payload"]["custom_details"]["title"] == event.occurrence.issue_title
+        assert data["payload"]["summary"] == group_event.occurrence.issue_title
+        assert data["payload"]["custom_details"]["title"] == group_event.occurrence.issue_title
 
     def test_render_label(self):
-        rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
+        rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
 
         assert (
             rule.render_label()
@@ -150,7 +151,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
 
-        rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
+        rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
 
         label = rule.render_label()
         assert label == "Send a notification to PagerDuty account [removed] and service [removed]"
@@ -168,24 +169,21 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.add_organization(new_org, self.user)
             oi = OrganizationIntegration.objects.get(organization_id=new_org.id)
-            new_service = PagerDutyService.objects.create(
+            new_service = oi.add_pagerduty_service(
                 service_name="New Service",
                 integration_key="new_service_key",
-                organization_integration_id=oi.id,
-                integration_id=oi.integration_id,
-                organization_id=oi.organization_id,
             )
 
         rule = self.get_rule(data={"account": self.integration.id})
 
         service_options = rule.get_services()
-        assert service_options == [(new_service.id, new_service.service_name)]
+        assert service_options == [(new_service["id"], new_service["service_name"])]
         assert "choice" == rule.form_fields["service"]["type"]
         assert service_options == rule.form_fields["service"]["choices"]
 
     @responses.activate
     def test_valid_service_selected(self):
-        rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
+        rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
 
         form = rule.get_form_instance()
         assert form.is_valid()
@@ -207,18 +205,17 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
                 metadata={"services": [service_info]},
             )
             integration.add_organization(self.organization, self.user)
-            service = PagerDutyService.objects.create(
+            service = OrganizationIntegration.objects.get(
+                integration_id=integration.id, organization_id=self.organization.id
+            ).add_pagerduty_service(
                 service_name=service_info["service_name"],
                 integration_key=service_info["integration_key"],
-                organization_integration_id=integration.organizationintegration_set.first().id,
-                integration_id=integration.id,
-                organization_id=self.organization.id,
             )
         self.installation = integration.get_installation(self.organization.id)
 
         event = self.get_event()
 
-        rule = self.get_rule(data={"account": integration.id, "service": service.id})
+        rule = self.get_rule(data={"account": integration.id, "service": service["id"]})
 
         results = list(rule.after(event=event, state=self.get_state()))
         assert len(results) == 1
@@ -254,16 +251,13 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
                 metadata={"services": [service_info]},
             )
             integration.add_organization(self.organization, self.user)
-            service = PagerDutyService.objects.create(
+            service = integration.organizationintegration_set.first().add_pagerduty_service(
                 service_name=service_info["service_name"],
                 integration_key=service_info["integration_key"],
-                organization_integration_id=integration.organizationintegration_set.first().id,
-                organization_id=self.organization.id,
-                integration_id=integration.id,
             )
         self.installation = integration.get_installation(self.organization.id)
 
-        rule = self.get_rule(data={"account": self.integration.id, "service": str(service.id)})
+        rule = self.get_rule(data={"account": self.integration.id, "service": str(service["id"])})
 
         form = rule.get_form_instance()
         assert not form.is_valid()
