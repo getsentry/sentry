@@ -49,6 +49,5 @@ export default function DBModule() {
 }
 
 const StyledPageFilterBar = styled(PageFilterBar)`
-  margin: 0 ${space(2)};
   margin-bottom: ${space(2)};
 `;

@@ -88,6 +88,5 @@ const getTitle = (moduleName: ModuleName, spanCategory?: string) => {
 };
 
 const StyledPageFilterBar = styled(PageFilterBar)`
-  margin: 0 ${space(2)};
   margin-bottom: ${space(2)};
 `;

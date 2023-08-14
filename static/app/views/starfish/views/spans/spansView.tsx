@@ -53,13 +53,12 @@ export default function SpansView(props: Props) {
 
   return (
     <Fragment>
-      <PaddedContainer>
-        <SpanTimeCharts
-          moduleName={moduleName}
-          appliedFilters={appliedFilters}
-          spanCategory={props.spanCategory}
-        />
-      </PaddedContainer>
+      <SpanTimeCharts
+        moduleName={moduleName}
+        appliedFilters={appliedFilters}
+        spanCategory={props.spanCategory}
+      />
+
       <FilterOptionsContainer>
         {/* Specific modules like Database and API only show _one_ kind of span
         op based on how we group them. So, the operation selector is pointless
@@ -85,26 +84,20 @@ export default function SpansView(props: Props) {
         />
       </FilterOptionsContainer>
 
-      <PaddedContainer>
-        <SpansTable
-          moduleName={moduleName}
-          spanCategory={props.spanCategory}
-          sort={sort}
-          limit={LIMIT}
-        />
-      </PaddedContainer>
+      <SpansTable
+        moduleName={moduleName}
+        spanCategory={props.spanCategory}
+        sort={sort}
+        limit={LIMIT}
+      />
     </Fragment>
   );
 }
 
-const PaddedContainer = styled('div')`
-  margin: 0 ${space(2)};
-`;
-
-const FilterOptionsContainer = styled(PaddedContainer)`
+const FilterOptionsContainer = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: ${space(1)};
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
   max-width: 800px;
 `;
