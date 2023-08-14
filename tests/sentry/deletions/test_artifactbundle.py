@@ -3,14 +3,17 @@ from sentry.models import (
     DebugIdArtifactBundle,
     File,
     ProjectArtifactBundle,
+    RegionScheduledDeletion,
     ReleaseArtifactBundle,
-    ScheduledDeletion,
     SourceFileType,
 )
+from sentry.silo import SiloMode
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class DeleteArtifactBundleTest(TransactionTestCase):
     def test_simple(self):
         org = self.create_organization()
@@ -34,11 +37,11 @@ class DeleteArtifactBundleTest(TransactionTestCase):
             organization_id=org.id, project_id=project.id, artifact_bundle=artifact_bundle
         )
 
-        deletion = ScheduledDeletion.schedule(artifact_bundle, days=0)
+        deletion = RegionScheduledDeletion.schedule(artifact_bundle, days=0)
         deletion.update(in_progress=True)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_deletion(deletion.id, silo_mode=str(SiloMode.REGION))
 
         assert not ArtifactBundle.objects.filter(id=artifact_bundle.id).exists()
         assert not ReleaseArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()

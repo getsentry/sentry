@@ -1,11 +1,11 @@
 from sentry.models import (
     Environment,
     Project,
+    RegionScheduledDeletion,
     Release,
     ReleaseCommit,
     ReleaseEnvironment,
     ReleaseFile,
-    ScheduledDeletion,
 )
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
@@ -13,9 +13,10 @@ from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
+@region_silo_test(stable=True)
 class DeleteReleaseTest(TransactionTestCase):
     def test_simple(self):
         org = self.create_organization()
@@ -24,11 +25,11 @@ class DeleteReleaseTest(TransactionTestCase):
         release = self.create_release(project=project, environments=[env])
         file = self.create_release_file(release_id=release.id)
 
-        deletion = ScheduledDeletion.schedule(release, days=0)
+        deletion = RegionScheduledDeletion.schedule(release, days=0)
         deletion.update(in_progress=True)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_deletion(deletion.id, silo_mode=str(SiloMode.REGION))
 
         assert not Release.objects.filter(id=release.id).exists()
         assert not ReleaseCommit.objects.filter(release=release).exists()
