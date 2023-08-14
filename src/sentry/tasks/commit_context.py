@@ -38,7 +38,7 @@ DEBOUNCE_CACHE_KEY = lambda group_id: f"process-commit-context-{group_id}"
 DEBOUNCE_PR_COMMENT_CACHE_KEY = lambda pullrequest_id: f"pr-comment-{pullrequest_id}"
 DEBOUNCE_PR_COMMENT_LOCK_KEY = lambda pullrequest_id: f"queue_comment_task:{pullrequest_id}"
 PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
-PR_COMMENT_WINDOW = 7  # days
+PR_COMMENT_WINDOW = 14  # days
 
 logger = logging.getLogger(__name__)
 

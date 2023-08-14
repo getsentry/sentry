@@ -14,7 +14,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequestCommit
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.snuba.sessions_v2 import isoformat_z
-from sentry.tasks.commit_context import process_commit_context
+from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -616,8 +616,8 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_gh_comment_pr_too_old(self, get_jwt, mock_comment_workflow):
-        """No comment on pr that's older than 30 days"""
-        self.pull_request.date_added = iso_format(before_now(days=8))
+        """No comment on pr that's older than PR_COMMENT_WINDOW"""
+        self.pull_request.date_added = iso_format(before_now(days=PR_COMMENT_WINDOW + 1))
         self.pull_request.save()
 
         self.add_responses()
