@@ -187,10 +187,6 @@ export class CanvasView<T extends {configSpace: Rect}> {
     this.setConfigView(this.configView.transformRect(transformation));
   }
 
-  transformChartConfigView(transformation: mat3) {
-    this.setConfigView(this.configView.transformXRect(transformation));
-  }
-
   toConfigSpace(space: Rect): mat3 {
     const toConfigSpace = transformMatrixBetweenRect(space, this.configSpace);
 

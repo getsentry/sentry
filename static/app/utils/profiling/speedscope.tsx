@@ -213,17 +213,6 @@ export class Rect {
     );
   }
 
-  transformXRect(transform: mat3 | Readonly<mat3> | null): Rect {
-    if (!transform) {
-      return this.clone();
-    }
-
-    const x = this.x * transform[0] + this.y * transform[3] + transform[6];
-    const width = this.width * transform[0] + this.height * transform[3];
-
-    return new Rect(x + (width < 0 ? width : 0), this.y, Math.abs(width), this.height);
-  }
-
   /**
    * Returns a transform that inverts the y axis within the rect.
    * This causes the bottom of the rect to be the top of the rect and vice versa.
