@@ -139,7 +139,7 @@ class Enhancements:
         frames: Sequence[dict[str, Any]],
         platform: str,
         exception_data: dict[str, Any],
-        extra_fingerprint: str,
+        extra_fingerprint: str = "",
     ) -> None:
         """This applies the frame modifications to the frames itself. This does not affect grouping."""
         in_memory_cache: dict[str, str] = {}
