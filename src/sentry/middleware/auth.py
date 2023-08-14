@@ -4,11 +4,12 @@ from typing import Any
 
 from django.contrib.auth import get_user as auth_get_user
 from django.contrib.auth.models import AnonymousUser
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.deprecation import MiddlewareMixin
 from django.utils.functional import SimpleLazyObject
 from rest_framework.authentication import get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework.request import Request
 
 from sentry.api.authentication import (
     ApiKeyAuthentication,
@@ -57,7 +58,7 @@ class AuthenticationMiddleware(MiddlewareMixin):
             return RequestAuthenticationMiddleware(self.get_response)
         return HybridCloudAuthenticationMiddleware(self.get_response)
 
-    def process_request(self, request: Request):
+    def process_request(self, request: HttpRequest) -> None:
         if request.path.startswith("/api/0/internal/rpc/"):
             # Avoid doing RPC authentication when we're already
             # in an RPC request.
@@ -66,12 +67,14 @@ class AuthenticationMiddleware(MiddlewareMixin):
 
         return self.impl.process_request(request)
 
-    def process_exception(self, request: Request, exception):
+    def process_exception(
+        self, request: HttpRequest, exception: Exception
+    ) -> HttpResponseBase | None:
         return self.impl.process_exception(request, exception)
 
 
 class RequestAuthenticationMiddleware(MiddlewareMixin):
-    def process_request(self, request: Request):
+    def process_request(self, request: HttpRequest) -> None:
         request.user_from_signed_request = False
 
         # If there is a valid signature on the request we override the
@@ -107,15 +110,19 @@ class RequestAuthenticationMiddleware(MiddlewareMixin):
         # default to anonymous user and use IP ratelimit
         request.user = SimpleLazyObject(lambda: get_user(request))
 
-    def process_exception(self, request: Request, exception):
+    def process_exception(
+        self, request: HttpRequest, exception: Exception
+    ) -> HttpResponseBase | None:
         if isinstance(exception, AuthUserPasswordExpired):
             from sentry.web.frontend.accounts import expired
 
             return expired(request, exception.user)
+        else:
+            return None
 
 
 class HybridCloudAuthenticationMiddleware(MiddlewareMixin):
-    def process_request(self, request: Request):
+    def process_request(self, request: HttpRequest) -> None:
         from sentry.web.frontend.accounts import expired
 
         auth_result = auth_service.authenticate(request=authentication_request_from(request))
@@ -135,5 +142,7 @@ class HybridCloudAuthenticationMiddleware(MiddlewareMixin):
         else:
             request.user = AnonymousUser()
 
-    def process_exception(self, request: Request, exception: Exception):
+    def process_exception(
+        self, request: HttpRequest, exception: Exception
+    ) -> HttpResponseBase | None:
         pass

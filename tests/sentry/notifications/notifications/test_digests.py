@@ -40,6 +40,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
                     "timestamp": before_now(minutes=1).isoformat(),
                 },
             )
+            assert group_info is not None
             group = group_info.group
             event = group.get_latest_event()
         else:
