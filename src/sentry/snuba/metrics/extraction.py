@@ -85,6 +85,8 @@ _SEARCH_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
     "<=": "lte",
     ">": "gt",
     ">=": "gte",
+    "IN": "eq",
+    "NOT IN": "eq",  # combined with external negation
 }
 
 # Maps from parsed count_if condition args to Relay rule condition operators.
@@ -764,7 +766,7 @@ class SearchQueryConverter:
                 "value": value,
             }
 
-        if token.operator == "!=":
+        if token.operator == "!=" or token.operator == "NOT IN":
             condition = {"op": "not", "inner": condition}
 
         return condition
