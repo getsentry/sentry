@@ -523,13 +523,13 @@ def _update_frames_from_cached_values(
                     print("BAZ!")  # noqa: S002
                     if changed_frame_values["in_app"] is not None:
                         frame["in_app"] = changed_frame_values["in_app"]
+                        frames_changed = True
                     if changed_frame_values["in_app"] is not changed_frame_values["category"]:
                         set_path(frame, "data", "category", value=changed_frame_values["category"])
+                        frames_changed = True
 
-            logger.info("We have merged the cached stacktrace to the incoming one.")
-
-            # XXX: This may need re-thinking
-            frames_changed = dry_run
+            if frames_changed:
+                logger.info("We have merged the cached stacktrace to the incoming one.")
         except Exception:
             logger.exception(
                 "We have failed to update the stacktrace from the cache. Not aborting execution."
