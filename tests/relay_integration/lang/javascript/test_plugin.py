@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import pytest
 import responses
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.utils import timezone
 
@@ -1308,6 +1309,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             body=load_fixture("node_app.min.js.map"),
             content_type="application/javascript; charset=utf-8",
         )
+        responses.add_passthru(
+            settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
+        )
 
         data = {
             "timestamp": self.min_ago,
@@ -1383,6 +1387,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
                 "<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>"
             ),
         )
+        responses.add_passthru(
+            settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
+        )
+
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
