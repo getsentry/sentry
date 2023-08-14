@@ -18,7 +18,6 @@ logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
 
 FUNCTIONS_PER_PROJECT = 100
-PROJECTS_PER_QUERY = 100
 
 ITERATOR_CHUNK = 1_000
 
@@ -91,7 +90,10 @@ def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) ->
     if not options.get("statistical_detectors.enable"):
         return
 
-    for projects in chunked(Project.objects.filter(id__in=project_ids), PROJECTS_PER_QUERY):
+    projects_per_query = options.get("statistical_detectors.query.batch_size")
+    assert projects_per_query > 0
+
+    for projects in chunked(Project.objects.filter(id__in=project_ids), projects_per_query):
         try:
             query_functions(projects, start)
         except Exception as e:
