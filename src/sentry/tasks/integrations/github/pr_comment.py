@@ -49,7 +49,7 @@ class GithubAPIErrorType(Enum):
 
 
 COMMENT_BODY_TEMPLATE = """## Suspect Issues
-This pull request has been deployed and Sentry observed the following issues:
+This pull request was deployed and Sentry observed the following issues:
 
 {issue_list}
 
