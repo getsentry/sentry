@@ -5,12 +5,20 @@ import {
   STANDARD_SEARCH_FIELD_KEYS,
 } from 'sentry/utils/onDemandMetrics/constants';
 
-export function isStandardSearchFilterKey(key: FieldKey): boolean {
+function isStandardSearchFilterKey(key: FieldKey): boolean {
   return STANDARD_SEARCH_FIELD_KEYS.has(key);
 }
 
+function isOnDemandSupportedFilterKey(key: FieldKey): boolean {
+  return ON_DEMAND_METRICS_SUPPORTED_TAGS.has(key);
+}
+
 export function createOnDemandFilterWarning(warning: React.ReactNode) {
-  return (key: string) => (isStandardSearchFilterKey(key as FieldKey) ? null : warning);
+  return (key: string) =>
+    !isStandardSearchFilterKey(key as FieldKey) &&
+    isOnDemandSupportedFilterKey(key as FieldKey)
+      ? warning
+      : null;
 }
 
 export function isOnDemandQueryString(query: string): boolean {
