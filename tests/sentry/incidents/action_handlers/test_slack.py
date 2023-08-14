@@ -6,7 +6,6 @@ from freezegun import freeze_time
 from sentry.constants import ObjectStatus
 from sentry.incidents.action_handlers import SlackActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
-from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
@@ -15,7 +14,7 @@ from . import FireTest
 
 @freeze_time()
 @region_silo_test(stable=True)
-class SlackActionHandlerTest(FireTest, TestCase):
+class SlackActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):
         token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
@@ -70,6 +69,7 @@ class SlackActionHandlerTest(FireTest, TestCase):
         slack_body = SlackIncidentsMessageBuilder(
             incident, IncidentStatus(incident.status), metric_value, chart_url
         ).build()
+        assert isinstance(slack_body, dict)
         attachments = json.loads(data["attachments"][0])
         assert attachments[0]["color"] == slack_body["color"]
         assert attachments[0]["blocks"][0] in slack_body["blocks"]
