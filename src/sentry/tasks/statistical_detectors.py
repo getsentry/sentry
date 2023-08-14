@@ -131,7 +131,7 @@ def query_functions(projects: List[Project], start: datetime) -> Dict[int, List[
         payload = TrendPayload(
             group=row["fingerprint"],
             count=row["count()"],
-            p95=row["p95()"],
+            value=row["p95()"],
             timestamp=datetime.fromisoformat(row["timestamp"]),
         )
         function_results[row["project.id"]].append(payload)
