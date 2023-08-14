@@ -20,13 +20,17 @@ export type ValidSort = Sort & {
   field: (typeof SORTABLE_FIELDS)[number];
 };
 
+/**
+ * Parses a `Sort` object from the URL. In case of multiple specified sorts
+ * picks the first one, since span module UIs only support one sort at a time.
+ */
 export function useModuleSort() {
   const location = useLocation<Query>();
 
   return (
     fromSorts(location.query[QueryParameterNames.SORT]).filter(isAValidSort)[0] ??
     DEFAULT_SORT
-  ); // We only allow one sort on this table in this view
+  );
 }
 
 const DEFAULT_SORT: Sort = {
