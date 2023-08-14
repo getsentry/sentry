@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import Prism from 'prismjs';
 
 import {Button} from 'sentry/components/button';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,6 +16,10 @@ interface CodeSnippetProps {
   dark?: boolean;
   filename?: string;
   hideCopyButton?: boolean;
+  /**
+   * Weather the code snippet or parts of it, it is currently being loaded
+   */
+  loading?: boolean;
   onCopy?: (copiedCode: string) => void;
   /**
    * Fired when the user selects and copies code snippet manually
@@ -31,6 +36,7 @@ export function CodeSnippet({
   onCopy,
   className,
   onSelectAndCopy,
+  loading,
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
 
@@ -73,7 +79,7 @@ export function CodeSnippet({
     <Wrapper className={`${dark ? 'prism-dark ' : ''}${className ?? ''}`}>
       <Header hasFileName={!!filename}>
         {filename && <FileName>{filename}</FileName>}
-        {!hideCopyButton && (
+        {!hideCopyButton && !loading && (
           <CopyButton
             type="button"
             size="xs"
@@ -90,13 +96,15 @@ export function CodeSnippet({
       </Header>
 
       <pre className={`language-${String(language)}`}>
-        <code
+        <Code
           ref={ref}
           className={`language-${String(language)}`}
           onCopy={onSelectAndCopy}
+          isLoading={loading}
         >
           {children}
-        </code>
+        </Code>
+        {loading && <Loading mini />}
       </pre>
     </Wrapper>
   );
@@ -158,4 +166,15 @@ const CopyButton = styled(Button)`
   &.focus-visible {
     opacity: 1;
   }
+`;
+
+const Code = styled('code')<{isLoading?: boolean}>`
+  visibility: ${p => (p.isLoading ? 'hidden' : 'visible')};
+`;
+
+const Loading = styled(LoadingIndicator)`
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  position: absolute;
 `;

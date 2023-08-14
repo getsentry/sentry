@@ -24,9 +24,10 @@ const introduction = (
 
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+}: Partial<
+  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
+> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t(
@@ -38,16 +39,20 @@ export const steps = ({
         configurations: [
           {
             language: 'xml',
+            loading: sourcePackageRegistries?.isLoading,
             code: `
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry-log4j2</artifactId>
-  <version>6.27.0</version>
+  <version>${
+    sourcePackageRegistries?.data?.['sentry.java.log4j2']?.version ?? '6.27.0'
+  }</version>
 </dependency>
           `,
           },
           {
             language: 'xml',
+            loading: sourcePackageRegistries?.isLoading,
             description: t(
               'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
             ),
@@ -57,7 +62,9 @@ export const steps = ({
     <plugin>
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
-      <version>0.0.3</version>
+      <version>${
+        sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.3'
+      }</version>
       <configuration>
       <!-- for showing output of sentry-cli -->
       <debugSentryCli>true</debugSentryCli>
@@ -99,7 +106,10 @@ export const steps = ({
         configurations: [
           {
             language: 'groovy',
-            code: "implementation 'io.sentry:sentry-log4j2:6.27.0'",
+            loading: sourcePackageRegistries?.isLoading,
+            code: `implementation 'io.sentry:sentry-log4j2:${
+              sourcePackageRegistries?.data?.['sentry.java.log4j2']?.version ?? '6.27.0'
+            }'`,
           },
           {
             description: t(
@@ -114,7 +124,10 @@ buildscript {
 }
 
 plugins {
-  id "io.sentry.jvm.gradle" version "3.11.1"
+  id "io.sentry.jvm.gradle" version "${
+    sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
+    '3.11.1'
+  }"
 }
 
 sentry {
@@ -268,8 +281,18 @@ try {
 ];
 // Configuration End
 
-export function GettingStartedWithLog4j2({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} introduction={introduction} {...props} />;
+export function GettingStartedWithLog4j2({
+  dsn,
+  sourcePackageRegistries,
+  ...props
+}: ModuleProps) {
+  return (
+    <Layout
+      steps={steps({dsn, sourcePackageRegistries})}
+      introduction={introduction}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithLog4j2;

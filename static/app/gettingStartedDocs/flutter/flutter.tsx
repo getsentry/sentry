@@ -7,9 +7,10 @@ import {t, tct} from 'sentry/locale';
 // Configuration Start
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+}: Partial<
+  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
+> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -25,9 +26,12 @@ export const steps = ({
     configurations: [
       {
         language: 'yml',
+        loading: sourcePackageRegistries?.isLoading,
         code: `
 dependencies:
-  sentry_flutter: ^7.8.0
+  sentry_flutter: ^${
+    sourcePackageRegistries?.data?.['sentry.dart.flutter']?.version ?? '7.8.0'
+  }
         `,
       },
     ],
@@ -239,8 +243,12 @@ Future<void> processOrderBatch(ISentrySpan span) async {
 ];
 // Configuration End
 
-export function GettingStartedWithFlutter({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
+export function GettingStartedWithFlutter({
+  dsn,
+  sourcePackageRegistries,
+  ...props
+}: ModuleProps) {
+  return <Layout steps={steps({dsn, sourcePackageRegistries})} {...props} />;
 }
 
 export default GettingStartedWithFlutter;
