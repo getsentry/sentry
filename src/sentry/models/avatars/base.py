@@ -8,9 +8,11 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, router
 from django.utils.encoding import force_bytes
 from PIL import Image
+from typing_extensions import Self
 
 from sentry.db.models import BoundedBigIntegerField, Model
 from sentry.models.files.file import File
+from sentry.silo import SiloMode
 from sentry.tasks.files import copy_file_to_control_and_update_model
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
@@ -53,14 +55,21 @@ class AvatarBase(Model):
             file_class = File
             if file_id is None:
                 return None
-            copy_file_to_control_and_update_model.apply_async(
-                kwargs={
-                    "app_name": "sentry",
-                    "model_name": type(self).__name__,
-                    "model_id": self.id,
-                    "file_id": file_id,
-                }
-            )
+            if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+                copy_file_to_control_and_update_model.apply_async(
+                    kwargs={
+                        "app_name": "sentry",
+                        "model_name": type(self).__name__,
+                        "model_id": self.id,
+                        "file_id": file_id,
+                    }
+                )
+
+        if (
+            SiloMode.get_current_mode() != SiloMode.MONOLITH
+            and SiloMode.get_current_mode() not in file_class._meta.silo_limit.modes
+        ):
+            return None
 
         try:
             return file_class.objects.get(pk=file_id)
@@ -119,7 +128,7 @@ class AvatarBase(Model):
         return "file_id"
 
     @classmethod
-    def save_avatar(cls, relation, type, avatar=None, filename=None, color=None):
+    def save_avatar(cls, relation, type, avatar=None, filename=None, color=None) -> Self:
         if avatar:
             # Create an instance of the current class so we can
             # access where new files should be stored.
