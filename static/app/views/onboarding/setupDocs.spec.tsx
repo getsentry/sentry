@@ -355,7 +355,7 @@ describe('Onboarding Setup Docs', function () {
       );
 
       expect(
-        await screen.findByRole('heading', {name: 'Configure JavaScript SDK'})
+        await screen.findByRole('heading', {name: 'Configure Browser JavaScript SDK'})
       ).toBeInTheDocument();
 
       expect(updateLoaderMock).toHaveBeenCalledTimes(1);
