@@ -420,7 +420,7 @@ const makeRow = (
   };
 };
 
-function getSpanEvidenceValue(span: Span | null): string | Element {
+function getSpanEvidenceValue(span: Span | null) {
   if (!span || (!span.op && !span.description)) {
     return t('(no value)');
   }
@@ -435,12 +435,23 @@ function getSpanEvidenceValue(span: Span | null): string | Element {
 
   if (span.op === 'db' && span.description) {
     return (
-      <CodeSnippet language="sql">{formatter.toString(span.description)}</CodeSnippet>
+      <StyledCodeSnippet language="sql">
+        {formatter.toString(span.description)}
+      </StyledCodeSnippet>
     );
   }
 
   return `${span.op} - ${span.description}`;
 }
+
+// overflow is set to visible in global styles so
+// need to enforce auto here
+const StyledCodeSnippet = styled(CodeSnippet)`
+  pre {
+    /* overflow is set to visible in global styles so need to enforce auto here */
+    overflow: auto !important;
+  }
+`;
 
 const getConsecutiveDbTimeSaved = (
   consecutiveSpans: Span[],
