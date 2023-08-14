@@ -10,6 +10,7 @@ import {
   boundsGenerator,
   getMeasurements,
 } from 'sentry/components/events/interfaces/spans/utils';
+import Panel from 'sentry/components/panels/panel';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
   DividerSpacer,
@@ -18,7 +19,7 @@ import {
   VirtualScrollbarGrip,
 } from 'sentry/components/performance/waterfall/miniHeader';
 import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
@@ -29,7 +30,6 @@ import {
 } from 'sentry/utils/performance/quickTrace/types';
 import {
   TraceDetailBody,
-  TracePanel,
   TraceViewContainer,
   TraceViewHeaderContainer,
 } from 'sentry/views/performance/traceDetails/styles';
@@ -64,24 +64,50 @@ type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
 function TraceHiddenMessage({
   isVisible,
   numberOfHiddenTransactionsAbove,
+  numberOfHiddenErrorsAbove,
 }: {
   isVisible: boolean;
+  numberOfHiddenErrorsAbove: number;
   numberOfHiddenTransactionsAbove: number;
 }) {
-  if (!isVisible || numberOfHiddenTransactionsAbove < 1) {
+  if (
+    !isVisible ||
+    (numberOfHiddenTransactionsAbove < 1 && numberOfHiddenErrorsAbove < 1)
+  ) {
     return null;
   }
+
+  const numOfTransaction = <strong>{numberOfHiddenTransactionsAbove}</strong>;
+  const numOfErrors = <strong>{numberOfHiddenErrorsAbove}</strong>;
+
+  const hiddenTransactionsMessage =
+    numberOfHiddenTransactionsAbove < 1
+      ? ''
+      : numberOfHiddenTransactionsAbove === 1
+      ? tct('[numOfTransaction] hidden transaction', {
+          numOfTransaction,
+        })
+      : tct('[numOfTransaction] hidden transactions', {
+          numOfTransaction,
+        });
+
+  const hiddenErrorsMessage =
+    numberOfHiddenErrorsAbove < 1
+      ? ''
+      : numberOfHiddenErrorsAbove === 1
+      ? tct('[numOfErrors] hidden error', {
+          numOfErrors,
+        })
+      : tct('[numOfErrors] hidden errors', {
+          numOfErrors,
+        });
 
   return (
     <MessageRow>
       <span key="trace-info-message">
-        {numberOfHiddenTransactionsAbove === 1
-          ? tct('[numOfTransaction] hidden transaction', {
-              numOfTransaction: <strong>{numberOfHiddenTransactionsAbove}</strong>,
-            })
-          : tct('[numOfTransaction] hidden transactions', {
-              numOfTransaction: <strong>{numberOfHiddenTransactionsAbove}</strong>,
-            })}
+        {hiddenTransactionsMessage}
+        {hiddenErrorsMessage && hiddenTransactionsMessage && t(' and ')}
+        {hiddenErrorsMessage}
       </span>
     </MessageRow>
   );
@@ -193,6 +219,7 @@ export default function TraceView({
           <TraceHiddenMessage
             isVisible={isVisible}
             numberOfHiddenTransactionsAbove={numberOfHiddenTransactionsAbove}
+            numberOfHiddenErrorsAbove={0}
           />
           <TransactionGroup
             location={location}
@@ -283,33 +310,53 @@ export default function TraceView({
   );
 
   // Build transaction groups for orphan errors
+  let numOfHiddenErrorsAbove = 0;
+  let totalNumOfHiddenErrors = 0;
   if (hasOrphanErrors) {
     orphanErrors.forEach((error, index) => {
       const isLastError = index === orphanErrors.length - 1;
+      const isVisible = isRowVisible(error, filteredEventIds);
+      const currentHiddenCount = numOfHiddenErrorsAbove;
+
+      if (!isVisible) {
+        numOfHiddenErrorsAbove += 1;
+        totalNumOfHiddenErrors += 1;
+      } else {
+        numOfHiddenErrorsAbove = 0;
+      }
+
       transactionGroups.push(
-        <TransactionGroup
-          key={error.event_id}
-          location={location}
-          organization={organization}
-          traceInfo={traceInfo}
-          transaction={{
-            ...error,
-            generation: 1,
-          }}
-          generateBounds={generateBounds(traceInfo)}
-          measurements={
-            traces && traces.length > 0
-              ? getMeasurements(traces[0], generateBounds(traceInfo))
-              : undefined
-          }
-          continuingDepths={[]}
-          isOrphan
-          isLast={isLastError}
-          index={lastIndex + index + 1}
-          isVisible={isRowVisible(error, filteredEventIds)}
-          hasGuideAnchor
-          renderedChildren={[]}
-        />
+        <React.Fragment key={error.event_id}>
+          <TraceHiddenMessage
+            isVisible={isVisible}
+            numberOfHiddenTransactionsAbove={
+              index === 0 ? numberOfHiddenTransactionsAbove : 0
+            }
+            numberOfHiddenErrorsAbove={index > 0 ? currentHiddenCount : 0}
+          />
+          <TransactionGroup
+            location={location}
+            organization={organization}
+            traceInfo={traceInfo}
+            transaction={{
+              ...error,
+              generation: 1,
+            }}
+            generateBounds={generateBounds(traceInfo)}
+            measurements={
+              traces && traces.length > 0
+                ? getMeasurements(traces[0], generateBounds(traceInfo))
+                : undefined
+            }
+            continuingDepths={[]}
+            isOrphan
+            isLast={isLastError}
+            index={lastIndex + index + 1}
+            isVisible={isVisible}
+            hasGuideAnchor
+            renderedChildren={[]}
+          />
+        </React.Fragment>
       );
     });
   }
@@ -399,6 +446,7 @@ export default function TraceView({
                   <TraceHiddenMessage
                     isVisible
                     numberOfHiddenTransactionsAbove={numberOfHiddenTransactionsAbove}
+                    numberOfHiddenErrorsAbove={totalNumOfHiddenErrors}
                   />
                   <LimitExceededMessage
                     traceInfo={traceInfo}
@@ -420,8 +468,9 @@ export default function TraceView({
   return traceView;
 }
 
-const StyledTracePanel = styled(TracePanel)`
-  overflow: visible;
+export const StyledTracePanel = styled(Panel)`
+  height: 100%;
+  overflow-x: visible;
 
   ${TraceViewContainer} {
     overflow-x: visible;

@@ -15,9 +15,14 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import parseLinkHeader, {ParsedHeader} from 'sentry/utils/parseLinkHeader';
-import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import {
+  TraceError,
+  TraceFullDetailed,
+  TraceSplitResults,
+} from 'sentry/utils/performance/quickTrace/types';
 import {
   getTraceRequestPayload,
+  isTraceSplitResult,
   makeEventView,
 } from 'sentry/utils/performance/quickTrace/utils';
 import useApi from 'sentry/utils/useApi';
@@ -38,6 +43,7 @@ type InternalState = {
   indexError: undefined | Error;
   isFetching: boolean;
   traces: undefined | TraceFullDetailed[];
+  orphanErrors?: undefined | TraceError[];
 };
 
 type ExternalState = {
@@ -45,6 +51,7 @@ type ExternalState = {
   errors: Error[];
   isFetching: boolean;
   traces: undefined | TraceFullDetailed[];
+  orphanErrors?: undefined | TraceError[];
 };
 
 const INITIAL_STATE: InternalState = {
@@ -56,6 +63,7 @@ const INITIAL_STATE: InternalState = {
   indexError: undefined,
   isFetching: false,
   traces: undefined,
+  orphanErrors: undefined,
 };
 
 type TxnContextProps = {
@@ -111,19 +119,36 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
   const fetchSingleTraceData = useCallback(
     async traceId => {
       try {
-        const [trace, , _traceResp] = await doDiscoverQuery(
-          api,
-          `/organizations/${orgSlug}/events-trace/${traceId}/`,
-          singleTracePayload
-        );
+        const [trace, _traceResp] = await doDiscoverQuery<
+          TraceSplitResults<TraceFullDetailed> | TraceFullDetailed[]
+        >(api, `/organizations/${orgSlug}/events-trace/${traceId}/`, singleTracePayload);
 
-        setState(prev => ({
-          ...prev,
-          traces: sortBy(
-            (prev.traces || []).concat(trace as TraceFullDetailed),
-            'start_timestamp'
-          ),
-        }));
+        let transactions: TraceFullDetailed[] | undefined;
+        let orphanErrors: TraceError[] | undefined;
+        if (
+          trace &&
+          organization.features.includes('performance-tracing-without-performance') &&
+          isTraceSplitResult<TraceSplitResults<TraceFullDetailed>, TraceFullDetailed[]>(
+            trace
+          )
+        ) {
+          orphanErrors = trace.orphan_errors;
+          transactions = trace.transactions;
+        }
+
+        setState(prev => {
+          return {
+            ...prev,
+            traces: sortBy(
+              (prev.traces || []).concat(transactions ?? (trace as TraceFullDetailed[])),
+              'start_timestamp'
+            ),
+            orphanErrors: sortBy(
+              (prev.orphanErrors || []).concat(orphanErrors ?? []),
+              'timestamp'
+            ),
+          };
+        });
       } catch (error) {
         setState(prev => ({
           ...prev,
@@ -131,7 +156,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
         }));
       }
     },
-    [api, orgSlug, singleTracePayload]
+    [api, orgSlug, singleTracePayload, organization.features]
   );
 
   const fetchTransactionData = useCallback(async () => {
@@ -229,6 +254,7 @@ function internalToExternalState({
   indexComplete,
   indexError,
   traces,
+  orphanErrors,
 }: InternalState): ExternalState {
   const isComplete = indexComplete && detailsRequests === detailsResponses;
 
@@ -237,6 +263,7 @@ function internalToExternalState({
     errors: indexError ? [indexError] : [], // Ignoring detailsErrors for now
     isFetching: !isComplete,
     traces,
+    orphanErrors,
   };
 }
 

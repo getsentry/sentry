@@ -50,7 +50,7 @@ function transactionVisitor() {
 }
 
 export function hasTraceData(
-  traces: TraceFullDetailed[] | null,
+  traces: TraceFullDetailed[] | null | undefined,
   orphanErrors: TraceError[] | undefined
 ): boolean {
   return Boolean(
