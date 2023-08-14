@@ -42,9 +42,18 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
         {
           label: (
             <Fragment>
-              {<BaseBadge displayName={labelTitle} project={project} avatarSize={16} />}
+              {
+                <BaseBadge
+                  displayName={project?.name}
+                  project={project}
+                  avatarSize={16}
+                />
+              }
             </Fragment>
           ),
+        },
+        {
+          label: labelTitle,
         },
       ]}
     />
