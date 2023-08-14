@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 import random
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from hashlib import sha1
 from random import randint
 from typing import Any, Mapping, Optional
@@ -13,8 +13,7 @@ import click
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.db.models import F
-from django.utils import timezone
-from pytz import utc
+from django.utils import timezone as django_timezone
 
 from sentry import buffer, roles, tsdb
 from sentry.constants import ObjectStatus
@@ -167,7 +166,7 @@ def generate_tombstones(project, user):
 
 
 def create_system_time_series():
-    now = datetime.utcnow().replace(tzinfo=utc)
+    now = datetime.utcnow().replace(tzinfo=timezone.utc)
 
     for _ in range(60):
         count = randint(1, 10)
@@ -222,7 +221,7 @@ def create_sample_time_series(event, release=None):
     project = group.project
     key = project.key_set.all()[0]
 
-    now = datetime.utcnow().replace(tzinfo=utc)
+    now = datetime.utcnow().replace(tzinfo=timezone.utc)
 
     environment = Environment.get_or_create(
         project=project, name=Environment.get_name_or_default(event.get_tag("environment"))
@@ -400,7 +399,7 @@ def generate_projects(organization: Organization) -> Mapping[str, Any]:
                 defaults={
                     "organization": organization,
                     "flags": Project.flags.has_releases,
-                    "first_event": timezone.now(),
+                    "first_event": django_timezone.now(),
                 },
             )
             project_map[project_name] = project
@@ -430,8 +429,8 @@ def create_monitor(project: Project, environment: Environment) -> None:
         environment=environment,
         defaults={
             "status": MonitorStatus.DISABLED,
-            "next_checkin": timezone.now() + timedelta(minutes=60),
-            "last_checkin": timezone.now(),
+            "next_checkin": django_timezone.now() + timedelta(minutes=60),
+            "last_checkin": django_timezone.now(),
         },
     )
 
@@ -746,7 +745,7 @@ def create_metric_alert_rule(organization: Organization, project: Project) -> No
         organization,
         type_=IncidentType.DETECTED,
         title="My Incident",
-        date_started=datetime.utcnow().replace(tzinfo=utc),
+        date_started=datetime.utcnow().replace(tzinfo=timezone.utc),
         alert_rule=alert_rule,
         projects=[project],
     )
@@ -766,7 +765,7 @@ def create_mock_transactions(
         if not project.flags.has_transactions:
             project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
-    timestamp = timezone.now()
+    timestamp = django_timezone.now()
     click.echo(f"    > Loading a trace")  # NOQA
     create_trace(
         slow,
@@ -834,7 +833,7 @@ def create_mock_transactions(
         click.echo(f"    > Loading trends data")  # NOQA
         for day in range(14):
             for hour in range(24):
-                timestamp = timezone.now() - timedelta(days=day, hours=hour)
+                timestamp = django_timezone.now() - timedelta(days=day, hours=hour)
                 transaction_user = generate_user()
                 trace_id = uuid4().hex
 

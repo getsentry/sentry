@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import ast
 
+import pytest
+
 from tools.flake8_plugin import SentryCheck
 
 
@@ -132,3 +134,17 @@ import sentry.testutils.outbox as outbox_utils
     assert errors == [
         "t.py:1:0: S007 Do not import sentry.testutils into production code.",
     ]
+
+
+@pytest.mark.parametrize(
+    "src",
+    (
+        "from pytz import utc",
+        "from pytz import UTC",
+        "pytz.utc",
+        "pytz.UTC",
+    ),
+)
+def test_S008(src):
+    expected = ["t.py:1:0: S008 Use stdlib datetime.timezone.utc instead of pytz.utc / pytz.UTC"]
+    assert _run(src) == expected

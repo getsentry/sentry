@@ -1,11 +1,10 @@
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import cached_property
 from unittest.mock import patch
 
-import pytz
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.serializers.rest_framework.release import ReleaseHeadCommitSerializer
@@ -462,14 +461,14 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
             release_id=adopted_release.id,
             environment_id=self.environment.id,
-            adopted=timezone.now(),
+            adopted=django_timezone.now(),
         )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
             release_id=replaced_release.id,
             environment_id=self.environment.id,
-            adopted=timezone.now() - timedelta(minutes=5),
-            unadopted=timezone.now(),
+            adopted=django_timezone.now() - timedelta(minutes=5),
+            unadopted=django_timezone.now(),
         )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
@@ -528,7 +527,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         self.assert_expected_versions(
             response, [adopted_release, replaced_release, not_adopted_release]
         )
-        adopted_rpe.update(adopted=timezone.now() - timedelta(minutes=15))
+        adopted_rpe.update(adopted=django_timezone.now() - timedelta(minutes=15))
 
         # Replaced should come first now.
         response = self.get_success_response(
@@ -575,7 +574,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         prev_cursor = self.get_cursor_headers(response)[0]
         self.assert_expected_versions(response, [replaced_release])
 
-        adopted_rpe.update(adopted=timezone.now() - timedelta(minutes=15))
+        adopted_rpe.update(adopted=django_timezone.now() - timedelta(minutes=15))
 
         response = self.get_success_response(
             self.organization.slug,
@@ -773,22 +772,22 @@ class OrganizationReleasesStatsTest(APITestCase):
         release1 = Release.objects.create(
             organization_id=self.organization.id,
             version="1",
-            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=pytz.UTC),
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=timezone.utc),
         )
         release1.add_project(self.project1)
 
         release2 = Release.objects.create(
             organization_id=self.organization.id,
             version="2",
-            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=pytz.UTC),
-            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386, tzinfo=pytz.UTC),
+            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=timezone.utc),
+            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386, tzinfo=timezone.utc),
         )
         release2.add_project(self.project2)
 
         release3 = Release.objects.create(
             organization_id=self.organization.id,
             version="3",
-            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=pytz.UTC),
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=timezone.utc),
         )
         release3.add_project(self.project3)
 
@@ -946,14 +945,14 @@ class OrganizationReleasesStatsTest(APITestCase):
             project_id=self.project.id,
             release_id=adopted_release.id,
             environment_id=self.environment.id,
-            adopted=timezone.now(),
+            adopted=django_timezone.now(),
         )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
             release_id=replaced_release.id,
             environment_id=self.environment.id,
-            adopted=timezone.now(),
-            unadopted=timezone.now(),
+            adopted=django_timezone.now(),
+            unadopted=django_timezone.now(),
         )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
@@ -1029,13 +1028,13 @@ class OrganizationReleasesStatsTest(APITestCase):
             project_id=project2.id,
             release_id=multi_project_release.id,
             environment_id=self.environment.id,
-            adopted=timezone.now(),
+            adopted=django_timezone.now(),
         )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
             release_id=single_project_release.id,
             environment_id=self.environment.id,
-            adopted=timezone.now(),
+            adopted=django_timezone.now(),
         )
 
         # Filtering to self.environment.name and self.project with release.stage:adopted should NOT return multi_project_release.
@@ -2238,7 +2237,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
         assert result["owner"].username == self.user.username
         assert result["ref"] == self.ref
         assert result["url"] == self.url
-        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=pytz.UTC)
+        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=timezone.utc)
         assert result["commits"] == self.commits
         assert result["headCommits"] == self.headCommits
         assert result["refs"] == self.refs

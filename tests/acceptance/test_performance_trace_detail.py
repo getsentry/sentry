@@ -1,8 +1,6 @@
-from datetime import timedelta
+from datetime import timedelta, timezone
 from unittest.mock import patch
 from uuid import uuid4
-
-import pytz
 
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -191,7 +189,7 @@ class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_with_data(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.path)

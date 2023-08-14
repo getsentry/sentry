@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Iterable, List, Mapping, Optional, Tuple, Type
 from urllib.parse import quote as urlquote
 
@@ -12,7 +12,6 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
 from django.views.decorators.csrf import csrf_exempt
-from pytz import utc
 from rest_framework import status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.exceptions import ParseError
@@ -538,7 +537,7 @@ class StatsMixin:
             if end:
                 end = to_datetime(float(end))
             else:
-                end = datetime.utcnow().replace(tzinfo=utc)
+                end = datetime.utcnow().replace(tzinfo=timezone.utc)
         except ValueError:
             raise ParseError(detail="until must be a numeric timestamp.")
 

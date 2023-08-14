@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 from time import time
 from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 
 import msgpack
 import sentry_sdk
 from django.conf import settings
-from pytz import UTC
 from symbolic.proguard import ProguardMapper
 
 from sentry import quotas
@@ -703,7 +702,7 @@ def _track_outcome(
         key_id=None,
         outcome=outcome,
         reason=reason,
-        timestamp=datetime.utcnow().replace(tzinfo=UTC),
+        timestamp=datetime.utcnow().replace(tzinfo=timezone.utc),
         event_id=event_id,
         category=DataCategory.PROFILE_INDEXED,
         quantity=1,

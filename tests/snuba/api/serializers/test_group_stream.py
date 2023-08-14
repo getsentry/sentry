@@ -1,9 +1,8 @@
 import time
-from datetime import timedelta
+from datetime import timedelta, timezone
 from unittest import mock
 
-import pytz
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.serializers import serialize
@@ -210,8 +209,8 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
                 environment_ids=[dev_environment.id],
                 stats_period="14d",
                 expand=["sessions"],
-                start=timezone.now() - timedelta(days=30),
-                end=timezone.now() - timedelta(days=15),
+                start=django_timezone.now() - timedelta(days=30),
+                end=django_timezone.now() - timedelta(days=15),
                 organization_id=organization_id,
             ),
         )
@@ -225,7 +224,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
         )
         data = {
             "fingerprint": ["meow"],
-            "timestamp": iso_format(timezone.now()),
+            "timestamp": iso_format(django_timezone.now()),
             "type": "error",
             "exception": [{"type": "Foo"}],
         }
@@ -253,22 +252,22 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
                 SearchFilter(
                     SearchKey("timestamp"),
                     ">",
-                    SearchValue(before_now(hours=1).replace(tzinfo=pytz.UTC)),
+                    SearchValue(before_now(hours=1).replace(tzinfo=timezone.utc)),
                 ),
                 SearchFilter(
                     SearchKey("timestamp"),
                     "<",
-                    SearchValue(before_now(seconds=1).replace(tzinfo=pytz.UTC)),
+                    SearchValue(before_now(seconds=1).replace(tzinfo=timezone.utc)),
                 ),
                 SearchFilter(
                     SearchKey("date"),
                     ">",
-                    SearchValue(before_now(hours=1).replace(tzinfo=pytz.UTC)),
+                    SearchValue(before_now(hours=1).replace(tzinfo=timezone.utc)),
                 ),
                 SearchFilter(
                     SearchKey("date"),
                     "<",
-                    SearchValue(before_now(seconds=1).replace(tzinfo=pytz.UTC)),
+                    SearchValue(before_now(seconds=1).replace(tzinfo=timezone.utc)),
                 ),
             ]
         )

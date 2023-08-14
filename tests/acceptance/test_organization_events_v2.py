@@ -1,10 +1,9 @@
 import copy
-from datetime import timedelta
+from datetime import timedelta, timezone
 from unittest.mock import patch
 from urllib.parse import urlencode
 
 import pytest
-import pytz
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
@@ -184,7 +183,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_all_events_query(self, mock_now):
-        now = before_now().replace(tzinfo=pytz.utc)
+        now = before_now().replace(tzinfo=timezone.utc)
         mock_now.return_value = now
         five_mins_ago = iso_format(now - timedelta(minutes=5))
         ten_mins_ago = iso_format(now - timedelta(minutes=10))
@@ -245,7 +244,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_errors_query(self, mock_now):
-        now = before_now().replace(tzinfo=pytz.utc)
+        now = before_now().replace(tzinfo=timezone.utc)
         mock_now.return_value = now
         ten_mins_ago = iso_format(now - timedelta(minutes=10))
         self.store_event(
@@ -301,7 +300,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_transactions_query(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
 
         event_data = generate_transaction()
 
@@ -317,7 +316,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_all_events(self, mock_now):
-        now = before_now().replace(tzinfo=pytz.utc)
+        now = before_now().replace(tzinfo=timezone.utc)
         mock_now.return_value = now
         ten_mins_ago = iso_format(now - timedelta(minutes=10))
 
@@ -355,7 +354,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_errors_view(self, mock_now):
-        now = before_now().replace(tzinfo=pytz.utc)
+        now = before_now().replace(tzinfo=timezone.utc)
         mock_now.return_value = now
 
         event_data = load_data("javascript")
@@ -391,7 +390,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_transactions_query(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
 
         event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
@@ -440,7 +439,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_transactions_query_siblings(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
 
         event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
 
@@ -528,7 +527,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_transaction_event_detail_view_ops_filtering(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
 
         event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
@@ -678,7 +677,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     @pytest.mark.skip(reason="causing timeouts in github actions and travis")
     @patch("django.utils.timezone.now")
     def test_drilldown_result(self, mock_now):
-        now = before_now().replace(tzinfo=pytz.utc)
+        now = before_now().replace(tzinfo=timezone.utc)
         mock_now.return_value = now
         ten_mins_ago = iso_format(now - timedelta(minutes=10))
         events = (
@@ -717,7 +716,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     @pytest.mark.skip(reason="not done")
     @patch("django.utils.timezone.now")
     def test_usage(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
 
         # TODO: load events
 

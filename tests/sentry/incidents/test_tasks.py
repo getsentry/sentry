@@ -1,12 +1,11 @@
-from datetime import timedelta
+from datetime import timedelta, timezone
 from functools import cached_property
 from unittest import mock
 from unittest.mock import Mock, call, patch
 
 import pytest
-import pytz
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from freezegun import freeze_time
 
 from sentry.incidents.logic import (
@@ -247,7 +246,7 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
         return create_snuba_subscription(self.project, SUBSCRIPTION_METRICS_LOGGER, snuba_query)
 
     def build_subscription_update(self):
-        timestamp = timezone.now().replace(tzinfo=pytz.utc, microsecond=0)
+        timestamp = django_timezone.now().replace(tzinfo=timezone.utc, microsecond=0)
         data = {
             "count": 100,
             "crashed": 2.0,
@@ -288,7 +287,7 @@ class TestHandleSubscriptionMetricsLoggerV1(TestHandleSubscriptionMetricsLogger)
     """
 
     def build_subscription_update(self):
-        timestamp = timezone.now().replace(tzinfo=pytz.utc, microsecond=0)
+        timestamp = django_timezone.now().replace(tzinfo=timezone.utc, microsecond=0)
         values = {
             "data": [
                 {

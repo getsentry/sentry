@@ -9,7 +9,6 @@ from unittest import mock
 
 import freezegun
 import pytest
-import pytz
 import sentry_sdk
 from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
@@ -335,8 +334,8 @@ def test_exclusive_end():
     start, end, interval = get_date_range(
         {"start": "2021-02-24T00:00:00", "end": "2021-02-25T00:00:00", "interval": "1h"},
     )
-    assert start == datetime(2021, 2, 24, tzinfo=pytz.utc)
-    assert end == datetime(2021, 2, 25, 0, tzinfo=pytz.utc)
+    assert start == datetime(2021, 2, 24, tzinfo=timezone.utc)
+    assert end == datetime(2021, 2, 25, 0, tzinfo=timezone.utc)
 
 
 @freeze_time("2020-12-18T11:14:17.105Z")
@@ -779,8 +778,8 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=pytz.utc)),
-            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=timezone.utc)),
+            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=timezone.utc)),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
                 Op.IN,
@@ -808,8 +807,8 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=pytz.utc)),
-            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=timezone.utc)),
+            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=timezone.utc)),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
                 Op.IN,
@@ -897,8 +896,8 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=pytz.utc)),
-            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=timezone.utc)),
+            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=timezone.utc)),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
                 Op.IN,
@@ -927,8 +926,8 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=pytz.utc)),
-            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=timezone.utc)),
+            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=timezone.utc)),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
                 Op.IN,
