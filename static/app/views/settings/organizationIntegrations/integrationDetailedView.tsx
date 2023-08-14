@@ -334,10 +334,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     let openPRDisabledReason = t(
       'You must have a GitHub integration to enable this feature.'
     );
-    if (
-      hasIntegration &&
-      !organization.features.includes('integrations-open-pr-comment')
-    ) {
+    if (!organization.features.includes('integrations-open-pr-comment')) {
       openPRDisabledReason = t("This feature isn't available to you yet.");
     }
     const forms: JsonFormObject[] = [
@@ -346,9 +343,9 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
           {
             name: 'githubPRBot',
             type: 'boolean',
-            label: t('Enable Pull Request Bot'),
+            label: t('Enable Comments on Suspect Pull Requests'),
             help: t(
-              'Allow Sentry to comment on pull requests about issues impacting your app.'
+              'Allow Sentry to comment on recent pull requests suspected of causing issues.'
             ),
             disabled: !hasIntegration,
             disabledReason: t(
@@ -358,8 +355,10 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
           {
             name: 'githubOpenPRComments',
             type: 'boolean',
-            label: t('Enable Open PR Comments'),
-            help: t('Allow Sentry to comment on open PRs.'),
+            label: t('Enable Comments on Open Pull Requests'),
+            help: t(
+              'Allow Sentry to comment on open pull requests to show recent error and performance issues for the code being changed.'
+            ),
             disabled:
               !hasIntegration ||
               !organization.features.includes('integrations-open-pr-comment'),
