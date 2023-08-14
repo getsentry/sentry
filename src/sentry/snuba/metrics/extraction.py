@@ -85,6 +85,8 @@ _SEARCH_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
     "<=": "lte",
     ">": "gt",
     ">=": "gte",
+    "IN": "eq",
+    "NOT IN": "eq",  # combined with external negation
 }
 
 # Maps from parsed count_if condition args to Relay rule condition operators.
@@ -566,8 +568,8 @@ class OndemandMetricSpec:
     # The aggregation to execute on the metric.
     op: MetricOperationType
 
-    # The original query used to construct the metric spec.
-    _query: str
+    # Parsed query tokens from the original query string. Already cleaned of unsupported/redundant filters.
+    parsed_query: Sequence[QueryToken]
     # Rule condition parsed from the aggregate field expression.
     _field_condition: Optional[RuleCondition]
 
@@ -582,17 +584,17 @@ class OndemandMetricSpec:
 
         """
 
-        self._init__query(query)
+        self._init_parsed_query(query)
         self._init_aggregate(field)
 
-    def _init__query(self, query: str) -> None:
+    def _init_parsed_query(self, query: str) -> None:
         # On-demand metrics are implicitly transaction metrics. Remove the
         # filters from the query that can't be translated to a RuleCondition.
         query = re.sub(r"event\.type:transaction\s*", "", query)
         # extend the following to also support project:"some-project"
         query = re.sub(r"project:[\w\d\"\-_]+\s*", "", query)
 
-        self._query = query.strip()
+        self.parsed_query = cleanup_query(event_search.parse_search_query(query))
 
     def _init_aggregate(self, aggregate: str) -> None:
         """
@@ -635,12 +637,11 @@ class OndemandMetricSpec:
     def condition(self) -> RuleCondition:
         """Returns a condition that should be fulfilled for the on-demand metric to be extracted."""
 
-        tokens = event_search.parse_search_query(self._query)
-        if not tokens:
+        if not self.parsed_query:
             assert self._field_condition is not None, "This query should not use on demand metrics"
             return self._field_condition
 
-        condition = SearchQueryConverter(tokens).convert()
+        condition = SearchQueryConverter(self.parsed_query).convert()
         if not self._field_condition:
             return condition
 
@@ -804,7 +805,7 @@ class SearchQueryConverter:
                 "value": value,
             }
 
-        if token.operator == "!=":
+        if token.operator == "!=" or token.operator == "NOT IN":
             condition = {"op": "not", "inner": condition}
 
         return condition

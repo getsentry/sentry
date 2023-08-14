@@ -1973,6 +1973,10 @@ SENTRY_SNUBA_CACHE_TTL_SECONDS = 60
 SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
 SENTRY_NODESTORE_OPTIONS: dict[str, Any] = {}
 
+# Node storage backend used for ArtifactBundle indexing (aka FlatFileIndex aka BundleIndex)
+SENTRY_INDEXSTORE = "sentry.nodestore.django.DjangoNodeStorage"
+SENTRY_INDEXSTORE_OPTIONS: dict[str, Any] = {}
+
 # Tag storage backend
 SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
 SENTRY_TAGSTORE_OPTIONS: dict[str, Any] = {}

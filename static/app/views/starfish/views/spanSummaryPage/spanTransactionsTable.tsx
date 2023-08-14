@@ -203,9 +203,10 @@ type CellProps = {
 };
 
 function TransactionCell({row, project}: CellProps) {
-  const label = row.transactionMethod
-    ? `${row.transactionMethod} ${row.transaction}`
-    : row.transaction;
+  const label =
+    row.transactionMethod && !row.transaction.startsWith(row.transactionMethod)
+      ? `${row.transactionMethod} ${row.transaction}`
+      : row.transaction;
 
   const link = `/performance/summary/?${qs.stringify({
     project,
