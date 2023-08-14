@@ -138,6 +138,9 @@ export function ReplayCell({
       <Row gap={1}>
         <Row gap={0.5}>
           {project ? <Avatar size={12} project={project} /> : null}
+          {project ? project.name : null}
+        </Row>
+        <Row gap={0.5}>
           <Link to={detailsTab} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}
           </Link>
