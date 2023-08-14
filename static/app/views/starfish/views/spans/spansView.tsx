@@ -2,13 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {space} from 'sentry/styles/space';
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
-import {StarfishProjectSelector} from 'sentry/views/starfish/components/starfishProjectSelector';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
@@ -56,18 +53,12 @@ export default function SpansView(props: Props) {
 
   return (
     <Fragment>
-      <StyledPageFilterBar condensed>
-        <StarfishProjectSelector />
-        <StarfishDatePicker />
-      </StyledPageFilterBar>
+      <SpanTimeCharts
+        moduleName={moduleName}
+        appliedFilters={appliedFilters}
+        spanCategory={props.spanCategory}
+      />
 
-      <PaddedContainer>
-        <SpanTimeCharts
-          moduleName={moduleName}
-          appliedFilters={appliedFilters}
-          spanCategory={props.spanCategory}
-        />
-      </PaddedContainer>
       <FilterOptionsContainer>
         {/* Specific modules like Database and API only show _one_ kind of span
         op based on how we group them. So, the operation selector is pointless
@@ -93,31 +84,20 @@ export default function SpansView(props: Props) {
         />
       </FilterOptionsContainer>
 
-      <PaddedContainer>
-        <SpansTable
-          moduleName={moduleName}
-          spanCategory={props.spanCategory}
-          sort={sort}
-          limit={LIMIT}
-        />
-      </PaddedContainer>
+      <SpansTable
+        moduleName={moduleName}
+        spanCategory={props.spanCategory}
+        sort={sort}
+        limit={LIMIT}
+      />
     </Fragment>
   );
 }
 
-const PaddedContainer = styled('div')`
-  margin: 0 ${space(2)};
-`;
-
-const FilterOptionsContainer = styled(PaddedContainer)`
+const FilterOptionsContainer = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: ${space(1)};
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
   max-width: 800px;
-`;
-
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin: 0 ${space(2)};
-  margin-bottom: ${space(2)};
 `;
