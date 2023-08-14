@@ -73,11 +73,9 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             )
             metrics.incr("sourcemaps.download.release_file")
         elif ty == "bundle_index":
-            file = (
-                ArtifactBundleFlatFileIndex.objects.filter(id=ty_id, project_id=project.id)
-                .select_related("flat_file_index")
-                .first()
-            )
+            file = ArtifactBundleFlatFileIndex.objects.filter(
+                id=ty_id, project_id=project.id
+            ).first()
             metrics.incr("sourcemaps.download.flat_file_index")
 
             if file is not None and (data := file.load_flat_file_index()):
