@@ -106,7 +106,7 @@ OPENAPI_TAGS = [
         "name": "Crons",
         "x-sidebar-name": "Crons (Beta)",
         "description": "Endpoints for Crons",
-        "x-display-description": True,
+        "x-display-description": False,
         "externalDocs": {
             "description": "Found an error? Let us know.",
             "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md",
@@ -116,7 +116,7 @@ OPENAPI_TAGS = [
         "name": "Replays",
         "x-sidebar-name": "Replays",
         "description": "Endpoints for Replays",
-        "x-display-description": True,
+        "x-display-description": False,
         "externalDocs": {
             "description": "Found an error? Let us know.",
             "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md",

@@ -13,7 +13,8 @@ class OrganizationMissingMembersTestCase(APITestCase):
 
     def setUp(self):
         super().setUp()
-
+        self.user = self.create_user(email="owner@example.com")
+        self.organization = self.create_organization(owner=self.user)
         self.create_member(
             email="a@example.com",
             organization=self.organization,
@@ -43,9 +44,18 @@ class OrganizationMissingMembersTestCase(APITestCase):
         self.create_commit(repo=self.repo, author=self.nonmember_commit_author1)
         self.create_commit(repo=self.repo, author=self.nonmember_commit_author2)
 
+        not_shared_domain_author = self.create_commit_author(
+            project=self.project, email="a@exampletwo.com"
+        )
+        not_shared_domain_author.external_id = "not"
+        not_shared_domain_author.save()
+        self.create_commit(repo=self.repo, author=not_shared_domain_author)
+
         self.login_as(self.user)
 
-    def test_simple(self):
+    def test_simple__shared_domain(self):
+        # only returns users with example.com emails (shared domain)
+
         response = self.get_success_response(self.organization.slug)
         assert response.data[0]["integration"] == "github"
         assert response.data[0]["users"] == [
@@ -86,9 +96,61 @@ class OrganizationMissingMembersTestCase(APITestCase):
         ]
 
     def test_no_authors(self):
-        org = self.create_organization()
+        org = self.create_organization(owner=self.create_user())
         self.create_member(user=self.user, organization=org, role="manager")
 
         response = self.get_success_response(org.slug)
         assert response.data[0]["integration"] == "github"
         assert response.data[0]["users"] == []
+
+    def test_owners_with_different_domains(self):
+        user = self.create_user(email="owner@exampletwo.com")
+        self.create_member(
+            organization=self.organization,
+            user=user,
+            role="owner",
+        )
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data[0]["integration"] == "github"
+        assert response.data[0]["users"] == [
+            {"email": "c@example.com", "externalId": "c", "commitCount": 2},
+            {"email": "d@example.com", "externalId": "d", "commitCount": 1},
+            {"email": "a@exampletwo.com", "externalId": "not", "commitCount": 1},
+        ]
+
+    def test_owners_no_user_email(self):
+        user = self.create_user(email="")
+        self.create_member(
+            organization=self.organization,
+            user=user,
+            role="owner",
+        )
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data[0]["integration"] == "github"
+        assert response.data[0]["users"] == [
+            {"email": "c@example.com", "externalId": "c", "commitCount": 2},
+            {"email": "d@example.com", "externalId": "d", "commitCount": 1},
+        ]
+
+    def test_query_on_author_email_and_external_id(self):
+        # self.nonmember_commit_author1 matches on email
+        # the below matches on external id
+        nonmember_commit_author = self.create_commit_author(
+            project=self.project, email="c2@example.com"
+        )
+        nonmember_commit_author.external_id = "c@example.com"
+        nonmember_commit_author.save()
+
+        self.create_commit(repo=self.repo, author=nonmember_commit_author)
+
+        response = self.get_success_response(self.organization.slug, query="c@example.com")
+
+        assert response.data[0]["integration"] == "github"
+        assert response.data[0]["users"] == [
+            {"email": "c@example.com", "externalId": "c", "commitCount": 2},
+            {"email": "c2@example.com", "externalId": "c@example.com", "commitCount": 1},
+        ]

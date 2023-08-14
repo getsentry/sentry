@@ -35,7 +35,7 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import Actor, Integration, PagerDutyService, Project
+from sentry.models import Actor, Integration, OrganizationIntegration, Project
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
@@ -1415,7 +1415,7 @@ def get_pagerduty_services(organization_id, integration_id) -> List[Tuple[int, s
     )
     if org_int is None:
         return []
-    services = PagerDutyService.services_in(org_int.config)
+    services = OrganizationIntegration.services_in(org_int.config)
     return [(s["id"], s["service_name"]) for s in services]
 
 
