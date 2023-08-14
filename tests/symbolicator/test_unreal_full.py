@@ -124,6 +124,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert log_file.checksum == "24d1c5f75334cd0912cc2670168d593d5fe6c081"
 
     def test_unreal_apple_crash_with_attachments(self):
+        print("HEY - entering test_unreal_apple_crash_with_attachments")  # noqa: S002
         attachments = self.unreal_crash_test_impl(get_unreal_crash_apple_file())
 
         assert len(attachments) == 6

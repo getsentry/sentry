@@ -162,7 +162,7 @@ backend-typing:
 # Running Locally: Run `sentry devservices up kafka zookeeper` before starting these tests
 test-symbolicator: create-db
 	@echo "--> Running symbolicator tests"
-	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml"
+	pytest --reuse-db tests/symbolicator -s -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml"
 	pytest tests/relay_integration/lang/javascript/ -vv -m symbolicator
 	@echo ""
 
