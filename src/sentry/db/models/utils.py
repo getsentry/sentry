@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import operator
+import re
 from typing import Any, Container
 from uuid import uuid4
 
@@ -59,6 +60,7 @@ def slugify_instance(
     **kwargs: Any,
 ) -> None:
     base_value = slugify(label)[:max_length]
+    base_value = re.sub(r"\d+", "", base_value)  # remove all digits from slug
     base_value = base_value.strip("-")
 
     if base_value is not None:

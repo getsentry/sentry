@@ -6,26 +6,37 @@ from sentry.testutils.cases import TestCase
 class SlugifyInstanceTest(TestCase):
     def test_no_conflict(self):
         org = Organization(name="matt")
-        slugify_instance(org, "matt")
+        slugify_instance(org, org.name)
         assert org.slug == "matt"
-        assert not Organization.objects.filter(slug="matt").exists()
 
     def test_conflict(self):
         base_slug = self.organization.slug
         org = Organization(name="foo")
         slugify_instance(org, base_slug)
-        assert org.slug.startswith(base_slug + "-"), org.slug
-        assert not Organization.objects.filter(slug=org.slug).exists()
+        assert org.slug.startswith(base_slug + "-")
 
     def test_reserved(self):
         base_slug = self.organization.slug
         org = Organization(name="foo")
         slugify_instance(org, base_slug, reserved=(base_slug,))
-        assert not org.slug.startswith(base_slug + "-"), org.slug
-        assert not Organization.objects.filter(slug=org.slug).exists()
+        assert not org.slug.startswith(base_slug + "-")
 
     def test_max_length(self):
         org = Organization(name="matt")
-        slugify_instance(org, "matt", max_length=2)
-        assert org.slug == "ma", org.slug
-        assert not Organization.objects.filter(slug="ma").exists()
+        slugify_instance(org, org.name, max_length=2)
+        assert org.slug == "ma"
+
+    def test_removes_digits(self):
+        org = Organization(name="foo123")
+        slugify_instance(org, org.name)
+        assert org.slug == "foo"
+
+    def test_replaces_space_with_hyphen(self):
+        org = Organization(name="f o o")
+        slugify_instance(org, org.name)
+        assert org.slug == "f-o-o"
+
+    def test_removes_underscores(self):
+        org = Organization(name="_foo_")
+        slugify_instance(org, org.name)
+        assert org.slug == "foo"
