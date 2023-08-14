@@ -66,7 +66,12 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
         ).exclude(Q(user_email=None) | Q(user_email=""))
 
         def _get_email_domain(email: str) -> str:
-            return Address(addr_spec=email).domain
+            try:
+                domain = Address(addr_spec=email).domain
+            except Exception:
+                return None
+
+            return domain
 
         owner_email_domains = {_get_email_domain(owner.user_email) for owner in org_owners}
 
