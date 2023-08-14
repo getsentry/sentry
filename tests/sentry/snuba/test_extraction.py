@@ -256,7 +256,7 @@ class TestIsStandardMetricsCompatible:
             "transaction.duration:>1",
             True,
         ),  # transaction.duration not supported by standard metrics
-        ("failure_rate()", "transaction.duration:>1", False),  # has to fallback to indexed
+        ("failure_rate()", "transaction.duration:>1", False),  # has to fall back to indexed
         (
             "count_if(transaction.duration,equals,0)",
             "release:a",
@@ -291,9 +291,10 @@ class TestCreatesOndemandMetricSpec:
             ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
             (
                 "count()",
-                "project:android-symbol-collector-server route.action:CloseBatch level:info",
+                "project:a-1 route.action:CloseBatch level:info",
             ),
             ("count()", "transaction.duration:[1,2,3]"),
+            ("count()", "project:a_1 or project:b-2 or transaction.duration:>0"),
         ],
     )
     def test_creates_on_demand_spec(self, aggregate, query):
