@@ -1,6 +1,9 @@
-import {Member} from './member';
+import type {Member as MemberType} from 'sentry/types';
 
-export function Members(params = []) {
+import {Member} from './member';
+import {User} from './user';
+
+export function Members(params: MemberType[] = []): MemberType[] {
   return [
     Member(),
     {
@@ -10,15 +13,28 @@ export function Members(params = []) {
       orgRole: 'member',
       groupOrgRoles: [],
       teamRoles: [],
+      dateCreated: '',
       role: 'member',
       roleName: 'Member',
       pending: true,
       flags: {
         'sso:linked': false,
+        'sso:invalid': false,
         'idp:provisioned': false,
         'idp:role-restricted': false,
+        'member-limit:restricted': false,
       },
       user: null,
+      expired: false,
+      inviteStatus: 'approved',
+      invite_link: '',
+      inviterName: '',
+      isOnlyOwner: false,
+      orgRoleList: [],
+      projects: [],
+      roles: [],
+      teamRoleList: [],
+      teams: [],
     },
     {
       id: '3',
@@ -28,20 +44,27 @@ export function Members(params = []) {
       groupOrgRoles: [],
       teamRoles: [],
       role: 'owner',
+      dateCreated: '',
+      expired: false,
+      inviteStatus: 'approved',
+      invite_link: '',
+      inviterName: '',
       roleName: 'Owner',
+      isOnlyOwner: false,
+      orgRoleList: [],
+      projects: [],
+      roles: [],
+      teamRoleList: [],
+      teams: [],
       pending: false,
       flags: {
         'sso:linked': true,
+        'sso:invalid': false,
         'idp:provisioned': false,
         'idp:role-restricted': false,
+        'member-limit:restricted': false,
       },
-      user: {
-        id: '3',
-        has2fa: true,
-        name: 'Sentry 3 Name',
-        email: 'sentry3@test.com',
-        username: 'Sentry 3 Username',
-      },
+      user: User(),
     },
     {
       id: '4',
@@ -50,21 +73,28 @@ export function Members(params = []) {
       orgRole: 'owner',
       groupOrgRoles: [],
       teamRoles: [],
+      dateCreated: '',
       role: 'owner',
       roleName: 'Owner',
       pending: false,
       flags: {
         'sso:linked': true,
+        'sso:invalid': false,
         'idp:provisioned': false,
         'idp:role-restricted': false,
+        'member-limit:restricted': false,
       },
-      user: {
-        id: '4',
-        has2fa: true,
-        name: 'Sentry 4 Name',
-        email: 'sentry4@test.com',
-        username: 'Sentry 4 Username',
-      },
+      user: null,
+      expired: false,
+      inviteStatus: 'approved',
+      invite_link: '',
+      inviterName: '',
+      isOnlyOwner: false,
+      orgRoleList: [],
+      projects: [],
+      roles: [],
+      teamRoleList: [],
+      teams: [],
     },
     ...params,
   ];
