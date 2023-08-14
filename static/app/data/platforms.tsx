@@ -1,6 +1,7 @@
 import sortBy from 'lodash/sortBy';
 
 import {t} from 'sentry/locale';
+import type {PlatformIntegration} from 'sentry/types';
 
 type Platform = {
   id: string;
@@ -683,6 +684,6 @@ const allPlatforms = [
   ...otherPlatforms,
 ];
 
-const platforms = sortBy(allPlatforms, 'id');
+const platforms = sortBy(allPlatforms, 'id') as PlatformIntegration[];
 
 export default platforms;
