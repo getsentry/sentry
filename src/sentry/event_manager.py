@@ -1491,7 +1491,22 @@ def materialize_metadata(
     # calculate culprit + type from event_metadata
 
     # Don't clobber existing metadata
-    event_metadata.update(data.get("metadata", {}))
+    try:
+        event_metadata.update(data.get("metadata", {}))
+    except TypeError:
+        # On a small handful of occasions, the line above has errored with `TypeError: 'NoneType'
+        # object is not iterable`, even though it's clear from looking at the local variable values
+        # in the event in Sentry that this shouldn't be possible.
+        logger.exception(
+            "Non-None being read as None",
+            extra={
+                "data is None": data is None,
+                "event_metadata is None": event_metadata is None,
+                "data.get": data.get,
+                "event_metadata.update": event_metadata.update,
+                "data.get('metadata', {})": data.get("metadata", {}),
+            },
+        )
 
     return {
         "type": event_type.key,

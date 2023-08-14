@@ -1,4 +1,5 @@
 import logging
+import random
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from time import time
@@ -81,6 +82,7 @@ def submit_process(
 
 @dataclass(frozen=True)
 class SaveEventTaskKind:
+    is_highcpu: bool = False
     has_attachments: bool = False
     from_reprocessing: bool = False
 
@@ -96,9 +98,13 @@ def submit_save_event(
     if cache_key:
         data = None
 
+    highcpu_ratio = options.get("store.save-event-highcpu-percentage") or 0
+
     # XXX: honor from_reprocessing
     if task_kind.has_attachments:
         task = save_event_attachments
+    elif task_kind.is_highcpu and random.random() < highcpu_ratio:
+        task = save_event_highcpu
     else:
         task = save_event
 
@@ -861,6 +867,23 @@ def save_event_transaction(
     silo_mode=SiloMode.REGION,
 )
 def save_event_attachments(
+    cache_key: Optional[str] = None,
+    data: Optional[Event] = None,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    project_id: Optional[int] = None,
+    **kwargs: Any,
+) -> None:
+    _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
+
+
+@instrumented_task(
+    name="sentry.tasks.store.save_event_highcpu",
+    queue="events.save_event_highcpu",
+    time_limit=65,
+    soft_time_limit=60,
+)
+def save_event_highcpu(
     cache_key: Optional[str] = None,
     data: Optional[Event] = None,
     start_time: Optional[int] = None,

@@ -13,7 +13,13 @@ import EventView from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullDetailedQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
-import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
+import {
+  TraceError,
+  TraceFullDetailed,
+  TraceMeta,
+  TraceSplitResults,
+} from 'sentry/utils/performance/quickTrace/types';
+import {isTraceSplitResult} from 'sentry/utils/performance/quickTrace/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -79,21 +85,37 @@ class TraceSummary extends Component<Props> {
       error: QueryError | null;
       isLoading: boolean;
       meta: TraceMeta | null;
-      traces: TraceFullDetailed[] | null;
-    }) => (
-      <TraceDetailsContent
-        location={location}
-        organization={organization}
-        params={params}
-        traceSlug={traceSlug}
-        traceEventView={this.getTraceEventView()}
-        dateSelected={dateSelected}
-        isLoading={isLoading}
-        error={error}
-        traces={traces}
-        meta={meta}
-      />
-    );
+      traces: (TraceFullDetailed[] | TraceSplitResults<TraceFullDetailed>) | null;
+    }) => {
+      let transactions: TraceFullDetailed[] | undefined;
+      let orphanErrors: TraceError[] | undefined;
+      if (
+        traces &&
+        organization.features.includes('performance-tracing-without-performance') &&
+        isTraceSplitResult<TraceSplitResults<TraceFullDetailed>, TraceFullDetailed[]>(
+          traces
+        )
+      ) {
+        orphanErrors = traces.orphan_errors;
+        transactions = traces.transactions;
+      }
+
+      return (
+        <TraceDetailsContent
+          location={location}
+          organization={organization}
+          params={params}
+          traceSlug={traceSlug}
+          traceEventView={this.getTraceEventView()}
+          dateSelected={dateSelected}
+          isLoading={isLoading}
+          error={error}
+          orphanErrors={orphanErrors}
+          traces={transactions ?? (traces as TraceFullDetailed[])}
+          meta={meta}
+        />
+      );
+    };
 
     if (!dateSelected) {
       return content({

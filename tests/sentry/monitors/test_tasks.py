@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 from django.utils import timezone
@@ -13,7 +13,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.monitors.tasks import check_missing, check_timeout
+from sentry.monitors.tasks import check_missing, check_timeout, try_monitor_tasks_trigger
 from sentry.testutils.cases import TestCase
 
 
@@ -547,3 +547,58 @@ class CheckMonitorsTest(TestCase):
         assert MonitorEnvironment.objects.filter(
             id=monitor_environment.id, status=MonitorStatus.TIMEOUT
         ).exists()
+
+    @patch("sentry.monitors.tasks._dispatch_tasks")
+    def test_monitor_task_trigger(self, dispatch_tasks):
+        now = datetime.now().replace(second=0, microsecond=0)
+
+        # First checkin triggers tasks
+        try_monitor_tasks_trigger(ts=now)
+        assert dispatch_tasks.call_count == 1
+
+        # 5 seconds later does NOT trigger the task
+        try_monitor_tasks_trigger(ts=now + timedelta(seconds=5))
+        assert dispatch_tasks.call_count == 1
+
+        # a minute later DOES trigger the task
+        try_monitor_tasks_trigger(ts=now + timedelta(minutes=1))
+        assert dispatch_tasks.call_count == 2
+
+        # Same time does NOT trigger the task
+        try_monitor_tasks_trigger(ts=now + timedelta(minutes=1))
+        assert dispatch_tasks.call_count == 2
+
+        # A skipped minute trigges the task AND captures an error
+        with patch("sentry_sdk.capture_message") as capture_message:
+            assert capture_message.call_count == 0
+            try_monitor_tasks_trigger(ts=now + timedelta(minutes=3, seconds=5))
+            assert dispatch_tasks.call_count == 3
+            capture_message.assert_called_with("Monitor task dispatch minute skipped")
+
+    @patch("sentry.monitors.tasks._dispatch_tasks")
+    def test_monitor_task_trigger_partition_desync(self, dispatch_tasks):
+        """
+        When consumer partitions are not completely synchronized we may read
+        timestamps in a non-monotonic order. In this scenario we want to make
+        sure we still only trigger once
+        """
+        now = datetime.now().replace(second=0, microsecond=0)
+
+        # First message with timestamp just after the minute bounardary
+        # triggers the task
+        try_monitor_tasks_trigger(ts=now + timedelta(seconds=1))
+        assert dispatch_tasks.call_count == 1
+
+        # Second message has a timestamp just before the minute boundary,
+        # should not trigger anything since we've already ticked ahead of this
+        try_monitor_tasks_trigger(ts=now - timedelta(seconds=1))
+        assert dispatch_tasks.call_count == 1
+
+        # Third message again just after the minute bounadry does NOT trigger
+        # the task, we've already ticked at that time.
+        try_monitor_tasks_trigger(ts=now + timedelta(seconds=1))
+        assert dispatch_tasks.call_count == 1
+
+        # Fourth message moves past a new minute boundary, tick
+        try_monitor_tasks_trigger(ts=now + timedelta(minutes=1, seconds=1))
+        assert dispatch_tasks.call_count == 2
