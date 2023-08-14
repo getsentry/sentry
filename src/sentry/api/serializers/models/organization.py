@@ -42,6 +42,7 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
+    GITHUB_OPEN_PR_COMMENTS_DEFAULT,
     GITHUB_PR_BOT_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
@@ -417,6 +418,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     codecovAccess: bool
     aiSuggestedSolution: bool
     githubPRBot: bool
+    githubOpenPRComments: bool
     isDynamicallySampled: bool
 
 
@@ -523,6 +525,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     obj.get_option("sentry:ai_suggested_solution", AI_SUGGESTED_SOLUTION)
                 ),
                 "githubPRBot": bool(obj.get_option("sentry:github_pr_bot", GITHUB_PR_BOT_DEFAULT)),
+                "githubOpenPRComments": bool(
+                    obj.get_option(
+                        "sentry:github_open_pr_comments", GITHUB_OPEN_PR_COMMENTS_DEFAULT
+                    )
+                ),
             }
         )
 

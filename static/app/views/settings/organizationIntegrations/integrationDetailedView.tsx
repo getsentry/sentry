@@ -331,7 +331,15 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     const hasIntegration = configurations ? configurations.length > 0 : false;
     const endpoint = `/organizations/${organization.slug}/`;
     const hasOrgWrite = organization.access.includes('org:write');
-
+    let openPRDisabledReason = t(
+      'You must have a GitHub integration to enable this feature.'
+    );
+    if (
+      hasIntegration &&
+      !organization.features.includes('integrations-open-pr-comment')
+    ) {
+      openPRDisabledReason = t("This feature isn't available to you yet.");
+    }
     const forms: JsonFormObject[] = [
       {
         fields: [
@@ -347,12 +355,23 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
               'You must have a GitHub integration to enable this feature.'
             ),
           },
+          {
+            name: 'githubOpenPRComments',
+            type: 'boolean',
+            label: t('Enable Open PR Comments'),
+            help: t('Allow Sentry to comment on open PRs.'),
+            disabled:
+              !hasIntegration ||
+              !organization.features.includes('integrations-open-pr-comment'),
+            disabledReason: openPRDisabledReason,
+          },
         ],
       },
     ];
 
     const initialData = {
       githubPRBot: organization.githubPRBot,
+      githubOpenPRComments: organization.githubOpenPRComments,
     };
 
     return (
