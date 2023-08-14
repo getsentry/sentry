@@ -902,7 +902,18 @@ class MetricsQueryBuilder(QueryBuilder):
         }
 
         # Check if we need to make multiple queries
-        primary, query_framework = self._create_query_framework()
+        if not self._on_demand_metric_spec:
+            primary, query_framework = self._create_query_framework()
+        else:
+            primary = "metrics_layer"
+            query_framework = {
+                primary: QueryFramework(
+                    orderby=[],
+                    having=[],
+                    functions=self.metrics_layer_functions,
+                    entity=Entity("generic_metrics_distributions", sample=self.sample_rate),
+                )
+            }
 
         if self.use_metrics_layer or self._on_demand_metric_spec:
             from sentry.snuba.metrics.datasource import get_series
@@ -911,7 +922,7 @@ class MetricsQueryBuilder(QueryBuilder):
             )
 
             for query_details in [query_framework.pop(primary), *query_framework.values()]:
-                if len(query_details.functions) == 0:
+                if len(query_details.functions) == 0 and not self._on_demand_metric_spec:
                     continue
                 if groupby_values:
                     extra_conditions = [
