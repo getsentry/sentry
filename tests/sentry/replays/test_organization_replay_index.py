@@ -19,7 +19,9 @@ from sentry.utils.snuba import QueryMemoryLimitExceeded
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-class OrganizationReplayIndexMixin:
+@region_silo_test(stable=True)
+@apply_feature_flag_on_cls("organizations:global-views")
+class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-organization-replay-index"
 
     def setUp(self):
@@ -1317,16 +1319,6 @@ class OrganizationReplayIndexMixin:
             assert item["count_rage_clicks"] == 1, item["count_rage_clicks"]
 
 
-@region_silo_test(stable=True)
-@apply_feature_flag_on_cls("organizations:global-views")
-class OrganizationReplayIndexTest(OrganizationReplayIndexMixin, APITestCase, ReplaysSnubaTestCase):
-    pass
-
-
-@region_silo_test(stable=True)
-@apply_feature_flag_on_cls("organizations:global-views")
 @apply_feature_flag_on_cls("organizations:session-replay-optimized-search")
-class OrganizationReplayIndexOptimizedSearchTest(
-    OrganizationReplayIndexMixin, APITestCase, ReplaysSnubaTestCase
-):
+class OrganizationReplayIndexOptimizedSearchTest(OrganizationReplayIndexTest):
     pass
