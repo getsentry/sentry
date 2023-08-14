@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
@@ -18,7 +17,6 @@ import {Sort} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {
   renderHeadCell,
@@ -54,8 +52,6 @@ type Props = {
   >;
   endpoint?: string;
   endpointMethod?: string;
-  onClickTransaction?: (row: Row) => void;
-  openSidebar?: boolean;
 };
 
 type ValidSort = Sort & {
@@ -64,18 +60,10 @@ type ValidSort = Sort & {
 
 export type TableColumnHeader = GridColumnHeader<keyof Row>;
 
-export function SpanTransactionsTable({
-  span,
-  openSidebar,
-  onClickTransaction,
-  endpoint,
-  endpointMethod,
-  sort,
-}: Props) {
+export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Props) {
   const location = useLocation();
   const routingContext = useRoutingContext();
   const organization = useOrganization();
-  const pageFilters = usePageFilters();
   const router = useRouter();
 
   const {
@@ -97,18 +85,34 @@ export function SpanTransactionsTable({
 
   const renderBodyCell = (column: TableColumnHeader, row: Row) => {
     if (column.key === 'transaction') {
+      const label =
+        row.transactionMethod && !row.transaction.startsWith(row.transactionMethod)
+          ? `${row.transactionMethod} ${row.transaction}`
+          : row.transaction;
+
+      const pathname = `${routingContext.baseURL}/${
+        extractRoute(location) ?? 'spans'
+      }/span/${encodeURIComponent(span[SpanMetricsFields.SPAN_GROUP])}`;
+      const query = {
+        ...location.query,
+        endpoint,
+        endpointMethod,
+        transaction: row.transaction,
+        transactionMethod: row.transactionMethod,
+      };
+
       return (
-        <TransactionCell
-          project={pageFilters.selection.projects[0]}
-          endpoint={endpoint}
-          endpointMethod={endpointMethod}
-          span={span}
-          row={row}
-          column={column}
-          openSidebar={openSidebar}
-          onClickTransactionName={onClickTransaction}
-          location={location}
-        />
+        <Link
+          to={`${pathname}?${qs.stringify(query)}`}
+          onClick={() => {
+            router.replace({
+              pathname,
+              query,
+            });
+          }}
+        >
+          <Truncate value={label} maxLength={75} />
+        </Link>
       );
     }
 
@@ -122,32 +126,6 @@ export function SpanTransactionsTable({
       organization,
       unit: meta.units?.[column.key],
     });
-
-    if (column.key === 'avg(span.self_time)') {
-      const pathname = `${routingContext.baseURL}/${
-        extractRoute(location) ?? 'spans'
-      }/span/${encodeURIComponent(span[SpanMetricsFields.SPAN_GROUP])}`;
-      const query = {
-        ...location.query,
-        endpoint,
-        endpointMethod,
-        transaction: row.transaction,
-        transactionMethod: row.transactionMethod,
-      };
-      return (
-        <Link
-          to={`${pathname}?${qs.stringify(query)}`}
-          onClick={() => {
-            router.replace({
-              pathname,
-              query,
-            });
-          }}
-        >
-          {rendered}
-        </Link>
-      );
-    }
 
     return rendered;
   };
@@ -183,41 +161,6 @@ export function SpanTransactionsTable({
         )}
         <StyledPagination pageLinks={pageLinks} />
       </Footer>
-    </Fragment>
-  );
-}
-
-type CellProps = {
-  column: TableColumnHeader;
-  location: Location;
-  row: Row;
-  span: Pick<
-    SpanMetricsFieldTypes,
-    SpanMetricsFields.SPAN_OP | SpanMetricsFields.SPAN_GROUP
-  >;
-  endpoint?: string;
-  endpointMethod?: string;
-  onClickTransactionName?: (row: Row) => void;
-  openSidebar?: boolean;
-  project?: number;
-};
-
-function TransactionCell({row, project}: CellProps) {
-  const label =
-    row.transactionMethod && !row.transaction.startsWith(row.transactionMethod)
-      ? `${row.transactionMethod} ${row.transaction}`
-      : row.transaction;
-
-  const link = `/performance/summary/?${qs.stringify({
-    project,
-    transaction: row.transaction,
-  })}`;
-
-  return (
-    <Fragment>
-      <Link to={link}>
-        <Truncate value={label} maxLength={75} />
-      </Link>
     </Fragment>
   );
 }
