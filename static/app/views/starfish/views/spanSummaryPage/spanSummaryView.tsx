@@ -21,7 +21,7 @@ import {
   useSpanMetrics,
 } from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsFields, StarfishFunctions} from 'sentry/views/starfish/types';
 import {
   DataTitles,
   getThroughputChartTitle,
@@ -66,11 +66,11 @@ export function SpanSummaryView({groupId}: Props) {
       SpanMetricsFields.SPAN_ACTION,
       SpanMetricsFields.SPAN_DOMAIN,
       'count()',
-      'spm()',
+      `${StarfishFunctions.SPM}()`,
       `sum(${SpanMetricsFields.SPAN_SELF_TIME})`,
       `avg(${SpanMetricsFields.SPAN_SELF_TIME})`,
-      'time_spent_percentage()',
-      'http_error_count()',
+      `${StarfishFunctions.TIME_SPENT_PERCENTAGE}()`,
+      `${StarfishFunctions.HTTP_ERROR_COUNT}()`,
     ],
     'api.starfish.span-summary-page-metrics'
   );
