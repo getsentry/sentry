@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
@@ -201,6 +202,12 @@ describe('IntegrationDetailedView', function () {
   });
 
   it('cannot enable PR bot without GitHub integration', async function () {
+    const {routerContext, organization} = initializeOrg({
+      organization: {
+        features: ['integrations-open-pr-comment'],
+      },
+    });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
@@ -216,9 +223,10 @@ describe('IntegrationDetailedView', function () {
       <IntegrationDetailedView
         {...TestStubs.routeComponentProps()}
         params={{integrationSlug: 'github'}}
-        organization={org}
+        organization={organization}
         location={TestStubs.location({query: {}})}
-      />
+      />,
+      {context: routerContext}
     );
 
     await userEvent.click(screen.getByText('features'));
