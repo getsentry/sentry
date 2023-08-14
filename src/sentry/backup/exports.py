@@ -7,7 +7,7 @@ import click
 from django.core.serializers import serialize
 from django.core.serializers.json import DjangoJSONEncoder
 
-from sentry.backup.dependencies import sort_dependencies
+from sentry.backup.dependencies import sorted_dependencies
 
 UTC_0 = timezone(timedelta(hours=0))
 
@@ -35,13 +35,17 @@ class OldExportConfig(NamedTuple):
     # option.
     excluded_models: set[str] = set()
 
+    # Old exports use "natural" foreign keys, which in practice only changes how foreign keys into
+    # `sentry.User` are represented.
+    use_natural_foreign_keys: bool = False
+
 
 def exports(dest, old_config: OldExportConfig, indent: int, printer=click.echo):
     """Exports core data for the Sentry installation."""
 
     def yield_objects():
         # Collate the objects to be serialized.
-        for model in sort_dependencies():
+        for model in sorted_dependencies():
             if (
                 not getattr(model, "__include_in_export__", old_config.include_non_sentry_models)
                 or model.__name__.lower() in old_config.excluded_models
@@ -59,6 +63,6 @@ def exports(dest, old_config: OldExportConfig, indent: int, printer=click.echo):
         yield_objects(),
         indent=indent,
         stream=dest,
-        use_natural_foreign_keys=True,
+        use_natural_foreign_keys=old_config.use_natural_foreign_keys,
         cls=DatetimeSafeDjangoJSONEncoder,
     )

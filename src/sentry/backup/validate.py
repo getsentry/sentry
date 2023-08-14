@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from copy import deepcopy
 from difflib import unified_diff
 from typing import Dict, Tuple
@@ -70,10 +71,9 @@ def validate(
         """Does two things in tandem: builds a map of InstanceID -> JSON model, and simultaneously builds a map of model name -> number of ordinals assigned."""
 
         model_map: ModelMap = {}
-        ordinal_counters: OrdinalCounters = {}
+        ordinal_counters: OrdinalCounters = defaultdict(OrdinalCounter)
         for model in models:
             model_name = model["model"]
-            ordinal_counters.setdefault(model_name, OrdinalCounter())
             counter = ordinal_counters[model_name]
             ordinal, found = counter.assign(model, side)
             findings.extend(found)

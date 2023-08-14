@@ -10,7 +10,7 @@ from uuid import uuid1
 import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Subquery
 from django.db.models.signals import pre_delete
 from django.utils import timezone
 from django.utils.http import urlencode
@@ -88,7 +88,7 @@ class ProjectManager(BaseManager):
             teams__organizationmember__user_id__in=user_ids,
         )
 
-    def get_for_team_ids(self, team_ids: Collection[int]) -> QuerySet:
+    def get_for_team_ids(self, team_ids: Collection[int] | Subquery) -> QuerySet:
         """Returns the QuerySet of all projects that a set of Teams have access to."""
         return self.filter(status=ObjectStatus.ACTIVE, teams__in=team_ids)
 
