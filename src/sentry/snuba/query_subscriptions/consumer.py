@@ -5,10 +5,7 @@ from typing import Callable, Dict
 import sentry_sdk
 from dateutil.parser import parse as parse_date
 from sentry_kafka_schemas.codecs import Codec, ValidationError
-from sentry_kafka_schemas.schema_types.events_subscription_results_v1 import (
-    PayloadV3,
-    SubscriptionResult,
-)
+from sentry_kafka_schemas.schema_types.events_subscription_results_v1 import SubscriptionResult
 
 from sentry.incidents.utils.types import SubscriptionUpdate
 from sentry.snuba.dataset import EntityKey
@@ -49,7 +46,7 @@ def parse_message_value(value: bytes, jsoncodec: Codec[SubscriptionResult]) -> S
             metrics.incr("snuba_query_subscriber.message_wrapper_invalid")
             raise InvalidSchemaError("Message wrapper does not match schema")
 
-    payload: PayloadV3 = wrapper["payload"]
+    payload = wrapper["payload"]
     # XXX: Since we just return the raw dict here, when the payload changes it'll
     # break things. This should convert the payload into a class rather than passing
     # the dict around, but until we get time to refactor we can keep things working

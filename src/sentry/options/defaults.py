@@ -1426,7 +1426,7 @@ register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFI
 # Sets the timeout for webhooks
 register(
     "sentry-apps.webhook.timeout.sec",
-    default=5.0,
+    default=3.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1465,5 +1465,17 @@ register(
 register(
     "monitors.use_consumer_clock_task_triggers",
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "on_demand.max_alert_specs",
+    default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "on_demand.max_widget_specs",
+    default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

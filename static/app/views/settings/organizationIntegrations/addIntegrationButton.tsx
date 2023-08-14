@@ -2,6 +2,7 @@ import {Button, ButtonProps} from 'sentry/components/button';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {IntegrationWithConfig} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import AddIntegration from './addIntegration';
 
@@ -51,7 +52,15 @@ export function AddIntegrationButton({
           <Button
             disabled={!provider.canAdd}
             {...buttonProps}
-            onClick={() => onClick()}
+            onClick={() => {
+              if (label === t('Reinstall')) {
+                trackAnalytics('integrations.integration_reinstall_clicked', {
+                  organization,
+                  provider: provider.metadata.noun,
+                });
+              }
+              onClick();
+            }}
             aria-label={t('Add integration')}
           >
             {label}

@@ -10,6 +10,7 @@ from sentry.models import (
 )
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     create_organization_with_outbox_message,
+    generate_deterministic_organization_slug,
     mark_organization_as_pending_deletion_with_outbox_message,
     unmark_organization_as_pending_deletion_with_outbox_message,
     update_organization_with_outbox_message,
@@ -241,3 +242,21 @@ class UnmarkOrganizationForDeletionWithOutboxMessageTest(TestCase):
         assert self.org.name == org_before_update.name
         assert self.org.slug == org_before_update.slug
         assert_outbox_update_message_exists(self.org, 0)
+
+
+class TestGenerateDeterministicOrganizationSlug(TestCase):
+    def test_slug_under_size_limit(self):
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base="santry", desired_org_name="santry", owning_user_id=42
+        )
+
+        assert slug == "santry-095a9012d"
+
+    def test_slug_above_size_limit(self):
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base="areallylongsentryorgnamethatiswaytoolong",
+            desired_org_name="santry",
+            owning_user_id=42,
+        )
+        assert len(slug) == 30
+        assert slug == "areallylongsentryorg-945bda148"

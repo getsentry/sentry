@@ -1,10 +1,9 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Callable
 from unittest.mock import patch
 
 import pytest
-import pytz
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from freezegun import freeze_time
 
 from sentry.dynamic_sampling import RuleType, generate_rules, get_redis_client_for_ds
@@ -35,7 +34,7 @@ from sentry.dynamic_sampling.tasks.sliding_window_org import sliding_window_org
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
-MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
+MOCK_DATETIME = (django_timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0
 )
 
@@ -43,7 +42,7 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 class TasksTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     @staticmethod
     def old_date():
-        return datetime.now(tz=pytz.UTC) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
+        return datetime.now(tz=timezone.utc) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
 
     @staticmethod
     def disable_all_biases(project):

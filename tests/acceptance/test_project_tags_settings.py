@@ -1,14 +1,12 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
-
-import pytz
 
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import no_silo_test
 
-event_time = before_now(days=3).replace(tzinfo=pytz.utc)
-current_time = datetime.utcnow().replace(tzinfo=pytz.utc)
+event_time = before_now(days=3).replace(tzinfo=timezone.utc)
+current_time = datetime.utcnow().replace(tzinfo=timezone.utc)
 
 
 @no_silo_test(stable=True)

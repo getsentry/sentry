@@ -210,11 +210,7 @@ class _ClientConfig:
         #
         # This is needed in the case where you access a different org and get denied, but the UI
         # can open the sudo dialog if you are an "inactive" superuser
-        return (
-            self.request is not None
-            and self.request.user is not None
-            and self.request.user.is_superuser
-        )
+        return self.request is not None and self.user is not None and self.user.is_superuser
 
     @property
     def links(self) -> Iterable[Tuple[str, str]]:
@@ -242,7 +238,7 @@ class _ClientConfig:
             serializer=UserSerializeType.SELF_DETAILED,
             auth_context=AuthenticationContext(
                 auth=AuthenticatedToken.from_token(getattr(self.request, "auth", None)),
-                user=serialize_generic_user(self.request.user),
+                user=serialize_generic_user(self.user),
             ),
         )
         if not query_result:
@@ -252,7 +248,7 @@ class _ClientConfig:
         (user_details,) = query_result
         user_details = json.loads(json.dumps(user_details))
         if self._is_superuser():
-            user_details["isSuperuser"] = self.request.user.is_superuser
+            user_details["isSuperuser"] = self.user.is_superuser
         return user_details
 
     def get_context(self) -> Mapping[str, Any]:
