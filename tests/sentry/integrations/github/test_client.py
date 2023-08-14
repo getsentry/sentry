@@ -5,19 +5,23 @@ from unittest import mock
 
 import pytest
 import responses
+from django.core import mail
 from django.test import override_settings
 from requests import Request
 from responses import matchers
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.github.client import GitHubAppsClient
-from sentry.integrations.github.integration import GitHubIntegration
+from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models import Repository
+from sentry.integrations.github.integration import GitHubIntegration
+from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.utils.cache import cache
 
 GITHUB_CODEOWNERS = {
@@ -587,8 +591,11 @@ class GithubProxyClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=ApiError)
     @responses.activate
-    def test_fatal_disable(self, get_jwt):
-
+    @with_feature("organizations:github-disable-on-broken")
+    def test_fatal_and_disable_integration(self, get_jwt):
+        """
+        fatal fast shut off with disable flag on, integration should be broken and disabled
+        """
         responses.add(
             responses.POST,
             status=403,
@@ -605,5 +612,30 @@ class GithubProxyClientTest(TestCase):
             self.gh_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
         (msg,) = excinfo.value.args
         buffer = IntegrationRequestBuffer(self.gh_client._get_redis_key())
-        assert buffer.is_integration_broken() is True
-        assert int(buffer._get_all_from_buffer()[0]["fatal_count"]) == 1
+        integration = Integration.objects.get(id=self.integration.id)
+        assert integration.status == ObjectStatus.DISABLED
+        assert [len(item) == 0 for item in buffer._get_broken_range_from_buffer()]
+        assert len(buffer._get_all_from_buffer()) == 0
+
+    @responses.activate
+    @with_feature("organizations:github-disable-on-broken")
+    def test_disable_email(self):
+        with self.tasks():
+            notify_disable(
+                self.organization, self.integration.provider, self.gh_client._get_redis_key()
+            )
+        assert len(mail.outbox) == 1
+        msg = mail.outbox[0]
+        assert msg.subject == "Action required: re-authenticate or fix your Github integration"
+        assert (
+            self.organization.absolute_url(
+                f"/settings/{self.organization.slug}/integrations/{self.integration.provider}"
+            )
+            in msg.body
+        )
+        assert (
+            self.organization.absolute_url(
+                f"/settings/{self.organization.slug}/integrations/{self.integration.provider}/?referrer=disabled-integration/"
+            )
+            in msg.body
+        )
