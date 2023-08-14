@@ -8,7 +8,7 @@ import re
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from typing import (
     TYPE_CHECKING,
@@ -32,7 +32,6 @@ from django.db import IntegrityError, OperationalError, connection, router, tran
 from django.db.models import Func
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
-from pytz import UTC
 
 from sentry import (
     eventstore,
@@ -1286,7 +1285,7 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
 
 @metrics.wraps("save_event.nodestore_save_many")
 def _nodestore_save_many(jobs: Sequence[Job]) -> None:
-    inserted_time = datetime.utcnow().replace(tzinfo=UTC).timestamp()
+    inserted_time = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
     for job in jobs:
         # Write the event to Nodestore
         subkeys = {}
@@ -2210,7 +2209,7 @@ def save_attachment(
     if start_time is not None:
         timestamp = to_datetime(start_time)
     else:
-        timestamp = datetime.utcnow().replace(tzinfo=UTC)
+        timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
 
     try:
         data = attachment.data
