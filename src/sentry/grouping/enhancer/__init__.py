@@ -155,14 +155,12 @@ class Enhancements:
         cache_key = f"stacktrace_hash.{stacktrace_fingerprint}"
         use_cache = bool(stacktrace_fingerprint)
         if use_cache:
-            # We are running with dry_run, thus, not changing the frames
+            # We are running with dry_run, thus, not changing frames
             frames_changed = _update_frames_from_cached_values(
                 frames, cache_key, platform, dry_run=True
             )
-            # XXX: Before merging, remove this if statement so we can test the logic live
-            # We use a boolean for faster checking if frames and merged_frames are still the same
             if frames_changed:
-                logger.info("The stacktrace frame modifications have been loaded from the cache.")
+                logger.info("The frames have been loaded from the cache. Skipping some work.")
                 return
 
         with sentry_sdk.start_span(op="stacktrace_processing", description="apply_rules_to_frames"):
@@ -508,7 +506,7 @@ def _update_frames_from_cached_values(
     Returns if the merged has correctly happened.
     """
     frames_changed = False
-    # XXX: Try the fallback value
+    # XXX: Test the fallback value
     changed_frames_values = cache.get(cache_key, {})
     # This helps tracking changes in the hit/miss ratio of the cache
     metrics.incr(
@@ -522,16 +520,20 @@ def _update_frames_from_cached_values(
                     if changed_frame_values["in_app"] is not None:
                         frame["in_app"] = changed_frame_values["in_app"]
                         frames_changed = True
-                    if changed_frame_values["in_app"] is not changed_frame_values["category"]:
+                    if changed_frame_values["in_app"] is not None:
                         set_path(frame, "data", "category", value=changed_frame_values["category"])
                         frames_changed = True
 
             if frames_changed:
                 logger.info("We have merged the cached stacktrace to the incoming one.")
-        except Exception:
+        except Exception as error:
             logger.exception(
-                "We have failed to update the stacktrace from the cache. Not aborting execution."
+                "We have failed to update the stacktrace from the cache. Not aborting execution.",
+                extra={"platform": platform},
             )
+            # We want tests to fail to prevent breaking the caching system without noticing
+            if os.environ.get("PYTEST_CURRENT_TEST"):
+                raise error
 
     metrics.incr(
         "save_event.stacktrace.merged_cached_values",
@@ -593,14 +595,14 @@ def _generate_stacktrace_fingerprint(
         )
 
         stacktrace_fingerprint = stacktrace_hash.hexdigest()
-    except Exception as e:
+    except Exception as error:
         # This will create an error in Sentry to help us evaluate why it failed
         logger.exception(
             "Stacktrace hashing failure. Investigate and fix.", extra={"platform": platform}
         )
         # We want tests to fail to prevent breaking the caching system without noticing
         if os.environ.get("PYTEST_CURRENT_TEST"):
-            raise e
+            raise error
 
     # This will help us calculate the success ratio for fingerprint calculation
     metrics.incr(
