@@ -250,15 +250,11 @@ def update_artifact_bundle_index(
 
     lock = identifier.get_lock()
     with TimedRetryPolicy(60)(lock.acquire):
-        flat_file_index = (
-            ArtifactBundleFlatFileIndex.objects.select_related("flat_file_index")
-            .filter(
-                project_id=identifier.project_id,
-                release_name=identifier.release,
-                dist_name=identifier.dist,
-            )
-            .first()
-        )
+        flat_file_index = ArtifactBundleFlatFileIndex.objects.filter(
+            project_id=identifier.project_id,
+            release_name=identifier.release,
+            dist_name=identifier.dist,
+        ).first()
 
         index = FlatFileIndex()
         # Load the index from the file if it exists
