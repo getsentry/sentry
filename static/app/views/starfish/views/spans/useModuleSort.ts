@@ -35,7 +35,7 @@ export function useModuleSort() {
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
-  field: 'time_spent_percentage()',
+  field: `${StarfishFunctions.TIME_SPENT_PERCENTAGE}()`,
 };
 
 function isAValidSort(sort: Sort): sort is ValidSort {
