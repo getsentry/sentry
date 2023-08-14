@@ -143,7 +143,7 @@ class Enhancements:
     ) -> None:
         """This applies the frame modifications to the frames itself. This does not affect grouping."""
         in_memory_cache: dict[str, str] = {}
-        print("HEY - Entering apply_modifications_to_frame")  # noqa: S002
+        # print("HEY - Entering apply_modifications_to_frame")  # noqa: S002
 
         # Matching frames are used for matching rules
         match_frames = [create_match_frame(frame, platform) for frame in frames]
@@ -155,13 +155,14 @@ class Enhancements:
         # The most expensive part of creating groups is applying the rules to frames (next code block)
         cache_key = f"stacktrace_hash.{stacktrace_fingerprint}"
         use_cache = bool(stacktrace_fingerprint)
-        if use_cache:
-            frames_changed = _update_frames_from_cached_values(frames, cache_key, platform)
-            # XXX: Before merging, remove this if statement so we can test the logic live
-            # We use a boolean for faster checking if frames and merged_frames are still the same
-            if frames_changed:
-                logger.info("The stacktrace frame modifications have been loaded from the cache.")
-                return
+        # if use_cache:
+        #     frames_changed = _update_frames_from_cached_values(frames, cache_key, platform)
+        #     print(f"BAR - {frames_changes}")
+        #     # XXX: Before merging, remove this if statement so we can test the logic live
+        #     # We use a boolean for faster checking if frames and merged_frames are still the same
+        #     if frames_changed:
+        #         logger.info("The stacktrace frame modifications have been loaded from the cache.")
+        #         return
 
         with sentry_sdk.start_span(op="stacktrace_processing", description="apply_rules_to_frames"):
             for rule in self._modifier_rules:
@@ -173,7 +174,7 @@ class Enhancements:
 
         if use_cache:
             _cache_changed_frame_values(frames, cache_key, platform)
-        print("HEY - Exiting apply_modifications_to_frame")  # noqa: S002
+        # print("HEY - Exiting apply_modifications_to_frame")  # noqa: S002
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
         in_memory_cache: dict[str, str] = {}
