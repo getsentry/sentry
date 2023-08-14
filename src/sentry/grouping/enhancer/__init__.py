@@ -499,10 +499,11 @@ class EnhancementsVisitor(NodeVisitor):
 
 
 def _update_frames_from_cached_values(
-    frames: Sequence[dict[str, Any]], cache_key: str, platform: str
+    frames: Sequence[dict[str, Any]], cache_key: str, platform: str, dry_run: bool = True
 ) -> bool:
     """
     This will update the frames of the stacktrace if it's been cached.
+    Set dry_run to False to actually change the frames.
     Returns if the merged has correctly happened.
     """
     frames_changed = False
@@ -516,11 +517,15 @@ def _update_frames_from_cached_values(
     if changed_frames_values:
         try:
             for frame, changed_frame_values in zip(frames, changed_frames_values):
-                frame["in_app"] = changed_frame_values["in_app"]
-                set_path(frame, "data", "category", value=changed_frame_values["category"])
+                if not dry_run:
+                    if changed_frame_values["in_app"] is not None:
+                        frame["in_app"] = changed_frame_values["in_app"]
+                    if changed_frame_values["in_app"] is not changed_frame_values["category"]:
+                        set_path(frame, "data", "category", value=changed_frame_values["category"])
 
             logger.info("We have merged the cached stacktrace to the incoming one.")
 
+            # XXX: This may need re-thinking
             frames_changed = True
         except Exception:
             logger.exception(
