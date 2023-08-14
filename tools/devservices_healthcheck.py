@@ -8,7 +8,7 @@ from time import sleep
 def run_cmd(
     args: list[str],
     *,
-    retries: int = 3,
+    retries: int = 6,
     timeout: int = 5,
 ) -> None:
     for retry in range(1, retries + 1):
@@ -20,6 +20,18 @@ def run_cmd(
             return
 
     raise SystemExit(1)
+
+
+SNUBA_HEALTH_PROG = """\
+import urllib.request
+
+try:
+    req = urllib.request.urlopen('http://127.0.0.1:1218/health_envoy', timeout=1)
+except Exception as e:
+    raise SystemExit(f'snuba is not ready: {e}')
+else:
+    print('snuba is ready!')
+"""
 
 
 def main() -> None:
@@ -35,10 +47,16 @@ def main() -> None:
         "127.0.0.1:2181",
         "--list",
     ]
+    snuba_healthcheck = [
+        *("docker", "exec", "sentry_snuba"),
+        *("python3", "-uc", SNUBA_HEALTH_PROG),
+    ]
 
     healthchecks = [postgres_healthcheck]
     if os.getenv("NEED_KAFKA") == "true":
         healthchecks.append(kafka_healthcheck)
+    if os.getenv("NEED_SNUBA") == "true":
+        healthchecks.append(snuba_healthcheck)
 
     for check in healthchecks:
         run_cmd(check)
