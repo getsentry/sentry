@@ -1,4 +1,7 @@
+import {useEffect} from 'react';
+
 import {Client} from 'sentry/api';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type ReleaseRegistrySdk = Record<
@@ -21,13 +24,19 @@ const API_CLIENT = new Client({baseUrl: '', headers: {}, credentials: 'omit'});
  * Fetches the release registry list for SDKs
  */
 export function useSourcePackageRegistries() {
-  const {isLoading, data} = useApiQuery<ReleaseRegistrySdk>(
+  const {isLoading, data, error} = useApiQuery<ReleaseRegistrySdk>(
     ['https://release-registry.services.sentry.io/sdks'],
     {
       staleTime: Infinity,
     },
     API_CLIENT
   );
+
+  useEffect(() => {
+    if (error) {
+      handleXhrErrorResponse('Failed to fetch sentry release registry', error);
+    }
+  }, [error]);
 
   return {
     isLoading,
