@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from django.core import mail
 
+from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.locks import locks
 from sentry.models import (
@@ -13,12 +14,14 @@ from sentry.models import (
     ReleaseHeadCommit,
     Repository,
 )
+from sentry.silo import SiloMode
 from sentry.tasks.commits import fetch_commits, handle_invalid_identity
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
 from social_auth.models import UserSocialAuth
 
 
+@region_silo_test(stable=True)
 class FetchCommitsTest(TestCase):
     def _test_simple_action(self, user, org):
         repo = Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
@@ -73,6 +76,15 @@ class FetchCommitsTest(TestCase):
     def test_simple(self):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
+        self._test_simple_action(user=self.user, org=org)
+
+    def test_duplicate_repositories(self):
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name="baz")
+        Repository.objects.create(
+            name="example", provider="dummy", organization_id=org.id, status=ObjectStatus.DISABLED
+        )
+        Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
         self._test_simple_action(user=self.user, org=org)
 
     def test_simple_owner_from_team(self):
@@ -130,7 +142,8 @@ class FetchCommitsTest(TestCase):
 
         release2 = Release.objects.create(organization_id=org.id, version="12345678")
 
-        usa = UserSocialAuth.objects.create(user=self.user, provider="dummy")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            usa = UserSocialAuth.objects.create(user=self.user, provider="dummy")
 
         mock_compare_commits.side_effect = InvalidIdentity(identity=usa)
 
@@ -158,7 +171,8 @@ class FetchCommitsTest(TestCase):
 
         release2 = Release.objects.create(organization_id=org.id, version="12345678")
 
-        UserSocialAuth.objects.create(user=self.user, provider="dummy")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            UserSocialAuth.objects.create(user=self.user, provider="dummy")
 
         mock_compare_commits.side_effect = Exception("secrets")
 
@@ -228,7 +242,8 @@ class FetchCommitsTest(TestCase):
 
         release2 = Release.objects.create(organization_id=org.id, version="12345678")
 
-        UserSocialAuth.objects.create(user=self.user, provider="dummy")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            UserSocialAuth.objects.create(user=self.user, provider="dummy")
 
         mock_compare_commits.side_effect = PluginError("You can read me")
 
@@ -249,8 +264,9 @@ class FetchCommitsTest(TestCase):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
 
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(provider="example", name="Example")
+            integration.add_organization(org)
 
         repo = Repository.objects.create(
             name="example",
