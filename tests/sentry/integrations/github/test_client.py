@@ -7,14 +7,15 @@ import pytest
 import responses
 from django.core import mail
 from django.test import override_settings
+from freezegun import freeze_time
 from requests import Request
 from responses import matchers
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.client import GitHubAppsClient
+from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.integrations.github.integration import GitHubIntegration
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.shared_integrations.response.base import BaseApiResponse
@@ -607,10 +608,9 @@ class GithubProxyClientTest(TestCase):
         )
 
         self.gh_client.integration = None
-
-        with pytest.raises(Exception) as excinfo:
+        with pytest.raises(Exception):
             self.gh_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
-        (msg,) = excinfo.value.args
+
         buffer = IntegrationRequestBuffer(self.gh_client._get_redis_key())
         integration = Integration.objects.get(id=self.integration.id)
         assert integration.status == ObjectStatus.DISABLED
@@ -639,3 +639,110 @@ class GithubProxyClientTest(TestCase):
             )
             in msg.body
         )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=ApiError)
+    @responses.activate
+    def test_fatal_integration(self, get_jwt):
+        """
+        fatal fast shut off with disable flag off, integration should be broken but not disabled
+        """
+        responses.add(
+            responses.POST,
+            status=403,
+            url="https://api.github.com/graphql",
+            json={
+                "message": "This installation has been suspended",
+                "documentation_url": "https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app",
+            },
+        )
+
+        self.gh_client.integration = None
+        with pytest.raises(Exception):
+            self.gh_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+        buffer = IntegrationRequestBuffer(self.gh_client._get_redis_key())
+        assert buffer.is_integration_broken() is True
+        integration = Integration.objects.get(id=self.integration.id)
+        assert integration.status == ObjectStatus.ACTIVE
+
+    @responses.activate
+    def test_error_integration(self):
+        """
+        recieve two errors and errors are recorded, integration is not broken yet so no disable
+        """
+        responses.add(
+            responses.POST,
+            status=404,
+            url="https://api.github.com/graphql",
+            json={
+                "message": "Not found",
+            },
+        )
+        responses.add(
+            responses.POST,
+            status=404,
+            url="https://api.github.com/graphql",
+            json={
+                "message": "Not found",
+            },
+        )
+        self.gh_client.integration = None
+        with pytest.raises(Exception):
+            self.gh_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+        with pytest.raises(Exception):
+            self.gh_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+        buffer = IntegrationRequestBuffer(self.gh_client._get_redis_key())
+        assert int(buffer._get_all_from_buffer()[0]["error_count"]) == 2
+        assert buffer.is_integration_broken() is False
+
+    @responses.activate
+    @with_feature("organizations:github-disable-on-broken")
+    def test_slow_integration_is_not_broken_or_disabled(self):
+        """
+        slow test with disable flag on
+        put errors and success in buffer for 10 days, assert integration is not broken or disabled
+        """
+
+        responses.add(
+            responses.POST,
+            status=404,
+            url="https://api.github.com/graphql",
+            json={
+                "message": "Not found",
+            },
+        )
+        buffer = IntegrationRequestBuffer(self.gh_client._get_redis_key())
+        now = datetime.now() - timedelta(hours=1)
+        for i in reversed(range(10)):
+            with freeze_time(now - timedelta(days=i)):
+                buffer.record_error()
+                buffer.record_success()
+        self.gh_client.integration = None
+        with pytest.raises(Exception):
+            self.gh_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+        assert buffer.is_integration_broken() is False
+        assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.ACTIVE
+
+    @responses.activate
+    def test_a_slow_integration_is_broken(self):
+        """
+        slow shut off with disable flag off
+        put errors in buffer for 10 days, assert integration is broken but not disabled
+        """
+        responses.add(
+            responses.POST,
+            status=404,
+            url="https://api.github.com/graphql",
+            json={
+                "message": "Not found",
+            },
+        )
+        buffer = IntegrationRequestBuffer(self.gh_client._get_redis_key())
+        now = datetime.now() - timedelta(hours=1)
+        for i in reversed(range(10)):
+            with freeze_time(now - timedelta(days=i)):
+                buffer.record_error()
+        self.gh_client.integration = None
+        with pytest.raises(Exception):
+            self.gh_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+        assert buffer.is_integration_broken() is True
+        assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.ACTIVE
