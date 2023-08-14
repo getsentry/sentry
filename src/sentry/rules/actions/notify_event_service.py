@@ -21,7 +21,7 @@ from sentry.services.hybrid_cloud.app import RpcSentryAppService, app_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.tasks.sentry_apps import notify_sentry_app
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.integrations.sentry_app")
@@ -72,7 +72,7 @@ def send_incident_alert_notification(
         incident_id=incident.id,
         organization=organization,
         new_status=new_status.value,
-        incident_attachment=incident_attachment,
+        incident_attachment_json=json.dumps(incident_attachment),
         metric_value=metric_value,
     )
 

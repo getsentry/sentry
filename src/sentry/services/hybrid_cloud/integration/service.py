@@ -5,7 +5,7 @@
 
 from abc import abstractmethod
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from sentry.models.integrations.organization_integration import (
     OrganizationIntegration,
@@ -261,7 +261,7 @@ class IntegrationService(RpcService):
         incident_id: int,
         organization: RpcOrganizationSummary,
         new_status: int,
-        incident_attachment: Mapping[str, Any],  # TODO: Replace with object schema
+        incident_attachment_json: str,
         metric_value: Optional[str] = None,
     ) -> None:
         pass
