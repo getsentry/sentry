@@ -19,49 +19,30 @@ type Props = {
    * highlight active tokens and trigger error tooltips.
    */
   cursorPosition?: number;
-  /**
-   * A function that returns a warning message for a given filter key
-   * will only show a render a warning if the value is truthy
-   */
-  getFilterWarning?: (key: string) => React.ReactNode | undefined;
 };
 
 /**
  * Renders the parsed query with syntax highlighting.
  */
-export default function HighlightQuery({
-  parsedQuery,
-  cursorPosition,
-  getFilterWarning,
-}: Props) {
-  const result = renderResult(parsedQuery, cursorPosition ?? -1, getFilterWarning);
+export default function HighlightQuery({parsedQuery, cursorPosition}: Props) {
+  const result = renderResult(parsedQuery, cursorPosition ?? -1);
 
   return <Fragment>{result}</Fragment>;
 }
 
-function renderResult(
-  result: ParseResult,
-  cursor: number,
-  getFilterWarning?: Props['getFilterWarning']
-) {
+function renderResult(result: ParseResult, cursor: number) {
   return result
-    .map(t => renderToken(t, cursor, getFilterWarning))
+    .map(t => renderToken(t, cursor))
     .map((renderedToken, i) => <Fragment key={i}>{renderedToken}</Fragment>);
 }
 
-function renderToken(
-  token: TokenResult<Token>,
-  cursor: number,
-  getFilterWarning?: Props['getFilterWarning']
-) {
+function renderToken(token: TokenResult<Token>, cursor: number) {
   switch (token.type) {
     case Token.SPACES:
       return token.value;
 
     case Token.FILTER:
-      return (
-        <FilterToken filter={token} cursor={cursor} getFilterWarning={getFilterWarning} />
-      );
+      return <FilterToken filter={token} cursor={cursor} />;
 
     case Token.VALUE_TEXT_LIST:
     case Token.VALUE_NUMBER_LIST:
@@ -103,14 +84,11 @@ const shakeAnimation = keyframes`
 function FilterToken({
   filter,
   cursor,
-  getFilterWarning,
 }: {
   cursor: number;
   filter: TokenResult<Token.FILTER>;
-  getFilterWarning?: Props['getFilterWarning'];
 }) {
   const isActive = isWithinToken(filter, cursor);
-  const warning = getFilterWarning?.(filter.key.text) ?? null;
 
   // This state tracks if the cursor has left the filter token. We initialize it
   // to !isActive in the case where the filter token is rendered without the
@@ -129,7 +107,7 @@ function FilterToken({
   }, [hasLeft, isActive]);
 
   const showInvalid = hasLeft && !!filter.invalid;
-  const showWarning = hasLeft && !!warning;
+  const showWarning = hasLeft && !!filter.warning;
   const showTooltip = (showInvalid || showWarning) && isActive;
 
   const reduceMotion = useReducedMotion();
@@ -155,7 +133,7 @@ function FilterToken({
   return (
     <Tooltip
       disabled={!showTooltip}
-      title={filter.invalid?.reason || warning}
+      title={filter.invalid?.reason || filter.warning}
       overlayStyle={{maxWidth: '350px'}}
       forceVisible
       skipWrapper

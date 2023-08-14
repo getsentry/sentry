@@ -404,7 +404,8 @@ function WidgetViewerModal(props: Props) {
       !name && !!conditions
         ? parseSearch(
             conditions +
-              (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`)
+              (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`),
+            {getFilterTokenWarning: getOnDemandFilterWarning}
           )
         : null;
     const getHighlightedQuery = (
@@ -412,10 +413,7 @@ function WidgetViewerModal(props: Props) {
     ) => {
       return parsedQuery !== null ? (
         <HighlightContainer {...highlightedContainerProps}>
-          <HighlightQuery
-            parsedQuery={parsedQuery}
-            getFilterWarning={getOnDemandFilterWarning}
-          />
+          <HighlightQuery parsedQuery={parsedQuery} />
         </HighlightContainer>
       ) : undefined;
     };

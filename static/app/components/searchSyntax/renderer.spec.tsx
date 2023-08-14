@@ -37,6 +37,7 @@ const query: ParseResult = [
       },
     },
     invalid: null,
+    warning: null,
     text: 'user.email:foo@example.com',
     location: {
       start: {offset: 0, line: 1, column: 1},
@@ -47,18 +48,9 @@ const query: ParseResult = [
 
 describe('SmartSearchBar', function () {
   it('renders the query', function () {
-    const getFilterWarning = jest.fn(() => null);
-
-    render(
-      <HighlightQuery
-        parsedQuery={query}
-        cursorPosition={-1}
-        getFilterWarning={getFilterWarning}
-      />
-    );
+    render(<HighlightQuery parsedQuery={query} cursorPosition={-1} />);
 
     expect(screen.getByText('user.email:')).toBeInTheDocument();
     expect(screen.getByText('foo@example.com')).toBeInTheDocument();
-    expect(getFilterWarning).toHaveBeenCalledTimes(1);
   });
 });
