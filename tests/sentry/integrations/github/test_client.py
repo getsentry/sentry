@@ -10,8 +10,8 @@ from requests import Request
 from responses import matchers
 
 from sentry.integrations.github.client import GitHubAppsClient
-from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.github.integration import GitHubIntegration
+from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.shared_integrations.response.base import BaseApiResponse
