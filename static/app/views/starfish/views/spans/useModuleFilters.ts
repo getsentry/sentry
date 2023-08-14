@@ -3,15 +3,15 @@ import pick from 'lodash/pick';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 
-type Query = {
-  'span.action': string;
-  'span.domain': string;
-  'span.group': string;
-  'span.op': string;
+export type ModuleFilters = {
+  [SpanMetricsFields.SPAN_ACTION]?: string;
+  [SpanMetricsFields.SPAN_DOMAIN]?: string;
+  [SpanMetricsFields.SPAN_GROUP]?: string;
+  [SpanMetricsFields.SPAN_OP]?: string;
 };
 
 export const useModuleFilters = () => {
-  const location = useLocation<Query>();
+  const location = useLocation<ModuleFilters>();
 
   return pick(location.query, [
     SpanMetricsFields.SPAN_ACTION,
