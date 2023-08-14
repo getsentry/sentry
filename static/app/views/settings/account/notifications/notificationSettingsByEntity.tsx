@@ -16,6 +16,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import withProjects from 'sentry/utils/withProjects';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {NotificationOptionsObject} from 'sentry/views/settings/account/notifications/constants';
 import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
@@ -54,12 +55,12 @@ export type NotificationSettingsByProjectsBaseProps = {
 
 type Props = {
   organizations: Organization[];
+  projects: Project[];
 } & NotificationSettingsByProjectsBaseProps &
   DeprecatedAsyncComponent['props'] &
   WithRouterProps;
 
 type State = {
-  entities: Project[] | Organization[];
   selectedEntityId: string | null;
   selectedValue: Value | null;
 } & DeprecatedAsyncComponent['state'];
@@ -70,24 +71,12 @@ class NotificationSettingsByEntity extends DeprecatedAsyncComponent<Props, State
       ...super.getDefaultState(),
       selectedEntityId: null,
       selectedValue: null,
-      entities: [],
     };
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const organizationId = this.getOrganizationId();
-    const endpoint = this.props.entity === 'project' ? '/projects/' : '/organizations/';
-    return [
-      [
-        'entities',
-        endpoint,
-        {
-          query: {
-            organizationId,
-          },
-        },
-      ],
-    ];
+  get entities() {
+    const {entity, projects, organizations} = this.props;
+    return entity === 'project' ? projects : organizations;
   }
 
   getOrganizationId(): string | undefined {
@@ -132,14 +121,13 @@ class NotificationSettingsByEntity extends DeprecatedAsyncComponent<Props, State
 
   renderOverrides() {
     const {notificationOptions} = this.props;
-    const {entities} = this.state;
     const matchedOptions = notificationOptions.filter(
       option =>
         option.notificationType === this.props.notificationType &&
         option.scopeType === this.props.entity
     );
     return matchedOptions.map(option => {
-      const entity = (entities as any[]).find(
+      const entity = (this.entities as any[]).find(
         ({id}) => id.toString() === option.scopeIdentifier.toString()
       );
       if (!entity) {
@@ -176,7 +164,7 @@ class NotificationSettingsByEntity extends DeprecatedAsyncComponent<Props, State
           <Button
             aria-label={t('Delete')}
             size="sm"
-            priority="primary"
+            priority="danger"
             icon={<IconDelete />}
             onClick={() => handleDelete()}
           />
@@ -187,12 +175,14 @@ class NotificationSettingsByEntity extends DeprecatedAsyncComponent<Props, State
 
   renderBody() {
     const {notificationType, notificationOptions} = this.props;
-    const {entities, selectedEntityId, selectedValue} = this.state;
+    const {selectedEntityId, selectedValue} = this.state;
 
     const orgId = this.getOrganizationId();
     // create maps by the project id for constant time lookups
-    const entityById = Object.fromEntries(entities.map(entity => [entity.id, entity]));
-    const entityOptions: {label: string; value: Value}[] = (entities as any[])
+    const entityById = Object.fromEntries(
+      this.entities.map(entity => [entity.id, entity])
+    );
+    const entityOptions: {label: string; value: Value}[] = (this.entities as any[])
       .filter(({id}: Project | Organization) => {
         const match = notificationOptions.find(
           option =>
@@ -313,7 +303,8 @@ class NotificationSettingsByEntity extends DeprecatedAsyncComponent<Props, State
   }
 }
 
-export default withSentryRouter(NotificationSettingsByEntity);
+// loading all projects and orgs
+export default withProjects(withSentryRouter(NotificationSettingsByEntity));
 
 const StyledPanelHeader = styled(PanelHeader)`
   flex-wrap: wrap;
