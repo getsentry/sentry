@@ -741,6 +741,8 @@ def render_template_context(ctx, user_id):
         "organizations:session-replay", ctx.organization
     ) and features.has("organizations:session-replay-weekly-email", ctx.organization)
 
+    notification_uuid = "".join(random.choices(string.ascii_letters + string.digits, k=16))
+
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.
     def trends():
@@ -795,7 +797,9 @@ def render_template_context(ctx, user_id):
         legend = [
             {
                 "slug": project_ctx.project.slug,
-                "url": project_ctx.project.get_absolute_url(),
+                "url": project_ctx.project.get_absolute_url(
+                    params={"referrer": "weekly_report", "notification_uuid": notification_uuid}
+                ),
                 "color": project_breakdown_colors[i],
                 "dropped_error_count": project_ctx.dropped_error_count,
                 "accepted_error_count": project_ctx.accepted_error_count,
@@ -1034,7 +1038,7 @@ def render_template_context(ctx, user_id):
         "key_replays": key_replays() if has_replay_section else [],
         "issue_summary": issue_summary(),
         "user_project_count": len(user_projects),
-        "notification_uuid": "".join(random.choices(string.ascii_letters + string.digits, k=16)),
+        "notification_uuid": notification_uuid,
     }
 
 
