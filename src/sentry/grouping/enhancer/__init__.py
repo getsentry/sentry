@@ -155,14 +155,14 @@ class Enhancements:
         # The most expensive part of creating groups is applying the rules to frames (next code block)
         cache_key = f"stacktrace_hash.{stacktrace_fingerprint}"
         use_cache = bool(stacktrace_fingerprint)
-        # if use_cache:
-        #     frames_changed = _update_frames_from_cached_values(frames, cache_key, platform)
-        #     print(f"BAR - {frames_changes}")
-        #     # XXX: Before merging, remove this if statement so we can test the logic live
-        #     # We use a boolean for faster checking if frames and merged_frames are still the same
-        #     if frames_changed:
-        #         logger.info("The stacktrace frame modifications have been loaded from the cache.")
-        #         return
+        if use_cache:
+            frames_changed = _update_frames_from_cached_values(frames, cache_key, platform)
+            print(f"BAR - {frames_changed}")  # noqa: S002
+            # XXX: Before merging, remove this if statement so we can test the logic live
+            # We use a boolean for faster checking if frames and merged_frames are still the same
+            if frames_changed:
+                logger.info("The stacktrace frame modifications have been loaded from the cache.")
+                return
 
         with sentry_sdk.start_span(op="stacktrace_processing", description="apply_rules_to_frames"):
             for rule in self._modifier_rules:
@@ -518,7 +518,9 @@ def _update_frames_from_cached_values(
     if changed_frames_values:
         try:
             for frame, changed_frame_values in zip(frames, changed_frames_values):
+                print("FOO")  # noqa: S002
                 if not dry_run:
+                    print("BAZ!")  # noqa: S002
                     if changed_frame_values["in_app"] is not None:
                         frame["in_app"] = changed_frame_values["in_app"]
                     if changed_frame_values["in_app"] is not changed_frame_values["category"]:
@@ -527,7 +529,7 @@ def _update_frames_from_cached_values(
             logger.info("We have merged the cached stacktrace to the incoming one.")
 
             # XXX: This may need re-thinking
-            frames_changed = True
+            frames_changed = dry_run
         except Exception:
             logger.exception(
                 "We have failed to update the stacktrace from the cache. Not aborting execution."
