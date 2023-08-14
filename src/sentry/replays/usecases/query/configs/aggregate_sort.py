@@ -19,10 +19,9 @@ sort_config = {
     "browser.name": any_if("browser_name"),
     "browser.version": any_if("browser_version"),
     "count_dead_clicks": Function("sum", parameters=[Column("click_is_dead")]),
-    "count_errors": Function(
-        "sum", parameters=[Function("length", parameters=[Column("error_ids")])]
-    ),
+    "count_errors": Function("sum", parameters=[Column("count_errors")]),
     "count_rage_clicks": Function("sum", parameters=[Column("click_is_rage")]),
+    "count_urls": Function("sum", parameters=[Column("count_urls")]),
     "device.brand": any_if("device_brand"),
     "device.family": any_if("device_family"),
     "device.model": any_if("device_model"),
