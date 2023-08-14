@@ -20,11 +20,6 @@ export type ValidSort = Sort & {
   field: (typeof SORTABLE_FIELDS)[number];
 };
 
-export const mySort: ValidSort = {
-  kind: 'asc',
-  field: 'spm()',
-};
-
 export function useModuleSort() {
   const location = useLocation<Query>();
 
