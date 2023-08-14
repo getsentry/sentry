@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Collection, Mapping
 
 from django.db.models import Subquery
 
@@ -10,7 +10,6 @@ from sentry.models import (
     OrganizationMemberTeam,
     Project,
     User,
-    UserEmail,
     actor_type_to_string,
 )
 from sentry.ownership.grammar import parse_code_owners
@@ -21,18 +20,20 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.user import RpcUser
 
 
-def validate_association(
-    raw_items: Sequence[UserEmail | ExternalActor],
-    associations: Sequence[UserEmail | ExternalActor],
-    type: str,
-) -> Sequence[str]:
+def validate_association_emails(
+    raw_items: Collection[str],
+    associations: Collection[str],
+) -> list[str]:
+    return list(set(raw_items).difference(associations))
+
+
+def validate_association_actors(
+    raw_items: Collection[str],
+    associations: Collection[ExternalActor],
+) -> list[str]:
     raw_items_set = {str(item) for item in raw_items}
-    if type == "emails":
-        # associations email strings
-        sentry_items = associations
-    else:
-        # associations are ExternalActor objects
-        sentry_items = {item.external_name for item in associations}
+    # associations are ExternalActor objects
+    sentry_items = {item.external_name for item in associations}
     return list(raw_items_set.difference(sentry_items))
 
 
@@ -97,9 +98,9 @@ def validate_codeowners_associations(
     associations = {**users_dict, **teams_dict, **emails_dict}
 
     errors = {
-        "missing_user_emails": validate_association(emails, user_emails, "emails"),
-        "missing_external_users": validate_association(usernames, external_actors, "usernames"),
-        "missing_external_teams": validate_association(team_names, external_actors, "team names"),
+        "missing_user_emails": validate_association_emails(emails, user_emails),
+        "missing_external_users": validate_association_actors(usernames, external_actors),
+        "missing_external_teams": validate_association_actors(team_names, external_actors),
         "teams_without_access": teams_without_access,
         "users_without_access": users_without_access,
     }

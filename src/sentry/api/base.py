@@ -115,7 +115,8 @@ def allow_cors_options(func):
         response["Access-Control-Expose-Headers"] = "X-Sentry-Error, Retry-After"
 
         if request.META.get("HTTP_ORIGIN") == "null":
-            origin = "null"  # if ORIGIN header is explicitly specified as 'null' leave it alone
+            # if ORIGIN header is explicitly specified as 'null' leave it alone
+            origin: str | None = "null"
         else:
             origin = origin_from_request(request)
 
@@ -184,7 +185,6 @@ class Endpoint(APIView):
         return f'<{uri}>; rel="{rel}">'
 
     def build_cursor_link(self, request: Request, name: str, cursor: Cursor):
-        querystring = None
         if request.GET.get("cursor") is None:
             querystring = request.GET.urlencode()
         else:
@@ -199,10 +199,10 @@ class Endpoint(APIView):
         )
         base_url = absolute_uri(urlquote(request.path), url_prefix=url_prefix)
 
-        if querystring is not None:
+        if querystring:
             base_url = f"{base_url}?{querystring}"
         else:
-            base_url = base_url + "?"
+            base_url = f"{base_url}?"
 
         return CURSOR_LINK_HEADER.format(
             uri=base_url,
@@ -214,7 +214,7 @@ class Endpoint(APIView):
     def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
 
-    def handle_exception(
+    def handle_exception(  # type: ignore[override]
         self,
         request: Request,
         exc: Exception,

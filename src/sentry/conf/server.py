@@ -1884,7 +1884,7 @@ SENTRY_ALLOW_PUBLIC_PROJECTS = True
 SENTRY_ENABLE_INVITES = True
 
 # Origins allowed for session-based API access (via the Access-Control-Allow-Origin header)
-SENTRY_ALLOW_ORIGIN = None
+SENTRY_ALLOW_ORIGIN: str | None = None
 
 # Buffer backend
 SENTRY_BUFFER = "sentry.buffer.Buffer"

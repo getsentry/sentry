@@ -1,6 +1,5 @@
 from rest_framework import serializers
 
-from sentry.api.serializers.rest_framework.list import ListField
 from sentry.models.commitfilechange import CommitFileChange
 
 
@@ -30,6 +29,6 @@ class CommitSerializer(serializers.Serializer):
         allow_blank=True,
     )
     timestamp = serializers.DateTimeField(required=False, allow_null=True)
-    patch_set = ListField(
+    patch_set = serializers.ListField(
         child=CommitPatchSetSerializer(required=False), required=False, allow_null=True
     )
