@@ -602,6 +602,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
           if (actionName === 'SlackNotifyServiceAction') {
             transaction.setTag(actionName, true);
           }
+          // to avoid storing inconsistent data in the db, don't pass the name fields
           delete action.name;
         }
         for (const condition of rule.conditions) {
