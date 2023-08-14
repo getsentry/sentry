@@ -31,6 +31,23 @@ describe('inviteBanner', function () {
         snoozed_ts: undefined,
       },
     });
+
+    (() => {
+      return (global.IntersectionObserver = class IntersectionObserver {
+        [x: string]: any;
+        constructor(cb: any) {
+          this.cb = cb;
+        }
+        observe() {
+          this.cb([
+            {target: {id: 'left-anchor'}, isIntersecting: true},
+            {target: {id: 'right-anchor'}, isIntersecting: true},
+          ]);
+        }
+        unobserve() {}
+        disconnect() {}
+      } as any);
+    })();
   });
 
   it('render banners with feature flag', async function () {
