@@ -43,7 +43,7 @@ type InternalState = {
   indexError: undefined | Error;
   isFetching: boolean;
   traces: undefined | TraceFullDetailed[];
-  orphanErrors?: undefined | TraceError[];
+  orphanErrors?: TraceError[];
 };
 
 type ExternalState = {
@@ -51,7 +51,7 @@ type ExternalState = {
   errors: Error[];
   isFetching: boolean;
   traces: undefined | TraceFullDetailed[];
-  orphanErrors?: undefined | TraceError[];
+  orphanErrors?: TraceError[];
 };
 
 const INITIAL_STATE: InternalState = {
