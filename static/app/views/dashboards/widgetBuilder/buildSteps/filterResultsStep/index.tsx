@@ -14,7 +14,10 @@ import {IconAdd, IconDelete, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
-import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
+import {
+  createOnDemandFilterWarning,
+  isOnDemandQueryString,
+} from 'sentry/utils/onDemandMetrics';
 import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
@@ -101,6 +104,15 @@ export function FilterResultsStep({
 
   const datasetConfig = getDatasetConfig(widgetType);
 
+  const getOnDemandFilterWarning = createOnDemandFilterWarning(
+    tct(
+      'We don’t routinely collect metrics from this property. However, we’ll do so [bold:once this widget has been saved.]',
+      {
+        bold: <Bold />,
+      }
+    )
+  );
+
   return (
     <BuildStep
       title={t('Filter your results')}
@@ -146,6 +158,7 @@ export function FilterResultsStep({
             >
               <SearchConditionsWrapper>
                 <datasetConfig.SearchBar
+                  getFilterWarning={getOnDemandFilterWarning}
                   organization={organization}
                   pageFilters={selection}
                   onClose={handleClose(queryIndex)}
@@ -243,4 +256,8 @@ const SearchConditionsWrapper = styled('div')`
 const StyledReleaseQuery = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
   color: ${p => p.theme.pink300};
+`;
+
+const Bold = styled('span')`
+  font-weight: bold;
 `;
