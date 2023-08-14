@@ -26,13 +26,13 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    ProjectOwnership,
     Release,
     Rule,
     Team,
     User,
 )
 from sentry.models.commit import Commit
+from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.helpers import (
     get_settings_by_provider,
@@ -183,7 +183,7 @@ def get_participants_for_release(
     projects: Iterable[Project], organization: Organization, commited_user_ids: set[int]
 ) -> ParticipantMap:
     # Collect all users with verified emails on a team in the related projects.
-    user_ids = (
+    user_ids = list(
         OrganizationMember.objects.filter(
             teams__projectteam__project__in=projects,
             user_is_active=True,
@@ -301,7 +301,7 @@ def get_owner_reason(
 
 def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, set[User]]:
     """Get a set of users that have disabled Issue Alert notifications for a given project."""
-    user_ids = project.member_set.values_list("user", flat=True)
+    user_ids = list(project.member_set.values_list("user", flat=True))
     rpc_users = user_service.get_many(filter={"user_ids": user_ids})
     users = RpcActor.many_from_object(rpc_users)
 
@@ -462,13 +462,13 @@ def get_fallthrough_recipients(
 
     elif fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
         return user_service.get_many(
-            filter=dict(user_ids=project.member_set.values_list("user_id", flat=True))
+            filter=dict(user_ids=list(project.member_set.values_list("user_id", flat=True)))
         )
 
     elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
         member_users = user_service.get_many(
             filter={
-                "user_ids": project.member_set.values_list("user_id", flat=True),
+                "user_ids": list(project.member_set.values_list("user_id", flat=True)),
             },
         )
         member_users.sort(

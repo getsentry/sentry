@@ -21,7 +21,7 @@ class ActorType(str, Enum):
     TEAM = "Team"
 
 
-ActorTarget = Union["RpcActor", "User", "RpcUser", "Team", "RpcTeam"]
+ActorTarget = Union["Actor", "RpcActor", "User", "RpcUser", "Team", "RpcTeam"]
 
 
 class RpcActor(RpcModel):
@@ -83,12 +83,7 @@ class RpcActor(RpcModel):
             user_ids = grouped_by_type[ActorType.USER]
             missing = set(user_ids)
             for user_id in user_ids:
-                missing.remove(user_id)
                 result.append(RpcActor(id=user_id, actor_type=ActorType.USER))
-            if len(missing):
-                for user_id in missing:
-                    actor = get_actor_for_user(user_id)
-                    result.append(RpcActor(id=actor.user_id, actor_type=ActorType.USER))
         return result
 
     @classmethod

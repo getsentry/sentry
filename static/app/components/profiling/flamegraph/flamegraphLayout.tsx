@@ -23,8 +23,10 @@ const TIMELINE_LABEL_HEIGHT = 20;
 const EMPTY_TIMELINE_HEIGHT = 80;
 
 interface FlamegraphLayoutProps {
+  cpuChart: React.ReactElement | null;
   flamegraph: React.ReactElement;
   flamegraphDrawer: React.ReactElement;
+  memoryChart: React.ReactElement | null;
   minimap: React.ReactElement;
   spans: React.ReactElement | null;
   uiFrames: React.ReactElement | null;
@@ -122,6 +124,34 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
     [dispatch]
   );
 
+  const onOpenCpuChart = useCallback(() => {
+    dispatch({
+      type: 'toggle timeline',
+      payload: {timeline: 'cpu_chart', value: true},
+    });
+  }, [dispatch]);
+
+  const onCloseCpuChart = useCallback(() => {
+    dispatch({
+      type: 'toggle timeline',
+      payload: {timeline: 'cpu_chart', value: false},
+    });
+  }, [dispatch]);
+
+  const onOpenMemoryChart = useCallback(() => {
+    dispatch({
+      type: 'toggle timeline',
+      payload: {timeline: 'memory_chart', value: true},
+    });
+  }, [dispatch]);
+
+  const onCloseMemoryChart = useCallback(() => {
+    dispatch({
+      type: 'toggle timeline',
+      payload: {timeline: 'memory_chart', value: false},
+    });
+  }, [dispatch]);
+
   const spansTreeDepth = props.spansTreeDepth ?? 0;
   const spansTimelineHeight =
     Math.min(
@@ -166,6 +196,42 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
               {props.uiFrames}
             </CollapsibleTimeline>
           </UIFramesContainer>
+        ) : null}
+        {props.memoryChart ? (
+          <MemoryChartContainer
+            containerHeight={
+              timelines.memory_chart
+                ? flamegraphTheme.SIZES.MEMORY_CHART_HEIGHT
+                : TIMELINE_LABEL_HEIGHT
+            }
+          >
+            <CollapsibleTimeline
+              title={t('Memory')}
+              open={timelines.memory_chart}
+              onOpen={onOpenMemoryChart}
+              onClose={onCloseMemoryChart}
+            >
+              {props.memoryChart}
+            </CollapsibleTimeline>
+          </MemoryChartContainer>
+        ) : null}
+        {props.cpuChart ? (
+          <CPUChartContainer
+            containerHeight={
+              timelines.cpu_chart
+                ? flamegraphTheme.SIZES.CPU_CHART_HEIGHT
+                : TIMELINE_LABEL_HEIGHT
+            }
+          >
+            <CollapsibleTimeline
+              title={t('CPU')}
+              open={timelines.cpu_chart}
+              onOpen={onOpenCpuChart}
+              onClose={onCloseCpuChart}
+            >
+              {props.cpuChart}
+            </CollapsibleTimeline>
+          </CPUChartContainer>
         ) : null}
         {props.spans ? (
           <SpansContainer
@@ -227,14 +293,15 @@ const FlamegraphLayoutContainer = styled('div')`
 const FlamegraphGrid = styled('div')<{
   layout?: FlamegraphPreferences['layout'];
 }>`
+  background-color: ${p => p.theme.background};
   display: grid;
   width: 100%;
   grid-template-rows: ${({layout}) =>
     layout === 'table bottom'
-      ? 'auto auto auto 1fr'
+      ? 'auto auto auto auto auto 1fr'
       : layout === 'table right'
-      ? 'min-content min-content min-content 1fr'
-      : 'min-content min-content min-content 1fr'};
+      ? 'min-content min-content min-content min-content min-content 1fr'
+      : 'min-content min-content min-content min-content min-content 1fr'};
   grid-template-columns: ${({layout}) =>
     layout === 'table bottom'
       ? '100%'
@@ -250,21 +317,27 @@ const FlamegraphGrid = styled('div')<{
         'minimap'
         'ui-frames'
         'spans'
+        'memory-chart'
+        'cpu-chart'
         'flamegraph'
         'frame-stack'
         `
       : layout === 'table right'
       ? `
-        'minimap    frame-stack'
-        'ui-frames  frame-stack'
-        'spans     frame-stack'
-        'flamegraph frame-stack'
+        'minimap      frame-stack'
+        'ui-frames    frame-stack'
+        'spans        frame-stack'
+        'memory-chart frame-stack'
+        'cpu-chart    frame-stack'
+        'flamegraph   frame-stack'
       `
       : layout === 'table left'
       ? `
         'frame-stack minimap'
         'frame-stack ui-frames'
         'frame-stack spans'
+        'frame-stack memory-chart'
+        'frame-stack cpu-chart'
         'frame-stack flamegraph'
     `
       : ''};
@@ -294,6 +367,22 @@ const SpansContainer = styled('div')<{
   position: relative;
   height: ${p => p.containerHeight}px;
   grid-area: spans;
+`;
+
+const CPUChartContainer = styled('div')<{
+  containerHeight: FlamegraphTheme['SIZES']['CPU_CHART_HEIGHT'];
+}>`
+  position: relative;
+  height: ${p => p.containerHeight}px;
+  grid-area: cpu-chart;
+`;
+
+const MemoryChartContainer = styled('div')<{
+  containerHeight: FlamegraphTheme['SIZES']['CPU_CHART_HEIGHT'];
+}>`
+  position: relative;
+  height: ${p => p.containerHeight}px;
+  grid-area: memory-chart;
 `;
 
 const UIFramesContainer = styled('div')<{

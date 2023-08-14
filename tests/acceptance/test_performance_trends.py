@@ -6,11 +6,13 @@ from django.db.models import F
 
 from fixtures.page_objects.base import BasePage
 from sentry.models import Project
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
 
+@no_silo_test(stable=True)
 class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
     def make_trend(
         self,

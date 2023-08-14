@@ -1,13 +1,11 @@
-from datetime import datetime
-
-from django.utils import timezone
+from datetime import datetime, timezone
 
 from sentry.models import ProjectKey
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.silo import no_silo_test
 
 
-@region_silo_test
+@no_silo_test(stable=True)
 class ProjectKeysTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -35,7 +33,7 @@ class ProjectKeysTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.snapshot("project keys")
 
 
-@region_silo_test
+@no_silo_test(stable=True)
 class ProjectKeyDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

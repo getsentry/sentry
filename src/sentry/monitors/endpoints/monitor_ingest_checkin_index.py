@@ -12,12 +12,7 @@ from rest_framework.response import Response
 from sentry import ratelimits
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.apidocs.constants import (
-    RESPONSE_BAD_REQUEST,
-    RESPONSE_FORBIDDEN,
-    RESPONSE_NOT_FOUND,
-    RESPONSE_UNAUTHORIZED,
-)
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
@@ -65,7 +60,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
     """
 
     @extend_schema(
-        operation_id="Create a new check-in",
+        operation_id="Create a New Check-In",
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,
@@ -80,7 +75,6 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
     )
@@ -170,7 +164,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                     if created:
                         signal_first_monitor_created(project, request.user, True)
             except MonitorLimitsExceeded as e:
-                return self.respond({type(e).__name__: str(e)}, status=403)
+                return self.respond({type(e).__name__: str(e)}, status=400)
 
             # Monitor does not exist and we have not created one
             if not monitor:
@@ -187,7 +181,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                     project, monitor, result.get("environment")
                 )
             except (MonitorEnvironmentLimitsExceeded, MonitorEnvironmentValidationFailed) as e:
-                return self.respond({type(e).__name__: str(e)}, status=403)
+                return self.respond({type(e).__name__: str(e)}, status=400)
 
             # Infer the original start time of the check-in from the duration.
             duration = result.get("duration")

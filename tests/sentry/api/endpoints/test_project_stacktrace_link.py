@@ -9,7 +9,7 @@ from sentry import options
 from sentry.api.endpoints.project_stacktrace_link import get_code_mapping_configs
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 example_base_url = "https://example.com/getsentry/sentry/blob/master"
@@ -428,7 +428,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         responses.add(
             responses.GET,
             "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
-            status=404,
+            status=500,
             content_type="application/json",
         )
 
@@ -448,7 +448,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
             (
                 "sentry.integrations.utils.codecov",
                 logging.ERROR,
-                "Expecting value: line 1 column 1 (char 0). Continuing execution.",
+                "Codecov HTTP error: 500. Continuing execution.",
             )
         ]
 

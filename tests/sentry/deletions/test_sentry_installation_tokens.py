@@ -1,6 +1,6 @@
 from sentry import deletions
 from sentry.models import ApiToken, SentryAppInstallation, SentryAppInstallationToken
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class TestSentryInstallationTokenDeletionTask(TestCase):

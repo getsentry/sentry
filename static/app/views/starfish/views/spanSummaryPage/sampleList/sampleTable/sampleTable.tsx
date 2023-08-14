@@ -1,8 +1,10 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
+import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -14,6 +16,10 @@ import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsFields;
+
+const SpanSamplesTableContainer = styled('div')`
+  padding-bottom: ${space(2)};
+`;
 
 type Props = {
   groupId: string;
@@ -58,6 +64,7 @@ function SampleTable({
     data: transactions,
     isFetching: isFetchingTransactions,
     isEnabled: isTransactionsEnabled,
+    isLoading: isLoadingTransactions,
     error: transactionError,
   } = useTransactions(
     spans.map(span => span['transaction.id']),
@@ -66,7 +73,7 @@ function SampleTable({
 
   const [loadedSpans, setLoadedSpans] = useState(false);
   useEffect(() => {
-    if (isFetchingTransactions || isFetchingSamples) {
+    if (isLoadingTransactions || isFetchingTransactions || !isTransactionsEnabled) {
       setLoadedSpans(false);
       return;
     }
@@ -80,10 +87,11 @@ function SampleTable({
     setLoadedSpans(true);
   }, [
     loadedSpans,
-    isFetchingSamples,
     transactions,
     isFetchingTransactions,
     organization,
+    isLoadingTransactions,
+    isTransactionsEnabled,
   ]);
 
   const transactionsById = keyBy(transactions, 'id');
@@ -101,7 +109,7 @@ function SampleTable({
   }
 
   return (
-    <Fragment>
+    <SpanSamplesTableContainer>
       <VisuallyCompleteWithData
         id="SpanSummary.Samples.SampleTable"
         hasData={spans.length > 0}
@@ -121,8 +129,8 @@ function SampleTable({
           avg={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
         />
       </VisuallyCompleteWithData>
-      <Button onClick={() => refetch()}>{t('Load More Samples')}</Button>
-    </Fragment>
+      <Button onClick={() => refetch()}>{t('Try Different Samples')}</Button>
+    </SpanSamplesTableContainer>
   );
 }
 

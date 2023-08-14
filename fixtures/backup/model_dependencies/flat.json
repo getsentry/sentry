@@ -1,0 +1,588 @@
+{
+  "nodestore.Node": [],
+  "replays.ReplayRecordingSegment": [],
+  "sentry.Activity": [
+    "sentry.Group",
+    "sentry.Project"
+  ],
+  "sentry.Actor": [],
+  "sentry.AlertRule": [
+    "sentry.Actor",
+    "sentry.Organization",
+    "sentry.SnubaQuery"
+  ],
+  "sentry.AlertRuleActivity": [
+    "sentry.AlertRule"
+  ],
+  "sentry.AlertRuleExcludedProjects": [
+    "sentry.AlertRule",
+    "sentry.Project"
+  ],
+  "sentry.AlertRuleTrigger": [
+    "sentry.AlertRule"
+  ],
+  "sentry.AlertRuleTriggerAction": [
+    "sentry.AlertRuleTrigger"
+  ],
+  "sentry.AlertRuleTriggerExclusion": [
+    "sentry.AlertRuleTrigger",
+    "sentry.QuerySubscription"
+  ],
+  "sentry.ApiApplication": [
+    "sentry.User"
+  ],
+  "sentry.ApiAuthorization": [
+    "sentry.ApiApplication",
+    "sentry.User"
+  ],
+  "sentry.ApiGrant": [
+    "sentry.ApiApplication",
+    "sentry.User"
+  ],
+  "sentry.ApiKey": [],
+  "sentry.ApiToken": [
+    "sentry.ApiApplication",
+    "sentry.User"
+  ],
+  "sentry.AppConnectBuild": [
+    "sentry.Project"
+  ],
+  "sentry.ArtifactBundle": [
+    "sentry.File"
+  ],
+  "sentry.ArtifactBundleFlatFileIndex": [
+    "sentry.File"
+  ],
+  "sentry.ArtifactBundleIndex": [
+    "sentry.ArtifactBundle"
+  ],
+  "sentry.AssistantActivity": [
+    "sentry.User"
+  ],
+  "sentry.AuditLogEntry": [
+    "sentry.ApiKey",
+    "sentry.User"
+  ],
+  "sentry.AuthIdentity": [
+    "sentry.AuthProvider",
+    "sentry.User"
+  ],
+  "sentry.AuthProvider": [],
+  "sentry.AuthProviderDefaultTeams": [],
+  "sentry.Authenticator": [
+    "sentry.User"
+  ],
+  "sentry.Broadcast": [],
+  "sentry.BroadcastSeen": [
+    "sentry.Broadcast",
+    "sentry.User"
+  ],
+  "sentry.Commit": [
+    "sentry.CommitAuthor"
+  ],
+  "sentry.CommitAuthor": [],
+  "sentry.CommitFileChange": [
+    "sentry.Commit"
+  ],
+  "sentry.ControlFile": [],
+  "sentry.ControlFileBlob": [],
+  "sentry.ControlFileBlobIndex": [
+    "sentry.ControlFile",
+    "sentry.ControlFileBlob"
+  ],
+  "sentry.ControlFileBlobOwner": [
+    "sentry.ControlFileBlob"
+  ],
+  "sentry.ControlOption": [],
+  "sentry.ControlOutbox": [],
+  "sentry.ControlTombstone": [],
+  "sentry.Counter": [
+    "sentry.Project"
+  ],
+  "sentry.Dashboard": [
+    "sentry.Organization"
+  ],
+  "sentry.DashboardProject": [
+    "sentry.Dashboard",
+    "sentry.Project"
+  ],
+  "sentry.DashboardTombstone": [
+    "sentry.Organization"
+  ],
+  "sentry.DashboardWidget": [
+    "sentry.Dashboard"
+  ],
+  "sentry.DashboardWidgetQuery": [
+    "sentry.DashboardWidget"
+  ],
+  "sentry.DebugIdArtifactBundle": [
+    "sentry.ArtifactBundle"
+  ],
+  "sentry.DeletedOrganization": [],
+  "sentry.DeletedProject": [],
+  "sentry.DeletedTeam": [],
+  "sentry.Deploy": [
+    "sentry.Release"
+  ],
+  "sentry.DiscoverSavedQuery": [
+    "sentry.Organization"
+  ],
+  "sentry.DiscoverSavedQueryProject": [
+    "sentry.DiscoverSavedQuery",
+    "sentry.Project"
+  ],
+  "sentry.Distribution": [
+    "sentry.Release"
+  ],
+  "sentry.DocIntegration": [],
+  "sentry.DocIntegrationAvatar": [
+    "sentry.DocIntegration"
+  ],
+  "sentry.Email": [],
+  "sentry.Environment": [],
+  "sentry.EnvironmentProject": [
+    "sentry.Environment",
+    "sentry.Project"
+  ],
+  "sentry.EventAttachment": [],
+  "sentry.EventProcessingIssue": [
+    "sentry.ProcessingIssue",
+    "sentry.RawEvent"
+  ],
+  "sentry.EventUser": [],
+  "sentry.ExportedData": [
+    "sentry.Organization"
+  ],
+  "sentry.ExportedDataBlob": [
+    "sentry.ExportedData"
+  ],
+  "sentry.ExternalActor": [
+    "sentry.Actor",
+    "sentry.Organization"
+  ],
+  "sentry.ExternalIssue": [
+    "sentry.Organization"
+  ],
+  "sentry.FeatureAdoption": [
+    "sentry.Organization"
+  ],
+  "sentry.File": [
+    "sentry.FileBlob"
+  ],
+  "sentry.FileBlob": [],
+  "sentry.FileBlobIndex": [
+    "sentry.File",
+    "sentry.FileBlob"
+  ],
+  "sentry.FileBlobOwner": [
+    "sentry.FileBlob"
+  ],
+  "sentry.FlatFileIndexState": [
+    "sentry.ArtifactBundle",
+    "sentry.ArtifactBundleFlatFileIndex"
+  ],
+  "sentry.Group": [
+    "sentry.Project",
+    "sentry.Release"
+  ],
+  "sentry.GroupAssignee": [
+    "sentry.Group",
+    "sentry.Project",
+    "sentry.Team"
+  ],
+  "sentry.GroupBookmark": [
+    "sentry.Group",
+    "sentry.Project"
+  ],
+  "sentry.GroupCommitResolution": [],
+  "sentry.GroupEmailThread": [
+    "sentry.Group",
+    "sentry.Project"
+  ],
+  "sentry.GroupEnvironment": [
+    "sentry.Environment",
+    "sentry.Group",
+    "sentry.Release"
+  ],
+  "sentry.GroupHash": [
+    "sentry.Group",
+    "sentry.Project"
+  ],
+  "sentry.GroupHistory": [
+    "sentry.Actor",
+    "sentry.Group",
+    "sentry.Organization",
+    "sentry.Project",
+    "sentry.Release"
+  ],
+  "sentry.GroupInbox": [
+    "sentry.Group",
+    "sentry.Organization",
+    "sentry.Project"
+  ],
+  "sentry.GroupLink": [
+    "sentry.Group",
+    "sentry.Project"
+  ],
+  "sentry.GroupMeta": [
+    "sentry.Group"
+  ],
+  "sentry.GroupOwner": [
+    "sentry.Group",
+    "sentry.Organization",
+    "sentry.Project",
+    "sentry.Team"
+  ],
+  "sentry.GroupRedirect": [],
+  "sentry.GroupRelease": [],
+  "sentry.GroupResolution": [
+    "sentry.Group",
+    "sentry.Release"
+  ],
+  "sentry.GroupRuleStatus": [
+    "sentry.Group",
+    "sentry.Project",
+    "sentry.Rule"
+  ],
+  "sentry.GroupSeen": [
+    "sentry.Group",
+    "sentry.Project"
+  ],
+  "sentry.GroupShare": [
+    "sentry.Group",
+    "sentry.Project"
+  ],
+  "sentry.GroupSnooze": [
+    "sentry.Group"
+  ],
+  "sentry.GroupSubscription": [
+    "sentry.Group",
+    "sentry.Project"
+  ],
+  "sentry.GroupTombstone": [
+    "sentry.Project"
+  ],
+  "sentry.Identity": [
+    "sentry.IdentityProvider",
+    "sentry.User"
+  ],
+  "sentry.IdentityProvider": [],
+  "sentry.Incident": [
+    "sentry.AlertRule",
+    "sentry.Organization"
+  ],
+  "sentry.IncidentActivity": [
+    "sentry.Incident"
+  ],
+  "sentry.IncidentProject": [
+    "sentry.Incident",
+    "sentry.Project"
+  ],
+  "sentry.IncidentSeen": [
+    "sentry.Incident"
+  ],
+  "sentry.IncidentSnapshot": [
+    "sentry.Incident",
+    "sentry.TimeSeriesSnapshot"
+  ],
+  "sentry.IncidentSubscription": [
+    "sentry.Incident"
+  ],
+  "sentry.IncidentTrigger": [
+    "sentry.AlertRuleTrigger",
+    "sentry.Incident"
+  ],
+  "sentry.Integration": [],
+  "sentry.IntegrationExternalProject": [],
+  "sentry.IntegrationFeature": [],
+  "sentry.LatestAppConnectBuildsCheck": [
+    "sentry.Project"
+  ],
+  "sentry.LatestRepoReleaseEnvironment": [],
+  "sentry.LostPasswordHash": [
+    "sentry.User"
+  ],
+  "sentry.MetricsKeyIndexer": [],
+  "sentry.Monitor": [],
+  "sentry.MonitorCheckIn": [
+    "sentry.Monitor",
+    "sentry.MonitorEnvironment",
+    "sentry.MonitorLocation"
+  ],
+  "sentry.MonitorEnvironment": [
+    "sentry.Environment",
+    "sentry.Monitor"
+  ],
+  "sentry.MonitorLocation": [],
+  "sentry.NotificationAction": [
+    "sentry.Organization"
+  ],
+  "sentry.NotificationActionProject": [
+    "sentry.NotificationAction",
+    "sentry.Project"
+  ],
+  "sentry.NotificationSetting": [
+    "sentry.User"
+  ],
+  "sentry.Option": [],
+  "sentry.OrgAuthToken": [
+    "sentry.User"
+  ],
+  "sentry.Organization": [],
+  "sentry.OrganizationAccessRequest": [
+    "sentry.OrganizationMember",
+    "sentry.Team"
+  ],
+  "sentry.OrganizationAvatar": [
+    "sentry.Organization"
+  ],
+  "sentry.OrganizationIntegration": [
+    "sentry.Integration"
+  ],
+  "sentry.OrganizationMapping": [],
+  "sentry.OrganizationMember": [
+    "sentry.Organization"
+  ],
+  "sentry.OrganizationMemberMapping": [
+    "sentry.User"
+  ],
+  "sentry.OrganizationMemberTeam": [
+    "sentry.OrganizationMember",
+    "sentry.Team"
+  ],
+  "sentry.OrganizationOnboardingTask": [
+    "sentry.Organization",
+    "sentry.Project"
+  ],
+  "sentry.OrganizationOption": [
+    "sentry.Organization"
+  ],
+  "sentry.PagerDutyService": [
+    "sentry.OrganizationIntegration"
+  ],
+  "sentry.PendingIncidentSnapshot": [
+    "sentry.Incident"
+  ],
+  "sentry.PerfStringIndexer": [],
+  "sentry.PlatformExternalIssue": [
+    "sentry.Group",
+    "sentry.Project"
+  ],
+  "sentry.ProcessingIssue": [
+    "sentry.Project"
+  ],
+  "sentry.ProguardArtifactRelease": [
+    "sentry.ProjectDebugFile"
+  ],
+  "sentry.Project": [
+    "sentry.Organization"
+  ],
+  "sentry.ProjectArtifactBundle": [
+    "sentry.ArtifactBundle"
+  ],
+  "sentry.ProjectAvatar": [
+    "sentry.Project"
+  ],
+  "sentry.ProjectBookmark": [
+    "sentry.Project"
+  ],
+  "sentry.ProjectCodeOwners": [
+    "sentry.Project",
+    "sentry.RepositoryProjectPathConfig"
+  ],
+  "sentry.ProjectDebugFile": [
+    "sentry.File"
+  ],
+  "sentry.ProjectIntegration": [
+    "sentry.Project"
+  ],
+  "sentry.ProjectKey": [
+    "sentry.Project"
+  ],
+  "sentry.ProjectOption": [
+    "sentry.Project"
+  ],
+  "sentry.ProjectOwnership": [
+    "sentry.Project"
+  ],
+  "sentry.ProjectPlatform": [],
+  "sentry.ProjectRedirect": [
+    "sentry.Organization",
+    "sentry.Project"
+  ],
+  "sentry.ProjectTeam": [
+    "sentry.Project",
+    "sentry.Team"
+  ],
+  "sentry.ProjectTransactionThreshold": [
+    "sentry.Organization",
+    "sentry.Project"
+  ],
+  "sentry.ProjectTransactionThresholdOverride": [
+    "sentry.Organization",
+    "sentry.Project"
+  ],
+  "sentry.PromptsActivity": [],
+  "sentry.PullRequest": [
+    "sentry.CommitAuthor"
+  ],
+  "sentry.PullRequestComment": [
+    "sentry.PullRequest"
+  ],
+  "sentry.PullRequestCommit": [
+    "sentry.Commit",
+    "sentry.PullRequest"
+  ],
+  "sentry.QuerySubscription": [
+    "sentry.Project",
+    "sentry.SnubaQuery"
+  ],
+  "sentry.RawEvent": [
+    "sentry.Project"
+  ],
+  "sentry.RecentSearch": [
+    "sentry.Organization"
+  ],
+  "sentry.RegionOutbox": [],
+  "sentry.RegionScheduledDeletion": [],
+  "sentry.RegionTombstone": [],
+  "sentry.Relay": [],
+  "sentry.RelayUsage": [],
+  "sentry.Release": [
+    "sentry.Organization"
+  ],
+  "sentry.ReleaseActivity": [
+    "sentry.Release"
+  ],
+  "sentry.ReleaseArtifactBundle": [
+    "sentry.ArtifactBundle"
+  ],
+  "sentry.ReleaseCommit": [
+    "sentry.Commit",
+    "sentry.Release"
+  ],
+  "sentry.ReleaseEnvironment": [
+    "sentry.Environment",
+    "sentry.Organization",
+    "sentry.Release"
+  ],
+  "sentry.ReleaseFile": [
+    "sentry.File"
+  ],
+  "sentry.ReleaseHeadCommit": [
+    "sentry.Commit",
+    "sentry.Release"
+  ],
+  "sentry.ReleaseProject": [
+    "sentry.Project",
+    "sentry.Release"
+  ],
+  "sentry.ReleaseProjectEnvironment": [
+    "sentry.Environment",
+    "sentry.Project",
+    "sentry.Release"
+  ],
+  "sentry.Repository": [],
+  "sentry.RepositoryProjectPathConfig": [
+    "sentry.Project",
+    "sentry.Repository"
+  ],
+  "sentry.ReprocessingReport": [
+    "sentry.Project"
+  ],
+  "sentry.Rule": [
+    "sentry.Actor",
+    "sentry.Project"
+  ],
+  "sentry.RuleActivity": [
+    "sentry.Rule"
+  ],
+  "sentry.RuleFireHistory": [
+    "sentry.Group",
+    "sentry.Project",
+    "sentry.Rule"
+  ],
+  "sentry.RuleSnooze": [
+    "sentry.AlertRule",
+    "sentry.Rule"
+  ],
+  "sentry.SavedSearch": [
+    "sentry.Organization"
+  ],
+  "sentry.ScheduledDeletion": [],
+  "sentry.SentryApp": [
+    "sentry.ApiApplication",
+    "sentry.User"
+  ],
+  "sentry.SentryAppAvatar": [
+    "sentry.SentryApp"
+  ],
+  "sentry.SentryAppComponent": [
+    "sentry.SentryApp"
+  ],
+  "sentry.SentryAppInstallation": [
+    "sentry.ApiGrant",
+    "sentry.ApiToken",
+    "sentry.SentryApp"
+  ],
+  "sentry.SentryAppInstallationForProvider": [
+    "sentry.SentryAppInstallation"
+  ],
+  "sentry.SentryAppInstallationToken": [
+    "sentry.ApiToken",
+    "sentry.SentryAppInstallation"
+  ],
+  "sentry.SentryFunction": [
+    "sentry.Organization"
+  ],
+  "sentry.ServiceHook": [],
+  "sentry.ServiceHookProject": [
+    "sentry.ServiceHook"
+  ],
+  "sentry.SnubaQuery": [
+    "sentry.Environment"
+  ],
+  "sentry.SnubaQueryEventType": [
+    "sentry.SnubaQuery"
+  ],
+  "sentry.StringIndexer": [],
+  "sentry.Team": [
+    "sentry.Actor",
+    "sentry.Organization"
+  ],
+  "sentry.TeamAvatar": [
+    "sentry.Team"
+  ],
+  "sentry.TeamKeyTransaction": [
+    "sentry.Organization",
+    "sentry.ProjectTeam"
+  ],
+  "sentry.TimeSeriesSnapshot": [],
+  "sentry.User": [],
+  "sentry.UserAvatar": [
+    "sentry.User"
+  ],
+  "sentry.UserEmail": [
+    "sentry.User"
+  ],
+  "sentry.UserIP": [
+    "sentry.User"
+  ],
+  "sentry.UserOption": [
+    "sentry.User"
+  ],
+  "sentry.UserPermission": [
+    "sentry.User"
+  ],
+  "sentry.UserReport": [],
+  "sentry.UserRole": [],
+  "sentry.UserRoleUser": [
+    "sentry.User",
+    "sentry.UserRole"
+  ],
+  "sessions.Session": [],
+  "sites.Site": [],
+  "social_auth.UserSocialAuth": [
+    "sentry.User"
+  ]
+}

@@ -1,19 +1,37 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Any, List, Optional
 
+from django.db import IntegrityError, router, transaction
+
+from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models import Repository
 from sentry.services.hybrid_cloud.repository import RepositoryService, RpcRepository
+from sentry.services.hybrid_cloud.repository.model import RpcCreateRepository
 from sentry.services.hybrid_cloud.repository.serial import serialize_repository
+from sentry.services.hybrid_cloud.user.model import RpcUser
 
 
 class DatabaseBackedRepositoryService(RepositoryService):
+    def serialize_repository(
+        self,
+        *,
+        organization_id: int,
+        id: int,
+        as_user: Optional[RpcUser] = None,
+    ) -> Optional[Any]:
+        repository = Repository.objects.filter(id=id).first()
+        if repository is None:
+            return None
+        return serialize(repository, user=as_user)
+
     def get_repositories(
         self,
         *,
         organization_id: int,
         integration_id: Optional[int] = None,
+        external_id: Optional[int] = None,
         providers: Optional[List[str]] = None,
         has_integration: Optional[bool] = None,
         has_provider: Optional[bool] = None,
@@ -22,6 +40,8 @@ class DatabaseBackedRepositoryService(RepositoryService):
         query = Repository.objects.filter(organization_id=organization_id)
         if integration_id is not None:
             query = query.filter(integration_id=integration_id)
+        if external_id is not None:
+            query = query.filter(external_id=external_id)
         if providers is not None:
             query = query.filter(provider__in=providers)
         if has_integration is not None:
@@ -38,17 +58,40 @@ class DatabaseBackedRepositoryService(RepositoryService):
             return None
         return serialize_repository(repository)
 
-    def update_repository(self, *, organization_id: int, update: RpcRepository) -> None:
-        repository = Repository.objects.filter(
-            organization_id=organization_id, id=update.id
-        ).first()
-        if repository is None:
-            return
+    def create_repository(
+        self, *, organization_id: int, create: RpcCreateRepository
+    ) -> RpcRepository | None:
+        try:
+            with transaction.atomic(router.db_for_write(Repository)):
+                repository = Repository.objects.create(
+                    organization_id=organization_id, **create.dict()
+                )
+                return serialize_repository(repository)
+        except IntegrityError:
+            return None
 
-        repository.name = update.name
-        repository.external_id = update.external_id
-        repository.config = update.config
-        repository.integration_id = update.integration_id
-        repository.provider = update.provider
-        repository.status = update.status
-        repository.save()
+    def update_repository(self, *, organization_id: int, update: RpcRepository) -> None:
+        with transaction.atomic(router.db_for_write(Repository)):
+            repository = Repository.objects.filter(
+                organization_id=organization_id, id=update.id
+            ).first()
+            if repository is None:
+                return
+
+            update_dict = update.dict()
+            del update_dict["id"]
+
+            for field_name, field_value in update_dict.items():
+                setattr(repository, field_name, field_value)
+
+            repository.save()
+
+    def reinstall_repositories_for_integration(
+        self, *, organization_id: int, integration_id: int, provider: str
+    ) -> None:
+        with transaction.atomic(router.db_for_write(Repository)):
+            Repository.objects.filter(
+                organization_id=organization_id,
+                integration_id=integration_id,
+                provider=provider,
+            ).update(status=ObjectStatus.ACTIVE)

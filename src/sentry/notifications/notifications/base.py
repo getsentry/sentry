@@ -23,6 +23,7 @@ class BaseNotification(abc.ABC):
     provider_to_url_format = {
         ExternalProviders.SLACK: "<{url}|{text}>",
         ExternalProviders.MSTEAMS: "[{text}]({url})",
+        ExternalProviders.DISCORD: "[{text}]({url})",
     }
     message_builder = "SlackNotificationsMessageBuilder"
     # some notifications have no settings for it
@@ -203,7 +204,7 @@ class BaseNotification(abc.ABC):
             )
         )
 
-    def determine_recipients(self) -> Iterable[RpcActor]:
+    def determine_recipients(self) -> list[RpcActor]:
         raise NotImplementedError
 
     def get_notification_providers(self) -> Iterable[ExternalProviders]:

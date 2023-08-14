@@ -3,7 +3,7 @@ from __future__ import annotations
 from logging import Logger
 from typing import Any
 
-from rest_framework.request import Request
+from django.http.request import HttpRequest
 
 from sentry import audit_log
 from sentry.models import (
@@ -25,7 +25,7 @@ from sentry.services.hybrid_cloud.user import RpcUser
 
 
 def create_audit_entry(
-    request: Request,
+    request: HttpRequest,
     transaction_id: int | str | None = None,
     logger: Logger | None = None,
     **kwargs: Any,
@@ -107,11 +107,11 @@ def create_audit_entry_from_user(
     return entry
 
 
-def get_api_key_for_audit_log(request: Request) -> ApiKey | None:
+def get_api_key_for_audit_log(request: HttpRequest) -> ApiKey | None:
     return request.auth if hasattr(request, "auth") and isinstance(request.auth, ApiKey) else None
 
 
-def get_org_auth_token_for_audit_log(request: Request) -> OrgAuthToken | None:
+def get_org_auth_token_for_audit_log(request: HttpRequest) -> OrgAuthToken | None:
     return (
         request.auth
         if hasattr(request, "auth") and isinstance(request.auth, OrgAuthToken)

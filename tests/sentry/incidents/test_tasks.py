@@ -37,7 +37,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.http import absolute_uri
 
@@ -50,7 +50,6 @@ class BaseIncidentActivityTest:
         return self.create_incident(title="hello")
 
 
-@region_silo_test(stable=True)
 class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
     @pytest.fixture(autouse=True)
     def _setup_send_async_patch(self):
@@ -229,7 +228,6 @@ class HandleTriggerActionTest(TestCase):
             )
 
 
-@region_silo_test(stable=True)
 class TestHandleSubscriptionMetricsLogger(TestCase):
     @cached_property
     def subscription(self):

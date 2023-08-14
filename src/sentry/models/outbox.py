@@ -6,7 +6,7 @@ import dataclasses
 import datetime
 import threading
 from enum import IntEnum
-from typing import Any, ContextManager, Generator, Iterable, List, Mapping, Type, TypeVar
+from typing import Any, Generator, Iterable, List, Mapping, Type, TypeVar
 
 import sentry_sdk
 from django import db
@@ -82,7 +82,7 @@ class OutboxCategory(IntEnum):
     ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE = 15
     ORGAUTHTOKEN_UPDATE = 16
     PROVISION_ORGANIZATION = 17
-    PROVISION_SUBSCRIPTION = 18
+    POST_ORGANIZATION_PROVISION = 18
     SEND_MODEL_SIGNAL = 19
     DISABLE_AUTH_PROVIDER = 20
     RESET_IDP_FLAGS = 21
@@ -113,6 +113,7 @@ class WebhookProviderIdentifier(IntEnum):
     JIRA_SERVER = 7
     GITHUB_ENTERPRISE = 8
     BITBUCKET_SERVER = 9
+    LEGACY_PLUGIN = 10
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -204,7 +205,7 @@ class OutboxBase(Model):
     object_identifier = BoundedBigIntegerField(null=False)
 
     # payload is used for webhook payloads.
-    payload = JSONField(null=True)
+    payload: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
 
     # The point at which this object was scheduled, used as a diff from scheduled_for to determine the intended delay.
     scheduled_from = models.DateTimeField(null=False, default=timezone.now)
@@ -221,7 +222,7 @@ class OutboxBase(Model):
     def next_schedule(self, now: datetime.datetime) -> datetime.datetime:
         return now + (self.last_delay() * 2)
 
-    def save(self, **kwds: Any):
+    def save(self, **kwds: Any) -> None:  # type: ignore[override]
         if _outbox_context.flushing_enabled:
             transaction.on_commit(lambda: self.drain_shard(), using=router.db_for_write(type(self)))
 
@@ -394,6 +395,7 @@ class ControlOutboxBase(OutboxBase):
 
     @classmethod
     def get_webhook_payload_from_request(cls, request: HttpRequest) -> OutboxWebhookPayload:
+        assert request.method is not None
         return OutboxWebhookPayload(
             method=request.method,
             path=request.get_full_path(),
@@ -405,11 +407,11 @@ class ControlOutboxBase(OutboxBase):
     @classmethod
     def get_webhook_payload_from_outbox(cls, payload: Mapping[str, Any]) -> OutboxWebhookPayload:
         return OutboxWebhookPayload(
-            method=payload.get("method"),
-            path=payload.get("path"),
-            uri=payload.get("uri"),
-            headers=payload.get("headers"),
-            body=payload.get("body"),
+            method=payload["method"],
+            path=payload["path"],
+            uri=payload["uri"],
+            headers=payload["headers"],
+            body=payload["body"],
         )
 
     @classmethod
@@ -419,7 +421,7 @@ class ControlOutboxBase(OutboxBase):
         webhook_identifier: WebhookProviderIdentifier,
         region_names: List[str],
         request: HttpRequest,
-    ) -> Iterable[ControlOutbox]:
+    ) -> Iterable[Self]:
         for region_name in region_names:
             result = cls()
             result.shard_scope = OutboxScope.WEBHOOK_SCOPE
@@ -427,7 +429,7 @@ class ControlOutboxBase(OutboxBase):
             result.object_identifier = cls.next_object_identifier()
             result.category = OutboxCategory.WEBHOOK_PROXY
             result.region_name = region_name
-            payload: OutboxWebhookPayload = result.get_webhook_payload_from_request(request)
+            payload = result.get_webhook_payload_from_request(request)
             result.payload = dataclasses.asdict(payload)
             yield result
 
@@ -473,7 +475,9 @@ _outbox_context = OutboxContext()
 
 
 @contextlib.contextmanager
-def outbox_context(inner: Atomic | None = None, flush: bool | None = None) -> ContextManager[None]:
+def outbox_context(
+    inner: Atomic | None = None, flush: bool | None = None
+) -> Generator[None, None, None]:
     # If we don't specify our flush, use the outer specified override
     if flush is None:
         flush = _outbox_context.flushing_enabled
@@ -486,6 +490,7 @@ def outbox_context(inner: Atomic | None = None, flush: bool | None = None) -> Co
     original = _outbox_context.flushing_enabled
 
     if inner:
+        assert inner.using is not None
         with unguarded_write(using=inner.using), inner:
             _outbox_context.flushing_enabled = flush
             try:

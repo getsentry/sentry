@@ -1,7 +1,7 @@
 from django.test import override_settings
 from django.test.client import RequestFactory
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import linksign
 
@@ -19,6 +19,14 @@ class LinkSignTestCase(TestCase):
         signed_user = linksign.process_signature(req)
         assert signed_user
         assert signed_user.id == self.user.id
+
+        with self.options({"system.url-prefix": "https://sentry.io"}):
+            url = linksign.generate_signed_link(self.user, "sentry")
+            assert url.startswith("https://")
+            req = rf.get("/" + url.split("/", 3)[-1])
+            signed_user = linksign.process_signature(req)
+            assert signed_user
+            assert signed_user.id == self.user.id
 
         req = rf.get("/what" + url.split("/", 3)[-1])
         signed_user = linksign.process_signature(req)

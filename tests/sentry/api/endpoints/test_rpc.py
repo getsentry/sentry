@@ -14,7 +14,7 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
 from sentry.services.hybrid_cloud.rpc import generate_request_signature
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -44,19 +44,37 @@ class RpcServiceEndpointTest(APITestCase):
         response = self.client.post(path)
         assert response.status_code == 403
 
+    def _send_post_request(self, path, data):
+        response = self.client.post(
+            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+        )
+        return response
+
     def test_bad_service_name(self):
         path = self._get_path("not_a_service", "not_a_method")
-        response = self.client.post(path, HTTP_AUTHORIZATION=self.auth_header(path, ""))
+        data: Dict[str, Any] = {"args": {}, "meta": {}}
+        response = self._send_post_request(path, data)
         assert response.status_code == 404
 
     def test_bad_method_name(self):
         path = self._get_path("user", "not_a_method")
-        response = self.client.post(path, HTTP_AUTHORIZATION=self.auth_header(path, ""))
+        data: Dict[str, Any] = {"args": {}, "meta": {}}
+        response = self._send_post_request(path, data)
         assert response.status_code == 404
 
-    def test_no_arguments(self):
+    def test_no_body(self):
         path = self._get_path("organization", "get_organization_by_id")
-        response = self.client.post(path, HTTP_AUTHORIZATION=self.auth_header(path, ""))
+        data: Dict[str, Any] = {"args": {}, "meta": {}}
+        response = self._send_post_request(path, data)
+        assert response.status_code == 400
+        assert response.data == {
+            "detail": ErrorDetail(string="Malformed request.", code="parse_error")
+        }
+
+    def test_invalid_args_syntax(self):
+        path = self._get_path("organization", "get_organization_by_id")
+        data: Dict[str, Any] = {"args": [], "meta": {}}
+        response = self._send_post_request(path, data)
         assert response.status_code == 400
         assert response.data == {
             "detail": ErrorDetail(string="Malformed request.", code="parse_error")
@@ -65,9 +83,7 @@ class RpcServiceEndpointTest(APITestCase):
     def test_missing_argument_key(self):
         path = self._get_path("organization", "get_organization_by_id")
         data: Dict[str, Any] = {}
-        response = self.client.post(
-            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
-        )
+        response = self._send_post_request(path, data)
         assert response.status_code == 400
         assert response.data == {
             "detail": ErrorDetail(string="Malformed request.", code="parse_error")
@@ -76,9 +92,7 @@ class RpcServiceEndpointTest(APITestCase):
     def test_missing_argument_values(self):
         path = self._get_path("organization", "get_organization_by_id")
         data: Dict[str, Any] = {"args": {}}
-        response = self.client.post(
-            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
-        )
+        response = self._send_post_request(path, data)
         assert response.status_code == 400
         assert response.data == {
             "detail": ErrorDetail(string="Malformed request.", code="parse_error")
@@ -87,9 +101,7 @@ class RpcServiceEndpointTest(APITestCase):
     def test_with_empty_response(self):
         path = self._get_path("organization", "get_organization_by_id")
         data = {"args": {"id": 0}}
-        response = self.client.post(
-            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
-        )
+        response = self._send_post_request(path, data)
 
         assert response.status_code == 200
         assert "meta" in response.data
@@ -100,9 +112,7 @@ class RpcServiceEndpointTest(APITestCase):
 
         path = self._get_path("organization", "get_organization_by_id")
         data = {"args": {"id": organization.id}}
-        response = self.client.post(
-            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
-        )
+        response = self._send_post_request(path, data)
         assert response.status_code == 200
         assert response.data
         assert "meta" in response.data
@@ -115,16 +125,14 @@ class RpcServiceEndpointTest(APITestCase):
     def test_with_invalid_arguments(self):
         path = self._get_path("organization", "get_organization_by_id")
         data = {"args": {"id": "invalid type"}}
-        response = self.client.post(
-            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
-        )
+        response = self._send_post_request(path, data)
         assert response.status_code == 400
-        assert response.data == [ErrorDetail(string="Invalid input.", code="invalid")]
+        assert response.data == {
+            "detail": ErrorDetail(string="Malformed request.", code="parse_error")
+        }
 
         data = {"args": {"invalid": "invalid type"}}
-        response = self.client.post(
-            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
-        )
+        response = self._send_post_request(path, data)
         assert response.status_code == 400
         assert response.data == {
             "detail": ErrorDetail(string="Malformed request.", code="parse_error")
@@ -145,9 +153,7 @@ class RpcServiceEndpointTest(APITestCase):
                 "parent_ids": [self.project.id],
             }
         }
-        response = self.client.post(
-            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
-        )
+        response = self._send_post_request(path, data)
         assert response.status_code == 200
         response_body = response.json()
         setting = NotificationSetting.objects.filter(user_id=self.user.id).get()

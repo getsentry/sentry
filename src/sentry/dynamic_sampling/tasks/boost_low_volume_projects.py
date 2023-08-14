@@ -3,7 +3,6 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import List, Mapping, Optional, Sequence, Tuple
 
-from sentry_sdk import capture_message, set_extra
 from snuba_sdk import (
     Column,
     Condition,
@@ -36,7 +35,6 @@ from sentry.dynamic_sampling.tasks.common import (
     TimedIterator,
     TimeoutException,
     are_equal_with_epsilon,
-    get_adjusted_base_rate_from_cache_or_compute,
     sample_rate_to_float,
 )
 from sentry.dynamic_sampling.tasks.constants import (
@@ -49,15 +47,16 @@ from sentry.dynamic_sampling.tasks.constants import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
-from sentry.dynamic_sampling.tasks.logging import (
-    log_sample_rate_source,
-    log_task_execution,
-    log_task_timeout,
-)
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
+from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
+from sentry.dynamic_sampling.tasks.utils import (
+    dynamic_sampling_task,
+    dynamic_sampling_task_with_context,
+)
 from sentry.models import Organization, Project
 from sentry.sentry_metrics import indexer
+from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
@@ -73,30 +72,18 @@ from sentry.utils.snuba import raw_snql_query
     max_retries=5,
     soft_time_limit=2 * 60 * 60,
     time_limit=2 * 60 * 60 + 5,
+    silo_mode=SiloMode.REGION,
 )
-@dynamic_sampling_task
-def boost_low_volume_projects() -> None:
-    context = TaskContext(
-        "sentry.dynamic_sampling.tasks.boost_low_volume_projects", MAX_TASK_SECONDS
-    )
-
-    try:
-        for orgs in TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)):
-            for (
-                org_id,
-                projects_with_tx_count_and_rates,
-            ) in fetch_projects_with_total_root_transaction_count_and_rates(
-                context, org_ids=orgs
-            ).items():
-                boost_low_volume_projects_of_org.delay(org_id, projects_with_tx_count_and_rates)
-    except TimeoutException:
-        set_extra("context-data", context.to_dict())
-        log_task_timeout(context)
-        raise
-    else:
-        set_extra("context-data", context.to_dict())
-        capture_message("timing for sentry.dynamic_sampling.tasks.boost_low_volume_projects")
-        log_task_execution(context)
+@dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
+def boost_low_volume_projects(context: TaskContext) -> None:
+    for orgs in TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)):
+        for (
+            org_id,
+            projects_with_tx_count_and_rates,
+        ) in fetch_projects_with_total_root_transaction_count_and_rates(
+            context, org_ids=orgs
+        ).items():
+            boost_low_volume_projects_of_org.delay(org_id, projects_with_tx_count_and_rates)
 
 
 @instrumented_task(
@@ -106,6 +93,7 @@ def boost_low_volume_projects() -> None:
     max_retries=5,
     soft_time_limit=25 * 60,
     time_limit=2 * 60 + 5,
+    silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task
 def boost_low_volume_projects_of_org(
@@ -114,10 +102,7 @@ def boost_low_volume_projects_of_org(
         Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
     ],
 ) -> None:
-    # secondary tasks should not log the context, I need the context only for calling
-    # `adjust_sample_rates_of_projects`, the accumulated info will be ignored.
-    context = TaskContext("not_used", MAX_TASK_SECONDS)
-    adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates, context)
+    adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates)
 
 
 def fetch_projects_with_total_root_transaction_count_and_rates(
@@ -130,11 +115,10 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
     Fetches for each org and each project the total root transaction count and how many transactions were kept and
     dropped.
     """
-    function_name = fetch_projects_with_total_root_transaction_count_and_rates.__name__
-    timer = context.get_timer(function_name)
+    func_name = fetch_projects_with_total_root_transaction_count_and_rates.__name__
+    timer = context.get_timer(func_name)
     with timer:
-        current_context = context.get_function_state(function_name)
-        current_context.num_iterations += 1
+        context.incr_function_state(func_name, num_iterations=1)
 
         if query_interval is None:
             query_interval = timedelta(hours=1)
@@ -222,18 +206,18 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
                         row["drop_count"],
                     )
                 )
-                current_context.num_projects += 1
+                context.incr_function_state(function_id=func_name, num_projects=1)
 
-            current_context.num_db_calls += 1
-            current_context.num_rows_total += count
-            current_context.num_orgs += len(aggregated_projects)
-
-            context.set_function_state(function_name, current_context)
+            context.incr_function_state(
+                function_id=func_name,
+                num_db_calls=1,
+                num_rows_total=count,
+                num_orgs=len(aggregated_projects),
+            )
 
             if not more_results:
                 break
         else:
-            context.set_function_state(function_name, current_context)
             raise TimeoutException(context)
 
         return aggregated_projects
@@ -242,7 +226,6 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
 def adjust_sample_rates_of_projects(
     org_id: int,
     projects_with_tx_count: Sequence[Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]],
-    context: TaskContext,
 ) -> None:
     """
     Adjusts the sample rates of projects belonging to a specific org.
@@ -257,7 +240,7 @@ def adjust_sample_rates_of_projects(
 
     # We get the sample rate either directly from quotas or from the new sliding window org mechanism.
     if organization is not None and is_sliding_window_org_enabled(organization):
-        sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_id, context)
+        sample_rate = get_sliding_window_org_sample_rate(org_id)
         log_sample_rate_source(
             org_id, None, "boost_low_volume_projects", "sliding_window_org", sample_rate
         )

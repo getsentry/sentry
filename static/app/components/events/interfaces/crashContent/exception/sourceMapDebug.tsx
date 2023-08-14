@@ -53,9 +53,12 @@ function getErrorMessage(
     if (docPlatform === 'react-native') {
       return 'https://docs.sentry.io/platforms/react-native/troubleshooting/#source-maps';
     }
-    return `${baseSourceMapDocsLink}troubleshooting_js/` + (section ? `#${section}` : '');
+    return (
+      `${baseSourceMapDocsLink}troubleshooting_js/legacy-uploading-methods/` +
+      (section ? `#${section}` : '')
+    );
   }
-  const defaultDocsLink = `${baseSourceMapDocsLink}#uploading-source-maps-to-sentry`;
+  const defaultDocsLink = `${baseSourceMapDocsLink}#uploading-source-maps`;
 
   switch (error.type) {
     case SourceMapProcessingIssueType.MISSING_RELEASE:
@@ -281,7 +284,7 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
       error => error.type === SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS
     ).length > 0
   ) {
-    return <SourceMapsWizard />;
+    return <SourceMapsWizard analyticsParams={analyticsParams} />;
   }
 
   return (

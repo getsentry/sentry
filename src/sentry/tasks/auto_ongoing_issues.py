@@ -1,9 +1,8 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import List, Optional
 
-import pytz
 from django.db import OperationalError
 from django.db.models import Max
 from sentry_sdk.crons.decorator import monitor
@@ -21,6 +20,7 @@ from sentry.models import (
     Project,
 )
 from sentry.monitoring.queues import backend
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.group import GroupSubStatus
 from sentry.utils.iterators import chunked
@@ -74,6 +74,7 @@ def get_daily_10min_bucket(now: datetime):
     max_retries=3,
     default_retry_delay=60,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry(on=(OperationalError,))
 @monitor(monitor_slug="schedule_auto_transition_to_ongoing")
@@ -85,7 +86,7 @@ def schedule_auto_transition_to_ongoing() -> None:
     We distribute all the orgs evenly in 144 buckets. For a given cron-tick's
      10min interval, we fetch the orgs from that bucket and transition eligible Groups to ongoing
     """
-    now = datetime.now(tz=pytz.UTC)
+    now = datetime.now(tz=timezone.utc)
 
     bucket = get_daily_10min_bucket(now)
 
@@ -102,6 +103,7 @@ def schedule_auto_transition_to_ongoing() -> None:
             auto_transition_issues_new_to_ongoing.delay(
                 project_ids=project_ids,
                 first_seen_lte=int(seven_days_ago.timestamp()),
+                organization_id=org.id,
                 expires=now + timedelta(hours=1),
             )
 
@@ -126,18 +128,36 @@ def schedule_auto_transition_to_ongoing() -> None:
     max_retries=3,
     default_retry_delay=60,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry(on=(OperationalError,))
 @log_error_if_queue_has_items
 def auto_transition_issues_new_to_ongoing(
     project_ids: List[int],
     first_seen_lte: int,
-    project_id: Optional[int] = None,  # TODO(nisanthan): Remove this arg in next PR
+    organization_id: int,
     **kwargs,
 ) -> None:
-    # TODO(nisanthan): Remove this conditional in next PR
-    if project_id is not None:
-        project_ids = [project_id]
+    """
+    We will update all NEW Groups to ONGOING that were created before the
+    most recent Group first seen 7 days ago.
+    """
+
+    most_recent_group_first_seen_seven_days_ago = (
+        Group.objects.filter(
+            first_seen__lte=datetime.fromtimestamp(first_seen_lte, timezone.utc),
+        )
+        .order_by("-id")
+        .first()
+    )
+    logger.info(
+        "auto_transition_issues_new_to_ongoing started",
+        extra={
+            "organization_id": organization_id,
+            "most_recent_group_first_seen_seven_days_ago": most_recent_group_first_seen_seven_days_ago.id,
+            "first_seen_lte": first_seen_lte,
+        },
+    )
 
     for new_groups in chunked(
         RangeQuerySetWrapper(
@@ -145,12 +165,21 @@ def auto_transition_issues_new_to_ongoing(
                 project_id__in=project_ids,
                 status=GroupStatus.UNRESOLVED,
                 substatus=GroupSubStatus.NEW,
-                first_seen__lte=datetime.fromtimestamp(first_seen_lte, pytz.UTC),
+                id__lte=most_recent_group_first_seen_seven_days_ago.id,
             ),
             step=ITERATOR_CHUNK,
         ),
         ITERATOR_CHUNK,
     ):
+        for group in new_groups:
+            logger.info(
+                "auto_transition_issues_new_to_ongoing updating group",
+                extra={
+                    "organization_id": organization_id,
+                    "most_recent_group_first_seen_seven_days_ago": most_recent_group_first_seen_seven_days_ago.id,
+                    "group_id": group.id,
+                },
+            )
         bulk_transition_group_to_ongoing(
             GroupStatus.UNRESOLVED,
             GroupSubStatus.NEW,
@@ -167,6 +196,7 @@ def auto_transition_issues_new_to_ongoing(
     max_retries=3,
     default_retry_delay=60,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry(on=(OperationalError,))
 @log_error_if_queue_has_items
@@ -190,7 +220,9 @@ def auto_transition_issues_regressed_to_ongoing(
                 grouphistory__status=GroupHistoryStatus.REGRESSED,
             )
             .annotate(recent_regressed_history=Max("grouphistory__date_added"))
-            .filter(recent_regressed_history__lte=datetime.fromtimestamp(date_added_lte, pytz.UTC)),
+            .filter(
+                recent_regressed_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc)
+            ),
             step=ITERATOR_CHUNK,
         ),
         ITERATOR_CHUNK,
@@ -212,6 +244,7 @@ def auto_transition_issues_regressed_to_ongoing(
     max_retries=3,
     default_retry_delay=60,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry(on=(OperationalError,))
 @log_error_if_queue_has_items
@@ -235,7 +268,7 @@ def auto_transition_issues_escalating_to_ongoing(
             )
             .annotate(recent_escalating_history=Max("grouphistory__date_added"))
             .filter(
-                recent_escalating_history__lte=datetime.fromtimestamp(date_added_lte, pytz.UTC)
+                recent_escalating_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc)
             ),
             step=ITERATOR_CHUNK,
         ),

@@ -3,14 +3,14 @@ from __future__ import annotations
 from typing import Any, Mapping
 from urllib.parse import urlencode
 
+from django.http.response import HttpResponse
 from django.urls import reverse
-from requests import Response
 from rest_framework import status
 
 from sentry import options
 from sentry.integrations.slack.utils import set_signing_secret
 from sentry.models import Identity, IdentityProvider, Team
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import find_identity, install_slack, link_team, link_user
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json
@@ -64,8 +64,8 @@ class SlackCommandsTest(APITestCase, TestCase):
         )
 
     def get_slack_response(
-        self, payload: Mapping[str, str], status_code: str | None = None
-    ) -> Response:
+        self, payload: Mapping[str, str], status_code: int | None = None
+    ) -> HttpResponse:
         """Shadow get_success_response but with a non-JSON payload."""
         data = urlencode(payload).encode("utf-8")
         response = self.client.post(

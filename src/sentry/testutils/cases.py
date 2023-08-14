@@ -3,8 +3,9 @@ from __future__ import annotations
 import responses
 import sentry_kafka_schemas
 
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.utils.dates import to_timestamp
+from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
+from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
 
 __all__ = (
     "TestCase",
@@ -78,6 +79,7 @@ from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry import auth, eventstore
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.provider import Provider
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.auth.superuser import COOKIE_DOMAIN as SU_COOKIE_DOMAIN
@@ -144,12 +146,13 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
+from sentry.testutils.pytest.selenium import Browser
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
+from sentry.utils.dates import to_timestamp
 from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
-from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
@@ -164,7 +167,7 @@ from ..snuba.metrics import (
     get_date_range,
 )
 from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
-from . import assert_status_code
+from .asserts import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
 from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
@@ -756,7 +759,7 @@ class TwoFactorAPITestCase(APITestCase):
 
 
 class AuthProviderTestCase(TestCase):
-    provider = DummyProvider
+    provider: type[Provider] = DummyProvider
     provider_name = "dummy"
 
     def setUp(self):
@@ -1331,6 +1334,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         timestamp: int,
         value,
         use_case_id: UseCaseID,
+        aggregation_option: Optional[AggregationOption] = None,
     ):
         mapping_meta = {}
 
@@ -1359,7 +1363,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         def tag_value(name):
             assert isinstance(name, str)
 
-            if use_case_id == UseCaseID.TRANSACTIONS:
+            if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
                 return name
 
             res = indexer.record(
@@ -1392,13 +1396,16 @@ class BaseMetricsTestCase(SnubaTestCase):
             # making up a sentry_received_timestamp, but it should be sometime
             # after the timestamp of the event
             "sentry_received_timestamp": timestamp + 10,
-            "version": 2 if use_case_id == UseCaseID.TRANSACTIONS else 1,
+            "version": 2 if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE else 1,
         }
 
         msg["mapping_meta"] = {}
         msg["mapping_meta"][msg["type"]] = mapping_meta
 
-        if use_case_id == UseCaseID.TRANSACTIONS:
+        if aggregation_option:
+            msg["aggregation_option"] = aggregation_option.value
+
+        if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
             entity = f"generic_metrics_{type}s"
         else:
             entity = f"metrics_{type}s"
@@ -1478,6 +1485,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
+        aggregation_option: Optional[AggregationOption] = None,
     ):
         # We subtract one second in order to account for right non-inclusivity in the query. If we wouldn't do this
         # some data won't be returned (this applies only if we use self.now() in the "end" bound of the query).
@@ -1507,6 +1515,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             ),
             value=value,
             use_case_id=use_case_id,
+            aggregation_option=aggregation_option,
         )
 
     @staticmethod
@@ -1552,6 +1561,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
+        aggregation_option: Optional[AggregationOption] = None,
     ):
         self._store_metric(
             type=type,
@@ -1565,6 +1575,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
             seconds_before_now=seconds_before_now,
+            aggregation_option=aggregation_option,
         )
 
     def store_release_health_metric(
@@ -1686,6 +1697,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         timestamp: Optional[datetime] = None,
         project: Optional[int] = None,
         use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,
+        aggregation_option: Optional[AggregationOption] = None,
     ):
         internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
@@ -1714,6 +1726,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 int(metric_timestamp),
                 subvalue,
                 use_case_id=UseCaseID.TRANSACTIONS,
+                aggregation_option=aggregation_option,
             )
 
     def store_span_metric(

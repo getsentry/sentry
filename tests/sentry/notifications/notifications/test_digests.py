@@ -11,10 +11,10 @@ from sentry.digests.backends.base import Backend
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
-from sentry.models import ProjectOwnership, Rule
+from sentry.models import Rule
+from sentry.models.projectownership import ProjectOwnership
 from sentry.tasks.digests import deliver_digest
-from sentry.testutils import TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
+from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.slack import send_notification
 from sentry.utils import json
@@ -40,6 +40,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
                     "timestamp": before_now(minutes=1).isoformat(),
                 },
             )
+            assert group_info is not None
             group = group_info.group
             event = group.get_latest_event()
         else:

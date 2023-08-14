@@ -32,7 +32,6 @@ from sentry.models import (
     GroupSnooze,
     GroupStatus,
     Integration,
-    ProjectOwnership,
 )
 from sentry.models.activity import ActivityIntegration
 from sentry.models.groupowner import (
@@ -41,6 +40,7 @@ from sentry.models.groupowner import (
     ISSUE_OWNERS_DEBOUNCE_DURATION,
     ISSUE_OWNERS_DEBOUNCE_KEY,
 )
+from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.rules import init_registry
@@ -53,8 +53,7 @@ from sentry.tasks.post_process import (
     post_process_group,
     process_event,
 )
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase
+from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
@@ -389,8 +388,8 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         MOCK_RULES = ("sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",)
 
         redis_buffer = RedisBuffer()
-        with mock.patch("sentry.buffer.get", redis_buffer.get), mock.patch(
-            "sentry.buffer.incr", redis_buffer.incr
+        with mock.patch("sentry.buffer.backend.get", redis_buffer.get), mock.patch(
+            "sentry.buffer.backend.incr", redis_buffer.incr
         ), patch("sentry.constants._SENTRY_RULES", MOCK_RULES), patch(
             "sentry.rules.processor.rules", init_registry()
         ) as rules:
@@ -427,7 +426,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             event.group.update(times_seen=2)
             assert MockAction.return_value.after.call_count == 0
 
-            buffer.incr(Group, {"times_seen": 15}, filters={"pk": event.group.id})
+            buffer.backend.incr(Group, {"times_seen": 15}, filters={"pk": event.group.id})
             self.call_post_process_group(
                 is_new=True,
                 is_regression=False,
@@ -1456,8 +1455,8 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_invalidates_snooze_with_buffers(self, mock_processor, send_robust):
         redis_buffer = RedisBuffer()
-        with mock.patch("sentry.buffer.get", redis_buffer.get), mock.patch(
-            "sentry.buffer.incr", redis_buffer.incr
+        with mock.patch("sentry.buffer.backend.get", redis_buffer.get), mock.patch(
+            "sentry.buffer.backend.incr", redis_buffer.incr
         ):
             event = self.create_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
@@ -1480,7 +1479,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             )
             assert GroupSnooze.objects.filter(id=snooze.id).exists()
 
-            buffer.incr(Group, {"times_seen": 60}, filters={"pk": event.group.id})
+            buffer.backend.incr(Group, {"times_seen": 60}, filters={"pk": event.group.id})
             self.call_post_process_group(
                 is_new=False,
                 is_regression=False,

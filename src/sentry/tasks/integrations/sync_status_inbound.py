@@ -3,6 +3,7 @@ from typing import Any, Mapping
 from sentry import analytics
 from sentry.models import Group, GroupStatus, Integration, Organization
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -13,6 +14,7 @@ from sentry.types.group import GroupSubStatus
     queue="integrations",
     default_retry_delay=60 * 5,
     max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
 @retry(exclude=(Integration.DoesNotExist,))
 @track_group_async_operation
@@ -32,9 +34,7 @@ def sync_status_inbound(
     if not affected_groups:
         return
 
-    installation = integration_service.get_installation(
-        integration=integration, organization_id=organization_id
-    )
+    installation = integration.get_installation(organization_id=organization_id)
 
     try:
         # This makes an API call.

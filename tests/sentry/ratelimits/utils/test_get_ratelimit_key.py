@@ -1,3 +1,4 @@
+from django.contrib.sessions.backends.base import SessionBase
 from django.test import RequestFactory
 from rest_framework.permissions import AllowAny
 
@@ -57,7 +58,7 @@ class GetRateLimitKeyTest(TestCase):
 
     def test_users(self):
         user = User(id=1)
-        self.request.session = {}
+        self.request.session = SessionBase()
         self.request.user = user
         assert (
             get_rate_limit_key(
@@ -67,7 +68,7 @@ class GetRateLimitKeyTest(TestCase):
         )
 
     def test_organization(self):
-        self.request.session = {}
+        self.request.session = SessionBase()
         sentry_app = self.create_sentry_app(
             name="Tesla App", published=True, organization=self.organization
         )
@@ -91,7 +92,7 @@ class DummyEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TestDefaultToGroup(TestCase):
     def setUp(self) -> None:
         self.view = DummyEndpoint.as_view()
@@ -103,7 +104,7 @@ class TestDefaultToGroup(TestCase):
 
     def test_group_key(self):
         user = User(id=1)
-        self.request.session = {}
+        self.request.session = SessionBase()
         self.request.user = user
         assert (
             get_rate_limit_key(

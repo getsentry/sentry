@@ -45,7 +45,7 @@ class ExportedData(Model):
     def status(self):
         if self.date_finished is None:
             return ExportStatus.Early
-        elif self.date_expired < timezone.now():
+        elif self.date_expired is not None and self.date_expired < timezone.now():
             return ExportStatus.Expired
         else:
             return ExportStatus.Valid
@@ -109,7 +109,8 @@ class ExportedData(Model):
             template="sentry/emails/data-export-success.txt",
             html_template="sentry/emails/data-export-success.html",
         )
-        msg.send_async([user_email])
+        if user_email is not None:
+            msg.send_async([user_email])
 
     def email_failure(self, message):
         from sentry.utils.email import MessageBuilder
