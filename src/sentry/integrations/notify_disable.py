@@ -36,6 +36,10 @@ def get_subject(integration_name: str) -> str:
     return f"Action required: re-authenticate or fix your {integration_name} integration"
 
 
+def get_sentry_app_subject(integration_name: str) -> str:
+    return f"Action required: fix your {integration_name} integration"
+
+
 def notify_disable(
     organization: Organization,
     integration_name: str,
@@ -52,15 +56,17 @@ def notify_disable(
     )
 
     referrer = (
-        "?referrer=disabled-sentry-app/"
+        "?referrer=disabled-sentry-app"
         if "sentry-app" in redis_key
-        else "?referrer=disabled-integration/"
+        else "?referrer=disabled-integration"
     )
 
     for user in organization.get_owners():
 
         msg = MessageBuilder(
-            subject=get_subject(integration_name.title()),
+            subject=get_sentry_app_subject(integration_name.title())
+            if "sentry-app" in redis_key
+            else get_subject(integration_name.title()),
             context={
                 "integration_name": integration_name.title(),
                 "integration_link": f"{integration_link}{referrer}",
