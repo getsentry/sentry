@@ -42,7 +42,7 @@ function CreateTeamForm({organization, formProps, ...props}: Props) {
           name="slug"
           label={t('Team Name')}
           placeholder={t('e.g. operations, web-frontend, desktop')}
-          help={t('May contain lowercase letters, numbers, dashes and underscores.')}
+          help={t('May contain lowercase letters, dashes, and underscores.')}
           required
           stacked
           flexibleControlStateSize
