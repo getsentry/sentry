@@ -1457,7 +1457,7 @@ register(
 )
 register(
     "statistical_detectors.query.batch_size",
-    type=int,
+    type=Int,
     default=100,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
