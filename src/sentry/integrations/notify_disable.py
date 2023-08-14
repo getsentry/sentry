@@ -37,7 +37,7 @@ def get_subject(integration_name: str) -> str:
 
 
 def get_sentry_app_subject(integration_name: str) -> str:
-    return f"Action required: fix your {integration_name} integration"
+    return f"Action required: Fix your {integration_name} integration"
 
 
 def notify_disable(
