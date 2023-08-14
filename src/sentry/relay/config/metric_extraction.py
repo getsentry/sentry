@@ -72,7 +72,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     }
 
 
-def _get_alert_metric_specs(project: Project) -> List[HashMetricSpec]:
+def _get_alert_metric_specs(project: Project) -> List[HashedMetricSpec]:
     alert_rules = (
         AlertRule.objects.fetch_for_project(project)
         .filter(
@@ -226,7 +226,7 @@ def _convert_aggregate_and_query_to_metric(
 def _log_on_demand_metric_spec(
     project_id: int,
     spec_for: Literal["alert", "widget"],
-    spec: HashMetricSpec,
+    spec: HashedMetricSpec,
     id: int,
     field: str,
     query: str,
