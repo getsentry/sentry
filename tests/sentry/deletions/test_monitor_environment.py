@@ -1,4 +1,4 @@
-from sentry.models import Environment, Project, ScheduledDeletion
+from sentry.models import Environment, Project, RegionScheduledDeletion
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -7,12 +7,13 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
+from sentry.silo import SiloMode
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import APITestCase, TransactionTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DeleteMonitorEnvironmentTest(APITestCase, TransactionTestCase):
     def test_simple(self):
         project = self.create_project(name="test")
@@ -48,11 +49,11 @@ class DeleteMonitorEnvironmentTest(APITestCase, TransactionTestCase):
             status=CheckInStatus.OK,
         )
 
-        deletion = ScheduledDeletion.schedule(monitor_env, days=0)
+        deletion = RegionScheduledDeletion.schedule(monitor_env, days=0)
         deletion.update(in_progress=True)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_deletion(deletion.id, silo_mode=str(SiloMode.REGION))
 
         assert not MonitorEnvironment.objects.filter(id=monitor_env.id).exists()
         assert not MonitorCheckIn.objects.filter(id=checkin.id).exists()

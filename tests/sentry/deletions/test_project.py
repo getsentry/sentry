@@ -14,10 +14,10 @@ from sentry.models import (
     GroupSeen,
     Project,
     ProjectDebugFile,
+    RegionScheduledDeletion,
     Release,
     ReleaseCommit,
     Repository,
-    ScheduledDeletion,
     ServiceHook,
 )
 from sentry.models.rulesnooze import RuleSnooze
@@ -29,6 +29,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
+from sentry.silo import SiloMode
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import APITestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -116,11 +117,11 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
         )
 
         rule_snooze = self.snooze_rule(user_id=self.user.id, alert_rule=metric_alert_rule)
-        deletion = ScheduledDeletion.schedule(project, days=0)
+        deletion = RegionScheduledDeletion.schedule(project, days=0)
         deletion.update(in_progress=True)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_deletion(deletion.id, silo_mode=str(SiloMode.REGION))
 
         assert not Project.objects.filter(id=project.id).exists()
         assert not EnvironmentProject.objects.filter(
@@ -160,11 +161,11 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
         group = event.group
         group_seen = GroupSeen.objects.create(group=group, project=project, user_id=self.user.id)
 
-        deletion = ScheduledDeletion.schedule(project, days=0)
+        deletion = RegionScheduledDeletion.schedule(project, days=0)
         deletion.update(in_progress=True)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_deletion(deletion.id, silo_mode=str(SiloMode.REGION))
 
         assert not Project.objects.filter(id=project.id).exists()
         assert not GroupSeen.objects.filter(id=group_seen.id).exists()
