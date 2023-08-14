@@ -1140,6 +1140,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         on_demand_metrics_enabled: Optional[bool] = False,
         parser_config_overrides: Optional[Mapping[str, Any]] = None,
     ):
+        self.interval = interval
         super().__init__(
             params=params,
             query=query,
@@ -1152,12 +1153,6 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             on_demand_metrics_enabled=on_demand_metrics_enabled,
             parser_config_overrides=parser_config_overrides,
         )
-        if self.granularity.granularity > interval:
-            for granularity in constants.METRICS_GRANULARITIES:
-                if granularity <= interval:
-                    self.granularity = Granularity(granularity)
-                    break
-        self.interval = interval
 
         self.time_column = self.resolve_time_column(interval)
         self.limit = None if limit is None else Limit(limit)
@@ -1168,6 +1163,20 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         # If additional groupby is provided it will be used first before time
         if groupby is not None:
             self.groupby.insert(0, groupby)
+
+    def resolve_granularity(self) -> Granularity:
+        """Find the largest granularity that is smaller than the interval"""
+        granularity = super().resolve_granularity()
+        if granularity.granularity > self.interval:
+            for available_granularity in constants.METRICS_GRANULARITIES:
+                if available_granularity <= self.interval:
+                    return Granularity(available_granularity)
+            # if we are here the user requested an interval smaller than the smallest granularity available.
+            # We'll force the interval to be the smallest granularity (since we don't have data at the requested interval)
+            # and return the smallest granularity
+            self.interval = constants.METRICS_GRANULARITIES[-1]
+            return Granularity(self.interval)
+        return granularity
 
     def resolve_split_granularity(self) -> Tuple[List[Condition], Optional[Granularity]]:
         """Don't do this for timeseries"""
