@@ -102,7 +102,7 @@ def test_unsupported_queries(aggregate, query):
             "transaction.duration:>1",
             True,
         ),  # transaction.duration not supported by standard metrics
-        ("failure_rate()", "transaction.duration:>1", False),  # has to fall back to indexed
+        ("failure_rate()", "transaction.duration:>1", False),  # has to fallback to indexed
         (
             "count_if(transaction.duration,equals,0)",
             "release:a",
@@ -134,8 +134,9 @@ def create_spec_if_needed(dataset, agg, query):
         ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
         (
             "count()",
-            "project:android-symbol-collector-server route.action:CloseBatch level:info",
+            "project:a-1 route.action:CloseBatch level:info",
         ),
+        ("count()", "project:a_1 or project:b-2 or transaction.duration:>0"),
     ],
 )
 def test_creates_on_demand_spec(aggregate, query):
@@ -249,7 +250,7 @@ def test_spec_wildcard():
     }
 
 
-def test_spec_countif():
+def test_spec_count_if():
     spec = OnDemandMetricSpec("count_if(transaction.duration,equals,300)", "")
 
     assert spec.metric_type == "c"
@@ -262,7 +263,7 @@ def test_spec_countif():
     }
 
 
-def test_spec_countif_with_query():
+def test_spec_count_if_with_query():
     spec = OnDemandMetricSpec(
         "count_if(transaction.duration,equals,300)", "release:a OR transaction.op:b"
     )
