@@ -31,7 +31,7 @@ export const steps = ({
         code: `
 plugins {
   id "com.android.application" // should be in the same module
-  id "io.sentry.android.gradle" version "3.11.1"
+  id "io.sentry.android.gradle" version "3.12.0"
 }
         `,
       },
