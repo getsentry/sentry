@@ -53,10 +53,6 @@ export function SpanSummaryView({groupId}: Props) {
     ? {transactionName: endpoint, 'transaction.method': endpointMethod}
     : {};
 
-  if (endpointMethod && queryFilter) {
-    queryFilter['transaction.method'] = endpointMethod;
-  }
-
   const {data: spanMetrics} = useSpanMetrics(
     groupId,
     queryFilter,
