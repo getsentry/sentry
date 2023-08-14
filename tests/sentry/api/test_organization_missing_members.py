@@ -95,6 +95,22 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
 
+    def test_filters_authors_with_no_external_id(self):
+        no_external_id_author = self.create_commit_author(
+            project=self.project, email="e@example.com"
+        )
+        self.create_commit(
+            repo=self.repo,
+            author=no_external_id_author,
+        )
+
+        response = self.get_success_response(self.organization.slug)
+        assert response.data[0]["integration"] == "github"
+        assert response.data[0]["users"] == [
+            {"email": "c@example.com", "externalId": "c", "commitCount": 2},
+            {"email": "d@example.com", "externalId": "d", "commitCount": 1},
+        ]
+
     def test_no_authors(self):
         org = self.create_organization(owner=self.create_user())
         self.create_member(user=self.user, organization=org, role="manager")
