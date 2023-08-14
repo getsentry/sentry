@@ -44,7 +44,7 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
             )
         )
         nonmember_authors = CommitAuthor.objects.filter(organization_id=organization.id).exclude(
-            email__in=member_emails
+            Q(email__in=member_emails) | Q(external_id=None)
         )
 
         # currently for Github only
