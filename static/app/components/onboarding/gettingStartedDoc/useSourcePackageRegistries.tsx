@@ -17,6 +17,9 @@ type ReleaseRegistrySdk = Record<
 // /api/0/, but the default API client on the abstract issue form is...
 const API_CLIENT = new Client({baseUrl: '', headers: {}, credentials: 'omit'});
 
+/**
+ * Fetches the release registry list for SDKs
+ */
 export function useSourcePackageRegistries() {
   const {isLoading, data} = useApiQuery<ReleaseRegistrySdk>(
     ['https://release-registry.services.sentry.io/sdks'],
