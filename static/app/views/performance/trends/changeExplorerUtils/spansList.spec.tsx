@@ -327,6 +327,7 @@ describe('Performance > Trends > Performance Change Explorer > Spans List', func
       expect(screen.getAllByTestId('list-item')[4]).toHaveTextContent('Removed');
       expect(screen.getAllByTestId('list-item')[5]).toHaveTextContent('span9');
       expect(screen.getAllByTestId('list-item')[5]).toHaveTextContent('Removed');
+      expect(screen.getAllByTestId('list-delta')).toHaveLength(6);
     });
   });
 
@@ -358,6 +359,7 @@ describe('Performance > Trends > Performance Change Explorer > Spans List', func
       expect(screen.getAllByTestId('list-item')[4]).toHaveTextContent('Added');
       expect(screen.getAllByTestId('list-item')[5]).toHaveTextContent('span2');
       expect(screen.getAllByTestId('list-item')[5]).toHaveTextContent('Regressed');
+      expect(screen.getAllByTestId('list-delta')).toHaveLength(6);
     });
   });
 
@@ -386,6 +388,7 @@ describe('Performance > Trends > Performance Change Explorer > Spans List', func
       expect(screen.getAllByTestId('list-item')[3]).toHaveTextContent('span4');
       expect(screen.getAllByTestId('list-item')[3]).toHaveTextContent('Removed');
       expect(screen.getAllByTestId('list-item')[4]).toBeUndefined();
+      expect(screen.getAllByTestId('list-delta')).toHaveLength(4);
     });
   });
 });

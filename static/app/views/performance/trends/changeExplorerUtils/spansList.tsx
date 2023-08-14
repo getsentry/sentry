@@ -16,6 +16,7 @@ import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {SuspectSpan, SuspectSpans} from 'sentry/utils/performance/suspectSpans/types';
+import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useProjects from 'sentry/utils/useProjects';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
@@ -436,6 +437,23 @@ function addSpanChangeFields(
   });
 }
 
+export function TimeDifference({difference}: {difference: number}) {
+  const positive = difference >= 0;
+  const roundedDifference = difference.toPrecision(3);
+  return (
+    <p
+      style={{
+        alignSelf: 'end',
+        color: positive ? theme.red300 : theme.green300,
+        marginLeft: space(2),
+      }}
+      data-test-id="list-delta"
+    >
+      {positive ? `+${roundedDifference} ms` : `${roundedDifference} ms`}
+    </p>
+  );
+}
+
 export function NumberedSpansList(props: NumberedSpansListProps) {
   const {
     spans,
@@ -503,6 +521,7 @@ export function NumberedSpansList(props: NumberedSpansListProps) {
             <ListLink to={spanDetailsPage} onClick={handleClickAnalytics}>
               {span.description ? `${span.op} - ${span.description}` : span.op}
             </ListLink>
+            <TimeDifference difference={span.avgTimeDifference} />
           </ListItemWrapper>
         </li>
       );
