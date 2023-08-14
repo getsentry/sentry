@@ -267,3 +267,38 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
 
         assert len(result_stats) > 0
         assert len(result_stats.get(f"{self.project.slug},foo", [])) > 0
+
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.get_trends")
+    def test_simple_with_top_events(self, mock_get_trends):
+        # store second metric but with lower count
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction": "bar"},
+            org_id=self.org.id,
+            project_id=self.project.id,
+            value=2,
+            hours_before_now=2,
+        )
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(self.now),
+                    "start": iso_format(self.now - timedelta(days=1)),
+                    "interval": "1h",
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "project": self.project.id,
+                    "trendFunction": "p95(transaction.duration)",
+                    "topEvents": 1,
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        trends_call_args_data = mock_get_trends.call_args[0][0]["data"]
+        assert len(trends_call_args_data.get(f"{self.project.slug},foo")) > 0
+        # checks that second transaction wasn't sent to the trends microservice
+        assert len(trends_call_args_data.get(f"{self.project.slug},bar", [])) == 0
