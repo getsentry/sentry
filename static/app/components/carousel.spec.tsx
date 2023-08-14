@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import Carousel from 'sentry/components/carousel';
 import Placeholder from 'sentry/components/placeholder';
 
-function setIntersectionObserver(
+export function setIntersectionObserver(
   entries: {isIntersecting: boolean; target: {id: string}}[]
 ) {
   (() => {
