@@ -325,7 +325,7 @@ def do_process_event(
         task_kind = SaveEventTaskKind(
             from_reprocessing=process_task is process_event_from_reprocessing,
             has_attachments=has_attachments,
-            is_highcpu=data["platform"] in options.get("store.save-event-highcpu-platforms"),
+            is_highcpu=data["platform"] in options.get("store.save-event-highcpu-platforms", []),
         )
         submit_save_event(
             task_kind,
