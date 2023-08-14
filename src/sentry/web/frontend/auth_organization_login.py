@@ -51,6 +51,7 @@ class AuthOrganizationLoginView(AuthLoginView):
 
     @method_decorator(never_cache)
     def handle(self, request: Request, organization_slug) -> HttpResponse:
+        print("*******next", self.get_next_uri(request))
         org_context = organization_service.get_organization_by_slug(
             slug=organization_slug, only_visible=True
         )
