@@ -119,6 +119,7 @@ class BitbucketServerClient(IntegrationProxyClient):
         super().__init__(
             org_integration_id=org_integration_id,
             verify_ssl=integration.metadata["verify_ssl"],
+            integration_id=integration.id,
             logging_context=None,
         )
 
