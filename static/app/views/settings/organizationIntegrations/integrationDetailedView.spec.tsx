@@ -224,7 +224,11 @@ describe('IntegrationDetailedView', function () {
     await userEvent.click(screen.getByText('features'));
 
     expect(
-      screen.getByRole('checkbox', {name: /Enable Pull Request Bot/})
+      screen.getByRole('checkbox', {name: /Enable Comments on Suspect Pull Requests/})
+    ).toBeDisabled();
+
+    expect(
+      screen.getByRole('checkbox', {name: /Enable Comments on Open Pull Requests/})
     ).toBeDisabled();
   });
 });
