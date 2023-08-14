@@ -24,7 +24,6 @@ from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
     TrustedRelaySerializer,
 )
-from sentry.api.serializers.rest_framework import ListField
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.integrations.utils.codecov import has_codecov_integration
@@ -166,8 +165,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     enhancedPrivacy = serializers.BooleanField(required=False)
     dataScrubber = serializers.BooleanField(required=False)
     dataScrubberDefaults = serializers.BooleanField(required=False)
-    sensitiveFields = ListField(child=serializers.CharField(), required=False)
-    safeFields = ListField(child=serializers.CharField(), required=False)
+    sensitiveFields = serializers.ListField(child=serializers.CharField(), required=False)
+    safeFields = serializers.ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.IntegerField(
         min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False
     )
@@ -183,7 +182,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubPRBot = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
-    trustedRelays = ListField(child=TrustedRelaySerializer(), required=False)
+    trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
