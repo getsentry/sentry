@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import re
 import secrets
+from typing import Any
 from urllib.parse import urlparse
 
 import petname
@@ -81,7 +84,7 @@ class ProjectKey(Model):
         cache_ttl=60 * 30,
     )
 
-    data = JSONField()
+    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 
     # support legacy project keys in API
     scopes = (

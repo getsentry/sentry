@@ -10,7 +10,7 @@ from sentry.testutils.silo import region_silo_test
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-clicks-index"
 

@@ -22,10 +22,6 @@ class GithubPluginWebhookEndpoint(GithubWebhookBase):
         )
 
     def post(self, request: Request, organization_id):
-        logger.error(
-            "github_plugin.webhook.deprecation_check",
-            extra={"organization_id": organization_id, "meta": request.META},
-        )
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:

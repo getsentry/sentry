@@ -79,7 +79,7 @@ export function SuspectFunctionsTable({
     <Fragment>
       <TableHeader>
         <CompactSelect
-          triggerProps={{prefix: t('Suspect Functions'), size: 'xs'}}
+          triggerProps={{prefix: t('Slowest Functions'), size: 'xs'}}
           value={functionType}
           options={[
             {
