@@ -21,6 +21,7 @@ import {
   getDurationChartTitle,
   getThroughputChartTitle,
 } from 'sentry/views/starfish/views/spans/types';
+import {ModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const {SPAN_SELF_TIME, SPAN_OP, SPAN_MODULE, SPAN_DESCRIPTION} = SpanMetricsFields;
@@ -28,20 +29,13 @@ const {SPAN_SELF_TIME, SPAN_OP, SPAN_MODULE, SPAN_DESCRIPTION} = SpanMetricsFiel
 const CHART_HEIGHT = 140;
 
 type Props = {
-  appliedFilters: AppliedFilters;
+  appliedFilters: ModuleFilters;
   moduleName: ModuleName;
   spanCategory?: string;
 };
 
-type AppliedFilters = {
-  'span.action': string;
-  'span.domain': string;
-  'span.group': string;
-  'span.op': string;
-};
-
 type ChartProps = {
-  filters: AppliedFilters;
+  filters: ModuleFilters;
   moduleName: ModuleName;
 };
 
@@ -238,7 +232,7 @@ const SPAN_FILTER_KEYS = ['span_operation', 'domain', 'action'];
 const getEventView = (
   moduleName: ModuleName,
   pageFilters: PageFilters,
-  appliedFilters: AppliedFilters,
+  appliedFilters: ModuleFilters,
   spanCategory?: string
 ) => {
   const query = buildDiscoverQueryConditions(moduleName, appliedFilters, spanCategory);
@@ -259,7 +253,7 @@ const getEventView = (
 
 const buildDiscoverQueryConditions = (
   moduleName: ModuleName,
-  appliedFilters: AppliedFilters,
+  appliedFilters: ModuleFilters,
   spanCategory?: string
 ) => {
   const result = Object.keys(appliedFilters)
