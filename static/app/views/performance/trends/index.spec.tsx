@@ -261,6 +261,7 @@ describe('Performance > Trends', function () {
             'p95()': 1010.9232499999998,
             'p50()': 47.34580982348902,
             'tps()': 3.7226926286168966,
+            'examples()': ['djk3w308er', '3298a9ui3h'],
           },
         ],
         meta: {
@@ -268,17 +269,24 @@ describe('Performance > Trends', function () {
             'p95()': 'duration',
             '950()': 'duration',
             'tps()': 'number',
+            'examples()': 'Array',
           },
           units: {
             'p95()': 'millisecond',
             'p50()': 'millisecond',
             'tps()': null,
+            'examples()': null,
           },
           isMetricsData: true,
           tips: {},
           dataset: 'metrics',
         },
       },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-spans-performance/',
+      body: [],
     });
   });
 
@@ -338,7 +346,7 @@ describe('Performance > Trends', function () {
 
     expect(summaryLink.closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/summary/?display=trend&project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min%20count_percentage%28%29%3A%3E0.25%20count_percentage%28%29%3A%3C4%20trend_percentage%28%29%3A%3E0%25%20confidence%28%29%3A%3E6&referrer=performance-transaction-summary&statsPeriod=14d&transaction=%2Forganizations%2F%3AorgId%2Fperformance%2F&trendFunction=p50&unselectedSeries=p100%28%29'
+      '/organizations/org-slug/performance/summary/?display=trend&project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min%20count_percentage%28%29%3A%3E0.25%20count_percentage%28%29%3A%3C4%20trend_percentage%28%29%3A%3E0%25%20confidence%28%29%3A%3E6&referrer=performance-transaction-summary&statsPeriod=14d&transaction=%2Forganizations%2F%3AorgId%2Fperformance%2F&trendFunction=p50&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
     );
   });
 

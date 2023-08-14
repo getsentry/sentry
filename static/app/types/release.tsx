@@ -37,11 +37,24 @@ export type Deploy = {
   version: string;
 };
 
+interface RawVersion {
+  raw: string;
+}
+
+export interface SemverVerison extends RawVersion {
+  buildCode: string | null;
+  components: number;
+  major: number;
+  minor: number;
+  patch: number;
+  pre: string | null;
+}
+
 export type VersionInfo = {
   buildHash: string | null;
   description: string;
   package: string | null;
-  version: {raw: string};
+  version: RawVersion | SemverVerison;
 };
 
 export interface BaseRelease {
@@ -109,13 +122,13 @@ export type CurrentRelease = {
 };
 
 export type ReleaseProject = {
-  hasHealthData: boolean;
   id: number;
   name: string;
   newGroups: number;
   platform: PlatformKey;
   platforms: PlatformKey[];
   slug: string;
+  hasHealthData?: boolean;
   healthData?: Health;
 };
 
@@ -124,6 +137,7 @@ export type ReleaseMeta = {
   commitFilesChanged: number;
   deployCount: number;
   isArtifactBundle: boolean;
+  newGroups: number;
   projects: ReleaseProject[];
   releaseFileCount: number;
   released: string;

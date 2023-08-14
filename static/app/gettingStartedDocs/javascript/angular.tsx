@@ -3,11 +3,23 @@ import styled from '@emotion/styled';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
+import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types';
+
+type StepProps = {
+  errorHandlerProviders: string;
+  newOrg: boolean;
+  organization: Organization;
+  platformKey: PlatformKey;
+  projectId: string;
+  sentryInitContent: string;
+};
 
 // Configuration Start
 const replayIntegration = `
@@ -49,22 +61,21 @@ const performanceErrorHandler = `
 export const steps = ({
   sentryInitContent,
   errorHandlerProviders,
-}: {
-  errorHandlerProviders?: string;
-  sentryInitContent?: string;
-} = {}): LayoutProps['steps'] => [
+  ...props
+}: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
       <InstallDescription>
-        <div>
+        <p>
           {tct(
-            "To use Sentry with your Angular application, you'll need [code:@sentry/angular-ivy] or [code:@sentry/angular], Sentry’s Browser Angular SDKs:",
+            "To use Sentry with your Angular application, you'll need [sentryAngularIvyCode:@sentry/angular-ivy] or [sentryAngularCode:@sentry/angular], Sentry’s Browser Angular SDKs:",
             {
-              code: <code />,
+              sentryAngularIvyCode: <code />,
+              sentryAngularCode: <code />,
             }
           )}
-        </div>
+        </p>
         <List symbol="bullet">
           <ListItem>
             {tct("If you're using Angular 12 or newer, use [code:@sentry/angular-ivy]", {
@@ -77,26 +88,26 @@ export const steps = ({
             })}
           </ListItem>
         </List>
-        <div>
+        <p>
           {tct('Add the Sentry SDK as a dependency using [code:yarn] or [code:npm]:', {
             code: <code />,
           })}
-        </div>
+        </p>
       </InstallDescription>
     ),
     configurations: [
       {
         language: 'bash',
         code: `
-        # Using yarn (Angular 12+)
-        yarn add @sentry/angular-ivy
-        # Using yarn (Angular 10 and 11)
-        yarn add @sentry/angular
+# Using yarn (Angular 12+)
+yarn add @sentry/angular-ivy
+# Using yarn (Angular 10 and 11)
+yarn add @sentry/angular
 
-        # Using npm (Angular 12+)
-        npm install --save @sentry/angular-ivy
-        # Using npm (Angular 10 and 11)
-        npm install --save @sentry/angular
+# Using npm (Angular 12+)
+npm install --save @sentry/angular-ivy
+# Using npm (Angular 10 and 11)
+npm install --save @sentry/angular
         `,
       },
     ],
@@ -156,9 +167,10 @@ export const steps = ({
       },
     ],
   },
-  getUploadSourceMapsStep(
-    'https://docs.sentry.io/platforms/javascript/guides/angular/sourcemaps/'
-  ),
+  getUploadSourceMapsStep({
+    guideLink: 'https://docs.sentry.io/platforms/javascript/guides/angular/sourcemaps/',
+    ...props,
+  }),
   {
     type: StepType.VERIFY,
     description: t(
@@ -199,17 +211,14 @@ export const nextSteps = [
 ];
 // Configuration End
 
-type Props = {
-  activeProductSelection: ProductSolution[];
-  dsn: string;
-  newOrg?: boolean;
-};
-
-export default function GettingStartedWithAngular({
+export function GettingStartedWithAngular({
   dsn,
+  activeProductSelection = [],
+  organization,
   newOrg,
-  activeProductSelection,
-}: Props) {
+  platformKey,
+  projectId,
+}: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
 
@@ -248,12 +257,19 @@ export default function GettingStartedWithAngular({
       steps={steps({
         sentryInitContent: sentryInitContent.join('\n'),
         errorHandlerProviders: errorHandlerProviders.join('\n'),
+        organization,
+        newOrg,
+        platformKey,
+        projectId,
       })}
       nextSteps={nextStepDocs}
       newOrg={newOrg}
+      platformKey={platformKey}
     />
   );
 }
+
+export default GettingStartedWithAngular;
 
 const InstallDescription = styled('div')`
   display: flex;

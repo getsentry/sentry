@@ -1,4 +1,6 @@
-from typing import List
+from __future__ import annotations
+
+from typing import Any, List
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -6,12 +8,11 @@ from rest_framework.response import Response
 from sentry.api.serializers.base import serialize
 from sentry.models import DocIntegration, IntegrationFeature
 from sentry.models.integrations.integration_feature import IntegrationTypes
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.json import JSONData
 
 
-@control_silo_test(stable=True)
 class DocIntegrationsTest(APITestCase):
     endpoint = "sentry-api-0-doc-integrations"
 
@@ -81,7 +82,7 @@ class GetDocIntegrationsTest(DocIntegrationsTest):
 @control_silo_test(stable=True)
 class PostDocIntegrationsTest(DocIntegrationsTest):
     method = "POST"
-    payload = {
+    payload: dict[str, Any] = {
         "name": "Enemy",
         "author": "Imagine Dragons",
         "description": "An opening theme song 👀",

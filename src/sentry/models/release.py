@@ -14,7 +14,8 @@ from django.db.models.signals import pre_save
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
-from sentry_relay import RelayError, parse_release
+from sentry_relay.exceptions import RelayError
+from sentry_relay.processing import parse_release
 
 from sentry import features
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
@@ -37,12 +38,13 @@ from sentry.locks import locks
 from sentry.models import (
     Activity,
     ArtifactBundle,
-    CommitFileChange,
     GroupInbox,
     GroupInboxRemoveAction,
     remove_group_from_inbox,
 )
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import issue_resolved
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
@@ -276,8 +278,7 @@ class ReleaseQuerySet(BaseQuerySet):
         }
         value = to_list(value)
         operator_conversions = {"=": "IN", "!=": "NOT IN"}
-        if operator in operator_conversions.keys():
-            operator = operator_conversions.get(operator)
+        operator = operator_conversions.get(operator, operator)
 
         for stage in value:
             if stage not in filters:
@@ -559,6 +560,7 @@ class Release(Model):
         return (
             # don't treat `NotImplemented` as truthy
             Model.__eq__(self, other) is True
+            and isinstance(other, Release)
             and self._for_project_id == other._for_project_id
         )
 
@@ -946,7 +948,7 @@ class Release(Model):
                 authors = {}
                 repos = {}
                 commit_author_by_commit = {}
-                head_commit_by_repo = {}
+                head_commit_by_repo: dict[int, int] = {}
                 latest_commit = None
                 for idx, data in enumerate(commit_list):
                     repo_name = data.get("repository") or f"organization-{self.organization_id}"
@@ -1114,7 +1116,7 @@ class Release(Model):
             (prr[0], pr_authors_dict.get(prr[1])) for prr in pull_request_resolutions
         ]
 
-        user_by_author = {None: None}
+        user_by_author: dict[str | None, RpcUser | None] = {None: None}
 
         commits_and_prs = list(itertools.chain(commit_group_authors, pull_request_group_authors))
 
@@ -1125,7 +1127,7 @@ class Release(Model):
         )
 
         for group_id, author in commits_and_prs:
-            if author not in user_by_author:
+            if author is not None and author not in user_by_author:
                 try:
                     user_by_author[author] = author.find_users()[0]
                 except IndexError:
@@ -1147,7 +1149,7 @@ class Release(Model):
                         "release": self,
                         "type": GroupResolution.Type.in_release,
                         "status": GroupResolution.Status.resolved,
-                        "actor_id": actor.id if actor else None,
+                        "actor_id": actor.id if actor is not None else None,
                     },
                 )
                 group = Group.objects.get(id=group_id)
@@ -1188,7 +1190,9 @@ class Release(Model):
         # We would need to be able to delete this data from snuba which we
         # can't do yet.
         project_ids = list(self.projects.values_list("id").all())
-        if release_health.check_has_health_data([(p[0], self.version) for p in project_ids]):
+        if release_health.backend.check_has_health_data(
+            [(p[0], self.version) for p in project_ids]
+        ):
             raise UnsafeReleaseDeletion(ERR_RELEASE_HEALTH_DATA)
 
         # TODO(dcramer): this needs to happen in the queue as it could be a long

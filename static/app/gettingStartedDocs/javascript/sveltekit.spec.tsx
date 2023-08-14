@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import GettingStartedWithSvelteKit, {nextSteps, steps} from './sveltekit';
+import {GettingStartedWithSvelteKit, nextSteps, steps} from './sveltekit';
 
 describe('GettingStartedWithSvelteKit', function () {
   it('all products are selected', function () {
@@ -20,7 +20,7 @@ describe('GettingStartedWithSvelteKit', function () {
     // Steps
     for (const step of steps()) {
       expect(
-        screen.getByRole('heading', {name: StepTitle[step.type]})
+        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
 

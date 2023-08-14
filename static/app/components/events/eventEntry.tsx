@@ -97,8 +97,6 @@ function EventEntryContent({
           data={entry.data}
           organization={organization as Organization}
           event={event}
-          isShare={isShare}
-          projectSlug={projectSlug}
         />
       );
 

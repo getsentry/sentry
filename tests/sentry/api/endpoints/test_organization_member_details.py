@@ -4,7 +4,7 @@ from django.core import mail
 from django.db.models import F
 from django.urls import reverse
 
-from sentry.auth.authenticators import RecoveryCodeInterface
+from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import (
     Authenticator,
@@ -16,7 +16,7 @@ from sentry.models import (
     SentryAppInstallationToken,
     UserOption,
 )
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
@@ -71,7 +71,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_error_response(self.organization.slug, join_request.id, status_code=404)
         self.get_error_response(self.organization.slug, invite_request.id, status_code=404)
 
-    def test_superuser_can_get_invite_link(self):
+    def test_invite_link_does_not_exist(self):
         pending_om = self.create_member(
             user=None,
             email="bar@example.com",
@@ -81,7 +81,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         )
 
         response = self.get_success_response(self.organization.slug, pending_om.id)
-        assert response.data["invite_link"] == pending_om.get_invite_link()
+        assert "invite_link" not in response.data
 
     def test_member_cannot_get_invite_link(self):
         pending_om = self.create_member(
@@ -198,7 +198,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         member_om = OrganizationMember.objects.get(id=member_om.id)
         assert old_invite != member_om.get_invite_link()
         mock_send_invite_email.assert_called_once_with()
-        assert response.data["invite_link"] == member_om.get_invite_link()
+        assert "invite_link" not in response.data
         self.assert_org_member_mapping(org_member=member_om)
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
@@ -729,6 +729,7 @@ class ResetOrganizationMember2faTest(APITestCase):
         self.login_as(self.member)
         totp = TotpInterface()
         totp.enroll(self.member)
+        assert totp.authenticator is not None
         self.interface_id = totp.authenticator.id
         assert Authenticator.objects.filter(user=self.member).exists()
 

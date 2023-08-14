@@ -15,8 +15,8 @@ from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.auth import login
-from sentry.utils.pytest.fixtures import django_db_all
 from sentry.web.client_config import get_client_config
 
 RequestFactory = Callable[[], Optional[Tuple[HttpRequest, User]]]
@@ -37,7 +37,7 @@ def request_factory(f):
             env.request = request
             cache.clear()
         else:
-            env.request = None
+            env.clear()
         return result
 
     return wrapper
@@ -98,9 +98,9 @@ def none_request() -> None:
 
 @pytest.fixture(autouse=True)
 def clear_env_request():
-    env.request = None
+    env.clear()
     yield
-    env.request = None
+    env.clear()
 
 
 @pytest.mark.parametrize(

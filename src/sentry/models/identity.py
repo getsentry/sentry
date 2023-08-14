@@ -22,6 +22,7 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
+    from sentry.identity.base import Provider
     from sentry.models import User
     from sentry.services.hybrid_cloud.identity import RpcIdentityProvider
 
@@ -207,7 +208,7 @@ class Identity(Model):
         db_table = "sentry_identity"
         unique_together = (("idp", "external_id"), ("idp", "user"))
 
-    def get_provider(self):
+    def get_provider(self) -> Provider:
         from sentry.identity import get
 
         return get(self.idp.type)

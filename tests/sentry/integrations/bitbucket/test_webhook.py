@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
-
-from django.utils import timezone
 
 from fixtures.bitbucket import PUSH_EVENT_EXAMPLE
 from sentry.integrations.bitbucket.webhook import PROVIDER_NAME
 from sentry.models import Commit, CommitAuthor, Repository
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 BAD_IP = "109.111.111.10"
@@ -67,11 +65,13 @@ class WebhookBaseTest(APITestCase):
         )
 
 
+@region_silo_test(stable=True)
 class WebhookGetTest(WebhookBaseTest):
     def test_get_request_fails(self):
         self.get_error_response(self.organization_id, status_code=405)
 
 
+@region_silo_test(stable=True)
 class WebhookTest(WebhookBaseTest):
     method = "post"
 
@@ -107,7 +107,7 @@ class WebhookTest(WebhookBaseTest):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class PushEventWebhookTest(WebhookBaseTest):
     method = "post"
 

@@ -14,6 +14,7 @@ class Referrer(Enum):
     ALERTRULESERIALIZER_TEST_QUERY = "alertruleserializer.test_query"
     API_ALERTS_ALERT_RULE_CHART_METRICS_ENHANCED = "api.alerts.alert-rule-chart.metrics-enhanced"
     API_ALERTS_ALERT_RULE_CHART = "api.alerts.alert-rule-chart"
+    API_ALERTS_CHARTCUTERIE = "api.alerts.chartcuterie"
     API_AUTH_TOKEN_EVENTS_METRICS_ENHANCED_PRIMARY = (
         "api.auth-token.events.metrics-enhanced.primary"
     )
@@ -45,10 +46,12 @@ class Referrer(Enum):
         "api.dashboards.widget.line-chart.metrics-enhanced"
     )
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
-    API_DASHBOARDS_WORLDMAPWIDGET = "api.dashboards.worldmapwidget"
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
     API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD = (
         "api.discover.total-sum-transaction-duration-field"
+    )
+    API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD_PRIMARY = (
+        "api.discover.total-sum-transaction-duration-field.primary"
     )
     API_DISCOVER_DAILY_CHART = "api.discover.daily-chart"
     API_DISCOVER_DAILYTOP5_CHART_FIND_TOPN = "api.discover.dailytop5-chart.find-topn"
@@ -96,7 +99,6 @@ class Referrer(Enum):
         "api.organization-events-facets-performance.top-tags.tag_values"
     )
     API_ORGANIZATION_EVENTS_FACETS_TOP_TAGS = "api.organization-events-facets.top-tags"
-    API_ORGANIZATION_EVENTS_GEO = "api.organization-events-geo"
     API_ORGANIZATION_EVENTS_HISTOGRAM_MIN_MAX_METRICS_ENHANCED_PRIMARY = (
         "api.organization-events-histogram-min-max.metrics-enhanced.primary"
     )
@@ -132,6 +134,7 @@ class Referrer(Enum):
     )
     API_ORGANIZATION_EVENTS_V2 = "api.organization-events-v2"
     API_ORGANIZATION_EVENTS = "api.organization-events"
+    API_ORGANIZATION_METRICS_ESTIMATION_STATS = "api.organization-metrics-estimation-stats"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
     API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
@@ -323,6 +326,7 @@ class Referrer(Enum):
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
     API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
     API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
+    API_PROFILING_PERFORMANCE_CHANGE_EXPLORER = "api.profiling.performance-change-explorer"
     API_PROFILING_PROFILE_SUMMARY_CHART = "api.profiling.profile-summary-chart"
     API_PROFILING_PROFILE_SUMMARY_TOTALS = "api.profiling.profile-summary-totals"
     API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
@@ -336,9 +340,38 @@ class Referrer(Enum):
     API_PROFILING_SUSPECT_FUNCTIONS_TRANSACTIONS = "api.profiling.suspect-functions.transactions"
     API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS = "api.profiling.function-trends.top-events"
     API_PROFILING_FUNCTION_TRENDS_STATS = "api.profiling.function-trends.stats"
+    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR = "api.profiling.functions.statistical-detector"
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
+
+    API_STARFISH_ENDPOINT_LIST = "api.starfish.endpoint-list"
+    API_STARFISH_GET_SPAN_ACTIONS = "api.starfish.get-span-actions"
+    API_STARFISH_GET_SPAN_DOMAINS = "api.starfish.get-span-domains"
+    API_STARFISH_GET_SPAN_OPERATIONS = "api.starfish.get-span-operations"
+    API_STARFISH_SIDEBAR_SPAN_METRICS = "api.starfish.sidebar-span-metrics"
+    API_STARFISH_SPAN_CATEGORY_BREAKDOWN = "api.starfish-web-service.span-category-breakdown"
+    API_STARFISH_SPAN_LIST = "api.starfish.use-span-list"
+    API_STARFISH_SPAN_LIST_PRIMARY = "api.starfish.use-span-list.primary"
+    API_STARFISH_SPAN_SUMMARY_P95 = "api.starfish.span-summary-panel-samples-table-p95"
+    API_STARFISH_SPAN_SUMMARY_PAGE = "api.starfish.span-summary-page-metrics"
+    API_STARFISH_SPAN_SUMMARY_PANEL = "api.starfish.span-summary-panel-metrics"
+    API_STARFISH_SPAN_SUMMARY_TRANSACTIONS = (
+        "api.starfish.span-summary-panel-samples-table-transactions"
+    )
+    API_STARFISH_SPAN_TRANSACTION_METRICS = "api.starfish.span-transaction-metrics"
+    API_STARFISH_TOTAL_TIME = "api.starfish-web-service.total-time"
+    API_STARFISH_HOMEPAGE_CHART = "api.starfish-web-service.homepage-chart"
+
+    API_STARFISH_SPAN_CATEGORY_BREAKDOWN_CHART = (
+        "api.starfish-web-service.span-category-breakdown-timeseries"
+    )
+    API_STARFISH_ENDPOINT_OVERVIEW = "api.starfish-web-service.starfish-endpoint-overview"
+    API_STARFISH_HTTP_ERROR_COUNT = "api.starfish.get-http-error-count"
+    API_STARFISH_SPAN_SUMMARY_PAGE_CHART = "api.starfish.span-summary-page-metrics-chart"
+    API_STARFISH_SIDEBAR_SPAN_METRICS_CHART = "api.starfish.sidebar-span-metrics-chart"
+    API_STARFISH_SPAN_TIME_CHARTS = "api.starfish.span-time-charts"
+
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"
@@ -419,6 +452,7 @@ class Referrer(Enum):
     GETSENTRY_PROMOTION_MOBILE_PERFORMANCE_ADOPTION_CHECK_ELIGIBLE = (
         "getsentry.promotion.mobile_performance_adoption.check_eligible"
     )
+    GITHUB_PR_COMMENT_BOT = "tasks.github_comment"
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
     GROUP_GET_LATEST = "Group.get_latest"
     GROUP_UNHANDLED_FLAG = "group.unhandled-flag"

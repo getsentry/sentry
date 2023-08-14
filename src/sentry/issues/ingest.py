@@ -7,7 +7,7 @@ from typing import Any, Mapping, Optional, Tuple, TypedDict, cast
 
 import sentry_sdk
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry import eventstream
 from sentry.constants import LOG_LEVELS_MAP
@@ -125,6 +125,8 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_type = get_event_type(event.data)
     event_metadata = dict(event_type.get_metadata(event.data))
     event_metadata = dict(event_metadata)
+    # Don't clobber existing metadata
+    event_metadata.update(event.get_event_metadata())
     event_metadata["title"] = occurrence.issue_title
     event_metadata["value"] = occurrence.subtitle
 
@@ -180,7 +182,9 @@ def save_issue_from_occurrence(
             "issues.save_issue_from_occurrence.transaction",
             tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
             sample_rate=1.0,
-        ) as metric_tags, transaction.atomic():
+        ) as metric_tags, transaction.atomic(
+            router.db_for_write(GroupHash)
+        ):
             group, is_new = _save_grouphash_and_group(
                 project, event, new_grouphash, **cast(Mapping[str, Any], issue_kwargs)
             )

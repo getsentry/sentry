@@ -37,6 +37,7 @@ settings.CELERY_IMPORTS += (
     "sentry.tasks.integrations.create_comment",
     "sentry.tasks.integrations.github.pr_comment",
     "sentry.tasks.integrations.kick_off_status_syncs",
+    "sentry.tasks.integrations.link_all_repos",
     "sentry.tasks.integrations.migrate_issues",
     "sentry.tasks.integrations.migrate_repo",
     "sentry.tasks.integrations.sync_assignee_outbound_impl",

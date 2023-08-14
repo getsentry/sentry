@@ -1,46 +1,41 @@
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 
 const EventsRequest = withApi(_EventsRequest);
 
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
+import {RateUnits} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {formatRate} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
-import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
-import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
+import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+import {BaseStarfishViewProps} from 'sentry/views/starfish/views/webServiceView/starfishLanding';
 
 import EndpointList from './endpointList';
 
-type BasePerformanceViewProps = {
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-};
-
-export function StarfishView(props: BasePerformanceViewProps) {
+export function StarfishView(props: BaseStarfishViewProps) {
   const {organization, eventView} = props;
   const pageFilter = usePageFilters();
   const theme = useTheme();
+  const [isLoading, setIsLoading] = useState(true);
 
   function renderCharts() {
     const query = new MutableSearch([
@@ -54,17 +49,20 @@ export function StarfishView(props: BasePerformanceViewProps) {
         query={query.formatString()}
         includePrevious={false}
         partial
-        interval={getInterval(pageFilter.selection.datetime, 'low')}
+        interval={getInterval(
+          pageFilter.selection.datetime,
+          STARFISH_CHART_INTERVAL_FIDELITY
+        )}
         includeTransformedData
         limit={1}
         environment={eventView.environment}
         project={eventView.project}
         period={eventView.statsPeriod}
-        referrer="starfish-homepage-charts"
+        referrer="api.starfish-web-service.homepage-charts"
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis={['tps()', 'http_error_count()', 'p95(transaction.duration)']}
+        yAxis={['tps()', 'http_error_count()', 'avg(transaction.duration)']}
         dataset={DiscoverDatasets.METRICS}
       >
         {({loading, results}) => {
@@ -88,15 +86,14 @@ export function StarfishView(props: BasePerformanceViewProps) {
             data: results[2].data,
           };
 
+          setIsLoading(loading);
+
           return (
             <Fragment>
-              <MiniChartPanel title={DataTitles.p95}>
+              <MiniChartPanel title={DataTitles.avg}>
                 <Chart
-                  statsPeriod={eventView.statsPeriod}
                   height={71}
                   data={[percentileData]}
-                  start={eventView.start as string}
-                  end={eventView.end as string}
                   loading={loading}
                   utc={false}
                   grid={{
@@ -107,7 +104,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
                   }}
                   definedAxisTicks={2}
                   isLineChart
-                  chartColors={[P95_COLOR]}
+                  chartColors={[AVG_COLOR]}
                   tooltipFormatterOptions={{
                     valueFormatter: value =>
                       tooltipFormatterUsingAggregateOutputType(value, 'duration'),
@@ -116,11 +113,8 @@ export function StarfishView(props: BasePerformanceViewProps) {
               </MiniChartPanel>
               <MiniChartPanel title={DataTitles.throughput}>
                 <Chart
-                  statsPeriod={eventView.statsPeriod}
                   height={71}
                   data={[throughputData]}
-                  start=""
-                  end=""
                   loading={loading}
                   utc={false}
                   grid={{
@@ -130,23 +124,21 @@ export function StarfishView(props: BasePerformanceViewProps) {
                     bottom: '0',
                   }}
                   aggregateOutputFormat="rate"
+                  rateUnit={RateUnits.PER_SECOND}
                   definedAxisTicks={2}
                   stacked
                   isLineChart
                   chartColors={[THROUGHPUT_COLOR]}
                   tooltipFormatterOptions={{
-                    valueFormatter: value => formatThroughput(value),
+                    valueFormatter: value => formatRate(value, RateUnits.PER_SECOND),
                   }}
                 />
               </MiniChartPanel>
 
               <MiniChartPanel title={DataTitles.errorCount}>
                 <Chart
-                  statsPeriod={eventView.statsPeriod}
                   height={71}
                   data={[errorsData]}
-                  start={eventView.start as string}
-                  end={eventView.end as string}
                   loading={loading}
                   utc={false}
                   grid={{
@@ -167,7 +159,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
     );
   }
 
-  useSynchronizeCharts();
+  useSynchronizeCharts([isLoading]);
 
   return (
     <div data-test-id="starfish-view">

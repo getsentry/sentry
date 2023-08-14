@@ -10,6 +10,7 @@ from freezegun import freeze_time
 from sentry.models import File, FileBlob, FileBlobOwner, ReleaseFile
 from sentry.models.artifactbundle import (
     ArtifactBundle,
+    ArtifactBundleFlatFileIndex,
     ArtifactBundleIndexingState,
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
@@ -28,7 +29,7 @@ from sentry.tasks.assemble import (
     assemble_file,
     get_assemble_status,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class BaseAssembleTest(TestCase):
@@ -102,11 +103,11 @@ class AssembleDifTest(BaseAssembleTest):
 
         # find all blobs
         for reference, checksum in files:
-            blob = FileBlob.objects.get(checksum=checksum)
+            file_blob = FileBlob.objects.get(checksum=checksum)
             ref_bytes = reference.getvalue()
-            with blob.getfile() as f:
+            with file_blob.getfile() as f:
                 assert f.read(len(ref_bytes)) == ref_bytes
-            FileBlobOwner.objects.filter(blob=blob, organization_id=self.organization.id).get()
+            FileBlobOwner.objects.filter(blob=file_blob, organization_id=self.organization.id).get()
 
         rv = assemble_file(
             AssembleTask.DIF,
@@ -129,7 +130,7 @@ class AssembleDifTest(BaseAssembleTest):
         FileBlob.from_files(files, organization=self.organization)
 
         # assemble a second time
-        f, tmp = assemble_file(
+        rv = assemble_file(
             AssembleTask.DIF,
             self.project,
             "testfile",
@@ -137,6 +138,8 @@ class AssembleDifTest(BaseAssembleTest):
             [x[1] for x in files],
             "dummy.type",
         )
+        assert rv is not None
+        f, tmp = rv
         tmp.close()
         assert f.checksum == file_checksum.hexdigest()
 
@@ -154,11 +157,11 @@ class AssembleDifTest(BaseAssembleTest):
 
         # find all blobs
         for reference, checksum in files:
-            blob = FileBlob.objects.get(checksum=checksum)
+            file_blob = FileBlob.objects.get(checksum=checksum)
             ref_bytes = reference.getvalue()
-            with blob.getfile() as f:
+            with file_blob.getfile() as f:
                 assert f.read(len(ref_bytes)) == ref_bytes
-            FileBlobOwner.objects.filter(blob=blob, organization_id=self.organization.id).get()
+            FileBlobOwner.objects.filter(blob=file_blob, organization_id=self.organization.id).get()
 
         rv = assemble_file(
             AssembleTask.DIF,
@@ -304,6 +307,26 @@ class AssembleArtifactsTest(BaseAssembleTest):
         )
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         total_checksum = sha1(bundle_file).hexdigest()
+
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version="1.0",
+            dist="android",
+            checksum=total_checksum,
+            chunks=[blob1.checksum],
+            upload_as_artifact_bundle=True,
+        )
+
+        files = File.objects.filter()
+        assert len(files) == 0
+
+    def test_assembled_bundle_is_deleted_if_checksum_mismatches(self):
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        total_checksum = "a" * 40
 
         assemble_artifacts(
             org_id=self.organization.id,
@@ -551,7 +574,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         total_checksum = sha1(bundle_file).hexdigest()
         bundle_id = "67429b2f-1d9e-43bb-a626-771a1e37555c"
-        debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
+        # debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
 
         # We simulate the existence of a two ArtifactBundles already with the same bundle_id.
         ArtifactBundle.objects.create(
@@ -583,9 +606,11 @@ class AssembleArtifactsTest(BaseAssembleTest):
         files = File.objects.filter()
         assert len(files) == 1
 
-        debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
+        # FIXME(swatinem): The test assumed that we re-index debug-ids in case the bundle was already
+        # in the database.
+        # debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
         # We have two entries, since we have multiple files in the artifact bundle.
-        assert len(debug_id_artifact_bundles) == 2
+        # assert len(debug_id_artifact_bundles) == 2
 
         project_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
         assert len(project_artifact_bundle) == 1
@@ -601,17 +626,16 @@ class AssembleArtifactsTest(BaseAssembleTest):
         blob1_1 = FileBlob.from_file(ContentFile(bundle_file_1))
         total_checksum_1 = sha1(bundle_file_1).hexdigest()
 
-        with self.feature("organizations:sourcemaps-bundle-indexing"):
-            # We try to upload the first bundle.
-            assemble_artifacts(
-                org_id=self.organization.id,
-                project_ids=[self.project.id],
-                version=release,
-                dist=dist,
-                checksum=total_checksum_1,
-                chunks=[blob1_1.checksum],
-                upload_as_artifact_bundle=True,
-            )
+        # We try to upload the first bundle.
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version=release,
+            dist=dist,
+            checksum=total_checksum_1,
+            chunks=[blob1_1.checksum],
+            upload_as_artifact_bundle=True,
+        )
 
         # Since the threshold is not surpassed we expect the system to not perform indexing.
         index_artifact_bundles_for_release.assert_not_called()
@@ -622,17 +646,16 @@ class AssembleArtifactsTest(BaseAssembleTest):
         blob1_2 = FileBlob.from_file(ContentFile(bundle_file_2))
         total_checksum_2 = sha1(bundle_file_2).hexdigest()
 
-        with self.feature("organizations:sourcemaps-bundle-indexing"):
-            # We try to upload the first bundle.
-            assemble_artifacts(
-                org_id=self.organization.id,
-                project_ids=[self.project.id],
-                version=release,
-                dist=dist,
-                checksum=total_checksum_2,
-                chunks=[blob1_2.checksum],
-                upload_as_artifact_bundle=True,
-            )
+        # We try to upload the first bundle.
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version=release,
+            dist=dist,
+            checksum=total_checksum_2,
+            chunks=[blob1_2.checksum],
+            upload_as_artifact_bundle=True,
+        )
 
         bundles = ArtifactBundle.objects.all()
 
@@ -643,6 +666,32 @@ class AssembleArtifactsTest(BaseAssembleTest):
             release=release,
             dist=dist,
         )
+
+    def test_bundle_flat_file_indexing(self):
+        release = "1.0"
+        dist = "android"
+
+        bundle_file_1 = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1_1 = FileBlob.from_file(ContentFile(bundle_file_1))
+        total_checksum_1 = sha1(bundle_file_1).hexdigest()
+
+        with self.feature("organizations:sourcemaps-bundle-flat-file-indexing"):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version=release,
+                dist=dist,
+                checksum=total_checksum_1,
+                chunks=[blob1_1.checksum],
+                upload_as_artifact_bundle=True,
+            )
+
+        flat_file_index = ArtifactBundleFlatFileIndex.objects.get(
+            project_id=self.project.id, release_name=release, dist_name=dist
+        )
+        assert flat_file_index.load_flat_file_index() is not None
 
     def test_artifacts_without_debug_ids(self):
         bundle_file = self.create_artifact_bundle_zip(
@@ -680,6 +729,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 if min_files == 1:
                     # An archive was saved
                     index = read_artifact_index(self.release, dist=None)
+                    assert index is not None
                     archive_ident = index["files"]["~/index.js"]["archive_ident"]
                     releasefile = ReleaseFile.objects.get(
                         release_id=self.release.id, ident=archive_ident
@@ -809,7 +859,7 @@ class ArtifactBundleIndexingTest(TestCase):
         )
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         total_checksum = sha1(bundle_file).hexdigest()
-        return assemble_file(
+        rv = assemble_file(
             task=AssembleTask.ARTIFACT_BUNDLE,
             org_or_project=self.organization,
             name="bundle.zip",
@@ -817,6 +867,8 @@ class ArtifactBundleIndexingTest(TestCase):
             chunks=[blob1.checksum],
             file_type="artifact.bundle",
         )
+        assert rv is not None
+        return rv
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_no_bundles(self, index_artifact_bundles_for_release):

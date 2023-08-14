@@ -582,7 +582,7 @@ function RuleNode({
                       {...deps}
                       sentryAppInstallationUuid={sentryAppInstallationUuid}
                       config={node.formFields as SchemaFormConfig}
-                      appName={node.prompt}
+                      appName={node.prompt ?? node.label}
                       onSubmitSuccess={updateParentFromSentryAppRule}
                       resetValues={data}
                     />

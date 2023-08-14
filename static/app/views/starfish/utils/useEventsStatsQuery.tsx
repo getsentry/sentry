@@ -1,4 +1,4 @@
-import {EventsStats, MultiSeriesEventsStats} from 'sentry/types';
+import {MultiSeriesEventsStats} from 'sentry/types';
 import EventView, {encodeSort} from 'sentry/utils/discover/eventView';
 import {
   DiscoverQueryProps,
@@ -14,20 +14,19 @@ import {
 export function useEventsStatsQuery({
   eventView,
   enabled,
-  initialData,
   referrer,
+  initialData,
+  excludeOther = false,
 }: {
   eventView: EventView;
   enabled?: boolean;
-  initialData?: any;
+  excludeOther?: boolean;
+  initialData?: MultiSeriesEventsStats;
   referrer?: string;
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const {isLoading, data, isError} = useGenericDiscoverQuery<
-    EventsStats | MultiSeriesEventsStats,
-    DiscoverQueryProps
-  >({
+  const result = useGenericDiscoverQuery<MultiSeriesEventsStats, DiscoverQueryProps>({
     route: 'events-stats',
     eventView,
     location,
@@ -36,7 +35,7 @@ export function useEventsStatsQuery({
       ...eventView.getEventsAPIPayload(location),
       yAxis: eventView.yAxis,
       topEvents: eventView.topEvents,
-      excludeOther: 0,
+      excludeOther: excludeOther === true ? 1 : 0,
       partial: 1,
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
@@ -50,9 +49,6 @@ export function useEventsStatsQuery({
     },
     referrer,
   });
-  return {
-    isLoading,
-    data: isLoading && initialData ? initialData : data,
-    isError,
-  };
+
+  return {...result, data: result.isLoading ? initialData : result.data};
 }

@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import logging
 import pickle
 import time
 from copy import deepcopy
 from datetime import datetime, timezone
-from typing import Dict, List, MutableMapping, Sequence, Union
+from typing import Any, Dict, List, MutableMapping, Sequence, Union
 from unittest.mock import Mock, call
 
 import pytest
@@ -13,7 +15,7 @@ from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.ratelimits.cardinality import CardinalityLimiter
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
-from sentry.sentry_metrics.consumers.indexer.batch import invalid_metric_tags, valid_metric_name
+from sentry.sentry_metrics.consumers.indexer.batch import valid_metric_name
 from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MetricsBatchBuilder
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.indexer.limiters.cardinality import (
@@ -45,13 +47,13 @@ def update_sentry_settings(settings):
 def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Message) -> None:
     assert actual.committable == expected.committable
 
-    actual_payload: KafkaPayload = actual.payload
-    expected_payload: KafkaPayload = expected.payload
+    actual_payload = actual.payload
+    expected_payload = expected.payload
 
     assert actual_payload.key == expected_payload.key
 
     actual_headers_without_mapping_sources = [
-        (k, v) for k, v in actual_payload.headers if k != "mapping_sources"
+        (k, v.encode()) for k, v in actual_payload.headers if k != "mapping_sources"
     ]
     assert actual_headers_without_mapping_sources == expected_payload.headers
 
@@ -223,41 +225,41 @@ def test_metrics_batch_builder():
 
 
 ts = int(datetime.now(tz=timezone.utc).timestamp())
-counter_payload = {
+counter_payload: dict[str, Any] = {
     "name": SessionMRI.SESSION.value,
     "tags": {
         "environment": "production",
         "session.status": "init",
     },
     "timestamp": ts,
-    "type": "c",
+    "type": b"c",
     "value": 1.0,
     "org_id": 1,
     "project_id": 3,
     "retention_days": 90,
 }
-distribution_payload = {
+distribution_payload: dict[str, Any] = {
     "name": SessionMRI.RAW_DURATION.value,
     "tags": {
         "environment": "production",
         "session.status": "healthy",
     },
     "timestamp": ts,
-    "type": "d",
+    "type": b"d",
     "value": [4, 5, 6],
     "org_id": 1,
     "project_id": 3,
     "retention_days": 90,
 }
 
-set_payload = {
+set_payload: dict[str, Any] = {
     "name": SessionMRI.ERROR.value,
     "tags": {
         "environment": "production",
         "session.status": "errored",
     },
     "timestamp": ts,
-    "type": "s",
+    "type": b"s",
     "value": [3],
     "org_id": 1,
     "project_id": 3,
@@ -433,9 +435,7 @@ def test_process_messages_invalid_messages(
                 KafkaPayload(
                     None,
                     json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
-                    [
-                        ("metric_type", "c"),
-                    ],
+                    [("metric_type", b"c")],
                 ),
                 expected_msg.committable,
             )
@@ -494,9 +494,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
                 KafkaPayload(
                     None,
                     json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
-                    [
-                        ("metric_type", "c"),
-                    ],
+                    [("metric_type", b"c")],
                 ),
                 expected_msg.value.partition,
                 expected_msg.value.offset,
@@ -562,17 +560,6 @@ def test_valid_metric_name() -> None:
     assert valid_metric_name("") is True
     assert valid_metric_name("blah") is True
     assert valid_metric_name("invalid" * 200) is False
-
-
-def test_invalid_metric_tags() -> None:
-    bad_tag = "invalid" * 200
-    tags = {"environment": "", "release": "good_tag"}
-    assert invalid_metric_tags(tags) == []
-    assert invalid_metric_tags(tags) == []
-    tags["release"] = bad_tag
-    assert invalid_metric_tags(tags) == [bad_tag]
-    tags["release"] = None
-    assert invalid_metric_tags(tags) == [None]
 
 
 def test_process_messages_is_pickleable():

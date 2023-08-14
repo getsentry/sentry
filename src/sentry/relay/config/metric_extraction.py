@@ -1,23 +1,26 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, List, Optional, Sequence, Tuple, TypedDict, Union, cast
+from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, TypedDict, Union
 
-from sentry import features
+from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.constants import DataCategory
 from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models import (
+    DashboardWidgetQuery,
+    DashboardWidgetTypes,
     Project,
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
     MetricSpec,
     OndemandMetricSpec,
     RuleCondition,
-    is_on_demand_snuba_query,
+    is_on_demand_metric_query,
 )
 from sentry.snuba.models import SnubaQuery
 
@@ -28,9 +31,12 @@ logger = logging.getLogger(__name__)
 # Version of the metric extraction config.
 _METRIC_EXTRACTION_VERSION = 1
 
-# Maximum number of custom metrics that can be extracted for alert rules with
+# Maximum number of custom metrics that can be extracted for alerts and widgets with
 # advanced filter expressions.
-_MAX_ALERT_METRICS = 100
+_MAX_ON_DEMAND_ALERTS = 50
+_MAX_ON_DEMAND_WIDGETS = 100
+
+HashMetricSpec = Tuple[str, MetricSpec]
 
 
 class MetricExtractionConfig(TypedDict):
@@ -46,29 +52,19 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
 
     This requires respective feature flags to be enabled. At the moment, metrics
     for the following models are extracted:
-     - Performance alert rules which advanced filter expressions.
+     - Performance alert rules with advanced filter expressions.
+     - On-demand metrics widgets.
     """
-
     if not features.has("organizations:on-demand-metrics-extraction", project.organization):
         return None
 
-    alerts = (
-        AlertRule.objects.fetch_for_project(project)
-        .filter(status=AlertRuleStatus.PENDING.value)
-        .select_related("snuba_query")
-    )
+    alert_specs = _get_alert_metric_specs(project)
+    widget_specs = _get_widget_metric_specs(project)
 
-    metrics: List[MetricSpec] = []
-    for alert in alerts:
-        if metric := convert_query_to_metric(alert.snuba_query):
-            metrics.append(metric)
+    metrics = _merge_metric_specs(alert_specs, widget_specs)
 
     if not metrics:
         return None
-
-    if len(metrics) > _MAX_ALERT_METRICS:
-        logger.error("Too many custom alert metrics for project")
-        metrics = metrics[:_MAX_ALERT_METRICS]
 
     return {
         "version": _METRIC_EXTRACTION_VERSION,
@@ -76,27 +72,179 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     }
 
 
-def convert_query_to_metric(snuba_query: SnubaQuery) -> Optional[MetricSpec]:
+def _get_alert_metric_specs(project: Project) -> List[HashMetricSpec]:
+    alert_rules = (
+        AlertRule.objects.fetch_for_project(project)
+        .filter(
+            organization=project.organization,
+            status=AlertRuleStatus.PENDING.value,
+            snuba_query__dataset=Dataset.PerformanceMetrics.value,
+        )
+        .select_related("snuba_query")
+    )
+
+    specs = []
+    for alert in alert_rules:
+        alert_snuba_query = alert.snuba_query
+        if result := _convert_snuba_query_to_metric(alert.snuba_query):
+            _log_on_demand_metric_spec(
+                project_id=project.id,
+                spec_for="alert",
+                spec=result,
+                id=alert.id,
+                field=alert_snuba_query.aggregate,
+                query=alert_snuba_query.query,
+            )
+            specs.append(result)
+
+    max_alert_specs = options.get("on_demand.max_alert_specs") or _MAX_ON_DEMAND_ALERTS
+    if len(specs) > max_alert_specs:
+        logger.error(
+            "Too many (%s) on demand metric alerts for project %s", len(specs), project.slug
+        )
+        specs = specs[:max_alert_specs]
+
+    return specs
+
+
+def _get_widget_metric_specs(project: Project) -> List[HashMetricSpec]:
+    if not features.has(
+        "organizations:on-demand-metrics-extraction-experimental", project.organization
+    ):
+        return []
+
+    # fetch all queries of all on demand metrics widgets of this organization
+    widget_queries = DashboardWidgetQuery.objects.filter(
+        widget__dashboard__organization=project.organization,
+        widget__widget_type=DashboardWidgetTypes.DISCOVER,
+    )
+
+    specs = []
+    for widget in widget_queries:
+        for result in _convert_widget_query_to_metric(project, widget):
+            specs.append(result)
+
+    max_widget_specs = options.get("on_demand.max_widget_specs") or _MAX_ON_DEMAND_WIDGETS
+    if len(specs) > max_widget_specs:
+        logger.error(
+            "Too many (%s) on demand metric widgets for project %s", len(specs), project.slug
+        )
+        specs = specs[:max_widget_specs]
+
+    return specs
+
+
+def _merge_metric_specs(
+    alert_specs: List[HashMetricSpec], widget_specs: List[HashMetricSpec]
+) -> List[MetricSpec]:
+    # We use a dict so that we can deduplicate metrics with the same hash.
+    metrics: Dict[str, MetricSpec] = {}
+    for query_hash, spec in alert_specs + widget_specs:
+        already_present = metrics.get(query_hash)
+        if already_present and already_present != spec:
+            logger.error(
+                "Duplicate metric spec found for hash %s with different specs: %s != %s",
+                query_hash,
+                already_present,
+                spec,
+            )
+            continue
+
+        metrics[query_hash] = spec
+
+    return [metric for metric in metrics.values()]
+
+
+def _convert_snuba_query_to_metric(snuba_query: SnubaQuery) -> Optional[HashMetricSpec]:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
-    returns a MetricSpec for the query. Otherwise, returns None.
+    returns a tuple of (hash, MetricSpec) for the query. Otherwise, returns None.
     """
+    return _convert_aggregate_and_query_to_metric(
+        snuba_query.dataset,
+        snuba_query.aggregate,
+        snuba_query.query,
+    )
+
+
+def _convert_widget_query_to_metric(
+    project: Project,
+    widget_query: DashboardWidgetQuery,
+) -> Sequence[HashMetricSpec]:
+    """
+    Converts a passed metrics widget query to one or more MetricSpecs.
+    Widget query can result in multiple metric specs if it selects multiple fields
+    """
+    metrics_specs: List[HashMetricSpec] = []
+
+    if not widget_query.aggregates:
+        return metrics_specs
+
+    for aggregate in widget_query.aggregates:
+        if result := _convert_aggregate_and_query_to_metric(
+            # there is an internal check to make sure we extract metrics oly for performance dataset
+            # however widgets do not have a dataset field, so we need to pass it explicitly
+            Dataset.PerformanceMetrics.value,
+            aggregate,
+            widget_query.conditions,
+        ):
+            _log_on_demand_metric_spec(
+                project_id=project.id,
+                spec_for="widget",
+                spec=result,
+                id=widget_query.id,
+                field=aggregate,
+                query=widget_query.conditions,
+            )
+            metrics_specs.append(result)
+
+    return metrics_specs
+
+
+def _convert_aggregate_and_query_to_metric(
+    dataset: str, aggregate: str, query: str
+) -> Optional[HashMetricSpec]:
     try:
-        if not is_on_demand_snuba_query(snuba_query):
+        if not is_on_demand_metric_query(dataset, aggregate, query):
             return None
 
-        spec = OndemandMetricSpec(snuba_query.aggregate, snuba_query.query)
+        spec = OndemandMetricSpec(aggregate, query)
+        query_hash = spec.query_hash()
 
-        return {
+        return query_hash, {
             "category": DataCategory.TRANSACTION.api_name(),
             "mri": spec.mri,
             "field": spec.field,
             "condition": spec.condition(),
-            "tags": [{"key": QUERY_HASH_KEY, "value": spec.query_hash()}],
+            "tags": [{"key": QUERY_HASH_KEY, "value": query_hash}],
         }
     except Exception as e:
         logger.error(e, exc_info=True)
         return None
+
+
+def _log_on_demand_metric_spec(
+    project_id: int,
+    spec_for: Literal["alert", "widget"],
+    spec: HashMetricSpec,
+    id: int,
+    field: str,
+    query: str,
+) -> None:
+    spec_query_hash, spec_dict = spec
+
+    logger.info(
+        "on_demand_metrics.on_demand_metric_spec",
+        extra={
+            "project_id": project_id,
+            f"{spec_for}.id": id,
+            f"{spec_for}.field": field,
+            f"{spec_for}.query": query,
+            "spec_for": spec_for,
+            "spec_query_hash": spec_query_hash,
+            "spec": spec_dict,
+        },
+    )
 
 
 # CONDITIONAL TAGGING
@@ -172,7 +320,7 @@ def get_metric_conditional_tagging_rules(
     except ProjectTransactionThreshold.DoesNotExist:
         rules.extend(_threshold_to_rules(_DEFAULT_THRESHOLD, []))
 
-    rules.extend(_HISTOGRAM_OUTLIER_RULES)
+    rules.extend(HISTOGRAM_OUTLIER_RULES)
 
     return rules
 
@@ -189,10 +337,10 @@ def _threshold_to_rules(
             "inner": [
                 {
                     "op": "gt",
-                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[cast(int, threshold.metric)],
+                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[threshold.metric],
                     # The frustration threshold is always four times the threshold
                     # (see https://docs.sentry.io/product/performance/metrics/#apdex)
-                    "value": cast(int, threshold.threshold) * 4,
+                    "value": threshold.threshold * 4,
                 },
                 *extra_conditions,
             ],
@@ -207,7 +355,7 @@ def _threshold_to_rules(
             "inner": [
                 {
                     "op": "gt",
-                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[cast(int, threshold.metric)],
+                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[threshold.metric],
                     "value": threshold.threshold,
                 },
                 *extra_conditions,
@@ -762,4 +910,4 @@ def _produce_histogram_outliers(query_results: Any) -> Sequence[MetricConditiona
     return rules
 
 
-_HISTOGRAM_OUTLIER_RULES = _produce_histogram_outliers(_HISTOGRAM_OUTLIERS_QUERY_RESULTS)
+HISTOGRAM_OUTLIER_RULES = _produce_histogram_outliers(_HISTOGRAM_OUTLIERS_QUERY_RESULTS)

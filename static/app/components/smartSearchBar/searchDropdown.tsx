@@ -349,9 +349,6 @@ function DropdownItem({
     children = (
       <RecommendedItem>
         <RecommendedItemTitle>{item.title}</RecommendedItemTitle>
-        {item.desc && (
-          <RecommendedItemDescription>{item.desc}</RecommendedItemDescription>
-        )}
       </RecommendedItem>
     );
   } else {
@@ -663,10 +660,4 @@ const RecommendedItem = styled('div')`
 
 const RecommendedItemTitle = styled('div')`
   ${p => p.theme.overflowEllipsis}
-`;
-
-const RecommendedItemDescription = styled('div')`
-  ${p => p.theme.overflowEllipsis}
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
 `;

@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.core.cache import cache
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -25,11 +25,11 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class FetchForOrganizationTest(TestCase):
     def test_empty(self):
         incidents = Incident.objects.fetch_for_organization(self.organization, [self.project])
@@ -316,7 +316,7 @@ class IncidentCreationTest(TestCase):
                 # This incident will take the identifier we already fetched and
                 # use it, which will cause the database to throw an integrity
                 # error.
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(Incident)):
                     incident = Incident.objects.create(
                         self.organization,
                         status=IncidentStatus.OPEN.value,
@@ -390,7 +390,7 @@ class IncidentCurrentEndDateTest(unittest.TestCase):
         assert incident.current_end_date == timezone.now() - timedelta(minutes=10)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class AlertRuleFetchForOrganizationTest(TestCase):
     def test_empty(self):
         alert_rule = AlertRule.objects.fetch_for_organization(self.organization)

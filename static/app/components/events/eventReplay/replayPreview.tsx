@@ -9,7 +9,6 @@ import ListItem from 'sentry/components/list/listItem';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {IconPlay} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,34 +16,37 @@ import {Event} from 'sentry/types/event';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
   event: Event;
   orgSlug: string;
   replaySlug: string;
+  onClickOpenReplay?: () => void;
 };
 
-function ReplayPreview({orgSlug, replaySlug, event}: Props) {
+function ReplayPreview({orgSlug, replaySlug, event, onClickOpenReplay}: Props) {
   const routes = useRoutes();
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
     replaySlug,
   });
 
-  const eventTimestamp = event.dateCreated
-    ? Math.floor(new Date(event.dateCreated).getTime() / 1000) * 1000
+  const timeOfEvent = event.dateCreated ?? event.dateReceived;
+  const eventTimestampMs = timeOfEvent
+    ? Math.floor(new Date(timeOfEvent).getTime() / 1000) * 1000
     : 0;
 
   const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
 
   const initialTimeOffsetMs = useMemo(() => {
-    if (eventTimestamp && startTimestampMs) {
-      return relativeTimeInMs(eventTimestamp, startTimestampMs);
+    if (eventTimestampMs && startTimestampMs) {
+      return Math.abs(eventTimestampMs - startTimestampMs);
     }
 
     return 0;
-  }, [eventTimestamp, startTimestampMs]);
+  }, [eventTimestampMs, startTimestampMs]);
 
   if (fetchError) {
     const reasons = [
@@ -98,7 +100,7 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
   }
 
   const fullReplayUrl = {
-    pathname: `/organizations/${orgSlug}/replays/${replayId}/`,
+    pathname: normalizeUrl(`/organizations/${orgSlug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
       t_main: 'console',
@@ -117,7 +119,12 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
           <ReplayPlayer isPreview />
         </StaticPanel>
         <CTAOverlay>
-          <Button icon={<IconPlay />} priority="primary" to={fullReplayUrl}>
+          <Button
+            onClick={onClickOpenReplay}
+            icon={<IconPlay />}
+            priority="primary"
+            to={fullReplayUrl}
+          >
             {t('Open Replay')}
           </Button>
         </CTAOverlay>

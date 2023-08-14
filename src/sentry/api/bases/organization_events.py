@@ -293,6 +293,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             elif value in DURATION_UNITS:
                 units[key] = value
                 meta[key] = "duration"
+            elif value == "rate":
+                if key in ["eps()", "sps()", "tps()"]:
+                    units[key] = "1/second"
+                elif key in ["epm()", "spm()", "tpm()"]:
+                    units[key] = "1/minute"
+                else:
+                    units[key] = None
             elif value == "duration":
                 units[key] = "millisecond"
             else:
@@ -462,6 +469,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     "eps()": "eps(%d)" % rollup,
                     "tpm()": "tpm(%d)" % rollup,
                     "tps()": "tps(%d)" % rollup,
+                    "sps()": "sps(%d)" % rollup,
+                    "spm()": "spm(%d)" % rollup,
                 }
 
                 query_columns = [column_map.get(column, column) for column in columns]

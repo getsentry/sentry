@@ -1,13 +1,13 @@
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
+import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 // Configuration Start
 const replayIntegration = `
@@ -32,34 +32,37 @@ export const steps = ({
 } = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: tct(
-      'Configure your app automatically with the [wizardLink:Sentry wizard].',
-      {
-        wizardLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/#install" />
-        ),
-      }
+    description: (
+      <p>
+        {tct('Configure your app automatically with the [wizardLink:Sentry wizard].', {
+          wizardLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/#install" />
+          ),
+        })}
+      </p>
     ),
     configurations: [
       {
         language: 'bash',
-        code: `npx @sentry/wizard -i sveltekit`,
+        code: `npx @sentry/wizard@latest -i sveltekit`,
       },
     ],
   },
   {
     type: StepType.CONFIGURE,
     description: (
-      <ConfigureDescription>
+      <Fragment>
         {t(
           'The Sentry wizard will automatically patch your application to configure the Sentry SDK:'
         )}
         <List symbol="bullet">
           <ListItem>
             {tct(
-              'Create or update [code:src/hooks.client.js] and [code:src/hooks.server.js] with the default [code:Sentry.init] call and SvelteKit hooks handlers.',
+              'Create or update [hookClientCode:src/hooks.client.js] and [hookServerCode:src/hooks.server.js] with the default [sentryInitCode:Sentry.init] call and SvelteKit hooks handlers.',
               {
-                code: <code />,
+                hookClientCode: <code />,
+                hookServerCode: <code />,
+                sentryInitCode: <code />,
               }
             )}
           </ListItem>
@@ -73,34 +76,35 @@ export const steps = ({
           </ListItem>
           <ListItem>
             {tct(
-              'Create [code:.sentryclirc] and [code:sentry.properties] files with configuration for sentry-cli (which is used when automatically uploading source maps).',
+              'Create [sentryClircCode:.sentryclirc] and [sentryPropertiesCode:sentry.properties] files with configuration for sentry-cli (which is used when automatically uploading source maps).',
               {
-                code: <code />,
+                sentryClircCode: <code />,
+                sentryPropertiesCode: <code />,
               }
             )}
           </ListItem>
         </List>
-        <div>
+        <p>
           {tct('Alternatively, you can also [manualSetupLink:set up the SDK manually].', {
             manualSetupLink: (
               <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/" />
             ),
           })}
-        </div>
-      </ConfigureDescription>
+        </p>
+      </Fragment>
     ),
     configurations: [
       {
         description: (
-          <ConfigureDescription>
+          <Fragment>
             <strong>{t('Configure the Sentry SDK:')}</strong>
-            <div>
+            <p>
               {tct(
-                'To configure the Sentry SDK, edit the [code:Sentry.init] options in [code:hooks.(client|server).(js|ts)]:',
-                {code: <code />}
+                'To configure the Sentry SDK, edit the [sentryInitCode:Sentry.init] options in [hooksCode:hooks.(client|server).(js|ts)]:',
+                {hooksCode: <code />, sentryInitCode: <code />}
               )}
-            </div>
-          </ConfigureDescription>
+            </p>
+          </Fragment>
         ),
         language: 'javascript',
         code: `
@@ -156,17 +160,11 @@ export const nextSteps = [
 ];
 // Configuration End
 
-type Props = {
-  activeProductSelection: ProductSolution[];
-  dsn: string;
-  newOrg?: boolean;
-};
-
-export default function GettingStartedWithReact({
+export function GettingStartedWithSvelteKit({
   dsn,
-  activeProductSelection,
-  newOrg,
-}: Props) {
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
   let nextStepDocs = [...nextSteps];
@@ -200,13 +198,9 @@ export default function GettingStartedWithReact({
     <Layout
       steps={steps({sentryInitContent: sentryInitContent.join('\n')})}
       nextSteps={nextStepDocs}
-      newOrg={newOrg}
+      {...props}
     />
   );
 }
 
-const ConfigureDescription = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
+export default GettingStartedWithSvelteKit;

@@ -27,7 +27,7 @@ from sentry.snuba.entity_subscription import (
 )
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQuery
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
 
 pytestmark = pytest.mark.sentry_metrics
@@ -565,21 +565,17 @@ class EntitySubscriptionTestCase(TestCase):
                 extra_fields={"org_id": self.organization.id},
             )
             with patch(
-                "sentry.snuba.entity_subscription.PerformanceMetricsEntitySubscription.get_snql_aggregations"
-            ) as method:
+                "sentry.snuba.entity_subscription.PerformanceMetricsEntitySubscription.get_snql_aggregations",
                 # We have two aggregates on the metrics dataset but one with generic_metrics_sets and the other with
                 # generic_metrics_distributions.
-                method.return_value = [aggregate, "count_unique(user)"]
-                entity_subscription.get_snql_aggregations = method
-
+                return_value=[aggregate, "count_unique(user)"],
+            ):
                 with pytest.raises(IncompatibleMetricsQuery):
                     entity_subscription.build_query_builder(
                         "",
                         [self.project.id],
                         None,
-                        {
-                            "organization_id": self.organization.id,
-                        },
+                        {"organization_id": self.organization.id},
                     ).get_snql_query()
 
     def test_get_entity_subscription_for_events_dataset(self) -> None:

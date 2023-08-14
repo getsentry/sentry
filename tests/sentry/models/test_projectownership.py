@@ -1,17 +1,9 @@
-from sentry.models import (
-    ActorTuple,
-    GroupAssignee,
-    ProjectOwnership,
-    Repository,
-    Team,
-    User,
-    UserAvatar,
-    UserEmail,
-)
+from sentry.models import ActorTuple, GroupAssignee, Repository, Team, User, UserAvatar, UserEmail
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
+from sentry.models.projectownership import ProjectOwnership
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cache import cache
@@ -396,6 +388,7 @@ class ProjectOwnershipTestCase(TestCase):
         assert assignee.team_id == self.team.id
 
         # manually assign the issue to someone else
+        assert self.event.group is not None
         GroupAssignee.objects.assign(self.event.group, self.user)
 
         # ensure the issue was not reassigned

@@ -1,17 +1,18 @@
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Commit, Integration, Repository, ScheduledDeletion
+from sentry.models import Commit, RegionScheduledDeletion, Repository
 from sentry.services.hybrid_cloud import coerce_id_from
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.tasks.repository import repository_cascade_delete_on_hide
 
 
 class RepositorySerializer(serializers.Serializer):
@@ -20,6 +21,7 @@ class RepositorySerializer(serializers.Serializer):
             # XXX(dcramer): these are aliased, and we prefer 'active' over 'visible'
             ("visible", "visible"),
             ("active", "active"),
+            ("hidden", "hidden"),
         )
     )
     name = serializers.CharField(required=False)
@@ -53,32 +55,23 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         if result.get("status"):
             if result["status"] in ("visible", "active"):
                 update_kwargs["status"] = ObjectStatus.ACTIVE
+            elif result["status"] == "hidden":
+                update_kwargs["status"] = ObjectStatus.HIDDEN
             else:
                 raise NotImplementedError
         if result.get("integrationId"):
-            try:
-                integration = Integration.objects.get(
-                    id=result["integrationId"],
-                    organizationintegration__organization_id=coerce_id_from(organization),
-                )
-            except Integration.DoesNotExist:
+            integration = integration_service.get_integration(
+                integration_id=result["integrationId"], organization_id=coerce_id_from(organization)
+            )
+            if integration is None:
                 return Response({"detail": "Invalid integration id"}, status=400)
 
             update_kwargs["integration_id"] = integration.id
             update_kwargs["provider"] = f"integrations:{integration.provider}"
 
-        if (
-            features.has("organizations:integrations-custom-scm", organization, actor=request.user)
-            and repo.provider == "integrations:custom_scm"
-        ):
-            if result.get("name"):
-                update_kwargs["name"] = result["name"]
-            if result.get("url") is not None:
-                update_kwargs["url"] = result["url"] or None
-
         if update_kwargs:
             old_status = repo.status
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Repository)):
                 repo.update(**update_kwargs)
                 if (
                     old_status == ObjectStatus.PENDING_DELETION
@@ -86,6 +79,8 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 ):
                     repo.reset_pending_deletion_field_names()
                     repo.delete_pending_deletion_option()
+                elif repo.status == ObjectStatus.HIDDEN and old_status != repo.status:
+                    repository_cascade_delete_on_hide.apply_async(kwargs={"repo_id": repo.id})
 
         return Response(serialize(repo, request.user))
 
@@ -98,7 +93,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         except Repository.DoesNotExist:
             raise ResourceDoesNotExist
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Repository)):
             updated = Repository.objects.filter(
                 id=repo.id, status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED]
             ).update(status=ObjectStatus.PENDING_DELETION)
@@ -112,8 +107,8 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 repo.rename_on_pending_deletion()
 
                 if has_commits:
-                    ScheduledDeletion.schedule(repo, days=0, hours=1, actor=request.user)
+                    RegionScheduledDeletion.schedule(repo, days=0, hours=1, actor=request.user)
                 else:
-                    ScheduledDeletion.schedule(repo, days=0, actor=request.user)
+                    RegionScheduledDeletion.schedule(repo, days=0, actor=request.user)
 
         return Response(serialize(repo, request.user), status=202)

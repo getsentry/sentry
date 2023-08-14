@@ -122,8 +122,12 @@ class NotificationsService(RpcService):
         filter: NotificationSettingFilterArgs,
         as_user: Optional[RpcUser] = None,
         auth_context: Optional[AuthenticationContext] = None,
-        serializer: Optional[None] = None,
     ) -> List[OpaqueSerializedResponse]:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def remove_notification_settings_for_organization(self, *, organization_id: int) -> None:
         pass
 
 

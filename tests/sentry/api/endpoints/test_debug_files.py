@@ -6,7 +6,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from sentry.models import File, ProjectDebugFile, Release, ReleaseFile
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import region_silo_test
 
@@ -262,12 +262,8 @@ class DebugFilesUploadTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        first_uuid = None
-        last_uuid = None
         for i in range(25):
             last_uuid = str(uuid4())
-            if first_uuid is None:
-                first_uuid = last_uuid
             self._upload_proguard(url, last_uuid)
 
         # Test max 20 per page

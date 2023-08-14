@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from sentry.silo import SiloMode
 from sentry.testutils.helpers.api_gateway import ApiGatewayTestCase, verify_request_params
+from sentry.testutils.helpers.response import close_streaming_response
 from sentry.utils import json
 
 
@@ -17,7 +18,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
         headers = dict(example="this")
         responses.add_callback(
             responses.GET,
-            f"http://region1.testserver/organizations/{self.organization.slug}/region/",
+            f"http://region.internal.sentry.io/organizations/{self.organization.slug}/region/",
             verify_request_params(query_params, headers),
         )
 
@@ -27,7 +28,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
             resp = self.client.get(url, headers=headers)
         assert resp.status_code == 200, resp.content
-        resp_json = json.loads(b"".join(resp.streaming_content))
+        resp_json = json.loads(close_streaming_response(resp))
         assert resp_json["proxy"]
 
     @responses.activate
@@ -35,12 +36,12 @@ class ApiGatewayTest(ApiGatewayTestCase):
         """Test the logic of when a request should be proxied"""
         responses.add(
             responses.GET,
-            f"http://region1.testserver/organizations/{self.organization.slug}/region/",
+            f"http://region.internal.sentry.io/organizations/{self.organization.slug}/region/",
             json={"proxy": True},
         )
         responses.add(
             responses.GET,
-            f"http://region1.testserver/organizations/{self.organization.slug}/control/",
+            f"http://region.internal.sentry.io/organizations/{self.organization.slug}/control/",
             json={"proxy": True},
         )
 
@@ -54,7 +55,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
         with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
             resp = self.client.get(region_url)
             assert resp.status_code == 200
-            resp_json = json.loads(b"".join(resp.streaming_content))
+            resp_json = json.loads(close_streaming_response(resp))
             assert resp_json["proxy"]
 
             resp = self.client.get(control_url)

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
@@ -14,7 +17,8 @@ from sentry.models import (
     Repository,
 )
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.silo import SiloMode
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 FULL_SCOPES = ["vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
@@ -49,7 +53,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert metadata["domain_name"] == self.vsts_base_url
 
     def test_migrate_repositories(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             accessible_repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name=self.project_a["name"],
@@ -72,7 +76,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             self.assert_installation()
         integration = Integration.objects.get(provider="vsts")
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
             assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
 
@@ -339,7 +343,9 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         integration = VstsIntegration(model, self.organization.id)
 
         # test validation
-        data = {"sync_status_forward": {1: {"on_resolve": "", "on_unresolve": "UnresolvedStatus1"}}}
+        data: dict[str, Any] = {
+            "sync_status_forward": {1: {"on_resolve": "", "on_unresolve": "UnresolvedStatus1"}}
+        }
         with pytest.raises(IntegrationError):
             integration.update_organization_config(data)
 

@@ -2,10 +2,10 @@ import datetime
 import logging
 import uuid
 from copy import deepcopy
+from datetime import timezone
 from typing import Any, Dict, Optional, Sequence, Type
 
 import pytest
-import pytz
 from jsonschema import ValidationError
 
 from sentry import eventstore
@@ -20,9 +20,9 @@ from sentry.issues.occurrence_consumer import (
 )
 from sentry.models import Group
 from sentry.receivers import create_default_projects
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -102,7 +102,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     def test_process_profiling_occurrence(self) -> None:
         create_default_projects()
         event_data = load_data("generic-event-profiling")
-        event_data["detection_time"] = datetime.datetime.now(tz=pytz.UTC)
+        event_data["detection_time"] = datetime.datetime.now(tz=timezone.utc)
         with self.feature("organizations:profile-file-io-main-thread-ingest"):
             result = _process_message(event_data)
         assert result is not None

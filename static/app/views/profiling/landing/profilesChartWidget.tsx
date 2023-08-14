@@ -103,6 +103,11 @@ export function ProfilesChartWidget({
       tooltip: {
         valueFormatter: value => tooltipFormatter(value, 'duration'),
       },
+      legend: {
+        right: 16,
+        top: 12,
+        data: SERIES_ORDER.slice(),
+      },
     };
   }, [chartHeight, theme.chartLabel]);
 
@@ -110,7 +115,7 @@ export function ProfilesChartWidget({
     <WidgetContainer height={widgetHeight}>
       <HeaderContainer>
         {header ?? <HeaderTitleLegend>{t('Profiles by Percentiles')}</HeaderTitleLegend>}
-        <Subtitle>{t('Percentiles over time')}</Subtitle>
+        <Subtitle>{t('P50(), P75(), P95(), P99() over time')}</Subtitle>
       </HeaderContainer>
       <ContentContainer>
         <ChartZoom router={router} {...selection?.datetime}>

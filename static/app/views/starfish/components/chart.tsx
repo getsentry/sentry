@@ -28,7 +28,6 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
-import {DateString} from 'sentry/types';
 import {
   EChartClickHandler,
   EChartDataZoomHandler,
@@ -44,12 +43,14 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import {aggregateOutputType, AggregationOutputType} from 'sentry/utils/discover/fields';
-import {DAY, HOUR} from 'sentry/utils/formatters';
+import {
+  aggregateOutputType,
+  AggregationOutputType,
+  RateUnits,
+} from 'sentry/utils/discover/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
-import {getDateFilters} from 'sentry/views/starfish/utils/getDateFilters';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
@@ -68,10 +69,7 @@ export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}
 
 type Props = {
   data: Series[];
-  end: DateString;
   loading: boolean;
-  start: DateString;
-  statsPeriod: string | null | undefined;
   utc: boolean;
   aggregateOutputFormat?: AggregationOutputType;
   chartColors?: string[];
@@ -87,6 +85,7 @@ type Props = {
   hideYAxisSplitLine?: boolean;
   isBarChart?: boolean;
   isLineChart?: boolean;
+  legendFormatter?: (name: string) => string;
   log?: boolean;
   onClick?: EChartClickHandler;
   onDataZoom?: EChartDataZoomHandler;
@@ -99,6 +98,7 @@ type Props = {
   onMouseOut?: EChartMouseOutHandler;
   onMouseOver?: EChartMouseOverHandler;
   previousData?: Series[];
+  rateUnit?: RateUnits;
   scatterPlot?: Series[];
   showLegend?: boolean;
   stacked?: boolean;
@@ -150,9 +150,6 @@ function Chart({
   data,
   dataMax,
   previousData,
-  statsPeriod,
-  start,
-  end,
   utc,
   loading,
   height,
@@ -160,6 +157,7 @@ function Chart({
   disableXAxis,
   definedAxisTicks,
   durationUnit,
+  rateUnit,
   chartColors,
   isBarChart,
   isLineChart,
@@ -180,11 +178,12 @@ function Chart({
   errored,
   onLegendSelectChanged,
   onDataZoom,
+  legendFormatter,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
-  const pageFilter = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilter.selection);
+  const pageFilters = usePageFilters();
+  const {start, end, period} = pageFilters.selection.datetime;
 
   const defaultRef = useRef<ReactEchartsRef>(null);
   const chartRef = forwardedRef || defaultRef;
@@ -261,7 +260,8 @@ function Chart({
             value,
             aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
             undefined,
-            durationUnit ?? getDurationUnit(data)
+            durationUnit ?? getDurationUnit(data),
+            rateUnit
           );
         },
       },
@@ -311,6 +311,7 @@ function Chart({
       ? {
           top: 0,
           right: 10,
+          ...(legendFormatter ? {formatter: legendFormatter} : {}),
         }
       : undefined,
     isGroupedByDate: true,
@@ -341,7 +342,16 @@ function Chart({
     xAxisIndex: 0,
   }));
 
-  const xAxisInterval = getXAxisInterval(startTime, endTime);
+  // Trims off the last data point because it's incomplete
+  const trimmedSeries =
+    period && !start && !end
+      ? series.map(serie => {
+          return {
+            ...serie,
+            data: serie.data.slice(0, -1),
+          };
+        })
+      : series;
 
   const xAxis: XAXisOption = disableXAxis
     ? {
@@ -350,19 +360,10 @@ function Chart({
         axisLine: {show: false},
       }
     : {
-        type: 'time',
-        maxInterval: xAxisInterval,
-        axisLabel: {
-          formatter: function (value: number) {
-            if (endTime.diff(startTime, 'days') > 30) {
-              return moment(value).format('MMMM DD');
-            }
-            if (startTime.isSame(endTime, 'day')) {
-              return moment(value).format('HH:mm');
-            }
-            return moment(value).format('MMMM DD HH:mm');
-          },
-        },
+        min: moment(trimmedSeries[0]?.data[0]?.name).unix() * 1000,
+        max:
+          moment(trimmedSeries[0]?.data[trimmedSeries[0].data.length - 1]?.name).unix() *
+          1000,
       };
 
   function getChart() {
@@ -374,21 +375,11 @@ function Chart({
       );
     }
 
-    // Trims off the last data point because it's incomplete
-    const trimmedSeries =
-      statsPeriod && !start && !end
-        ? series.map(serie => {
-            return {
-              ...serie,
-              data: serie.data.slice(0, -1),
-            };
-          })
-        : series;
-
     return (
       <ChartZoom
         router={router}
-        period={statsPeriod}
+        saveOnZoom
+        period={period}
         start={start}
         end={end}
         utc={utc}
@@ -408,7 +399,7 @@ function Chart({
                 tooltip={areaChartProps.tooltip}
                 colors={colors}
                 grid={grid}
-                legend={showLegend ? {top: 0, right: 0} : undefined}
+                legend={showLegend ? {top: 0, right: 10} : undefined}
                 onClick={onClick}
                 onMouseOut={onMouseOut}
                 onMouseOver={onMouseOver}
@@ -449,7 +440,7 @@ function Chart({
                 tooltip={areaChartProps.tooltip}
                 colors={colors}
                 grid={grid}
-                legend={showLegend ? {top: 0, right: 0} : undefined}
+                legend={showLegend ? {top: 0, right: 10} : undefined}
                 onClick={onClick}
               />
             );
@@ -497,20 +488,6 @@ export function useSynchronizeCharts(deps: boolean[] = []) {
     }
   }, [deps, synchronized]);
 }
-
-const getXAxisInterval = (startTime: moment.Moment, endTime: moment.Moment) => {
-  const dateRange = endTime.diff(startTime);
-  if (dateRange >= 30 * DAY) {
-    return 7 * DAY;
-  }
-  if (dateRange >= 3 * DAY) {
-    return DAY;
-  }
-  if (dateRange >= 1 * DAY) {
-    return 12 * HOUR;
-  }
-  return HOUR;
-};
 
 const StyledTransparentLoadingMask = styled(props => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />

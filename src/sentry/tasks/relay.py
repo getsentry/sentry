@@ -2,10 +2,11 @@ import logging
 import time
 
 import sentry_sdk
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project
@@ -13,6 +14,7 @@ from sentry.utils.sdk import set_current_event_project
 logger = logging.getLogger(__name__)
 
 
+# TODO(hybrid-cloud): Add silo_mode for region once testing is adjusted
 # The time_limit here should match the `debounce_ttl` of the projectconfig_debounce_cache
 # service.
 @instrumented_task(
@@ -195,6 +197,7 @@ def compute_projectkey_config(key):
     queue="relay_config_bulk",
     soft_time_limit=25 * 60,  # 25mins
     time_limit=25 * 60 + 5,
+    silo_mode=SiloMode.REGION,
 )
 def invalidate_project_config(
     organization_id=None, project_id=None, public_key=None, trigger="invalidated", **kwargs
@@ -270,6 +273,8 @@ def schedule_invalidate_project_config(
         slight delay to increase the likelihood of deduplicating invalidations but you can
         tweak this, like e.g. the :func:`invalidate_all` task does.
     """
+    from sentry.models import Project
+
     with sentry_sdk.start_span(
         op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
     ):
@@ -283,7 +288,8 @@ def schedule_invalidate_project_config(
                 project_id=project_id,
                 public_key=public_key,
                 countdown=countdown,
-            )
+            ),
+            router.db_for_write(Project),
         )
 
 

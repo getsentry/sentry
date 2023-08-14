@@ -1,18 +1,13 @@
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.test import RequestFactory, override_settings
 
-from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
+from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.jira import JiraRequestParser
-from sentry.models.outbox import (
-    ControlOutbox,
-    OutboxCategory,
-    OutboxScope,
-    WebhookProviderIdentifier,
-)
+from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.outbox import assert_webhook_outboxes
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
@@ -20,9 +15,8 @@ from sentry.types.region import Region, RegionCategory
 @control_silo_test(stable=True)
 class JiraRequestParserTest(TestCase):
     get_response = MagicMock()
-    middleware = IntegrationControlMiddleware(get_response)
     factory = RequestFactory()
-    path_base = f"{IntegrationControlMiddleware.integration_prefix}jira"
+    path_base = f"{IntegrationClassification.integration_prefix}jira"
     region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
 
     def setUp(self):
@@ -129,23 +123,8 @@ class JiraRequestParserTest(TestCase):
         assert ControlOutbox.objects.count() == 0
         with patch.object(parser, "get_regions_from_organizations", return_value=[self.region]):
             parser.get_response()
-
-            assert ControlOutbox.objects.count() == 1
-            outbox = ControlOutbox.objects.first()
-            expected_payload: Any = {
-                "method": "POST",
-                "path": path,
-                "uri": f"http://testserver{path}",
-                "headers": {
-                    "Content-Length": "20",
-                    "Content-Type": "multipart/form-data; boundary=BoUnDaRyStRiNg",
-                    "Cookie": "",
-                },
-                "body": request.body.decode(encoding="utf-8"),
-            }
-
-            assert outbox.shard_scope == OutboxScope.WEBHOOK_SCOPE
-            assert outbox.shard_identifier == WebhookProviderIdentifier.JIRA
-            assert outbox.category == OutboxCategory.WEBHOOK_PROXY
-            assert outbox.region_name == self.region.name
-            assert outbox.payload == expected_payload
+            assert_webhook_outboxes(
+                factory_request=request,
+                webhook_identifier=WebhookProviderIdentifier.JIRA,
+                region_names=[self.region.name],
+            )

@@ -111,4 +111,5 @@ export interface CheckIn {
   id: string;
   status: CheckInStatus;
   attachmentId?: number;
+  groups?: {id: number; shortId: string}[];
 }

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from io import BytesIO
+from typing import ClassVar
 from uuid import uuid4
 
 from django.core.exceptions import ObjectDoesNotExist
@@ -22,9 +25,11 @@ class AvatarBase(Model):
 
     __include_in_export__ = False
 
-    ALLOWED_SIZES = (20, 32, 36, 48, 52, 64, 80, 96, 120)
+    ALLOWED_SIZES: ClassVar[tuple[int, ...]] = (20, 32, 36, 48, 52, 64, 80, 96, 120)
 
-    FILE_TYPE = None
+    # abstract
+    AVATAR_TYPES: ClassVar[tuple[tuple[int, str], ...]]
+    FILE_TYPE: ClassVar[str]
 
     file_id = BoundedBigIntegerField(unique=True, null=True)
     ident = models.CharField(max_length=32, unique=True, db_index=True)
@@ -38,10 +43,11 @@ class AvatarBase(Model):
         return super().save(*args, **kwargs)
 
     def get_file(self):
-        # Favor control_file_id if it exists and is set.
-        # Otherwise fallback to file_id. If still None, return.
+        # If we're getting a file, and the preferred write file
+        # type isn't present, move data over to new storage async.
+        file_id = getattr(self, self.file_write_fk(), None)
         file_class = self.file_class()
-        file_id = getattr(self, self.file_fk())
+
         if file_id is None:
             file_id = self.file_id
             file_class = File
@@ -95,21 +101,32 @@ class AvatarBase(Model):
                 cache.set(cache_key, photo)
         return photo
 
-    @classmethod
-    def file_class(cls):
-        from sentry.models import File
-
+    def file_class(self):
         return File
 
-    @classmethod
-    def file_fk(cls) -> str:
+    def file_fk(self) -> str:
+        """
+        Get the foreign key currently used by this record for blob storage.
+        Varies in ControlAvatarBase
+        """
+        return "file_id"
+
+    def file_write_fk(self) -> str:
+        """
+        Get the foreign key that should be used for writes.
+        Varies in ControlAvatarBase
+        """
         return "file_id"
 
     @classmethod
     def save_avatar(cls, relation, type, avatar=None, filename=None, color=None):
         if avatar:
-            with atomic_transaction(using=router.db_for_write(cls.file_class())):
-                photo = cls.file_class().objects.create(name=filename, type=cls.FILE_TYPE)
+            # Create an instance of the current class so we can
+            # access where new files should be stored.
+            dummy = cls()
+            file_class = dummy.file_class()
+            with atomic_transaction(using=router.db_for_write(file_class)):
+                photo = file_class.objects.create(name=filename, type=cls.FILE_TYPE)
                 # XXX: Avatar may come in as a string instance in python2
                 # if it's not wrapped in BytesIO.
                 if isinstance(avatar, str):
@@ -122,10 +139,7 @@ class AvatarBase(Model):
             photo = None
 
         with atomic_transaction(
-            using=(
-                router.db_for_write(cls),
-                router.db_for_write(cls.file_class()),
-            )
+            using=router.db_for_write(cls),
         ):
             if relation.get("sentry_app") and color is not None:
                 instance, created = cls.objects.get_or_create(**relation, color=color)
@@ -136,11 +150,12 @@ class AvatarBase(Model):
                 file.delete()
 
             if photo:
-                setattr(instance, cls.file_fk(), photo.id)
+                if instance.file_fk() != instance.file_write_fk():
+                    setattr(instance, instance.file_fk(), None)
+                setattr(instance, instance.file_write_fk(), photo.id)
                 instance.ident = uuid4().hex
 
             instance.avatar_type = [i for i, n in cls.AVATAR_TYPES if n == type][0]
-
             instance.save()
 
         if photo and not created:

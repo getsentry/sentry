@@ -26,6 +26,7 @@ class Repository(Model, PendingDeletionMixin):
     name = models.CharField(max_length=200)
     url = models.URLField(null=True)
     provider = models.CharField(max_length=64, null=True)
+    # The external_id is the id of the repo in the provider's system. (e.g. GitHub's repo id)
     external_id = models.CharField(max_length=64, null=True)
     config = JSONField(default=dict)
     status = BoundedPositiveIntegerField(
@@ -37,10 +38,7 @@ class Repository(Model, PendingDeletionMixin):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_repository"
-        unique_together = (
-            ("organization_id", "name"),
-            ("organization_id", "provider", "external_id"),
-        )
+        unique_together = (("organization_id", "provider", "external_id"),)
 
     __repr__ = sane_repr("organization_id", "name", "provider")
 

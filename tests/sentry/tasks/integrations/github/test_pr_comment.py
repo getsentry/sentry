@@ -10,7 +10,7 @@ from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models import Commit, Group, GroupOwner, GroupOwnerType, PullRequest
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.project import Project
-from sentry.models.pullrequest import PullRequestComment, PullRequestCommit
+from sentry.models.pullrequest import CommentType, PullRequestComment, PullRequestCommit
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.snuba.sessions_v2 import isoformat_z
@@ -23,15 +23,14 @@ from sentry.tasks.integrations.github.pr_comment import (
     github_comment_reactions,
     github_comment_workflow,
     pr_to_issue_query,
+    safe_for_comment,
 )
-from sentry.testutils import IntegrationTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.cases import IntegrationTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cache import cache
 
 
-@region_silo_test(stable=True)
 class GithubCommentTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider
 
@@ -81,6 +80,7 @@ class GithubCommentTestCase(IntegrationTestCase):
         self.pr_key = 1
         self.commit_sha = 1
         self.fingerprint = 1
+        patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1").start()
 
     def add_commit_to_repo(self, repo, user, project):
         if user not in self.user_to_commit_author_map:
@@ -264,14 +264,17 @@ class TestCommentBuilderQueries(GithubCommentTestCase):
             data={"message": "issue 1", "culprit": "issue1", "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert ev1.group is not None
         ev2 = self.store_event(
             data={"message": "issue 2", "culprit": "issue2", "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
+        assert ev2.group is not None
         ev3 = self.store_event(
             data={"message": "issue 3", "culprit": "issue3", "fingerprint": ["group-3"]},
             project_id=self.project.id,
         )
+        assert ev3.group is not None
         comment_contents = get_comment_contents([ev1.group.id, ev2.group.id, ev3.group.id])
         assert (
             PullRequestIssue(
@@ -316,7 +319,7 @@ class TestFormatComment(TestCase):
         ]
 
         formatted_comment = format_comment(issues)
-        expected_comment = "## Suspect Issues\nThis pull request has been deployed and Sentry has observed the following issues:\n\n- ‼️ **TypeError** `sentry.tasks.derive_code_mappings.derive_code_m...` [View Issue](https://sentry.sentry.io/issues/?referrer=github-pr-bot)\n- ‼️ **KafkaException** `query_subscription_consumer_process_message` [View Issue](https://sentry.sentry.io/stats/?referrer=github-pr-bot)\n\n<sub>Did you find this useful? React with a 👍 or 👎</sub>"
+        expected_comment = "## Suspect Issues\nThis pull request has been deployed and Sentry observed the following issues:\n\n- ‼️ **TypeError** `sentry.tasks.derive_code_mappings.derive_code_m...` [View Issue](https://sentry.sentry.io/issues/?referrer=github-pr-bot)\n- ‼️ **KafkaException** `query_subscription_consumer_process_message` [View Issue](https://sentry.sentry.io/stats/?referrer=github-pr-bot)\n\n<sub>Did you find this useful? React with a 👍 or 👎</sub>"
         assert formatted_comment == expected_comment
 
 
@@ -335,11 +338,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
         self.cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(self.pr.id)
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
-    @with_feature("organizations:pr-comment-bot")
     @responses.activate
-    def test_comment_workflow(self, mock_metrics, get_jwt, mock_issues):
+    def test_comment_workflow(self, mock_metrics, mock_issues):
         groups = [g.id for g in Group.objects.all()]
         mock_issues.return_value = [{"group_id": id, "event_count": 10} for id in groups]
 
@@ -359,22 +360,19 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         assert (
             responses.calls[1].request.body
-            == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry has observed the following issues:\\n\\n- \\u203c\\ufe0f **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
+            == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
         )
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 1
         assert pull_request_comment_query[0].external_id == 1
-        mock_metrics.incr.assert_called_with(
-            "github_pr_comment.rate_limit_remaining", tags={"remaining": 59}
-        )
+        assert pull_request_comment_query[0].comment_type == CommentType.MERGED_PR
+        mock_metrics.incr.assert_called_with("github_pr_comment.comment_created")
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
-    @with_feature("organizations:pr-comment-bot")
     @responses.activate
     @freeze_time(datetime(2023, 6, 8, 0, 0, 0, tzinfo=timezone.utc))
-    def test_comment_workflow_updates_comment(self, mock_metrics, get_jwt, mock_issues):
+    def test_comment_workflow_updates_comment(self, mock_metrics, mock_issues):
         groups = [g.id for g in Group.objects.all()]
         mock_issues.return_value = [{"group_id": id, "event_count": 10} for id in groups]
         pull_request_comment = PullRequestComment.objects.create(
@@ -383,6 +381,16 @@ class TestCommentWorkflow(GithubCommentTestCase):
             created_at=timezone.now() - timedelta(hours=1),
             updated_at=timezone.now() - timedelta(hours=1),
             group_ids=[1, 2, 3, 4],
+        )
+
+        # An Open PR comment should not affect the rest of the test as the filter should ignore it.
+        PullRequestComment.objects.create(
+            external_id=2,
+            pull_request_id=self.pr.id,
+            created_at=timezone.now() - timedelta(hours=1),
+            updated_at=timezone.now() - timedelta(hours=1),
+            group_ids=[],
+            comment_type=CommentType.OPEN_PR,
         )
 
         responses.add(
@@ -401,21 +409,17 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         assert (
             responses.calls[1].request.body
-            == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry has observed the following issues:\\n\\n- \\u203c\\ufe0f **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
+            == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
         )
         pull_request_comment.refresh_from_db()
         assert pull_request_comment.group_ids == [g.id for g in Group.objects.all()]
         assert pull_request_comment.updated_at == timezone.now()
-        mock_metrics.incr.assert_called_with(
-            "github_pr_comment.rate_limit_remaining", tags={"remaining": 59}
-        )
+        mock_metrics.incr.assert_called_with("github_pr_comment.comment_updated")
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
-    @with_feature("organizations:pr-comment-bot")
     @responses.activate
-    def test_comment_workflow_api_error(self, mock_metrics, get_jwt, mock_issues):
+    def test_comment_workflow_api_error(self, mock_metrics, mock_issues):
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
         mock_issues.return_value = [
             {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
@@ -439,11 +443,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
             mock_metrics.incr.assert_called_with("github_pr_comment.api_error")
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
-    @with_feature("organizations:pr-comment-bot")
     @responses.activate
-    def test_comment_workflow_api_error_locked_issue(self, mock_metrics, get_jwt, mock_issues):
+    def test_comment_workflow_api_error_locked_issue(self, mock_metrics, mock_issues):
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
         mock_issues.return_value = [
             {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
@@ -466,14 +468,14 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         github_comment_workflow(self.pr.id, self.project.id)
         assert cache.get(self.cache_key) is None
-        mock_metrics.incr.assert_called_with("github_pr_comment.issue_locked_error")
+        mock_metrics.incr.assert_called_with(
+            "github_pr_comment.error", tags={"type": "issue_locked_error"}
+        )
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
-    @with_feature("organizations:pr-comment-bot")
     @responses.activate
-    def test_comment_workflow_api_error_rate_limited(self, mock_metrics, get_jwt, mock_issues):
+    def test_comment_workflow_api_error_rate_limited(self, mock_metrics, mock_issues):
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
         mock_issues.return_value = [
             {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
@@ -496,7 +498,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         github_comment_workflow(self.pr.id, self.project.id)
         assert cache.get(self.cache_key) is None
-        mock_metrics.incr.assert_called_with("github_pr_comment.rate_limited_error")
+        mock_metrics.incr.assert_called_with(
+            "github_pr_comment.error", tags={"type": "rate_limited_error"}
+        )
 
     @patch(
         "sentry.tasks.integrations.github.pr_comment.pr_to_issue_query",
@@ -516,13 +520,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
         )
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
-    def test_comment_workflow_missing_feature_flag(self, mock_issues):
-        github_comment_workflow(self.pr.id, self.project.id)
-
-        assert not mock_issues.called
-
-    @with_feature("organizations:pr-comment-bot")
-    @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     def test_comment_workflow_missing_org_option(self, mock_issues):
         OrganizationOption.objects.set_value(
             organization=self.organization, key="sentry:github_pr_bot", value=False
@@ -534,7 +531,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.models.Project.objects.get_from_cache")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
-    @with_feature("organizations:pr-comment-bot")
     def test_comment_workflow_missing_project(self, mock_metrics, mock_project, mock_issues):
         # Project.DoesNotExist should trigger the cache to release the key
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
@@ -555,7 +551,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.models.Repository.objects")
     @patch("sentry.tasks.integrations.github.pr_comment.format_comment")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
-    @with_feature("organizations:pr-comment-bot")
     def test_comment_workflow_missing_repo(
         self, mock_metrics, mock_format_comment, mock_repository, mock_issues
     ):
@@ -581,7 +576,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
     )
     @patch("sentry.tasks.integrations.github.pr_comment.format_comment")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
-    @with_feature("organizations:pr-comment-bot")
     def test_comment_workflow_missing_integration(
         self, mock_metrics, mock_format_comment, mock_issues
     ):
@@ -629,9 +623,9 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         self.expired_pr.date_added = timezone.now() - timedelta(days=35)
         self.expired_pr.save()
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @responses.activate
-    def test_comment_reactions_task(self, get_jwt):
+    def test_comment_reactions_task(self, mock_metrics):
         old_comment = PullRequestComment.objects.create(
             external_id="1",
             pull_request=self.expired_pr,
@@ -669,10 +663,11 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         del stored_reactions["url"]
         assert self.comment.reactions == stored_reactions
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+        mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.success")
+
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @responses.activate
-    def test_comment_reactions_task_missing_repo(self, mock_metrics, get_jwt):
+    def test_comment_reactions_task_missing_repo(self, mock_metrics):
         self.gh_repo.delete()
 
         responses.add(
@@ -693,10 +688,9 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         assert self.comment.reactions is None
         mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.missing_repo")
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @responses.activate
-    def test_comment_reactions_task_missing_integration(self, mock_metrics, get_jwt):
+    def test_comment_reactions_task_missing_integration(self, mock_metrics):
         # invalid integration id
         self.gh_repo.integration_id = 0
         self.gh_repo.save()
@@ -721,10 +715,9 @@ class TestCommentReactionsTask(GithubCommentTestCase):
             "github_pr_comment.comment_reactions.missing_integration"
         )
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @responses.activate
-    def test_comment_reactions_task_api_error(self, mock_metrics, get_jwt):
+    def test_comment_reactions_task_api_error(self, mock_metrics):
         responses.add(
             responses.POST,
             self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
@@ -743,10 +736,9 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         assert self.comment.reactions is None
         mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.api_error")
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @responses.activate
-    def test_comment_reactions_task_api_error_rate_limited(self, mock_metrics, get_jwt):
+    def test_comment_reactions_task_api_error_rate_limited(self, mock_metrics):
         responses.add(
             responses.POST,
             self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
@@ -768,4 +760,156 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         assert self.comment.reactions is None
         mock_metrics.incr.assert_called_with(
             "github_pr_comment.comment_reactions.rate_limited_error"
+        )
+
+    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    @responses.activate
+    def test_comment_reactions_task_api_error_404(self, mock_metrics):
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
+            status=404,
+            json={},
+        )
+
+        github_comment_reactions()
+
+        self.comment.refresh_from_db()
+        assert self.comment.reactions is None
+        mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.not_found_error")
+
+
+@region_silo_test(stable=True)
+class TestSafeForComment(GithubCommentTestCase):
+    base_url = "https://api.github.com"
+
+    def setUp(self):
+        super().setUp()
+        access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        expires_at = isoformat_z(timezone.now() + timedelta(days=365))
+        self.pr = self.create_pr_issues()
+        self.mock_metrics = patch("sentry.tasks.integrations.github.pr_comment.metrics").start()
+        self.gh_path = self.base_url + "/repos/getsentry/sentry/pulls/{pull_number}"
+        installation = self.integration.get_installation(organization_id=self.organization.id)
+        self.gh_client = installation.get_client()
+        responses.add(
+            responses.POST,
+            self.base_url
+            + f"/app/installations/{self.gh_client._get_installation_id()}/access_tokens",
+            json={"token": access_token, "expires_at": expires_at},
+        )
+
+    @responses.activate
+    def test_simple(self):
+        responses.add(
+            responses.GET,
+            self.gh_path.format(pull_number=self.pr.key),
+            status=200,
+            json={"changed_files": 5, "additions": 100, "deletions": 100, "state": "open"},
+        )
+
+        assert safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+
+    @responses.activate
+    def test_error__rate_limited(self):
+        responses.add(
+            responses.GET,
+            self.gh_path.format(pull_number=self.pr.key),
+            status=429,
+            json={
+                "message": "API rate limit exceeded",
+                "documentation_url": "https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting",
+            },
+        )
+
+        assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        self.mock_metrics.incr.assert_called_with(
+            "github_open_pr_comment.api_error", tags={"type": "gh_rate_limited", "code": 429}
+        )
+
+    @responses.activate
+    def test_error__missing_pr(self):
+        responses.add(
+            responses.GET, self.gh_path.format(pull_number=self.pr.key), status=404, json={}
+        )
+
+        assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        self.mock_metrics.incr.assert_called_with(
+            "github_open_pr_comment.api_error",
+            tags={"type": "missing_gh_pull_request", "code": 404},
+        )
+
+    @responses.activate
+    def test_error__api_error(self):
+        responses.add(
+            responses.GET, self.gh_path.format(pull_number=self.pr.key), status=400, json={}
+        )
+
+        assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        self.mock_metrics.incr.assert_called_with(
+            "github_open_pr_comment.api_error", tags={"type": "unknown_api_error", "code": 400}
+        )
+
+    @responses.activate
+    def test_not_open_pr(self):
+        responses.add(
+            responses.GET,
+            self.gh_path.format(pull_number=self.pr.key),
+            status=200,
+            json={"changed_files": 5, "additions": 100, "deletions": 100, "state": "closed"},
+        )
+
+        assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        self.mock_metrics.incr.assert_called_with(
+            "github_open_pr_comment.rejected_comment", tags={"reason": "incorrect_state"}
+        )
+
+    @responses.activate
+    def test_too_many_files(self):
+        responses.add(
+            responses.GET,
+            self.gh_path.format(pull_number=self.pr.key),
+            status=200,
+            json={"changed_files": 11, "additions": 100, "deletions": 100, "state": "open"},
+        )
+
+        assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        self.mock_metrics.incr.assert_called_with(
+            "github_open_pr_comment.rejected_comment", tags={"reason": "too_many_files"}
+        )
+
+    @responses.activate
+    def test_too_many_lines(self):
+        responses.add(
+            responses.GET,
+            self.gh_path.format(pull_number=self.pr.key),
+            status=200,
+            json={"changed_files": 5, "additions": 300, "deletions": 300, "state": "open"},
+        )
+
+        assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        self.mock_metrics.incr.assert_called_with(
+            "github_open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
+        )
+
+    @responses.activate
+    def test_too_many_files_and_lines(self):
+        responses.add(
+            responses.GET,
+            self.gh_path.format(pull_number=self.pr.key),
+            status=200,
+            json={"changed_files": 11, "additions": 300, "deletions": 300, "state": "open"},
+        )
+
+        assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        self.mock_metrics.incr.assert_any_call(
+            "github_open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
+        )
+        self.mock_metrics.incr.assert_any_call(
+            "github_open_pr_comment.rejected_comment", tags={"reason": "too_many_files"}
         )

@@ -2,16 +2,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import ExternalLink from 'sentry/components/links/externalLink';
 import QuickTrace from 'sentry/components/quickTrace';
-import {
-  ErrorNodeContent,
-  EventNode,
-  QuickTraceContainer,
-  TraceConnector,
-} from 'sentry/components/quickTrace/styles';
-import {IconFire} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -27,60 +18,27 @@ type Props = {
   quickTrace: undefined | QuickTraceQueryChildrenProps;
 };
 
-function TransactionMissingPlaceholder({
-  type,
-  event,
-}: {
-  event: Event;
-  type?: QuickTraceQueryChildrenProps['type'];
-}) {
-  useRouteAnalyticsParams({
-    trace_status: type === 'missing' ? 'transaction missing' : 'trace missing',
-  });
-
-  return (
-    <QuickTraceWrapper>
-      <QuickTraceContainer data-test-id="missing-trace-placeholder">
-        <EventNode
-          type="white"
-          icon={null}
-          tooltipProps={{isHoverable: true, position: 'bottom'}}
-          tooltipText={tct(
-            'The [type] for this event cannot be found. [link:Read the  docs] to understand why.',
-            {
-              type: type === 'missing' ? t('transaction') : t('trace'),
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#troubleshooting" />
-              ),
-            }
-          )}
-        >
-          ???
-        </EventNode>
-        <TraceConnector />
-        <EventNode type="error" data-test-id="event-node">
-          <ErrorNodeContent>
-            <IconFire size="xs" />
-            {t('This Event')}
-          </ErrorNodeContent>
-        </EventNode>
-        <TraceLink event={event} />
-      </QuickTraceContainer>
-    </QuickTraceWrapper>
-  );
-}
-
 function IssueQuickTrace({event, location, organization, quickTrace}: Props) {
-  const shouldShowPlaceholder =
+  const isTraceMissing =
     !quickTrace ||
     quickTrace.error ||
     !defined(quickTrace.trace) ||
     quickTrace.trace.length === 0;
 
-  useRouteAnalyticsParams(shouldShowPlaceholder ? {} : {trace_status: 'success'});
+  useRouteAnalyticsParams({
+    trace_status: isTraceMissing
+      ? quickTrace?.type === 'missing'
+        ? 'transaction missing'
+        : 'trace missing'
+      : 'success',
+  });
 
-  if (shouldShowPlaceholder) {
-    return <TransactionMissingPlaceholder event={event} type={quickTrace?.type} />;
+  if (isTraceMissing) {
+    return (
+      <QuickTraceWrapper>
+        <TraceLink event={event} noTrace />
+      </QuickTraceWrapper>
+    );
   }
 
   return (
@@ -95,7 +53,7 @@ function IssueQuickTrace({event, location, organization, quickTrace}: Props) {
           errorDest="issue"
           transactionDest="performance"
         />
-        <TraceLink event={event} />
+        <TraceLink noTrace={false} event={event} />
       </QuickTraceWrapper>
     </ErrorBoundary>
   );
@@ -106,6 +64,7 @@ const QuickTraceWrapper = styled('div')`
   align-items: center;
   flex-wrap: wrap;
   margin-top: ${space(0.75)};
+  height: 20px;
 `;
 
 export default IssueQuickTrace;

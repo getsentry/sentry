@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from django.db import transaction
+from django.db import router, transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import Throttled
@@ -12,12 +12,7 @@ from rest_framework.response import Response
 from sentry import ratelimits
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.apidocs.constants import (
-    RESPONSE_BAD_REQUEST,
-    RESPONSE_FORBIDDEN,
-    RESPONSE_NOT_FOUND,
-    RESPONSE_UNAUTHORIZED,
-)
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
@@ -28,6 +23,7 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorEnvironmentLimitsExceeded,
+    MonitorEnvironmentValidationFailed,
     MonitorLimitsExceeded,
 )
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
@@ -64,7 +60,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
     """
 
     @extend_schema(
-        operation_id="Create a new check-in",
+        operation_id="Create a New Check-In",
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,
@@ -79,7 +75,6 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
     )
@@ -145,7 +140,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                 detail="Rate limited, please send no more than 5 checkins per minute per monitor"
             )
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Monitor)):
             monitor_data = result.get("monitor")
             create_monitor = monitor_data and not monitor
             update_monitor = monitor_data and monitor
@@ -169,7 +164,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                     if created:
                         signal_first_monitor_created(project, request.user, True)
             except MonitorLimitsExceeded as e:
-                return self.respond({type(e).__name__: str(e)}, status=403)
+                return self.respond({type(e).__name__: str(e)}, status=400)
 
             # Monitor does not exist and we have not created one
             if not monitor:
@@ -185,8 +180,8 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                 monitor_environment = MonitorEnvironment.objects.ensure_environment(
                     project, monitor, result.get("environment")
                 )
-            except MonitorEnvironmentLimitsExceeded as e:
-                return self.respond({type(e).__name__: str(e)}, status=403)
+            except (MonitorEnvironmentLimitsExceeded, MonitorEnvironmentValidationFailed) as e:
+                return self.respond({type(e).__name__: str(e)}, status=400)
 
             # Infer the original start time of the check-in from the duration.
             duration = result.get("duration")

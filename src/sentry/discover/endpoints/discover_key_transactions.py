@@ -1,6 +1,9 @@
-from collections import defaultdict
+from __future__ import annotations
 
-from django.db import IntegrityError, transaction
+from collections import defaultdict
+from typing import Any
+
+from django.db import IntegrityError, router, transaction
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,7 +17,8 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.utils import InvalidParams
 from sentry.discover.endpoints import serializers
 from sentry.discover.models import TeamKeyTransaction
-from sentry.models import ProjectTeam, Team
+from sentry.models import Team
+from sentry.models.projectteam import ProjectTeam
 
 
 class KeyTransactionPermission(OrganizationPermission):
@@ -56,7 +60,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
         project = self.get_project(request, organization)
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(ProjectTeam)):
             serializer = serializers.TeamKeyTransactionSerializer(
                 data=request.data,
                 context={
@@ -180,7 +184,7 @@ class KeyTransactionTeamSerializer(Serializer):
             .order_by("transaction", "project_team__project_id")
         )
 
-        attrs = defaultdict(
+        attrs: dict[Team, dict[str, Any]] = defaultdict(
             lambda: {
                 "count": 0,
                 "key_transactions": [],

@@ -32,9 +32,7 @@ def issue_search_query_to_conditions(
     from sentry.utils.snuba import resolve_column, resolve_conditions
 
     dataset = (
-        Dataset.Events
-        if group.issue_category == GroupCategory.ERROR.value
-        else Dataset.IssuePlatform
+        Dataset.Events if group.issue_category == GroupCategory.ERROR else Dataset.IssuePlatform
     )
 
     # syntactically correct search filters
@@ -50,9 +48,9 @@ def issue_search_query_to_conditions(
 
             if search_filter.key.name not in GroupSerializerSnuba.skip_snuba_fields:
                 filter_keys = {
-                    "organization_id": [group.project.organization.id],
+                    "organization_id": group.project.organization.id,
                     "project_id": [group.project.id],
-                    "environment_id": [env.id for env in environments],
+                    "environment": [env.name for env in environments],
                 }
                 legacy_condition, projects_to_filter, group_ids = format_search_filter(
                     search_filter, params=filter_keys
@@ -64,7 +62,8 @@ def issue_search_query_to_conditions(
                     new_condition = legacy_condition[0]
                 elif group_ids:
                     new_condition = convert_search_filter_to_snuba_query(
-                        search_filter, params=filter_keys
+                        search_filter,
+                        params=filter_keys,
                     )
 
                 if new_condition:
@@ -122,7 +121,7 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         elif event_id == "oldest":
             with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "oldest"}):
                 event = group.get_oldest_event_for_environments(environment_names)
-        elif event_id == "helpful":
+        elif event_id in ("helpful", "recommended"):
             if features.has(
                 "organizations:issue-details-most-helpful-event",
                 group.project.organization,
@@ -138,7 +137,7 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                             conditions = issue_search_query_to_conditions(
                                 query, group, request.user, environments
                             )
-                            event = group.get_helpful_event_for_environments(
+                            event = group.get_recommended_event_for_environments(
                                 environments, conditions
                             )
                         except ValidationError:
@@ -154,7 +153,7 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                         "api.endpoints.group_event_details.get",
                         tags={"type": "helpful", "query": False},
                     ):
-                        event = group.get_helpful_event_for_environments(environments)
+                        event = group.get_recommended_event_for_environments(environments)
             else:
                 return Response(status=404)
         else:

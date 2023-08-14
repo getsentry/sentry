@@ -1,15 +1,13 @@
 import {AggregationKey} from 'sentry/utils/fields';
+import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
-/**
- * Currently we determine that an alert is an on-demand metric alert if the query contains
- * the string 'transaction.duration'. This should be extended in the future
- */
-export function isOnDemandMetricAlert(query: string): boolean {
-  return query.includes('transaction.duration');
-}
-
-export function isValidOnDemandMetricAlert(aggregate: string, query: string): boolean {
-  if (!isOnDemandMetricAlert(query)) {
+export function isValidOnDemandMetricAlert(
+  dataset: Dataset,
+  aggregate: string,
+  query: string
+): boolean {
+  if (!isOnDemandMetricAlert(dataset, query)) {
     return true;
   }
 
@@ -20,4 +18,12 @@ export function isValidOnDemandMetricAlert(aggregate: string, query: string): bo
   ];
 
   return !unsupportedAggregates.some(agg => aggregate.includes(agg));
+}
+
+/**
+ * We determine that an alert is an on-demand metric alert if the query contains
+ * one of the tags that are not supported by the standard metrics.
+ */
+export function isOnDemandMetricAlert(dataset: Dataset, query: string): boolean {
+  return dataset === Dataset.GENERIC_METRICS && isOnDemandQueryString(query);
 }

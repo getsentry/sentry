@@ -37,6 +37,7 @@ def query(
     transform_alias_to_input_format=False,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
     granularity: Optional[int] = None,
 ):
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
@@ -59,6 +60,7 @@ def query(
             transform_alias_to_input_format=transform_alias_to_input_format,
             use_metrics_layer=use_metrics_layer,
             granularity=granularity,
+            on_demand_metrics_enabled=on_demand_metrics_enabled,
         )
         metrics_referrer = referrer + ".metrics-enhanced"
         results = metrics_query.run_query(metrics_referrer)
@@ -81,6 +83,7 @@ def bulk_timeseries_query(
     functions_acl: Optional[List[str]] = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
     groupby: Optional[Column] = None,
     apply_formatting: Optional[bool] = True,
 ) -> SnubaTSResult:
@@ -179,6 +182,7 @@ def timeseries_query(
     functions_acl: Optional[List[str]] = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
     groupby: Optional[Column] = None,
 ) -> SnubaTSResult:
     """
@@ -202,6 +206,7 @@ def timeseries_query(
                 allow_metric_aggregates=allow_metric_aggregates,
                 use_metrics_layer=use_metrics_layer,
                 groupby=groupby,
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
             )
             metrics_referrer = referrer + ".metrics-enhanced"
             result = metrics_query.run_query(metrics_referrer)

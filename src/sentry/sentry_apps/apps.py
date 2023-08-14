@@ -5,11 +5,11 @@ from itertools import chain
 from typing import Any, Iterable, List, Mapping, Set
 
 import sentry_sdk
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from django.http.request import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
-from rest_framework.request import Request
 from sentry_sdk.api import push_scope
 
 from sentry import analytics, audit_log
@@ -86,7 +86,7 @@ class SentryAppUpdater:
     features: List[str] | None = None
 
     def run(self, user: User) -> SentryApp:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(User)):
             self._update_name()
             self._update_author()
             self._update_features(user=user)
@@ -161,6 +161,7 @@ class SentryAppUpdater:
 
     def _update_service_hooks(self) -> None:
         hooks = hook_service.update_webhook_and_events(
+            organization_id=self.sentry_app.owner_id,
             application_id=self.sentry_app.application_id,
             webhook_url=self.sentry_app.webhook_url,
             events=self.sentry_app.events,
@@ -273,8 +274,8 @@ class SentryAppCreator:
                 not self.verify_install
             ), "Internal apps should not require installation verification"
 
-    def run(self, *, user: User, request: Request | None = None) -> SentryApp:
-        with transaction.atomic(), in_test_hide_transaction_boundary():
+    def run(self, *, user: User, request: HttpRequest | None = None) -> SentryApp:
+        with transaction.atomic(router.db_for_write(User)), in_test_hide_transaction_boundary():
             slug = self._generate_and_validate_slug()
             proxy = self._create_proxy_user(slug=slug)
             api_app = self._create_api_application(proxy=proxy)
@@ -355,7 +356,7 @@ class SentryAppCreator:
         # sentry apps must have at least one feature
         # defaults to 'integrations-api'
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(IntegrationFeature)):
                 IntegrationFeature.objects.create(
                     target_id=sentry_app.id,
                     target_type=IntegrationTypes.SENTRY_APP.value,
@@ -365,7 +366,9 @@ class SentryAppCreator:
                 scope.set_tag("sentry_app", sentry_app.slug)
                 sentry_sdk.capture_message("IntegrityError while creating IntegrationFeature")
 
-    def _install(self, *, slug: str, user: User, request: Request | None) -> SentryAppInstallation:
+    def _install(
+        self, *, slug: str, user: User, request: HttpRequest | None
+    ) -> SentryAppInstallation:
         return SentryAppInstallationCreator(
             organization_id=self.organization_id,
             slug=slug,
@@ -373,14 +376,14 @@ class SentryAppCreator:
         ).run(user=user, request=request)
 
     def _create_access_token(
-        self, user: User, install: SentryAppInstallation, request: Request
+        self, user: User, install: SentryAppInstallation, request: HttpRequest
     ) -> None:
         install.api_token = SentryAppInstallationTokenCreator(sentry_app_installation=install).run(
             request=request, user=user
         )
         install.save()
 
-    def audit(self, request: Request | None, sentry_app: SentryApp) -> None:
+    def audit(self, request: HttpRequest | None, sentry_app: SentryApp) -> None:
         from sentry.utils.audit import create_audit_entry
 
         if request:

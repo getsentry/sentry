@@ -6,6 +6,7 @@ from sentry.db.router import SiloRouter
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.testutils.cases import TestCase
+from sentry.testutils.hybrid_cloud import use_split_dbs
 
 
 class SiloRouterSimulatedTest(TestCase):
@@ -29,11 +30,9 @@ class SiloRouterSimulatedTest(TestCase):
 
         assert not router.allow_migrate("default", "django.contrib.auth", Permission)
         assert router.allow_migrate("control", "django.contrib.auth", Permission)
-
-        # Ensure tables that no longer exist don't fail
-        assert router.allow_migrate(
-            "default", "sentry", model=None, hints={"tables": ["jira_ac_tenant"]}
-        )
+        assert not router.allow_migrate(
+            "default", "sentry", model=None, tables=["jira_ac_tenant"]
+        ), "Removed tables should not error and not route"
 
     @override_settings(SILO_MODE="CONTROL")
     def test_for_control(self):
@@ -49,10 +48,9 @@ class SiloRouterSimulatedTest(TestCase):
         assert router.allow_migrate("control", "sentry", User)
         assert not router.allow_migrate("default", "sentry", User)
 
-        # Ensure tables that no longer exist don't fail
-        assert router.allow_migrate(
-            "default", "sentry", model=None, hints={"tables": ["jira_ac_tenant"]}
-        )
+        assert not router.allow_migrate(
+            "default", "sentry", model=None, tables=["jira_ac_tenant"]
+        ), "Removed tables should not error and not route"
 
     @override_settings(SILO_MODE="REGION")
     def test_for_region(self):
@@ -83,8 +81,9 @@ class SiloRouterSimulatedTest(TestCase):
         assert router.allow_migrate("control", "sentry", User)
         assert not router.allow_migrate("default", "sentry", User)
 
+    @pytest.mark.skipif(use_split_dbs(), reason="requires single db mode")
     @override_settings(SILO_MODE="MONOLITH")
-    def test_for_monolith(self):
+    def test_for_monolith_single(self):
         router = SiloRouter()
         assert "default" == router.db_for_read(Organization)
         assert "default" == router.db_for_read(User)
@@ -92,6 +91,17 @@ class SiloRouterSimulatedTest(TestCase):
         assert "default" == router.db_for_write(User)
         assert router.allow_migrate("default", "sentry", Organization)
         assert router.allow_migrate("default", "sentry", User)
+
+    @pytest.mark.skipif(not use_split_dbs(), reason="requires split db mode")
+    @override_settings(SILO_MODE="MONOLITH")
+    def test_for_monolith_split(self):
+        router = SiloRouter()
+        assert "default" == router.db_for_read(Organization)
+        assert "control" == router.db_for_read(User)
+        assert "default" == router.db_for_write(Organization)
+        assert "control" == router.db_for_write(User)
+        assert router.allow_migrate("default", "sentry", Organization)
+        assert router.allow_migrate("control", "sentry", User)
 
 
 class SiloRouterIsolatedTest(TestCase):
@@ -106,6 +116,9 @@ class SiloRouterIsolatedTest(TestCase):
         assert "default" == router.db_for_write(User)
         assert router.allow_migrate("default", "sentry", User)
         assert not router.allow_migrate("control", "sentry", User)
+        assert not router.allow_migrate(
+            "default", "sentry", model=None, tables=["jira_ac_tenant"]
+        ), "Removed tables end up excluded from migrations"
 
         with pytest.raises(ValueError):
             router.db_for_read(Organization)
@@ -123,6 +136,9 @@ class SiloRouterIsolatedTest(TestCase):
         assert "default" == router.db_for_write(Organization)
         assert router.allow_migrate("default", "sentry", Organization)
         assert not router.allow_migrate("region", "sentry", Organization)
+        assert not router.allow_migrate(
+            "default", "sentry", model=None, tables=["jira_ac_tenant"]
+        ), "Removed tables end up excluded from migrations"
 
         with pytest.raises(ValueError):
             router.db_for_read(User)

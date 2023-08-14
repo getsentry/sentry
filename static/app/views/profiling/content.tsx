@@ -8,7 +8,6 @@ import {Button} from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
-import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -153,8 +152,6 @@ function ProfilingContent({location}: ProfilingContentProps) {
     return _eventView;
   }, [location, query, selection.projects]);
 
-  const isProfilingGA = organization.features.includes('profiling-ga');
-
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer
@@ -165,7 +162,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
         }
       >
         <Layout.Page>
-          {isProfilingGA && <ProfilingBetaAlertBanner organization={organization} />}
+          <ProfilingBetaAlertBanner organization={organization} />
           <Layout.Header>
             <Layout.HeaderContent>
               <Layout.Title>
@@ -176,11 +173,6 @@ function ProfilingContent({location}: ProfilingContentProps) {
                     'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
                   )}
                 />
-                {isProfilingGA ? (
-                  <FeatureBadge type="new" />
-                ) : (
-                  <FeatureBadge type="beta" />
-                )}
               </Layout.Title>
             </Layout.HeaderContent>
           </Layout.Header>
@@ -222,51 +214,39 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 )}
               </ActionBar>
               {shouldShowProfilingOnboardingPanel ? (
-                isProfilingGA ? (
-                  // If user is on m2, show default
-                  <ProfilingOnboardingPanel
-                    content={
-                      <ProfilingAM1OrMMXUpgrade
-                        organization={organization}
-                        fallback={
-                          <Fragment>
-                            <h3>{t('Function level insights')}</h3>
-                            <p>
-                              {t(
-                                'Discover slow-to-execute or resource intensive functions within your application'
-                              )}
-                            </p>
-                          </Fragment>
-                        }
-                      />
+                // If user is on m2, show default
+                <ProfilingOnboardingPanel
+                  content={
+                    <ProfilingAM1OrMMXUpgrade
+                      organization={organization}
+                      fallback={
+                        <Fragment>
+                          <h3>{t('Function level insights')}</h3>
+                          <p>
+                            {t(
+                              'Discover slow-to-execute or resource intensive functions within your application'
+                            )}
+                          </p>
+                        </Fragment>
+                      }
+                    />
+                  }
+                >
+                  <ProfilingUpgradeButton
+                    organization={organization}
+                    priority="primary"
+                    fallback={
+                      <Button onClick={onSetupProfilingClick} priority="primary">
+                        {t('Set Up Profiling')}
+                      </Button>
                     }
                   >
-                    <ProfilingUpgradeButton
-                      organization={organization}
-                      priority="primary"
-                      fallback={
-                        <Button onClick={onSetupProfilingClick} priority="primary">
-                          {t('Set Up Profiling')}
-                        </Button>
-                      }
-                    >
-                      {t('Update plan')}
-                    </ProfilingUpgradeButton>
-                    <Button href="https://docs.sentry.io/product/profiling/" external>
-                      {t('Read Docs')}
-                    </Button>
-                  </ProfilingOnboardingPanel>
-                ) : (
-                  // show previous state
-                  <ProfilingOnboardingPanel>
-                    <Button onClick={onSetupProfilingClick} priority="primary">
-                      {t('Set Up Profiling')}
-                    </Button>
-                    <Button href="https://docs.sentry.io/product/profiling/" external>
-                      {t('Read Docs')}
-                    </Button>
-                  </ProfilingOnboardingPanel>
-                )
+                    {t('Update plan')}
+                  </ProfilingUpgradeButton>
+                  <Button href="https://docs.sentry.io/product/profiling/" external>
+                    {t('Read Docs')}
+                  </Button>
+                </ProfilingOnboardingPanel>
               ) : (
                 <Fragment>
                   {organization.features.includes(
@@ -274,7 +254,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   ) ? (
                     <Fragment>
                       <ProfilesChartWidget
-                        chartHeight={100}
+                        chartHeight={150}
                         referrer="api.profiling.landing-chart"
                         userQuery={query}
                         selection={selection}

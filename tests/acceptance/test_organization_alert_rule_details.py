@@ -4,11 +4,11 @@ from django.utils import timezone
 
 from sentry.models import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.silo import no_silo_test
 
 
-@region_silo_test
+@no_silo_test(stable=True)
 class OrganizationAlertRuleDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

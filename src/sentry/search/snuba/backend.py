@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import atexit
 import functools
+import logging
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 
@@ -12,6 +15,7 @@ from django.utils.functional import SimpleLazyObject
 
 from sentry import features, quotas
 from sentry.api.event_search import SearchFilter
+from sentry.db.models import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.models import (
@@ -25,8 +29,6 @@ from sentry.models import (
     GroupOwner,
     GroupStatus,
     GroupSubscription,
-    OrganizationMember,
-    OrganizationMemberTeam,
     PlatformExternalIssue,
     Project,
     Release,
@@ -38,11 +40,14 @@ from sentry.search.events.constants import EQUALITY_OPERATORS, OPERATOR_TO_DJANG
 from sentry.search.snuba.executors import (
     AbstractQueryExecutor,
     CdcPostgresSnubaQueryExecutor,
+    InvalidQueryForExecutor,
     PostgresSnubaQueryExecutor,
     PrioritySortWeights,
 )
-from sentry.search.utils import get_teams_for_users
+from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
+
+logger = logging.getLogger(__name__)
 
 
 def assigned_to_filter(
@@ -79,17 +84,6 @@ def assigned_to_filter(
                 ).values_list("group_id", flat=True)
             }
         )
-        organization = projects[0].organization
-        # Only add teams to query if assign-to-me flag is off
-        if not features.has("organizations:assign-to-me", organization, actor=None):
-            query |= Q(
-                **{
-                    f"{field_filter}__in": GroupAssignee.objects.filter(
-                        project_id__in=[p.id for p in projects],
-                        team_id__in=[team for team in get_teams_for_users(projects, users)],
-                    ).values_list("group_id", flat=True)
-                }
-            )
 
     if include_none:
         query |= unassigned_filter(True, projects, field_filter=field_filter)
@@ -218,21 +212,7 @@ def assigned_or_suggested_filter(
     if "User" in types_to_owners:
         users = types_to_owners["User"]
         user_ids: List[int] = [u.id for u in users if u is not None]
-        team_ids = list(
-            Team.objects.filter(
-                id__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember__in=OrganizationMember.objects.filter(
-                        user_id__in=user_ids, organization_id=organization_id
-                    ),
-                    is_active=True,
-                ).values("team")
-            ).values_list("id", flat=True)
-        )
-        organization = projects[0].organization
         query_ids = Q(user_id__in=user_ids)
-        # Only add team_ids to query if assign-to-me flag is off
-        if not features.has("organizations:assign-to-me", organization, actor=None):
-            query_ids = query_ids | Q(team_id__in=team_ids)
         owned_by_me = Q(
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
@@ -276,6 +256,149 @@ def regressed_in_release_filter(versions: Sequence[str], projects: Sequence[Proj
             project__in=projects,
         ).values_list("group_id", flat=True),
     )
+
+
+_side_query_pool = ThreadPoolExecutor(max_workers=10)
+
+atexit.register(_side_query_pool.shutdown, False)
+
+
+def _group_attributes_side_query(
+    events_only_search_results: CursorResult[Group],
+    builder: Callable[[], BaseQuerySet],
+    projects: Sequence[Project],
+    retention_window_start: Optional[datetime],
+    group_queryset: BaseQuerySet,
+    environments: Optional[Sequence[Environment]] = None,
+    sort_by: str = "date",
+    limit: int = 100,
+    cursor: Optional[Cursor] = None,
+    count_hits: bool = False,
+    paginator_options: Optional[Mapping[str, Any]] = None,
+    search_filters: Optional[Sequence[SearchFilter]] = None,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+    max_hits: Optional[int] = None,
+    referrer: Optional[str] = None,
+    actor: Optional[Any] = None,
+    aggregate_kwargs: Optional[PrioritySortWeights] = None,
+) -> None:
+    def __run_joined_query_and_log_metric(
+        events_only_search_results: CursorResult[Group],
+        builder: Callable[[], BaseQuerySet],
+        projects: Sequence[Project],
+        retention_window_start: Optional[datetime],
+        group_queryset: BaseQuerySet,
+        environments: Optional[Sequence[Environment]] = None,
+        sort_by: str = "date",
+        limit: int = 100,
+        cursor: Optional[Cursor] = None,
+        count_hits: bool = False,
+        paginator_options: Optional[Mapping[str, Any]] = None,
+        search_filters: Optional[Sequence[SearchFilter]] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        max_hits: Optional[int] = None,
+        referrer: Optional[str] = None,
+        actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
+    ):
+        from sentry.utils import metrics
+
+        try:
+            from sentry.search.snuba.executors import GroupAttributesPostgresSnubaQueryExecutor
+
+            executor = GroupAttributesPostgresSnubaQueryExecutor()
+            with metrics.timer("snuba.search.group_attributes_joined.duration"):
+                cursor_results = executor.query(
+                    projects,
+                    retention_window_start,
+                    builder(),
+                    environments,
+                    sort_by,
+                    limit,
+                    cursor,
+                    count_hits,
+                    paginator_options,
+                    search_filters,
+                    date_from,
+                    date_to,
+                    max_hits,
+                    referrer,
+                    actor,
+                    aggregate_kwargs,
+                )
+            joined_hits = len(cursor_results.results)
+            events_only_search_hits = len(events_only_search_results.results)
+            if events_only_search_hits > 0:
+                if joined_hits == events_only_search_hits:
+                    comparison = "equal"
+                elif joined_hits > events_only_search_hits:
+                    comparison = "greater"
+                else:
+                    # the joined query shouldn't have fewer hits since the query is deliberately less restrictive
+                    comparison = "less"
+
+                metrics.incr(
+                    "snuba.search.group_attributes_joined.events_compared",
+                    tags={"comparison": comparison},
+                )
+
+            metrics.incr("snuba.search.group_attributes_joined.query", tags={"exception": "none"})
+        except InvalidQueryForExecutor as e:
+            logger.info(
+                "unsupported query received in GroupAttributesPostgresSnubaQueryExecutor",
+                exc_info=True,
+            )
+            metrics.incr(
+                "snuba.search.group_attributes_joined.query",
+                tags={
+                    "exception": f"{type(e).__module__}.{type(e).__qualname__}",
+                },
+            )
+        except Exception as e:
+            logger.warning(
+                "failed to load side query from _group_attributes_side_query", exc_info=True
+            )
+            metrics.incr(
+                "snuba.search.group_attributes_joined.query",
+                tags={
+                    "exception": f"{type(e).__module__}.{type(e).__qualname__}",
+                },
+            )
+        finally:
+            # since this code is running in a thread and django establishes a connection per thread, we need to
+            # explicitly close the connection assigned to this thread to avoid linger connections
+            from django.db import connection
+
+            connection.close()
+
+    try:
+        _side_query_pool.submit(
+            __run_joined_query_and_log_metric,
+            events_only_search_results,
+            builder,
+            projects,
+            retention_window_start,
+            group_queryset,
+            environments,
+            sort_by,
+            limit,
+            cursor,
+            count_hits,
+            paginator_options,
+            search_filters,
+            date_from,
+            date_to,
+            max_hits,
+            referrer,
+            actor,
+            aggregate_kwargs,
+        )
+    except Exception:
+        logger.exception(
+            "failed to submit group-attributes search side-query to pool", exc_info=True
+        )
 
 
 class Condition:
@@ -402,24 +525,70 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         if not query_executor.has_sort_strategy(sort_by):
             raise InvalidSearchQuery(f"Sort key '{sort_by}' not supported.")
 
-        return query_executor.query(
-            projects=projects,
-            retention_window_start=retention_window_start,
-            group_queryset=group_queryset,
-            environments=environments,
-            sort_by=sort_by,
-            limit=limit,
-            cursor=cursor,
-            count_hits=count_hits,
-            paginator_options=paginator_options,
-            search_filters=search_filters,
-            date_from=date_from,
-            date_to=date_to,
-            max_hits=max_hits,
-            referrer=referrer,
-            actor=actor,
-            aggregate_kwargs=aggregate_kwargs,
-        )
+        with metrics.timer("snuba.search.postgres_snuba.duration"):
+            query_results = query_executor.query(
+                projects=projects,
+                retention_window_start=retention_window_start,
+                group_queryset=group_queryset,
+                environments=environments,
+                sort_by=sort_by,
+                limit=limit,
+                cursor=cursor,
+                count_hits=count_hits,
+                paginator_options=paginator_options,
+                search_filters=search_filters,
+                date_from=date_from,
+                date_to=date_to,
+                max_hits=max_hits,
+                referrer=referrer,
+                actor=actor,
+                aggregate_kwargs=aggregate_kwargs,
+            )
+
+        if len(projects) > 0 and features.has(
+            "organizations:issue-search-group-attributes-side-query", projects[0].organization
+        ):
+            new_group_queryset = self._build_group_queryset(
+                projects=projects,
+                environments=environments,
+                search_filters=search_filters,
+                retention_window_start=retention_window_start,
+                date_from=date_from,
+                date_to=date_to,
+            )
+
+            builder = functools.partial(
+                self._build_group_queryset,
+                projects=projects,
+                environments=environments,
+                search_filters=search_filters,
+                retention_window_start=retention_window_start,
+                date_from=date_from,
+                date_to=date_to,
+            )
+
+            _group_attributes_side_query(
+                events_only_search_results=query_results,
+                builder=builder,
+                projects=projects,
+                retention_window_start=retention_window_start,
+                group_queryset=new_group_queryset,
+                environments=environments,
+                sort_by=sort_by,
+                limit=limit,
+                cursor=cursor,
+                count_hits=count_hits,
+                paginator_options=paginator_options,
+                search_filters=search_filters,
+                date_from=date_from,
+                date_to=date_to,
+                max_hits=max_hits,
+                referrer=referrer,
+                actor=actor,
+                aggregate_kwargs=aggregate_kwargs,
+            )
+
+        return query_results
 
     def _build_group_queryset(
         self,

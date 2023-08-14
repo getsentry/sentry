@@ -15,7 +15,7 @@ from sentry.constants import MAX_TOP_EVENTS
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.snuba.discover import OTHER_KEY
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
@@ -101,6 +101,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             "prod",
             self.day_ago.replace(tzinfo=utc),
         )
+        assert group_info is not None
         self.store_search_issue(
             self.project.id,
             self.user.id,
@@ -143,6 +144,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             "prod",
             self.day_ago.replace(tzinfo=utc) + timedelta(minutes=1),
         )
+        assert group_info is not None
         self.store_search_issue(
             self.project.id,
             self.user.id,
@@ -1170,7 +1172,6 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         self.events = []
         for index, event_data in enumerate(self.event_data):
             data = event_data["data"].copy()
-            event = {}
             for i in range(event_data["count"]):
                 data["event_id"] = f"{index}{i}" * 16
                 event = self.store_event(data, project_id=event_data["project"].id)

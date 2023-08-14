@@ -13,7 +13,7 @@ from typing import (
     Union,
 )
 
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models import Q, QuerySet
 
 from sentry import analytics
@@ -42,12 +42,12 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
-    from sentry.models import NotificationSetting, Organization, Project
+    from sentry.models import NotificationSetting, Organization, Project  # noqa: F401
 
 REMOVE_SETTING_BATCH_SIZE = 1000
 
 
-class NotificationsManager(BaseManager["NotificationSetting"]):
+class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
     """
     TODO(mgaeta): Add a caching layer for notification settings
     """
@@ -97,10 +97,11 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         team_id: Optional[int] = None,
     ) -> None:
         """Save a NotificationSettings row."""
+        from sentry.models.notificationsetting import NotificationSetting  # noqa: F811
 
         defaults = {"value": value.value}
         with configure_scope() as scope:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(NotificationSetting)):
                 setting, created = self.get_or_create(
                     provider=provider.value,
                     type=type.value,
@@ -127,6 +128,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         team_id: int | None = None,
         project: Project | int | None = None,
         organization: Organization | int | None = None,
+        actor: RpcActor | None = None,
     ) -> None:
         """
         Save a target's notification preferences.
@@ -137,6 +139,11 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         """
         if user:
             user_id = user.id
+        elif actor:
+            if actor.actor_type == ActorType.USER:
+                user_id = actor.id
+            else:
+                team_id = actor.id
 
         if user_id is not None:
             actor_type = ActorType.USER
@@ -263,12 +270,12 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         ).delete()
 
     def remove_for_organization(
-        self, organization: Organization, type: NotificationSettingTypes | None = None
+        self, organization_id: int, type: NotificationSettingTypes | None = None
     ) -> None:
         """Bulk delete all Notification Settings for an ENTIRE ORGANIZATION, optionally by type."""
         self._filter(
             scope_type=NotificationScopeType.ORGANIZATION,
-            scope_identifier=organization.id,
+            scope_identifier=organization_id,
             type=type,
         ).delete()
 
@@ -395,7 +402,15 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def update_settings_bulk(
         self,
-        notification_settings: Sequence[NotificationSetting],
+        notification_settings: Sequence[
+            tuple[
+                ExternalProviders,
+                NotificationSettingTypes,
+                NotificationScopeType,
+                int,
+                NotificationSettingOptionValues,
+            ]
+        ],
         team: Team | None = None,
         user: User | None = None,
     ) -> None:
@@ -461,7 +476,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         ).delete()
 
     def disable_settings_for_users(
-        self, provider: ExternalProviders, users: Sequence[User]
+        self, provider: ExternalProviders, users: Iterable[User]
     ) -> None:
         """
         Given a list of users, overwrite all of their parent-independent

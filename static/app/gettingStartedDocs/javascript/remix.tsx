@@ -1,5 +1,6 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
+import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
@@ -52,11 +53,11 @@ export const steps = ({
       {
         language: 'bash',
         code: `
-        # Using yarn
-        yarn add @sentry/remix
+# Using yarn
+yarn add @sentry/remix
 
-        # Using npm
-        npm install --save @sentry/remix
+# Using npm
+npm install --save @sentry/remix
         `,
       },
     ],
@@ -81,19 +82,22 @@ export const steps = ({
       },
       {
         language: 'javascript',
-        description: tct(
-          `Initialize Sentry in your entry point for the server to capture exceptions and get performance metrics for your [action] and [loader] functions. You can also initialize Sentry's database integrations, such as Prisma, to get spans for your database calls:`,
-          {
-            action: (
-              <ExternalLink href="https://remix.run/docs/en/v1/api/conventions#action" />
-            ),
-            loader: (
-              <ExternalLink href="https://remix.run/docs/en/1.18.1/api/conventions#loader" />
-            ),
-          }
+        description: (
+          <p>
+            {tct(
+              `Initialize Sentry in your entry point for the server to capture exceptions and get performance metrics for your [action] and [loader] functions. You can also initialize Sentry's database integrations, such as Prisma, to get spans for your database calls:`,
+              {
+                action: (
+                  <ExternalLink href="https://remix.run/docs/en/v1/api/conventions#action" />
+                ),
+                loader: (
+                  <ExternalLink href="https://remix.run/docs/en/1.18.1/api/conventions#loader" />
+                ),
+              }
+            )}
+          </p>
         ),
         code: `
-
         ${
           (sentryInitContentServer ?? []).length > 1
             ? `import { prisma } from "~/db.server";`
@@ -188,17 +192,11 @@ export const nextSteps = [
 ];
 // Configuration End
 
-type Props = {
-  activeProductSelection: ProductSolution[];
-  dsn: string;
-  newOrg?: boolean;
-};
-
-export default function GettingStartedWithRemix({
+export function GettingStartedWithRemix({
   dsn,
-  activeProductSelection,
-  newOrg,
-}: Props) {
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
 
@@ -240,7 +238,9 @@ export default function GettingStartedWithRemix({
         sentryInitContentServer,
       })}
       nextSteps={nextStepDocs}
-      newOrg={newOrg}
+      {...props}
     />
   );
 }
+
+export default GettingStartedWithRemix;

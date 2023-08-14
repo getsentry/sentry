@@ -4,8 +4,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.testutils import APITestCase
-from sentry.testutils.cases import PermissionTestCase
+from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -91,7 +90,10 @@ class OrgAuthTokensListTest(APITestCase):
         self.login_as(self.user)
         response = self.get_success_response(self.organization.slug, status_code=status.HTTP_200_OK)
         assert response.content
-        assert response.get("cache-control") == "max-age=0, no-cache, no-store, must-revalidate"
+        assert (
+            response.get("cache-control")
+            == "max-age=0, no-cache, no-store, must-revalidate, private"
+        )
 
     def test_no_auth(self):
         response = self.get_error_response(self.organization.slug)

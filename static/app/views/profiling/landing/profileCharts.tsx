@@ -112,7 +112,7 @@ export function ProfileCharts({
             {!hideCount && (
               <StyledHeaderTitle compact>{t('Profiles by Count')}</StyledHeaderTitle>
             )}
-            <StyledHeaderTitle compact>{t('Profiles by Percentiles')}</StyledHeaderTitle>
+            <StyledHeaderTitle compact>{t('Profiles Duration')}</StyledHeaderTitle>
           </TitleContainer>
           <AreaChart
             height={compact ? 150 : 300}

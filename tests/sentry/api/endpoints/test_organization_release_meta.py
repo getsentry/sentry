@@ -2,7 +2,6 @@ from django.urls import reverse
 
 from sentry.models import (
     Commit,
-    CommitFileChange,
     File,
     ProjectArtifactBundle,
     Release,
@@ -11,7 +10,8 @@ from sentry.models import (
     ReleaseFile,
     Repository,
 )
-from sentry.testutils import APITestCase
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 

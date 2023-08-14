@@ -118,6 +118,7 @@ export enum FieldKey {
   USER_ID = 'user.id',
   USER_IP = 'user.ip',
   USER_USERNAME = 'user.username',
+  USER_SEGMENT = 'user.segment',
   APP_IN_FOREGROUND = 'app.in_foreground',
 }
 
@@ -983,6 +984,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.USER_SEGMENT]: {
+    desc: t('Segment of the user'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.APP_IN_FOREGROUND]: {
     desc: t('Indicates if the app is in the foreground or background'),
     kind: FieldKind.FIELD,
@@ -1173,6 +1179,8 @@ export enum ReplayFieldKey {
   ACTIVITY = 'activity',
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
+  COUNT_DEAD_CLICKS = 'count_dead_clicks',
+  COUNT_RAGE_CLICKS = 'count_rage_clicks',
   COUNT_ERRORS = 'count_errors',
   COUNT_SEGMENTS = 'count_segments',
   COUNT_URLS = 'count_urls',
@@ -1208,6 +1216,8 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.ACTIVITY,
   ReplayFieldKey.BROWSER_NAME,
   ReplayFieldKey.BROWSER_VERSION,
+  ReplayFieldKey.COUNT_DEAD_CLICKS,
+  ReplayFieldKey.COUNT_RAGE_CLICKS,
   ReplayFieldKey.COUNT_ERRORS,
   ReplayFieldKey.COUNT_SEGMENTS,
   ReplayFieldKey.COUNT_URLS,
@@ -1249,6 +1259,16 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     desc: t('Version number of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.COUNT_DEAD_CLICKS]: {
+    desc: t('Number of dead clicks in the replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  [ReplayFieldKey.COUNT_RAGE_CLICKS]: {
+    desc: t('Number of rage clicks in the replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
   },
   [ReplayFieldKey.COUNT_ERRORS]: {
     desc: t('Number of errors in the replay'),

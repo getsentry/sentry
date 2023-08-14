@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import heapq
 import logging
 from datetime import timedelta
 from functools import partial, reduce
-from typing import MutableMapping, Tuple
+from typing import Tuple
 
 import sentry_sdk
-from django.db.models import Count
+from django.db.models import Count, F
 from django.utils import dateformat, timezone
 from sentry_sdk import set_tag
 from snuba_sdk import Request
@@ -20,7 +22,6 @@ from snuba_sdk.query import Limit, Query
 from sentry import features
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
-from sentry.db.models.fields import PickledObjectField
 from sentry.models import (
     Activity,
     Group,
@@ -30,8 +31,9 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     OrganizationStatus,
-    User,
 )
+from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.activity import ActivityType
@@ -58,7 +60,7 @@ class OrganizationReportContext:
         self.end = to_datetime(timestamp)
 
         self.organization: Organization = organization
-        self.projects: MutableMapping[str, ProjectContext] = {}  # { project_id: ProjectContext }
+        self.projects: dict[int, ProjectContext] = {}  # { project_id: ProjectContext }
 
         self.project_ownership = {}  # { user_id: set<project_id> }
         for project in organization.project_set.all():
@@ -81,8 +83,7 @@ class ProjectContext:
     existing_issue_count = 0
     reopened_issue_count = 0
     new_issue_count = 0
-    # we merged organizations:issue-states flag to organizations:escalating-issues, so delete when
-    # organizations:escalating-issues GA
+    # delete when organizations:escalating-issues GA
     new_substatus_count = 0
     ongoing_substatus_count = 0
     escalating_substatus_count = 0
@@ -149,6 +150,7 @@ def check_if_ctx_is_empty(ctx):
     queue="reports.prepare",
     max_retries=5,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry
 def schedule_organizations(dry_run=False, timestamp=None, duration=None):
@@ -174,6 +176,7 @@ def schedule_organizations(dry_run=False, timestamp=None, duration=None):
     queue="reports.prepare",
     max_retries=5,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry
 def prepare_organization_report(
@@ -637,22 +640,26 @@ def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
     else:
         # We save the subscription status of the user in a field in UserOptions.
         # Here we do a raw query and LEFT JOIN on a subset of UserOption table where sentry_useroption.key = 'reports:disabled-organizations'
-        user_set = User.objects.raw(
-            """SELECT auth_user.*, sentry_useroption.value as options FROM auth_user
-                                       INNER JOIN sentry_organizationmember on sentry_organizationmember.user_id=auth_user.id
-                                       LEFT JOIN sentry_useroption on sentry_useroption.user_id = auth_user.id and sentry_useroption.key = 'reports:disabled-organizations'
-                                       WHERE auth_user.is_active = true
-                                         AND "sentry_organizationmember"."flags" & %s = 0
-                                         AND "sentry_organizationmember"."organization_id"= %s """,
-            [OrganizationMember.flags["member-limit:restricted"], ctx.organization.id],
+        user_set = list(
+            OrganizationMember.objects.filter(
+                user_is_active=True,
+                organization_id=ctx.organization.id,
+            )
+            .filter(flags=F("flags").bitand(~OrganizationMember.flags["member-limit:restricted"]))
+            .values_list("user_id", flat=True)
         )
+        options_by_user_id = {
+            option.user_id: option.value
+            for option in user_option_service.get_many(
+                filter=dict(user_ids=user_set, keys=["reports:disabled-organizations"])
+            )
+        }
 
-        for user in user_set:
-            # We manually pick out user.options and use PickledObjectField to deserialize it. We get a list of organizations the user has unsubscribed from user reports
-            option = PickledObjectField().to_python(user.options) or []
+        for user_id in user_set:
+            option = list(options_by_user_id.get(user_id, []))
             user_subscribed_to_organization_reports = ctx.organization.id not in option
             if user_subscribed_to_organization_reports:
-                send_email(ctx, user, dry_run=dry_run)
+                send_email(ctx, user_id, dry_run=dry_run)
 
 
 project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
@@ -685,9 +692,10 @@ group_status_to_color = {
     GroupHistoryStatus.DELETED_AND_DISCARDED: "#DBD6E1",
     GroupHistoryStatus.REVIEWED: "#FAD473",
     GroupHistoryStatus.NEW: "#FAD473",
-    GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING: "",
+    GroupHistoryStatus.ESCALATING: "#FAD473",
+    GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING: "#FAD473",
     GroupHistoryStatus.ARCHIVED_FOREVER: "#FAD473",
-    GroupHistoryStatus.ARCHIVED_FOREVER: "#FAD473",
+    GroupHistoryStatus.ARCHIVED_UNTIL_CONDITION_MET: "#FAD473",
 }
 
 
@@ -696,6 +704,8 @@ def get_group_status_badge(group: Group) -> Tuple[str, str, str]:
     Returns a tuple of (text, background_color, border_color)
     Should be similar to GroupStatusBadge.tsx in the frontend
     """
+    if group.status == GroupStatus.RESOLVED:
+        return ("Resolved", "rgba(108, 95, 199, 0.08)", "rgba(108, 95, 199, 0.5)")
     if group.status == GroupStatus.UNRESOLVED:
         if group.substatus == GroupSubStatus.NEW:
             return ("New", "rgba(245, 176, 0, 0.08)", "rgba(245, 176, 0, 0.55)")
@@ -706,14 +716,14 @@ def get_group_status_badge(group: Group) -> Tuple[str, str, str]:
     return ("Ongoing", "rgba(219, 214, 225, 1)", "rgba(219, 214, 225, 1)")
 
 
-def render_template_context(ctx, user):
+def render_template_context(ctx, user_id):
     # Serialize ctx for template, and calculate view parameters (like graph bar heights)
     # Fetch the list of projects associated with the user.
     # Projects owned by teams that the user has membership of.
-    if user and user.id in ctx.project_ownership:
+    if user_id and user_id in ctx.project_ownership:
         user_projects = list(
             filter(
-                lambda project_ctx: project_ctx.project.id in ctx.project_ownership[user.id],
+                lambda project_ctx: project_ctx.project.id in ctx.project_ownership[user_id],
                 ctx.projects.values(),
             )
         )
@@ -894,7 +904,7 @@ def render_template_context(ctx, user):
                 logger.info(
                     "render_template_context.all_key_errors.num_projects",
                     extra={
-                        "user_id": user.id if user else "",
+                        "user_id": user_id if user_id else "",
                         "num_user_projects": len(user_projects),
                     },
                 )
@@ -903,7 +913,7 @@ def render_template_context(ctx, user):
                     logger.info(
                         "render_template_context.all_key_errors.project",
                         extra={
-                            "user_id": user.id,
+                            "user_id": user_id,
                             "project_id": project_ctx.project.id,
                         },
                     )
@@ -913,7 +923,7 @@ def render_template_context(ctx, user):
                             "render_template_context.all_key_errors.found_error",
                             extra={
                                 "group_id": group.id,
-                                "user_id": user.id,
+                                "user_id": user_id,
                                 "project_id": project_ctx.project.id,
                             },
                         )
@@ -1024,11 +1034,11 @@ def render_template_context(ctx, user):
     }
 
 
-def send_email(ctx, user, dry_run=False, email_override=None):
-    template_ctx = render_template_context(ctx, user)
+def send_email(ctx, user_id, dry_run=False, email_override=None):
+    template_ctx = render_template_context(ctx, user_id)
     if not template_ctx:
         logger.debug(
-            f"Skipping report for {ctx.organization.id} to {user}, no qualifying reports to deliver."
+            f"Skipping report for {ctx.organization.id} to <User: {user_id}>, no qualifying reports to deliver."
         )
         return
 
@@ -1045,5 +1055,5 @@ def send_email(ctx, user, dry_run=False, email_override=None):
     if email_override:
         message.send(to=(email_override,))
     else:
-        message.add_users((user.id,))
+        message.add_users((user_id,))
         message.send_async()

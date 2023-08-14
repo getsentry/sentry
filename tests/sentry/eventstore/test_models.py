@@ -11,16 +11,15 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import Environment
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import snuba
-from sentry.utils.pytest.fixtures import django_db_all
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EventTest(TestCase, PerformanceIssueTestCase):
     def test_pickling_compat(self):
         event = self.store_event(
@@ -41,15 +40,14 @@ class EventTest(TestCase, PerformanceIssueTestCase):
 
         # For testing we remove the backwards compat support in the
         # `NodeData` as well.
-        nodedata_getstate = NodeData.__getstate__
-        del NodeData.__getstate__
+        nodedata_getstate = hasattr(NodeData, "__getstate__")
+        with mock.patch.object(NodeData, "__getstate__", nodedata_getstate):
+            del NodeData.__getstate__
 
-        # Old worker loading
-        try:
+            # Old worker loading
             event2 = pickle.loads(data)
             assert event2.data == event.data
-        finally:
-            NodeData.__getstate__ = nodedata_getstate
+        assert hasattr(NodeData, "__getstate__")
 
         # New worker loading
         event2 = pickle.loads(data)
@@ -81,6 +79,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             project_id=self.project.id,
         )
 
+        assert event1.group is not None
         group = event1.group
 
         group.level = 30
@@ -384,7 +383,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EventGroupsTest(TestCase):
     def test_none(self):
         event = Event(
@@ -461,7 +460,7 @@ class EventGroupsTest(TestCase):
         assert event.groups == [self.group]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EventBuildGroupEventsTest(TestCase):
     def test_none(self):
         event = Event(
@@ -513,7 +512,7 @@ class EventBuildGroupEventsTest(TestCase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EventForGroupTest(TestCase):
     def test(self):
         event = Event(
@@ -532,7 +531,7 @@ class EventForGroupTest(TestCase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupEventFromEventTest(TestCase):
     def test(self):
         event = Event(
@@ -572,7 +571,7 @@ class GroupEventFromEventTest(TestCase):
             group_event.project
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
     def test(self):
         occurrence_data = self.build_occurrence_data(project_id=self.project.id)
@@ -584,6 +583,7 @@ class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
                 "level": "info",
             },
         )
+        assert group_info is not None
 
         event = Event(
             occurrence_data["project_id"],
@@ -592,6 +592,7 @@ class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
             data={},
             snuba_data={"occurrence_id": occurrence.id},
         )
+        assert event.group is not None
         with mock.patch.object(IssueOccurrence, "fetch", wraps=IssueOccurrence.fetch) as fetch_mock:
             group_event = event.for_group(event.group)
             assert group_event.occurrence == occurrence
@@ -629,7 +630,7 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
     assert len(normalize_mock_calls) == 1
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EventNodeStoreTest(TestCase):
     def test_event_node_id(self):
         # Create an event without specifying node_id. A node_id should be generated
@@ -637,7 +638,7 @@ class EventNodeStoreTest(TestCase):
         assert e1.data.id is not None, "We should have generated a node_id for this event"
         e1_node_id = e1.data.id
         e1.data.save()
-        e1_body = nodestore.get(e1_node_id)
+        e1_body = nodestore.backend.get(e1_node_id)
         assert e1_body == {"foo": "bar"}, "The event body should be in nodestore"
 
         e1 = Event(project_id=1, event_id="abc")
@@ -649,9 +650,9 @@ class EventNodeStoreTest(TestCase):
         e2 = Event(project_id=1, event_id="mno", data=None)
         e2_node_id = e2.data.id
         assert e2.data.data == {}  # NodeData returns {} by default
-        eventstore.bind_nodes([e2], "data")
+        eventstore.backend.bind_nodes([e2], "data")
         assert e2.data.data == {}
-        e2_body = nodestore.get(e2_node_id)
+        e2_body = nodestore.backend.get(e2_node_id)
         assert e2_body is None
 
     def test_screams_bloody_murder_when_ref_fails(self):
@@ -682,7 +683,7 @@ class EventNodeStoreTest(TestCase):
         event.data._node_data = None
 
         with pytest.raises(NodeIntegrityFailure):
-            eventstore.bind_nodes([event])
+            eventstore.backend.bind_nodes([event])
 
     def test_accepts_valid_ref(self):
         self.store_event(data={"event_id": "a" * 32}, project_id=self.project.id)

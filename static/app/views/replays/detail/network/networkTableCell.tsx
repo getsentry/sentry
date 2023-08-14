@@ -1,35 +1,38 @@
-import {ComponentProps, CSSProperties, forwardRef, MouseEvent, useMemo} from 'react';
+import {ComponentProps, CSSProperties, forwardRef} from 'react';
 import classNames from 'classnames';
 
 import FileSize from 'sentry/components/fileSize';
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {
+  ButtonWrapper,
   Cell,
-  StyledTimestampButton,
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {Tooltip} from 'sentry/components/tooltip';
+import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {
+  getFrameMethod,
+  getFrameStatus,
+  getResponseBodySize,
+} from 'sentry/utils/replays/resourceFrame';
+import type {SpanFrame} from 'sentry/utils/replays/types';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
+import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import {operationName} from 'sentry/views/replays/detail/utils';
-import type {NetworkSpan} from 'sentry/views/replays/types';
 
 const EMPTY_CELL = '--';
 
-type Props = {
+interface Props extends ReturnType<typeof useCrumbHandlers> {
   columnIndex: number;
   currentHoverTime: number | undefined;
   currentTime: number;
+  frame: SpanFrame;
   onClickCell: (props: {dataIndex: number; rowIndex: number}) => void;
-  onClickTimestamp: (crumb: NetworkSpan) => void;
-  onMouseEnter: (span: NetworkSpan) => void;
-  onMouseLeave: (span: NetworkSpan) => void;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortNetwork>['sortConfig'];
-  span: NetworkSpan;
   startTimestampMs: number;
   style: CSSProperties;
-};
+}
 
 const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
   (
@@ -37,13 +40,13 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       columnIndex,
       currentHoverTime,
       currentTime,
+      frame,
       onMouseEnter,
       onMouseLeave,
       onClickCell,
       onClickTimestamp,
       rowIndex,
       sortConfig,
-      span,
       startTimestampMs,
       style,
     }: Props,
@@ -55,19 +58,13 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
     const {getParamValue} = useUrlParams('n_detail_row', '');
     const isSelected = getParamValue() === String(dataIndex);
 
-    const startMs = span.startTimestamp * 1000;
-    const endMs = span.endTimestamp * 1000;
-    const method = span.data.method;
-    const statusCode = span.data.statusCode;
-    // `data.responseBodySize` is from SDK version 7.44-7.45
-    const size = span.data.size ?? span.data.response?.size ?? span.data.responseBodySize;
+    const method = getFrameMethod(frame);
+    const statusCode = getFrameStatus(frame);
+    const size = getResponseBodySize(frame);
 
-    const spanTime = useMemo(
-      () => relativeTimeInMs(span.startTimestamp * 1000, startTimestampMs),
-      [span.startTimestamp, startTimestampMs]
-    );
-    const hasOccurred = currentTime >= spanTime;
-    const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= spanTime;
+    const hasOccurred = currentTime >= frame.offsetMs;
+    const isBeforeHover =
+      currentHoverTime === undefined || currentHoverTime >= frame.offsetMs;
 
     const isByTimestamp = sortConfig.by === 'startTimestamp';
     const isAsc = isByTimestamp ? sortConfig.asc : undefined;
@@ -100,8 +97,8 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       isSelected,
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
       onClick: () => onClickCell({dataIndex, rowIndex}),
-      onMouseEnter: () => onMouseEnter(span),
-      onMouseLeave: () => onMouseLeave(span),
+      onMouseEnter: () => onMouseEnter(frame),
+      onMouseLeave: () => onMouseLeave(frame),
       ref,
       style,
     } as ComponentProps<typeof Cell>;
@@ -120,19 +117,19 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       () => (
         <Cell {...columnProps}>
           <Tooltip
-            title={span.description}
+            title={frame.description}
             isHoverable
             showOnlyOnOverflow
             overlayStyle={{maxWidth: '500px !important'}}
           >
-            <Text>{span.description || EMPTY_CELL}</Text>
+            <Text>{frame.description || EMPTY_CELL}</Text>
           </Tooltip>
         </Cell>
       ),
       () => (
         <Cell {...columnProps}>
-          <Tooltip title={operationName(span.op)} isHoverable showOnlyOnOverflow>
-            <Text>{operationName(span.op)}</Text>
+          <Tooltip title={operationName(frame.op)} isHoverable showOnlyOnOverflow>
+            <Text>{operationName(frame.op)}</Text>
           </Tooltip>
         </Cell>
       ),
@@ -145,20 +142,22 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       ),
       () => (
         <Cell {...columnProps} numeric>
-          <Text>{`${(endMs - startMs).toFixed(2)}ms`}</Text>
+          <Text>{`${(frame.endTimestampMs - frame.timestampMs).toFixed(2)}ms`}</Text>
         </Cell>
       ),
       () => (
         <Cell {...columnProps} numeric>
-          <StyledTimestampButton
-            format="mm:ss.SSS"
-            onClick={(event: MouseEvent) => {
-              event.stopPropagation();
-              onClickTimestamp(span);
-            }}
-            startTimestampMs={startTimestampMs}
-            timestampMs={startMs}
-          />
+          <ButtonWrapper>
+            <TimestampButton
+              format="mm:ss.SSS"
+              onClick={event => {
+                event.stopPropagation();
+                onClickTimestamp(frame);
+              }}
+              startTimestampMs={startTimestampMs}
+              timestampMs={frame.timestampMs}
+            />
+          </ButtonWrapper>
         </Cell>
       ),
     ];

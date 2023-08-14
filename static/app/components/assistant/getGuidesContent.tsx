@@ -274,6 +274,24 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
+      guide: 'explain_new_default_event_issue_detail',
+      requiredTargets: ['issue_details_default_event'],
+      dateThreshold: new Date('2023-08-22'),
+      steps: [
+        {
+          title: t('New Default Event'),
+          target: 'issue_details_default_event',
+          description: tct(
+            'Rather than the latest event, we now default to a recent event with the most context (replays, traces, and profiles). You can easily switch between events or [link:configure your default event] in settings.',
+            {
+              link: <Link to="/settings/account/details/#defaultIssueEvent" />,
+            }
+          ),
+          dismissText: t('Got It'),
+        },
+      ],
+    },
+    {
       guide: 'explain_archive_tab_issue_stream',
       requiredTargets: ['issue_stream_archive_tab'],
       dateThreshold: new Date('2023-07-05'),
@@ -389,7 +407,7 @@ function getDemoModeGuides(): GuidesContent {
           title: t('Compare releases'),
           target: 'release_projects',
           description: t(
-            `Click here and select the "react-native" project to see how the release is trending compaed to previous releases.`
+            `Click here and select the "react-native" project to see how the release is trending compared to previous releases.`
           ),
         },
       ],

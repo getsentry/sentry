@@ -11,6 +11,7 @@ import {
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
+import {ON_DEMAND_METRICS_SUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {
   Dataset,
   EventTypes,
@@ -259,7 +260,7 @@ export function datasetSupportedTags(
 
 function transactionSupportedTags(org: Organization) {
   if (org.features.includes('on-demand-metrics-extraction')) {
-    return [...TRANSACTION_SUPPORTED_TAGS, FieldKey.TRANSACTION_DURATION];
+    return [...ON_DEMAND_METRICS_SUPPORTED_TAGS];
   }
   return TRANSACTION_SUPPORTED_TAGS;
 }

@@ -3,8 +3,10 @@ from datetime import datetime
 from typing import Any, Callable, Dict, List, Mapping, Optional, Set, Tuple, Union
 
 import sentry_sdk
+from django.utils.functional import cached_property
 from snuba_sdk import (
     AliasedExpression,
+    And,
     Column,
     Condition,
     CurriedFunction,
@@ -26,6 +28,7 @@ from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.utils import remove_hours, remove_minutes
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
     HistogramParams,
@@ -38,7 +41,11 @@ from sentry.search.events.types import (
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, OndemandMetricSpec, is_on_demand_query
+from sentry.snuba.metrics.extraction import (
+    QUERY_HASH_KEY,
+    OndemandMetricSpec,
+    is_on_demand_metric_query,
+)
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.query import MetricField, MetricsQuery
 from sentry.utils.dates import to_timestamp
@@ -48,6 +55,7 @@ from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 class MetricsQueryBuilder(QueryBuilder):
     requires_organization_condition = True
     is_alerts_query = False
+
     organization_column: str = "organization_id"
 
     def __init__(
@@ -63,6 +71,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.distributions: List[CurriedFunction] = []
         self.sets: List[CurriedFunction] = []
         self.counters: List[CurriedFunction] = []
+        self.percentiles: List[CurriedFunction] = []
         self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
         self._indexer_cache: Dict[str, Optional[int]] = {}
@@ -72,12 +81,9 @@ class MetricsQueryBuilder(QueryBuilder):
         kwargs["has_metrics"] = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
 
-        self._on_demand_spec = self._resolve_on_demand_spec(
-            dataset, kwargs.get("selected_columns", []), kwargs.get("query", "")
-        )
-
         if granularity is not None:
             self._granularity = granularity
+
         super().__init__(
             # TODO: defaulting to Metrics for now so I don't have to update incidents tests. Should be
             # PerformanceMetrics
@@ -85,6 +91,7 @@ class MetricsQueryBuilder(QueryBuilder):
             *args,
             **kwargs,
         )
+
         org_id = self.filter_params.get("organization_id")
         if org_id is None and self.params.organization is not None:
             org_id = self.params.organization.id
@@ -92,29 +99,68 @@ class MetricsQueryBuilder(QueryBuilder):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
         self.organization_id: int = org_id
 
-    def _resolve_on_demand_spec(
-        self, dataset: Optional[Dataset], selected_cols: List[Optional[str]], query: str
-    ) -> Optional[OndemandMetricSpec]:
-        if not is_on_demand_query(dataset, query):
+    def are_columns_resolved(self) -> bool:
+        # If we have an on demand spec, we want to mark the columns as resolved, since we are not running the
+        # `resolve_query` method.
+        if self._on_demand_metric_spec:
+            return True
+
+        return super().are_columns_resolved()
+
+    @cached_property
+    def _on_demand_metric_spec(self) -> Optional[OndemandMetricSpec]:
+        if not self.on_demand_metrics_enabled:
             return None
 
-        field = selected_cols[0] if selected_cols else None
-        if not self.is_alerts_query or not field:
+        field = self.selected_columns[0] if self.selected_columns else None
+        if not field:
             return None
+
+        if self.query is None:
+            return None
+
+        if not is_on_demand_metric_query(self.dataset, field, self.query):
+            return None
+
         try:
-            return OndemandMetricSpec(field, query)
-
+            return OndemandMetricSpec(field, self.query)
         except Exception as e:
             sentry_sdk.capture_exception(e)
-
-    def _get_on_demand_metrics_query(self) -> Optional[MetricsQuery]:
-        if not self.is_performance or not self.is_alerts_query:
             return None
 
-        spec = self._on_demand_spec
+    def _get_metrics_query_from_on_demand_spec(
+        self, spec: OndemandMetricSpec, require_time_range: bool = True
+    ) -> MetricsQuery:
+        if self.params.organization is None:
+            raise InvalidSearchQuery("An on demand metrics query requires an organization")
+
+        if isinstance(self, TimeseriesMetricQueryBuilder):
+            limit = Limit(1)
+            alias = "count"
+            include_series = True
+            interval = self.interval
+        else:
+            limit = self.limit or Limit(1)
+            alias = spec.mri
+            include_series = False
+            interval = None
+
+        # Since the query builder is very convoluted, we first try to get the start and end from the validated
+        # parameters but in case it's none it can be that the `skip_time_conditions` was True, thus in that case we
+        # try to see if start and end were supplied directly in the constructor.
+        start = self.start or self.params.start
+        end = self.end or self.params.end
+
+        # The time range can be required or not, since the query generated by the builder can either be used to execute
+        # the query on its own (requiring a time range) or it can be used to get the snql code necessary to create a
+        # query subscription from the outside.
+        if require_time_range and (start is None or end is None):
+            raise InvalidSearchQuery(
+                "The on demand metric query requires a time range to be executed"
+            )
 
         return MetricsQuery(
-            select=[MetricField(spec.op, spec.mri, alias=spec.mri)],
+            select=[MetricField(spec.op, spec.mri, alias=alias)],
             where=[
                 Condition(
                     lhs=Column(QUERY_HASH_KEY),
@@ -122,18 +168,16 @@ class MetricsQueryBuilder(QueryBuilder):
                     rhs=spec.query_hash(),
                 ),
             ],
-            # TODO(ogi): groupby and orderby
-            limit=self.limit,
+            limit=limit,
             offset=self.offset,
-            granularity=self.resolve_granularity(),
-            is_alerts_query=self.is_alerts_query,
+            granularity=self.granularity,
+            interval=interval,
+            is_alerts_query=True,
             org_id=self.params.organization.id,
             project_ids=[p.id for p in self.params.projects],
-            # We do not need the series here, as later, we only extract the totals and assign it to the
-            # request.query
-            include_series=False,
-            start=self.params.start,
-            end=self.params.end,
+            include_series=include_series,
+            start=start,
+            end=end,
         )
 
     def validate_aggregate_arguments(self) -> None:
@@ -162,29 +206,36 @@ class MetricsQueryBuilder(QueryBuilder):
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
+        # Resolutions that we always must perform, irrespectively of on demand.
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
             # Has to be done early, since other conditions depend on start and end
             self.resolve_time_conditions()
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
-            self.where, self.having = self.resolve_conditions(
-                query, use_aggregate_conditions=use_aggregate_conditions
-            )
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_granularity"):
             # Needs to happen before params and after time conditions since granularity can change start&end
             self.granularity = self.resolve_granularity()
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
-            # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
-            self.where += self.resolve_params()
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_columns"):
-            self.columns = self.resolve_select(selected_columns, equations)
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
-            self.orderby = self.resolve_orderby(orderby)
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
-            self.groupby = self.resolve_groupby(groupby_columns)
+
+        # Resolutions that we will perform only in case the query is not on demand. The reasoning for this is that
+        # for building an on demand query we only require a time interval and granularity. All the other fields are
+        # automatically computed given the OndemandMetricSpec.
+        if not self._on_demand_metric_spec:
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
+                self.where, self.having = self.resolve_conditions(
+                    query, use_aggregate_conditions=use_aggregate_conditions
+                )
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
+                # params depends on parse_query, and conditions being resolved first since there may be projects
+                # in conditions
+                self.where += self.resolve_params()
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_columns"):
+                self.columns = self.resolve_select(selected_columns, equations)
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
+                self.orderby = self.resolve_orderby(orderby)
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
+                self.groupby = self.resolve_groupby(groupby_columns)
 
         if len(self.metric_ids) > 0 and not self.use_metrics_layer:
             self.where.append(
-                # Metric id is intentionally sorted so we create consistent queries here both for testing & caching
+                # Metric id is intentionally sorted, so we create consistent queries here both for testing & caching.
                 Condition(Column("metric_id"), Op.IN, sorted(self.metric_ids))
             )
 
@@ -194,12 +245,14 @@ class MetricsQueryBuilder(QueryBuilder):
             col = tag_match.group("tag") if tag_match else col
 
         # on-demand metrics require metrics layer behavior
-        if self.use_metrics_layer or self._on_demand_spec:
+        if self.use_metrics_layer or self._on_demand_metric_spec:
             if col in ["project_id", "timestamp"]:
                 return col
             # TODO: update resolve params so this isn't needed
             if col == "organization_id":
                 return "org_id"
+            if col == "transaction":
+                self.has_transaction = True
             return f"tags[{col}]"
 
         if col in DATASETS[self.dataset]:
@@ -307,10 +360,68 @@ class MetricsQueryBuilder(QueryBuilder):
             granularity = 60
         return Granularity(granularity)
 
-    def resolve_split_granularity(self) -> Tuple[List[Condition], Granularity]:
+    def resolve_split_granularity(self) -> Tuple[List[Condition], Optional[Granularity]]:
         """This only is applicable to table queries, we can use multiple granularities across the time period, which
         should improve performance"""
-        return [], self.granularity  # Not implemeted here yet, only in the spans queries for now
+        if self.end is None or self.start is None:
+            raise ValueError("skip_time_conditions must be False when calling this method")
+
+        # Only split granularity when granularity is 1h or 1m
+        # This is cause if its 1d we're already as efficient as possible, but we could add 1d in the future if there are
+        # accuracy issues
+        if self.granularity.granularity == 86400:
+            return [], self.granularity
+        granularity = self.granularity.granularity
+        self.granularity = None
+
+        if granularity == constants.METRICS_GRANULARITY_MAPPING["1m"]:
+            rounding_function = remove_minutes
+            base_granularity = constants.METRICS_GRANULARITY_MAPPING["1m"]
+            core_granularity = constants.METRICS_GRANULARITY_MAPPING["1h"]
+        elif granularity == constants.METRICS_GRANULARITY_MAPPING["1h"]:
+            rounding_function = remove_hours
+            base_granularity = constants.METRICS_GRANULARITY_MAPPING["1h"]
+            core_granularity = constants.METRICS_GRANULARITY_MAPPING["1d"]
+        else:
+            return [], Granularity(granularity)
+
+        if rounding_function(self.start, False) > rounding_function(self.end):
+            return [], Granularity(granularity)
+        timestamp = self.column("timestamp")
+        granularity = Column("granularity")
+        return [
+            Or(
+                [
+                    # Grab the buckets that the core_granularity won't be able to capture at the original granularity
+                    And(
+                        [
+                            Or(
+                                [
+                                    # We won't grab outside the queries timewindow because there's still a toplevel
+                                    # filter
+                                    Condition(timestamp, Op.GTE, rounding_function(self.end)),
+                                    Condition(
+                                        timestamp, Op.LT, rounding_function(self.start, False)
+                                    ),
+                                ]
+                            ),
+                            Condition(granularity, Op.EQ, base_granularity),
+                        ]
+                    ),
+                    # Grab the buckets that can use the core_granularity
+                    And(
+                        [
+                            Condition(timestamp, Op.GTE, rounding_function(self.start, False)),
+                            # This op is LT not LTE, here's an example why; a query is from 11:45 to 15:45
+                            # if an event happened at 15:02, its caught by the above condition in the 1min bucket at
+                            # 15:02, but its also caught at the 1hr bucket at 15:00
+                            Condition(timestamp, Op.LT, rounding_function(self.end)),
+                            Condition(granularity, Op.EQ, core_granularity),
+                        ]
+                    ),
+                ]
+            )
+        ], None
 
     def resolve_having(
         self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
@@ -356,6 +467,13 @@ class MetricsQueryBuilder(QueryBuilder):
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
+        if snql_function.snql_percentile is not None:
+            resolved_function = snql_function.snql_percentile(arguments, alias)
+            if not resolve_only:
+                self.percentiles.append(resolved_function)
+                # Still add to aggregates so groupby is correct
+                self.aggregates.append(resolved_function)
+            return resolved_function
         if snql_function.snql_set is not None:
             resolved_function = snql_function.snql_set(arguments, alias)
             if not resolve_only:
@@ -395,6 +513,20 @@ class MetricsQueryBuilder(QueryBuilder):
         operator = search_filter.operator
         value = search_filter.value.value
 
+        # Handle checks for existence
+        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+            if name in constants.METRICS_MAP:
+                if search_filter.operator == "!=":
+                    return None
+                else:
+                    raise IncompatibleMetricsQuery("!has isn't compatible with metrics queries")
+            else:
+                return Condition(
+                    Function("has", [Column("tags.key"), self.resolve_metric_index(name)]),
+                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
+                    1,
+                )
+
         lhs = self.resolve_column(name)
         # If this is an aliasedexpression, we don't need the alias here, just the expression
         if isinstance(lhs, AliasedExpression):
@@ -431,15 +563,6 @@ class MetricsQueryBuilder(QueryBuilder):
             ):
                 raise InvalidSearchQuery(
                     "Filter on timestamp is outside of the selected date range."
-                )
-
-        # Handle checks for existence
-        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            if is_tag:
-                return Condition(
-                    Function("has", [Column("tags.key"), self.resolve_metric_index(name)]),
-                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
-                    1,
                 )
 
         if search_filter.value.is_wildcard():
@@ -490,7 +613,7 @@ class MetricsQueryBuilder(QueryBuilder):
         else:
             return env_conditions[0]
 
-    def get_metrics_layer_snql_query(self) -> Request:
+    def get_metrics_layer_snql_query(self) -> Query:
         """
         This method returns the metrics layer snql of the query being fed into the transformer and then into the metrics
         layer.
@@ -501,8 +624,7 @@ class MetricsQueryBuilder(QueryBuilder):
         This dialect should NEVER be used outside of the transformer as it will create problems if parsed by the
         snuba SDK.
         """
-
-        if not self.use_metrics_layer:
+        if not self.use_metrics_layer and not self.on_demand_metrics_enabled:
             # The reasoning for this error is because if "use_metrics_layer" is false, the MQB will not generate the
             # snql dialect explained below as there is not need for that because it will directly generate normal snql
             # that can be returned via the "get_snql_query" method.
@@ -512,38 +634,31 @@ class MetricsQueryBuilder(QueryBuilder):
         self.validate_orderby_clause()
 
         prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
-        return Request(
-            dataset=self.dataset.value,
-            app_id="default",
-            query=Query(
-                match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
-                # Metrics doesn't support columns in the select, and instead expects them in the groupby
-                select=self.aggregates
-                + [
-                    # Team key transaction is a special case sigh
-                    col
-                    for col in self.columns
-                    if isinstance(col, Function) and col.function == "team_key_transaction"
-                ],
-                array_join=self.array_join,
-                where=self.where,
-                having=self.having,
-                groupby=self.groupby,
-                orderby=self.orderby,
-                limit=self.limit,
-                offset=self.offset,
-                limitby=self.limitby,
-                granularity=self.granularity,
-            ),
-            flags=Flags(turbo=self.turbo),
-            tenant_ids=self.tenant_ids,
+        return Query(
+            match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
+            # Metrics doesn't support columns in the select, and instead expects them in the groupby
+            select=self.aggregates
+            + [
+                # Team key transaction is a special case sigh
+                col
+                for col in self.columns
+                if isinstance(col, Function) and col.function == "team_key_transaction"
+            ],
+            array_join=self.array_join,
+            where=self.where,
+            having=self.having,
+            groupby=self.groupby,
+            orderby=self.orderby,
+            limit=self.limit,
+            offset=self.offset,
+            limitby=self.limitby,
+            granularity=self.granularity,
         )
 
     def get_snql_query(self) -> Request:
         """
         This method returns the normal snql of the query being built for execution.
         """
-
         if self.use_metrics_layer:
             # The reasoning for this error is because if "use_metrics_layer" is true, the snql built within MQB will
             # be a slight variation of snql that is understood only by the "mqb_query_transformer" thus we don't
@@ -612,16 +727,19 @@ class MetricsQueryBuilder(QueryBuilder):
                 functions=self.sets,
                 entity=Entity(f"{prefix}metrics_sets", sample=self.sample_rate),
             ),
+            # Percentiles are a part of distributions but they're expensive, treat them as their own entity so we'll run
+            # a query with the cheap distributions first then only get page_size quantiles
+            "percentiles": QueryFramework(
+                orderby=[],
+                having=[],
+                functions=self.percentiles,
+                entity=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
+            ),
         }
         primary = None
         # if orderby spans more than one table, the query isn't possible with metrics
         for orderby in self.orderby:
-            if orderby.exp in self.distributions:
-                query_framework["distribution"].orderby.append(orderby)
-                if primary not in [None, "distribution"]:
-                    raise IncompatibleMetricsQuery("Can't order across tables")
-                primary = "distribution"
-            elif orderby.exp in self.sets:
+            if orderby.exp in self.sets:
                 query_framework["set"].orderby.append(orderby)
                 if primary not in [None, "set"]:
                     raise IncompatibleMetricsQuery("Can't order across tables")
@@ -631,6 +749,16 @@ class MetricsQueryBuilder(QueryBuilder):
                 if primary not in [None, "counter"]:
                     raise IncompatibleMetricsQuery("Can't order across tables")
                 primary = "counter"
+            elif orderby.exp in self.distributions:
+                query_framework["distribution"].orderby.append(orderby)
+                if primary not in [None, "distribution"]:
+                    raise IncompatibleMetricsQuery("Can't order across tables")
+                primary = "distribution"
+            elif orderby.exp in self.percentiles:
+                query_framework["percentiles"].orderby.append(orderby)
+                if primary not in [None, "percentiles"]:
+                    raise IncompatibleMetricsQuery("Can't order across tables")
+                primary = "percentiles"
             else:
                 # An orderby that isn't on a function add it to all of them
                 for framework in query_framework.values():
@@ -638,14 +766,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         having_entity: Optional[str] = None
         for condition in self.flattened_having:
-            if condition.lhs in self.distributions:
-                if having_entity is None:
-                    having_entity = "distribution"
-                elif having_entity != "distribution":
-                    raise IncompatibleMetricsQuery(
-                        "Can only have aggregate conditions on one entity"
-                    )
-            elif condition.lhs in self.sets:
+            if condition.lhs in self.sets:
                 if having_entity is None:
                     having_entity = "set"
                 elif having_entity != "set":
@@ -659,6 +780,20 @@ class MetricsQueryBuilder(QueryBuilder):
                     raise IncompatibleMetricsQuery(
                         "Can only have aggregate conditions on one entity"
                     )
+            elif condition.lhs in self.distributions:
+                if having_entity is None:
+                    having_entity = "distribution"
+                elif having_entity != "distribution":
+                    raise IncompatibleMetricsQuery(
+                        "Can only have aggregate conditions on one entity"
+                    )
+            elif condition.lhs in self.percentiles:
+                if having_entity is None:
+                    having_entity = "percentiles"
+                elif having_entity != "percentiles":
+                    raise IncompatibleMetricsQuery(
+                        "Can only have aggregate conditions on one entity"
+                    )
 
         if primary is not None and having_entity is not None and having_entity != primary:
             raise IncompatibleMetricsQuery(
@@ -669,12 +804,14 @@ class MetricsQueryBuilder(QueryBuilder):
         if primary is None:
             if having_entity is not None:
                 primary = having_entity
-            elif len(self.distributions) > 0:
-                primary = "distribution"
             elif len(self.counters) > 0:
                 primary = "counter"
             elif len(self.sets) > 0:
                 primary = "set"
+            elif len(self.distributions) > 0:
+                primary = "distribution"
+            elif len(self.percentiles) > 0:
+                primary = "percentiles"
             else:
                 raise IncompatibleMetricsQuery("Need at least one function")
 
@@ -693,7 +830,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 raise IncompatibleMetricsQuery("Can't orderby tags")
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        if self.use_metrics_layer or self._on_demand_spec:
+        if self.use_metrics_layer or self._on_demand_metric_spec:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
@@ -701,17 +838,20 @@ class MetricsQueryBuilder(QueryBuilder):
 
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                    if self._on_demand_spec:
-                        metric_query = self._get_on_demand_metrics_query()
-                    else:
-                        metric_query = transform_mqb_query_to_metrics_query(
-                            self.get_metrics_layer_snql_query().query, self.is_alerts_query
+                    if self._on_demand_metric_spec:
+                        metrics_query = self._get_metrics_query_from_on_demand_spec(
+                            spec=self._on_demand_metric_spec, require_time_range=True
                         )
-                    # metric_query.where = metric_query_ondemand.where
+                    else:
+                        intermediate_query = self.get_metrics_layer_snql_query()
+                        metrics_query = transform_mqb_query_to_metrics_query(
+                            intermediate_query, self.is_alerts_query
+                        )
+
                 with sentry_sdk.start_span(op="metric_layer", description="run_query"):
                     metrics_data = get_series(
                         projects=self.params.projects,
-                        metrics_query=metric_query,
+                        metrics_query=metrics_query,
                         use_case_id=UseCaseID.TRANSACTIONS
                         if self.is_performance
                         else UseCaseID.SESSIONS,
@@ -731,7 +871,7 @@ class MetricsQueryBuilder(QueryBuilder):
                     data.update(group["totals"])
                     metric_layer_result["data"].append(data)
                     for meta in metric_layer_result["meta"]:
-                        if data[meta["name"]] is None:
+                        if data.get(meta["name"]) is None:
                             data[meta["name"]] = self.get_default_value(meta["type"])
 
             return metric_layer_result
@@ -755,6 +895,10 @@ class MetricsQueryBuilder(QueryBuilder):
             "data": None,
             "meta": [],
         }
+
+        granularity_condition, new_granularity = self.resolve_split_granularity()
+        self.granularity = new_granularity
+        self.where += granularity_condition
         # We need to run the same logic on all 3 queries, since the `primary` query could come back with no results. The
         # goal is to get n=limit results from one query, then use those n results to create a condition for the
         # remaining queries. This is so that we can respect function orderbys from the first query, but also so we don't
@@ -794,10 +938,6 @@ class MetricsQueryBuilder(QueryBuilder):
                     where = self.where
                     offset = self.offset
                     referrer_suffix = "primary"
-
-                granularity_condition, new_granularity = self.resolve_split_granularity()
-                self.granularity = new_granularity
-                self.where += granularity_condition
 
                 query = Query(
                     match=query_details.entity,
@@ -892,20 +1032,20 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         we are going to import the purposfully hidden SnubaQueryBuilder which is a component that takes a MetricsQuery
         and returns one or more equivalent snql query(ies).
         """
-
-        if self.use_metrics_layer:
+        if self.use_metrics_layer or self._on_demand_metric_spec:
             from sentry.snuba.metrics import SnubaQueryBuilder
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
             )
 
-            snuba_request = self.get_metrics_layer_snql_query()
-
-            if self._on_demand_spec:
-                metrics_query = self._get_on_demand_metrics_query()
+            if self._on_demand_metric_spec:
+                metrics_query = self._get_metrics_query_from_on_demand_spec(
+                    spec=self._on_demand_metric_spec, require_time_range=False
+                )
             else:
+                intermediate_query = self.get_metrics_layer_snql_query()
                 metrics_query = transform_mqb_query_to_metrics_query(
-                    snuba_request.query, is_alerts_query=self.is_alerts_query
+                    intermediate_query, is_alerts_query=self.is_alerts_query
                 )
 
             snuba_queries, _ = SnubaQueryBuilder(
@@ -918,16 +1058,27 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
                 # If we have zero or more than one queries resulting from the supplied query, we want to generate
                 # an error as we don't support this case.
                 raise IncompatibleMetricsQuery(
-                    "The metrics layer generated zero or multiple queries from the supplied query, only a single query is supported"
+                    "The metrics layer generated zero or multiple queries from the supplied query, only a single "
+                    "query is supported"
                 )
 
             # We take only the first query, supposing a single query is generated.
             entity = list(snuba_queries.keys())[0]
-            snuba_request.query = snuba_queries[entity]["totals"]
+            query = snuba_queries[entity]["totals"]
 
-            return snuba_request
+            return Request(
+                dataset=self.dataset.value,
+                app_id="default",
+                query=query,
+                flags=Flags(turbo=self.turbo),
+                tenant_ids=self.tenant_ids,
+            )
 
         return super().get_snql_query()
+
+    def resolve_split_granularity(self) -> Tuple[List[Condition], Optional[Granularity]]:
+        """Don't do this for anything but table queries"""
+        return [], self.granularity
 
 
 class HistogramMetricQueryBuilder(MetricsQueryBuilder):
@@ -966,6 +1117,10 @@ class HistogramMetricQueryBuilder(MetricsQueryBuilder):
 
         return result
 
+    def resolve_split_granularity(self) -> Tuple[List[Condition], Optional[Granularity]]:
+        """Don't do this for anything but table queries"""
+        return [], self.granularity
+
 
 class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
     time_alias = "time"
@@ -982,6 +1137,8 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         limit: Optional[int] = 10000,
         use_metrics_layer: Optional[bool] = False,
         groupby: Optional[Column] = None,
+        on_demand_metrics_enabled: Optional[bool] = False,
+        parser_config_overrides: Optional[Mapping[str, Any]] = None,
     ):
         super().__init__(
             params=params,
@@ -992,12 +1149,15 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             auto_fields=False,
             functions_acl=functions_acl,
             use_metrics_layer=use_metrics_layer,
+            on_demand_metrics_enabled=on_demand_metrics_enabled,
+            parser_config_overrides=parser_config_overrides,
         )
         if self.granularity.granularity > interval:
             for granularity in constants.METRICS_GRANULARITIES:
                 if granularity <= interval:
                     self.granularity = Granularity(granularity)
                     break
+        self.interval = interval
 
         self.time_column = self.resolve_time_column(interval)
         self.limit = None if limit is None else Limit(limit)
@@ -1008,6 +1168,10 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         # If additional groupby is provided it will be used first before time
         if groupby is not None:
             self.groupby.insert(0, groupby)
+
+    def resolve_split_granularity(self) -> Tuple[List[Condition], Optional[Granularity]]:
+        """Don't do this for timeseries"""
+        return [], self.granularity
 
     def resolve_time_column(self, interval: int) -> Function:
         """Need to round the timestamp to the interval requested
@@ -1107,22 +1271,27 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         return queries
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        if self.use_metrics_layer:
+        if self.use_metrics_layer or self._on_demand_metric_spec:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
             )
 
-            snuba_query = self.get_snql_query()[0].query
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                    metric_query = transform_mqb_query_to_metrics_query(
-                        snuba_query, self.is_alerts_query
-                    )
+                    if self._on_demand_metric_spec:
+                        metrics_query = self._get_metrics_query_from_on_demand_spec(
+                            spec=self._on_demand_metric_spec, require_time_range=True
+                        )
+                    elif self.use_metrics_layer:
+                        snuba_query = self.get_snql_query()[0].query
+                        metrics_query = transform_mqb_query_to_metrics_query(
+                            snuba_query, self.is_alerts_query
+                        )
                 with sentry_sdk.start_span(op="metric_layer", description="run_query"):
                     metrics_data = get_series(
                         projects=self.params.projects,
-                        metrics_query=metric_query,
+                        metrics_query=metrics_query,
                         use_case_id=UseCaseID.TRANSACTIONS
                         if self.is_performance
                         else UseCaseID.SESSIONS,

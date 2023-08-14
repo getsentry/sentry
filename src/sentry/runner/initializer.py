@@ -373,6 +373,8 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     validate_regions(settings)
 
+    validate_outbox_config()
+
     monkeypatch_django_migrations()
 
     patch_silo_aware_atomic()
@@ -532,7 +534,7 @@ def monkeypatch_drf_listfield_serializer_errors() -> None:
         return [self.child.run_validation(item) for item in data]
         # End code retained from < drf 3.8.x.
 
-    ListField.to_internal_value = to_internal_value
+    ListField.to_internal_value = to_internal_value  # type: ignore[method-assign]
 
     # We don't need to patch DictField since we don't use it
     # at the time of patching. This is fine since anything newly
@@ -756,3 +758,13 @@ See: https://github.com/getsentry/snuba#sentry--snuba"""
                 settings.SENTRY_EVENTSTREAM,
             )
         )
+
+
+def validate_outbox_config():
+    from sentry.models.outbox import ControlOutboxBase, RegionOutboxBase
+
+    for outbox_name in settings.SENTRY_OUTBOX_MODELS["CONTROL"]:
+        ControlOutboxBase.from_outbox_name(outbox_name)
+
+    for outbox_name in settings.SENTRY_OUTBOX_MODELS["REGION"]:
+        RegionOutboxBase.from_outbox_name(outbox_name)

@@ -103,9 +103,10 @@ const ACTION_MATCH_OPTIONS_MIGRATED = [
 ];
 
 const defaultRule: UnsavedIssueAlertRule = {
-  actionMatch: 'all',
+  actionMatch: 'any',
   filterMatch: 'all',
   actions: [],
+  // note we update the default conditions in onLoadAllEndpointsSuccess
   conditions: [],
   filters: [],
   name: '',
@@ -330,10 +331,25 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
 
   onLoadAllEndpointsSuccess() {
     const {rule} = this.state;
+    const {
+      params: {ruleId},
+    } = this.props;
     if (rule) {
       ((rule as IssueAlertRule)?.errors || []).map(({detail}) =>
         addErrorMessage(detail, {append: true})
       );
+    }
+    if (!ruleId) {
+      // now that we've loaded all the possible conditions, we can populate the
+      // value of conditions for a new alert
+      const id = 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition';
+      this.handleChange('conditions', [
+        {
+          id,
+          label: CHANGE_ALERT_PLACEHOLDERS_LABELS[id],
+          name: 'A new issue is created',
+        },
+      ]);
     }
   }
 
@@ -1149,7 +1165,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     // the form with a loading mask on top of it, but force a re-render by using
     // a different key when we have fetched the rule so that form inputs are filled in
     return (
-      <Main fullWidth>
+      <Main>
         <PermissionAlert access={['alerts:write']} project={project} />
 
         <StyledForm
@@ -1173,8 +1189,11 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                 priority="danger"
                 confirmText={t('Delete Rule')}
                 onConfirm={this.handleDeleteRule}
-                header={t('Delete Rule')}
-                message={t('Are you sure you want to delete this rule?')}
+                header={<h5>{t('Delete Alert Rule?')}</h5>}
+                message={t(
+                  'Are you sure you want to delete "%s"? You won\'t be able to view the history of this alert once it\'s deleted.',
+                  rule.name
+                )}
               >
                 <Button priority="danger">{t('Delete Rule')}</Button>
               </Confirm>

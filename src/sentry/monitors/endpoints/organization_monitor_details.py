@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django.db import transaction
+from django.db import router, transaction
 from django.utils.crypto import get_random_string
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -21,7 +21,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.models import Rule, RuleActivity, RuleActivityType, ScheduledDeletion
+from sentry.models import RegionScheduledDeletion, Rule, RuleActivity, RuleActivityType
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.utils import create_alert_rule, update_alert_rule
@@ -36,7 +36,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
     public = {"GET", "PUT", "DELETE"}
 
     @extend_schema(
-        operation_id="Retrieve a monitor",
+        operation_id="Retrieve a Monitor",
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,
@@ -64,7 +64,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         )
 
     @extend_schema(
-        operation_id="Update a monitor",
+        operation_id="Update a Monitor",
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,
@@ -143,7 +143,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         return self.respond(serialize(monitor, request.user))
 
     @extend_schema(
-        operation_id="Delete a monitor or monitor environments",
+        operation_id="Delete a Monitor or Monitor Environments",
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,
@@ -162,7 +162,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         Delete a monitor or monitor environments.
         """
         environment_names = request.query_params.getlist("environment")
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(MonitorEnvironment)):
             if environment_names:
                 monitor_objects = (
                     MonitorEnvironment.objects.filter(
@@ -213,6 +213,17 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                         RuleActivity.objects.create(
                             rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
                         )
+                        scheduled_rule = RegionScheduledDeletion.schedule(
+                            rule, days=0, actor=request.user
+                        )
+                        self.create_audit_entry(
+                            request=request,
+                            organization=project.organization,
+                            target_object=rule.id,
+                            event=audit_log.get_event_id("RULE_REMOVE"),
+                            data=rule.get_audit_log_data(),
+                            transaction_id=scheduled_rule,
+                        )
 
             # create copy of queryset as update will remove objects
             monitor_objects_list = list(monitor_objects)
@@ -226,7 +237,9 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                 if type(monitor_object) == Monitor:
                     monitor_object.update(slug=get_random_string(length=24))
 
-                schedule = ScheduledDeletion.schedule(monitor_object, days=0, actor=request.user)
+                schedule = RegionScheduledDeletion.schedule(
+                    monitor_object, days=0, actor=request.user
+                )
                 self.create_audit_entry(
                     request=request,
                     organization=project.organization,

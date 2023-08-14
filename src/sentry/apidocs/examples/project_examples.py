@@ -285,7 +285,6 @@ detailed_project = {
             "performance-slow-db-query-post-process-group",
             "session-replay-sdk-errors-only",
             "performance-n-plus-one-db-queries-ingest",
-            "crons-timeline-listing-page",
             "profile-image-decode-main-thread-visible",
             "performance-issues-render-blocking-assets-detector",
             "performance-m-n-plus-one-db-queries-ingest",
@@ -427,6 +426,71 @@ detailed_project = {
 }
 
 
+def project_with_team(extra_team: bool = False):
+    teams = [
+        {
+            "id": "2349234102",
+            "name": "Prime Mover",
+            "slug": "prime-mover",
+        },
+        {
+            "id": "47584447",
+            "name": "Powerful Abolitionist",
+            "slug": "powerful-abolitionist",
+        },
+    ]
+    return {
+        "id": "6758470122493650",
+        "slug": "The Spoiled Yoghurt",
+        "name": "the-spoiled-yoghurt",
+        "platform": "javascript",
+        "dateCreated": "2023-03-29T15:25:21.344565Z",
+        "isBookmarked": False,
+        "isMember": True,
+        "features": [
+            "alert-filters",
+            "custom-inbound-filters",
+            "data-forwarding",
+            "discard-groups",
+            "minidump",
+            "race-free-group-creation",
+            "rate-limits",
+            "servicehooks",
+            "similarity-indexing",
+            "similarity-view",
+        ],
+        "firstEvent": None,
+        "firstTransactionEvent": True,
+        "access": [
+            "project:read",
+            "event:read",
+            "team:read",
+            "alerts:read",
+            "org:read",
+            "event:write",
+            "project:releases",
+            "member:read",
+        ],
+        "hasAccess": True,
+        "hasMinifiedStackTrace": False,
+        "hasMonitors": False,
+        "hasProfiles": False,
+        "hasReplays": False,
+        "hasSessions": False,
+        "isInternal": False,
+        "isPublic": False,
+        "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+        "color": "#5cbf3f",
+        "status": "active",
+        "team": {
+            "id": "2349234102",
+            "name": "Prime Mover",
+            "slug": "prime-mover",
+        },
+        "teams": teams if extra_team else teams[:1],
+    }
+
+
 class ProjectExamples:
     BASE_KEY = [
         OpenApiExample(
@@ -471,6 +535,24 @@ class ProjectExamples:
         OpenApiExample(
             "Retrieve an Existing Client Key",
             value=key_wo_rate_limiting,
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    ADD_TEAM_TO_PROJECT = [
+        OpenApiExample(
+            "Give a Team Access to a Project",
+            value=project_with_team(extra_team=True),
+            status_codes=["201"],
+            response_only=True,
+        ),
+    ]
+
+    DELETE_TEAM_FROM_PROJECT = [
+        OpenApiExample(
+            "Revoke a Team's Access to a Project",
+            value=project_with_team(),
             status_codes=["200"],
             response_only=True,
         ),

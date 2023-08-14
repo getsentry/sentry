@@ -1,5 +1,3 @@
-import types
-
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
@@ -11,11 +9,8 @@ from .mail import MailPreview
 
 class DebugUnableToDeleteRepository(View):
     def get(self, request: HttpRequest) -> HttpResponse:
-        def mock_get_provider(self):
-            return DummyRepositoryProvider("dummy")
-
         repo = Repository(name="getsentry/sentry", provider="dummy")
-        repo.get_provider = types.MethodType(mock_get_provider, repo)
+        repo.get_provider = lambda: DummyRepositoryProvider("dummy")  # type: ignore[method-assign]
 
         email = repo.generate_delete_fail_email("An internal server error occurred")
         return MailPreview(

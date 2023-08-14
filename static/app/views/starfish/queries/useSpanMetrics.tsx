@@ -3,7 +3,6 @@ import {Location} from 'history';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
@@ -14,7 +13,7 @@ export type SpanMetrics = {
   'http_error_count()': number;
   'p95(span.self_time)': number;
   'span.op': string;
-  'sps()': number;
+  'spm()': number;
   'time_spent_percentage()': number;
 };
 
@@ -24,40 +23,42 @@ export type SpanSummaryQueryFilters = {
 };
 
 export const useSpanMetrics = (
-  span?: Pick<IndexedSpan, 'group'>,
-  queryFilters: SpanSummaryQueryFilters = {},
+  group: string,
+  queryFilters: SpanSummaryQueryFilters,
   fields: string[] = [],
-  referrer: string = 'span-metrics',
-  enabled: boolean = true
+  referrer: string = 'span-metrics'
 ) => {
   const location = useLocation();
-  const eventView = span ? getEventView(span, location, queryFilters, fields) : undefined;
+  const eventView = group
+    ? getEventView(group, location, queryFilters, fields)
+    : undefined;
+
+  const enabled =
+    Boolean(group) && Object.values(queryFilters).every(value => Boolean(value));
 
   // TODO: Add referrer
   const result = useSpansQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
-    enabled: Boolean(span) && enabled,
+    enabled,
     referrer,
   });
 
-  return {...result, data: result?.data?.[0] ?? {}};
+  return {...result, data: result?.data?.[0] ?? {}, isEnabled: enabled};
 };
 
 function getEventView(
-  span: {group: string},
+  group: string,
   location: Location,
   queryFilters?: SpanSummaryQueryFilters,
   fields: string[] = []
 ) {
-  const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
-
   return EventView.fromNewQueryWithLocation(
     {
       name: '',
-      query: `${SPAN_GROUP}:${cleanGroupId}${
+      query: `${SPAN_GROUP}:${group}${
         queryFilters?.transactionName
-          ? ` transaction:${queryFilters?.transactionName}`
+          ? ` transaction:"${queryFilters?.transactionName}"`
           : ''
       }${
         queryFilters?.['transaction.method']

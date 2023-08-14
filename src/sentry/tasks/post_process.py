@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, Type
 
 import sentry_sdk
 from django.conf import settings
+from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
@@ -16,6 +17,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -158,8 +160,8 @@ def handle_owner_assignment(job):
                 ASSIGNEE_EXISTS_KEY,
                 ISSUE_OWNERS_DEBOUNCE_DURATION,
                 ISSUE_OWNERS_DEBOUNCE_KEY,
-                ProjectOwnership,
             )
+            from sentry.models.projectownership import ProjectOwnership
 
             event = job["event"]
             project, group = event.project, event.group
@@ -368,6 +370,12 @@ def handle_group_owners(project, group, issue_owners):
                         )
             if new_group_owners:
                 GroupOwner.objects.bulk_create(new_group_owners)
+                for go in new_group_owners:
+                    post_save.send_robust(
+                        sender=GroupOwner,
+                        instance=go,
+                        created=True,
+                    )
 
     except UnableToAcquireLock:
         pass
@@ -400,7 +408,7 @@ def fetch_buffered_group_stats(group):
     from sentry import buffer
     from sentry.models import Group
 
-    result = buffer.get(Group, ["times_seen"], {"pk": group.id})
+    result = buffer.backend.get(Group, ["times_seen"], {"pk": group.id})
     group.times_seen_pending = result["times_seen"]
 
 
@@ -422,6 +430,7 @@ fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_dela
     name="sentry.tasks.post_process.post_process_group",
     time_limit=120,
     soft_time_limit=110,
+    silo_mode=SiloMode.REGION,
 )
 def post_process_group(
     is_new,
@@ -966,7 +975,7 @@ def handle_auto_assignment(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.models import ProjectOwnership
+    from sentry.models.projectownership import ProjectOwnership
 
     event = job["event"]
     try:

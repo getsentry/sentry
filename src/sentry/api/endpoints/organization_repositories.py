@@ -67,9 +67,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
 
             for i in integrations:
                 try:
-                    installation = integration_service.get_installation(
-                        integration=i, organization_id=organization.id
-                    )
+                    installation = i.get_installation(organization_id=organization.id)
                     repos.extend(installation.get_unmigratable_repositories())
                 except Exception:
                     capture_exception()
@@ -81,6 +79,8 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
 
         elif status:
             queryset = queryset.none()
+        elif status is None:
+            queryset = queryset.exclude(status=ObjectStatus.HIDDEN)
 
         return self.paginate(
             request=request,

@@ -2,7 +2,7 @@ import datetime
 from typing import Any, Dict, List, Optional, Sequence
 
 import sentry_sdk
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Request as SnubaRequest
@@ -204,7 +204,7 @@ def _unsplit_group(group: Group, hash: str, hierarchical_hashes: Optional[Sequen
         if grouphash.group_id == group.id:
             grouphash_to_delete = grouphash
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(GroupHash)):
         if grouphash_to_unsplit is not None:
             grouphash_to_unsplit.state = GroupHash.State.UNLOCKED
             grouphash_to_unsplit.save()

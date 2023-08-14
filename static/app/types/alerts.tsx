@@ -29,7 +29,6 @@ export interface IssueAlertRuleActionTemplate {
   id: string;
   label: string;
   name: string;
-  prompt: string;
   actionType?: 'ticket' | 'sentryapp';
   formFields?:
     | {
@@ -37,6 +36,7 @@ export interface IssueAlertRuleActionTemplate {
       }
     | SchemaFormConfig;
   link?: string;
+  prompt?: string;
   sentryAppInstallationUuid?: string;
   ticketType?: string;
 }

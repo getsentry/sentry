@@ -2,7 +2,7 @@
 Metrics Service Layer Tests for Performance
 """
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta
 from datetime import timezone as datetime_timezone
 from unittest import mock
 
@@ -10,7 +10,6 @@ import pytest
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
-from freezegun.api import FakeDatetime
 from snuba_sdk import Column, Condition, Direction, Function, Granularity, Limit, Offset, Op
 
 from sentry.api.utils import InvalidParams
@@ -20,6 +19,7 @@ from sentry.models import (
     TransactionMetric,
 )
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
     MAX_POINTS,
@@ -28,14 +28,20 @@ from sentry.snuba.metrics import (
     MetricGroupByField,
     MetricOrderByField,
     MetricsQuery,
+)
+from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
+from sentry.snuba.metrics.naming_layer import (
+    TransactionMetricKey,
+    TransactionMRI,
     TransactionStatusTagValue,
     TransactionTagsKey,
 )
-from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
-from sentry.snuba.metrics.naming_layer import TransactionMetricKey, TransactionMRI
 from sentry.snuba.metrics.query_builder import QueryDefinition
-from sentry.testutils import TestCase
-from sentry.testutils.cases import BaseMetricsLayerTestCase, MetricsEnhancedPerformanceTestCase
+from sentry.testutils.cases import (
+    BaseMetricsLayerTestCase,
+    MetricsEnhancedPerformanceTestCase,
+    TestCase,
+)
 from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
@@ -1086,6 +1092,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
                     value=subvalue,
+                    aggregation_option=AggregationOption.HIST,
                 )
 
         metrics_query = self.build_metrics_query(
@@ -1283,14 +1290,14 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             use_case_id=UseCaseID.TRANSACTIONS,
         )
         assert data == {
-            "start": FakeDatetime(
+            "start": datetime(
                 day_ago.year, day_ago.month, day_ago.day, 10, 00, tzinfo=datetime_timezone.utc
             ),
-            "end": FakeDatetime(
+            "end": datetime(
                 day_ago.year, day_ago.month, day_ago.day, 17, 00, tzinfo=datetime_timezone.utc
             ),
             "intervals": [
-                FakeDatetime(
+                datetime(
                     day_ago.year,
                     day_ago.month,
                     day_ago.day,
@@ -2006,6 +2013,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         INTERVAL_LEN = 7  # 6 hours unaligned generate 7 1h intervals
         EXPECTED_DEFAULT_LIMIT = MAX_POINTS // INTERVAL_LEN
 
+        assert metrics_query.limit is not None
         assert metrics_query.limit.limit == EXPECTED_DEFAULT_LIMIT
 
     def test_high_limit_provided_not_raise_exception_when_high_interval_provided(self):
@@ -2037,6 +2045,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             MetricsQuery(**metrics_query_dict)
 
         mq = MetricsQuery(**metrics_query_dict, interval=3600)
+        assert mq.limit is not None
         assert mq.limit.limit == 50
 
 

@@ -623,7 +623,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         "divide", [Function("count", []), args["interval"]], alias
                     ),
                     optional_args=[IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
                 SnQLFunction(
                     "epm",
@@ -633,7 +633,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     optional_args=[IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
                 SnQLFunction(
                     "compare_numeric_aggregate",
@@ -1597,6 +1597,9 @@ class DiscoverDatasetConfig(DatasetConfig):
         return filter_aliases.semver_build_filter_converter(self.builder, search_filter)
 
     def _issue_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        if self.builder.skip_issue_validation:
+            return None
+
         operator = search_filter.operator
         value = to_list(search_filter.value.value)
         # `unknown` is a special value for when there is no issue associated with the event

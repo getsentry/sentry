@@ -2,6 +2,7 @@ import {JsonFormObject} from 'sentry/components/forms/types';
 import languages from 'sentry/data/languages';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/account/details/';
@@ -54,12 +55,28 @@ const formGroups: JsonFormObject[] = [
         type: 'select',
         required: false,
         options: [
-          {value: -1, label: t('Default (let Sentry decide)')},
-          {value: 1, label: t('Most recent call last')},
-          {value: 2, label: t('Most recent call first')},
+          {value: -1, label: t('Default')},
+          {value: 1, label: t('Oldest')},
+          {value: 2, label: t('Newest')},
         ],
         label: t('Stack Trace Order'),
         help: t('Choose the default ordering of frames in stack traces'),
+        getData: transformOptions,
+      },
+      {
+        name: 'defaultIssueEvent',
+        type: 'select',
+        required: false,
+        options: [
+          {value: 'recommended', label: t('Recommended')},
+          {value: 'latest', label: t('Latest')},
+          {value: 'oldest', label: t('Oldest')},
+        ],
+        label: t('Default Issue Event'),
+        help: t('Choose what event gets displayed by default'),
+        visible: ({organization}: {organization: Organization}) => {
+          return organization?.features.includes('issue-details-most-helpful-event-ui');
+        },
         getData: transformOptions,
       },
     ],

@@ -69,16 +69,11 @@ function disableSortOptions(_widgetQuery: WidgetQuery) {
   };
 }
 
-function getTableSortOptions(organization: Organization, _widgetQuery: WidgetQuery) {
-  const hasBetterPrioritySort = organization.features.includes(
-    'issue-list-better-priority-sort'
-  );
+function getTableSortOptions(_organization: Organization, _widgetQuery: WidgetQuery) {
   const sortOptions = [
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
-    ...(hasBetterPrioritySort
-      ? [IssueSortOptions.BETTER_PRIORITY]
-      : [IssueSortOptions.PRIORITY]), // show better priority for EA orgs
+    IssueSortOptions.PRIORITY,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
   ];

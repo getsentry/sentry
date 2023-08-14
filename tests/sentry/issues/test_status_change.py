@@ -1,16 +1,18 @@
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Any
 from unittest.mock import patch
 
 from sentry.issues.status_change import handle_status_update
 from sentry.models import Activity, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
 
 class HandleStatusChangeTest(TestCase):
-    def create_issue(self, status: GroupStatus, substatus: Optional[GroupSubStatus] = None) -> None:
+    def create_issue(self, status: int, substatus: int | None = None) -> None:
         self.group = self.create_group(status=status)
         self.group_list = [self.group]
         self.group_ids = [self.group]

@@ -4,9 +4,9 @@ import logging
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models.signals import post_save
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Limit, Op
@@ -35,13 +35,14 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import Actor, Integration, PagerDutyService, Project
+from sentry.models import Actor, Integration, OrganizationIntegration, Project
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
-from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
+from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
+from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
+from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -104,7 +105,7 @@ def create_incident(
     if date_detected is None:
         date_detected = date_started
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(Incident)):
         incident = Incident.objects.create(
             organization=organization,
             detection_uuid=detection_uuid,
@@ -156,7 +157,7 @@ def update_incident_status(
     if incident.status == status.value:
         # If the status isn't actually changing just no-op.
         return incident
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(Incident)):
         create_incident_activity(
             incident,
             IncidentActivityType.STATUS_CHANGE,
@@ -226,7 +227,7 @@ def set_incident_seen(incident, user=None):
     return False
 
 
-@transaction.atomic
+@transaction.atomic(router.db_for_write(Incident))
 def create_incident_activity(
     incident,
     activity_type,
@@ -236,7 +237,7 @@ def create_incident_activity(
     comment=None,
     mentioned_user_ids=None,
     date_added=None,
-):
+) -> IncidentActivity:
     if activity_type == IncidentActivityType.COMMENT and user:
         subscribe_to_incident(incident, user.id)
     value = str(value) if value is not None else value
@@ -267,8 +268,11 @@ def create_incident_activity(
                     for mentioned_user_id in user_ids_to_subscribe
                 ]
             )
-    tasks.send_subscriber_notifications.apply_async(
-        kwargs={"activity_id": activity.id}, countdown=10
+    transaction.on_commit(
+        lambda: tasks.send_subscriber_notifications.apply_async(
+            kwargs={"activity_id": activity.id}, countdown=10
+        ),
+        router.db_for_write(IncidentSubscription),
     )
     if activity_type == IncidentActivityType.COMMENT:
         analytics.record(
@@ -508,7 +512,7 @@ def create_alert_rule(
     elif owner and isinstance(owner, Actor):
         actor = owner
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(SnubaQuery)):
         snuba_query = create_snuba_query(
             query_type,
             dataset,
@@ -569,7 +573,7 @@ def create_alert_rule(
 def snapshot_alert_rule(alert_rule, user=None):
     # Creates an archived alert_rule using the same properties as the passed rule
     # It will also resolve any incidents attached to this rule.
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         snuba_query_snapshot = deepcopy(alert_rule.snuba_query)
@@ -697,7 +701,7 @@ def update_alert_rule(
         updated_query_fields["resolution"] = timedelta(minutes=resolution)
         updated_fields["comparison_delta"] = comparison_delta
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
         if incidents:
             snapshot_alert_rule(alert_rule, user)
@@ -816,7 +820,7 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
 def enable_alert_rule(alert_rule):
     if alert_rule.status != AlertRuleStatus.DISABLED.value:
         return
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(AlertRule)):
         alert_rule.update(status=AlertRuleStatus.PENDING.value)
         bulk_enable_snuba_subscriptions(alert_rule.snuba_query.subscriptions.all())
 
@@ -824,7 +828,7 @@ def enable_alert_rule(alert_rule):
 def disable_alert_rule(alert_rule):
     if alert_rule.status != AlertRuleStatus.PENDING.value:
         return
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(AlertRule)):
         alert_rule.update(status=AlertRuleStatus.DISABLED.value)
         bulk_disable_snuba_subscriptions(alert_rule.snuba_query.subscriptions.all())
 
@@ -837,7 +841,7 @@ def delete_alert_rule(alert_rule, user=None, ip_address=None):
     if alert_rule.status == AlertRuleStatus.SNAPSHOT.value:
         raise AlreadyDeletedError()
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         if user:
             create_audit_entry_from_user(
                 user,
@@ -848,8 +852,12 @@ def delete_alert_rule(alert_rule, user=None, ip_address=None):
                 event=audit_log.get_event_id("ALERT_RULE_REMOVE"),
             )
 
+        subscriptions = alert_rule.snuba_query.subscriptions.all()
+        bulk_delete_snuba_subscriptions(subscriptions)
+
+        schedule_update_project_config(alert_rule, [sub.project for sub in subscriptions])
+
         incidents = Incident.objects.filter(alert_rule=alert_rule)
-        bulk_delete_snuba_subscriptions(list(alert_rule.snuba_query.subscriptions.all()))
         if incidents.exists():
             alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
             AlertRuleActivity.objects.create(
@@ -896,7 +904,7 @@ def create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_proje
     if excluded_projects:
         excluded_subs = get_subscriptions_from_alert_rule(alert_rule, excluded_projects)
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
         trigger = AlertRuleTrigger.objects.create(
             alert_rule=alert_rule, label=label, alert_threshold=alert_threshold
         )
@@ -950,7 +958,7 @@ def update_alert_rule_trigger(trigger, label=None, alert_threshold=None, exclude
         ]
         new_subs = [sub for sub in excluded_subs if sub.id not in existing_sub_ids]
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
         if updated_fields:
             trigger.update(**updated_fields)
 
@@ -984,7 +992,7 @@ def trigger_incident_triggers(incident):
     incident_triggers = IncidentTrigger.objects.filter(incident=incident)
     triggers = get_triggers_for_alert_rule(incident.alert_rule)
     actions = deduplicate_trigger_actions(triggers=triggers)
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
         for trigger in incident_triggers:
             trigger.status = TriggerStatus.RESOLVED.value
             trigger.save()
@@ -998,7 +1006,8 @@ def trigger_incident_triggers(incident):
                         project_id=project.id,
                         method="resolve",
                         new_status=IncidentStatus.CLOSED.value,
-                    ).delay
+                    ).delay,
+                    router.db_for_write(AlertRuleTrigger),
                 )
 
 
@@ -1236,6 +1245,10 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
         target_identifier, target_value = get_alert_rule_trigger_action_pagerduty_service(
             target_value, *args, **kwargs
         )
+    elif type == AlertRuleTriggerAction.Type.OPSGENIE.value:
+        target_identifier, target_value = get_alert_rule_trigger_action_opsgenie_team(
+            target_value, *args, **kwargs
+        )
     else:
         raise Exception("Not implemented")
 
@@ -1310,20 +1323,56 @@ def get_alert_rule_trigger_action_pagerduty_service(
     input_channel_id=None,
     integrations=None,
 ):
-    try:
-        # TODO: query the org as well to make sure we don't allow
-        # cross org access
-        service = PagerDutyService.objects.get(id=target_value)
-    except PagerDutyService.DoesNotExist:
+    service = integration_service.find_pagerduty_service(
+        organization_id=organization.id, integration_id=integration_id, service_id=target_value
+    )
+    if not service:
         raise InvalidTriggerActionError("No PagerDuty service found.")
 
-    return (service.id, service.service_name)
+    return service["id"], service["service_name"]
+
+
+def get_alert_rule_trigger_action_opsgenie_team(
+    target_value: Optional[str],
+    organization: RpcOrganizationIntegration,
+    integration_id: int,
+    use_async_lookup=False,
+    input_channel_id=None,
+    integrations=None,
+) -> tuple[str, str]:
+    from sentry.integrations.opsgenie.client import OpsgenieClient
+    from sentry.integrations.opsgenie.utils import get_team
+
+    oi = integration_service.get_organization_integration(
+        integration_id=integration_id, organization_id=organization.id
+    )
+    team = get_team(target_value, oi)
+    if not team:
+        raise InvalidTriggerActionError("No Opsgenie team found.")
+
+    integration_key = team["integration_key"]
+    integration = integration_service.get_integration(integration_id=integration_id)
+    if integration is None:
+        raise InvalidTriggerActionError("Opsgenie integration not found.")
+    client = OpsgenieClient(
+        integration=integration,
+        integration_key=integration_key,
+        org_integration_id=oi.id,
+    )
+    try:
+        client.authorize_integration(type="sentry")
+    except ApiError:
+        raise InvalidTriggerActionError("Invalid integration key.")
+    return team["id"], team["team"]
 
 
 def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id, installations):
     from sentry.services.hybrid_cloud.app import app_service
 
     if installations is None:
+        # TODO(hybrid-cloud): this rpc invocation is fairly deeply buried within this transaction
+        # https://github.com/getsentry/sentry/blob/2b7077a785ea394c70f4e7f12de11a039ef6634e/src/sentry/incidents/serializers/alert_rule.py#L424
+        # which we would like to avoid. We should refactor to obviate the need for this watermark
         installations = app_service.get_installed_for_organization(organization_id=organization.id)
 
     for installation in installations:
@@ -1360,11 +1409,27 @@ def get_available_action_integrations_for_org(organization):
     )
 
 
-def get_pagerduty_services(organization_id, integration_id):
-    return PagerDutyService.objects.filter(
-        organization_id=organization_id,
-        integration_id=integration_id,
-    ).values("id", "service_name")
+def get_pagerduty_services(organization_id, integration_id) -> List[Tuple[int, str]]:
+    org_int = integration_service.get_organization_integration(
+        organization_id=organization_id, integration_id=integration_id
+    )
+    if org_int is None:
+        return []
+    services = OrganizationIntegration.services_in(org_int.config)
+    return [(s["id"], s["service_name"]) for s in services]
+
+
+def get_opsgenie_teams(organization_id, integration_id) -> list[Tuple[str, str]]:
+    org_int = integration_service.get_organization_integration(
+        organization_id=organization_id, integration_id=integration_id
+    )
+    if org_int is None:
+        return []
+    teams = []
+    team_table = org_int.config.get("team_table")
+    if team_table:
+        teams = [(team["id"], team["team"]) for team in team_table]
+    return teams
 
 
 # TODO: This is temporarily needed to support back and forth translations for snuba / frontend.
@@ -1430,6 +1495,9 @@ def get_slack_actions_with_async_lookups(organization, user, data):
                         "access": SystemAccess(),
                         "user": user,
                         "input_channel_id": action.get("inputChannelId"),
+                        "installations": app_service.get_installed_for_organization(
+                            organization_id=organization.id
+                        ),
                     },
                     data=action,
                 )

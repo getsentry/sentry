@@ -7,25 +7,28 @@ import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
 import {getFramesByColumn} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import {getColor} from 'sentry/utils/replays/frame';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
+import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import type {Color} from 'sentry/utils/theme';
 
 const NODE_SIZES = [8, 12, 16];
 
-type Props = {
+interface Props extends ReturnType<typeof useCrumbHandlers> {
   durationMs: number;
   frames: ReplayFrame[];
   startTimestampMs: number;
   width: number;
   className?: string;
-};
+}
 
 function ReplayTimelineEvents({
   className,
-  frames,
   durationMs,
+  frames,
+  onMouseEnter,
+  onMouseLeave,
+  onClickTimestamp,
   startTimestampMs,
   width,
 }: Props) {
@@ -40,7 +43,10 @@ function ReplayTimelineEvents({
         <EventColumn key={column} column={column}>
           <Event
             frames={colFrames}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
             markerWidth={markerWidth}
+            onClickTimestamp={onClickTimestamp}
             startTimestampMs={startTimestampMs}
           />
         </EventColumn>
@@ -63,24 +69,25 @@ const EventColumn = styled(Timeline.Col)<{column: number}>`
 
 function Event({
   frames,
+  onMouseEnter,
+  onMouseLeave,
   markerWidth,
+  onClickTimestamp,
   startTimestampMs,
 }: {
   frames: ReplayFrame[];
   markerWidth: number;
   startTimestampMs: number;
-}) {
+} & ReturnType<typeof useCrumbHandlers>) {
   const theme = useTheme();
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
 
   const buttons = frames.map((frame, i) => (
     <BreadcrumbItem
-      crumb={frame}
+      frame={frame}
       key={i}
-      onClick={handleClick}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onClick={onClickTimestamp}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       startTimestampMs={startTimestampMs}
     />
   ));
@@ -97,16 +104,32 @@ function Event({
     }
   `;
 
-  // If we have more than 3 events we want to make sure of showing all the different colors that we have
-  const uniqueColors = uniq(frames.map(getColor));
+  // We want to show the full variety of colors available.
+  const uniqueColors = uniq(frames.map(frame => getFrameDetails(frame).color));
 
   // We just need to stack up to 3 times
-  const frameCount = Math.min(frames.length, 3);
+  const frameCount = Math.min(uniqueColors.length, 3);
+
+  // Sort the frame colors by color priority
+  // Priority order: red300, yellow300, green300, purple300, gray300
+  const sortedUniqueColors = uniqueColors.sort(function (x, y) {
+    const colorOrder: Color[] = [
+      'red300',
+      'yellow300',
+      'green300',
+      'purple300',
+      'gray300',
+    ];
+    function getColorPos(c: Color) {
+      return colorOrder.indexOf(c);
+    }
+    return getColorPos(x) - getColorPos(y);
+  });
 
   return (
     <IconPosition style={{marginLeft: `${markerWidth / 2}px`}}>
       <IconNodeTooltip title={title} overlayStyle={overlayStyle} isHoverable>
-        <IconNode colors={uniqueColors} frameCount={frameCount} />
+        <IconNode colors={sortedUniqueColors} frameCount={frameCount} />
       </IconNodeTooltip>
     </IconPosition>
   );

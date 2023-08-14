@@ -4,17 +4,17 @@ import {Location, LocationDescriptorObject} from 'history';
 import * as qs from 'query-string';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Duration from 'sentry/components/duration';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumn,
+  GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import SortLink, {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -24,22 +24,18 @@ import DiscoverQuery, {
 } from 'sentry/utils/discover/discoverQuery';
 import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {NumberContainer} from 'sentry/utils/discover/styles';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {getAggregateAlias, RateUnits} from 'sentry/utils/discover/fields';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 const COLUMN_TITLES = [
   t('Endpoint'),
   DataTitles.throughput,
-  t('Change'),
-  DataTitles.p95,
-  t('Change'),
+  DataTitles.avg,
   DataTitles.errorCount,
-  t('Change'),
   DataTitles.timeSpent,
 ];
 
@@ -48,6 +44,10 @@ type Props = {
   location: Location;
   organization: Organization;
   setError: (msg: string | undefined) => void;
+};
+
+export type TableColumnHeader = GridColumnHeader<keyof TableDataRow> & {
+  column?: TableColumn<keyof TableDataRow>['column']; // TODO - remove this once gridEditable is properly typed
 };
 
 function EndpointList({eventView, location, organization, setError}: Props) {
@@ -66,7 +66,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
 
   function renderBodyCell(
     tableData: TableData | null,
-    column: TableColumn<keyof TableDataRow>,
+    column: TableColumnHeader,
     dataRow: TableDataRow,
     _deltaColumnMap: Record<string, string>
   ): React.ReactNode {
@@ -80,10 +80,11 @@ function EndpointList({eventView, location, organization, setError}: Props) {
     const rendered = fieldRenderer(dataRow, {organization, location});
 
     if (field === 'transaction') {
-      let prefix = '';
-      if (dataRow['http.method']) {
-        prefix = `${dataRow['http.method']} `;
-      }
+      const method = dataRow['http.method'];
+      const endpointName =
+        method && !dataRow.transaction.toString().startsWith(method.toString())
+          ? `${method} ${dataRow.transaction}`
+          : dataRow.transaction;
 
       return (
         <Link
@@ -105,8 +106,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
             });
           }}
         >
-          {prefix}
-          {dataRow.transaction}
+          {endpointName}
         </Link>
       );
     }
@@ -115,24 +115,16 @@ function EndpointList({eventView, location, organization, setError}: Props) {
       const cumulativeTime = Number(dataRow['sum(transaction.duration)']);
       const cumulativeTimePercentage = Number(dataRow[TIME_SPENT_IN_SERVICE]);
       return (
-        <Tooltip
-          title={tct('Total time spent by endpoint is [cumulativeTime])', {
-            cumulativeTime: (
-              <Duration seconds={cumulativeTime / 1000} fixedDigits={2} abbreviation />
-            ),
-          })}
-          containerDisplayMode="block"
-          position="top"
-        >
-          <NumberContainer>{formatPercentage(cumulativeTimePercentage)}</NumberContainer>
-        </Tooltip>
+        <TimeSpentCell percentage={cumulativeTimePercentage} total={cumulativeTime} />
       );
     }
 
     // TODO: This can be removed if/when the backend returns this field's type
     // as `"rate"` and its unit as `"1/second"
     if (field === 'tps()') {
-      return <ThroughputCell throughputPerSecond={dataRow[field] as number} />;
+      return (
+        <ThroughputCell rate={dataRow[field] as number} unit={RateUnits.PER_SECOND} />
+      );
     }
 
     if (field === 'project') {
@@ -165,20 +157,18 @@ function EndpointList({eventView, location, organization, setError}: Props) {
             'equation|(percentile_range(transaction.duration,0.95,lessOrEquals'
           )
         ) {
-          deltaColumnMap['p95()'] = col;
+          deltaColumnMap['avg()'] = col;
         }
       });
     }
 
-    return (
-      column: TableColumn<keyof TableDataRow>,
-      dataRow: TableDataRow
-    ): React.ReactNode => renderBodyCell(tableData, column, dataRow, deltaColumnMap);
+    return (column: TableColumnHeader, dataRow: TableDataRow): React.ReactNode =>
+      renderBodyCell(tableData, column, dataRow, deltaColumnMap);
   }
 
   function renderHeadCell(
     tableMeta: TableData['meta'],
-    column: TableColumn<keyof TableDataRow>,
+    column: TableColumnHeader,
     title: React.ReactNode
   ): React.ReactNode {
     let align: Alignments = 'right';
@@ -186,7 +176,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
       align = 'left';
     }
     const field = {
-      field: column.column.kind === 'equation' ? (column.key as string) : column.name,
+      field: column.column?.kind === 'equation' ? (column.key as string) : column.name,
       width: column.width,
     };
 
@@ -237,7 +227,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
 
   function renderHeadCellWithMeta(tableMeta: TableData['meta']) {
     const newColumnTitles = COLUMN_TITLES;
-    return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
+    return (column: TableColumnHeader, index: number): React.ReactNode =>
       renderHeadCell(tableMeta, column, newColumnTitles[index]);
   }
 
@@ -300,8 +290,8 @@ function EndpointList({eventView, location, organization, setError}: Props) {
               columnSortBy={columnSortBy}
               grid={{
                 onResizeColumn: handleResizeColumn,
-                renderHeadCell: renderHeadCellWithMeta(tableData?.meta) as any,
-                renderBodyCell: renderBodyCellWithData(tableData) as any,
+                renderHeadCell: renderHeadCellWithMeta(tableData?.meta),
+                renderBodyCell: renderBodyCellWithData(tableData),
               }}
               location={location}
             />

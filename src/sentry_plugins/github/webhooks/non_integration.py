@@ -12,7 +12,7 @@ from .base import GithubWebhookBase
 logger = logging.getLogger("sentry.webhooks")
 
 
-class GithubWebhookEndpoint(GithubWebhookBase):
+class GithubPluginWebhookEndpoint(GithubWebhookBase):
     def get_logging_data(self, organization):
         return {"organization_id": organization.id}
 

@@ -4,12 +4,12 @@ import logging
 import warnings
 from collections import defaultdict
 from itertools import chain
-from typing import TYPE_CHECKING, Collection, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Collection, Iterable, Mapping
 from uuid import uuid1
 
 import sentry_sdk
 from django.conf import settings
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.db.models import QuerySet
 from django.db.models.signals import pre_delete
 from django.utils import timezone
@@ -32,8 +32,8 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
-from sentry.models import OptionMixin
 from sentry.models.grouplink import GroupLink
+from sentry.models.options.option import OptionMixin
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -51,7 +51,17 @@ if TYPE_CHECKING:
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
-MIGRATED_GETTING_STARTD_DOCS = ["javascript-react", "javascript-remix"]
+MIGRATED_GETTING_STARTD_DOCS = [
+    "javascript-react",
+    "javascript-remix",
+    "go-echo",
+    "go-fasthttp",
+    "go-gin",
+    "go-http",
+    "go-iris",
+    "go-martini",
+    "go-negroni",
+]
 
 
 class ProjectManager(BaseManager):
@@ -78,7 +88,7 @@ class ProjectManager(BaseManager):
             teams__organizationmember__user_id__in=user_ids,
         )
 
-    def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
+    def get_for_team_ids(self, team_ids: Collection[int]) -> QuerySet:
         """Returns the QuerySet of all projects that a set of Teams have access to."""
         return self.filter(status=ObjectStatus.ACTIVE, teams__in=team_ids)
 
@@ -264,6 +274,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     def color(self):
         if self.forced_color is not None:
             return f"#{self.forced_color}"
+        assert self.slug is not None
         return get_hashed_color(self.slug.upper())
 
     @property
@@ -326,13 +337,13 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
             Environment,
             EnvironmentProject,
             ExternalIssue,
-            ProjectTeam,
             RegionScheduledDeletion,
             ReleaseProject,
             ReleaseProjectEnvironment,
             Rule,
         )
         from sentry.models.actor import ACTOR_TYPES
+        from sentry.models.projectteam import ProjectTeam
         from sentry.monitors.models import Monitor
 
         old_org_id = self.organization_id
@@ -341,7 +352,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         self.organization = organization
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Project)):
                 self.update(organization=organization)
         except IntegrityError:
             slugify_instance(self, self.name, organization=organization, max_length=50)
@@ -451,7 +462,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         from sentry.models.projectteam import ProjectTeam
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(ProjectTeam)):
                 ProjectTeam.objects.create(project=self, team=team)
         except IntegrityError:
             return False
@@ -492,19 +503,15 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         Returns True if the settings have successfully been copied over
         Returns False otherwise
         """
-        from sentry.models import (
-            EnvironmentProject,
-            ProjectOption,
-            ProjectOwnership,
-            ProjectTeam,
-            Rule,
-        )
+        from sentry.models import EnvironmentProject, ProjectOption, Rule
+        from sentry.models.projectownership import ProjectOwnership
+        from sentry.models.projectteam import ProjectTeam
 
         model_list = [EnvironmentProject, ProjectOwnership, ProjectTeam, Rule]
 
         project = Project.objects.get(id=project_id)
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Project)):
                 for model in model_list:
                     # remove all previous project settings
                     model.objects.filter(project_id=self.id).delete()
@@ -551,7 +558,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
         # There is no foreign key relationship so we have to manually cascade.
         NotificationSetting.objects.remove_for_project(self)
-        with outbox_context(transaction.atomic()):
+        with outbox_context(transaction.atomic(router.db_for_write(Project))):
             Project.outbox_for_update(self.id, self.organization_id).save()
             return super().delete(**kwargs)
 

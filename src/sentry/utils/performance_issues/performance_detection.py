@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import random
-from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import sentry_sdk
 
@@ -14,12 +14,6 @@ from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION
 from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
-from sentry.utils.performance_issues.detectors.consecutive_http_detector import (
-    ConsecutiveHTTPSpanDetectorExtended,
-)
-from sentry.utils.performance_issues.detectors.n_plus_one_api_calls_detector import (
-    NPlusOneAPICallsDetectorExtended,
-)
 from sentry.utils.safe import get_path
 
 from .base import DetectorType, PerformanceDetector
@@ -28,6 +22,7 @@ from .detectors import (
     ConsecutiveHTTPSpanDetector,
     DBMainThreadDetector,
     FileIOMainThreadDetector,
+    HTTPOverheadDetector,
     LargeHTTPPayloadDetector,
     MNPlusOneDBSpanDetector,
     NPlusOneAPICallsDetector,
@@ -161,6 +156,9 @@ def get_merged_settings(project_id: Optional[int] = None) -> Dict[str | Any, Any
         "consecutive_http_spans_span_duration_threshold": options.get(
             "performance.issues.consecutive_http.span_duration_threshold"
         ),
+        "consecutive_http_spans_min_time_saved_threshold": options.get(
+            "performance.issues.consecutive_http.min_time_saved_threshold"
+        ),
         "large_http_payload_size_threshold": options.get(
             "performance.issues.large_http_payload.size_threshold"
         ),
@@ -178,6 +176,12 @@ def get_merged_settings(project_id: Optional[int] = None) -> Dict[str | Any, Any
         ),
         "consecutive_db_min_time_saved_threshold": options.get(
             "performance.issues.consecutive_db.min_time_saved_threshold"
+        ),
+        "http_request_delay_threshold": options.get(
+            "performance.issues.http_overhead.http_request_delay_threshold"
+        ),
+        "n_plus_one_api_calls_total_duration_threshold": options.get(
+            "performance.issues.n_plus_one_api_calls.total_duration"
         ),
     }
 
@@ -261,17 +265,11 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             }
         ],
         DetectorType.N_PLUS_ONE_API_CALLS: {
-            "duration_threshold": 50,  # ms
+            "total_duration": settings["n_plus_one_api_calls_total_duration_threshold"],  # ms
             "concurrency_threshold": 5,  # ms
             "count": 10,
             "allowed_span_ops": ["http.client"],
             "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
-        },
-        DetectorType.N_PLUS_ONE_API_CALLS_EXTENDED: {
-            "total_duration": 500,  # ms
-            "concurrency_threshold": 15,  # ms
-            "count": 5,
-            "allowed_span_ops": ["http.client"],
         },
         DetectorType.M_N_PLUS_ONE_DB: {
             "total_duration_threshold": 100.0,  # ms
@@ -289,21 +287,20 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "span_duration_threshold": settings[
                 "consecutive_http_spans_span_duration_threshold"
             ],  # ms
+            "min_time_saved": settings["consecutive_http_spans_min_time_saved_threshold"],  # ms
             "consecutive_count_threshold": settings["consecutive_http_spans_count_threshold"],
             "max_duration_between_spans": settings[
                 "consecutive_http_spans_max_duration_between_spans"
             ],  # ms
             "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
         },
-        DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED: {
-            # time saved by running all queries in parallel
-            "min_time_saved": 500,
-            "consecutive_count_threshold": 2,
-            "max_duration_between_spans": 1000,  # ms
-        },
         DetectorType.LARGE_HTTP_PAYLOAD: {
             "payload_size_threshold": settings["large_http_payload_size_threshold"],
             "detection_enabled": settings["large_http_payload_detection_enabled"],
+        },
+        DetectorType.HTTP_OVERHEAD: {
+            "http_request_delay_threshold": settings["http_request_delay_threshold"],
+            "detection_enabled": settings["http_overhead_detection_enabled"],
         },
     }
 
@@ -312,13 +309,11 @@ def _detect_performance_problems(
     data: dict[str, Any], sdk_span: Any, project: Project
 ) -> List[PerformanceProblem]:
     event_id = data.get("event_id", None)
-    project_id = cast(int, project.id)
 
-    detection_settings = get_detection_settings(project_id)
+    detection_settings = get_detection_settings(project.id)
     detectors: List[PerformanceDetector] = [
         ConsecutiveDBSpanDetector(detection_settings, data),
         ConsecutiveHTTPSpanDetector(detection_settings, data),
-        ConsecutiveHTTPSpanDetectorExtended(detection_settings, data),
         DBMainThreadDetector(detection_settings, data),
         SlowDBQueryDetector(detection_settings, data),
         RenderBlockingAssetSpanDetector(detection_settings, data),
@@ -326,10 +321,10 @@ def _detect_performance_problems(
         NPlusOneDBSpanDetectorExtended(detection_settings, data),
         FileIOMainThreadDetector(detection_settings, data),
         NPlusOneAPICallsDetector(detection_settings, data),
-        NPlusOneAPICallsDetectorExtended(detection_settings, data),
         MNPlusOneDBSpanDetector(detection_settings, data),
         UncompressedAssetSpanDetector(detection_settings, data),
         LargeHTTPPayloadDetector(detection_settings, data),
+        HTTPOverheadDetector(detection_settings, data),
     ]
 
     for detector in detectors:
@@ -338,7 +333,7 @@ def _detect_performance_problems(
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span, project.organization)
 
-    organization = cast(Organization, project.organization)
+    organization = project.organization
     if project is None or organization is None:
         return []
 
@@ -441,6 +436,7 @@ def report_metrics_for_detectors(
         "sdk_name": sdk_name,
         "is_early_adopter": organization.flags.early_adopter.is_set,
     }
+
     event_integrations = event.get("sdk", {}).get("integrations", []) or []
 
     for integration_name in INTEGRATIONS_OF_INTEREST:

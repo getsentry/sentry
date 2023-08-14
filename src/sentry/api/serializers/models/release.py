@@ -1,5 +1,8 @@
+from __future__ import annotations
+
+import datetime
 from collections import defaultdict
-from typing import Mapping, Sequence, TypedDict, Union
+from typing import Any, Mapping, Sequence, TypedDict, Union
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
@@ -17,8 +20,8 @@ from sentry.models import (
     ReleaseProject,
     ReleaseProjectEnvironment,
     ReleaseStatus,
-    User,
 )
+from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
@@ -129,7 +132,7 @@ def _get_authors_metadata(item_list, user):
     if authors:
         org_ids = {item.organization_id for item in item_list}
         if len(org_ids) != 1:
-            users_by_author = {}
+            users_by_author: Mapping[str, Author] = {}
         else:
             users_by_author = get_users_for_authors(
                 organization_id=org_ids.pop(), authors=authors, user=user
@@ -218,7 +221,7 @@ class NonMappableUser(TypedDict):
 Author = Union[UserSerializerResponse, NonMappableUser]
 
 
-def get_users_for_authors(organization_id, authors, user=None) -> Mapping[str, User]:
+def get_users_for_authors(organization_id, authors, user=None) -> Mapping[str, Author]:
     """
     Returns a dictionary of author_id => user, if a Sentry
     user object exists for that email. If there is no matching
@@ -260,7 +263,7 @@ def get_users_for_authors(organization_id, authors, user=None) -> Mapping[str, U
                 "organization_id": organization_id,
                 "is_active": True,
             },
-            as_user=user,
+            as_user=serialize_generic_user(user),
         )
         # Figure out which email address matches to a user
         users_by_email = {}
@@ -322,9 +325,9 @@ class ReleaseSerializer(Serializer):
             project_ids, specialized = self.__get_project_id_list(item_list)
             organization_id = item_list[0].organization_id
 
-        first_seen = {}
-        last_seen = {}
-        tag_values = tagstore.get_release_tags(
+        first_seen: dict[str, datetime.datetime] = {}
+        last_seen: dict[str, datetime.datetime] = {}
+        tag_values = tagstore.backend.get_release_tags(
             organization_id,
             project_ids,
             environment_id=None,
@@ -351,7 +354,7 @@ class ReleaseSerializer(Serializer):
         return first_seen, last_seen, group_counts_by_release
 
     def _get_release_adoption_stages(self, release_project_envs):
-        adoption_stages = defaultdict(dict)
+        adoption_stages: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
 
         for release_project_env in release_project_envs:
             adoption_stages[release_project_env.release.version].setdefault(
@@ -361,8 +364,8 @@ class ReleaseSerializer(Serializer):
         return adoption_stages
 
     def __get_release_data_with_environments(self, release_project_envs):
-        first_seen = {}
-        last_seen = {}
+        first_seen: dict[str, datetime.datetime] = {}
+        last_seen: dict[str, datetime.datetime] = {}
 
         for release_project_env in release_project_envs:
             if (
@@ -376,7 +379,7 @@ class ReleaseSerializer(Serializer):
             ):
                 last_seen[release_project_env.release.version] = release_project_env.last_seen
 
-        group_counts_by_release = {}
+        group_counts_by_release: dict[int, dict[int, int]] = {}
         for project_id, release_id, new_groups in release_project_envs.annotate(
             aggregated_new_issues_count=Sum("new_issues_count")
         ).values_list("project_id", "release_id", "aggregated_new_issues_count"):
@@ -443,7 +446,8 @@ class ReleaseSerializer(Serializer):
         owners = {
             d["id"]: d
             for d in user_service.serialize_many(
-                filter={"user_ids": [i.owner_id for i in item_list if i.owner_id]}, as_user=user
+                filter={"user_ids": [i.owner_id for i in item_list if i.owner_id]},
+                as_user=serialize_generic_user(user),
             )
         }
 
@@ -471,7 +475,7 @@ class ReleaseSerializer(Serializer):
 
         # XXX: Legacy should be removed later
         if with_health_data:
-            health_data = release_health.get_release_health_data_overview(
+            health_data = release_health.backend.get_release_health_data_overview(
                 [(pr["project__id"], pr["release__version"]) for pr in project_releases],
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,
