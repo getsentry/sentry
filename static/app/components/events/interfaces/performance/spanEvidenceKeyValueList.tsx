@@ -444,8 +444,6 @@ function getSpanEvidenceValue(span: Span | null) {
   return `${span.op} - ${span.description}`;
 }
 
-// overflow is set to visible in global styles so
-// need to enforce auto here
 const StyledCodeSnippet = styled(CodeSnippet)`
   pre {
     /* overflow is set to visible in global styles so need to enforce auto here */
