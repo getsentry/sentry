@@ -22,20 +22,23 @@ from sentry.notifications.validators import (
 class UserNotificationProvidersDetailsEndpoint(UserEndpoint):
     def get(self, request: Request, user: User) -> Response:
         notification_type = request.GET.get("type")
-        try:
-            validate_type(notification_type)
-        except ParameterValidationError:
-            return self.respond({"type": ["Invalid type"]}, status=400)
+        if notification_type:
+            try:
+                validate_type(notification_type)
+            except ParameterValidationError:
+                return self.respond({"type": ["Invalid type"]}, status=400)
 
-        notifications_settings = list(
-            NotificationSettingProvider.objects.filter(
+            notifications_settings = NotificationSettingProvider.objects.filter(
                 type=notification_type,
                 user_id=user.id,
             )
-        )
+        else:
+            notifications_settings = NotificationSettingProvider.objects.filter(
+                user_id=user.id,
+            )
 
         notification_preferences = serialize(
-            notifications_settings, request.user, NotificationSettingsProviderSerializer()
+            list(notifications_settings), request.user, NotificationSettingsProviderSerializer()
         )
 
         return Response(notification_preferences)
