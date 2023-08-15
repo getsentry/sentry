@@ -1,9 +1,7 @@
-import sentry_sdk
 from django.db import models
 
-from sentry.db.models import BoundedPositiveIntegerField, control_silo_only_model, sane_repr
-from sentry.notifications.types import NotificationSettingOptionValues
-from sentry.types.integrations import ExternalProviders, get_provider_name
+from sentry.db.models import control_silo_only_model, sane_repr
+from sentry.types.integrations import get_provider_name
 
 from .notificationsettingbase import NotificationSettingBase
 
@@ -16,21 +14,7 @@ class NotificationSettingProvider(NotificationSettingBase):
     def provider_str(self) -> str:
         return get_provider_name(self.provider)
 
-    provider = BoundedPositiveIntegerField(
-        choices=(
-            (ExternalProviders.EMAIL, "email"),
-            (ExternalProviders.SLACK, "slack"),
-            (ExternalProviders.MSTEAMS, "msteams"),
-        ),
-        null=False,
-    )
-    value = BoundedPositiveIntegerField(
-        choices=(
-            (NotificationSettingOptionValues.NEVER, "off"),
-            (NotificationSettingOptionValues.ALWAYS, "on"),
-        ),
-        null=False,
-    )
+    provider = models.CharField(max_length=32, null=False)
 
     class Meta:
         app_label = "sentry"
@@ -62,16 +46,3 @@ class NotificationSettingProvider(NotificationSettingBase):
         "type_str",
         "value_str",
     )
-
-    def save(self, *args, **kwargs):
-        try:
-            assert not (
-                self.user_id is None and self.team_id is None
-            ), "Notification setting missing user & team"
-        except AssertionError as err:
-            sentry_sdk.capture_exception(err)
-        super().save(*args, **kwargs)
-
-
-# REQUIRED for migrations to run
-from sentry.trash import *  # NOQA
