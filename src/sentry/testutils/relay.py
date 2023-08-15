@@ -147,14 +147,17 @@ class RelayStoreHelper(RequiredBaseclass):
         print(f"RELAY {url}")  # noqa: S002
         responses.add_passthru(url)
 
+        print("post_and_retrieve_unreal post beging")  # noqa: S002
         resp = requests.post(
             url,
             data=payload,
         )
+        print("post_and_retrieve_unreal post end")  # noqa: S002
 
         assert resp.ok
         event_id = resp.text.strip().replace("-", "")
 
+        print("post_and_retrieve_unreal wait for ingest consumer")  # noqa: S002
         event = self.wait_for_ingest_consumer(
             lambda: eventstore.backend.get_event_by_id(
                 self.project.id,
@@ -162,6 +165,7 @@ class RelayStoreHelper(RequiredBaseclass):
                 tenant_ids={"referrer": "relay-test", "organization_id": 123},
             )
         )
+        print("post_and_retrieve_unreal end for ingest consumer")  # noqa: S002
 
         # check that we found it in Snuba
         assert event is not None
