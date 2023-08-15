@@ -18,7 +18,7 @@ from sentry import projectoptions
 from sentry.grouping.component import GroupingComponent
 from sentry.utils import metrics
 from sentry.utils.hashlib import hash_value
-from sentry.utils.safe import get_path, set_path
+from sentry.utils.safe import get_path
 from sentry.utils.strings import unescape_string
 
 from .actions import Action, FlagAction, VarAction
@@ -164,8 +164,8 @@ class Enhancements:
             )
             if frames_changed:
                 print("USING CACHE")  # noqa: S002
-                print(f"match frames: {match_frames}")  # noqa: S002
-                print(f"frames: {frames}")  # noqa: S002
+                # print(f"match frames: {match_frames}")  # noqa: S002
+                # print(f"frames: {frames}")  # noqa: S002
                 print("Reusing cached data")  # noqa: S002
                 logger.info("The frames have been loaded from the cache. Skipping some work.")
                 return
@@ -534,8 +534,9 @@ def _update_frames_from_cached_values(
                 if changed_frame_values.get("category") is not None:
                     if frame["data"].get("category"):
                         print(f"FOO - {frame['data'].get('category')}")  # noqa: S002
-                    set_path(frame, "data", "category", value=changed_frame_values["category"])
-                    frames_changed = True
+                    print(f"DID NOT SET CATEGORY: {changed_frame_values['category']}")  # noqa: S002
+                    # set_path(frame, "data", "category", value=changed_frame_values["category"])
+                    # frames_changed = True
 
             if frames_changed:
                 logger.info("We have merged the cached stacktrace to the incoming one.")
