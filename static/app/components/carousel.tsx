@@ -94,21 +94,20 @@ function Carousel({children}: Props) {
 
 const CarouselContainer = styled('div')`
   position: relative;
-  padding-bottom: ${space(0.5)};
+  /* We provide some margin to make room for the scroll bar. It is applied on
+   * the top and bottom for consistency.
+   */
+  margin: ${space(0.25)};
 `;
 
 const CarouselItems = styled('div')`
   display: flex;
   overflow-x: scroll;
   scroll-behavior: smooth;
-  &::-webkit-scrollbar {
-    background-color: transparent;
-    height: 8px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: ${p => p.theme.gray300};
-    border-radius: 8px;
-  }
+  /* We provide some margin to make room for the scroll bar. It is applied on
+   * the top and bottom for consistency.
+   */
+  padding: ${space(1.5)} 0;
 `;
 
 const Anchor = styled('div')``;
