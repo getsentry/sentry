@@ -75,7 +75,7 @@ class TrendState:
 class TrendPayload:
     group: str | int
     count: float
-    p95: float
+    value: float
     timestamp: datetime
 
 
@@ -166,12 +166,12 @@ def detect_trend(state: TrendState, payload: TrendPayload) -> Tuple[TrendType, T
     # This EMA uses a shorter period to follow the timeseries more closely.
     ema_short = ExponentialMovingAverage(smoothing=2, period=20)
     ema_short.set(state.short_ma, state.count)
-    ema_short.update(payload.p95)
+    ema_short.update(payload.value)
 
     # This EMA uses a longer period to follow the overal trend of the timeseries.
     ema_long = ExponentialMovingAverage(smoothing=2, period=40)
     ema_long.set(state.long_ma, state.count)
-    ema_long.update(payload.p95)
+    ema_long.update(payload.value)
 
     # The heuristic isn't stable initially, so ensure we have a minimum
     # number of data points before looking for a regression.

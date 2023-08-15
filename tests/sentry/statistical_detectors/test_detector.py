@@ -68,7 +68,7 @@ def test_trend_state(data, expected):
 
 
 @pytest.mark.parametrize(
-    "initial,p95s,regressed_indices,improved_indices",
+    "initial,values,regressed_indices,improved_indices",
     [
         pytest.param(
             TrendState(None, 0, 0, 0),
@@ -100,7 +100,7 @@ def test_trend_state(data, expected):
         ),
     ],
 )
-def test_run_trend_detection(initial, p95s, regressed_indices, improved_indices):
+def test_run_trend_detection(initial, values, regressed_indices, improved_indices):
     states = [initial]
     all_regressed = []
     all_improved = []
@@ -108,7 +108,8 @@ def test_run_trend_detection(initial, p95s, regressed_indices, improved_indices)
     now = datetime.now()
 
     payloads = [
-        TrendPayload(0, i + 1, p95, now + timedelta(hours=i + 1)) for i, p95 in enumerate(p95s)
+        TrendPayload(0, i + 1, value, now + timedelta(hours=i + 1))
+        for i, value in enumerate(values)
     ]
 
     for payload in payloads:
