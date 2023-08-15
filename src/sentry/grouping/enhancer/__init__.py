@@ -521,7 +521,13 @@ def _update_frames_from_cached_values(
                     frame["in_app"] = changed_frame_values["in_app"]
                     frames_changed = True
                 if changed_frame_values.get("category"):
-                    set_path(frame, "data", "category", value=changed_frame_values["category"])
+                    set_path(
+                        frame,
+                        "data",
+                        "category",
+                        value=changed_frame_values["category"],
+                        overwrite=False,  # Otherwise it would overwrite orig_in_app: -1
+                    )
                     frames_changed = True
 
             if frames_changed:
