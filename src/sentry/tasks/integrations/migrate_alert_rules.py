@@ -55,20 +55,32 @@ def migrate_alert_rules(integration_id: int, organization_id: int) -> None:
             }
             team_table.append(team)
             config.update({"team_table": team_table})
-            integration_service.update_organization_integration(
-                org_integration_id=organization_integration.id, config=config
-            )
+            with transaction.atomic(router.db_for_write(OrganizationIntegration)):
+                integration_service.update_organization_integration(
+                    org_integration_id=organization_integration.id, config=config
+                )
+                logger.info(
+                    "api_key.migrated",
+                    extra={
+                        "integration_id": integration_id,
+                        "organization_id": organization_id,
+                        "project_id": project.id,
+                        "team_name": team["team"],
+                        "plugin": plugin.slug,
+                    },
+                )
         else:
             team = [team for team in team_table if team["integration_key"] == api_key][0]
-        logger.info(
-            "api_key.migrated",
-            extra={
-                "integration_id": integration_id,
-                "organization_id": organization_id,
-                "project_id": project.id,
-                "plugin": plugin.slug,
-            },
-        )
+            logger.info(
+                "api_key.key_already_exists",
+                extra={
+                    "integration_id": integration_id,
+                    "organization_id": organization_id,
+                    "project_id": project.id,
+                    "team_name": team["team"],
+                    "plugin": plugin.slug,
+                },
+            )
 
         # migrate alert rules
         for rule in Rule.objects.filter(project_id=project.id):
