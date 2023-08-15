@@ -436,7 +436,7 @@ function getSpanEvidenceValue(span: Span | null) {
   if (span.op === 'db' && span.description) {
     return (
       <StyledCodeSnippet language="sql">
-        {formatter.toString(span.description)}
+        {`${span.op} - ${formatter.toString(span.description)}`}
       </StyledCodeSnippet>
     );
   }
