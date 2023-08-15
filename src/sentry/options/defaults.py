@@ -1469,12 +1469,6 @@ register(
 )
 
 register(
-    "monitors.use_consumer_clock_task_triggers",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "on_demand.max_alert_specs",
     default=50,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
