@@ -614,7 +614,7 @@ class MissingServiceNode extends Component<MissingServiceProps, MissingServiceSt
         : `https://docs.sentry.io/platforms/${docPlatform}/performance/connect-services`;
     return (
       <Fragment>
-        {connectorSide === 'left' && <TraceConnector />}
+        {connectorSide === 'left' && <TraceConnector dashed />}
         <DropdownContainer>
           <DropdownLink
             caret={false}
@@ -637,7 +637,7 @@ class MissingServiceNode extends Component<MissingServiceProps, MissingServiceSt
             </DropdownItem>
           </DropdownLink>
         </DropdownContainer>
-        {connectorSide === 'right' && <TraceConnector />}
+        {connectorSide === 'right' && <TraceConnector dashed />}
       </Fragment>
     );
   }

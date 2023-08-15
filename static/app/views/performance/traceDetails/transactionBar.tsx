@@ -25,6 +25,7 @@ import {
 } from 'sentry/components/performance/waterfall/row';
 import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {
+  BadgeBorder,
   DividerContainer,
   DividerLine,
   DividerLineGhostContainer,
@@ -501,7 +502,7 @@ class TransactionBar extends Component<Props, State> {
     const widthPercentage = duration / delta;
 
     return (
-      <RowRectangle
+      <StyledRowRectangle
         style={{
           backgroundColor: barColor,
           left: `min(${toPercent(startPercentage || 0)}, calc(100% - 1px))`,
@@ -512,17 +513,20 @@ class TransactionBar extends Component<Props, State> {
         {isTraceError(transaction) ? (
           <ErrorBadge />
         ) : (
-          <DurationPill
-            durationDisplay={getDurationDisplay({
-              left: startPercentage,
-              width: widthPercentage,
-            })}
-            showDetail={showDetail}
-          >
-            {getHumanDuration(duration)}
-          </DurationPill>
+          <Fragment>
+            {this.renderErrorBadge()}
+            <DurationPill
+              durationDisplay={getDurationDisplay({
+                left: startPercentage,
+                width: widthPercentage,
+              })}
+              showDetail={showDetail}
+            >
+              {getHumanDuration(duration)}
+            </DurationPill>
+          </Fragment>
         )}
-      </RowRectangle>
+      </StyledRowRectangle>
     );
   }
 
@@ -562,7 +566,7 @@ class TransactionBar extends Component<Props, State> {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
     scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
   }) {
-    const {hasGuideAnchor, index, transaction} = this.props;
+    const {hasGuideAnchor, index} = this.props;
     const {showDetail} = this.state;
     const {dividerPosition} = dividerHandlerChildrenProps;
 
@@ -585,7 +589,6 @@ class TransactionBar extends Component<Props, State> {
         </RowCell>
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
-          {this.renderErrorBadge()}
         </DividerContainer>
         <RowCell
           data-test-id="transaction-row-duration"
@@ -594,8 +597,7 @@ class TransactionBar extends Component<Props, State> {
           style={{
             width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
             paddingTop: 0,
-            alignItems: isTraceError(transaction) ? 'normal' : 'center',
-            overflow: isTraceError(transaction) ? 'visible' : 'hidden',
+            overflow: 'visible',
           }}
           showDetail={showDetail}
           onClick={this.toggleDisplayDetail}
@@ -688,4 +690,10 @@ const StyledRow = styled(Row)`
 
 const ErrorLink = styled(Link)`
   color: ${p => p.theme.error};
+`;
+
+const StyledRowRectangle = styled(RowRectangle)`
+  ${BadgeBorder} {
+    top: -4px;
+  }
 `;

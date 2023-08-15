@@ -49,7 +49,7 @@ export const DividerLineGhostContainer = styled('div')`
   height: 100%;
 `;
 
-const BadgeBorder = styled('div')<{
+export const BadgeBorder = styled('div')<{
   color: Color | keyof Aliases;
   fillBackground?: boolean;
 }>`
