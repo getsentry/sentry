@@ -30,6 +30,13 @@ class UserNotificationOptionDetailsGetTest(UserNotificationOptionDetailsBaseTest
             value=NotificationSettingsOptionEnum.ALWAYS.value,
         )
         NotificationSettingOption.objects.create(
+            user_id=self.user.id,
+            scope_type=NotificationScopeEnum.ORGANIZATION.value,
+            scope_identifier=self.organization.id,
+            type=NotificationSettingEnum.WORKFLOW.value,
+            value=NotificationSettingsOptionEnum.ALWAYS.value,
+        )
+        NotificationSettingOption.objects.create(
             user_id=other_user.id,
             scope_type=NotificationScopeEnum.ORGANIZATION.value,
             scope_identifier=self.organization.id,
@@ -45,6 +52,9 @@ class UserNotificationOptionDetailsGetTest(UserNotificationOptionDetailsBaseTest
         assert response[0]["team_id"] is None
         assert response[0]["value"] == "always"
         assert response[0]["type"] == "alerts"
+
+        response = self.get_success_response("me").data
+        assert len(response) == 2
 
     def test_invalid_type(self):
         response = self.get_error_response(

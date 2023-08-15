@@ -40,6 +40,14 @@ class UserNotificationProviderDetailsGetTest(UserNotificationProviderDetailsBase
             value=NotificationSettingsOptionEnum.ALWAYS.value,
         )
         NotificationSettingProvider.objects.create(
+            user_id=self.user.id,
+            scope_type=NotificationScopeEnum.ORGANIZATION.value,
+            scope_identifier=self.organization.id,
+            type=NotificationSettingEnum.WORKFLOW.value,
+            provider=ExternalProviderEnum.EMAIL.value,
+            value=NotificationSettingsOptionEnum.ALWAYS.value,
+        )
+        NotificationSettingProvider.objects.create(
             user_id=other_user.id,
             scope_type=NotificationScopeEnum.ORGANIZATION.value,
             scope_identifier=self.organization.id,
@@ -62,6 +70,9 @@ class UserNotificationProviderDetailsGetTest(UserNotificationProviderDetailsBase
         assert slack_item["provider"] == "slack"
 
         assert email_item["provider"] == "email"
+
+        response = self.get_success_response("me").data
+        assert len(response) == 3
 
     def test_invalid_type(self):
         response = self.get_error_response(
