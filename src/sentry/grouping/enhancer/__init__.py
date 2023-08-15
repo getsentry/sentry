@@ -16,6 +16,7 @@ from parsimonious.nodes import NodeVisitor
 
 from sentry import projectoptions
 from sentry.grouping.component import GroupingComponent
+from sentry.stacktraces.functions import set_in_app
 from sentry.utils import metrics
 from sentry.utils.hashlib import hash_value
 from sentry.utils.safe import get_path, set_path
@@ -517,17 +518,11 @@ def _update_frames_from_cached_values(
     if changed_frames_values and load_from_cache:
         try:
             for frame, changed_frame_values in zip(frames, changed_frames_values):
-                if changed_frame_values.get("in_app"):
-                    frame["in_app"] = changed_frame_values["in_app"]
+                if changed_frame_values.get("in_app") is not None:
+                    set_in_app(frame, changed_frame_values["in_app"])
                     frames_changed = True
-                if changed_frame_values.get("category"):
-                    set_path(
-                        frame,
-                        "data",
-                        "category",
-                        value=changed_frame_values["category"],
-                        overwrite=False,  # Otherwise it would overwrite orig_in_app: -1
-                    )
+                if changed_frame_values.get("category") is not None:
+                    set_path(frame, "data", "category", value=changed_frame_values["category"])
                     frames_changed = True
 
             if frames_changed:
