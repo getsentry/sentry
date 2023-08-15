@@ -14,7 +14,6 @@ from arroyo.types import Commit, Message, Partition, Topic
 
 from sentry import quotas
 from sentry.models import Project
-from sentry.spans.span import SPAN_SCHEMA_VERSION
 from sentry.utils import json, kafka_config
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
@@ -28,6 +27,7 @@ TAG_MAPPING = {
     "transaction.method": "http.method",
     "transaction.op": "transaction_op",
 }
+SPAN_SCHEMA_VERSION = 1
 
 
 def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
