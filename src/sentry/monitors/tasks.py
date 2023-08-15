@@ -1,15 +1,20 @@
 import logging
 from datetime import datetime
 
+import msgpack
 import sentry_sdk
+from arroyo import Topic
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import options
 from sentry.constants import ObjectStatus
+from sentry.monitors.types import ClockPulseMessage
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, redis
+from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 from .models import (
     CheckInStatus,
@@ -48,6 +53,17 @@ SUBTITLE_DATETIME_FORMAT = "%b %d, %I:%M %p"
 MONITOR_TASKS_LAST_TRIGGERED_KEY = "sentry.monitors.last_tasks_ts"
 
 
+def _get_monitor_checkin_producer() -> KafkaProducer:
+    cluster_name = get_topic_definition(settings.KAFKA_INGEST_MONITORS)["cluster"]
+    producer_config = get_kafka_producer_cluster_options(cluster_name)
+    producer_config.pop("compression.type", None)
+    producer_config.pop("message.max.bytes", None)
+    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+
+_checkin_producer = SingletonProducer(_get_monitor_checkin_producer)
+
+
 def _dispatch_tasks(ts: datetime):
     """
     Dispatch monitor tasks triggered by the consumer clock.
@@ -64,9 +80,6 @@ def _dispatch_tasks(ts: datetime):
     sentry.io, when we deploy we restart the celery beat worker and it will
     skip any tasks it missed)
     """
-    if not options.get("monitors.use_consumer_clock_task_triggers"):
-        return
-
     check_missing.delay(current_datetime=ts)
     check_timeout.delay(current_datetime=ts)
 
@@ -129,17 +142,28 @@ def try_monitor_tasks_trigger(ts: datetime):
     _dispatch_tasks(ts)
 
 
-@instrumented_task(name="sentry.monitors.tasks.temp_task_dispatcher", silo_mode=SiloMode.REGION)
-def temp_task_dispatcher():
+@instrumented_task(name="sentry.monitors.tasks.clock_pulse", silo_mode=SiloMode.REGION)
+def clock_pulse(current_datetime=None):
     """
-    Temporary task used to dispatch the monitor tasks. This is used to allow
-    for a clean switchover to the consumer driven clock pulse.
+    This task is run once a minute when to produce a 'clock pulse' into the
+    monitor ingest topic. This is to ensure there is always a message in the
+    topic that can drive the clock which dispatches the monitor tasks.
     """
-    if options.get("monitors.use_consumer_clock_task_triggers"):
+    if current_datetime is None:
+        current_datetime = timezone.now()
+
+    if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
+        # Directly trigger try_monitor_tasks_trigger in dev
+        try_monitor_tasks_trigger(current_datetime)
         return
 
-    check_missing.delay()
-    check_timeout.delay()
+    message: ClockPulseMessage = {
+        "message_type": "clock_pulse",
+    }
+
+    # Produce the pulse into the topic
+    payload = KafkaPayload(None, msgpack.packb(message), [])
+    _checkin_producer.produce(Topic(settings.KAFKA_INGEST_MONITORS), payload)
 
 
 @instrumented_task(

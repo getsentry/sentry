@@ -56,9 +56,9 @@ function getTimeMarkers(end: Date, timeWindow: TimeWindow, width: number): TimeM
   return times;
 }
 
-export function GridLineTimeLabels({end, timeWindow, width}: Props) {
+export function GridLineTimeLabels({end, timeWindow, width, className}: Props) {
   return (
-    <LabelsContainer>
+    <LabelsContainer className={className}>
       {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
         <TimeLabelContainer key={date.getTime()} left={position}>
           <TimeLabel date={date} {...timeWindowConfig[timeWindow].dateTimeProps} />
@@ -74,6 +74,7 @@ export function GridLineOverlay({
   width,
   showCursor,
   stickyCursor,
+  className,
 }: Props) {
   const {cursorLabelFormat} = timeWindowConfig[timeWindow];
 
@@ -94,7 +95,7 @@ export function GridLineOverlay({
   });
 
   return (
-    <Overlay ref={cursorContainerRef}>
+    <Overlay ref={cursorContainerRef} className={className}>
       {timelineCursor}
       <GridLineContainer>
         {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
@@ -123,6 +124,7 @@ const GridLineContainer = styled('div')`
 const LabelsContainer = styled('div')`
   position: relative;
   align-self: stretch;
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const Gridline = styled('div')<{left: number}>`

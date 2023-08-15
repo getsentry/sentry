@@ -2,14 +2,17 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Type
 
 from dateutil import parser
 from django.db import models
 
+from sentry.backup.dependencies import PrimaryKeyMap, dependencies
 from sentry.backup.findings import ComparatorFinding, ComparatorFindingKind, InstanceID
 from sentry.backup.helpers import Side, get_exportable_final_derivations_of
 from sentry.db.models import BaseModel
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.utils.json import JSONData
 
 
@@ -200,6 +203,74 @@ class DatetimeEqualityComparator(JSONScrubbingComparator):
         return findings
 
 
+class ForeignKeyComparator(JSONScrubbingComparator):
+    """Ensures that foreign keys match in a relative (they refer to the same other model in their
+    respective JSON blobs) rather than absolute (they have literally the same integer value)
+    sense."""
+
+    left_pk_map: PrimaryKeyMap | None = None
+    right_pk_map: PrimaryKeyMap | None = None
+
+    def __init__(self, foreign_fields: dict[str, Type[models.base.Model]]):
+        super().__init__(*(foreign_fields.keys()))
+        self.foreign_fields = foreign_fields
+
+    def set_primary_key_maps(self, left_pk_map: PrimaryKeyMap, right_pk_map: PrimaryKeyMap):
+        """Call this function before running the comparator, to ensure that it has access to the latest mapping information for both sides of the comparison."""
+
+        self.left_pk_map = left_pk_map
+        self.right_pk_map = right_pk_map
+
+    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        findings = []
+        fields = sorted(self.fields)
+        for f in fields:
+            obj_name = self.foreign_fields[f]._meta.object_name.lower()  # type: ignore[union-attr]
+            field_model_name = "sentry." + obj_name
+            if left["fields"].get(f) is None and right["fields"].get(f) is None:
+                continue
+
+            if self.left_pk_map is None or self.right_pk_map is None:
+                raise RuntimeError("must call `set_primary_key_maps` before comparing")
+
+            left_fk_as_ordinal = self.left_pk_map.get(field_model_name, left["fields"][f])
+            right_fk_as_ordinal = self.right_pk_map.get(field_model_name, right["fields"][f])
+            if left_fk_as_ordinal is None or right_fk_as_ordinal is None:
+                if left_fk_as_ordinal is None:
+                    findings.append(
+                        ComparatorFinding(
+                            kind=self.get_kind(),
+                            on=on,
+                            left_pk=left["pk"],
+                            right_pk=right["pk"],
+                            reason=f"""the left foreign key ordinal for `{f}` model with pk `{left["fields"][f]}` could not be found""",
+                        )
+                    )
+                if right_fk_as_ordinal is None:
+                    findings.append(
+                        ComparatorFinding(
+                            kind=self.get_kind(),
+                            on=on,
+                            left_pk=left["pk"],
+                            right_pk=right["pk"],
+                            reason=f"""the right foreign key ordinal for `{f}` model with pk `{right["fields"][f]}` could not be found""",
+                        )
+                    )
+                continue
+
+            if left_fk_as_ordinal != right_fk_as_ordinal:
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"""the left foreign key ordinal ({left_fk_as_ordinal}) for `{f}` was not equal to the right foreign key ordinal ({right_fk_as_ordinal})""",
+                    )
+                )
+        return findings
+
+
 class ObfuscatingComparator(JSONScrubbingComparator, ABC):
     """Comparator that compares private values, but then safely truncates them to ensure that they
     do not leak out in logs, stack traces, etc."""
@@ -338,6 +409,16 @@ def auto_assign_email_obfuscating_comparators(comps: ComparatorMap) -> None:
                 comps[name].append(EmailObfuscatingComparator(*assign))
 
 
+def auto_assign_foreign_key_comparators(comps: ComparatorMap) -> None:
+    """Automatically assigns the ForeignKeyComparator or to all appropriate model fields (see
+    dependencies.py for more on what "appropriate" means in this context)."""
+
+    for model_name, rels in dependencies().items():
+        comps[model_name.lower()].append(
+            ForeignKeyComparator({k: v.model for k, v in rels.foreign_keys.items()})
+        )
+
+
 ComparatorList = List[JSONScrubbingComparator]
 ComparatorMap = Dict[str, ComparatorList]
 
@@ -351,6 +432,8 @@ def build_default_comparators():
     comparators: ComparatorMap = defaultdict(
         list,
         {
+            # TODO(hybrid-cloud): actor refactor. Remove this entry when done.
+            "sentry.actor": [ForeignKeyComparator({"team": Team, "user_id": User})],
             "sentry.apitoken": [HashObfuscatingComparator("refresh_token", "token")],
             "sentry.apiapplication": [HashObfuscatingComparator("client_id", "client_secret")],
             "sentry.authidentity": [HashObfuscatingComparator("ident", "token")],
@@ -380,6 +463,7 @@ def build_default_comparators():
     # to the `DEFAULT_COMPARATORS` map.
     auto_assign_datetime_equality_comparators(comparators)
     auto_assign_email_obfuscating_comparators(comparators)
+    auto_assign_foreign_key_comparators(comparators)
 
     return comparators
 
