@@ -1,7 +1,6 @@
 import logging
 from typing import Optional
 
-from sentry.eventstore.models import GroupEvent
 from sentry.mail import mail_adapter
 from sentry.mail.forms.notify_email import NotifyEmailForm
 from sentry.notifications.types import (
@@ -12,7 +11,6 @@ from sentry.notifications.types import (
 )
 from sentry.notifications.utils.participants import determine_eligible_recipients
 from sentry.rules.actions.base import EventAction
-from sentry.rules.base import EventState
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -37,7 +35,7 @@ class NotifyEmailAction(EventAction):
             self.data = {**self.data, "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value}
         return self.label.format(**self.data)
 
-    def after(self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None):
+    def after(self, event, state, notification_uuid: Optional[str] = None):
         group = event.group
         extra = {"event_id": event.event_id, "group_id": group.id}
         group = event.group
