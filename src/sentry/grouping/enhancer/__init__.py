@@ -18,7 +18,7 @@ from sentry import projectoptions
 from sentry.grouping.component import GroupingComponent
 from sentry.utils import metrics
 from sentry.utils.hashlib import hash_value
-from sentry.utils.safe import get_path
+from sentry.utils.safe import get_path, set_path
 from sentry.utils.strings import unescape_string
 
 from .actions import Action, FlagAction, VarAction
@@ -529,12 +529,12 @@ def _update_frames_from_cached_values(
                     bar = changed_frame_values["in_app"]
                     print(f'{frame.get("in_app")} -> {bar}')  # noqa: S002
                     # frame["in_app"] = changed_frame_values["in_app"]
-                    # frames_changed = True
+                    frames_changed = True
                 if changed_frame_values.get("category") is not None:
                     orig_category = get_path(frame, "data", "category")
-                    # set_path(frame, "data", "category", value=changed_frame_values["category"])
+                    set_path(frame, "data", "category", value=changed_frame_values["category"])
                     print(f'{orig_category} -> {changed_frame_values["category"]}')  # noqa: S002
-                    # frames_changed = True
+                    frames_changed = True
 
             if frames_changed:
                 logger.info("We have merged the cached stacktrace to the incoming one.")
