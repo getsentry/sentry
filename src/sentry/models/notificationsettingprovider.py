@@ -1,7 +1,6 @@
 from django.db import models
 
 from sentry.db.models import control_silo_only_model, sane_repr
-from sentry.types.integrations import get_provider_name
 
 from .notificationsettingbase import NotificationSettingBase
 
@@ -9,10 +8,6 @@ from .notificationsettingbase import NotificationSettingBase
 @control_silo_only_model
 class NotificationSettingProvider(NotificationSettingBase):
     __include_in_export__ = False
-
-    @property
-    def provider_str(self) -> str:
-        return get_provider_name(self.provider)
 
     provider = models.CharField(max_length=32, null=False)
 
