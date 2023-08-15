@@ -68,7 +68,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
       ? TrendChangeType.IMPROVED
       : TrendChangeType.REGRESSION;
   const derivedTrendChangeType = withBreakpoint ? TrendChangeType.ANY : trendChangeType;
-  const trendFunctionField = TrendFunctionField.AVG; // Average is the easiest chart to understand.
+  const trendFunctionField = TrendFunctionField.P50; // Setting p50 to match trends page
 
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
 
