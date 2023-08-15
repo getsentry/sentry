@@ -162,7 +162,7 @@ export default function QuickTrace({
       anchor={anchor}
       nodeKey="current"
       errorDest={errorDest}
-      isOrphanErrorNode={isTraceError(current)}
+      isOrphanErrorNode={traceLength === 1 && isTraceError(current)}
       transactionDest={transactionDest}
     />
   );
