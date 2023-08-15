@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import Any, List, Mapping, Sequence, Tuple
 
 import sentry_sdk
@@ -108,7 +109,14 @@ def find_commit_context_for_event(
                 },
             )
 
-        if commit_context:
+        # Only return suspect commits that are less than a year old
+        if commit_context and is_date_less_than_year(commit_context["committedDate"]):
             result.append((commit_context, code_mapping))
 
     return result, installation
+
+
+def is_date_less_than_year(date):
+    return datetime.strptime(date, "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    ) > datetime.now(tz=timezone.utc) - timedelta(days=365)
