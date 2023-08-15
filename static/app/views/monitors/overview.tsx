@@ -72,7 +72,7 @@ export default function Monitors() {
   const monitorListPageLinks = monitorListHeaders?.('Link');
 
   const handleSearch = (query: string) => {
-    const currentQuery = router.location.query ?? {};
+    const currentQuery = {...(router.location.query ?? {}), cursor: undefined};
     router.push({
       pathname: location.pathname,
       query: normalizeDateTimeParams({...currentQuery, query}),
