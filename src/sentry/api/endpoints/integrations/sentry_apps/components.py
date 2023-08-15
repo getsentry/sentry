@@ -2,16 +2,17 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases import (
-    OrganizationEndpoint,
-    SentryAppBaseEndpoint,
-    add_integration_platform_metric_tag,
-)
+from sentry.api.bases import SentryAppBaseEndpoint, add_integration_platform_metric_tag
+from sentry.api.bases.organization import ControlSiloOrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.coreapi import APIError
 from sentry.models import SentryAppComponent, SentryAppInstallation
 from sentry.sentry_apps.components import SentryAppComponentPreparer
+from sentry.services.hybrid_cloud.organization.model import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 
 
 # TODO(mgaeta): These endpoints are doing the same thing, but one takes a
@@ -29,16 +30,23 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
 
 
 @control_silo_endpoint
-class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
+class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
     @add_integration_platform_metric_tag
-    def get(self, request: Request, organization) -> Response:
+    def get(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+    ) -> Response:
         components = []
         errors = []
 
         for install in SentryAppInstallation.objects.get_installed_for_organization(
             organization.id
-        ):
-            _components = SentryAppComponent.objects.filter(sentry_app_id=install.sentry_app_id)
+        ).order_by("pk"):
+            _components = SentryAppComponent.objects.filter(
+                sentry_app_id=install.sentry_app_id
+            ).order_by("pk")
 
             if "filter" in request.GET:
                 _components = _components.filter(type=request.GET["filter"])

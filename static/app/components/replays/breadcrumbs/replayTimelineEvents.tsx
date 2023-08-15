@@ -8,24 +8,27 @@ import {getFramesByColumn} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import type {Color} from 'sentry/utils/theme';
 
 const NODE_SIZES = [8, 12, 16];
 
-type Props = {
+interface Props extends ReturnType<typeof useCrumbHandlers> {
   durationMs: number;
   frames: ReplayFrame[];
   startTimestampMs: number;
   width: number;
   className?: string;
-};
+}
 
 function ReplayTimelineEvents({
   className,
-  frames,
   durationMs,
+  frames,
+  onMouseEnter,
+  onMouseLeave,
+  onClickTimestamp,
   startTimestampMs,
   width,
 }: Props) {
@@ -40,7 +43,10 @@ function ReplayTimelineEvents({
         <EventColumn key={column} column={column}>
           <Event
             frames={colFrames}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
             markerWidth={markerWidth}
+            onClickTimestamp={onClickTimestamp}
             startTimestampMs={startTimestampMs}
           />
         </EventColumn>
@@ -63,24 +69,25 @@ const EventColumn = styled(Timeline.Col)<{column: number}>`
 
 function Event({
   frames,
+  onMouseEnter,
+  onMouseLeave,
   markerWidth,
+  onClickTimestamp,
   startTimestampMs,
 }: {
   frames: ReplayFrame[];
   markerWidth: number;
   startTimestampMs: number;
-}) {
+} & ReturnType<typeof useCrumbHandlers>) {
   const theme = useTheme();
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
 
   const buttons = frames.map((frame, i) => (
     <BreadcrumbItem
       frame={frame}
       key={i}
-      onClick={handleClick}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onClick={onClickTimestamp}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       startTimestampMs={startTimestampMs}
     />
   ));

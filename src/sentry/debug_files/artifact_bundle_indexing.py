@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import logging
 from dataclasses import dataclass
@@ -9,6 +11,7 @@ from django.db import router
 from django.utils import timezone
 
 from sentry.debug_files.artifact_bundles import get_redis_cluster_for_artifact_bundles
+from sentry.debug_files.utils import size_in_bytes
 from sentry.locks import locks
 from sentry.models.artifactbundle import (
     NULL_STRING,
@@ -43,7 +46,7 @@ class FlatFileMeta:
     date: datetime
 
     @staticmethod
-    def from_str(bundle_meta: str) -> "FlatFileMeta":
+    def from_str(bundle_meta: str) -> FlatFileMeta:
         parsed = bundle_meta.split("/")
         if len(parsed) != 3:
             raise Exception(f"Can't build FlatFileMeta from str {bundle_meta}")
@@ -138,7 +141,7 @@ class FlatFileIdentifier(NamedTuple):
     dist: str
 
     @staticmethod
-    def for_debug_id(project_id: int) -> "FlatFileIdentifier":
+    def for_debug_id(project_id: int) -> FlatFileIdentifier:
         return FlatFileIdentifier(project_id, release=NULL_STRING, dist=NULL_STRING)
 
     def is_indexing_by_release(self) -> bool:
@@ -182,7 +185,7 @@ class FlatFileIdentifier(NamedTuple):
         result = ArtifactBundleFlatFileIndex.objects.filter(
             project_id=self.project_id, release_name=self.release, dist_name=self.dist
         ).first()
-        if result is None or result.flat_file_index is None:
+        if result is None:
             return None
 
         return FlatFileMeta(id=result.id, date=result.date_added)
@@ -235,7 +238,7 @@ class FlatFileIdentifier(NamedTuple):
 
 @sentry_sdk.tracing.trace
 def update_artifact_bundle_index(
-    bundle_meta: "BundleMeta", bundle_archive: ArtifactBundleArchive, identifier: FlatFileIdentifier
+    bundle_meta: BundleMeta, bundle_archive: ArtifactBundleArchive, identifier: FlatFileIdentifier
 ):
     """
     This will merge the `ArtifactBundle` given via `bundle_meta` and `bundle_archive`
@@ -247,15 +250,11 @@ def update_artifact_bundle_index(
 
     lock = identifier.get_lock()
     with TimedRetryPolicy(60)(lock.acquire):
-        flat_file_index = (
-            ArtifactBundleFlatFileIndex.objects.select_related("flat_file_index")
-            .filter(
-                project_id=identifier.project_id,
-                release_name=identifier.release,
-                dist_name=identifier.dist,
-            )
-            .first()
-        )
+        flat_file_index = ArtifactBundleFlatFileIndex.objects.filter(
+            project_id=identifier.project_id,
+            release_name=identifier.release,
+            dist_name=identifier.dist,
+        ).first()
 
         index = FlatFileIndex()
         # Load the index from the file if it exists
@@ -309,8 +308,8 @@ class FlatFileIndex:
         self._files_by_url: FilesByUrl = {}
         self._files_by_debug_id: FilesByDebugID = {}
 
-    def from_json(self, json_str: str) -> None:
-        json_idx = json.loads(json_str)
+    def from_json(self, raw_json: str | bytes) -> None:
+        json_idx = json.loads(raw_json, use_rapid_json=True)
 
         bundles = json_idx.get("bundles", [])
         self._bundles = [
@@ -341,7 +340,20 @@ class FlatFileIndex:
             "files_by_debug_id": self._files_by_debug_id,
         }
 
-        return json.dumps(json_idx)
+        json_index = json.dumps(json_idx)
+
+        if len(self._files_by_url) == 0:
+            metrics.timing(
+                "artifact_bundle_flat_file_indexing.debug_id_index.size_in_bytes",
+                value=size_in_bytes(json_index),
+            )
+        else:
+            metrics.timing(
+                "artifact_bundle_flat_file_indexing.url_index.size_in_bytes",
+                value=size_in_bytes(json_index),
+            )
+
+        return json_index
 
     def merge_urls(self, bundle_meta: BundleMeta, bundle_archive: ArtifactBundleArchive):
         bundle_index = self._add_or_update_bundle(bundle_meta)

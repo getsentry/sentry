@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import timezone
 from functools import cached_property
 
@@ -136,6 +137,33 @@ class AlertRuleCreateEndpointTest(APITestCase):
             == list(audit_log_entry)[0].ip_address
         )
 
+    def test_project_not_in_request(self):
+        """Test that if you don't provide the project data in the request, we grab it from the URL"""
+        data = deepcopy(self.valid_alert_rule)
+        del data["projects"]
+        with outbox_runner(), self.feature(
+            ["organizations:incidents", "organizations:performance-view"]
+        ):
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_log_entry = AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("ALERT_RULE_ADD"), target_object=alert_rule.id
+            )
+        assert len(audit_log_entry) == 1
+        assert (
+            resp.renderer_context["request"].META["REMOTE_ADDR"]
+            == list(audit_log_entry)[0].ip_address
+        )
+
 
 @region_silo_test(stable=True)
 class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
@@ -224,9 +252,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         assert len(result) == 1
         self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
 
-        links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
-        )
+        links = requests.utils.parse_header_links(response["link"].rstrip(">").replace(">,<", ",<"))
         next_cursor = links[1]["cursor"]
 
         # Test Limit as 1, next page of previous request:
@@ -258,9 +284,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         assert result[1]["id"] == str(self.issue_rule.id)
         assert result[1]["type"] == "rule"
 
-        links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
-        )
+        links = requests.utils.parse_header_links(response["link"].rstrip(">").replace(">,<", ",<"))
         next_cursor = links[1]["cursor"]
         # Test Limit 2, next page of previous request:
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
@@ -275,9 +299,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         self.assert_alert_rule_serialized(self.other_alert_rule, result[0], skip_dates=True)
         self.assert_alert_rule_serialized(self.alert_rule, result[1], skip_dates=True)
 
-        links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
-        )
+        links = requests.utils.parse_header_links(response["link"].rstrip(">").replace(">,<", ",<"))
         next_cursor = links[1]["cursor"]
 
         # Test Limit 2, next page of previous request - should get no results since there are only 4 total:
@@ -315,9 +337,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         self.assert_alert_rule_serialized(self.three_alert_rule, result[0], skip_dates=True)
         self.assert_alert_rule_serialized(self.one_alert_rule, result[1], skip_dates=True)
 
-        links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
-        )
+        links = requests.utils.parse_header_links(response["link"].rstrip(">").replace(">,<", ",<"))
         next_cursor = links[1]["cursor"]
         assert next_cursor.split(":")[1] == "1"  # Assert offset is properly calculated.
 

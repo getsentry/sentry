@@ -5,6 +5,7 @@ import uniq from 'lodash/uniq';
 import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
 import {Alert} from 'sentry/components/alert';
 import Checkbox from 'sentry/components/checkbox';
+import {Sticky} from 'sentry/components/sticky';
 import {tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
@@ -179,8 +180,8 @@ function IssueListActions({
   }
 
   return (
-    <Sticky>
-      <StyledFlex>
+    <StickyActions>
+      <ActionsBar>
         {!disableActions && (
           <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
             <Checkbox
@@ -219,7 +220,7 @@ function IssueListActions({
           isReprocessingQuery={displayReprocessingActions}
           isSavedSearchesOpen={isSavedSearchesOpen}
         />
-      </StyledFlex>
+      </ActionsBar>
       {!allResultsVisible && pageSelected && (
         <Alert type="warning" system>
           <SelectAllNotice data-test-id="issue-list-select-all-notice">
@@ -263,7 +264,7 @@ function IssueListActions({
           </SelectAllNotice>
         </Alert>
       )}
-    </Sticky>
+    </StickyActions>
   );
 }
 
@@ -323,13 +324,17 @@ function shouldConfirm(
   }
 }
 
-const Sticky = styled('div')`
-  position: sticky;
+const StickyActions = styled(Sticky)`
   z-index: ${p => p.theme.zIndex.issuesList.stickyHeader};
-  top: -1px;
+
+  /* Remove border radius from the action bar when stuck. Without this there is
+   * a small gap where color can peek through. */
+  &[data-stuck] > div {
+    border-radius: 0;
+  }
 `;
 
-const StyledFlex = styled('div')`
+const ActionsBar = styled('div')`
   display: flex;
   min-height: 45px;
   padding-top: ${space(1)};

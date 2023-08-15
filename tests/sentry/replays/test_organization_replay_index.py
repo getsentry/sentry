@@ -19,7 +19,7 @@ from sentry.utils.snuba import QueryMemoryLimitExceeded
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @apply_feature_flag_on_cls("organizations:global-views")
 class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-organization-replay-index"
@@ -65,6 +65,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "http://localhost:3000/login",
                 ],  # duplicate urls are okay,
                 tags={"test": "hello", "other": "hello"},
+                release="test",
             )
         )
         self.store_replays(
@@ -76,6 +77,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 urls=["http://localhost:3000/"],  # duplicate urls are okay
                 tags={"test": "world", "other": "hello"},
                 error_ids=[],
+                release="",
             )
         )
         self.store_replays(
@@ -95,6 +97,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 is_dead=1,
                 is_rage=1,
                 text="Hello",
+                release=None,
             )
         )
 
@@ -124,6 +127,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 activity=4,
                 count_dead_clicks=1,
                 count_rage_clicks=1,
+                releases=["test"],
                 clicks=[
                     {
                         "click.alt": "Alt",
@@ -1256,3 +1260,79 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     response.content
                     == b'{"detail":"Replay search query limits exceeded. Please narrow the time-range."}'
                 )
+
+    def test_get_replays_dead_rage_click_cutoff(self):
+        """Test rage and dead clicks are accumulated after the cutoff."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        pre_cutoff = datetime.datetime(year=2023, month=7, day=23)
+        post_cutoff = datetime.datetime(year=2023, month=7, day=24)
+
+        self.store_replays(
+            mock_replay(
+                pre_cutoff,
+                project.id,
+                replay1_id,
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                post_cutoff,
+                project.id,
+                replay1_id,
+            )
+        )
+        self.store_replays(
+            mock_replay_click(
+                pre_cutoff,
+                project.id,
+                replay1_id,
+                node_id=1,
+                tag="div",
+                id="myid",
+                class_=["class1", "class2"],
+                role="button",
+                testid="1",
+                alt="Alt",
+                aria_label="AriaLabel",
+                title="MyTitle",
+                is_dead=1,
+                is_rage=1,
+                text="Hello",
+            )
+        )
+        self.store_replays(
+            mock_replay_click(
+                post_cutoff,
+                project.id,
+                replay1_id,
+                node_id=1,
+                tag="div",
+                id="myid",
+                class_=["class1", "class2"],
+                role="button",
+                testid="1",
+                alt="Alt",
+                aria_label="AriaLabel",
+                title="MyTitle",
+                is_dead=1,
+                is_rage=1,
+                text="Hello",
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(
+                self.url
+                + f"?start={pre_cutoff.isoformat().split('.')[0]}&end={post_cutoff.isoformat().split('.')[0]}"
+            )
+            assert response.status_code == 200
+
+            response_data = response.json()
+            assert "data" in response_data
+            assert len(response_data["data"]) == 1
+
+            item = response_data["data"][0]
+            assert item["count_dead_clicks"] == 1, item["count_dead_clicks"]
+            assert item["count_rage_clicks"] == 1, item["count_rage_clicks"]

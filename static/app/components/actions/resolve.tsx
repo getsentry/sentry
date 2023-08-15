@@ -13,11 +13,11 @@ import {IconChevron, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
+  GroupStatus,
   GroupStatusResolution,
   GroupSubstatus,
   Project,
-  ResolutionStatus,
-  ResolutionStatusDetails,
+  ResolvedStatusDetails,
 } from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatVersion, isSemverRelease} from 'sentry/utils/formatters';
@@ -84,19 +84,17 @@ function ResolveActions({
 }: ResolveActionsProps) {
   const organization = useOrganization();
 
-  function handleCommitResolution(statusDetails: ResolutionStatusDetails) {
+  function handleCommitResolution(statusDetails: ResolvedStatusDetails) {
     onUpdate({
-      status: ResolutionStatus.RESOLVED,
+      status: GroupStatus.RESOLVED,
       statusDetails,
       substatus: null,
     });
   }
 
-  function handleAnotherExistingReleaseResolution(
-    statusDetails: ResolutionStatusDetails
-  ) {
+  function handleAnotherExistingReleaseResolution(statusDetails: ResolvedStatusDetails) {
     onUpdate({
-      status: ResolutionStatus.RESOLVED,
+      status: GroupStatus.RESOLVED,
       statusDetails,
       substatus: null,
     });
@@ -109,7 +107,7 @@ function ResolveActions({
   function handleCurrentReleaseResolution() {
     if (hasRelease) {
       onUpdate({
-        status: ResolutionStatus.RESOLVED,
+        status: GroupStatus.RESOLVED,
         statusDetails: {
           inRelease: latestRelease ? latestRelease.version : 'latest',
         },
@@ -126,7 +124,7 @@ function ResolveActions({
   function handleNextReleaseResolution() {
     if (hasRelease) {
       onUpdate({
-        status: ResolutionStatus.RESOLVED,
+        status: GroupStatus.RESOLVED,
         statusDetails: {
           inNextRelease: true,
         },
@@ -158,7 +156,7 @@ function ResolveActions({
           disabled={isAutoResolved}
           onClick={() =>
             onUpdate({
-              status: ResolutionStatus.UNRESOLVED,
+              status: GroupStatus.UNRESOLVED,
               statusDetails: {},
               substatus: GroupSubstatus.ONGOING,
             })
@@ -187,7 +185,6 @@ function ResolveActions({
     };
 
     const isSemver = latestRelease ? isSemverRelease(latestRelease.version) : false;
-    const hasIssueReleaseSemver = organization.features.includes('issue-release-semver');
     const items: MenuItemProps[] = [
       {
         key: 'next-release',
@@ -197,13 +194,10 @@ function ResolveActions({
       },
       {
         key: 'current-release',
-        label:
-          hasIssueReleaseSemver || !latestRelease
-            ? t('The current release')
-            : t('The current release (%s)', formatVersion(latestRelease.version)),
+        label: t('The current release'),
         details: actionTitle
           ? actionTitle
-          : hasIssueReleaseSemver && latestRelease
+          : latestRelease
           ? `${formatVersion(latestRelease.version)} (${
               isSemver ? t('semver') : t('non-semver')
             })`
@@ -223,13 +217,10 @@ function ResolveActions({
     ];
 
     const isDisabled = !projectSlug ? disabled : disableDropdown;
-    const hasResolveReleaseSetup = organization.features.includes(
-      'issue-resolve-release-setup'
-    );
 
     return (
       <StyledDropdownMenu
-        itemsHidden={hasResolveReleaseSetup && !hasRelease}
+        itemsHidden={!hasRelease}
         items={items}
         trigger={triggerProps => (
           <DropdownTrigger
@@ -246,13 +237,7 @@ function ResolveActions({
             ? ['next-release', 'current-release', 'another-release']
             : []
         }
-        menuTitle={
-          hasRelease || !hasResolveReleaseSetup ? (
-            t('Resolved In')
-          ) : (
-            <SetupReleasesPrompt />
-          )
-        }
+        menuTitle={hasRelease ? t('Resolved In') : <SetupReleasesPrompt />}
         isDisabled={isDisabled}
       />
     );
@@ -262,7 +247,7 @@ function ResolveActions({
     openModal(deps => (
       <CustomCommitsResolutionModal
         {...deps}
-        onSelected={(statusDetails: ResolutionStatusDetails) =>
+        onSelected={(statusDetails: ResolvedStatusDetails) =>
           handleCommitResolution(statusDetails)
         }
         orgSlug={organization.slug}
@@ -275,7 +260,7 @@ function ResolveActions({
     openModal(deps => (
       <CustomResolutionModal
         {...deps}
-        onSelected={(statusDetails: ResolutionStatusDetails) =>
+        onSelected={(statusDetails: ResolvedStatusDetails) =>
           handleAnotherExistingReleaseResolution(statusDetails)
         }
         organization={organization}
@@ -301,7 +286,7 @@ function ResolveActions({
               bypass: !shouldConfirm,
               onConfirm: () =>
                 onUpdate({
-                  status: ResolutionStatus.RESOLVED,
+                  status: GroupStatus.RESOLVED,
                   statusDetails: {},
                   substatus: null,
                 }),

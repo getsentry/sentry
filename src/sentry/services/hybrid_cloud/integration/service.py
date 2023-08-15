@@ -5,12 +5,15 @@
 
 from abc import abstractmethod
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
-from sentry.models.integrations.pagerduty_service import PagerDutyService, PagerDutyServiceDict
+from sentry.models.integrations.organization_integration import (
+    OrganizationIntegration,
+    PagerDutyServiceDict,
+)
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
+from sentry.services.hybrid_cloud.integration.model import RpcIntegrationExternalProject
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
@@ -137,7 +140,7 @@ class IntegrationService(RpcService):
         if not org_integration:
             return None
         try:
-            return PagerDutyService.find_service(org_integration.config, service_id)
+            return OrganizationIntegration.find_service(org_integration.config, service_id)
         except StopIteration:
             return None
 
@@ -192,7 +195,7 @@ class IntegrationService(RpcService):
     @rpc_method
     @abstractmethod
     def add_organization(
-        self, *, integration_id: int, rpc_organizations: List[RpcOrganization]
+        self, *, integration_id: int, org_ids: List[int]
     ) -> Optional[RpcIntegration]:
         """
         Adds organizations to an existing integration
@@ -258,7 +261,7 @@ class IntegrationService(RpcService):
         incident_id: int,
         organization: RpcOrganizationSummary,
         new_status: int,
-        incident_attachment: Mapping[str, str],
+        incident_attachment_json: str,
         metric_value: Optional[str] = None,
     ) -> None:
         pass
@@ -273,6 +276,13 @@ class IntegrationService(RpcService):
     @rpc_method
     @abstractmethod
     def delete_integration(self, *, integration_id: int) -> None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_integration_external_project(
+        self, *, organization_id: int, integration_id: int, external_id: str
+    ) -> Optional[RpcIntegrationExternalProject]:
         pass
 
 

@@ -129,6 +129,16 @@ class KafkaEventStream(SnubaProtocolEventStream):
         **kwargs: Any,
     ) -> None:
         event_type = self._get_event_type(event)
+        if event.get_tag("sample_event"):
+            logger.info(
+                "insert: inserting event in KafkaEventStream",
+                extra={
+                    "event.id": event.event_id,
+                    "project_id": event.project_id,
+                    "sample_event": True,
+                    "event_type": event_type.value,
+                },
+            )
 
         assign_partitions_randomly = (
             (event_type == EventStreamEventType.Generic)
@@ -141,6 +151,17 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         if assign_partitions_randomly:
             kwargs[KW_SKIP_SEMANTIC_PARTITIONING] = True
+
+        if event.get_tag("sample_event"):
+            logger.info(
+                "insert: inserting event in SnubaProtocolEventStream",
+                extra={
+                    "event.id": event.event_id,
+                    "project_id": event.project_id,
+                    "sample_event": True,
+                },
+            )
+            kwargs["asynchronous"] = False
 
         super().insert(
             event,

@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import pytest
 import responses
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.utils import timezone
 
@@ -634,68 +635,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
         assert frame.post_context == ["}"]
-
-    @requires_symbolicator
-    @pytest.mark.symbolicator
-    def test_urlencoded_files(self):
-        project = self.project
-        release = Release.objects.create(organization_id=project.organization_id, version="abc")
-        release.add_project(project)
-
-        for file, name in [
-            ("file.min.js", "~/_next/static/chunks/pages/foo/[bar]-1234.js"),
-            ("file.wc.sourcemap.js", "~/_next/static/chunks/pages/foo/[bar]-1234.js.map"),
-        ]:
-            with open(get_fixture_path(file), "rb") as f:
-                headers = {"sourcemap": name + ".map"} if name.endswith(".js") else {}
-                file_obj = File.objects.create(name=name, type="release.file", headers=headers)
-                file_obj.putfile(f)
-            ReleaseFile.objects.create(
-                name=name,
-                release_id=release.id,
-                organization_id=project.organization_id,
-                file=file_obj,
-            )
-
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "release": "abc",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "app:///_next/static/chunks/pages/foo/%5Bbar%5D-1234.js",
-                                    "lineno": 1,
-                                    "colno": 79,
-                                }
-                            ]
-                        },
-                    }
-                ]
-            },
-        }
-
-        event = self.post_and_retrieve_event(data)
-
-        assert "errors" not in event.data
-
-        exception = event.interfaces["exception"]
-        frame_list = exception.values[0].stacktrace.frames
-
-        assert len(frame_list) == 1
-        frame = frame_list[0]
-        assert frame.data["resolved_with"] == "release-old"
-        assert frame.data["symbolicated"]
-
-        assert frame.function == "multiply"
-        assert frame.filename == "file2.js"
-        assert frame.lineno == 3
-        assert frame.colno == 2
 
     @requires_symbolicator
     @pytest.mark.symbolicator
@@ -1370,6 +1309,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             body=load_fixture("node_app.min.js.map"),
             content_type="application/javascript; charset=utf-8",
         )
+        responses.add_passthru(
+            settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
+        )
 
         data = {
             "timestamp": self.min_ago,
@@ -1445,6 +1387,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
                 "<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>"
             ),
         )
+        responses.add_passthru(
+            settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
+        )
+
         data = {
             "timestamp": self.min_ago,
             "message": "hello",

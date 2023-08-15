@@ -1,7 +1,9 @@
 import {useCallback, useState} from 'react';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
+import * as qs from 'query-string';
 
+import Link from 'sentry/components/links/link';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   PageErrorAlert,
@@ -9,6 +11,7 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
@@ -41,6 +44,23 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
 
   const organization = useOrganization();
   const {query} = useLocation();
+  const pageFilters = usePageFilters();
+
+  const onOpenDetailPanel = useCallback(() => {
+    if (query.transaction) {
+      trackAnalytics('starfish.panel.open', {organization});
+    }
+  }, [organization, query.transaction]);
+
+  const label =
+    transactionMethod && !transactionName.startsWith(transactionMethod)
+      ? `${transactionMethod} ${transactionName}`
+      : transactionName;
+
+  const link = `/performance/summary/?${qs.stringify({
+    project: pageFilters.selection.projects[0],
+    transaction: transactionName,
+  })}`;
 
   return (
     <PageErrorProvider>
@@ -52,14 +72,13 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
             query: omit(router.location.query, 'transaction', 'transactionMethod'),
           });
         }}
-        onOpen={useCallback(() => {
-          if (query.transaction) {
-            trackAnalytics('starfish.panel.open', {organization});
-          }
-        }, [organization, query.transaction])}
+        onOpen={onOpenDetailPanel}
       >
-        <h3>{`${transactionMethod} ${transactionName}`}</h3>
+        <h3>
+          <Link to={link}>{label}</Link>
+        </h3>
         <PageErrorAlert />
+
         <SampleInfo
           groupId={groupId}
           transactionName={transactionName}
