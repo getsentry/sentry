@@ -962,6 +962,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": timedelta(seconds=30),
         "options": {"expires": 30},
     },
+    "monitors-clock-pulse": {
+        "task": "sentry.monitors.tasks.clock_pulse",
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
+    },
     "monitors-temp-task-dispatcher": {
         "task": "sentry.monitors.tasks.temp_task_dispatcher",
         # Run every 1 minute
