@@ -2,19 +2,20 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from sentry.models import Activity, NotificationSetting, Organization, Team, User
+from sentry.models import Activity, NotificationSetting, Organization, Team
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 
 from ...utils.participants import ParticipantMap
 from .base import GroupActivityNotification
 
 
-def _get_user_option(assignee_id: int | None) -> User | None:
-    try:
-        return User.objects.get_from_cache(id=assignee_id)
-    except User.DoesNotExist:
+def _get_user_option(assignee_id: int | None) -> RpcUser | None:
+    if assignee_id is None:
         return None
+    return user_service.get_user(user_id=assignee_id)
 
 
 def _get_team_option(assignee_id: int | None, organization: Organization) -> Team | None:
