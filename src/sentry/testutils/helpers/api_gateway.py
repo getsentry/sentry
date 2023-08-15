@@ -21,6 +21,8 @@ from sentry.utils import json
 
 @control_silo_endpoint
 class ControlEndpoint(ControlSiloOrganizationEndpoint):
+    permission_classes = (AllowAny,)  # type: ignore
+
     def get(self, request, organization, **kwargs):
         return Response({"proxy": False})
 
