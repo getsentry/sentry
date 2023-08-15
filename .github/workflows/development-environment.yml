@@ -30,7 +30,7 @@ jobs:
   # The bootstrap workflow (see last workflow) tests the experience of first time engineers
   docker-setup:
     name: Docker set up
-    runs-on: macos-12
+    runs-on: macos-13
     timeout-minutes: 40
     env:
       # Make the environment more similar to what Mac defaults to
@@ -75,7 +75,7 @@ jobs:
   # The pyenv set up takes long, thus, separating it into its own
   pyenv-setup:
     name: pyenv set up
-    runs-on: macos-11
+    runs-on: macos-13
     timeout-minutes: 25
     env:
       # This is to support this code https://github.com/getsentry/sentry/blob/47b837a69c38e190a7555de81e6d7d216498b854/scripts/pyenv_setup.sh#L17-L40
@@ -123,7 +123,7 @@ jobs:
   # We don't yet test the bootstrap step
   # https://github.com/getsentry/bootstrap-sentry/blob/7af557be84920dd587e48613dbc308c937bc0e08/bootstrap.sh#L618-L619
   bootstrap-script:
-    runs-on: macos-11
+    runs-on: macos-13
     timeout-minutes: 40
     env:
       # Make the environment more similar to what Mac defaults to
