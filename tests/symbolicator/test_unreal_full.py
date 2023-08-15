@@ -82,6 +82,9 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
             with open(filename, "rb") as f:
                 event = self.post_and_retrieve_unreal(f.read())
 
+        print("THIS")  # noqa: S002
+        print(event.data)  # noqa: S002
+
         print("Insta snapshot!")  # noqa: S002
         self.insta_snapshot(
             {
