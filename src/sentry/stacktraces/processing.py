@@ -273,15 +273,31 @@ def _has_system_frames(frames):
     return bool(system_frames) and len(frames) != system_frames
 
 
-def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> None:
+def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> str:
     """
-    Ensures consistent values of in_app across a stacktrace.
+    Ensures consistent values of in_app across a stacktrace. Returns a classification of the
+    stacktrace as either "in-app-only", "system-only", or "mixed", for use in metrics.
     """
+    has_in_app_frames = False
+    has_system_frames = False
+
     # Default to false in all cases where processors or grouping enhancers
     # have not yet set in_app.
     for frame in stacktrace:
         if frame.get("in_app") is None:
             set_in_app(frame, False)
+
+        if frame.get("in_app"):
+            has_in_app_frames = True
+        else:
+            has_system_frames = True
+
+    if has_in_app_frames and has_system_frames:
+        return "mixed"
+    elif has_in_app_frames:
+        return "in-app-only"
+    else:
+        return "system-only"
 
 
 def normalize_stacktraces_for_grouping(data, grouping_config=None) -> None:
