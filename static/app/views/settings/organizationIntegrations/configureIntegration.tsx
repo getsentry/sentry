@@ -166,29 +166,13 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
     }
   };
 
-  handleOpsgenieMigration = async () => {
-    try {
-      const {
-        organization,
-        params: {integrationId},
-      } = this.props;
-
-      await this.api.requestPromise(
-        `/organizations/${organization.slug}/integrations/${integrationId}/alert-rules/`,
-        {
-          method: 'PUT',
-          data: {},
-        }
-      );
-      this.setState(
-        {
-          plugins: (this.state.plugins || []).filter(({id}) => id === 'opsgenie'),
-        },
-        () => addSuccessMessage(t('Migration in progress.'))
-      );
-    } catch (error) {
-      addErrorMessage(t('Something went wrong! Please try again.'));
-    }
+  handleOpsgenieMigration = () => {
+    this.setState(
+      {
+        plugins: (this.state.plugins || []).filter(({id}) => id === 'opsgenie'),
+      },
+      () => addSuccessMessage(t("This doesn't do anything yet!"))
+    );
   };
 
   isInstalledOpsgeniePlugin = (plugin: PluginWithProjectList) => {
