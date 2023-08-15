@@ -532,7 +532,7 @@ def _update_frames_from_cached_values(
                     frame["in_app"] = changed_frame_values["in_app"]
                     frames_changed = True
                 if changed_frame_values.get("category"):
-                    print(f"FOO - {frame['data']['category']}")  # noqa: S002
+                    print(f"FOO - {frame['data'].get('category')}")  # noqa: S002
                     set_path(frame, "data", "category", value=changed_frame_values["category"])
                     frames_changed = True
 

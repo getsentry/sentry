@@ -73,7 +73,7 @@ jobs:
 
       - name: Run test
         run: |
-          make test-symbolicator
+          pytest -s -vv tests/symbolicator/test_unreal_full.py -k test_unreal_apple_crash_with_attachments
 
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
