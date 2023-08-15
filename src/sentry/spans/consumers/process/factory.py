@@ -18,6 +18,17 @@ from sentry.spans.span import SPAN_SCHEMA_VERSION
 from sentry.utils import json, kafka_config
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
+TAG_MAPPING = {
+    "span.action": "action",
+    "span.domain": "domain",
+    "span.group": "group",
+    "span.module": "module",
+    "span.status_code": "status_code",
+    "span.system": "system",
+    "transaction.method": "http.method",
+    "transaction.op": "transaction_op",
+}
+
 
 def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
     project = Project.objects.get_from_cache(id=relay_span["project_id"])
@@ -57,6 +68,10 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         snuba_span["group_raw"] = trace_context.get("hash")
 
     sentry_tags: MutableMapping[str, Any] = {}
+    if tags := relay_span.get("tags"):
+        for relay_tag, snuba_tag in TAG_MAPPING.items():
+            if relay_tag in tags:
+                sentry_tags[snuba_tag] = tags.get(relay_tag)
     sentry_tags["op"] = relay_span.get("op")
     sentry_tags["status"] = relay_span.get("status")
     snuba_span["sentry_tags"] = sentry_tags
