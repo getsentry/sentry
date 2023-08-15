@@ -44,7 +44,7 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
             <Fragment>
               {
                 <BaseBadge
-                  displayName={project?.name}
+                  displayName={project?.slug}
                   project={project}
                   avatarSize={16}
                 />
