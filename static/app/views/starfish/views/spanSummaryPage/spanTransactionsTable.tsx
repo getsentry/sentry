@@ -37,8 +37,6 @@ import {
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
-const {SPAN_OP} = SpanMetricsFields;
-
 type Row = {
   'avg(span.self_time)': number;
   'spm()': number;
@@ -235,7 +233,7 @@ const getColumnOrder = (
   },
   {
     key: 'spm()',
-    name: getThroughputTitle(span[SPAN_OP]),
+    name: getThroughputTitle(span[SpanIndexedFields.SPAN_OP]),
     width: COL_WIDTH_UNDEFINED,
   },
   {
