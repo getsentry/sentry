@@ -163,7 +163,7 @@ class Enhancements:
                 frames, cache_key, platform, load_from_cache=org_can_use_cache
             )
             if frames_changed:
-                # print("BOO BOO")  # noqa: S002
+                print("Reusing cached data")  # noqa: S002
                 logger.info("The frames have been loaded from the cache. Skipping some work.")
                 return
 
