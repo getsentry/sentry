@@ -197,6 +197,18 @@ def save_issue_from_occurrence(
                 tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
             )
             group_info = GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
+
+            # This only applies to events with stacktraces
+            frame_mix = event.get_event_metadata().get("in_app_frame_mix")
+            if is_new and frame_mix:
+                metrics.incr(
+                    "grouping.in_app_frame_mix",
+                    sample_rate=1.0,
+                    tags={
+                        "platform": event.platform or "unknown",
+                        "frame_mix": frame_mix,
+                    },
+                )
     else:
         group = existing_grouphash.group
         if group.issue_category.value != occurrence.type.category:

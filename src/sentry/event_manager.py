@@ -1641,6 +1641,18 @@ def _save_aggregate(
                     tags={"platform": event.platform or "unknown"},
                 )
 
+                # This only applies to events with stacktraces
+                frame_mix = event.get_event_metadata().get("in_app_frame_mix")
+                if frame_mix:
+                    metrics.incr(
+                        "grouping.in_app_frame_mix",
+                        sample_rate=1.0,
+                        tags={
+                            "platform": event.platform or "unknown",
+                            "frame_mix": frame_mix,
+                        },
+                    )
+
                 return GroupInfo(group, is_new, is_regression)
 
     group = Group.objects.get(id=existing_grouphash.group_id)
