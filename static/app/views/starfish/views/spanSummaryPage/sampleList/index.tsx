@@ -1,9 +1,12 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Link from 'sentry/components/links/link';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   PageErrorAlert,
@@ -11,7 +14,7 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
@@ -20,11 +23,17 @@ import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/
 
 type Props = {
   groupId: string;
+  projectId: number;
   transactionMethod: string;
   transactionName: string;
 };
 
-export function SampleList({groupId, transactionName, transactionMethod}: Props) {
+export function SampleList({
+  groupId,
+  projectId,
+  transactionName,
+  transactionMethod,
+}: Props) {
   const router = useRouter();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
@@ -44,7 +53,12 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
 
   const organization = useOrganization();
   const {query} = useLocation();
-  const pageFilters = usePageFilters();
+  const {projects} = useProjects();
+
+  const project = useMemo(
+    () => projects.find(p => p.id === String(projectId)),
+    [projects, projectId]
+  );
 
   const onOpenDetailPanel = useCallback(() => {
     if (query.transaction) {
@@ -58,7 +72,7 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
       : transactionName;
 
   const link = `/performance/summary/?${qs.stringify({
-    project: pageFilters.selection.projects[0],
+    project: projectId,
     transaction: transactionName,
   })}`;
 
@@ -74,6 +88,9 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
         }}
         onOpen={onOpenDetailPanel}
       >
+        {project && (
+          <SpanSummaryProjectAvatar project={project} direction="left" size={40} />
+        )}
         <h3>
           <Link to={link}>{label}</Link>
         </h3>
@@ -111,3 +128,8 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
     </PageErrorProvider>
   );
 }
+
+const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
+  padding-top: ${space(1)};
+  padding-bottom: ${space(2)};
+`;
