@@ -19,7 +19,7 @@ import {
   VirtualScrollbarGrip,
 } from 'sentry/components/performance/waterfall/miniHeader';
 import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
@@ -106,7 +106,7 @@ function TraceHiddenMessage({
     <MessageRow>
       <span key="trace-info-message">
         {hiddenTransactionsMessage}
-        {hiddenErrorsMessage && hiddenTransactionsMessage && t(' and ')}
+        {hiddenErrorsMessage && hiddenTransactionsMessage && ', '}
         {hiddenErrorsMessage}
       </span>
     </MessageRow>
