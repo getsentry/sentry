@@ -3,11 +3,11 @@ import os
 import re
 from collections import defaultdict
 from collections.abc import Iterable
+from datetime import timezone
 from typing import Any, Dict, Optional, Sequence
 
 from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
-from pytz import UTC
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 
@@ -93,7 +93,7 @@ def is_fuzzy_numeric_key(key):
 def fix_tag_value_data(data):
     for key, transformer in tag_value_data_transformers.items():
         if key in data:
-            data[key] = transformer(data[key]).replace(tzinfo=UTC)
+            data[key] = transformer(data[key]).replace(tzinfo=timezone.utc)
     return data
 
 

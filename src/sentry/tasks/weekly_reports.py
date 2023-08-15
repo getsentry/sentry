@@ -19,7 +19,7 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Limit, Query
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
 from sentry.models import (
@@ -32,7 +32,9 @@ from sentry.models import (
     OrganizationMember,
     OrganizationStatus,
 )
+from sentry.notifications.utils import generate_notification_uuid
 from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.activity import ActivityType
@@ -82,8 +84,7 @@ class ProjectContext:
     existing_issue_count = 0
     reopened_issue_count = 0
     new_issue_count = 0
-    # we merged organizations:issue-states flag to organizations:escalating-issues, so delete when
-    # organizations:escalating-issues GA
+    # delete when organizations:escalating-issues GA
     new_substatus_count = 0
     ongoing_substatus_count = 0
     escalating_substatus_count = 0
@@ -150,6 +151,7 @@ def check_if_ctx_is_empty(ctx):
     queue="reports.prepare",
     max_retries=5,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry
 def schedule_organizations(dry_run=False, timestamp=None, duration=None):
@@ -175,6 +177,7 @@ def schedule_organizations(dry_run=False, timestamp=None, duration=None):
     queue="reports.prepare",
     max_retries=5,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry
 def prepare_organization_report(
@@ -654,8 +657,7 @@ def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
         }
 
         for user_id in user_set:
-            # We manually pick out user.options and use PickledObjectField to deserialize it. We get a list of organizations the user has unsubscribed from user reports
-            option = options_by_user_id.get(user_id, [])
+            option = list(options_by_user_id.get(user_id, []))
             user_subscribed_to_organization_reports = ctx.organization.id not in option
             if user_subscribed_to_organization_reports:
                 send_email(ctx, user_id, dry_run=dry_run)
@@ -691,9 +693,10 @@ group_status_to_color = {
     GroupHistoryStatus.DELETED_AND_DISCARDED: "#DBD6E1",
     GroupHistoryStatus.REVIEWED: "#FAD473",
     GroupHistoryStatus.NEW: "#FAD473",
-    GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING: "",
+    GroupHistoryStatus.ESCALATING: "#FAD473",
+    GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING: "#FAD473",
     GroupHistoryStatus.ARCHIVED_FOREVER: "#FAD473",
-    GroupHistoryStatus.ARCHIVED_FOREVER: "#FAD473",
+    GroupHistoryStatus.ARCHIVED_UNTIL_CONDITION_MET: "#FAD473",
 }
 
 
@@ -736,6 +739,8 @@ def render_template_context(ctx, user_id):
     has_replay_section = features.has(
         "organizations:session-replay", ctx.organization
     ) and features.has("organizations:session-replay-weekly-email", ctx.organization)
+
+    notification_uuid = generate_notification_uuid()
 
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.
@@ -791,7 +796,9 @@ def render_template_context(ctx, user_id):
         legend = [
             {
                 "slug": project_ctx.project.slug,
-                "url": project_ctx.project.get_absolute_url(),
+                "url": project_ctx.project.get_absolute_url(
+                    params={"referrer": "weekly_report", "notification_uuid": notification_uuid}
+                ),
                 "color": project_breakdown_colors[i],
                 "dropped_error_count": project_ctx.dropped_error_count,
                 "accepted_error_count": project_ctx.accepted_error_count,
@@ -1029,6 +1036,8 @@ def render_template_context(ctx, user_id):
         "key_performance_issues": key_performance_issues(),
         "key_replays": key_replays() if has_replay_section else [],
         "issue_summary": issue_summary(),
+        "user_project_count": len(user_projects),
+        "notification_uuid": notification_uuid,
     }
 
 
@@ -1050,6 +1059,14 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
     )
     if dry_run:
         return
+    else:
+        analytics.record(
+            "weekly_report.sent",
+            user_id=user_id,
+            organization_id=ctx.organization.id,
+            notification_uuid=template_ctx["notification_uuid"],
+            user_project_count=template_ctx["user_project_count"],
+        )
     if email_override:
         message.send(to=(email_override,))
     else:

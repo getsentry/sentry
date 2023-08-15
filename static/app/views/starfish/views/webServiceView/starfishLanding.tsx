@@ -49,8 +49,14 @@ export function StarfishLanding(props: Props) {
       </PageFilterBar>
       {starfishType === StarfishType.MOBILE && (
         <PageFilterBar condensed>
-          <ReleaseSelector selectorKey="release1" selectorName={t('Release 1')} />
-          <ReleaseSelector selectorKey="release2" selectorName={t('Release 2')} />
+          <ReleaseSelector
+            selectorKey="primaryRelease"
+            selectorName={t('Primary Release')}
+          />
+          <ReleaseSelector
+            selectorKey="secondaryRelease"
+            selectorName={t('Secondary Release')}
+          />
         </PageFilterBar>
       )}
     </Fragment>

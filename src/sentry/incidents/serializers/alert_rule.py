@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import router, transaction
 from django.utils import timezone
 from rest_framework import serializers
-from snuba_sdk import Column, Condition, Function, Limit, Op
+from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import features
 from sentry.api.fields.actor import ActorField
@@ -303,7 +303,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         except (InvalidSearchQuery, ValueError) as e:
             raise serializers.ValidationError(f"Invalid Query or Metric: {e}")
 
-        if not isinstance(query_builder.columns[0], Function):
+        if not query_builder.are_columns_resolved():
             raise serializers.ValidationError(
                 "Invalid Metric: Please pass a valid function for aggregation"
             )

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
 
 from sentry import analytics
 from sentry.api.paginator import OffsetPaginator
@@ -26,10 +26,9 @@ from sentry.services.hybrid_cloud.integration.serial import (
     serialize_organization_integration,
 )
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
 if TYPE_CHECKING:
@@ -329,14 +328,14 @@ class DatabaseBackedIntegrationService(IntegrationService):
         return ois[0] if len(ois) > 0 else None
 
     def add_organization(
-        self, *, integration_id: int, rpc_organizations: List[RpcOrganization]
+        self, *, integration_id: int, org_ids: List[int]
     ) -> Optional[RpcIntegration]:
         integration = Integration.objects.filter(id=integration_id).first()
         if not integration:
             return None
-        for org in rpc_organizations:
-            integration.add_organization(organization=org)
-        return integration
+        for org_id in org_ids:
+            integration.add_organization(organization_id=org_id)
+        return serialize_integration(integration)
 
     def send_incident_alert_notification(
         self,
@@ -346,7 +345,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         incident_id: int,
         organization: RpcOrganizationSummary,
         new_status: int,
-        incident_attachment: Mapping[str, str],
+        incident_attachment_json: str,
         metric_value: Optional[str] = None,
     ) -> None:
         sentry_app = SentryApp.objects.get(id=sentry_app_id)
@@ -376,7 +375,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             resource="metric_alert",
             action=INCIDENT_STATUS[IncidentStatus(new_status)].lower(),
             install=install,
-            data=incident_attachment,
+            data=json.loads(incident_attachment_json),
         )
 
         # Can raise errors if client returns >= 400

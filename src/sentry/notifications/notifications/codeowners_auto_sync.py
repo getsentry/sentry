@@ -16,7 +16,7 @@ class AutoSyncNotification(ProjectNotification):
     notification_setting_type = NotificationSettingTypes.DEPLOY
     template_path = "sentry/emails/codeowners-auto-sync-failure"
 
-    def determine_recipients(self) -> Iterable[RpcActor]:
+    def determine_recipients(self) -> list[RpcActor]:
         return RpcActor.many_from_object(self.organization.get_owners())
 
     @property

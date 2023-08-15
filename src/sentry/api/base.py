@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Iterable, List, Mapping, Optional, Tuple, Type
 from urllib.parse import quote as urlquote
 
@@ -12,7 +12,6 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
 from django.views.decorators.csrf import csrf_exempt
-from pytz import utc
 from rest_framework import status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.exceptions import ParseError
@@ -115,7 +114,8 @@ def allow_cors_options(func):
         response["Access-Control-Expose-Headers"] = "X-Sentry-Error, Retry-After"
 
         if request.META.get("HTTP_ORIGIN") == "null":
-            origin = "null"  # if ORIGIN header is explicitly specified as 'null' leave it alone
+            # if ORIGIN header is explicitly specified as 'null' leave it alone
+            origin: str | None = "null"
         else:
             origin = origin_from_request(request)
 
@@ -184,7 +184,6 @@ class Endpoint(APIView):
         return f'<{uri}>; rel="{rel}">'
 
     def build_cursor_link(self, request: Request, name: str, cursor: Cursor):
-        querystring = None
         if request.GET.get("cursor") is None:
             querystring = request.GET.urlencode()
         else:
@@ -199,10 +198,10 @@ class Endpoint(APIView):
         )
         base_url = absolute_uri(urlquote(request.path), url_prefix=url_prefix)
 
-        if querystring is not None:
+        if querystring:
             base_url = f"{base_url}?{querystring}"
         else:
-            base_url = base_url + "?"
+            base_url = f"{base_url}?"
 
         return CURSOR_LINK_HEADER.format(
             uri=base_url,
@@ -214,7 +213,7 @@ class Endpoint(APIView):
     def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
 
-    def handle_exception(
+    def handle_exception(  # type: ignore[override]
         self,
         request: Request,
         exc: Exception,
@@ -538,7 +537,7 @@ class StatsMixin:
             if end:
                 end = to_datetime(float(end))
             else:
-                end = datetime.utcnow().replace(tzinfo=utc)
+                end = datetime.utcnow().replace(tzinfo=timezone.utc)
         except ValueError:
             raise ParseError(detail="until must be a numeric timestamp.")
 
@@ -610,26 +609,6 @@ class EndpointSiloLimit(SiloLimit):
         )
         new_class.__module__ = decorated_class.__module__
         return new_class
-
-    def create_override(
-        self,
-        original_method: Callable[..., Any],
-    ) -> Callable[..., Any]:
-        limiting_override = super().create_override(original_method)
-
-        def single_process_silo_mode_wrapper(*args: Any, **kwargs: Any) -> Any:
-            if SiloMode.single_process_silo_mode():
-                entering_mode: SiloMode = SiloMode.MONOLITH
-                for mode in self.modes:
-                    # Select a mode, if available, from the target modes.
-                    entering_mode = mode
-                with SiloMode.enter_single_process_silo_context(entering_mode):
-                    return limiting_override(*args, **kwargs)
-            else:
-                return limiting_override(*args, **kwargs)
-
-        functools.update_wrapper(single_process_silo_mode_wrapper, limiting_override)
-        return single_process_silo_mode_wrapper
 
     def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
         return self.create_override(decorated_method)

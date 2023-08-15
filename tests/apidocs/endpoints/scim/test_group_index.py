@@ -6,7 +6,7 @@ from sentry.testutils.cases import SCIMTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SCIMTeamIndexDocs(APIDocsTestCase, SCIMTestCase):
     def setUp(self):
         super().setUp()

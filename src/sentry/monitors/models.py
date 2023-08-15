@@ -62,10 +62,12 @@ MONITOR_CONFIG = {
         "schedule_type": {"type": "integer"},
         "schedule": {"type": ["string", "array"]},
         "alert_rule_id": {"type": ["integer", "null"]},
+        "failure_issue_threshold": {"type": ["integer", "null"]},
+        "recovery_threshold": {"type": ["integer", "null"]},
     },
     # TODO(davidenwang): Old monitors may not have timezone or schedule_type, these should be added here once we've cleaned up old data
     "required": ["checkin_margin", "max_runtime", "schedule"],
-    "additionalProperties": False,
+    "additionalProperties": True,
 }
 
 MAX_SLUG_LENGTH = 50
@@ -248,7 +250,7 @@ class Monitor(Model):
         default=MonitorType.UNKNOWN,
         choices=[(k, str(v)) for k, v in MonitorType.as_choices()],
     )
-    config = JSONField(default=dict)
+    config: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:

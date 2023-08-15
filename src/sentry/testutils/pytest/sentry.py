@@ -45,6 +45,10 @@ def pytest_configure(config):
         # the temproot. We'd like to keep invocations to just "pytest".
         # See source code for pytest's TempPathFactory.
         os.environ.setdefault("PYTEST_DEBUG_TEMPROOT", "/private/tmp/colima")
+        try:
+            os.mkdir("/private/tmp/colima")
+        except FileExistsError:
+            pass
 
     # HACK: Only needed for testing!
     os.environ.setdefault("_SENTRY_SKIP_CONFIGURATION", "1")
@@ -218,6 +222,9 @@ def pytest_configure(config):
 
     # For now, multiprocessing does not work in tests.
     settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = True
+
+    # Assume this is always configured (not the real secret)
+    settings.RPC_SHARED_SECRET = ("215b1f0d",)
 
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable

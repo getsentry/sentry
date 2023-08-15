@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import abc
 from datetime import timedelta
 from functools import partial
+from typing import Any
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
@@ -40,11 +43,13 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 def indexer_record(use_case_id: UseCaseID, org_id: int, string: str) -> int:
-    return indexer.record(
+    ret = indexer.record(
         use_case_id=use_case_id,
         org_id=org_id,
         string=string,
     )
+    assert ret is not None
+    return ret
 
 
 perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
@@ -68,7 +73,7 @@ class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def task(self):
+    def task(self, subscription_id: int) -> None:
         pass
 
     def create_subscription(
@@ -251,9 +256,19 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
+    def test_invalid_subscription_query(self):
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.DELETING,
+            subscription_id=subscription_id,
+            query="issue:INVALID-1",
+        )
+        delete_subscription_from_snuba(sub.id)
+        assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
 
 class BuildSnqlQueryTest(TestCase):
-    aggregate_mappings = {
+    aggregate_mappings: dict[SnubaQuery.Type, dict[Dataset, dict[str, Any]]] = {
         SnubaQuery.Type.ERROR: {
             Dataset.Events: {
                 "count_unique(user)": lambda org_id: [
@@ -507,6 +522,8 @@ class BuildSnqlQueryTest(TestCase):
                 ],
             },
         },
+    }
+    aggregate_mappings_fallback = {
         "count()": lambda org_id, **kwargs: [Function("count", parameters=[], alias="count")],
     }
 
@@ -570,7 +587,7 @@ class BuildSnqlQueryTest(TestCase):
 
     def string_aggregate_to_snql(self, query_type, dataset, aggregate, aggregate_kwargs):
         aggregate_builder_func = self.aggregate_mappings[query_type][dataset].get(
-            aggregate, self.aggregate_mappings.get(aggregate, lambda org_id, **kwargs: [])
+            aggregate, self.aggregate_mappings_fallback.get(aggregate, lambda org_id, **kwargs: [])
         )
         return sorted(
             aggregate_builder_func(self.organization.id, **aggregate_kwargs),

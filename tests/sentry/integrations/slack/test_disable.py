@@ -48,7 +48,7 @@ class SlackClientDisable(TestCase):
         self.resp.__exit__(None, None, None)
 
     @responses.activate
-    @with_feature("organizations:slack-disable-on-broken")
+    @with_feature("organizations:slack-fatal-disable-on-broken")
     def test_fatal_and_disable_integration(self):
         """
         fatal fast shut off with disable flag on, integration should be broken and disabled
@@ -67,12 +67,12 @@ class SlackClientDisable(TestCase):
         with self.tasks() and pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
-        assert buffer.is_integration_broken() is True
         integration = Integration.objects.get(id=self.integration.id)
         assert integration.status == ObjectStatus.DISABLED
+        assert [len(item) == 0 for item in buffer._get_broken_range_from_buffer()]
+        assert len(buffer._get_all_from_buffer()) == 0
 
     @responses.activate
-    @with_feature("organizations:disable-on-broken")
     def test_email(self):
         client = SlackClient(integration_id=self.integration.id)
         with self.tasks():
@@ -80,7 +80,18 @@ class SlackClientDisable(TestCase):
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
         assert msg.subject == "Action required: re-authenticate or fix your Slack integration"
-        assert (f"/settings/integrations/{self.integration.provider}") in msg.body
+        assert (
+            self.organization.absolute_url(
+                f"/settings/{self.organization.slug}/integrations/{self.integration.provider}"
+            )
+            in msg.body
+        )
+        assert (
+            self.organization.absolute_url(
+                f"/settings/{self.organization.slug}/integrations/{self.integration.provider}/?referrer=disabled-integration"
+            )
+            in msg.body
+        )
 
     @responses.activate
     def test_fatal_integration(self):
@@ -133,7 +144,7 @@ class SlackClientDisable(TestCase):
         assert buffer.is_integration_broken() is False
 
     @responses.activate
-    @with_feature("organizations:slack-disable-on-broken")
+    @with_feature("organizations:slack-fatal-disable-on-broken")
     def test_slow_integration_is_not_broken_or_disabled(self):
         """
         slow test with disable flag on
@@ -209,7 +220,6 @@ class SlackClientDisable(TestCase):
             buffer_expired.record_error()
         with freeze_time(now - timedelta(days=31)):
             buffer_expired.record_error()
-
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         time.sleep(1)

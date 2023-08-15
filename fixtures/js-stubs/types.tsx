@@ -98,6 +98,7 @@ type TestStubFixtures = {
   MetricsMeta: OverridableStub;
   MetricsSessionUserCountByStatusByRelease: SimpleStub;
   MetricsTotalCountByReleaseIn24h: SimpleStub;
+  MissingMembers: OverridableStubList;
   OrgOwnedApps: SimpleStub;
   OrgRoleList: OverridableStub;
   Organization: OverridableStub;

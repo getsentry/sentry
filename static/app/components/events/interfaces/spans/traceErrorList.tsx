@@ -1,5 +1,4 @@
 import {memo} from 'react';
-import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 import groupBy from 'lodash/groupBy';
 
@@ -15,11 +14,10 @@ import {ParsedTraceType, SpanType} from './types';
 
 interface TraceErrorListProps {
   errors: (TraceError | TracePerformanceIssue)[];
-  onClickSpan: (event: React.MouseEvent, spanId: SpanType['span_id']) => void;
   trace: ParsedTraceType;
 }
 
-function TraceErrorList({trace, errors, onClickSpan}: TraceErrorListProps) {
+function TraceErrorList({trace, errors}: TraceErrorListProps) {
   return (
     <List symbol="bullet" data-test-id="trace-error-list">
       {flatten(
@@ -34,11 +32,7 @@ function TraceErrorList({trace, errors, onClickSpan}: TraceErrorListProps) {
                     spanLevelErrors.length,
                     level === 'error' ? '' : level // Prevents awkward "error errors" copy if the level is "error"
                   ),
-                  link: (
-                    <ErrorLink onClick={event => onClickSpan(event, spanId)}>
-                      {findSpanById(trace, spanId).op}
-                    </ErrorLink>
-                  ),
+                  link: findSpanById(trace, spanId).op,
                 })}
               </ListItem>
             )
@@ -48,13 +42,6 @@ function TraceErrorList({trace, errors, onClickSpan}: TraceErrorListProps) {
     </List>
   );
 }
-
-const ErrorLink = styled('a')`
-  color: ${p => p.theme.textColor};
-  :hover {
-    color: ${p => p.theme.textColor};
-  }
-`;
 
 // Given a span ID, find the associated span. It might be the trace itself
 // (which is technically a type of span) or a specific span associated with

@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import cached_property
 from random import randint
 from unittest import mock
@@ -7,8 +7,7 @@ from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
 import pytest
-import pytz
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from freezegun import freeze_time
 
 from sentry.incidents.logic import (
@@ -142,6 +141,10 @@ class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
         assert incidents
         return incidents[0]
 
+    @property
+    def sub(self):
+        raise NotImplementedError
+
     def active_incident_exists(self, rule, subscription=None):
         if subscription is None:
             subscription = self.sub
@@ -237,10 +240,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
     def build_subscription_update(self, subscription, time_delta=None, value=EMPTY):
         if time_delta is not None:
-            timestamp = timezone.now() + time_delta
+            timestamp = django_timezone.now() + time_delta
         else:
-            timestamp = timezone.now()
-        timestamp = timestamp.replace(tzinfo=pytz.utc, microsecond=0)
+            timestamp = django_timezone.now()
+        timestamp = timestamp.replace(tzinfo=timezone.utc, microsecond=0)
 
         data = {}
 
@@ -350,7 +353,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         incident = self.assert_active_incident(rule)
         assert incident.date_started == (
-            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
+            django_timezone.now().replace(microsecond=0)
+            - timedelta(seconds=rule.snuba_query.time_window)
         )
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
@@ -382,7 +386,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         incident = self.assert_active_incident(rule)
         assert incident.date_started == (
-            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
+            django_timezone.now().replace(microsecond=0)
+            - timedelta(seconds=rule.snuba_query.time_window)
         )
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
@@ -1863,7 +1868,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
-        comparison_date = timezone.now() - comparison_delta
+        comparison_date = django_timezone.now() - comparison_delta
 
         for i in range(4):
             self.store_event(
@@ -1931,7 +1936,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
-        comparison_date = timezone.now() - comparison_delta
+        comparison_date = django_timezone.now() - comparison_delta
 
         for i in range(4):
             self.store_event(
@@ -2001,7 +2006,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
-        comparison_date = timezone.now() - comparison_delta
+        comparison_date = django_timezone.now() - comparison_delta
 
         for i in range(4):
             self.store_event(
@@ -2129,10 +2134,10 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         processor = SubscriptionProcessor(subscription)
 
         if time_delta is not None:
-            timestamp = timezone.now() + time_delta
+            timestamp = django_timezone.now() + time_delta
         else:
-            timestamp = timezone.now()
-        timestamp = timestamp.replace(tzinfo=pytz.utc, microsecond=0)
+            timestamp = django_timezone.now()
+        timestamp = timestamp.replace(tzinfo=timezone.utc, microsecond=0)
 
         with self.feature(
             ["organizations:incidents", "organizations:performance-view"]
@@ -2147,6 +2152,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
                     numerator = int(value * denominator)
             processor.process_update(
                 {
+                    "entity": "entity",
                     "subscription_id": subscription.subscription_id
                     if subscription
                     else uuid4().hex,
@@ -2160,9 +2166,6 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
                         ]
                     },
                     "timestamp": timestamp,
-                    "interval": 1,
-                    "partition": 1,
-                    "offset": 1,
                 }
             )
         return processor
@@ -2594,6 +2597,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         processor = SubscriptionProcessor(subscription)
         processor.process_update(
             {
+                "entity": "entity",
                 "subscription_id": subscription.subscription_id,
                 "values": {
                     # 1001 is a random int that doesn't map to anything in the indexer
@@ -2605,10 +2609,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
                         }
                     ]
                 },
-                "timestamp": timezone.now(),
-                "interval": 1,
-                "partition": 1,
-                "offset": 1,
+                "timestamp": django_timezone.now(),
             }
         )
         self.assert_no_active_incident(rule)
@@ -2640,10 +2641,10 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
         processor = SubscriptionProcessor(subscription)
 
         if time_delta is not None:
-            timestamp = timezone.now() + time_delta
+            timestamp = django_timezone.now() + time_delta
         else:
-            timestamp = timezone.now()
-        timestamp = timestamp.replace(tzinfo=pytz.utc, microsecond=0)
+            timestamp = django_timezone.now()
+        timestamp = timestamp.replace(tzinfo=timezone.utc, microsecond=0)
 
         with self.feature(
             ["organizations:incidents", "organizations:performance-view"]
@@ -2661,6 +2662,7 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
             tag_value_crashed = resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "crashed")
             processor.process_update(
                 {
+                    "entity": "entity",
                     "subscription_id": subscription.subscription_id
                     if subscription
                     else uuid4().hex,
@@ -2675,9 +2677,6 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
                         ]
                     },
                     "timestamp": timestamp,
-                    "interval": 1,
-                    "partition": 1,
-                    "offset": 1,
                 }
             )
         return processor
@@ -2727,7 +2726,7 @@ class TestGetAlertRuleStats(TestCase):
         triggers = [AlertRuleTrigger(id=3), AlertRuleTrigger(id=4)]
         client = get_redis_client()
         pipeline = client.pipeline()
-        timestamp = datetime.now().replace(tzinfo=pytz.utc, microsecond=0)
+        timestamp = datetime.now().replace(tzinfo=timezone.utc, microsecond=0)
         pipeline.set("{alert_rule:1:project:2}:last_update", int(to_timestamp(timestamp)))
         pipeline.set("{alert_rule:1:project:2}:resolve_triggered", 20)
         for key, value in [
@@ -2749,7 +2748,7 @@ class TestUpdateAlertRuleStats(TestCase):
     def test(self):
         alert_rule = AlertRule(id=1)
         sub = QuerySubscription(project_id=2)
-        date = datetime.utcnow().replace(tzinfo=pytz.utc)
+        date = datetime.utcnow().replace(tzinfo=timezone.utc)
         update_alert_rule_stats(alert_rule, sub, date, {3: 20, 4: 3}, {3: 10, 4: 15})
         client = get_redis_client()
         results = list(

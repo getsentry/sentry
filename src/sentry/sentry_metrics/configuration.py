@@ -9,6 +9,10 @@ from typing import Any, Mapping, MutableMapping, Optional, Tuple
 
 import sentry_sdk
 
+# The maximum length of a column that is indexed in postgres. It is important to keep this in
+# sync between the consumers and the models defined in src/sentry/sentry_metrics/models.py
+MAX_INDEXED_COLUMN_LENGTH = 200
+
 
 class UseCaseKey(Enum):
     RELEASE_HEALTH = "release-health"
