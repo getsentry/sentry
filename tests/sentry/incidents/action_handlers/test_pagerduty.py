@@ -5,14 +5,13 @@ from sentry.incidents.action_handlers import PagerDutyActionHandler
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus, IncidentStatusMethod
 from sentry.models import Integration
-from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
 from . import FireTest
 
 
 @freeze_time()
-class PagerDutyActionHandlerTest(FireTest, TestCase):
+class PagerDutyActionHandlerTest(FireTest):
     def setUp(self):
         self.integration_key = "pfc73e8cb4s44d519f3d63d45b5q77g9"
         service = [

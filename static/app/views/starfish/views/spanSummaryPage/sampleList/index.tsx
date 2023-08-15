@@ -62,6 +62,7 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
       >
         <h3>{`${transactionMethod} ${transactionName}`}</h3>
         <PageErrorAlert />
+
         <SampleInfo
           groupId={groupId}
           transactionName={transactionName}

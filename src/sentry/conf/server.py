@@ -1378,6 +1378,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-msteams": False,
     # Enable archive/escalating issue workflow features in v2
     "organizations:escalating-issues-v2": False,
+    # Enable emiting escalating data to the metrics backend
+    "organizations:escalating-metrics-backend": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
@@ -1552,6 +1554,8 @@ SENTRY_FEATURES = {
     "organizations:performance-new-trends": False,
     # Enable debug views for trendsv2 to be used internally
     "organizations:performance-trendsv2-dev-only": False,
+    # Bypass 30 day date range selection when fetching new trends data
+    "organizations:performance-trends-new-data-date-range-default": False,
     # Enable consecutive db performance issue type
     "organizations:performance-consecutive-db-issue": False,
     # Enable consecutive http performance issue type
@@ -1884,7 +1888,7 @@ SENTRY_ALLOW_PUBLIC_PROJECTS = True
 SENTRY_ENABLE_INVITES = True
 
 # Origins allowed for session-based API access (via the Access-Control-Allow-Origin header)
-SENTRY_ALLOW_ORIGIN = None
+SENTRY_ALLOW_ORIGIN: str | None = None
 
 # Buffer backend
 SENTRY_BUFFER = "sentry.buffer.Buffer"

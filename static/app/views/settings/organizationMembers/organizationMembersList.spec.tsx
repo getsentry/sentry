@@ -11,6 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {setIntersectionObserver} from 'sentry/components/carousel.spec';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -166,6 +167,10 @@ describe('OrganizationMembersList', function () {
         snoozed_ts: undefined,
       },
     });
+    setIntersectionObserver([
+      {target: {id: 'left-anchor'}, isIntersecting: true},
+      {target: {id: 'right-anchor'}, isIntersecting: true},
+    ]);
     (browserHistory.push as jest.Mock).mockReset();
     OrganizationsStore.load([organization]);
   });

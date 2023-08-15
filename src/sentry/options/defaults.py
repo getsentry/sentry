@@ -1426,7 +1426,7 @@ register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFI
 # Sets the timeout for webhooks
 register(
     "sentry-apps.webhook.timeout.sec",
-    default=5.0,
+    default=3.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1453,6 +1453,12 @@ register(
     "statistical_detectors.enable.projects.profiling",
     type=Sequence,
     default=[],
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "statistical_detectors.query.batch_size",
+    type=Int,
+    default=100,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

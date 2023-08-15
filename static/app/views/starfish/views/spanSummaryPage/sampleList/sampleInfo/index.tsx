@@ -7,7 +7,7 @@ import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughp
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
-import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage';
+import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsFields;
 
