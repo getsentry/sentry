@@ -5,7 +5,7 @@ from unittest.mock import patch
 from django.urls import reverse
 from django.utils.text import slugify
 
-from sentry.api.endpoints.organization_projects_experiment import (
+from sentry.api.endpoints.experimental.enterprise.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
     fetch_slugifed_email_username,
 )
