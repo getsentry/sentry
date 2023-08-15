@@ -129,19 +129,24 @@ def validate(
     left_pk_map = PrimaryKeyMap()
     right_pk_map = PrimaryKeyMap()
 
+    # Save the pk -> ordinal mapping on both sides, so that we can decode foreign keys into this
+    # model that we encounter later.
+    for id, right in right_models.items():
+        if id.ordinal is None:
+            raise RuntimeError("all InstanceIDs used for comparisons must have their ordinal set")
+
+        left = left_models[id]
+        left_pk_map.insert(id.model, left_models[id]["pk"], id.ordinal)
+        right_pk_map.insert(id.model, right["pk"], id.ordinal)
+
     # We only perform custom comparisons and JSON diffs on non-duplicate entries that exist in both
     # outputs.
     for id, right in right_models.items():
         if id.ordinal is None:
             raise RuntimeError("all InstanceIDs used for comparisons must have their ordinal set")
 
-        # Save the pk -> ordinal mapping on both sides, so that we can decode foreign keys into this
-        # model that we encounter later.
-        left = left_models[id]
-        left_pk_map.insert(id.model, left["pk"], id.ordinal)
-        right_pk_map.insert(id.model, right["pk"], id.ordinal)
-
         # Try comparators applicable for this specific model.
+        left = left_models[id]
         if id.model in comparators:
             # We take care to run ALL of the `compare()` methods on each comparator before calling
             # any `scrub()` methods. This ensures that, in cases where a single model uses multiple
