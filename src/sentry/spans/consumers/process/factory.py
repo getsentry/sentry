@@ -19,45 +19,56 @@ from sentry.utils import json, kafka_config
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
 
-def _build_snuba_payload(payload: Mapping[str, Any]) -> MutableMapping[str, Any]:
-    project = Project.objects.get_from_cache(id=payload["project_id"])
+def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
+    project = Project.objects.get_from_cache(id=relay_span["project_id"])
     organization = project.organization
+    retention_days = (
+        quotas.get_event_retention(
+            organization=organization,
+        )
+        or 90
+    )
 
-    span_dict: MutableMapping[str, Any] = {}
-    span_dict["description"] = payload["description"]
-    span_dict["exclusive_time_ms"] = int(payload.get("exclusive_time", 0))
-    span_dict["is_segment"] = not payload.get("parent_span_id")
-    span_dict["organization_id"] = organization.id
-    span_dict["parent_span_id"] = payload.get("parent_span_id", "0")
-    span_dict["project_id"] = payload["project_id"]
-    span_dict["retention_days"] = quotas.get_event_retention(organization=organization) or 90
-    span_dict["span_id"] = payload.get("span_id")
-    span_dict["span_status"] = payload["status"]
-    span_dict["tags"] = payload.get("tags")
-    span_dict["trace_id"] = str(uuid.UUID(payload["trace_id"]))
-    span_dict["version"] = SPAN_SCHEMA_VERSION
+    snuba_span: MutableMapping[str, Any] = {}
+    snuba_span["description"] = relay_span["description"]
+    snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
+    snuba_span["is_segment"] = not relay_span.get("parent_span_id")
+    snuba_span["organization_id"] = organization.id
+    snuba_span["parent_span_id"] = relay_span.get("parent_span_id", "0")
+    snuba_span["project_id"] = relay_span["project_id"]
+    snuba_span["retention_days"] = retention_days
+    snuba_span["span_id"] = relay_span.get("span_id")
+    snuba_span["span_status"] = relay_span["status"]
+    snuba_span["tags"] = relay_span.get("tags")
+    snuba_span["trace_id"] = str(uuid.UUID(relay_span["trace_id"]))
+    snuba_span["version"] = SPAN_SCHEMA_VERSION
 
-    start_timestamp = datetime.utcfromtimestamp(payload["start_timestamp"])
-    end_timestamp = datetime.utcfromtimestamp(payload["timestamp"])
-    span_dict["duration_ms"] = max(int((end_timestamp - start_timestamp).total_seconds() * 1e3), 0)
+    start_timestamp = datetime.utcfromtimestamp(relay_span["start_timestamp"])
+    end_timestamp = datetime.utcfromtimestamp(relay_span["timestamp"])
+    snuba_span["duration_ms"] = max(
+        int((end_timestamp - start_timestamp).total_seconds() * 1e3),
+        0,
+    )
 
-    trace_context = payload["data"]["trace"]
-    span_dict["group_raw"] = trace_context["hash"]
+    trace_context = relay_span.get("data", {}).get("trace")
+    if trace_context:
+        snuba_span["group_raw"] = trace_context["hash"]
 
     sentry_tags: MutableMapping[str, Any] = {}
-    sentry_tags["op"] = payload.get("op")
+    sentry_tags["op"] = relay_span.get("op")
 
-    span_dict["sentry_tags"] = sentry_tags
+    snuba_span["sentry_tags"] = sentry_tags
 
-    return span_dict
+    return snuba_span
 
 
 def process_message(message: Message[KafkaPayload]) -> KafkaPayload:
     payload = msgpack.unpackb(message.payload.value)
-    payload["span"]["project_id"] = payload["project_id"]
-    snuba_payload = _build_snuba_payload(payload)
-    data = json.dumps(snuba_payload).encode("utf-8")
-    return KafkaPayload(key=None, value=data, headers=[])
+    relay_span = payload["span"]
+    relay_span["project_id"] = payload["project_id"]
+    snuba_span = _build_snuba_span(relay_span)
+    snuba_payload = json.dumps(snuba_span).encode("utf-8")
+    return KafkaPayload(key=None, value=snuba_payload, headers=[])
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

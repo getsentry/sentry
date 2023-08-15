@@ -509,7 +509,8 @@ class _ConfigBase:
 
     def __str__(self) -> str:
         try:
-            return utils.json.dumps(self.to_dict(), sort_keys=True)  # type: ignore
+            # type: ignore
+            return utils.json.dumps(self.to_dict(), sort_keys=True)
         except Exception as e:
             return f"Content Error:{e}"
 
