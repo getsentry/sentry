@@ -152,7 +152,7 @@ def query_using_aggregated_search(
     period_start: datetime,
     period_stop: datetime,
 ):
-    tenant_ids = _make_tenant_ids(organization)
+    tenant_ids = _make_tenant_id(organization)
 
     if sort is None:
         sorting = [OrderBy(_get_sort_option("started_at"), Direction.DESC)]
@@ -320,7 +320,7 @@ def _get_sort_option(option_name: str) -> Function:
         raise ParseError(f"The field `{option_name}` is not a sortable field.")
 
 
-def _make_tenant_ids(organization: Organization | None) -> dict[str, int]:
+def _make_tenant_id(organization: Organization | None) -> dict[str, int]:
     if organization is None:
         return {}
     else:
