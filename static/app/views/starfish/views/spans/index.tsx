@@ -14,6 +14,7 @@ import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/sta
 import {StarfishProjectSelector} from 'sentry/views/starfish/components/starfishProjectSelector';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
+import {RoutingContextProvider} from 'sentry/views/starfish/utils/routingContext';
 
 import SpansView from './spansView';
 
@@ -36,29 +37,31 @@ export default function Spans() {
   const spanCategory = location.query['span.category'];
 
   return (
-    <Layout.Page>
-      <PageErrorProvider>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Layout.Title>{getTitle(moduleName, spanCategory)}</Layout.Title>
-          </Layout.HeaderContent>
-        </Layout.Header>
+    <RoutingContextProvider>
+      <Layout.Page>
+        <PageErrorProvider>
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Layout.Title>{getTitle(moduleName, spanCategory)}</Layout.Title>
+            </Layout.HeaderContent>
+          </Layout.Header>
 
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <PageErrorAlert />
-            <StarfishPageFiltersContainer>
-              <StyledPageFilterBar condensed>
-                <StarfishProjectSelector />
-                <StarfishDatePicker />
-              </StyledPageFilterBar>
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              <PageErrorAlert />
+              <StarfishPageFiltersContainer>
+                <StyledPageFilterBar condensed>
+                  <StarfishProjectSelector />
+                  <StarfishDatePicker />
+                </StyledPageFilterBar>
 
-              <SpansView moduleName={moduleName} spanCategory={spanCategory} />
-            </StarfishPageFiltersContainer>
-          </Layout.Main>
-        </Layout.Body>
-      </PageErrorProvider>
-    </Layout.Page>
+                <SpansView moduleName={moduleName} spanCategory={spanCategory} />
+              </StarfishPageFiltersContainer>
+            </Layout.Main>
+          </Layout.Body>
+        </PageErrorProvider>
+      </Layout.Page>
+    </RoutingContextProvider>
   );
 }
 

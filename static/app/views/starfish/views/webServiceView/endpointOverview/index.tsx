@@ -39,6 +39,7 @@ import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/sta
 import {ModuleName} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
+import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable';
@@ -57,6 +58,7 @@ type State = {
 
 export default function EndpointOverview() {
   const location = useLocation();
+  const routingContext = useRoutingContext();
   const organization = useOrganization();
 
   const {endpoint, 'http.method': httpMethod} = location.query;
@@ -289,7 +291,9 @@ export default function EndpointOverview() {
               crumbs={[
                 {
                   label: t('Web Service'),
-                  to: normalizeUrl(`/organizations/${organization.slug}/starfish/`),
+                  to: normalizeUrl(
+                    `/organizations/${organization.slug}/${routingContext.baseURL}/`
+                  ),
                 },
                 {
                   label: t('Endpoint Overview'),
