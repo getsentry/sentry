@@ -502,14 +502,8 @@ def dispatch_to_local_service(
     }
 
 
-def _get_simulated_latency() -> timedelta:
-    """Get the amount of latency to simulate on each RPC call.
-
-    This is a development tool to simulate the time costs of making a remote
-    procedure call. It may be configured in a dev or test environment so that a human
-    can observe the effect of high RPC latency on front-end interactions and judge
-    its overall impact on user experience.
-    """
+def _get_simulated_latency_duration() -> timedelta:
+    """Get the amount of latency to simulate on each RPC call."""
     setting = settings.RPC_SIMULATED_LATENCY
     if not setting:
         return timedelta()
@@ -517,6 +511,24 @@ def _get_simulated_latency() -> timedelta:
         return setting
     else:
         return timedelta(milliseconds=float(setting))
+
+
+def _simulate_latency(source: str) -> None:
+    """Simulate latency on an RPC.
+
+    This is a development tool to simulate the time costs of making a remote
+    procedure call. It may be configured in a dev or test environment so that a human
+    can observe the effect of high RPC latency on front-end interactions and judge
+    its overall impact on user experience.
+    """
+    duration = _get_simulated_latency_duration()
+    if not duration:
+        return
+    latency_seconds = duration.total_seconds()
+    latency_fmt = f"{latency_seconds:.3f} second{'' if latency_seconds == 1 else 's'}"
+    logger.info(f"RPC simulated latency: Begin {latency_fmt} for {source}")
+    time.sleep(latency_seconds)
+    logger.info(f"RPC simulated latency:   End {latency_fmt} for {source}")
 
 
 _RPC_CONTENT_CHARSET = "utf-8"
@@ -529,14 +541,7 @@ def dispatch_remote_call(
     serial_arguments: ArgumentDict,
     use_test_client: bool = False,
 ) -> Any:
-    simulated_latency = _get_simulated_latency()
-    if simulated_latency:
-        latency_seconds = simulated_latency.total_seconds()
-        latency_fmt = f"{latency_seconds:.3f} second{'' if latency_seconds == 1 else 's'}"
-        logger.info(f"RPC simulated latency: Begin {latency_fmt} for {service_name}.{method_name}")
-        time.sleep(latency_seconds)
-        logger.info(f"RPC simulated latency:   End {latency_fmt} for {service_name}.{method_name}")
-
+    _simulate_latency(f"{service_name}.{method_name}")
     remote_silo_call = _RemoteSiloCall(region, service_name, method_name, serial_arguments)
     return remote_silo_call.dispatch(use_test_client)
 
