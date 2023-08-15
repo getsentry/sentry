@@ -63,7 +63,7 @@ export function OverviewTimeline({monitorList}: Props) {
         <ResolutionSelector />
       </StickyResolutionSelector>
       <StickyGridLineTimeLabels>
-        <GridLineTimeLabels
+        <BorderlessGridLineTimeLabels
           timeWindow={timeWindow}
           end={nowRef.current}
           width={timelineWidth}
@@ -110,6 +110,10 @@ const StickyResolutionSelector = styled(Sticky)`
     border-left: 1px solid ${p => p.theme.border};
     margin-left: -1px;
   }
+`;
+
+const BorderlessGridLineTimeLabels = styled(GridLineTimeLabels)`
+  border: none;
 `;
 
 const StickyGridLineTimeLabels = styled(Sticky)`
