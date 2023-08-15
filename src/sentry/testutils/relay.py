@@ -140,7 +140,10 @@ class RelayStoreHelper(RequiredBaseclass):
         return event
 
     def post_and_retrieve_unreal(self, payload):
+        print("post_and_retrieve_unreal")  # noqa: S002
+        print(payload)  # noqa: S002
         url = self.get_relay_unreal_url(self.project.id, self.projectkey.public_key)
+        print(f"RELAY {url}")  # noqa: S002
         responses.add_passthru(url)
 
         resp = requests.post(
