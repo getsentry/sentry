@@ -341,10 +341,24 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None) -> None:
                     frames, platform, exception_data
                 )
 
-    # normalize in-app
+    # normalize `in_app` values, noting and storing the event's mix of in-app and system frames, so
+    # we can track the mix with a metric in cases where this event creates a new group
     with sentry_sdk.start_span(op=op, description="normalize_in_app_stacktraces"):
+        frame_mixes = {"mixed": 0, "in-app-only": 0, "system-only": 0}
+
         for frames in stacktrace_frames:
-            _normalize_in_app(frames)
+            stacktrace_frame_mix = _normalize_in_app(frames)
+            frame_mixes[stacktrace_frame_mix] += 1
+
+        event_metadata = data.get("metadata") or {}
+        event_metadata["in_app_frame_mix"] = (
+            "in-app-only"
+            if frame_mixes["in-app-only"] == len(stacktrace_frames)
+            else "system-only"
+            if frame_mixes["system-only"] == len(stacktrace_frames)
+            else "mixed"
+        )
+        data["metadata"] = event_metadata
 
 
 def _update_frame(frame: dict[str, Any], platform: Optional[str]) -> None:
