@@ -50,7 +50,7 @@ def migrate_alert_rules(integration_id: int, organization_id: int) -> None:
             team_table = config["team_table"]
             team = {
                 "team": project.name + " [MIGRATED]",
-                "id": str(organization_id) + project.name,
+                "id": str(organization_id) + "-" + project.name,
                 "integration_key": api_key,
             }
             team_table.append(team)
@@ -104,5 +104,6 @@ def migrate_alert_rules(integration_id: int, organization_id: int) -> None:
                             "plugin": plugin.slug,
                         },
                     )
+
         # disable plugin
         plugin.disable(project)
