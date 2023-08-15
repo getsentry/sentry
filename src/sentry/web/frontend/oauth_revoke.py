@@ -101,7 +101,7 @@ class OAuthRevokeView(View):
                 status=401,
             )
 
-        token_to_delete = self._get_token_to_delete(
+        token_to_delete: ApiToken = self._get_token_to_delete(
             token=token,
             token_type_hint=token_type_hint,
             application=application,  # an application can only revoke tokens it owns
@@ -114,8 +114,16 @@ class OAuthRevokeView(View):
                 "oauth.revoke-success",
                 extra={
                     "client_id": client_id,
+                    "application_id": application.id,
                     # don't log the actual token, just a hash of it
-                    "sha256_token": sha256(token.encode("utf-8")).hexdigest(),
+                    "sha256_provided_token": sha256(token.encode("utf-8")).hexdigest(),
+                    "sha256_access_token": sha256(
+                        token_to_delete.token.encode("utf-8")
+                    ).hexdigest(),
+                    "sha256_refresh_token": sha256(
+                        token_to_delete.refresh_token.encode("utf-8")
+                    ).hexdigest(),
+                    "resource_owner_id": token_to_delete.user.id,
                 },
             )
 
