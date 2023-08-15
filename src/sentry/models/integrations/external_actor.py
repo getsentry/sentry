@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 class ExternalActor(DefaultFieldsModel):
     __include_in_export__ = False
 
-    actor = FlexibleForeignKey("sentry.Actor", db_index=True, on_delete=models.CASCADE)
+    # actor = FlexibleForeignKey("sentry.Actor", db_index=True, on_delete=models.CASCADE)
+    team_id = HybridCloudForeignKey("sentry.Team", null=True, db_index=True, on_delete="CASCADE")
+    user = FlexibleForeignKey("sentry.User", null=True, db_index=True, on_delete=models.CASCADE)
     organization = FlexibleForeignKey("sentry.Organization")
     integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
     provider = BoundedPositiveIntegerField(
@@ -44,7 +46,10 @@ class ExternalActor(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_externalactor"
-        unique_together = (("organization", "provider", "external_name", "actor"),)
+        unique_together = (
+            ("organization", "provider", "external_name", "team_id"),
+            ("organization", "provider", "external_name", "user_id"),
+        )
 
     def delete(self, **kwargs):
         from sentry.services.hybrid_cloud.integration import integration_service
