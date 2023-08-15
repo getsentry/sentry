@@ -14,17 +14,16 @@ import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullDetailedQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import {
-  TraceError,
   TraceFullDetailed,
   TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-import {isTraceSplitResult} from 'sentry/utils/performance/quickTrace/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import TraceDetailsContent from './content';
+import {getTraceSplitResults} from './utils';
 
 type Props = RouteComponentProps<{traceSlug: string}, {}> & {
   api: Client;
@@ -87,18 +86,10 @@ class TraceSummary extends Component<Props> {
       meta: TraceMeta | null;
       traces: (TraceFullDetailed[] | TraceSplitResults<TraceFullDetailed>) | null;
     }) => {
-      let transactions: TraceFullDetailed[] | undefined;
-      let orphanErrors: TraceError[] | undefined;
-      if (
-        traces &&
-        organization.features.includes('performance-tracing-without-performance') &&
-        isTraceSplitResult<TraceSplitResults<TraceFullDetailed>, TraceFullDetailed[]>(
-          traces
-        )
-      ) {
-        orphanErrors = traces.orphan_errors;
-        transactions = traces.transactions;
-      }
+      const {transactions, orphanErrors} = getTraceSplitResults<TraceFullDetailed>(
+        traces ?? [],
+        organization
+      );
 
       return (
         <TraceDetailsContent
