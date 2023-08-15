@@ -9,9 +9,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useHasOrganizationSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import projectSupportsReplay, {
-  projectCanLinkToReplay,
-} from 'sentry/utils/replays/projectSupportsReplay';
+import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
@@ -70,8 +68,7 @@ export default function EventReplay({projectSlug, event, group}: Props) {
   const organization = useOrganization();
   const hasReplaysFeature = organization.features.includes('session-replay');
   const project = useProjectFromSlug({organization, projectSlug});
-  const isReplayRelated =
-    projectCanLinkToReplay(project) && project && projectSupportsReplay(project);
+  const isReplayRelated = projectCanLinkToReplay(project);
 
   if (!hasReplaysFeature || !isReplayRelated) {
     return null;

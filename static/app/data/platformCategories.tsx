@@ -355,24 +355,6 @@ export const replayOnboardingPlatforms: readonly PlatformKey[] = [
   'javascript',
 ];
 
-export const replayUnsupportedPlatforms: readonly PlatformKey[] = [
-  'android',
-  'apple-ios',
-  'apple-macos',
-  'cordova',
-  'dotnet-maui',
-  'dotnet-winforms',
-  'dotnet-wpf',
-  'dotnet-xamarin',
-  'flutter',
-  'ionic',
-  'minidump',
-  'native-qt',
-  'react-native',
-  'unity',
-  'unreal',
-];
-
 /**
  * Additional aliases used for filtering in the platform picker
  */

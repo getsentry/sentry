@@ -1,21 +1,13 @@
-import {
-  backend,
-  replayPlatforms,
-  replayUnsupportedPlatforms,
-} from 'sentry/data/platformCategories';
+import {backend, replayPlatforms} from 'sentry/data/platformCategories';
 import type {MinimalProject} from 'sentry/types';
 
 /**
  * Are you able to send a Replay into the project?
  *
- * Basically: is this a frontend project, or a project that isn't desktop/mobile?
+ * Basically: is this a frontend project
  */
 function projectSupportsReplay(project: MinimalProject) {
-  return Boolean(
-    project.platform &&
-      replayPlatforms.includes(project.platform) &&
-      !replayUnsupportedPlatforms.includes(project.platform)
-  );
+  return Boolean(project.platform && replayPlatforms.includes(project.platform));
 }
 
 /**

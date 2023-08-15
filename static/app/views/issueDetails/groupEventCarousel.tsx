@@ -35,7 +35,7 @@ import {
   getShortEventId,
 } from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -249,7 +249,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
   const isReplayEnabled =
     organization.features.includes('session-replay') &&
-    projectSupportsReplay(group.project);
+    projectCanLinkToReplay(group.project);
   const latencyThreshold = 30 * 60 * 1000; // 30 minutes
   const isOverLatencyThreshold =
     event.dateReceived &&

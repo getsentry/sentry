@@ -14,7 +14,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {platformToCategory} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
@@ -110,7 +110,7 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
   const isPerfIssue = group.issueCategory === IssueCategory.PERFORMANCE;
   const isReplayEnabled =
     organization.features.includes('session-replay') &&
-    projectSupportsReplay(group.project);
+    projectCanLinkToReplay(group.project);
 
   // profiles only exist on transactions, so this only works with
   // performance issues, and not errors
