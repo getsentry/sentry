@@ -241,8 +241,8 @@ def query_using_aggregated_search(
   for result in results:
       index = replay_id_to_index[result["replay_id"]]
       ordered_results[index] = result
-      
-        
+
+
   return ordered_results
 
 
