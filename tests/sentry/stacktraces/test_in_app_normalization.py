@@ -35,8 +35,31 @@ def make_event(stacktraces: list[Any]) -> dict[str, Any]:
 
 
 class NormalizeInApptest(TestCase):
+    def test_changes_in_app_None_into_in_app_False(self):
+        event_data = make_event(
+            [
+                make_stacktrace(
+                    frame_0_in_app=True,
+                    frame_1_in_app=None,
+                )
+            ]
+        )
+
+        normalize_stacktraces_for_grouping(event_data)
+
+        frames = event_data["exception"]["values"][0]["stacktrace"]["frames"]
+        assert frames[0]["in_app"] is True
+        assert frames[1]["in_app"] is False
+
     def test_changes_in_app_not_set_into_in_app_False(self):
-        event_data = make_event([make_stacktrace(frame_0_in_app=True)])
+        event_data = make_event(
+            [
+                make_stacktrace(
+                    frame_0_in_app=True,
+                    # `frame_1_in_app` not set
+                )
+            ]
+        )
 
         normalize_stacktraces_for_grouping(event_data)
 
@@ -45,7 +68,7 @@ class NormalizeInApptest(TestCase):
         assert frames[1]["in_app"] is False
 
     def test_skips_None_frames(self):
-        # No arguments means neither example frame will have an `in_app` value
+        # No arguments passed to `make_stacktrace` means neither example frame will have an `in_app` value
         stacktrace = make_stacktrace()
         stacktrace["frames"].insert(0, None)
         event_data = make_event([stacktrace])

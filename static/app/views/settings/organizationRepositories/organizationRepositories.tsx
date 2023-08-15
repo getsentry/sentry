@@ -57,7 +57,7 @@ function OrganizationRepositories({itemList, onRepositoryChange, organization}: 
                   key={repo.id}
                   repository={repo}
                   showProvider
-                  orgId={organization.slug}
+                  orgSlug={organization.slug}
                   onRepositoryChange={onRepositoryChange}
                 />
               ))}

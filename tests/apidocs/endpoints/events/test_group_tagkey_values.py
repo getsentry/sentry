@@ -4,7 +4,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupTagKeyValuesDocs(APIDocsTestCase):
     def setUp(self):
         key, value = "foo", "bar"

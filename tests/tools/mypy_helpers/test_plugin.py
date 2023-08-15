@@ -228,6 +228,7 @@ Found 4 errors in 1 file (checked 1 source file)
     "attr",
     (
         pytest.param("access", id="access from sentry.api.base"),
+        pytest.param("auth", id="auth from sentry.middleware.auth"),
         pytest.param("csp_nonce", id="csp_nonce from csp.middleware"),
         pytest.param("is_sudo", id="is_sudo from sudo.middleware"),
         pytest.param("subdomain", id="subdomain from sentry.middleware.subdomain"),

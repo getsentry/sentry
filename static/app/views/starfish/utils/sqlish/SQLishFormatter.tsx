@@ -34,6 +34,16 @@ export class SQLishFormatter {
   toFormat(sql: string, format: Format) {
     let tokens;
 
+    const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+
+    const sentrySpan = sentryTransaction?.startChild({
+      op: 'function',
+      description: 'SQLishFormatter.toFormat',
+      data: {
+        format,
+      },
+    });
+
     try {
       tokens = this.parser.parse(sql);
     } catch (error) {
@@ -42,6 +52,9 @@ export class SQLishFormatter {
       return sql;
     }
 
-    return FORMATTERS[format](tokens);
+    const formattedString = FORMATTERS[format](tokens);
+    sentrySpan?.finish();
+
+    return formattedString;
   }
 }

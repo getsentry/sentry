@@ -2,6 +2,7 @@ import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
+from typing import Any, Dict, List, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -120,7 +121,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         query = request.GET.get("query")
 
         def get_top_events(user_query, params, event_limit, referrer):
-            top_event_columns = selected_columns.copy()
+            top_event_columns = cast(List[str], selected_columns[:])
             top_event_columns.append("count()")
 
             # Granularity is set to 1d - the highest granularity possible
@@ -155,15 +156,14 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             ]
             queries = [generate_top_transaction_query(t_e) for t_e in split_top_events]
 
-            timeseries_columns = selected_columns.copy()
+            timeseries_columns = cast(List[str], selected_columns[:])
             timeseries_columns.append(trend_function)
 
             # When all projects or my projects options selected,
             # keep only projects that had top events to reduce query cardinality
             used_project_ids = list({event["project"] for event in data})
 
-            request.yAxis = selected_columns
-            request.GET.projectSlugs = used_project_ids
+            request.GET.projectSlugs = used_project_ids  # type: ignore
 
             # Get new params with pruned projects
             pruned_params = self.get_snuba_params(request, organization)
@@ -192,7 +192,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     "data": [],
                     "project": item["project"],
                 }
-            for row in result["data"]:
+            for row in result.get("data", []):  # type: ignore
                 result_key = create_result_key(row, translated_groupby, {})
                 if result_key in results:
                     results[result_key]["data"].append(row)
@@ -221,7 +221,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         "project": item["project"],
                         "isMetricsData": True,
                         "order": item["order"],
-                        "meta": result["meta"],
                     },
                     modified_params["start"],
                     modified_params["end"],
@@ -250,8 +249,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         def get_trends_data(stats_data, request):
             trend_function = request.GET.get("trendFunction", "p50()")
 
-            trends_request = {
-                "data": None,
+            trends_request: Dict[str, Any] = {
+                "data": {},
                 "sort": None,
                 "trendFunction": None,
             }

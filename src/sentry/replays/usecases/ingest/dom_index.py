@@ -44,7 +44,7 @@ class ReplayActionsEventPayload(TypedDict):
 
 
 class ReplayActionsEvent(TypedDict):
-    payload: List[bytes]
+    payload: List[int]
     project_id: int
     replay_id: str
     retention_days: int
@@ -92,7 +92,7 @@ def create_replay_actions_event(
         "replay_id": replay_id,
         "project_id": project_id,
         "retention_days": retention_days,
-        "payload": list(json.dumps(payload).encode()),  # type: ignore
+        "payload": list(json.dumps(payload).encode()),
     }
 
 
