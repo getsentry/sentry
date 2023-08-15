@@ -250,7 +250,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
-    def test_message_builder_simple(self, message_builder, record: mock.MagicMock):
+    def test_message_builder_simple(self, message_builder, record):
         now = django_timezone.now()
 
         two_days_ago = now - timedelta(days=2)
