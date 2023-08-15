@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import heapq
 import logging
-import random
-import string
 from datetime import timedelta
 from functools import partial, reduce
 from typing import Tuple
@@ -34,6 +32,7 @@ from sentry.models import (
     OrganizationMember,
     OrganizationStatus,
 )
+from sentry.notifications.utils import generate_notification_uuid
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -741,7 +740,7 @@ def render_template_context(ctx, user_id):
         "organizations:session-replay", ctx.organization
     ) and features.has("organizations:session-replay-weekly-email", ctx.organization)
 
-    notification_uuid = "".join(random.choices(string.ascii_letters + string.digits, k=16))
+    notification_uuid = generate_notification_uuid()
 
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.
