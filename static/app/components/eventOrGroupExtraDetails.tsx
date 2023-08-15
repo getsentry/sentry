@@ -16,6 +16,7 @@ import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
@@ -51,7 +52,8 @@ function EventOrGroupExtraDetails({
 
   const issuesPath = `/organizations/${organization.slug}/issues/`;
 
-  const showReplayCount = organization.features.includes('session-replay');
+  const showReplayCount =
+    organization.features.includes('session-replay') && projectCanLinkToReplay(project);
   const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   return (
