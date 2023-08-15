@@ -2800,7 +2800,7 @@ urlpatterns = [
     re_path(
         r"^notification-defaults/$",
         NotificationDefaultsEndpoints.as_view(),
-        name="sentry-api-0-user-notification-defaults",
+        name="sentry-api-0-notification-defaults",
     ),
     # TODO: include in the /organizations/ route tree + remove old dupe once hybrid cloud launches
     re_path(
