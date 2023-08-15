@@ -316,7 +316,7 @@ export function isTraceTransaction<U extends TraceFull | TraceFullDetailed>(
 export function isTraceError(
   transaction: TraceRoot | TraceError | TraceFullDetailed
 ): transaction is TraceError {
-  return 'level' in transaction;
+  return 'event_type' in transaction && transaction.event_type === 'error';
 }
 
 export function isTraceRoot(
