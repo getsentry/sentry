@@ -215,6 +215,7 @@ class SnubaProtocolEventStream(EventStream):
                 },
             ),
             headers=headers,
+            asynchronous=kwargs.get("asynchronous", True),
             skip_semantic_partitioning=skip_semantic_partitioning,
             event_type=event_type,
         )

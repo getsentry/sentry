@@ -161,6 +161,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     "sample_event": True,
                 },
             )
+            kwargs["asynchronous"] = False
+
         super().insert(
             event,
             is_new,
