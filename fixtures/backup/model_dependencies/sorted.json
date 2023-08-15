@@ -180,7 +180,6 @@
   "sentry.GroupSnooze",
   "sentry.GroupSubscription",
   "sentry.SentryApp",
-  "sentry.PagerDutyService",
   "sentry.SentryAppComponent",
   "sentry.SentryAppInstallation",
   "sentry.SentryAppInstallationForProvider",

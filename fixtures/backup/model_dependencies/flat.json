@@ -357,9 +357,6 @@
   "sentry.OrganizationOption": [
     "sentry.Organization"
   ],
-  "sentry.PagerDutyService": [
-    "sentry.OrganizationIntegration"
-  ],
   "sentry.PendingIncidentSnapshot": [
     "sentry.Incident"
   ],
