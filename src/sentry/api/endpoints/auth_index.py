@@ -17,7 +17,7 @@ from sentry.api.serializers import DetailedSelfUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.auth.superuser import Superuser
-from sentry.models import Authenticator, Organization
+from sentry.models import Authenticator
 from sentry.services.hybrid_cloud.auth.impl import promote_request_rpc_user
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import auth, json, metrics
@@ -60,8 +60,10 @@ class AuthIndexEndpoint(Endpoint):
         if not url_has_allowed_host_and_scheme(redirect, allowed_hosts=(request.get_host(),)):
             redirect = None
         initiate_login(request, redirect)
+        organization_context = organization_service.get_organization_by_id(id=org_id)
+        assert organization_context, "Failed to fetch organization in _reauthenticate_with_sso"
         raise SsoRequired(
-            organization=Organization.objects.get_from_cache(id=org_id),
+            organization=organization_context.organization,
             after_login_redirect=redirect,
         )
 
