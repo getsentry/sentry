@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 import uuid
 from datetime import datetime
 from typing import Any, Mapping, MutableMapping, Optional
@@ -14,7 +15,7 @@ from arroyo.types import Commit, Message, Partition, Topic
 
 from sentry import quotas
 from sentry.models import Project
-from sentry.utils import json, kafka_config
+from sentry.utils import json, kafka_config, metrics
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
 TAG_MAPPING = {
@@ -92,7 +93,9 @@ def process_message(message: Message[KafkaPayload]) -> Optional[KafkaPayload]:
     try:
         return _process_message(message)
     except Exception as e:
-        sentry_sdk.capture_exception(e)
+        metrics.incr("spans.consumer.message_processing_error")
+        if random.random() < 0.05:
+            sentry_sdk.capture_exception(e)
     return None
 
 
