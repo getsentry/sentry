@@ -2,7 +2,7 @@ import sys
 from typing import Any, Optional, Set
 
 import click
-from yaml import safe_dump, safe_load
+from yaml import safe_load
 
 from sentry.runner.commands.presenters.presenterdelegator import PresenterDelegator
 from sentry.runner.decorators import configuration, log_options
@@ -31,7 +31,7 @@ def _attempt_update(
         if hide_drift:
             presenter_delegator.drift(key, "")
         else:
-            presenter_delegator.drift(key, safe_dump(db_value_to_print))
+            presenter_delegator.drift(key, db_value_to_print)
         return
 
     last_update_channel = options.get_last_update_channel(key)

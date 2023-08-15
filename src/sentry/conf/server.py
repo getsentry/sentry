@@ -632,6 +632,9 @@ SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 # If this instance is a region silo, which region is it running in?
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 
+# Returns the customer single tenant ID.
+CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
+
 # Enable siloed development environment.
 USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
 
