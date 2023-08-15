@@ -2,7 +2,12 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from sentry.profiles.statistical_detectors import TrendPayload, TrendState, compute_new_trend_states
+from sentry.statistical_detectors.detector import (
+    TrendPayload,
+    TrendState,
+    TrendType,
+    compute_new_trend_states,
+)
 
 
 @pytest.mark.parametrize(
@@ -68,7 +73,7 @@ def test_trend_state(data, expected):
 
 
 @pytest.mark.parametrize(
-    "initial,p95s,regressed_indices,improved_indices",
+    "initial,values,regressed_indices,improved_indices",
     [
         pytest.param(
             TrendState(None, 0, 0, 0),
@@ -100,22 +105,39 @@ def test_trend_state(data, expected):
         ),
     ],
 )
-def test_run_functions_trend_detection(initial, p95s, regressed_indices, improved_indices):
-    states = [initial]
+def test_run_trend_detection(initial, values, regressed_indices, improved_indices):
+    state: TrendState = initial
     all_regressed = []
     all_improved = []
 
     now = datetime.now()
 
     payloads = [
-        TrendPayload(0, i + 1, p95, now + timedelta(hours=i + 1)) for i, p95 in enumerate(p95s)
+        TrendPayload(0, i + 1, value, now + timedelta(hours=i + 1))
+        for i, value in enumerate(values)
     ]
 
     for payload in payloads:
-        new_states, regressed, improved = compute_new_trend_states(1, states, [payload])
-        states = [state for _, state in new_states]
-        all_regressed.extend(regressed)
-        all_improved.extend(improved)
+        new_state = compute_new_trend_states(state, payload)
+        assert new_state is not None
+        state, (trend_type, result) = new_state
+        if trend_type == TrendType.Regressed:
+            all_regressed.append(result)
+        elif trend_type == TrendType.Improved:
+            all_improved.append(result)
 
     assert all_regressed == [payloads[i] for i in regressed_indices]
     assert all_improved == [payloads[i] for i in improved_indices]
+
+
+def test_run_trend_detection_bad_order():
+    now = datetime.now()
+
+    state = TrendState(None, 0, 0, 0)
+
+    new_state = compute_new_trend_states(state, TrendPayload(0, 2, 100, now))
+    assert new_state is not None
+    state, (trend_type, result) = new_state
+
+    new_state = compute_new_trend_states(state, TrendPayload(0, 1, 100, now - timedelta(hours=1)))
+    assert new_state is None

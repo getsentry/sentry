@@ -156,7 +156,7 @@ class OutboxBase(Model):
         )
 
     @classmethod
-    def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> OutboxBase | None:
+    def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> Self | None:
         using = router.db_for_write(cls)
         with transaction.atomic(using=using, savepoint=False):
             next_outbox: OutboxBase | None

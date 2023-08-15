@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from enum import Enum, auto, unique
 from typing import NamedTuple
 
@@ -69,6 +70,37 @@ class DependenciesJSONEncoder(json.JSONEncoder):
         if isinstance(obj, set):
             return sorted(list(obj), key=lambda obj: normalize_model_name(obj))
         return super().default(obj)
+
+
+class PrimaryKeyMap:
+    """
+    A map between a primary key in one primary key sequence (like a database) and another (like the
+    ordinals in a backup JSON file). As models are moved between databases, their absolute contents
+    may stay the same, but their relative identifiers may change. This class allows us to track how
+    those relations have been transformed, thereby preserving the model references between one
+    another.
+
+    Note that the map assumes that the primary keys in question are integers. In particular, natural
+    keys are not supported!
+    """
+
+    mapping: dict[str, dict[int, int]]
+
+    def __init__(self):
+        self.mapping = defaultdict(dict)
+
+    def get(self, model: str, old: int) -> int | None:
+        """Get the new, post-mapping primary key from an old primary key."""
+
+        pk_map = self.mapping.get(model)
+        if pk_map is None:
+            return None
+        return pk_map.get(old)
+
+    def insert(self, model: str, old: int, new: int):
+        """Create a new OLD_PK -> NEW_PK mapping for the given model."""
+
+        self.mapping[model][old] = new
 
 
 def dependencies() -> dict[str, ModelRelations]:
