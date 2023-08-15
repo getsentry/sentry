@@ -473,6 +473,83 @@ class RuleProcessorTestFilters(TestCase):
         assert futures[0].rule == self.rule
         assert futures[0].kwargs == {}
 
+    def test_environment_mismatch(self):
+        Rule.objects.filter(project=self.group_event.project).delete()
+        env = self.create_environment(project=self.project)
+        self.store_event(
+            data={"release": "2021-02.newRelease", "environment": env.name},
+            project_id=self.project.id,
+        )
+        self.rule = Rule.objects.create(
+            project=self.group_event.project,
+            environment_id=env.id,
+            data={"actions": [EMAIL_ACTION_DATA], "action_match": "any"},
+        )
+
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+        results = list(rp.apply())
+        assert len(results) == 0
+
+    def test_last_active_too_recent(self):
+        Rule.objects.filter(project=self.group_event.project).delete()
+        self.rule = Rule.objects.create(
+            project=self.group_event.project,
+            data={"actions": [EMAIL_ACTION_DATA], "action_match": "any"},
+        )
+
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+        grs = GroupRuleStatus.objects.create(
+            rule=self.rule,
+            group=self.group,
+            project=self.rule.project,
+            last_active=timezone.now() - timedelta(minutes=10),
+        )
+
+        with mock.patch(
+            "sentry.rules.processor.RuleProcessor.bulk_get_rule_status",
+            return_value={self.rule.id: grs},
+        ):
+            results = list(rp.apply())
+            assert len(results) == 0
+
+    @mock.patch("sentry.rules.processor.RuleProcessor.logger")
+    def test_invalid_predicate(self, mock_logger):
+        filter_data = {"id": "tests.sentry.rules.test_processor.MockFilterTrue"}
+
+        Rule.objects.filter(project=self.group_event.project).delete()
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+        self.rule = Rule.objects.create(
+            project=self.group_event.project,
+            data={
+                "conditions": [EVERY_EVENT_COND_DATA, filter_data],
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+
+        with patch("sentry.rules.processor.get_match_function", return_value=None):
+            rp = RuleProcessor(
+                self.group_event,
+                is_new=True,
+                is_regression=True,
+                is_new_group_environment=True,
+                has_reappeared=True,
+            )
+            results = list(rp.apply())
+            assert len(results) == 0
+            mock_logger.error.assert_called_once()
+
     def test_latest_release(self):
         # setup an alert rule with 1 conditions and no filters that passes
         self.create_release(project=self.project, version="2021-02.newRelease")

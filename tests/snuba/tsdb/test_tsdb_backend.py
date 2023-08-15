@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
-import pytz
 from snuba_sdk import Limit
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
@@ -58,7 +57,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
 
         self.db = SnubaTSDB()
         self.now = (datetime.utcnow() - timedelta(hours=4)).replace(
-            hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
+            hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
         )
         self.proj1 = self.create_project()
         env1 = "test"
@@ -630,7 +629,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
 
         self.db = SnubaTSDB()
         self.now = (datetime.utcnow() - timedelta(hours=4)).replace(
-            hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
+            hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
         )
         self.proj1 = self.create_project()
 
@@ -710,7 +709,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
 
     def test_range_groups_mult(self):
         now = (datetime.utcnow() - timedelta(days=1)).replace(
-            hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
+            hour=10, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
@@ -747,7 +746,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
     def test_range_groups_simple(self):
         project = self.create_project()
         now = (datetime.utcnow() - timedelta(days=1)).replace(
-            hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
+            hour=10, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
         )
         group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group5"
         ids = [1, 2, 3, 4, 5]
@@ -905,12 +904,12 @@ class AddJitterToSeriesTest(TestCase):
         self.db = SnubaTSDB()
 
     def run_test(self, end, interval, jitter, expected_start, expected_end):
-        end = end.replace(tzinfo=pytz.UTC)
+        end = end.replace(tzinfo=timezone.utc)
         start = end - interval
         rollup, rollup_series = self.db.get_optimal_rollup_series(start, end)
         series = self.db._add_jitter_to_series(rollup_series, start, rollup, jitter)
-        assert to_datetime(series[0]) == expected_start.replace(tzinfo=pytz.UTC)
-        assert to_datetime(series[-1]) == expected_end.replace(tzinfo=pytz.UTC)
+        assert to_datetime(series[0]) == expected_start.replace(tzinfo=timezone.utc)
+        assert to_datetime(series[-1]) == expected_end.replace(tzinfo=timezone.utc)
 
     def test(self):
         self.run_test(
