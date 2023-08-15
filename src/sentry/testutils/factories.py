@@ -124,9 +124,10 @@ from social_auth.models import UserSocialAuth
 
 def get_fixture_path(*parts: str) -> str:
     path = os.path.realpath(__file__)
-    print(f"HEY - {path}")  # noqa: S002
+    print(f"HEY - pre path - {path}")  # noqa: S002
     for _ in range(4):  # src/sentry/testutils/{__file__}
         path = os.path.dirname(path)
+    print(f"HEY - the path - {os.path.join(path, 'fixtures', *parts)}")  # noqa: S002
     return os.path.join(path, "fixtures", *parts)
 
 
