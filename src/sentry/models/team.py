@@ -355,11 +355,8 @@ class Team(Model, SnowflakeIdMixin):
     def delete(self, **kwargs):
         from sentry.models import ExternalActor
 
-        # There is no foreign key relationship so we have to manually delete the ExternalActors
         with outbox_context(transaction.atomic(router.db_for_write(ExternalActor))):
-            ExternalActor.objects.filter(actor_id=self.actor_id).delete()
             self.outbox_for_update().save()
-
             return super().delete(**kwargs)
 
     def get_member_actor_ids(self):

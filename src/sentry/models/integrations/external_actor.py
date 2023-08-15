@@ -22,8 +22,8 @@ class ExternalActor(DefaultFieldsModel):
     __include_in_export__ = False
 
     # actor = FlexibleForeignKey("sentry.Actor", db_index=True, on_delete=models.CASCADE)
-    team_id = HybridCloudForeignKey("sentry.Team", null=True, db_index=True, on_delete="CASCADE")
-    user = FlexibleForeignKey("sentry.User", null=True, db_index=True, on_delete=models.CASCADE)
+    team = FlexibleForeignKey("sentry.Team", null=True, db_index=True, on_delete=models.CASCADE)
+    user_id = HybridCloudForeignKey("sentry.User", null=True, db_index=True, on_delete="CASCADE")
     organization = FlexibleForeignKey("sentry.Organization")
     integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
     provider = BoundedPositiveIntegerField(
