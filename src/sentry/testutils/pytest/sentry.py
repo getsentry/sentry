@@ -45,6 +45,10 @@ def pytest_configure(config):
         # the temproot. We'd like to keep invocations to just "pytest".
         # See source code for pytest's TempPathFactory.
         os.environ.setdefault("PYTEST_DEBUG_TEMPROOT", "/private/tmp/colima")
+        try:
+            os.mkdir("/private/tmp/colima")
+        except FileExistsError:
+            pass
 
     # HACK: Only needed for testing!
     os.environ.setdefault("_SENTRY_SKIP_CONFIGURATION", "1")
