@@ -134,7 +134,7 @@ def get_path(data: PathSearchable, *path, **kwargs):
     return data if data is not None else default
 
 
-def set_path(data, *path, **kwargs):
+def set_path(data, *path, **kwargs) -> bool:
     """
     Recursively traverses or creates the specified path and sets the given value
     argument. `None` is treated like a missing value. If a non-mapping item is
