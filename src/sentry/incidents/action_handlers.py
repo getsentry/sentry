@@ -106,8 +106,10 @@ class EmailActionHandler(ActionHandler):
         self.email_users(TriggerStatus.RESOLVED, new_status)
 
     def email_users(self, trigger_status: TriggerStatus, incident_status: IncidentStatus) -> None:
-        for user_id, email in self.get_targets():
-            user = user_service.get_user(user_id=user_id)
+        targets = [(user_id, email) for user_id, email in self.get_targets()]
+        users = user_service.get_many(filter={"user_ids": [user_id for user_id, _ in targets]})
+        for index, (user_id, email) in enumerate(targets):
+            user = users[index]
             email_context = generate_incident_trigger_email_context(
                 self.project,
                 self.incident,
