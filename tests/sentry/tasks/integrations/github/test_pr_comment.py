@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from unittest.mock import call, patch
+from unittest.mock import patch
 
 import pytest
 import responses
@@ -763,12 +763,8 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         del stored_reactions["url"]
         assert no_error_comment.reactions == stored_reactions
 
-        mock_metrics.incr.has_calls(
-            [
-                call("github_pr_comment.comment_reactions.success"),
-                call("github_pr_comment.comment_reactions.api_error"),
-            ]
-        )
+        # assert the last metric emitted is a success
+        mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.success")
 
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @responses.activate
