@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import random
+import string
 import time
 from collections import defaultdict
 from dataclasses import dataclass
@@ -439,6 +441,13 @@ def get_replay_id(event: Event | GroupEvent) -> str | None:
             return evidence_replay_id
 
     return replay_id
+
+
+def generate_notification_uuid() -> str:
+    """
+    Generates a random string of 16 characters to be used as a notification uuid
+    """
+    return "".join(random.choices(string.ascii_letters + string.digits, k=16))
 
 
 @dataclass
