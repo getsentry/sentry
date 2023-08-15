@@ -3,11 +3,7 @@ from rest_framework import serializers
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.api.validators.notifications import validate_scope_type, validate_type, validate_value
-from sentry.notifications.types import (
-    NOTIFICATION_SETTING_V2_CHOICES,
-    NotificationScopeEnum,
-    NotificationSettingsOptionEnum,
-)
+from sentry.notifications.types import NOTIFICATION_SETTING_V2_CHOICES, NotificationScopeEnum
 from sentry.types.integrations import ExternalProviderEnum
 
 allowed_providers = [
@@ -60,21 +56,11 @@ class UserNotificationSettingsProvidersDetailsSerializer(
     UserNotificationSettingsOptionsDetailsSerializer
 ):
     provider = serializers.ListField(child=serializers.CharField())
-    value = serializers.CharField()
 
     def validate_provider(self, value):
         for provider in value:
             if provider not in allowed_providers:
                 raise serializers.ValidationError("Invalid provider")
-        return value
-
-    def validate_value(self, value):
-        # can only be always or never for provider
-        if value not in [
-            NotificationSettingsOptionEnum.ALWAYS.value,
-            NotificationSettingsOptionEnum.NEVER.value,
-        ]:
-            raise serializers.ValidationError("Invalid value")
         return value
 
     def validate_scope_type(self, value):

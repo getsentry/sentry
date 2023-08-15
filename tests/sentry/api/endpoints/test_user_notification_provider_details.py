@@ -123,16 +123,3 @@ class UserNotificationProviderDetailsPutTest(UserNotificationProviderDetailsBase
             provider=["github"],
         )
         assert response.data["provider"] == ["Invalid provider"]
-
-    def test_invalid_value(self):
-        response = self.get_error_response(
-            "me",
-            user_id=self.user.id,
-            scope_type="organization",
-            scope_identifier=self.organization.id,
-            type="alerts",
-            status_code=status.HTTP_400_BAD_REQUEST,
-            value=NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
-            provider=["slack"],
-        )
-        assert response.data["value"] == ["Invalid value"]
