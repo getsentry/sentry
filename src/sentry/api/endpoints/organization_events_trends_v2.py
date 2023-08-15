@@ -135,7 +135,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             # about having exact counts.
             return metrics_query(
                 top_event_columns,
-                query=user_query,
+                query="",
                 params=params,
                 orderby=["-count()"],
                 limit=event_limit,
@@ -256,6 +256,18 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             # Fetch timeseries for each top transaction name
             return get_timeseries(top_events, params, rollup, zerofill_results)
 
+        def format_start_end(data):
+            # format start and end
+            data_start = data[1].pop("start", "")
+            data_end = data[1].pop("end", "")
+            # data start and end that analysis is ran on
+            data[1]["data_start"] = data_start
+            data[1]["data_end"] = data_end
+            # user requested start and end
+            data[1]["request_start"] = params["start"].timestamp()
+            data[1]["request_end"] = data_end
+            return data
+
         def get_trends_data(stats_data, request):
             trend_function = request.GET.get("trendFunction", "p50()")
 
@@ -273,16 +285,9 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             # list of requests to send to microservice async
             trends_requests = []
 
-            # format start and end
-            for data in list(stats_data.items()):
-                data_start = data[1].pop("start", "")
-                data_end = data[1].pop("end", "")
-                # data start and end that analysis is ran on
-                data[1]["data_start"] = data_start
-                data[1]["data_end"] = data_end
-                # user requested start and end
-                data[1]["request_start"] = params["start"].timestamp()
-                data[1]["request_end"] = data_end
+            stats_data = dict(
+                [format_start_end(data) for data in list(stats_data.items()) if data[1] is not None]
+            )
 
             # split the txns data into multiple dictionaries
             split_transactions_data = [
