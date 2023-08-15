@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Type
 
 from dateutil import parser
 from django.db import models
@@ -11,6 +11,8 @@ from sentry.backup.dependencies import PrimaryKeyMap, dependencies
 from sentry.backup.findings import ComparatorFinding, ComparatorFindingKind, InstanceID
 from sentry.backup.helpers import Side, get_exportable_final_derivations_of
 from sentry.db.models import BaseModel
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.utils.json import JSONData
 
 
@@ -209,7 +211,7 @@ class ForeignKeyComparator(JSONScrubbingComparator):
     left_pk_map: PrimaryKeyMap | None = None
     right_pk_map: PrimaryKeyMap | None = None
 
-    def __init__(self, foreign_fields: dict[str, models.base.ModelBase]):
+    def __init__(self, foreign_fields: dict[str, Type[models.base.Model]]):
         super().__init__(*(foreign_fields.keys()))
         self.foreign_fields = foreign_fields
 
@@ -223,7 +225,8 @@ class ForeignKeyComparator(JSONScrubbingComparator):
         findings = []
         fields = sorted(self.fields)
         for f in fields:
-            field_model_name = "sentry." + self.foreign_fields[f].__name__.lower()
+            obj_name = self.foreign_fields[f]._meta.object_name.lower()  # type: ignore[union-attr]
+            field_model_name = "sentry." + obj_name
             if left["fields"].get(f) is None and right["fields"].get(f) is None:
                 continue
 
@@ -429,6 +432,8 @@ def build_default_comparators():
     comparators: ComparatorMap = defaultdict(
         list,
         {
+            # TODO(hybrid-cloud): actor refactor. Remove this entry when done.
+            "sentry.actor": [ForeignKeyComparator({"team": Team, "user_id": User})],
             "sentry.apitoken": [HashObfuscatingComparator("refresh_token", "token")],
             "sentry.apiapplication": [HashObfuscatingComparator("client_id", "client_secret")],
             "sentry.authidentity": [HashObfuscatingComparator("ident", "token")],
