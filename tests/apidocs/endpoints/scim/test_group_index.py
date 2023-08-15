@@ -25,7 +25,7 @@ class SCIMTeamIndexDocs(APIDocsTestCase, SCIMTestCase):
     def test_post(self):
         post_data = {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-            "displayName": "Test SCIMv2",
+            "displayName": "Test SCIM",
             "members": [],
         }
 
