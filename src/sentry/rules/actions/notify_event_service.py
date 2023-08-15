@@ -133,7 +133,9 @@ class NotifyEventServiceAction(EventAction):
             return f"(Legacy) {title}"
         return title
 
-    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, state: EventState, **kwargs
+    ) -> Generator[CallbackFuture, None, None]:
         service = self.get_option("service")
 
         extra = {"event_id": event.event_id}

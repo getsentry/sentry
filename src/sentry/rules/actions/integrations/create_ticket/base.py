@@ -80,7 +80,9 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
     def generate_footer(self, rule_url: str) -> str:
         pass
 
-    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, state: EventState, **kwargs
+    ) -> Generator[CallbackFuture, None, None]:
         integration_id = self.get_integration_id()
         key = f"{self.provider}:{integration_id}"
         yield self.future(

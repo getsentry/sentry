@@ -32,7 +32,9 @@ class NotifyEventAction(EventAction):
 
         return results
 
-    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, state: EventState, **kwargs
+    ) -> Generator[CallbackFuture, None, None]:
         group = event.group
 
         for plugin_ in self.get_plugins():

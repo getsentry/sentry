@@ -30,7 +30,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             "team": {"type": "choice", "choices": self.get_teams()},
         }
 
-    def after(self, event, state):
+    def after(self, event, state, **kwargs):
         integration = self.get_integration()
         if not integration:
             logger.error("Integration removed, but the rule still refers to it")

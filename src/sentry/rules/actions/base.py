@@ -14,7 +14,9 @@ class EventAction(RuleBase, abc.ABC):
     rule_type = "action/event"
 
     @abc.abstractmethod
-    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, state: EventState, **kwargs
+    ) -> Generator[CallbackFuture, None, None]:
         """
         Executed after a Rule matches.
 
