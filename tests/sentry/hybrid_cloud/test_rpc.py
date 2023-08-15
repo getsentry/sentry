@@ -231,3 +231,19 @@ class DispatchRemoteCallTest(TestCase):
             )
         result = org_service_delgn.get_org_by_slug(slug="this_is_not_a_valid_slug")
         assert result is None
+
+    @responses.activate
+    @override_settings(
+        SILO_MODE=SiloMode.REGION,
+        RPC_SHARED_SECRET=shared_secret,
+        SENTRY_CONTROL_ADDRESS=control_address,
+    )
+    @mock.patch("sentry.services.hybrid_cloud.rpc.time")
+    def test_simulated_latency(self, mock_time):
+        self._set_up_mock_response("organization/get_organization_by_id", None)
+        with override_settings(RPC_SIMULATED_LATENCY=0):
+            dispatch_remote_call(None, "organization", "get_organization_by_id", {"id": 0})
+            assert not mock_time.sleep.called
+        with override_settings(RPC_SIMULATED_LATENCY=500):
+            dispatch_remote_call(None, "organization", "get_organization_by_id", {"id": 0})
+            assert mock_time.sleep.called_with(0.5)
