@@ -62,7 +62,7 @@ from .integrations import *  # NOQA
 from .latestappconnectbuildscheck import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .lostpasswordhash import *  # NOQA
-from .notificationsetting import *  # NOQANOQA
+from .notificationsetting import *  # NOQA
 from .notificationsettingoption import *  # NOQA
 from .notificationsettingprovider import *  # NOQA
 from .options import *  # NOQA
