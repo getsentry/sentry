@@ -155,9 +155,10 @@ class Enhancements:
         cache_key = f"stacktrace_hash.{stacktrace_fingerprint}"
         use_cache = bool(stacktrace_fingerprint)
         if use_cache:
-            # We are running with dry_run, thus, not changing frames
+            # XXX: Add support to only allow certain orgs
+            org_can_use_cache = False  # For now, disabled by default
             frames_changed = _update_frames_from_cached_values(
-                frames, cache_key, platform, dry_run=True
+                frames, cache_key, platform, load_from_cache=org_can_use_cache
             )
             if frames_changed:
                 logger.info("The frames have been loaded from the cache. Skipping some work.")
@@ -498,11 +499,11 @@ class EnhancementsVisitor(NodeVisitor):
 
 
 def _update_frames_from_cached_values(
-    frames: Sequence[dict[str, Any]], cache_key: str, platform: str, dry_run: bool = True
+    frames: Sequence[dict[str, Any]], cache_key: str, platform: str, load_from_cache: bool = False
 ) -> bool:
     """
     This will update the frames of the stacktrace if it's been cached.
-    Set dry_run to False to actually change the frames.
+    Set load_from_cache to True to actually change the frames.
     Returns if the merged has correctly happened.
     """
     frames_changed = False
@@ -513,16 +514,15 @@ def _update_frames_from_cached_values(
         "save_event.stacktrace.cache.get",
         tags={"success": bool(changed_frames_values), "platform": platform},
     )
-    if changed_frames_values:
+    if changed_frames_values and load_from_cache:
         try:
             for frame, changed_frame_values in zip(frames, changed_frames_values):
-                if not dry_run:
-                    if changed_frame_values["in_app"] is not None:
-                        frame["in_app"] = changed_frame_values["in_app"]
-                        frames_changed = True
-                    if changed_frame_values["in_app"] is not None:
-                        set_path(frame, "data", "category", value=changed_frame_values["category"])
-                        frames_changed = True
+                if changed_frame_values.get("in_app"):
+                    frame["in_app"] = changed_frame_values["in_app"]
+                    frames_changed = True
+                if changed_frame_values.get("category"):
+                    set_path(frame, "data", "category", value=changed_frame_values["category"])
+                    frames_changed = True
 
             if frames_changed:
                 logger.info("We have merged the cached stacktrace to the incoming one.")
