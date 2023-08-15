@@ -1064,7 +1064,7 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
         analytics.record(
             "weekly_report.sent",
             user_id=user_id,
-            organization=ctx.organization.id,
+            organization_id=ctx.organization.id,
             notification_uuid=template_ctx["notification_uuid"],
             user_project_count=template_ctx["user_project_count"],
         )

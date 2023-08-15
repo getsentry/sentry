@@ -10,3 +10,6 @@ class WeeklyReportSent(analytics.Event):
         analytics.Attribute("notification_uuid"),
         analytics.Attribute("user_project_count", type=int),
     )
+
+
+analytics.register(WeeklyReportSent)
