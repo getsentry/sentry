@@ -89,7 +89,13 @@ export function SampleList({
         onOpen={onOpenDetailPanel}
       >
         {project && (
-          <SpanSummaryProjectAvatar project={project} direction="left" size={40} />
+          <SpanSummaryProjectAvatar
+            project={project}
+            direction="left"
+            size={40}
+            hasTooltip
+            tooltip={project.slug}
+          />
         )}
         <h3>
           <Link to={link}>{label}</Link>
