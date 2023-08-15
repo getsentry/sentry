@@ -155,11 +155,11 @@ def query_using_aggregated_search(
     tenant_ids = _make_tenant_id(organization)
 
     if sort is None:
-        sorting = [OrderBy(_get_sort_option("started_at"), Direction.DESC)]
+        sorting = [OrderBy(_get_sort_column("started_at"), Direction.DESC)]
     elif sort.startswith("-"):
-        sorting = [OrderBy(_get_sort_option(sort[1:]), Direction.DESC)]
+        sorting = [OrderBy(_get_sort_column(sort[1:]), Direction.DESC)]
     else:
-        sorting = [OrderBy(_get_sort_option(sort), Direction.ASC)]
+        sorting = [OrderBy(_get_sort_column(sort), Direction.ASC)]
 
     # Environments is provided to us outside of the ?query= url parameter. It's stil filtered like
     # the values in that parameter so let's shove it inside and process it like any other filter.
@@ -313,11 +313,11 @@ def make_full_aggregation_query(
     )
 
 
-def _get_sort_option(option_name: str) -> Function:
+def _get_sort_column(column_name: str) -> Function:
     try:
-        return agg_sort_config[option_name]
+        return agg_sort_config[column_name]
     except KeyError:
-        raise ParseError(f"The field `{option_name}` is not a sortable field.")
+        raise ParseError(f"The field `{column_name}` is not a sortable field.")
 
 
 def _make_tenant_id(organization: Organization | None) -> dict[str, int]:
