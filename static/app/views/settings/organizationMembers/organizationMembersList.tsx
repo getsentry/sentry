@@ -96,7 +96,12 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
       ],
 
       ['inviteRequests', `/organizations/${organization.slug}/invite-requests/`],
-      ['missingMembers', `/organizations/${organization.slug}/missing-members/`],
+      [
+        'missingMembers',
+        `/organizations/${organization.slug}/missing-members/`,
+        {},
+        {allowError: error => error.status === 403},
+      ],
     ];
   }
 
@@ -326,7 +331,7 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
       </SearchWrapperWithFilter>
     );
 
-    const githubMissingMembers = missingMembers.filter(
+    const githubMissingMembers = missingMembers?.filter(
       integrationMissingMembers => integrationMissingMembers.integration === 'github'
     )[0];
 
