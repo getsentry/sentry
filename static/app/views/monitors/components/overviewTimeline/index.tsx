@@ -112,6 +112,7 @@ const StickyResolutionSelector = styled(Sticky)`
   }
 `;
 
+// We don't need border here because it is already accomplished via box-shadow below
 const BorderlessGridLineTimeLabels = styled(GridLineTimeLabels)`
   border: none;
 `;
