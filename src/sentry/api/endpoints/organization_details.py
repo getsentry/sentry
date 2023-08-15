@@ -1,13 +1,12 @@
 import logging
 from copy import copy
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from django.db import IntegrityError, models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
-from django.utils import timezone
-from pytz import UTC
+from django.utils import timezone as django_timezone
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
@@ -134,7 +133,13 @@ ORG_OPTIONS = (
         "githubPRBot",
         "sentry:github_pr_bot",
         bool,
-        org_serializers.GITHUB_PR_BOT_DEFAULT,
+        org_serializers.GITHUB_COMMENT_BOT_DEFAULT,
+    ),
+    (
+        "githubOpenPRBot",
+        "sentry:github_open_pr_bot",
+        bool,
+        org_serializers.GITHUB_COMMENT_BOT_DEFAULT,
     ),
 )
 
@@ -179,6 +184,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     aiSuggestedSolution = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
+    githubOpenPRBot = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
@@ -295,7 +301,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return attrs
 
     def save_trusted_relays(self, incoming, changed_data, organization):
-        timestamp_now = datetime.utcnow().replace(tzinfo=UTC).isoformat()
+        timestamp_now = datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
         option_key = "sentry:trusted-relays"
         try:
             # get what we already have
@@ -701,7 +707,7 @@ def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs):
         "username": username,
         "user_ip_address": user_ip_address,
         "deletion_datetime": deletion_datetime,
-        "eta": timezone.now() + timedelta(seconds=countdown),
+        "eta": django_timezone.now() + timedelta(seconds=countdown),
         "url": url,
     }
 

@@ -1406,6 +1406,30 @@
       "CONTROL"
     ]
   },
+  "sentry.NotificationSettingOption": {
+    "foreign_keys": {
+      "user": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.User"
+      }
+    },
+    "model": "sentry.NotificationSettingOption",
+    "silos": [
+      "CONTROL"
+    ]
+  },
+  "sentry.NotificationSettingProvider": {
+    "foreign_keys": {
+      "user": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.User"
+      }
+    },
+    "model": "sentry.NotificationSettingProvider",
+    "silos": [
+      "CONTROL"
+    ]
+  },
   "sentry.Option": {
     "foreign_keys": {},
     "model": "sentry.Option",
@@ -1549,18 +1573,6 @@
     "model": "sentry.OrganizationOption",
     "silos": [
       "REGION"
-    ]
-  },
-  "sentry.PagerDutyService": {
-    "foreign_keys": {
-      "organization_integration": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.OrganizationIntegration"
-      }
-    },
-    "model": "sentry.PagerDutyService",
-    "silos": [
-      "CONTROL"
     ]
   },
   "sentry.PendingIncidentSnapshot": {

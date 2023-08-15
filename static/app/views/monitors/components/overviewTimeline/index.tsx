@@ -63,7 +63,7 @@ export function OverviewTimeline({monitorList}: Props) {
         <ResolutionSelector />
       </StickyResolutionSelector>
       <StickyGridLineTimeLabels>
-        <GridLineTimeLabels
+        <BorderlessGridLineTimeLabels
           timeWindow={timeWindow}
           end={nowRef.current}
           width={timelineWidth}
@@ -110,6 +110,11 @@ const StickyResolutionSelector = styled(Sticky)`
     border-left: 1px solid ${p => p.theme.border};
     margin-left: -1px;
   }
+`;
+
+// We don't need border here because it is already accomplished via box-shadow below
+const BorderlessGridLineTimeLabels = styled(GridLineTimeLabels)`
+  border: none;
 `;
 
 const StickyGridLineTimeLabels = styled(Sticky)`
