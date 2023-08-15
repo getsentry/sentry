@@ -136,7 +136,6 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = [
     "sentry.api.base",
-    "sentry.api.bases.avatar",
     "sentry.api.bases.doc_integrations",
     "sentry.api.bases.external_actor",
     "sentry.api.bases.group",
@@ -156,10 +155,7 @@ module = [
     "sentry.api.endpoints.auth_config",
     "sentry.api.endpoints.auth_login",
     "sentry.api.endpoints.avatar.doc_integration",
-    "sentry.api.endpoints.avatar.organization",
-    "sentry.api.endpoints.avatar.project",
     "sentry.api.endpoints.avatar.sentry_app",
-    "sentry.api.endpoints.avatar.team",
     "sentry.api.endpoints.avatar.user",
     "sentry.api.endpoints.catchall",
     "sentry.api.endpoints.chunk",
