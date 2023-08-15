@@ -17,8 +17,12 @@ describe('slugify', function () {
     expect(slugify('ﬁ')).toBe('fi');
   });
 
-  it('Removes special characters', function () {
+  it('removes special characters', function () {
     expect(slugify("some#chars%shouldn't*be.here")).toBe('somecharsshouldntbehere');
+  });
+
+  it('removes numbers', function () {
+    expect(slugify('some0chars1shouldn2t3be4here')).toBe('somecharsshouldntbehere');
   });
 
   it('keeps hyphens and underscores', function () {
