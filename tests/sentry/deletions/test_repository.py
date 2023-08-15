@@ -11,13 +11,16 @@ from sentry.models import (
     ProjectCodeOwners,
     Repository,
     RepositoryProjectPathConfig,
-    ScheduledDeletion,
 )
-from sentry.tasks.deletion.scheduled import run_deletion
+from sentry.silo.base import SiloMode
+from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-class DeleteRepositoryTest(TransactionTestCase):
+@region_silo_test(stable=True)
+class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         org = self.create_organization()
         repo = Repository.objects.create(
@@ -36,11 +39,10 @@ class DeleteRepositoryTest(TransactionTestCase):
             repository_id=repo2.id, organization_id=org.id, key="1234abcd"
         )
 
-        deletion = ScheduledDeletion.schedule(repo, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=repo, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not Repository.objects.filter(id=repo.id).exists()
         assert not Commit.objects.filter(id=commit.id).exists()
@@ -48,10 +50,11 @@ class DeleteRepositoryTest(TransactionTestCase):
 
     def test_codeowners(self):
         org = self.create_organization(owner=self.user)
-        self.integration = Integration.objects.create(
-            provider="github", name="Example", external_id="abcd"
-        )
-        org_integration = self.integration.add_organization(org, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="github", name="Example", external_id="abcd"
+            )
+            org_integration = self.integration.add_organization(org, self.user)
         project = self.create_project(organization=org)
         repo = Repository.objects.create(
             organization_id=org.id,
@@ -72,11 +75,10 @@ class DeleteRepositoryTest(TransactionTestCase):
             repository_project_path_config=path_config,
             raw="* @org/devs",
         )
-        deletion = ScheduledDeletion.schedule(repo, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=repo, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not Repository.objects.filter(id=repo.id).exists()
         assert not RepositoryProjectPathConfig.objects.filter(id=path_config.id).exists()
@@ -87,11 +89,10 @@ class DeleteRepositoryTest(TransactionTestCase):
         repo = Repository.objects.create(
             organization_id=org.id, provider="dummy", name="example/example"
         )
-        deletion = ScheduledDeletion.schedule(repo, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=repo, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
         assert Repository.objects.filter(id=repo.id).exists()
 
     @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.delete_repository")
@@ -106,11 +107,10 @@ class DeleteRepositoryTest(TransactionTestCase):
             status=ObjectStatus.PENDING_DELETION,
         )
 
-        deletion = ScheduledDeletion.schedule(repo, actor=self.user, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=repo, actor=self.user, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         msg = mail.outbox[-1]
         assert msg.subject == "Unable to Delete Repository Webhooks"
@@ -130,11 +130,10 @@ class DeleteRepositoryTest(TransactionTestCase):
             status=ObjectStatus.PENDING_DELETION,
         )
 
-        deletion = ScheduledDeletion.schedule(repo, actor=self.user, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=repo, actor=self.user, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         msg = mail.outbox[-1]
         assert msg.subject == "Unable to Delete Repository Webhooks"
@@ -156,10 +155,9 @@ class DeleteRepositoryTest(TransactionTestCase):
             value="",
         )
 
-        deletion = ScheduledDeletion.schedule(repo, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=repo, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not Repository.objects.filter(id=repo.id).exists()

@@ -11,11 +11,14 @@ from sentry.models import (
     ServiceHook,
 )
 from sentry.sentry_apps.installations import SentryAppInstallationCreator
+from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
+@control_silo_test(stable=True)
 class TestSentryAppInstallationDeletionTask(TestCase):
     def setUp(self):
         self.user = self.create_user()
@@ -72,12 +75,15 @@ class TestSentryAppInstallationDeletionTask(TestCase):
 
         with outbox_runner():
             deletions.exec_sync(self.install)
-        assert ServiceHook.objects.filter(pk=hook.id).exists()
 
-        with self.tasks():
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert ServiceHook.objects.filter(pk=hook.id).exists()
+
+        with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
             schedule_hybrid_cloud_foreign_key_jobs()
 
-        assert not ServiceHook.objects.filter(pk=hook.id).exists()
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert not ServiceHook.objects.filter(pk=hook.id).exists()
 
     def test_soft_deletes_installation(self):
         deletions.exec_sync(self.install)

@@ -1100,7 +1100,7 @@ class Factories:
         }
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.CONTROL)
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_service_hook(actor=None, org=None, project=None, events=None, url=None, **kwargs):
         if not actor:
             actor = Factories.create_user()

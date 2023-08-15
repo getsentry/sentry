@@ -175,6 +175,9 @@ class DatabaseBackedNotificationsService(NotificationsService):
         assert organization_id, "organization_id must be a positive integer"
         NotificationSetting.objects.remove_for_organization(organization_id=organization_id)
 
+    def remove_notification_settings_for_project(self, *, project_id: int) -> None:
+        NotificationSetting.objects.remove_for_project(project_id=project_id)
+
     def serialize_many(
         self,
         *,

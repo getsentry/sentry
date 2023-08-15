@@ -130,6 +130,11 @@ class NotificationsService(RpcService):
     def remove_notification_settings_for_organization(self, *, organization_id: int) -> None:
         pass
 
+    @rpc_method
+    @abstractmethod
+    def remove_notification_settings_for_project(self, *, project_id: int) -> None:
+        pass
+
 
 notifications_service: NotificationsService = cast(
     NotificationsService, NotificationsService.create_delegation()
