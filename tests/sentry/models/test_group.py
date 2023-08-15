@@ -218,18 +218,18 @@ class GroupTest(TestCase, SnubaTestCase):
 
     def test_get_absolute_url(self):
         for (org_slug, group_id, params, expected) in [
-            ("org1", 23, None, "http://testserver/organizations/org1/issues/23/"),
+            ("org-one", 23, None, "http://testserver/organizations/org-one/issues/23/"),
             (
-                "org2",
+                "org-two",
                 42,
                 {"environment": "dev"},
-                "http://testserver/organizations/org2/issues/42/?environment=dev",
+                "http://testserver/organizations/org-two/issues/42/?environment=dev",
             ),
             (
-                "\u00F6rg3",
+                "\u00F6rg-three",
                 86,
                 {"env\u00EDronment": "d\u00E9v"},
-                "http://testserver/organizations/org3/issues/86/?env%C3%ADronment=d%C3%A9v",
+                "http://testserver/organizations/org-three/issues/86/?env%C3%ADronment=d%C3%A9v",
             ),
         ]:
             org = self.create_organization(slug=org_slug)

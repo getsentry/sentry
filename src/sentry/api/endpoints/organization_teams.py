@@ -46,14 +46,13 @@ class OrganizationTeamsPermission(OrganizationPermission):
 class TeamPostSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=False, allow_null=True, allow_blank=True)
     slug = serializers.RegexField(
-        r"^[a-z0-9_\-]+$",
+        r"^[a-z_\-]+$",
         max_length=50,
         required=False,
         allow_null=True,
         error_messages={
             "invalid": _(
-                "Enter a valid slug consisting of lowercase letters, "
-                "numbers, underscores or hyphens."
+                "Enter a valid slug consisting of lowercase letters, underscores, or hyphens."
             )
         },
     )

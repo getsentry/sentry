@@ -27,7 +27,15 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '
 
 class ProjectPostSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=50, required=True)
-    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50, required=False, allow_null=True)
+    slug = serializers.RegexField(
+        r"^[a-z_\-]+$",
+        max_length=50,
+        required=False,
+        allow_null=True,
+        error_messages={
+            "invalid": "Enter a valid slug consisting of lowercase letters, underscores, or hyphens."
+        },
+    )
     platform = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     default_rules = serializers.BooleanField(required=False, initial=True)
 

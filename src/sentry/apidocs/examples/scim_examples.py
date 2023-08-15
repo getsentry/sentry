@@ -42,7 +42,7 @@ class SCIMExamples:
                     {
                         "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
                         "id": "23232",
-                        "displayName": "test-scimv2",
+                        "displayName": "test-scim",
                         "members": [],
                         "meta": {"resourceType": "Group"},
                     }
@@ -92,7 +92,7 @@ class SCIMExamples:
             value={
                 "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
                 "id": "23232",
-                "displayName": "test-scimv2",
+                "displayName": "test-scim",
                 "members": [],
                 "meta": {"resourceType": "Group"},
             },

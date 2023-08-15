@@ -184,45 +184,46 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         metrics.incr("sentry.scim.team.provision")
         serializer = TeamPostSerializer(data=request.data)
 
-        if serializer.is_valid():
-            result = serializer.validated_data
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            try:
-                with transaction.atomic(router.db_for_write(Team)):
-                    team = Team.objects.create(
-                        name=result.get("name") or result["slug"],
-                        slug=result["slug"],
-                        idp_provisioned=result.get("idp_provisioned", False),
-                        organization_id=organization.id,
-                    )
+        result = serializer.validated_data
 
-                team_created.send_robust(
+        try:
+            with transaction.atomic(router.db_for_write(Team)):
+                team = Team.objects.create(
+                    name=result.get("name") or result["slug"],
+                    slug=result["slug"],
+                    idp_provisioned=result.get("idp_provisioned", False),
                     organization_id=organization.id,
-                    user_id=request.user.id,
-                    team_id=team.id,
-                    sender=None,
-                )
-            except (IntegrityError, MaxSnowflakeRetryError):
-                return Response(
-                    {
-                        "non_field_errors": [CONFLICTING_SLUG_ERROR],
-                        "detail": CONFLICTING_SLUG_ERROR,
-                    },
-                    status=409,
                 )
 
-            self.create_audit_entry(
-                request=request,
-                organization=organization,
-                target_object=team.id,
-                event=audit_log.get_event_id("TEAM_ADD"),
-                data=team.get_audit_log_data(),
+            team_created.send_robust(
+                organization_id=organization.id,
+                user_id=request.user.id,
+                team_id=team.id,
+                sender=None,
             )
+        except (IntegrityError, MaxSnowflakeRetryError):
             return Response(
-                serialize(team, request.user, TeamSCIMSerializer(expand=["members"])),
-                status=201,
+                {
+                    "non_field_errors": [CONFLICTING_SLUG_ERROR],
+                    "detail": CONFLICTING_SLUG_ERROR,
+                },
+                status=409,
             )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=team.id,
+            event=audit_log.get_event_id("TEAM_ADD"),
+            data=team.get_audit_log_data(),
+        )
+        return Response(
+            serialize(team, request.user, TeamSCIMSerializer(expand=["members"])),
+            status=201,
+        )
 
 
 @extend_schema(tags=["SCIM"])
