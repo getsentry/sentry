@@ -78,9 +78,11 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
         # attachments feature has to be on for the files extract stick around
         with self.feature("organizations:event-attachments"):
+            print(f"before post_and_retrieve_unreal {filename}")  # noqa: S002
             with open(filename, "rb") as f:
                 event = self.post_and_retrieve_unreal(f.read())
 
+        print("Insta snapshot!")  # noqa: S002
         self.insta_snapshot(
             {
                 "contexts": event.data.get("contexts"),
