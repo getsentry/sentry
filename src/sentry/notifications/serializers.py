@@ -17,7 +17,7 @@ class NotificationSettingsBaseSerializer(Serializer):
             "id": str(obj.id),
             "scopeType": obj.scope_type,
             "scopeIdentifier": str(obj.scope_identifier),
-            "notificationType": obj.type,
+            "type": obj.type,
             "value": obj.value,
             "user_id": str(obj.user_id) if obj.user_id is not None else None,
             "team_id": str(obj.team_id) if obj.team_id is not None else None,

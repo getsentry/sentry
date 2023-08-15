@@ -58,7 +58,7 @@ class UserNotificationProviderDetailsGetTest(UserNotificationProviderDetailsBase
         assert slack_item["user_id"] == str(self.user.id)
         assert slack_item["team_id"] is None
         assert slack_item["value"] == "always"
-        assert slack_item["notificationType"] == "alerts"
+        assert slack_item["type"] == "alerts"
         assert slack_item["provider"] == "slack"
 
         assert email_item["provider"] == "email"

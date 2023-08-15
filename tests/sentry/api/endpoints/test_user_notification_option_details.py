@@ -44,7 +44,7 @@ class UserNotificationOptionDetailsGetTest(UserNotificationOptionDetailsBaseTest
         assert response[0]["user_id"] == str(self.user.id)
         assert response[0]["team_id"] is None
         assert response[0]["value"] == "always"
-        assert response[0]["notificationType"] == "alerts"
+        assert response[0]["type"] == "alerts"
 
     def test_invalid_type(self):
         response = self.get_error_response(
