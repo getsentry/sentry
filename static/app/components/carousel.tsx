@@ -1,92 +1,115 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {IconArrow} from 'sentry/icons';
-import {ArrowProps} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-type Props = {
+interface CarouselProps {
   children?: React.ReactNode;
-};
+  /**
+   * This number determines what percentage of an element must be within the
+   * visible scroll region for it to be considered 'visible'. If it is visible
+   * but slightly off screen it will be skipped when scrolling
+   *
+   * For example, if set to 0.8, and 10% of the element is out of the scroll
+   * area to the right, pressing the right arrow will skip over scrolling to
+   * this element, and will scroll to the next invisible one.
+   *
+   * @default 0.8
+   */
+  visibleRatio?: number;
+}
 
-function Carousel({children}: Props) {
+function Carousel({children, visibleRatio = 0.8}: CarouselProps) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const [anchorRefs, setAnchorRefs] = useState<HTMLElement[]>([]);
-  const [childrenRefs, setChildrenRefs] = useState<HTMLElement[]>([]);
-  const [isAtStart, setIsAtStart] = useState(true);
-  const [isAtEnd, setIsAtEnd] = useState(false);
 
+  // The visibility match up to the elements list. Visibility of elements is
+  // true if visible in the scroll container, false if outside.
+  const [childrenEls, setChildrenEls] = useState<HTMLElement[]>([]);
+  const [visibility, setVisibility] = useState<boolean[]>([]);
+
+  const isAtStart = visibility[0];
+  const isAtEnd = visibility[visibility.length - 1];
+
+  // Update list of children element
+  useEffect(
+    () => setChildrenEls(Array.from(ref.current?.children ?? []) as HTMLElement[]),
+    [children]
+  );
+
+  // Update the threshold list. This
   useEffect(() => {
     if (!ref.current) {
       return () => {};
     }
 
     const observer = new IntersectionObserver(
-      entries => {
-        entries.forEach(e => {
-          if (e.target.id === anchorRefs[0].id) {
-            setIsAtStart(e.isIntersecting);
-          } else if (e.target.id === anchorRefs[1].id) {
-            setIsAtEnd(e.isIntersecting);
-          }
-        });
-      },
-      {root: ref.current, threshold: [1]}
+      entries =>
+        setVisibility(currentVisibility =>
+          // Compute visibility list of the elements
+          childrenEls.map((child, idx) => {
+            const entry = entries.find(e => e.target === child);
+
+            // NOTE: When the intersection observer fires, only elements that
+            // have passed a threshold will be included in the entries list.
+            // This is why we fallback to the currentThreshold value if there
+            // was no entry for the child.
+            return entry !== undefined
+              ? entry.intersectionRatio > visibleRatio
+              : currentVisibility[idx] ?? false;
+          })
+        ),
+      {
+        root: ref.current,
+        threshold: [visibleRatio],
+      }
     );
 
-    if (anchorRefs) {
-      anchorRefs.map(anchor => observer.observe(anchor));
-    }
+    childrenEls.map(child => observer.observe(child));
 
     return () => observer.disconnect();
-  }, [anchorRefs]);
+  }, [childrenEls, visibleRatio]);
 
-  useEffect(() => {
-    if (!ref.current) {
-      return;
-    }
+  const scrollLeft = useCallback(
+    () =>
+      childrenEls[visibility.findIndex(Boolean) - 1].scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'start',
+      }),
+    [visibility, childrenEls]
+  );
 
-    setChildrenRefs(Array.from(ref.current.children) as HTMLElement[]);
-
-    const anchors = [
-      ref.current.children[0],
-      ref.current.children[ref.current.children.length - 1],
-    ] as HTMLElement[];
-    setAnchorRefs(anchors);
-  }, [children]);
-
-  const handleScroll = (direction: string) => {
-    if (!ref.current) {
-      return;
-    }
-
-    const scrollLeft = ref.current.scrollLeft;
-
-    if (direction === 'left') {
-      // scroll to the last child to the left of the left side of the container
-      const elements = childrenRefs.filter(child => child.offsetLeft < scrollLeft);
-      ref.current.scrollTo(elements[elements.length - 1].offsetLeft, 0);
-    } else if (direction === 'right') {
-      // scroll to the first child to the right of the left side of the container
-      const elements = childrenRefs.filter(child => child.offsetLeft > scrollLeft);
-      ref.current.scrollTo(elements[0].offsetLeft, 0);
-    }
-  };
+  const scrollRight = useCallback(
+    () =>
+      childrenEls[visibility.findLastIndex(Boolean) + 1].scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'end',
+      }),
+    [visibility, childrenEls]
+  );
 
   return (
     <CarouselContainer>
-      <CarouselItems ref={ref}>
-        <Anchor id="left-anchor" />
-        {children}
-        <Anchor id="right-anchor" />
-      </CarouselItems>
+      <CarouselItems ref={ref}>{children}</CarouselItems>
       {!isAtStart && (
-        <ScrollButton onClick={() => handleScroll('left')} direction="left" />
+        <StyledArrowButton
+          onClick={scrollLeft}
+          direction="left"
+          aria-label={t('Scroll left')}
+          icon={<IconArrow size="sm" direction="left" />}
+        />
       )}
       {!isAtEnd && (
-        <ScrollButton onClick={() => handleScroll('right')} direction="right" />
+        <StyledArrowButton
+          onClick={scrollRight}
+          direction="right"
+          aria-label={t('Scroll right')}
+          icon={<IconArrow size="sm" direction="right" />}
+        />
       )}
     </CarouselContainer>
   );
@@ -109,24 +132,6 @@ const CarouselItems = styled('div')`
    */
   padding: ${space(1.5)} 0;
 `;
-
-const Anchor = styled('div')``;
-
-type ScrollButtonProps = {
-  direction: ArrowProps['direction'];
-  onClick: () => void;
-};
-
-function ScrollButton({onClick, direction = 'left'}: ScrollButtonProps) {
-  return (
-    <StyledArrowButton
-      onClick={onClick}
-      direction={direction}
-      aria-label={t('Scroll %s', direction)}
-      icon={<IconArrow size="sm" direction={direction} />}
-    />
-  );
-}
 
 const StyledArrowButton = styled(Button)<{direction: string}>`
   position: absolute;
