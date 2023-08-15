@@ -171,7 +171,12 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
             trigger_sentry_app_action_creators_for_issues(actions=kwargs.get("actions"))
 
-            if rule.data["conditions"] != kwargs["conditions"]:
+            condition_data = rule.data["conditions"].copy()
+            for condition in condition_data:
+                if condition.get("name"):
+                    del condition["name"]
+
+            if condition_data != kwargs["conditions"]:
                 metrics.incr("sentry.issue_alert.conditions.edited", sample_rate=1.0)
             updated_rule = project_rules.Updater.run(rule=rule, request=request, **kwargs)
 
