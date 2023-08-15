@@ -133,9 +133,6 @@ class AuthenticationRequest(RpcModel):
     # HTTP_X_SENTRY_RELAY_SIGNATURE
     sentry_relay_signature: Optional[str] = None
     backend: Optional[str] = None
-    user_id: Optional[str] = None
-    user_hash: Optional[str] = None
-    nonce: Optional[str] = None
 
     remote_addr: Optional[str] = None
     signature: Optional[str] = None

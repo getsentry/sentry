@@ -314,6 +314,18 @@ def get_protected_operations() -> List[re.Pattern]:
             protected_table("sentry_organizationmapping", "insert"),
             protected_table("sentry_organizationmapping", "update"),
             protected_table("sentry_organizationmembermapping", "insert"),
+            protected_table("sentry_user", "insert"),
+            protected_table("sentry_user", "update"),
+            protected_table("sentry_user", "delete"),
+            protected_table("sentry_userroleuser", "insert"),
+            protected_table("sentry_userroleuser", "delete"),
+            protected_table("sentry_userroleuser", "update"),
+            protected_table("sentry_userrole", "insert"),
+            protected_table("sentry_userrole", "delete"),
+            protected_table("sentry_userrole", "update"),
+            protected_table("sentry_userpermission", "insert"),
+            protected_table("sentry_userpermission", "delete"),
+            protected_table("sentry_userpermission", "update"),
         ]
     )
 
