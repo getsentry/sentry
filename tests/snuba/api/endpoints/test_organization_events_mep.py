@@ -2391,6 +2391,64 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert field_meta["transaction"] == "string"
         assert field_meta["p75()"] == "duration"
 
+    def test_maintain_sort_order_across_datasets(self):
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1,
+            metric="user",
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            5,
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            5,
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "title",
+                    "project",
+                    "count()",
+                    "count_unique(user)",
+                ],
+                "query": "event.type:transaction",
+                "orderby": "count()",
+                "dataset": "metrics",
+                "project": self.project.id,
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        field_meta = meta["fields"]
+
+        assert len(data) == 2
+
+        assert data[0]["title"] == "foo_transaction"
+        assert data[0]["count()"] == 1
+        assert data[0]["count_unique(user)"] == 0
+
+        assert data[1]["title"] == "bar_transaction"
+        assert data[1]["count()"] == 2
+        assert data[1]["count_unique(user)"] == 1
+
+        assert meta["isMetricsData"]
+        assert field_meta["title"] == "string"
+        assert field_meta["count()"] == "integer"
+        assert field_meta["count_unique(user)"] == "integer"
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
@@ -2426,3 +2484,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Multiple aliases to same column not supported")
     def test_title_and_transaction_alias(self):
         super().test_title_and_transaction_alias()
+
+    @pytest.mark.xfail(reason="Sort order is flaking when querying multiple datasets")
+    def test_maintain_sort_order_across_datasets(self):
+        """You may need to run this test a few times to get it to fail"""
+        super().test_maintain_sort_order_across_datasets()
