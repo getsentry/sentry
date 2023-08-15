@@ -8,7 +8,7 @@ from typing import Any, Callable, Collection, List, Mapping, MutableMapping, Seq
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.eventstore.models import GroupEvent
 from sentry.models import Environment, GroupRuleStatus, Rule
 from sentry.models.rulesnooze import RuleSnooze
@@ -166,10 +166,9 @@ class RuleProcessor:
         :param rule: `Rule` object
         :return: void
         """
-        condition_match = rule.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
-        filter_match = rule.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
-        rule_condition_list = rule.data.get("conditions", ())
-        frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
+        should_log_extra_info = features.has(
+            "organizations:detailed-alert-logging", self.project.organization
+        )
         logging_details = {
             "rule_id": rule.id,
             "group_id": self.group.id,
@@ -180,46 +179,50 @@ class RuleProcessor:
             "has_reappeared": self.has_reappeared,
             "new_group_environment": self.is_new_group_environment,
         }
+        if should_log_extra_info:
+            self.logger.info(
+                "apply_rule",
+                extra={**logging_details},
+            )
 
-        self.logger.info(
-            "apply_rule",
-            extra={**logging_details},
-        )
+        condition_match = rule.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
+        filter_match = rule.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
+        rule_condition_list = rule.data.get("conditions", ())
+        frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
         try:
             environment = self.event.get_environment()
-            self.logger.info(
-                "apply_rule got environment",
-                extra={**logging_details},
-            )
         except Environment.DoesNotExist:
-            self.logger.info(
-                "apply_rule environment does not exist",
-                extra={**logging_details},
-            )
+            if should_log_extra_info:
+                self.logger.info(
+                    "apply_rule environment does not exist",
+                    extra={**logging_details},
+                )
             return
 
         if rule.environment_id is not None and environment.id != rule.environment_id:
-            self.logger.info(
-                "apply_rule environment does not match",
-                extra={
-                    **logging_details,
-                    "rule_environment_id": rule.environment_id,
-                    "event_environment_id": environment.id,
-                },
-            )
+            if should_log_extra_info:
+                self.logger.info(
+                    "apply_rule environment does not match",
+                    extra={
+                        **logging_details,
+                        "rule_environment_id": rule.environment_id,
+                        "event_environment_id": environment.id,
+                    },
+                )
             return
 
         now = timezone.now()
         freq_offset = now - timedelta(minutes=frequency)
         if status.last_active and status.last_active > freq_offset:
-            self.logger.info(
-                "apply_rule skipping rule because of last_active",
-                extra={
-                    **logging_details,
-                    "last_active": status.last_active,
-                    "freq_offset": freq_offset,
-                },
-            )
+            if should_log_extra_info:
+                self.logger.info(
+                    "apply_rule skipping rule because of last_active",
+                    extra={
+                        **logging_details,
+                        "last_active": status.last_active,
+                        "freq_offset": freq_offset,
+                    },
+                )
             return
 
         state = self.get_state()
@@ -232,7 +235,7 @@ class RuleProcessor:
                 if (
                     rule_cond.get("id", None)
                     == "sentry.rules.conditions.regression_event.RegressionEventCondition"
-                ):
+                ) and should_log_extra_info:
                     self.logger.info("apply_rule got regression_event", extra={**logging_details})
             else:
                 filter_list.append(rule_cond)
@@ -250,10 +253,11 @@ class RuleProcessor:
             predicate_func = get_match_function(match)
             if predicate_func:
                 if not predicate_func(predicate_iter):
-                    self.logger.info(
-                        "apply_rule invalid predicate_func",
-                        extra={**logging_details},
-                    )
+                    if should_log_extra_info:
+                        self.logger.info(
+                            "apply_rule invalid predicate_func",
+                            extra={**logging_details},
+                        )
                     return
             else:
                 self.logger.error(
@@ -271,10 +275,11 @@ class RuleProcessor:
         )
 
         if not updated:
-            self.logger.info(
-                "apply_rule not updated",
-                extra={**logging_details},
-            )
+            if should_log_extra_info:
+                self.logger.info(
+                    "apply_rule not updated",
+                    extra={**logging_details},
+                )
             return
 
         if randrange(10) == 0:

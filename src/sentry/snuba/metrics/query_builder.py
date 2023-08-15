@@ -150,7 +150,7 @@ def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=Non
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
 # a limited expression language with only AND, OR, IN and NOT IN
-FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match")
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match", "team_key_transaction")
 
 
 def resolve_tags(
