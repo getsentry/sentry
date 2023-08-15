@@ -28,6 +28,8 @@ from sentry.replays.lib.selector.parse import parse_selector
 from sentry.replays.usecases.query.conditions import (
     AggregateActivityScalar,
     SimpleAggregateDurationScalar,
+    SumOfClickArray,
+    SumOfClickScalar,
     SumOfClickSelectorComposite,
     SumOfErrorIdsArray,
     SumOfIPv4Scalar,
@@ -36,6 +38,14 @@ from sentry.replays.usecases.query.conditions import (
     SumOfUUIDArray,
 )
 from sentry.replays.usecases.query.fields import ComputedField, TagField
+
+
+def click_field(column_name: str) -> StringColumnField:
+    return StringColumnField(column_name, parse_str, SumOfClickScalar)
+
+
+def array_click_field(column_name: str) -> StringColumnField:
+    return StringColumnField(column_name, parse_str, SumOfClickArray)
 
 
 def count_field(column_name: str) -> CountField:
@@ -62,16 +72,16 @@ search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = {
     "activity": ComputedField(parse_int, AggregateActivityScalar),
     "browser.name": string_field("browser_name"),
     "browser.version": string_field("browser_version"),
-    "click.alt": string_field("click_alt"),
-    "click.class": array_string_field("click_class"),
-    "click.id": string_field("click_id"),
-    "click.label": string_field("click_aria_label"),
-    "click.role": string_field("click_role"),
+    "click.alt": click_field("click_alt"),
+    "click.class": array_click_field("click_class"),
+    "click.id": click_field("click_id"),
+    "click.label": click_field("click_aria_label"),
+    "click.role": click_field("click_role"),
     "click.selector": ComputedField(parse_selector, SumOfClickSelectorComposite),
-    "click.tag": string_field("click_tag"),
-    "click.testid": string_field("click_testid"),
-    "click.textContent": string_field("click_text"),
-    "click.title": string_field("click_title"),
+    "click.tag": click_field("click_tag"),
+    "click.testid": click_field("click_testid"),
+    "click.textContent": click_field("click_text"),
+    "click.title": click_field("click_title"),
     "count_dead_clicks": sum_field("click_is_dead"),
     "count_errors": sum_field("count_errors"),
     "count_rage_clicks": sum_field("click_is_rage"),

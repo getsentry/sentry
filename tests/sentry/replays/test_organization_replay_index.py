@@ -1321,4 +1321,48 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
 @apply_feature_flag_on_cls("organizations:session-replay-optimized-search")
 class OrganizationReplayIndexOptimizedSearchTest(OrganizationReplayIndexTest):
-    pass
+
+    # Currently only available on the newest query engine so the test is defined within this
+    # subclass.
+    def test_get_replays_filter_clicks_non_click_rows(self):
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                node_id=1,
+                tag="div",
+                id="id1",
+            )
+        )
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                node_id=2,
+                tag="",
+                id="id2",
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?field=id&query=click.id:id1")
+            assert response.status_code == 200
+            response_data = response.json()
+            assert len(response_data["data"]) == 1
+
+            # This is an impossible state in production but tests a valid concept that comes up.
+            # This test demonstrates what happens when you match a click value on non-click row.
+            response = self.client.get(self.url + "?field=id&query=click.id:id2")
+            assert response.status_code == 200
+            response_data = response.json()
+            assert len(response_data["data"]) == 0

@@ -7,10 +7,140 @@ asking whether any row in the aggregation set contained a result.
 from __future__ import annotations
 
 from snuba_sdk import Column, Condition, Function, Op
+from snuba_sdk.expressions import Expression
 
-from sentry.replays.lib.new_query.utils import contains, does_not_contain
+from sentry.replays.lib.new_query.conditions import GenericBase, StringArray, StringScalar
+from sentry.replays.lib.new_query.utils import (
+    contains,
+    does_not_contain,
+    translate_condition_to_function,
+)
 from sentry.replays.lib.selector.parse import QueryType
 from sentry.replays.usecases.query.conditions.base import ComputedBase
+
+
+class ClickScalar(GenericBase):
+    """Click scalar condition class.
+
+    Click scalar conditions can only be applied to click rows otherwise certain types of
+    conditional checks will match against non-click rows and return incorrect data. For example,
+    this query would return incorrect results without checking if the condition was applied to a
+    click row: `?query=click.label=*`
+    """
+
+    @staticmethod
+    def visit_eq(expression: Expression, value: str) -> Condition:
+        return and_is_click_row(StringScalar.visit_eq(expression, value))
+
+    @staticmethod
+    def visit_neq(expression: Expression, value: str) -> Condition:
+        return and_is_click_row(StringScalar.visit_neq(expression, value))
+
+    @staticmethod
+    def visit_match(expression: Expression, value: str) -> Condition:
+        return and_is_click_row(StringScalar.visit_match(expression, value))
+
+    @staticmethod
+    def visit_not_match(expression: Expression, value: str) -> Condition:
+        return and_is_click_row(StringScalar.visit_not_match(expression, value))
+
+    @staticmethod
+    def visit_in(expression: Expression, value: list[str]) -> Condition:
+        return and_is_click_row(StringScalar.visit_in(expression, value))
+
+    @staticmethod
+    def visit_not_in(expression: Expression, value: list[str]) -> Condition:
+        return and_is_click_row(StringScalar.visit_not_in(expression, value))
+
+
+class SumOfClickScalar(GenericBase):
+    """Aggregate click scalar condition class."""
+
+    @staticmethod
+    def visit_eq(expression: Expression, value: str) -> Condition:
+        return contains(ClickScalar.visit_eq(expression, value))
+
+    @staticmethod
+    def visit_neq(expression: Expression, value: str) -> Condition:
+        return does_not_contain(ClickScalar.visit_eq(expression, value))
+
+    @staticmethod
+    def visit_match(expression: Expression, value: str) -> Condition:
+        return contains(ClickScalar.visit_match(expression, value))
+
+    @staticmethod
+    def visit_not_match(expression: Expression, value: str) -> Condition:
+        return does_not_contain(ClickScalar.visit_match(expression, value))
+
+    @staticmethod
+    def visit_in(expression: Expression, value: list[str]) -> Condition:
+        return contains(ClickScalar.visit_in(expression, value))
+
+    @staticmethod
+    def visit_not_in(expression: Expression, value: list[str]) -> Condition:
+        return does_not_contain(ClickScalar.visit_in(expression, value))
+
+
+class ClickArray(GenericBase):
+    """Click array condition class.
+
+    Click array conditions can only be applied to click rows otherwise certain types of
+    conditional checks will match against non-click rows and return incorrect data. For example,
+    this query would return incorrect results without checking if the condition was applied to a
+    click row: `?query=click.label=*`
+    """
+
+    @staticmethod
+    def visit_eq(expression: Expression, value: str) -> Condition:
+        return and_is_click_row(StringArray.visit_eq(expression, value))
+
+    @staticmethod
+    def visit_neq(expression: Expression, value: str) -> Condition:
+        return and_is_click_row(StringArray.visit_neq(expression, value))
+
+    @staticmethod
+    def visit_match(expression: Expression, value: str) -> Condition:
+        return and_is_click_row(StringArray.visit_match(expression, value))
+
+    @staticmethod
+    def visit_not_match(expression: Expression, value: str) -> Condition:
+        return and_is_click_row(StringArray.visit_not_match(expression, value))
+
+    @staticmethod
+    def visit_in(expression: Expression, value: list[str]) -> Condition:
+        return and_is_click_row(StringArray.visit_in(expression, value))
+
+    @staticmethod
+    def visit_not_in(expression: Expression, value: list[str]) -> Condition:
+        return and_is_click_row(StringArray.visit_not_in(expression, value))
+
+
+class SumOfClickArray(GenericBase):
+    """Aggregate click array condition class."""
+
+    @staticmethod
+    def visit_eq(expression: Expression, value: str) -> Condition:
+        return contains(ClickArray.visit_eq(expression, value))
+
+    @staticmethod
+    def visit_neq(expression: Expression, value: str) -> Condition:
+        return does_not_contain(ClickArray.visit_eq(expression, value))
+
+    @staticmethod
+    def visit_match(expression: Expression, value: str) -> Condition:
+        return contains(ClickArray.visit_match(expression, value))
+
+    @staticmethod
+    def visit_not_match(expression: Expression, value: str) -> Condition:
+        return does_not_contain(ClickArray.visit_match(expression, value))
+
+    @staticmethod
+    def visit_in(expression: Expression, value: list[str]) -> Condition:
+        return contains(ClickArray.visit_in(expression, value))
+
+    @staticmethod
+    def visit_not_in(expression: Expression, value: list[str]) -> Condition:
+        return does_not_contain(ClickArray.visit_in(expression, value))
 
 
 class ClickSelectorComposite(ComputedBase):
@@ -101,3 +231,25 @@ def comparator(comparison_fn: str, functions: list[Function]) -> Function:
 
 def equals(lhs: Column, rhs: str | int) -> Function:
     return Function("equals", parameters=[lhs, rhs])
+
+
+def and_is_click_row(condition: Condition) -> Condition:
+    """Return results from qualifying click rows.
+
+    Click rows are defined as rows where click_tag's value is not the empty state. This function
+    transforms a query from:
+
+        (a = b)
+
+    To:
+
+        (a = b AND click_tag != '')
+    """
+    expression = Function(
+        "and",
+        parameters=[
+            translate_condition_to_function(condition),
+            translate_condition_to_function(StringScalar.visit_neq(Column("click_tag"), "")),
+        ],
+    )
+    return Condition(expression, Op.EQ, 1)
