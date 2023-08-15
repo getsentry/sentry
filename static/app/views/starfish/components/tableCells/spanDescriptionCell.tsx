@@ -15,6 +15,7 @@ import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/te
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import {ModuleName, StarfishFunctions} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
+import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
@@ -38,6 +39,7 @@ export function SpanDescriptionCell({
   projectId,
 }: Props) {
   const location = useLocation();
+  const routingContext = useRoutingContext();
 
   const hoverOverlayProps = useHoverOverlay('overlay', OVERLAY_OPTIONS);
 
@@ -79,7 +81,7 @@ export function SpanDescriptionCell({
         <OverflowEllipsisTextContainer>
           {group ? (
             <Link
-              to={`/starfish/${
+              to={`${routingContext.baseURL}/${
                 extractRoute(location) ?? 'spans'
               }/span/${group}?${qs.stringify(queryString)}`}
             >

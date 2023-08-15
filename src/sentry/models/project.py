@@ -35,6 +35,7 @@ from sentry.locks import locks
 from sentry.models.grouplink import GroupLink
 from sentry.models.options.option import OptionMixin
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQuery
@@ -554,10 +555,10 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         )
 
     def delete(self, **kwargs):
-        from sentry.models import NotificationSetting
 
         # There is no foreign key relationship so we have to manually cascade.
-        NotificationSetting.objects.remove_for_project(self)
+        notifications_service.remove_notification_settings_for_project(project_id=self.id)
+
         with outbox_context(transaction.atomic(router.db_for_write(Project))):
             Project.outbox_for_update(self.id, self.organization_id).save()
             return super().delete(**kwargs)

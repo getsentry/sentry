@@ -406,6 +406,8 @@ def _transform_team_key_transaction_in_orderby(mri_to_apply, orderby):
 
 
 def _transform_team_key_transaction_fake_mri(mq_dict):
+    if "project_ids" not in mq_dict:
+        raise MQBQueryTransformationException("Missing project_id in query")
     mri_to_apply = _derive_mri_to_apply(
         mq_dict["project_ids"], mq_dict["select"], mq_dict["orderby"]
     )
