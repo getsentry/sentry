@@ -1,13 +1,17 @@
 from copy import deepcopy
 
+import pytest
+
 from sentry.backup.comparators import (
     DatetimeEqualityComparator,
     DateUpdatedComparator,
     EmailObfuscatingComparator,
+    ForeignKeyComparator,
     HashObfuscatingComparator,
     IgnoredComparator,
     ScrubbedData,
 )
+from sentry.backup.dependencies import PrimaryKeyMap, dependencies
 from sentry.backup.findings import ComparatorFindingKind, InstanceID
 from sentry.utils.json import JSONData
 
@@ -394,6 +398,211 @@ def test_good_hash_obfuscating_comparator_scrubbed():
         "2...f",
         "...",
     ]
+
+
+DEPENDENCIES = dependencies()
+
+
+def test_good_foreign_key_comparator():
+    cmp = ForeignKeyComparator(
+        {k: v.model for k, v in DEPENDENCIES["sentry.UserEmail"].foreign_keys.items()}
+    )
+    id = InstanceID("sentry.useremail", 0)
+    left_pk_map = PrimaryKeyMap()
+    left_pk_map.insert("sentry.user", 12, 1)
+    right_pk_map = PrimaryKeyMap()
+    right_pk_map.insert("sentry.user", 34, 1)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "user": 12,
+            "email": "testing@example.com",
+            "validation_hash": "ABC123",
+            "date_hash_added": "2023-06-23T00:00:00.000Z",
+            "is_verified": True,
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "user": 34,
+            "email": "testing@example.com",
+            "validation_hash": "ABC123",
+            "date_hash_added": "2023-06-23T00:00:00.000Z",
+            "is_verified": True,
+        },
+    }
+    cmp.set_primary_key_maps(left_pk_map, right_pk_map)
+
+    assert not cmp.compare(id, left, right)
+
+
+def test_good_foreign_key_comparator_scrubbed():
+    cmp = ForeignKeyComparator(
+        {k: v.model for k, v in DEPENDENCIES["sentry.UserEmail"].foreign_keys.items()}
+    )
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "user": 12,
+            "email": "testing@example.com",
+            "validation_hash": "ABC123",
+            "date_hash_added": "2023-06-23T00:00:00.000Z",
+            "is_verified": True,
+        },
+    }
+    right = deepcopy(left)
+    cmp.scrub(left, right)
+    assert left["scrubbed"]
+    assert left["scrubbed"]["ForeignKeyComparator::user"] is ScrubbedData()
+
+    assert right["scrubbed"]
+    assert right["scrubbed"]["ForeignKeyComparator::user"] is ScrubbedData()
+
+
+def test_bad_foreign_key_comparator_set_primary_key_maps_not_called():
+    cmp = ForeignKeyComparator(
+        {k: v.model for k, v in DEPENDENCIES["sentry.UserEmail"].foreign_keys.items()}
+    )
+    id = InstanceID("sentry.useremail", 0)
+    left_pk_map = PrimaryKeyMap()
+    left_pk_map.insert("sentry.user", 12, 1)
+    right_pk_map = PrimaryKeyMap()
+    right_pk_map.insert("sentry.user", 34, 1)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "user": 12,
+            "email": "testing@example.com",
+            "validation_hash": "ABC123",
+            "date_hash_added": "2023-06-23T00:00:00.000Z",
+            "is_verified": True,
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "user": 34,
+            "email": "testing@example.com",
+            "validation_hash": "ABC123",
+            "date_hash_added": "2023-06-23T00:00:00.000Z",
+            "is_verified": True,
+        },
+    }
+
+    with pytest.raises(RuntimeError):
+        cmp.compare(id, left, right)
+
+
+def test_bad_foreign_key_comparator_unequal_mapping():
+    cmp = ForeignKeyComparator(
+        {k: v.model for k, v in DEPENDENCIES["sentry.UserEmail"].foreign_keys.items()}
+    )
+    id = InstanceID("sentry.useremail", 0)
+    left_pk_map = PrimaryKeyMap()
+    left_pk_map.insert("sentry.user", 12, 1)
+    right_pk_map = PrimaryKeyMap()
+    right_pk_map.insert("sentry.user", 34, 2)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "user": 12,
+            "email": "testing@example.com",
+            "validation_hash": "ABC123",
+            "date_hash_added": "2023-06-23T00:00:00.000Z",
+            "is_verified": True,
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "user": 34,
+            "email": "testing@example.com",
+            "validation_hash": "ABC123",
+            "date_hash_added": "2023-06-23T00:00:00.000Z",
+            "is_verified": True,
+        },
+    }
+    cmp.set_primary_key_maps(left_pk_map, right_pk_map)
+
+    res = cmp.compare(id, left, right)
+    assert res
+    assert res[0]
+    assert res[0].kind == ComparatorFindingKind.ForeignKeyComparator
+    assert res[0].on == id
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "`user`" in res[0].reason
+    assert "left foreign key ordinal (1)" in res[0].reason
+    assert "right foreign key ordinal (2)" in res[0].reason
+
+
+def test_bad_foreign_key_comparator_missing_mapping():
+    cmp = ForeignKeyComparator(
+        {k: v.model for k, v in DEPENDENCIES["sentry.UserEmail"].foreign_keys.items()}
+    )
+    id = InstanceID("sentry.useremail", 0)
+    left_pk_map = PrimaryKeyMap()
+    right_pk_map = PrimaryKeyMap()
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "user": 12,
+            "email": "testing@example.com",
+            "validation_hash": "ABC123",
+            "date_hash_added": "2023-06-23T00:00:00.000Z",
+            "is_verified": True,
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "user": 34,
+            "email": "testing@example.com",
+            "validation_hash": "ABC123",
+            "date_hash_added": "2023-06-23T00:00:00.000Z",
+            "is_verified": True,
+        },
+    }
+    cmp.set_primary_key_maps(left_pk_map, right_pk_map)
+
+    res = cmp.compare(id, left, right)
+    assert len(res) == 2
+    assert res[0]
+    assert res[0].kind == ComparatorFindingKind.ForeignKeyComparator
+    assert res[0].on == id
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "`user`" in res[0].reason
+    assert "left foreign key ordinal" in res[0].reason
+    assert "pk `12`" in res[0].reason
+
+    assert res[1]
+    assert res[1].kind == ComparatorFindingKind.ForeignKeyComparator
+    assert res[1].on == id
+    assert res[1].left_pk == 1
+    assert res[1].right_pk == 1
+    assert "`user`" in res[1].reason
+    assert "right foreign key ordinal" in res[1].reason
+    assert "pk `34`" in res[1].reason
 
 
 def test_good_ignored_comparator():
