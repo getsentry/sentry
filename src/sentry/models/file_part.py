@@ -12,6 +12,7 @@ class FilePartModel(Model):
     dek = models.CharField(max_length=64, null=True)
     end = models.IntegerField()
     filename = models.CharField(max_length=32)
+    is_archived = models.BooleanField()
     key = models.CharField(max_length=64, db_index=True)
     start = models.IntegerField()
 
