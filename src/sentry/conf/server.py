@@ -632,6 +632,9 @@ SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 # If this instance is a region silo, which region is it running in?
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 
+# Returns the customer single tenant ID.
+CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
+
 # Enable siloed development environment.
 USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
 
@@ -961,6 +964,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.digests.schedule_digests",
         "schedule": timedelta(seconds=30),
         "options": {"expires": 30},
+    },
+    "monitors-clock-pulse": {
+        "task": "sentry.monitors.tasks.clock_pulse",
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
     },
     "monitors-temp-task-dispatcher": {
         "task": "sentry.monitors.tasks.temp_task_dispatcher",
@@ -1554,6 +1563,8 @@ SENTRY_FEATURES = {
     "organizations:performance-new-trends": False,
     # Enable debug views for trendsv2 to be used internally
     "organizations:performance-trendsv2-dev-only": False,
+    # Bypass 30 day date range selection when fetching new trends data
+    "organizations:performance-trends-new-data-date-range-default": False,
     # Enable consecutive db performance issue type
     "organizations:performance-consecutive-db-issue": False,
     # Enable consecutive http performance issue type
@@ -1688,6 +1699,8 @@ SENTRY_FEATURES = {
     "organizations:sdk-crash-detection": False,
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
+    # Enable additional logging for alerts
+    "organizations:detailed-alert-logging": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.

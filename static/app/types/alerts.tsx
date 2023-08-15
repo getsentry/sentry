@@ -28,7 +28,6 @@ export interface IssueAlertRuleActionTemplate {
   enabled: boolean;
   id: string;
   label: string;
-  name: string;
   actionType?: 'ticket' | 'sentryapp';
   formFields?:
     | {
