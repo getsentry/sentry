@@ -588,7 +588,7 @@ class MonitorEnvironmentTestCase(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            status=MonitorStatus.OK,
+            status=MonitorStatus.ERROR,
         )
 
         MonitorCheckIn.objects.create(
@@ -630,7 +630,7 @@ class MonitorEnvironmentTestCase(TestCase):
 
         # recovery has hit threshold, monitor should be in an ok state
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
-        assert monitor_environment.status != MonitorStatus.OK
+        assert monitor_environment.status == MonitorStatus.OK
 
     def test_mark_failed_issue_threshold(self):
         failure_issue_threshold = 8
