@@ -1,4 +1,7 @@
+from django.db import router, transaction
+
 from sentry.models import Integration, Project, Rule
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.plugins.base import plugins
 from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.tasks.base import instrumented_task, retry
@@ -16,7 +19,7 @@ ALERT_LEGACY_INTEGRATIONS = {
     default_retry_delay=60 * 5,
     max_retries=5,
 )
-@retry(exclude=(Integration.DoesNotExist))
+@retry(exclude=[Integration.DoesNotExist])
 def migrate_alert_rules(integration_id: int, organization_id: int) -> None:
     from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
@@ -25,6 +28,8 @@ def migrate_alert_rules(integration_id: int, organization_id: int) -> None:
     )
     if not integration:
         raise Integration.DoesNotExist
+    if not organization_integration:
+        raise OrganizationIntegration.DoesNotExist
 
     seen_keys = {team["integration_key"] for team in organization_integration.config["team_table"]}
 
@@ -76,15 +81,16 @@ def migrate_alert_rules(integration_id: int, organization_id: int) -> None:
                         "team": team["id"],
                     }
                 )
-                rule.save()
-                logger.info(
-                    "alert_rule.migrated",
-                    extra={
-                        "integration_id": integration_id,
-                        "organization_id": organization_id,
-                        "project_id": project.id,
-                        "plugin": plugin.slug,
-                    },
-                )
+                with transaction.atomic(router.db_for_write(Rule)):
+                    rule.save()
+                    logger.info(
+                        "alert_rule.migrated",
+                        extra={
+                            "integration_id": integration_id,
+                            "organization_id": organization_id,
+                            "project_id": project.id,
+                            "plugin": plugin.slug,
+                        },
+                    )
         # disable plugin
         plugin.disable(project)
