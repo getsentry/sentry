@@ -140,24 +140,20 @@ class RelayStoreHelper(RequiredBaseclass):
         return event
 
     def post_and_retrieve_unreal(self, payload):
-        print("post_and_retrieve_unreal entering")  # noqa: S002
-        # It's all hex values
-        # print(payload)  # noqa: S002
+        """Post a payload and wait until we can retrieve it vua Snuba"""
         url = self.get_relay_unreal_url(self.project.id, self.projectkey.public_key)
-        print(f"RELAY {url}")  # noqa: S002
         responses.add_passthru(url)
 
-        print("post_and_retrieve_unreal post beging")  # noqa: S002
         resp = requests.post(
             url,
             data=payload,
         )
-        print("post_and_retrieve_unreal post end")  # noqa: S002
 
         assert resp.ok
         event_id = resp.text.strip().replace("-", "")
 
         print("post_and_retrieve_unreal wait for ingest consumer")  # noqa: S002
+        # We keep fetching for the event until it becomes available
         event = self.wait_for_ingest_consumer(
             lambda: eventstore.backend.get_event_by_id(
                 self.project.id,

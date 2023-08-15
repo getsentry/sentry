@@ -318,10 +318,10 @@ class SnubaEventStorage(EventStorage):
             return None
 
         event = Event(project_id=project_id, event_id=event_id)
+        print("get_event_by_id normalizing will happen before this.")  # noqa: S002
 
         # Return None if there was no data in nodestore
         if len(event.data) == 0:
-            print("get_event_by_id NO DATA")  # noqa: S002
             return None
 
         if group_id is not None and (
@@ -391,7 +391,6 @@ class SnubaEventStorage(EventStorage):
 
         # Set passed group_id if not a transaction
         if event.get_event_type() == "transaction" and not skip_transaction_groupevent and group_id:
-            print("get_event_by_id calling for_group")  # noqa: S002
             logger.warning("eventstore.passed-group-id-for-transaction")
             return event.for_group(Group.objects.get(id=group_id))
 

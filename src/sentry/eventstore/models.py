@@ -596,6 +596,7 @@ class Event(BaseEvent):
         groups: Sequence[Group] | None = None,
     ):
         super().__init__(project_id, event_id, snuba_data=snuba_data)
+        print("Event init")  # noqa: S002
         self.group_id = group_id
         self.groups = groups
         self.data = data
