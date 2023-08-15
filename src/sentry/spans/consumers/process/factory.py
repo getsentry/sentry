@@ -5,12 +5,11 @@ from datetime import datetime
 from typing import Any, Mapping, MutableMapping
 
 import msgpack
-from arroyo.backends.kafka.consumer import KafkaPayload
+from arroyo.backends.kafka.consumer import KafkaPayload, KafkaProducer
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
 from arroyo.types import Commit, Message, Partition, Topic
-from confluent_kafka import Producer
 
 from sentry import quotas
 from sentry.models import Project
@@ -91,8 +90,10 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         snuba_spans = kafka_config.get_topic_definition(output_topic)
         self.__output_topic = Topic(name=output_topic)
-        self.__producer = Producer(
-            kafka_config.get_kafka_producer_cluster_options(snuba_spans["cluster"]),
+        self.__producer = KafkaProducer(
+            kafka_config.get_kafka_producer_cluster_options(
+                snuba_spans["cluster"],
+            ),
         )
 
     def create_with_partitions(
