@@ -1551,18 +1551,6 @@
       "REGION"
     ]
   },
-  "sentry.PagerDutyService": {
-    "foreign_keys": {
-      "organization_integration": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.OrganizationIntegration"
-      }
-    },
-    "model": "sentry.PagerDutyService",
-    "silos": [
-      "CONTROL"
-    ]
-  },
   "sentry.PendingIncidentSnapshot": {
     "foreign_keys": {
       "incident": {

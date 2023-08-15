@@ -18,6 +18,7 @@ describe('projectSupportsReplay & projectCanLinkToReplay', () => {
     'javascript-nextjs' as PlatformKey,
     'javascript-react' as PlatformKey,
     'javascript' as PlatformKey,
+    'electron' as PlatformKey,
   ])('should SUPPORT & LINK frontend platform %s', platform => {
     const project = mockProject(platform);
     expect(projectSupportsReplay(project)).toBeTruthy();
@@ -47,7 +48,6 @@ describe('projectSupportsReplay & projectCanLinkToReplay', () => {
 
   it.each([
     'apple-macos' as PlatformKey,
-    'electron' as PlatformKey,
     'flutter' as PlatformKey,
     'unity' as PlatformKey,
   ])('should FAIL for Desktop framework %s', platform => {
