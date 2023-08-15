@@ -512,6 +512,7 @@ def _update_frames_from_cached_values(
     frames_changed = False
     # XXX: Test the fallback value
     changed_frames_values = cache.get(cache_key, {})
+    print(f"SEE - _update_frames_from_cached_values: {changed_frames_values}")  # noqa: S002
     # This helps tracking changes in the hit/miss ratio of the cache
     metrics.incr(
         "save_event.stacktrace.cache.get",
@@ -521,11 +522,11 @@ def _update_frames_from_cached_values(
         try:
             for frame, changed_frame_values in zip(frames, changed_frames_values):
                 if changed_frame_values["in_app"] is not None:
-                    print(f'FOO - {changed_frame_values["in_app"]}')  # noqa: S002
+                    # print(f'FOO - {changed_frame_values["in_app"]}')  # noqa: S002
                     frame["in_app"] = changed_frame_values["in_app"]
                     frames_changed = True
                 if changed_frame_values["category"] is not None:
-                    print(f'FOO - {changed_frame_values["category"]}')  # noqa: S002
+                    # print(f'FOO - {changed_frame_values["category"]}')  # noqa: S002
                     set_path(frame, "data", "category", value=changed_frame_values["category"])
                     frames_changed = True
 
