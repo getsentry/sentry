@@ -41,7 +41,7 @@ class IntegrationRequestBuffer:
 
     def is_integration_fatal_broken(self):
         """
-        Integration is broken if we have a fatal error OR have > 1000 timeouts in a day
+        Integration is broken if we have a fatal error
         Temporary fix to release disabling slack integrations with fatal errors
 
         """
