@@ -311,13 +311,16 @@ class SnubaEventStorage(EventStorage):
         skip_transaction_groupevent: Temporary hack parameter to skip converting a transaction
         event into a `GroupEvent`. Used as part of `post_process_group`.
         """
-
+        print("get_event_by_id begin")  # noqa: S002
         event_id = normalize_event_id(event_id)
+        print("get_event_by_id end")  # noqa: S002
 
         if not event_id:
             return None
 
+        print("get_event_by_id Event init")  # noqa: S002
         event = Event(project_id=project_id, event_id=event_id)
+        print("get_event_by_id Event end")  # noqa: S002
 
         # Return None if there was no data in nodestore
         if len(event.data) == 0:
@@ -327,8 +330,10 @@ class SnubaEventStorage(EventStorage):
             event.get_event_type() == "error"
             or (event.get_event_type() == "transaction" and skip_transaction_groupevent)
         ):
+            print("get_event_by_id error")  # noqa: S002
             event.group_id = group_id
         elif event.get_event_type() != "transaction" or group_id:
+            print("get_event_by_id transaction")  # noqa: S002
             # Load group_id from Snuba if not a transaction
             raw_query_kwargs = {}
             if event.datetime > timezone.now() - timedelta(hours=1):
@@ -390,6 +395,7 @@ class SnubaEventStorage(EventStorage):
             logger.warning("eventstore.passed-group-id-for-transaction")
             return event.for_group(Group.objects.get(id=group_id))
 
+        print("get_event_by_id returning event")  # noqa: S002
         return event
 
     def _get_dataset_for_event(self, event):

@@ -140,7 +140,7 @@ class RelayStoreHelper(RequiredBaseclass):
         return event
 
     def post_and_retrieve_unreal(self, payload):
-        print("post_and_retrieve_unreal")  # noqa: S002
+        print("post_and_retrieve_unreal entering")  # noqa: S002
         # It's all hex values
         # print(payload)  # noqa: S002
         url = self.get_relay_unreal_url(self.project.id, self.projectkey.public_key)
