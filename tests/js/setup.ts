@@ -297,3 +297,15 @@ Object.defineProperty(window, 'getComputedStyle', {
   configurable: true,
   writable: true,
 });
+
+window.IntersectionObserver = class IntersectionObserver {
+  root = null;
+  rootMargin = '';
+  thresholds = [];
+  takeRecords = jest.fn();
+
+  constructor() {}
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
