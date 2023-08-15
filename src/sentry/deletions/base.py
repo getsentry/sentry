@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import re
 
@@ -239,7 +241,7 @@ class ModelDeletionTask(BaseDeletionTask):
                     },
                 )
 
-    def get_actor(self) -> RpcUser:
+    def get_actor(self) -> RpcUser | None:
         if self.actor_id:
             return user_service.get_user(user_id=self.actor_id)
         return None
