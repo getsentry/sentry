@@ -52,7 +52,7 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     snuba_span["segment_id"] = relay_span.get("segment_id", "0")
     snuba_span["span_id"] = int(relay_span.get("span_id", 0), 16)
     snuba_span["tags"] = relay_span.get("tags")
-    snuba_span["trace_id"] = str(uuid.UUID(relay_span["trace_id"]))
+    snuba_span["trace_id"] = uuid.UUID(relay_span["trace_id"]).hex
     snuba_span["version"] = SPAN_SCHEMA_VERSION
 
     start_timestamp = datetime.utcfromtimestamp(relay_span["start_timestamp"])
