@@ -331,7 +331,7 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
       </SearchWrapperWithFilter>
     );
 
-    const githubMissingMembers = missingMembers.filter(
+    const githubMissingMembers = missingMembers?.filter(
       integrationMissingMembers => integrationMissingMembers.integration === 'github'
     )[0];
 
