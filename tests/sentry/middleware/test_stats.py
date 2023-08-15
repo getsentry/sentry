@@ -1,5 +1,5 @@
 from functools import cached_property
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, sentinel
 
 from django.test import RequestFactory, override_settings
 from rest_framework.permissions import AllowAny
@@ -52,7 +52,7 @@ class RequestTimingMiddlewareTest(TestCase):
     @patch("sentry.utils.metrics.incr")
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_records_default_api_metrics_with_rate_limit_type(self, incr):
-        rate_limit_middleware = RatelimitMiddleware(None)
+        rate_limit_middleware = RatelimitMiddleware(sentinel.callback)
         test_endpoint = RateLimitedEndpoint.as_view()
         request = self.factory.get("/")
         request._view_path = "/"

@@ -2,6 +2,7 @@ import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
+from typing import Any, Dict, List, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -34,7 +35,8 @@ REGRESSION = "regression"
 ANY = "any"
 TREND_TYPES = [IMPROVED, REGRESSION, ANY]
 
-TOP_EVENTS_LIMIT = 45
+DEFAULT_TOP_EVENTS_LIMIT = 45
+MAX_TOP_EVENTS_LIMIT = 1000
 EVENTS_PER_QUERY = 15
 DAY_GRANULARITY_IN_SECONDS = METRICS_GRANULARITIES[0]
 ONE_DAY_IN_SECONDS = 24 * 60 * 60  # 86,400 seconds
@@ -98,16 +100,21 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             return Response([])
 
         modified_params = params.copy()
-        delta = modified_params["end"] - modified_params["start"]
-        duration = delta.total_seconds()
-        if duration >= 14 * ONE_DAY_IN_SECONDS and duration <= 30 * ONE_DAY_IN_SECONDS:
-            new_start = modified_params["end"] - timedelta(days=30)
-            min_start = timezone.now() - timedelta(days=90)
-            modified_params["start"] = new_start if min_start < new_start else min_start
-            sentry_sdk.set_tag("performance.trendsv2.extra_data_fetched", True)
-            sentry_sdk.set_tag(
-                "performance.trendsv2.optimized_start_out_of_bounds", new_start > min_start
-            )
+        if not features.has(
+            "organizations:performance-trends-new-data-date-range-default",
+            organization,
+            actor=request.user,
+        ):
+            delta = modified_params["end"] - modified_params["start"]
+            duration = delta.total_seconds()
+            if duration >= 14 * ONE_DAY_IN_SECONDS and duration <= 30 * ONE_DAY_IN_SECONDS:
+                new_start = modified_params["end"] - timedelta(days=30)
+                min_start = timezone.now() - timedelta(days=90)
+                modified_params["start"] = new_start if min_start < new_start else min_start
+                sentry_sdk.set_tag("performance.trendsv2.extra_data_fetched", True)
+                sentry_sdk.set_tag(
+                    "performance.trendsv2.optimized_start_out_of_bounds", new_start > min_start
+                )
 
         trend_type = request.GET.get("trendType", REGRESSION)
         if trend_type not in TREND_TYPES:
@@ -120,7 +127,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         query = request.GET.get("query")
 
         def get_top_events(user_query, params, event_limit, referrer):
-            top_event_columns = selected_columns.copy()
+            top_event_columns = cast(List[str], selected_columns[:])
             top_event_columns.append("count()")
 
             # Granularity is set to 1d - the highest granularity possible
@@ -155,15 +162,14 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             ]
             queries = [generate_top_transaction_query(t_e) for t_e in split_top_events]
 
-            timeseries_columns = selected_columns.copy()
+            timeseries_columns = cast(List[str], selected_columns[:])
             timeseries_columns.append(trend_function)
 
             # When all projects or my projects options selected,
             # keep only projects that had top events to reduce query cardinality
             used_project_ids = list({event["project"] for event in data})
 
-            request.yAxis = selected_columns
-            request.GET.projectSlugs = used_project_ids
+            request.GET.projectSlugs = used_project_ids  # type: ignore
 
             # Get new params with pruned projects
             pruned_params = self.get_snuba_params(request, organization)
@@ -192,7 +198,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     "data": [],
                     "project": item["project"],
                 }
-            for row in result["data"]:
+            for row in result.get("data", []):  # type: ignore
                 result_key = create_result_key(row, translated_groupby, {})
                 if result_key in results:
                     results[result_key]["data"].append(row)
@@ -221,7 +227,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         "project": item["project"],
                         "isMetricsData": True,
                         "order": item["order"],
-                        "meta": result["meta"],
                     },
                     modified_params["start"],
                     modified_params["end"],
@@ -230,11 +235,15 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             return formatted_results
 
         def get_event_stats_metrics(_, user_query, params, rollup, zerofill_results, __):
+            top_event_limit = min(
+                int(request.GET.get("topEvents", DEFAULT_TOP_EVENTS_LIMIT)),
+                MAX_TOP_EVENTS_LIMIT,
+            )
             # Fetch transactions names with the highest event count
             top_events = get_top_events(
                 user_query=user_query,
                 params=params,
-                event_limit=TOP_EVENTS_LIMIT,
+                event_limit=top_event_limit,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS.value,
             )
 
@@ -250,8 +259,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         def get_trends_data(stats_data, request):
             trend_function = request.GET.get("trendFunction", "p50()")
 
-            trends_request = {
-                "data": None,
+            trends_request: Dict[str, Any] = {
+                "data": {},
                 "sort": None,
                 "trendFunction": None,
             }

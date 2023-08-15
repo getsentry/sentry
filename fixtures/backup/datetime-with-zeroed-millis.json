@@ -1,13 +1,5 @@
 [
   {
-    "model": "sites.site",
-    "pk": 1,
-    "fields": {
-      "domain": "example.com",
-      "name": "example.com"
-    }
-  },
-  {
     "model": "sentry.option",
     "pk": 1,
     "fields": {

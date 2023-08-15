@@ -63,7 +63,10 @@ class BitbucketApiClient(IntegrationProxyClient):
                 integration_id=integration.id, ctx_logger=logger
             )
         super().__init__(
-            org_integration_id=org_integration_id, verify_ssl=True, logging_context=None
+            integration_id=integration.id,
+            org_integration_id=org_integration_id,
+            verify_ssl=True,
+            logging_context=None,
         )
 
     @control_silo_function

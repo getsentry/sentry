@@ -11,6 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {setIntersectionObserver} from 'sentry/components/carousel.spec';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -45,33 +46,7 @@ const roles = [
 const missingMembers = [
   {
     integration: 'github',
-    users: [
-      {
-        commitCount: 6,
-        email: 'hello@sentry.io',
-        externalId: 'hello',
-      },
-      {
-        commitCount: 5,
-        email: 'abcd@sentry.io',
-        externalId: 'abcd',
-      },
-      {
-        commitCount: 4,
-        email: 'hola@sentry.io',
-        externalId: 'hola',
-      },
-      {
-        commitCount: 3,
-        email: 'test@sentry.io',
-        externalId: 'test',
-      },
-      {
-        commitCount: 2,
-        email: 'five@sentry.io',
-        externalId: 'five',
-      },
-    ],
+    users: TestStubs.MissingMembers(),
   },
 ];
 
@@ -184,6 +159,18 @@ describe('OrganizationMembersList', function () {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      method: 'GET',
+      body: {
+        dismissed_ts: undefined,
+        snoozed_ts: undefined,
+      },
+    });
+    setIntersectionObserver([
+      {target: {id: 'left-anchor'}, isIntersecting: true},
+      {target: {id: 'right-anchor'}, isIntersecting: true},
+    ]);
     (browserHistory.push as jest.Mock).mockReset();
     OrganizationsStore.load([organization]);
   });
@@ -606,51 +593,6 @@ describe('OrganizationMembersList', function () {
   });
 
   describe('inviteBanner', function () {
-    it('renders banner with feature flag', function () {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/missing-members/',
-        method: 'GET',
-        body: missingMembers,
-      });
-
-      const org = TestStubs.Organization({
-        features: ['integrations-gh-invite'],
-      });
-
-      render(<OrganizationMembersList {...defaultProps} organization={org} />, {
-        context: TestStubs.routerContext([{organization: org}]),
-      });
-
-      expect(screen.getByTestId('invite-banner')).toBeInTheDocument();
-      expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(5);
-      expect(screen.getByText('See all 5 missing members')).toBeInTheDocument();
-    });
-
-    it('does not render banner if no missing members', function () {
-      const org = TestStubs.Organization({
-        features: ['integrations-gh-invite'],
-      });
-
-      render(<OrganizationMembersList {...defaultProps} organization={org} />, {
-        context: TestStubs.routerContext([{organization: org}]),
-      });
-
-      expect(screen.queryByTestId('invite-banner')).not.toBeInTheDocument();
-    });
-
-    it('does not render banner if lacking org:write', function () {
-      const org = TestStubs.Organization({
-        features: ['integrations-gh-invite'],
-        access: [],
-      });
-
-      render(<OrganizationMembersList {...defaultProps} organization={org} />, {
-        context: TestStubs.routerContext([{organization: org}]),
-      });
-
-      expect(screen.queryByTestId('invite-banner')).not.toBeInTheDocument();
-    });
-
     it('invites member from banner', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/missing-members/',
@@ -683,7 +625,11 @@ describe('OrganizationMembersList', function () {
         context: TestStubs.routerContext([{organization: org}]),
       });
 
-      expect(screen.getByTestId('invite-banner')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', {
+          name: 'Bring your full GitHub team on board in Sentry',
+        })
+      ).toBeInTheDocument();
       expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(5);
       expect(screen.getByText('See all 5 missing members')).toBeInTheDocument();
 
