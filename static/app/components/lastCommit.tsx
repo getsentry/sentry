@@ -41,6 +41,11 @@ function LastCommit({commit, className}: Props) {
       }
       return `${truncated}\u2026`;
     }
+
+    if (commit.repository !== undefined) {
+      const commitURL = commit.repository.url + '/commit/' + commit.id;
+      return <a href={commitURL}>{firstLine}</a>;
+    }
     return firstLine;
   }
 
