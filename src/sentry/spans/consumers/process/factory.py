@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any, Mapping, MutableMapping
+from typing import Any, Mapping, MutableMapping, Optional
 
 import msgpack
+import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload, KafkaProducer
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
@@ -63,13 +64,21 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     return snuba_span
 
 
-def process_message(message: Message[KafkaPayload]) -> KafkaPayload:
+def _process_message(message: Message[KafkaPayload]) -> KafkaPayload:
     payload = msgpack.unpackb(message.payload.value)
     relay_span = payload["span"]
     relay_span["project_id"] = payload["project_id"]
     snuba_span = _build_snuba_span(relay_span)
     snuba_payload = json.dumps(snuba_span).encode("utf-8")
     return KafkaPayload(key=None, value=snuba_payload, headers=[])
+
+
+def process_message(message: Message[KafkaPayload]) -> Optional[KafkaPayload]:
+    try:
+        return _process_message(message)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+    return None
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
