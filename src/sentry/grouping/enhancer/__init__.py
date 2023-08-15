@@ -154,6 +154,7 @@ class Enhancements:
         )
         # The most expensive part of creating groups is applying the rules to frames (next code block)
         cache_key = f"stacktrace_hash.{stacktrace_fingerprint}"
+        print(cache_key)  # noqa: S002
         use_cache = bool(stacktrace_fingerprint)
         if use_cache:
             # XXX: Add a way to only allow certain orgs

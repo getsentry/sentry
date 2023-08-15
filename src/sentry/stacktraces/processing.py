@@ -289,7 +289,7 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None) -> None:
     Applies grouping enhancement rules and ensure in_app is set on all frames.
     This also trims functions if necessary.
     """
-    raise Exception("foo")
+    # raise Exception("foo")
     print("HEY - calling normalize_stacktraces_for_grouping")  # noqa: S002
 
     stacktrace_frames = []
