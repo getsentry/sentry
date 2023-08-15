@@ -332,6 +332,8 @@ class SnubaEventStorage(EventStorage):
             event.group_id = group_id
         elif event.get_event_type() != "transaction" or group_id:
             print("get_event_by_id transaction")  # noqa: S002
+            print(f"get_event_by_id {event.get_event_type()}")  # noqa: S002
+            print("get_event_by_id {group_id}")  # noqa: S002
             # Load group_id from Snuba if not a transaction
             raw_query_kwargs = {}
             if event.datetime > timezone.now() - timedelta(hours=1):
@@ -363,6 +365,7 @@ class SnubaEventStorage(EventStorage):
                     tenant_ids=tenant_ids,
                     **raw_query_kwargs,
                 )
+                print(f"result: {result}")  # noqa: S002
             except snuba.QueryOutsideRetentionError:
                 # this can happen due to races.  We silently want to hide
                 # this from callers.
