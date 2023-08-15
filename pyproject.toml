@@ -95,7 +95,6 @@ module = [
     "celery.*",
     "codeowners.*",
     "confluent_kafka.*",
-    "csp.middleware.*",
     "cssselect.*",
     "django_zero_downtime_migrations.backends.postgres.schema.*",
     "docker.*",
