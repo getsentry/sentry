@@ -160,16 +160,14 @@ class Enhancements:
         if use_cache:
             # XXX: Add a way to only allow certain orgs
             org_can_use_cache = True
-            _update_frames_from_cached_values(
+            frames_changed = _update_frames_from_cached_values(
                 frames, cache_key, platform, load_from_cache=org_can_use_cache
             )
-            # if frames_changed:
-            #     print("USING CACHE")  # noqa: S002
-            #     # print(f"match frames: {match_frames}")  # noqa: S002
-            #     # print(f"frames: {frames}")  # noqa: S002
-            #     print("Reusing cached data")  # noqa: S002
-            #     logger.info("The frames have been loaded from the cache. Skipping some work.")
-            #     # return
+            if frames_changed:
+                print("USING CACHE")  # noqa: S002
+                print("Reusing cached data")  # noqa: S002
+                logger.info("The frames have been loaded from the cache. Skipping some work.")
+                return
 
         with sentry_sdk.start_span(op="stacktrace_processing", description="apply_rules_to_frames"):
             for rule in self._modifier_rules:
