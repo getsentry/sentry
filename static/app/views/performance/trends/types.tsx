@@ -15,6 +15,7 @@ export type TrendsQuery = EventQuery &
   LocationQuery & {
     interval?: string;
     middle?: string;
+    topEvents?: number;
     trendFunction?: string;
     trendType?: TrendChangeType;
   };
