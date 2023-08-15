@@ -35,6 +35,7 @@ import {
   SpanMetricsFieldTypes,
 } from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
+import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 type Row = {
@@ -72,6 +73,7 @@ export function SpanTransactionsTable({
   sort,
 }: Props) {
   const location = useLocation();
+  const routingContext = useRoutingContext();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const router = useRouter();
@@ -122,7 +124,7 @@ export function SpanTransactionsTable({
     });
 
     if (column.key === 'avg(span.self_time)') {
-      const pathname = `/starfish/${
+      const pathname = `${routingContext.baseURL}/${
         extractRoute(location) ?? 'spans'
       }/span/${encodeURIComponent(span[SpanMetricsFields.SPAN_GROUP])}`;
       const query = {
