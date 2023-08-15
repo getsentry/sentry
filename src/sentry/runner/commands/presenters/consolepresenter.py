@@ -1,6 +1,7 @@
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 import click
+from yaml import safe_dump
 
 from sentry.runner.commands.presenters.optionspresenter import OptionsPresenter
 
@@ -25,10 +26,10 @@ class ConsolePresenter(OptionsPresenter):
     INVALID_TYPE_ERROR = "Option %s has invalid type. got %s, expected %s."
 
     def __init__(self) -> None:
-        self.drifted_options: List[Tuple[str, str]] = []
+        self.drifted_options: List[Tuple[str, Any]] = []
         self.channel_updated_options: List[str] = []
-        self.updated_options: List[Tuple[str, str, str]] = []
-        self.set_options: List[Tuple[str, str]] = []
+        self.updated_options: List[Tuple[str, Any, Any]] = []
+        self.set_options: List[Tuple[str, Any]] = []
         self.unset_options: List[str] = []
         self.not_writable_options: List[Tuple[str, str]] = []
         self.unregistered_options: List[str] = []
@@ -47,7 +48,7 @@ class ConsolePresenter(OptionsPresenter):
                 # This is yaml instead of the python representation as the
                 # expected flow, in this case, is to use the output of this
                 # line to copy paste it in the config map.
-                click.echo(db_value)
+                click.echo(safe_dump(db_value))
 
         for key in self.channel_updated_options:
             click.echo(self.CHANNEL_UPDATE_MSG % key)
@@ -72,19 +73,19 @@ class ConsolePresenter(OptionsPresenter):
             click.echo(self.INVALID_TYPE_ERROR % (key, got_type, expected_type))
             logger.error(self.INVALID_TYPE_ERROR, key, got_type, expected_type)
 
-    def set(self, key: str, value: str) -> None:
+    def set(self, key: str, value: Any) -> None:
         self.set_options.append((key, value))
 
     def unset(self, key: str) -> None:
         self.unset_options.append(key)
 
-    def update(self, key: str, db_value: str, value: str) -> None:
+    def update(self, key: str, db_value: Any, value: Any) -> None:
         self.updated_options.append((key, db_value, value))
 
     def channel_update(self, key: str) -> None:
         self.channel_updated_options.append(key)
 
-    def drift(self, key: str, db_value: str) -> None:
+    def drift(self, key: str, db_value: Any) -> None:
         self.drifted_options.append((key, db_value))
 
     def not_writable(self, key: str, not_writable_reason: str) -> None:

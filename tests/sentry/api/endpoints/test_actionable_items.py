@@ -313,7 +313,9 @@ class ActionableItemsEndpointTestCase(APITestCase):
                     },
                 ]
             },
-            "errors": [{"type": EventError.JS_SCRAPING_DISABLED, "url": "http://example.com"}],
+            "errors": [
+                {"type": EventError.JS_MISSING_SOURCES_CONTENT, "url": "http://example.com"}
+            ],
         }
 
         event = self.store_event(
@@ -337,7 +339,7 @@ class ActionableItemsEndpointTestCase(APITestCase):
         event_error = errors[1]
 
         assert sourcemap_error["type"] == SourceMapProcessingIssue.MISSING_RELEASE
-        assert event_error["type"] == EventError.JS_SCRAPING_DISABLED
+        assert event_error["type"] == EventError.JS_MISSING_SOURCES_CONTENT
 
     @with_feature("organizations:actionable-items")
     def test_orders_event_errors_by_priority(self):
@@ -368,7 +370,7 @@ class ActionableItemsEndpointTestCase(APITestCase):
                 },
                 "errors": [
                     {"type": EventError.INVALID_DATA, "name": "foo"},
-                    {"type": EventError.JS_SCRAPING_DISABLED, "url": "http://example.com"},
+                    {"type": EventError.JS_MISSING_SOURCES_CONTENT, "url": "http://example.com"},
                     {"type": EventError.UNKNOWN_ERROR, "name": "bar"},
                 ],
             },
@@ -417,9 +419,9 @@ class ActionableItemsEndpointTestCase(APITestCase):
         # Unknown error should be hidden
         assert len(errors) == 2
 
-        # Scraping Error should be first by priority
-        scraping_error = errors[0]
+        # Missing Error should be first by priority
+        missing_error = errors[0]
         invalid_data = errors[1]
 
-        assert scraping_error["type"] == EventError.JS_SCRAPING_DISABLED
+        assert missing_error["type"] == EventError.JS_MISSING_SOURCES_CONTENT
         assert invalid_data["type"] == EventError.INVALID_DATA

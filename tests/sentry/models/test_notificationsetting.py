@@ -5,10 +5,11 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
@@ -29,7 +30,7 @@ def create_setting(**kwargs):
     )
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class NotificationSettingTest(TestCase):
     def test_remove_for_user(self):
         create_setting(user_id=self.user.id)
@@ -47,7 +48,7 @@ class NotificationSettingTest(TestCase):
         create_setting(team_id=self.team.id, project=self.project)
 
         # Deletion is deferred and tasks aren't run in tests.
-        with outbox_runner():
+        with assume_test_silo_mode(SiloMode.REGION), outbox_runner():
             self.team.delete()
 
         with self.tasks():
@@ -57,12 +58,14 @@ class NotificationSettingTest(TestCase):
 
     def test_remove_for_project(self):
         create_setting(user_id=self.user.id, project=self.project)
-        self.project.delete()
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.project.delete()
         assert_no_notification_settings()
 
     def test_remove_for_organization(self):
         create_setting(user_id=self.user.id, organization=self.organization)
-        self.organization.delete()
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.organization.delete()
         assert_no_notification_settings()
 
     def test_user_id(self):

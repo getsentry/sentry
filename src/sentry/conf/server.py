@@ -632,6 +632,9 @@ SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 # If this instance is a region silo, which region is it running in?
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 
+# Returns the customer single tenant ID.
+CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
+
 # Enable siloed development environment.
 USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
 
@@ -878,6 +881,7 @@ CELERY_QUEUES_REGION = [
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("recap_servers", routing_key="recap_servers"),
     Queue("performance.statistical_detector", routing_key="performance.statistical_detector"),
+    Queue("profiling.statistical_detector", routing_key="profiling.statistical_detector"),
     CELERY_ISSUE_STATES_QUEUE,
 ]
 
@@ -961,14 +965,8 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": timedelta(seconds=30),
         "options": {"expires": 30},
     },
-    "check-monitors-missing": {
-        "task": "sentry.monitors.tasks.check_missing",
-        # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
-        "options": {"expires": 60},
-    },
-    "check-monitors-timeout": {
-        "task": "sentry.monitors.tasks.check_timeout",
+    "monitors-clock-pulse": {
+        "task": "sentry.monitors.tasks.clock_pulse",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
@@ -1383,8 +1381,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-msteams": False,
     # Enable archive/escalating issue workflow features in v2
     "organizations:escalating-issues-v2": False,
-    # Enable the new issue states and substates
-    "organizations:issue-states": False,
+    # Enable emiting escalating data to the metrics backend
+    "organizations:escalating-metrics-backend": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
@@ -1393,6 +1391,8 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
+    # Enable profiling view
+    "organizations:profiling-view": False,
     # Enable ui frames in flamecharts
     "organizations:profiling-ui-frames": False,
     # Enable the transactions backed profiling views
@@ -1429,8 +1429,8 @@ SENTRY_FEATURES = {
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
     "organizations:issue-search-use-cdc-secondary": False,
-    # Adds search suggestions to the issue search bar
-    "organizations:issue-search-shortcuts": False,
+    # Whether to make a side/parallel query against events -> group_attributes when searching issues
+    "organizations:issue-search-group-attributes-side-query": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
@@ -1516,10 +1516,6 @@ SENTRY_FEATURES = {
     "organizations:issue-details-most-helpful-event": False,
     # Enable Issue details UI improvements related to highlighting the 'most helpful' event
     "organizations:issue-details-most-helpful-event-ui": False,
-    # Display if a release is using semver when resolving issues
-    "organizations:issue-release-semver": False,
-    # Display a prompt to setup releases in the resolve options dropdown
-    "organizations:issue-resolve-release-setup": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -1561,6 +1557,8 @@ SENTRY_FEATURES = {
     "organizations:performance-new-trends": False,
     # Enable debug views for trendsv2 to be used internally
     "organizations:performance-trendsv2-dev-only": False,
+    # Bypass 30 day date range selection when fetching new trends data
+    "organizations:performance-trends-new-data-date-range-default": False,
     # Enable consecutive db performance issue type
     "organizations:performance-consecutive-db-issue": False,
     # Enable consecutive http performance issue type
@@ -1579,6 +1577,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-m-n-plus-one-db-detector": False,
     # Enable FE/BE for tracing without performance
     "organizations:performance-tracing-without-performance": False,
+    # Enable database view powered by span metrics
+    "organizations:performance-database-view": False,
     # Enable root cause analysis for statistical detector perf issues
     "organizations:statistical-detectors-root-cause-analysis": False,
     # Enable the new Related Events feature
@@ -1693,6 +1693,8 @@ SENTRY_FEATURES = {
     "organizations:sdk-crash-detection": False,
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
+    # Enable additional logging for alerts
+    "organizations:detailed-alert-logging": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1891,7 +1893,7 @@ SENTRY_ALLOW_PUBLIC_PROJECTS = True
 SENTRY_ENABLE_INVITES = True
 
 # Origins allowed for session-based API access (via the Access-Control-Allow-Origin header)
-SENTRY_ALLOW_ORIGIN = None
+SENTRY_ALLOW_ORIGIN: str | None = None
 
 # Buffer backend
 SENTRY_BUFFER = "sentry.buffer.Buffer"
@@ -1981,6 +1983,10 @@ SENTRY_SNUBA_CACHE_TTL_SECONDS = 60
 # Node storage backend
 SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
 SENTRY_NODESTORE_OPTIONS: dict[str, Any] = {}
+
+# Node storage backend used for ArtifactBundle indexing (aka FlatFileIndex aka BundleIndex)
+SENTRY_INDEXSTORE = "sentry.nodestore.django.DjangoNodeStorage"
+SENTRY_INDEXSTORE_OPTIONS: dict[str, Any] = {}
 
 # Tag storage backend
 SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
@@ -2137,6 +2143,8 @@ SENTRY_SCOPES = {
     "event:admin",
     "alerts:write",
     "alerts:read",
+    # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
+    # https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes.
     "openid",
     "profile",
     "email",
@@ -3228,20 +3236,15 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
 
-# Log error and abort processing (without dropping event) when process_event is
-# taking more than n seconds to process event
-SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT = 600
+# Log error and abort processing (without dropping event, but marking it as failed to process)
+# when `symbolicate_event` is taking more than n seconds to process an event.
+SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT = 15 * 60
 
-# Log warning when process_event is taking more than n seconds to process event
-SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120
+# Log warning when `symbolicate_event` is taking more than n seconds to process an event.
+SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 2 * 60
 
-# Block symbolicate_event for this many seconds to wait for a initial response
-# from symbolicator after the task submission.
+# Block `symbolicate_event` for this many seconds to wait for a response from Symbolicator.
 SYMBOLICATOR_POLL_TIMEOUT = 5
-
-# When retrying symbolication requests or querying for the result this set the
-# max number of second to wait between subsequent attempts.
-SYMBOLICATOR_MAX_RETRY_AFTER = 2
 
 # The `url` of the different Symbolicator pools.
 # We want to route different workloads to a different set of Symbolicator pools.
@@ -3363,7 +3366,7 @@ SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
 # See `RealtimeMetricsStore.record_project_duration` for an explanation of how
 # this works.
 # The "regular interval" at which symbolication time is submitted is defined by
-# a combination of `SYMBOLICATOR_POLL_TIMEOUT` and `SYMBOLICATOR_MAX_RETRY_AFTER`.
+# `SYMBOLICATOR_POLL_TIMEOUT`.
 #
 # This value is already adjusted according to the
 # `symbolicate-event.low-priority.metrics.submission-rate` option.
@@ -3665,32 +3668,3 @@ OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: Optional[str] = None
 
 SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
 SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
-
-# This setting configures how the Monitors (Crons) feature will run the tasks
-# responsible for marking monitors as having "Missed" check-ins and having
-# "Timed out" check-ins.
-#
-# These two tasks must be run every minute and should be run as close to the
-# leading minute boundary as possible. By default these tasks will be
-# triggered via a clock pulse that is generated by a celery beat task. The
-# sentry.monitors.consumer service is responsible for detecting this clock
-# pulse and dispatching the tasks.
-#
-# When high volume mode is enabled, a clock pulse will not be generated by
-# celery beat, instead the monitor consumer will use all processed check-in
-# messages as its clock. We track message timestamps (floored to the minute)
-# and any time that timestamp changes over a minute, the tasks will be
-# triggered
-#
-# NOTE: THERE MUST BE A HIGH VOLUME OF CHECK-INS TO USE THIS MODE!! If a
-#       check-in message is not consumed the tasks will not run, and missed
-#       check-ins will not be generated!
-#
-# The advantage of high volume mode is that we will not rely on celery beat to
-# accurately trigger clock pulses. This is important in scenarios where it is
-# not possible to guarantee that the celery beat tasks will run every minute.
-#
-# (For example, when sentry.io deploys, there is a short period where the
-# celery tasks are being restarted, if they are not running during the minute
-# boundary, the task will not run)
-SENTRY_MONITORS_HIGH_VOLUME_MODE = False

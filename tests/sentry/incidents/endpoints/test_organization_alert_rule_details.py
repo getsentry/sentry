@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import responses
 from django.conf import settings
+from django.test import override_settings
 from requests import Request
 from rest_framework.exceptions import ErrorDetail
 
@@ -708,7 +709,8 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsPutEndpointTest):
             url=f"https://slack.com/api/conversations.info?channel={channelID}",
             body={"ok": "true", "channel": {"name": channelName}},
         )
-        resp = self._organization_alert_rule_api_call(channelName, channelID)
+        with assume_test_silo_mode(SiloMode.REGION), override_settings(SILO_MODE=SiloMode.REGION):
+            resp = self._organization_alert_rule_api_call(channelName, channelID)
 
         stored_action = resp.data["triggers"][0]["actions"][0]
         assert stored_action["inputChannelId"] == str(channelID)
@@ -731,7 +733,9 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsPutEndpointTest):
             url=f"https://slack.com/api/conversations.info?channel={channelID}",
             body={"ok": "true", "channel": {"name": otherChannel}},
         )
-        resp = self._organization_alert_rule_api_call(channelName, channelID)
+
+        with assume_test_silo_mode(SiloMode.REGION), override_settings(SILO_MODE=SiloMode.REGION):
+            resp = self._organization_alert_rule_api_call(channelName, channelID)
 
         assert resp.status_code == 400
         assert resp.data == {

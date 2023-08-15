@@ -4,10 +4,10 @@ from datetime import datetime, timedelta
 from typing import Literal, Type
 from uuid import uuid4
 
-from django.core.management import call_command
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
+from sentry.backup.helpers import get_exportable_final_derivations_of
 from sentry.db.models import BaseModel
 from sentry.incidents.models import (
     AlertRule,
@@ -85,15 +85,14 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.sentry_apps.apps import SentryAppUpdater
-from sentry.silo import unguarded_write
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.backups import (
-    get_exportable_final_derivations_of,
+    clear_database_but_keep_sequences,
     import_export_then_validate,
 )
 from sentry.utils.json import JSONData
-from tests.sentry.backup import targets
+from tests.sentry.backup import run_backup_tests_only_on_single_db, targets
 
 UNIT_TESTED_MODELS = set()
 
@@ -117,6 +116,7 @@ def mark(*marking: Type | Literal["__all__"]):
     return marking
 
 
+@run_backup_tests_only_on_single_db
 class ModelBackupTests(TransactionTestCase):
     """Test the JSON-ification of models marked `__include_in_export__ = True`. Each test here
     creates a fresh database, performs some writes to it, then exports that data into a temporary
@@ -125,13 +125,11 @@ class ModelBackupTests(TransactionTestCase):
     comparators."""
 
     def setUp(self):
-        # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
-        with unguarded_write(using="default"):
-            # Reset the Django database.
-            call_command("flush", verbosity=0, interactive=False)
+        # Empty the database without resetting primary keys.
+        clear_database_but_keep_sequences()
 
     def import_export_then_validate(self) -> JSONData:
-        return import_export_then_validate(self._testMethodName)
+        return import_export_then_validate(self._testMethodName, reset_pks=False)
 
     def create_dashboard(self):
         """Re-usable dashboard object for test cases."""

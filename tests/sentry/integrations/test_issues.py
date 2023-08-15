@@ -1,4 +1,6 @@
-from sentry.integrations.example.integration import AliasedIntegrationProvider
+from unittest import mock
+
+from sentry.integrations.example.integration import AliasedIntegrationProvider, ExampleIntegration
 from sentry.models import (
     ExternalIssue,
     Group,
@@ -123,7 +125,9 @@ class IssueDefaultTest(TestCase):
             relationship=GroupLink.Relationship.references,
         )
 
-        self.installation = integration.get_installation(organization_id=self.group.organization.id)
+        installation = integration.get_installation(organization_id=self.group.organization.id)
+        assert isinstance(installation, ExampleIntegration)
+        self.installation = installation
 
     def test_get_repository_choices(self):
         default_repo, repo_choice = self.installation.get_repository_choices(self.group)
@@ -131,23 +135,28 @@ class IssueDefaultTest(TestCase):
         assert repo_choice == [("user/repo", "repo")]
 
     def test_get_repository_choices_no_repos(self):
-        self.installation.get_repositories = lambda: []
-        default_repo, repo_choice = self.installation.get_repository_choices(self.group)
-        assert default_repo == ""
-        assert repo_choice == []
+        with mock.patch.object(self.installation, "get_repositories", return_value=[]):
+            default_repo, repo_choice = self.installation.get_repository_choices(self.group)
+            assert default_repo == ""
+            assert repo_choice == []
 
     def test_get_repository_choices_default_repo(self):
+        assert self.installation.org_integration is not None
         self.installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(self.group.project_id): {"repo": "user/repo2"}}},
         )
-        self.installation.get_repositories = lambda: [
-            {"name": "repo1", "identifier": "user/repo1"},
-            {"name": "repo2", "identifier": "user/repo2"},
-        ]
-        default_repo, repo_choice = self.installation.get_repository_choices(self.group)
-        assert default_repo == "user/repo2"
-        assert repo_choice == [("user/repo1", "repo1"), ("user/repo2", "repo2")]
+        with mock.patch.object(
+            self.installation,
+            "get_repositories",
+            return_value=[
+                {"name": "repo1", "identifier": "user/repo1"},
+                {"name": "repo2", "identifier": "user/repo2"},
+            ],
+        ):
+            default_repo, repo_choice = self.installation.get_repository_choices(self.group)
+            assert default_repo == "user/repo2"
+            assert repo_choice == [("user/repo1", "repo1"), ("user/repo2", "repo2")]
 
     def test_store_issue_last_defaults_partial_update(self):
         assert "project" in self.installation.get_persisted_default_config_fields()

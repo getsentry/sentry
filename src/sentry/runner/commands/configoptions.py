@@ -2,7 +2,7 @@ import sys
 from typing import Any, Optional, Set
 
 import click
-from yaml import safe_dump, safe_load
+from yaml import safe_load
 
 from sentry.runner.commands.presenters.presenterdelegator import PresenterDelegator
 from sentry.runner.decorators import configuration, log_options
@@ -31,7 +31,7 @@ def _attempt_update(
         if hide_drift:
             presenter_delegator.drift(key, "")
         else:
-            presenter_delegator.drift(key, safe_dump(db_value_to_print))
+            presenter_delegator.drift(key, db_value_to_print)
         return
 
     last_update_channel = options.get_last_update_channel(key)
@@ -195,12 +195,15 @@ def patch(ctx) -> None:
     if invalid_options:
         status = "update_failed"
         amount = 2
+        ret_val = 2
     elif ctx.obj["drifted_options"]:
         status = "drift"
         amount = 2
+        ret_val = 2
     else:
         status = "success"
         amount = 1
+        ret_val = 0
 
     metrics.incr(
         "options_automator.run",
@@ -208,6 +211,7 @@ def patch(ctx) -> None:
         tags={"status": status},
         sample_rate=1.0,
     )
+    exit(ret_val)
 
 
 @configoptions.command()
@@ -278,12 +282,15 @@ def sync(ctx):
     if invalid_options:
         status = "update_failed"
         amount = 2
+        ret_val = 2
     elif drift_found:
         status = "drift"
         amount = 2
+        ret_val = 2
     else:
         status = "success"
         amount = 1
+        ret_val = 0
 
     presenter_delegator.flush()
 
@@ -293,3 +300,5 @@ def sync(ctx):
         tags={"status": status},
         sample_rate=1.0,
     )
+
+    exit(ret_val)
