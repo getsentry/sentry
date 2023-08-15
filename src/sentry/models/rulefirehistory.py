@@ -12,6 +12,7 @@ class RuleFireHistory(Model):
     rule = FlexibleForeignKey("sentry.Rule")
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
     event_id = CharField("event_id", max_length=32, null=True)
+    notification_uuid = CharField("notification_uuid", max_length=16, null=True)
     date_added = DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
