@@ -49,6 +49,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -552,6 +553,25 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   };
 }
 
+function useLoadedEventType() {
+  const organization = useOrganization();
+  const params = useParams<{eventId?: string}>();
+  const defaultIssueEvent = useDefaultIssueEvent();
+  const hasMostHelpfulEventFeature = organization.features.includes(
+    'issue-details-most-helpful-event'
+  );
+
+  switch (params.eventId) {
+    case undefined:
+      return hasMostHelpfulEventFeature ? defaultIssueEvent : 'latest';
+    case 'latest':
+    case 'oldest':
+      return params.eventId;
+    default:
+      return 'event_id';
+  }
+}
+
 function useTrackView({
   group,
   event,
@@ -566,6 +586,7 @@ function useTrackView({
   const location = useLocation();
   const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
     location.query;
+  const groupEventType = useLoadedEventType();
 
   useRouteAnalyticsEventNames('issue_details.viewed', 'Issue Details: Viewed');
   useRouteAnalyticsParams({
@@ -581,6 +602,7 @@ function useTrackView({
     alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
     alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     ref_fallback,
+    group_event_type: groupEventType,
     // Will be updated by StacktraceLink if there is a stacktrace link
     stacktrace_link_viewed: false,
     // Will be updated by IssueQuickTrace if there is a trace

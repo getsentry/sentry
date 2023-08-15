@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import Any, List, Optional, Tuple
 
 import requests
 from django.conf import settings
@@ -19,10 +19,10 @@ class SlackPresenter(OptionsPresenter):
     MAX_OPTION_VALUE_LENGTH = 30
 
     def __init__(self) -> None:
-        self.drifted_options: List[Tuple[str, str]] = []
+        self.drifted_options: List[Tuple[str, Any]] = []
         self.channel_updated_options: List[str] = []
-        self.updated_options: List[Tuple[str, str, str]] = []
-        self.set_options: List[Tuple[str, str]] = []
+        self.updated_options: List[Tuple[str, Any, Any]] = []
+        self.set_options: List[Tuple[str, Any]] = []
         self.unset_options: List[str] = []
         self.not_writable_options: List[Tuple[str, str]] = []
         self.unregistered_options: List[str] = []
@@ -66,7 +66,12 @@ class SlackPresenter(OptionsPresenter):
             raise
 
     def flush(self) -> None:
+        region: Optional[str] = settings.SENTRY_REGION
+        if not region:
+            region = settings.CUSTOMER_ID
+
         json_data = {
+            "region": region,
             "drifted_options": [
                 {"option_name": key, "option_value": self.truncate_value(value)}
                 for key, value in self.drifted_options
@@ -74,7 +79,7 @@ class SlackPresenter(OptionsPresenter):
             "updated_options": [
                 {
                     "option_name": key,
-                    "db_value": db_value,
+                    "db_value": self.truncate_value(db_value),
                     "value": self.truncate_value(value),
                 }
                 for key, db_value, value in self.updated_options
@@ -97,24 +102,25 @@ class SlackPresenter(OptionsPresenter):
         self._send_to_webhook(json_data)
 
     def truncate_value(self, value: str) -> str:
-        if len(value) > self.MAX_OPTION_VALUE_LENGTH:
-            return value[: self.MAX_OPTION_VALUE_LENGTH] + "..."
+        value_str = str(value)
+        if len(value_str) > self.MAX_OPTION_VALUE_LENGTH:
+            return value_str[: self.MAX_OPTION_VALUE_LENGTH] + "..."
         else:
-            return value
+            return value_str
 
-    def set(self, key: str, value: str) -> None:
+    def set(self, key: str, value: Any) -> None:
         self.set_options.append((key, value))
 
     def unset(self, key: str) -> None:
         self.unset_options.append(key)
 
-    def update(self, key: str, db_value: str, value: str) -> None:
+    def update(self, key: str, db_value: Any, value: Any) -> None:
         self.updated_options.append((key, db_value, value))
 
     def channel_update(self, key: str) -> None:
         self.channel_updated_options.append(key)
 
-    def drift(self, key: str, db_value: str) -> None:
+    def drift(self, key: str, db_value: Any) -> None:
         self.drifted_options.append((key, db_value))
 
     def not_writable(self, key: str, not_writable_reason: str) -> None:

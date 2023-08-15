@@ -1,21 +1,20 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import datetime
-from time import sleep, time
+from datetime import datetime, timezone
+from time import time
 from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 
 import msgpack
 import sentry_sdk
 from django.conf import settings
-from pytz import UTC
 from symbolic.proguard import ProguardMapper
 
 from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.javascript.processing import generate_scraping_config
-from sentry.lang.native.symbolicator import RetrySymbolication, Symbolicator, SymbolicatorTaskKind
+from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorTaskKind
 from sentry.models import EventError, Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
 from sentry.profiles.java import deobfuscate_signature
@@ -337,6 +336,10 @@ def symbolicate(
     )
 
 
+class SymbolicationTimeout(Exception):
+    pass
+
+
 @metrics.wraps("process_profile.symbolicate.request")
 def run_symbolicate(
     project: Project,
@@ -344,57 +347,55 @@ def run_symbolicate(
     modules: List[Any],
     stacktraces: List[Any],
 ) -> Tuple[List[Any], List[Any], bool]:
-    symbolicator = Symbolicator(SymbolicatorTaskKind(), project, profile["event_id"])
     symbolication_start_time = time()
 
-    while True:
-        try:
-            with sentry_sdk.start_span(op="task.profiling.symbolicate.process_payload"):
-                response = symbolicate(
-                    symbolicator=symbolicator,
-                    profile=profile,
-                    stacktraces=stacktraces,
-                    modules=modules,
-                )
+    def on_symbolicator_request():
+        duration = time() - symbolication_start_time
+        if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
+            raise SymbolicationTimeout
 
-                if not response:
-                    profile["symbolicator_error"] = {
-                        "type": EventError.NATIVE_INTERNAL_FAILURE,
-                    }
-                    return modules, stacktraces, False
-                elif response["status"] == "completed":
-                    return (
-                        response.get("modules", modules),
-                        response.get("stacktraces", stacktraces),
-                        True,
-                    )
-                elif response["status"] == "failed":
-                    profile["symbolicator_error"] = {
-                        "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
-                        "status": response.get("status"),
-                        "message": response.get("message"),
-                    }
-                    return modules, stacktraces, False
-                else:
-                    profile["symbolicator_error"] = {
-                        "status": response.get("status"),
-                        "type": EventError.NATIVE_INTERNAL_FAILURE,
-                    }
-                    return modules, stacktraces, False
-        except RetrySymbolication as e:
-            if (
-                time() - symbolication_start_time
-            ) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
-                metrics.incr("process_profile.symbolicate.timeout", sample_rate=1.0)
-                break
-            else:
-                sleep_time = (
-                    settings.SYMBOLICATOR_MAX_RETRY_AFTER
-                    if e.retry_after is None
-                    else min(e.retry_after, settings.SYMBOLICATOR_MAX_RETRY_AFTER)
+    symbolicator = Symbolicator(
+        task_kind=SymbolicatorTaskKind(),
+        on_request=on_symbolicator_request,
+        project=project,
+        event_id=profile["event_id"],
+    )
+
+    try:
+        with sentry_sdk.start_span(op="task.profiling.symbolicate.process_payload"):
+            response = symbolicate(
+                symbolicator=symbolicator,
+                profile=profile,
+                stacktraces=stacktraces,
+                modules=modules,
+            )
+
+            if not response:
+                profile["symbolicator_error"] = {
+                    "type": EventError.NATIVE_INTERNAL_FAILURE,
+                }
+                return modules, stacktraces, False
+            elif response["status"] == "completed":
+                return (
+                    response.get("modules", modules),
+                    response.get("stacktraces", stacktraces),
+                    True,
                 )
-                sleep(sleep_time)
-                continue
+            elif response["status"] == "failed":
+                profile["symbolicator_error"] = {
+                    "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
+                    "status": response.get("status"),
+                    "message": response.get("message"),
+                }
+                return modules, stacktraces, False
+            else:
+                profile["symbolicator_error"] = {
+                    "status": response.get("status"),
+                    "type": EventError.NATIVE_INTERNAL_FAILURE,
+                }
+                return modules, stacktraces, False
+    except SymbolicationTimeout:
+        metrics.incr("process_profile.symbolicate.timeout", sample_rate=1.0)
 
     # returns the unsymbolicated data to avoid errors later
     return modules, stacktraces, False
@@ -701,7 +702,7 @@ def _track_outcome(
         key_id=None,
         outcome=outcome,
         reason=reason,
-        timestamp=datetime.utcnow().replace(tzinfo=UTC),
+        timestamp=datetime.utcnow().replace(tzinfo=timezone.utc),
         event_id=event_id,
         category=DataCategory.PROFILE_INDEXED,
         quantity=1,

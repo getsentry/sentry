@@ -1,4 +1,4 @@
-from sentry.models import Environment, Project, ScheduledDeletion
+from sentry.models import Environment, Project
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -7,13 +7,14 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.tasks.deletion.scheduled import run_deletion
+from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import APITestCase, TransactionTestCase
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
-class DeleteMonitorEnvironmentTest(APITestCase, TransactionTestCase):
+@region_silo_test(stable=True)
+class DeleteMonitorEnvironmentTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         project = self.create_project(name="test")
         env = Environment.objects.create(organization_id=project.organization_id, name="foo")
@@ -48,11 +49,10 @@ class DeleteMonitorEnvironmentTest(APITestCase, TransactionTestCase):
             status=CheckInStatus.OK,
         )
 
-        deletion = ScheduledDeletion.schedule(monitor_env, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=monitor_env, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not MonitorEnvironment.objects.filter(id=monitor_env.id).exists()
         assert not MonitorCheckIn.objects.filter(id=checkin.id).exists()
