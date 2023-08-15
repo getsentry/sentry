@@ -912,10 +912,7 @@ class TestWebhookRequests(TestCase):
             )
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
-        assert (
-            msg.subject
-            == f"Action required: re-authenticate or fix your {self.sentry_app.name} integration"
-        )
+        assert msg.subject == f"Action required: Fix your {self.sentry_app.name} integration"
         assert (
             self.organization.absolute_url(
                 f"/settings/{self.organization.slug}/developer-settings/{self.sentry_app.slug}"
