@@ -34,7 +34,7 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     project = Project.objects.get_from_cache(id=relay_span["project_id"])
     organization = project.organization
     retention_days = (
-        quotas.get_event_retention(
+        quotas.backend.get_event_retention(
             organization=organization,
         )
         or 90
