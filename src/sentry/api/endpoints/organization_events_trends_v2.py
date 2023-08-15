@@ -135,7 +135,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             # about having exact counts.
             return metrics_query(
                 top_event_columns,
-                query="",
+                query=user_query,
                 params=params,
                 orderby=["-count()"],
                 limit=event_limit,
