@@ -289,9 +289,6 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None) -> None:
     Applies grouping enhancement rules and ensure in_app is set on all frames.
     This also trims functions if necessary.
     """
-    # raise Exception("foo")
-    print("HEY - calling normalize_stacktraces_for_grouping")  # noqa: S002
-
     stacktrace_frames = []
     stacktrace_containers = []
 
@@ -321,7 +318,6 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None) -> None:
 
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
-        print("ABOUT TO CALL apply_modifications_to_frame")  # noqa: S002
         with sentry_sdk.start_span(op=op, description="apply_modifications_to_frame"):
             for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
                 # This call has a caching mechanism when the same stacktrace and rules are used

@@ -311,7 +311,7 @@ class SnubaEventStorage(EventStorage):
         skip_transaction_groupevent: Temporary hack parameter to skip converting a transaction
         event into a `GroupEvent`. Used as part of `post_process_group`.
         """
-        print(f"get_event_by_id begin {event_id}")  # noqa: S002
+
         event_id = normalize_event_id(event_id)
 
         if not event_id:
@@ -322,18 +322,13 @@ class SnubaEventStorage(EventStorage):
         # Return None if there was no data in nodestore
         if len(event.data) == 0:
             return None
-        print("get_event_by_id We now have data.")  # noqa: S002
 
         if group_id is not None and (
             event.get_event_type() == "error"
             or (event.get_event_type() == "transaction" and skip_transaction_groupevent)
         ):
-            print("get_event_by_id error")  # noqa: S002
             event.group_id = group_id
         elif event.get_event_type() != "transaction" or group_id:
-            print("get_event_by_id transaction")  # noqa: S002
-            print(f"get_event_by_id {event.get_event_type()}")  # noqa: S002
-            print("get_event_by_id {group_id}")  # noqa: S002
             # Load group_id from Snuba if not a transaction
             raw_query_kwargs = {}
             if event.datetime > timezone.now() - timedelta(hours=1):
@@ -353,7 +348,6 @@ class SnubaEventStorage(EventStorage):
                 filter_keys = {"project_id": [project_id], "event_id": [event_id]}
                 if group_id:
                     filter_keys["group_id"] = [group_id]
-                print("get_event_by_id RAW QUERY")  # noqa: S002
                 result = snuba.raw_query(
                     dataset=dataset,
                     selected_columns=self.__get_columns(dataset),
@@ -365,7 +359,6 @@ class SnubaEventStorage(EventStorage):
                     tenant_ids=tenant_ids,
                     **raw_query_kwargs,
                 )
-                print(f"result: {result}")  # noqa: S002
             except snuba.QueryOutsideRetentionError:
                 # this can happen due to races.  We silently want to hide
                 # this from callers.
@@ -397,7 +390,6 @@ class SnubaEventStorage(EventStorage):
             logger.warning("eventstore.passed-group-id-for-transaction")
             return event.for_group(Group.objects.get(id=group_id))
 
-        print("get_event_by_id returning event")  # noqa: S002
         return event
 
     def _get_dataset_for_event(self, event):

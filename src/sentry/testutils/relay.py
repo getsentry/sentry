@@ -152,7 +152,6 @@ class RelayStoreHelper(RequiredBaseclass):
         assert resp.ok
         event_id = resp.text.strip().replace("-", "")
 
-        print("post_and_retrieve_unreal wait for ingest consumer")  # noqa: S002
         # We keep fetching for the event until it becomes available
         event = self.wait_for_ingest_consumer(
             lambda: eventstore.backend.get_event_by_id(
@@ -161,7 +160,6 @@ class RelayStoreHelper(RequiredBaseclass):
                 tenant_ids={"referrer": "relay-test", "organization_id": 123},
             )
         )
-        print("post_and_retrieve_unreal end for ingest consumer")  # noqa: S002
 
         # check that we found it in Snuba
         assert event is not None

@@ -144,7 +144,6 @@ class Enhancements:
     ) -> None:
         """This applies the frame modifications to the frames itself. This does not affect grouping."""
         in_memory_cache: dict[str, str] = {}
-        # print("HEY - Entering apply_modifications_to_frame")  # noqa: S002
 
         # Matching frames are used for matching rules
         match_frames = [create_match_frame(frame, platform) for frame in frames]
@@ -155,7 +154,6 @@ class Enhancements:
         )
         # The most expensive part of creating groups is applying the rules to frames (next code block)
         cache_key = f"stacktrace_hash.{stacktrace_fingerprint}"
-        print(cache_key)  # noqa: S002
         use_cache = bool(stacktrace_fingerprint)
         if use_cache:
             # XXX: Add a way to only allow certain orgs
@@ -164,8 +162,6 @@ class Enhancements:
                 frames, cache_key, platform, load_from_cache=org_can_use_cache
             )
             if frames_changed:
-                print("USING CACHE")  # noqa: S002
-                print("Reusing cached data")  # noqa: S002
                 logger.info("The frames have been loaded from the cache. Skipping some work.")
                 return
 
@@ -179,7 +175,6 @@ class Enhancements:
 
         if use_cache:
             _cache_changed_frame_values(frames, cache_key, platform)
-        # print("HEY - Exiting apply_modifications_to_frame")  # noqa: S002
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
         in_memory_cache: dict[str, str] = {}
@@ -515,7 +510,6 @@ def _update_frames_from_cached_values(
     frames_changed = False
     # XXX: Test the fallback value
     changed_frames_values = cache.get(cache_key, {})
-    # print(f"SEE - _update_frames_from_cached_values: {changed_frames_values}")  # noqa: S002
     # This helps tracking changes in the hit/miss ratio of the cache
     metrics.incr(
         "save_event.stacktrace.cache.get",
@@ -525,15 +519,10 @@ def _update_frames_from_cached_values(
         try:
             for frame, changed_frame_values in zip(frames, changed_frames_values):
                 if changed_frame_values.get("in_app") is not None:
-                    bar = changed_frame_values["in_app"]
-                    print(f'{frame.get("in_app")} -> {bar}')  # noqa: S002
-                    # frame["in_app"] = changed_frame_values["in_app"]
                     set_in_app(frame, changed_frame_values["in_app"])
                     frames_changed = True
                 if changed_frame_values.get("category") is not None:
-                    orig_category = get_path(frame, "data", "category")
                     set_path(frame, "data", "category", value=changed_frame_values["category"])
-                    print(f'{orig_category} -> {changed_frame_values["category"]}')  # noqa: S002
                     frames_changed = True
 
             if frames_changed:
