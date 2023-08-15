@@ -318,11 +318,11 @@ class SnubaEventStorage(EventStorage):
             return None
 
         event = Event(project_id=project_id, event_id=event_id)
-        print("get_event_by_id normalizing will happen before this.")  # noqa: S002
 
         # Return None if there was no data in nodestore
         if len(event.data) == 0:
             return None
+        print("get_event_by_id We now have data.")  # noqa: S002
 
         if group_id is not None and (
             event.get_event_type() == "error"

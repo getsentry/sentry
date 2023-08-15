@@ -333,6 +333,7 @@ class ReadableYamlDumper(yaml.dumper.SafeDumper):
 @pytest.fixture
 def insta_snapshot(request, log):
     def inner(output, reference_file=None, subname=None):
+        print(f"inner {reference_file} {subname}")  # noqa: S002
         if reference_file is None:
             name = request.node.name
             for c in UNSAFE_PATH_CHARS:
