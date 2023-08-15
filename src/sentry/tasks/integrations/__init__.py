@@ -22,6 +22,7 @@ __all__ = (
     "kick_off_status_syncs",
     "kickoff_vsts_subscription_check",
     "logger",
+    "migrate_alert_rules",
     "migrate_issues",
     "migrate_repo",
     "should_comment_sync",
@@ -38,6 +39,7 @@ settings.CELERY_IMPORTS += (
     "sentry.tasks.integrations.github.pr_comment",
     "sentry.tasks.integrations.kick_off_status_syncs",
     "sentry.tasks.integrations.link_all_repos",
+    "sentry.tasks.integrations.migrate_alert_rules",
     "sentry.tasks.integrations.migrate_issues",
     "sentry.tasks.integrations.migrate_repo",
     "sentry.tasks.integrations.sync_assignee_outbound_impl",
@@ -51,6 +53,7 @@ settings.CELERY_IMPORTS += (
 
 from .create_comment import create_comment
 from .kick_off_status_syncs import kick_off_status_syncs
+from .migrate_alert_rules import migrate_alert_rules
 from .migrate_issues import migrate_issues
 from .migrate_repo import migrate_repo
 from .sync_assignee_outbound_impl import sync_assignee_outbound

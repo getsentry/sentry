@@ -149,6 +149,14 @@ class OpsgenieIntegration(IntegrationInstallation):
             team["id"] = str(self.org_integration.id) + "-" + team["team"]
         return super().update_organization_config(data)
 
+    def migrate_alert_rules(self):
+        migrate_alert_rules.apply_async(
+            kwargs={
+                "integration_id": self.model.id,
+                "organization_id": self.organization_id,
+            }
+        )
+
 
 class OpsgenieIntegrationProvider(IntegrationProvider):
     key = "opsgenie"

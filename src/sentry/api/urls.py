@@ -14,6 +14,9 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
 from sentry.api.endpoints.organization_events_starfish import OrganizationEventsStarfishEndpoint
+from sentry.api.endpoints.organization_integration_alert_rules import (
+    OrganizationIntegrationAlertRulesEndpoint,
+)
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
@@ -1379,6 +1382,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/issues/$",
         OrganizationIntegrationIssuesEndpoint.as_view(),
         name="sentry-api-0-organization-integration-issues",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/alert-rules/$",
+        OrganizationIntegrationAlertRulesEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-alert-rules",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/serverless-functions/$",
