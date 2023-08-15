@@ -29,20 +29,22 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     )
 
     snuba_span: MutableMapping[str, Any] = {}
-    snuba_span["description"] = relay_span["description"]
+    snuba_span["description"] = relay_span.get("description")
+    snuba_span["event_id"] = relay_span.get("event_id", "")
     snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
     snuba_span["is_segment"] = not relay_span.get("parent_span_id")
     snuba_span["organization_id"] = organization.id
     snuba_span["parent_span_id"] = relay_span.get("parent_span_id", "0")
     snuba_span["project_id"] = relay_span["project_id"]
     snuba_span["retention_days"] = retention_days
-    snuba_span["span_id"] = relay_span.get("span_id")
-    snuba_span["span_status"] = relay_span["status"]
+    snuba_span["segment_id"] = relay_span.get("segment_id", "0")
+    snuba_span["span_id"] = int(relay_span.get("span_id", 0), 16)
     snuba_span["tags"] = relay_span.get("tags")
     snuba_span["trace_id"] = str(uuid.UUID(relay_span["trace_id"]))
     snuba_span["version"] = SPAN_SCHEMA_VERSION
 
     start_timestamp = datetime.utcfromtimestamp(relay_span["start_timestamp"])
+    snuba_span["start_timestamp_ms"] = int(start_timestamp.timestamp() * 1e3)
     end_timestamp = datetime.utcfromtimestamp(relay_span["timestamp"])
     snuba_span["duration_ms"] = max(
         int((end_timestamp - start_timestamp).total_seconds() * 1e3),
@@ -51,11 +53,11 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
 
     trace_context = relay_span.get("data", {}).get("trace")
     if trace_context:
-        snuba_span["group_raw"] = trace_context["hash"]
+        snuba_span["group_raw"] = trace_context.get("hash")
 
     sentry_tags: MutableMapping[str, Any] = {}
     sentry_tags["op"] = relay_span.get("op")
-
+    sentry_tags["status"] = relay_span.get("status")
     snuba_span["sentry_tags"] = sentry_tags
 
     return snuba_span
