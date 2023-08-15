@@ -137,6 +137,7 @@ export function ReplayCell({
       {showUrl ? <StringWalker urls={replay.urls} /> : undefined}
       <Row gap={1}>
         <Row gap={0.5}>
+          {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
           {project ? <Avatar size={12} project={project} /> : null}
           {project ? project.slug : null}
           <Link to={detailsTab} onClick={trackNavigationEvent}>

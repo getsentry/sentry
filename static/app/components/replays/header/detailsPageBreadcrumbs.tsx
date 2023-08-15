@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import BaseBadge from 'sentry/components/idBadge/baseBadge';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
@@ -42,13 +42,9 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
         {
           label: (
             <Fragment>
-              {
-                <BaseBadge
-                  displayName={project?.slug}
-                  project={project}
-                  avatarSize={16}
-                />
-              }
+              {project ? (
+                <ProjectBadge disableLink project={project} avatarSize={16} />
+              ) : null}
             </Fragment>
           ),
         },
