@@ -1695,6 +1695,8 @@ SENTRY_FEATURES = {
     "organizations:recap-server": False,
     # Enable additional logging for alerts
     "organizations:detailed-alert-logging": False,
+    # Enable the new notification settings system
+    "organizations:notification-settings-v2": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.

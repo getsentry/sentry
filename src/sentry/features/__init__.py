@@ -268,6 +268,7 @@ default_manager.add("organizations:slack-disable-on-broken", OrganizationFeature
 default_manager.add("organizations:sourcemaps-bundle-flat-file-indexing", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:recap-server", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:detailed-alert-logging", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("notification-settings-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 
 # Project scoped features
 default_manager.add("projects:alert-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
