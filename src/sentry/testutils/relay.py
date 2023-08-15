@@ -161,6 +161,8 @@ class RelayStoreHelper(RequiredBaseclass):
                 tenant_ids={"referrer": "relay-test", "organization_id": 123},
             )
         )
+        print("THIS")  # noqa: S002
+        print(event)  # noqa: S002
         # check that we found it in Snuba
         assert event is not None
         return event

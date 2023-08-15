@@ -162,7 +162,7 @@ class Enhancements:
                 frames, cache_key, platform, load_from_cache=org_can_use_cache
             )
             if frames_changed:
-                print("BOO BOO")  # noqa: S002
+                # print("BOO BOO")  # noqa: S002
                 logger.info("The frames have been loaded from the cache. Skipping some work.")
                 return
 
@@ -512,7 +512,7 @@ def _update_frames_from_cached_values(
     frames_changed = False
     # XXX: Test the fallback value
     changed_frames_values = cache.get(cache_key, {})
-    print(f"SEE - _update_frames_from_cached_values: {changed_frames_values}")  # noqa: S002
+    # print(f"SEE - _update_frames_from_cached_values: {changed_frames_values}")  # noqa: S002
     # This helps tracking changes in the hit/miss ratio of the cache
     metrics.incr(
         "save_event.stacktrace.cache.get",
