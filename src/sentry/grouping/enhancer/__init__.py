@@ -525,16 +525,16 @@ def _update_frames_from_cached_values(
     if changed_frames_values and load_from_cache:
         try:
             for frame, changed_frame_values in zip(frames, changed_frames_values):
-                if frame.get("orig_in_app"):
-                    print(f"HEY HEY orig_in_app: {frame.get('orig_in_app')}")  # noqa: S002
                 if changed_frame_values.get("in_app") is not None:
-                    # print(f'FOO - {changed_frame_values["in_app"]}')  # noqa: S002
+                    orig_in_app = get_path(frame, "data", "orig_in_app")
+                    if orig_in_app is not None:
+                        print(f"HEY HEY orig_in_app: {orig_in_app}")  # noqa: S002
                     frame["in_app"] = changed_frame_values["in_app"]
                     frames_changed = True
                 if changed_frame_values.get("category") is not None:
                     if frame["data"].get("category"):
                         print(f"FOO - {frame['data'].get('category')}")  # noqa: S002
-                    print(f"DID NOT SET CATEGORY: {changed_frame_values['category']}")  # noqa: S002
+                    # print(f"DID NOT SET CATEGORY: {changed_frame_values['category']}")  # noqa: S002
                     # set_path(frame, "data", "category", value=changed_frame_values["category"])
                     # frames_changed = True
 
