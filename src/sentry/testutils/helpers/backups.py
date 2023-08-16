@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 from datetime import datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 from uuid import uuid4
 
@@ -102,8 +103,12 @@ def export_to_file(path: Path) -> JSONData:
     return output
 
 
-REVERSED_DEPENDENCIES = sorted_dependencies()
-REVERSED_DEPENDENCIES.reverse()
+# No arguments, so we lazily cache the result after the first calculation.
+@lru_cache(maxsize=1)
+def reversed_dependencies():
+    sorted = list(sorted_dependencies())
+    sorted.reverse()
+    return sorted
 
 
 def clear_database_but_keep_sequences():
@@ -111,7 +116,8 @@ def clear_database_but_keep_sequences():
     foreign key errors."""
 
     with unguarded_write(using="default"), transaction.atomic(using="default"):
-        for model in REVERSED_DEPENDENCIES:
+        reversed = reversed_dependencies()
+        for model in reversed:
             # For some reason, the tables for `SentryApp*` models don't get deleted properly here
             # when using `model.objects.all().delete()`, so we have to call out to Postgres
             # manually.
@@ -121,7 +127,7 @@ def clear_database_but_keep_sequences():
                 cursor.execute(f"DELETE FROM {table:s};")
 
         # Clear remaining tables that are not explicitly in Sentry's own model dependency graph.
-        for model in set(apps.get_models()) - set(REVERSED_DEPENDENCIES):
+        for model in set(apps.get_models()) - set(reversed):
             model.objects.all().delete()
 
 
