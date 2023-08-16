@@ -6,8 +6,10 @@ import responses
 from sentry.constants import ObjectStatus
 from sentry.integrations.utils import get_query_hash
 from sentry.models import Integration
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils.http import absolute_uri
 from tests.sentry.utils.test_jwt import RS256_KEY, RS256_PUB_KEY
 
@@ -65,7 +67,8 @@ class JiraUninstalledTest(APITestCase):
         integration = Integration.objects.get(id=integration.id)
 
         mock_set_tag.assert_called_with("integration_id", integration.id)
-        mock_bind_org_context.assert_called_with(org)
+        with assume_test_silo_mode(SiloMode.REGION):
+            mock_bind_org_context.assert_called_with(serialize_rpc_organization(org))
         assert integration.status == ObjectStatus.DISABLED
         assert resp.status_code == 200
 
@@ -93,6 +96,7 @@ class JiraUninstalledTest(APITestCase):
         integration = Integration.objects.get(id=integration.id)
 
         mock_set_tag.assert_called_with("integration_id", integration.id)
-        mock_bind_org_context.assert_called_with(org)
+        with assume_test_silo_mode(SiloMode.REGION):
+            mock_bind_org_context.assert_called_with(serialize_rpc_organization(org))
         assert integration.status == ObjectStatus.DISABLED
         assert resp.status_code == 200
