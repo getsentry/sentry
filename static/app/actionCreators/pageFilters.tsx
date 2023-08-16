@@ -19,6 +19,7 @@ import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/u
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {
   DateString,
   Environment,
@@ -587,7 +588,7 @@ function getNewQueryParams(
   const statsPeriod = !start && !end ? obj.period || currentQueryState.period : null;
 
   const newQuery: PageFilterQuery = {
-    project: project?.map(String),
+    project: projectsToQuery(project),
     environment,
     start: statsPeriod ? null : start instanceof Date ? getUtcDateString(start) : start,
     end: statsPeriod ? null : end instanceof Date ? getUtcDateString(end) : end,
@@ -599,6 +600,34 @@ function getNewQueryParams(
   const paramEntries = Object.entries(newQuery).filter(([_, value]) => defined(value));
 
   return Object.fromEntries(paramEntries) as PageFilterQuery;
+}
+
+/**
+ * Translate a list of project IDs to a list of project IDs suitable for a
+ * query string.
+ *
+ * Because you can have a large list of projects, when
+ */
+function projectsToQuery(projects: number[] | null) {
+  if (projects === null) {
+    return null;
+  }
+
+  const allProjects = ProjectsStore.getAll();
+
+  if (projects.length <= allProjects.length / 2) {
+    return projects.map(String);
+  }
+
+  // When selecting more than half of all projects invert the selectin and add
+  // a `project=-1` to signal that the rest of the projects in the list are
+  // being EXCLUDED from the list
+  const excludedProjectIds = allProjects
+    .map(getProjectIdFromProject)
+    .filter(id => !projects.includes(id));
+
+  // XXX(epurkhiser): -1 indicates the additional project IDs will be excluded
+  return ['-1', ...excludedProjectIds.map(String)];
 }
 
 export function revertToPinnedFilters(orgSlug: string, router: InjectedRouter) {
