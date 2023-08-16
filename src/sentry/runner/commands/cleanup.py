@@ -11,6 +11,7 @@ from uuid import uuid4
 import click
 import sentry_sdk
 from django.conf import settings
+from django.db.models.aggregates import Count
 from django.utils import timezone
 from typing_extensions import TypeAlias
 
@@ -414,9 +415,7 @@ def cleanup_unused_files(quiet=False):
     any blobs which are brand new and potentially in the process of being
     referenced.
     """
-    from sentry.models.files.file import File
     from sentry.models.files.fileblob import FileBlob
-    from sentry.models.files.fileblobindex import FileBlobIndex
 
     if quiet:
         from sentry.utils.query import RangeQuerySetWrapper
@@ -424,11 +423,9 @@ def cleanup_unused_files(quiet=False):
         from sentry.utils.query import RangeQuerySetWrapperWithProgressBar as RangeQuerySetWrapper
 
     cutoff = timezone.now() - timedelta(days=1)
-    queryset = FileBlob.objects.filter(timestamp__lte=cutoff)
+    queryset = FileBlob.objects.annotate(
+        index_count=Count("fileblobindex"), file_count=Count("file")
+    ).filter(timestamp__lte=cutoff, index_count=0, file_count=0)
 
     for blob in RangeQuerySetWrapper(queryset):
-        if FileBlobIndex.objects.filter(blob=blob).exists():
-            continue
-        if File.objects.filter(blob=blob).exists():
-            continue
         blob.delete()
