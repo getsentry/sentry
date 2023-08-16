@@ -116,15 +116,15 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                     has_external_teams = "true" in value
                     if has_external_teams:
                         queryset = queryset.filter(
-                            actor_id__in=ExternalActor.objects.filter(
+                            id__in=ExternalActor.objects.filter(
                                 organization=organization
-                            ).values_list("actor_id")
+                            ).values_list("team_id")
                         )
                     else:
                         queryset = queryset.exclude(
-                            actor_id__in=ExternalActor.objects.filter(
+                            id__in=ExternalActor.objects.filter(
                                 organization=organization
-                            ).values_list("actor_id")
+                            ).values_list("team_id")
                         )
 
                 elif key == "query":

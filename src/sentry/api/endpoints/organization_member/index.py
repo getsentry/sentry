@@ -185,7 +185,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 elif key == "hasExternalUsers":
                     externalactor_user_ids = ExternalActor.objects.filter(
                         organization=organization,
-                    ).values_list("actor__user_id", flat=True)
+                    ).values_list("user_id", flat=True)
 
                     hasExternalUsers = "true" in value
                     if hasExternalUsers:
