@@ -22,6 +22,10 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {getDisplayName} from 'sentry/utils/environment';
+import {
+  createOnDemandFilterWarning,
+  hasOnDemandMetricAlertFeature,
+} from 'sentry/utils/onDemandMetrics';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
@@ -386,6 +390,15 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         []),
     ];
 
+    const getOnDemandFilterWarning = createOnDemandFilterWarning(
+      tct(
+        'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this alert has been saved.]',
+        {
+          strong: <strong />,
+        }
+      )
+    );
+
     return (
       <Fragment>
         <ChartPanel>
@@ -459,6 +472,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         />
                       );
                     }}
+                    getFilterWarning={
+                      hasOnDemandMetricAlertFeature(organization)
+                        ? getOnDemandFilterWarning
+                        : undefined
+                    }
                     searchSource="alert_builder"
                     defaultQuery={initialData?.query ?? ''}
                     omitTags={datasetOmittedTags(dataset, organization)}

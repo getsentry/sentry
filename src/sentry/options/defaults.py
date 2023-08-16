@@ -578,6 +578,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Percentage of events that generate a random `worker_id` for symbolicator load balancing
+register(
+    "symbolicator.worker-id-randomization-sample-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
 register(
@@ -1465,12 +1472,6 @@ register(
 register(
     "options_automator_slack_webhook_enabled",
     default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "monitors.use_consumer_clock_task_triggers",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
