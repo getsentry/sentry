@@ -769,21 +769,18 @@ if USE_SILOS:
     control_exchange = Exchange("control", type="direct")
 
 
-CELERY_QUEUES_ALL = [
-    Queue("options", routing_key="options"),
-    Queue("files.copy", routing_key="files.copy"),
-    Queue("files.delete", routing_key="files.delete"),
-]
-
 CELERY_QUEUES_CONTROL = [
     Queue("app_platform.control", routing_key="app_platform.control", exchange=control_exchange),
-    Queue("auth", routing_key="auth", exchange=control_exchange),
-    Queue("integrations", routing_key="integrations", exchange=control_exchange),
+    Queue("auth.control", routing_key="auth.control", exchange=control_exchange),
+    Queue("cleanup.control", routing_key="cleanup.control", exchange=control_exchange),
+    Queue("integrations.control", routing_key="integrations.control", exchange=control_exchange),
+    Queue("files.delete.control", routing_key="files.delete.control", exchange=control_exchange),
     Queue(
         "hybrid_cloud.control_repair",
         routing_key="hybrid_cloud.control_repair",
         exchange=control_exchange,
     ),
+    Queue("options.control", routing_key="options.control", exchange=control_exchange),
 ]
 
 CELERY_ISSUE_STATES_QUEUE = Queue(
@@ -792,6 +789,7 @@ CELERY_ISSUE_STATES_QUEUE = Queue(
 
 CELERY_QUEUES_REGION = [
     Queue("activity.notify", routing_key="activity.notify"),
+    Queue("auth", routing_key="auth"),
     Queue("alerts", routing_key="alerts"),
     Queue("app_platform", routing_key="app_platform"),
     Queue("appstoreconnect", routing_key="sentry.tasks.app_store_connect.#"),
@@ -833,10 +831,13 @@ CELERY_QUEUES_REGION = [
         "events.symbolicate_js_event_low_priority",
         routing_key="events.symbolicate_js_event_low_priority",
     ),
+    Queue("files.copy", routing_key="files.copy"),
+    Queue("files.delete", routing_key="files.delete"),
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
     ),
     Queue("group_owners.process_commit_context", routing_key="group_owners.process_commit_context"),
+    Queue("integrations", routing_key="integrations"),
     Queue(
         "releasemonitor",
         routing_key="releasemonitor",
@@ -849,6 +850,7 @@ CELERY_QUEUES_REGION = [
     Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("incidents", routing_key="incidents"),
     Queue("merge", routing_key="merge"),
+    Queue("options", routing_key="options"),
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
     Queue("post_process_transactions", routing_key="post_process_transactions"),
@@ -1138,17 +1140,17 @@ CELERYBEAT_SCHEDULE_REGION = {
 if SILO_MODE == "CONTROL":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-control")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_CONTROL
-    CELERY_QUEUES = CELERY_QUEUES_CONTROL + CELERY_QUEUES_ALL
+    CELERY_QUEUES = CELERY_QUEUES_CONTROL
 
 elif SILO_MODE == "REGION":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-region")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_REGION
-    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_ALL
+    CELERY_QUEUES = CELERY_QUEUES_REGION
 
 else:
     CELERYBEAT_SCHEDULE = {**CELERYBEAT_SCHEDULE_CONTROL, **CELERYBEAT_SCHEDULE_REGION}
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
-    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_CONTROL + CELERY_QUEUES_ALL
+    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_CONTROL
 
 for queue in CELERY_QUEUES:
     queue.durable = False
@@ -1354,7 +1356,7 @@ SENTRY_FEATURES = {
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Allow disabling integrations when broken is detected
-    "organizations:slack-disable-on-broken": False,
+    "organizations:slack-fatal-disable-on-broken": False,
     # Allow disabling sentryapps when broken is detected
     "organizations:disable-sentryapps-on-broken": False,
     # Enable the 'discover' interface.
@@ -1695,6 +1697,8 @@ SENTRY_FEATURES = {
     "organizations:recap-server": False,
     # Enable additional logging for alerts
     "organizations:detailed-alert-logging": False,
+    # Enable the new notification settings system
+    "organizations:notification-settings-v2": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
