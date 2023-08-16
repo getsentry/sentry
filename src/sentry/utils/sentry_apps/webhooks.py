@@ -15,7 +15,7 @@ from sentry.models import Organization
 from sentry.models.integrations.sentry_app import track_response_code
 from sentry.models.integrations.utils import get_redis_key, is_response_error, is_response_success
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
-from sentry.utils.audit import create_audit_entry
+from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 if TYPE_CHECKING:
@@ -50,10 +50,10 @@ def check_broken(sentryapp: SentryApp, org_id: str):
             sentryapp._disable()
             notify_disable(org, sentryapp.name, redis_key, sentryapp.slug, sentryapp.webhook_url)
             buffer.clear()
-            create_audit_entry(
+            create_audit_entry_from_user(
                 organization=org,
+                organization_id=org.id,
                 event=audit_log.get_event_id("INTERNAL_INTEGRATION_DISABLED"),
-                name=sentryapp.name,
             )
         extra = {
             "sentryapp_webhook": sentryapp.webhook_url,

@@ -67,6 +67,7 @@ class AuditLogEventRegisterTest(TestCase):
             "internal-integration.create",
             "internal-integration.add-token",
             "internal-integration.remove-token",
+            "internal-integration.disable",
             "invite-request.create",
             "invite-request.remove",
             "alertrule.create",

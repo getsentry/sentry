@@ -10,12 +10,20 @@ from django.urls import reverse
 from freezegun import freeze_time
 from requests.exceptions import Timeout
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models import Activity, Group, Rule, SentryApp, SentryAppInstallation, SentryFunction
+from sentry.models import (
+    Activity,
+    AuditLogEntry,
+    Group,
+    Rule,
+    SentryApp,
+    SentryAppInstallation,
+    SentryFunction,
+)
 from sentry.models.integrations.utils import get_redis_key
 from sentry.shared_integrations.exceptions import ClientError
 from sentry.tasks.post_process import post_process_group
@@ -875,6 +883,11 @@ class TestWebhookRequests(TestCase):
         self.sentry_app.refresh_from_db()  # reload to get updated events
         assert len(self.sentry_app.events) == 0  # check that events are empty / app is disabled
         assert len(self.integration_buffer._get_all_from_buffer()) == 0
+        assert AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("INTERNAL_INTEGRATION_DISABLED"),
+            organization_id=self.organization.id,
+            organization=self.organization,
+        )
 
     @patch(
         "sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockFailureResponseInstance
