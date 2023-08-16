@@ -85,7 +85,7 @@ def _is_on_demand_metrics_experimental_enabled(organization: Organization) -> bo
     return features.has("organizations:on-demand-metrics-extraction-experimental", organization)
 
 
-def _is_alerts_extraction_enabled(organization: Organization):
+def _is_alerts_extraction_enabled(organization: Organization) -> bool:
     # For alerts, we support extraction if the on demand is enabled, or the organization is supporting the prefilling.
     #
     # The idea of prefilling is to already start generating metrics for users that are going to be moving from
@@ -137,7 +137,7 @@ def _get_alert_metric_specs(project: Project) -> List[HashedMetricSpec]:
     return specs
 
 
-def _is_widgets_extraction_enabled(organization: Organization):
+def _is_widgets_extraction_enabled(organization: Organization) -> bool:
     return _is_on_demand_metrics_extraction_enabled(
         organization
     ) and _is_on_demand_metrics_experimental_enabled(organization)

@@ -379,4 +379,5 @@ def test_get_metrics_extraction_features_combinations(
         if number_of_metrics == 0:
             assert config is None
         else:
+            assert config is not None
             assert len(config["metrics"]) == number_of_metrics
