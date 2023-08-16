@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import timedelta
 from random import randrange
 from typing import (
@@ -21,13 +22,8 @@ from django.utils import timezone
 
 from sentry import analytics, features
 from sentry.eventstore.models import GroupEvent
-from sentry.integrations.discord.actions.notification import DiscordNotifyServiceAction
-from sentry.integrations.msteams.actions.notification import MsTeamsNotifyServiceAction
-from sentry.integrations.slack.actions.notification import SlackNotifyServiceAction
-from sentry.mail.actions import NotifyEmailAction
 from sentry.models import Environment, GroupRuleStatus, Rule
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.notifications.utils import generate_notification_uuid
 from sentry.rules import EventState, history, rules
 from sentry.rules.conditions.base import EventCondition
 from sentry.types.rules import RuleFuture
@@ -307,7 +303,7 @@ class RuleProcessor:
                 rule_id=rule.id,
             )
 
-        notification_uuid = generate_notification_uuid()
+        notification_uuid = uuid.uuid4()
         history.record(rule, self.group, self.event.event_id, notification_uuid)
         self.activate_downstream_actions(rule, notification_uuid)
 
@@ -323,25 +319,13 @@ class RuleProcessor:
 
             action_inst = action_cls(self.project, data=action, rule=rule)
 
-            #  notification_uuid is needed for email, Discord, Slack, and MS Teams
-            action_with_notification_uuid = [
-                NotifyEmailAction,
-                DiscordNotifyServiceAction,
-                SlackNotifyServiceAction,
-                MsTeamsNotifyServiceAction,
-            ]
-            if action_cls in action_with_notification_uuid:
-                results = safe_execute(
-                    action_inst.after,
-                    event=self.event,
-                    state=state,
-                    _with_transaction=False,
-                    notification_uuid=notification_uuid,
-                )
-            else:
-                results = safe_execute(
-                    action_inst.after, event=self.event, state=state, _with_transaction=False
-                )
+            results = safe_execute(
+                action_inst.after,
+                event=self.event,
+                state=state,
+                _with_transaction=False,
+                notification_uuid=notification_uuid,
+            )
             if results is None:
                 self.logger.warning("Action %s did not return any futures", action["id"])
                 continue

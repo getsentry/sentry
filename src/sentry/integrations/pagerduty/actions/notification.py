@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 
 from sentry.integrations.pagerduty.actions import PagerDutyNotifyServiceForm
 from sentry.integrations.pagerduty.client import PagerDutyProxyClient
@@ -39,7 +39,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 return pds
         return None
 
-    def after(self, event, state, **kwargs):
+    def after(self, event, state, notification_uuid: Optional[str] = None):
         integration = self.get_integration()
         if not integration:
             logger.exception("Integration removed, however, the rule still refers to it.")

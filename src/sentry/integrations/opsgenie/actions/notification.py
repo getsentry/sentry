@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Optional
 
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamForm
 from sentry.integrations.opsgenie.client import OpsgenieClient
@@ -30,7 +31,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             "team": {"type": "choice", "choices": self.get_teams()},
         }
 
-    def after(self, event, state, **kwargs):
+    def after(self, event, state, notification_uuid: Optional[str] = None):
         integration = self.get_integration()
         if not integration:
             logger.error("Integration removed, but the rule still refers to it")
