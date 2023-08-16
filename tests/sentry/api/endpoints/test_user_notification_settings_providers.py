@@ -74,6 +74,22 @@ class UserNotificationSettingsProvidersGetTest(UserNotificationSettingsProviders
         response = self.get_success_response("me").data
         assert len(response) == 3
 
+        # check for all the provider options
+        alert_slack_item = next(
+            item for item in response if item["provider"] == "slack" and item["type"] == "alerts"
+        )
+        assert alert_slack_item["value"] == "always"
+
+        workflow_email_item = next(
+            item for item in response if item["provider"] == "email" and item["type"] == "workflow"
+        )
+        assert workflow_email_item["value"] == "always"
+
+        alert_slack_item = next(
+            item for item in response if item["provider"] == "email" and item["type"] == "alerts"
+        )
+        assert alert_slack_item["value"] == "always"
+
     def test_invalid_type(self):
         response = self.get_error_response(
             "me",
