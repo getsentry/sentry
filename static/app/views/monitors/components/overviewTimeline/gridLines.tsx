@@ -18,6 +18,10 @@ interface Props {
   stickyCursor?: boolean;
 }
 
+/**
+ * Aligns a date to a clean offset such as start of minute, hour, day
+ * based on the interval of how far each time label is placed.
+ */
 function alignTimeMarkersToStartOf(date: moment.Moment, timeMarkerInterval: number) {
   if (timeMarkerInterval < 60) {
     date.minute(date.minutes() - (date.minutes() % timeMarkerInterval));
@@ -46,6 +50,7 @@ function getTimeMarkersFromConfig(
 
   const lastTimeMark = moment(end);
   alignTimeMarkersToStartOf(lastTimeMark, timeMarkerInterval);
+  // Generate time markers which represent location of grid lines/time labels
   for (let i = 1; i < elapsedMinutes / timeMarkerInterval; i++) {
     const timeMark = moment(lastTimeMark).subtract(i * timeMarkerInterval, 'minute');
     const position = (timeMark.valueOf() - start.valueOf()) / msPerPixel;

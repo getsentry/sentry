@@ -43,8 +43,7 @@ export function CronTimelineSection({event, organization}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
-  const timeWindowConfig = getConfigFromTimeRange(start, end, timelineWidth);
-  const elapsedMinutes = timeWindowConfig.elapsedMinutes;
+  const {elapsedMinutes} = getConfigFromTimeRange(start, end, timelineWidth);
   const rollup = Math.floor((elapsedMinutes * 60) / timelineWidth);
 
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
