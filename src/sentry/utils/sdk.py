@@ -129,6 +129,7 @@ SAMPLED_TASKS = {
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.monitors.tasks.check_missing": 1.0,
     "sentry.monitors.tasks.check_timeout": 1.0,
+    "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2,
