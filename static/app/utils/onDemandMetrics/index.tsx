@@ -1,4 +1,5 @@
 import {ParseResult, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {Organization} from 'sentry/types';
 import {FieldKey} from 'sentry/utils/fields';
 import {
   ON_DEMAND_METRICS_SUPPORTED_TAGS,
@@ -73,11 +74,11 @@ export const extrapolatedAreaStyle = {
   opacity: 1.0,
 };
 
-export function hasOnDemandMetricAlertFeature(organization) {
+export function hasOnDemandMetricAlertFeature(organization: Organization) {
   return organization.features.includes('on-demand-metrics-extraction');
 }
 
-export function hasOnDemandMetricWidgetFeature(organization) {
+export function hasOnDemandMetricWidgetFeature(organization: Organization) {
   return (
     organization.features.includes('on-demand-metrics-extraction') &&
     organization.features.includes('on-demand-metrics-extraction-experimental')
