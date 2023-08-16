@@ -15,7 +15,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconCalendar, IconDelete, IconEllipsis, IconFire} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -341,7 +341,9 @@ export function BrowserCell({replay}: Props) {
           items={[
             {
               key: 'name',
-              label: 'Add browser name to filter',
+              label: tct('Add [name] to filter', {
+                name: <b>{name}</b>,
+              }),
               onAction: () => {
                 browserHistory.push({
                   ...location,
@@ -362,7 +364,9 @@ export function BrowserCell({replay}: Props) {
               ? [
                   {
                     key: 'version',
-                    label: 'Add browser version to filter',
+                    label: tct('Add version [version] to filter', {
+                      version: <b>{version}</b>,
+                    }),
                     onAction: () => {
                       browserHistory.push({
                         ...location,
