@@ -18,7 +18,7 @@ interface CodeSnippetProps {
    * Userful when loading parts of a code snippet, and
    * we wish to avoid users copying them manually.
    */
-  disabledUserSelection?: boolean;
+  disableUserSelection?: boolean;
   filename?: string;
   hideCopyButton?: boolean;
   onCopy?: (copiedCode: string) => void;
@@ -37,7 +37,7 @@ export function CodeSnippet({
   onCopy,
   className,
   onSelectAndCopy,
-  disabledUserSelection,
+  disableUserSelection,
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
 
@@ -101,7 +101,7 @@ export function CodeSnippet({
           ref={ref}
           className={`language-${String(language)}`}
           onCopy={onSelectAndCopy}
-          disabledUserSelection={disabledUserSelection}
+          disableUserSelection={disableUserSelection}
         >
           {children}
         </Code>
@@ -168,6 +168,6 @@ const CopyButton = styled(Button)`
   }
 `;
 
-const Code = styled('code')<{disabledUserSelection?: boolean}>`
-  user-select: ${p => (p.disabledUserSelection ? 'none' : 'auto')};
+const Code = styled('code')<{disableUserSelection?: boolean}>`
+  user-select: ${p => (p.disableUserSelection ? 'none' : 'auto')};
 `;
