@@ -1,12 +1,10 @@
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta
 from typing import Any, Dict, List, cast
 
 import sentry_sdk
 from django.conf import settings
-from django.utils import timezone
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -99,23 +97,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         except NoProjects:
             return Response([])
 
-        modified_params = params.copy()
-        if not features.has(
-            "organizations:performance-trends-new-data-date-range-default",
-            organization,
-            actor=request.user,
-        ):
-            delta = modified_params["end"] - modified_params["start"]
-            duration = delta.total_seconds()
-            if duration >= 14 * ONE_DAY_IN_SECONDS and duration <= 30 * ONE_DAY_IN_SECONDS:
-                new_start = modified_params["end"] - timedelta(days=30)
-                min_start = timezone.now() - timedelta(days=90)
-                modified_params["start"] = new_start if min_start < new_start else min_start
-                sentry_sdk.set_tag("performance.trendsv2.extra_data_fetched", True)
-                sentry_sdk.set_tag(
-                    "performance.trendsv2.optimized_start_out_of_bounds", new_start > min_start
-                )
-
         trend_type = request.GET.get("trendType", REGRESSION)
         if trend_type not in TREND_TYPES:
             raise ParseError(detail=f"{trend_type} is not a supported trend type")
@@ -173,8 +154,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
             # Get new params with pruned projects
             pruned_params = self.get_snuba_params(request, organization)
-            pruned_params["start"] = modified_params["start"]
-            pruned_params["end"] = modified_params["end"]
 
             result = metrics_performance.bulk_timeseries_query(
                 timeseries_columns,
@@ -217,8 +196,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     {
                         "data": zerofill(
                             item["data"],
-                            modified_params["start"],
-                            modified_params["end"],
+                            pruned_params["start"],
+                            pruned_params["end"],
                             rollup,
                             "time",
                         )
@@ -228,8 +207,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         "isMetricsData": True,
                         "order": item["order"],
                     },
-                    modified_params["start"],
-                    modified_params["end"],
+                    pruned_params["start"],
+                    pruned_params["end"],
                     rollup,
                 )
             return formatted_results
