@@ -60,15 +60,18 @@ class IntegrationControlMiddlewareTest(TestCase):
         class NewClassification(BaseClassification):
             pass
 
-        new_classification = NewClassification
-        new_classification.should_operate = MagicMock(return_value=True)  # type:ignore
-        new_classification.get_response = MagicMock()  # type:ignore
-        self.middleware.register_classifications(classifications=[new_classification])
-        self.middleware(self.factory.post("/"))
-        assert mock_integration_operate.called
-        assert mock_plugin_operate.called
-        assert new_classification.should_operate.called
-        assert new_classification.get_response.called
+        self.middleware.register_classifications(classifications=[NewClassification])
+
+        with patch.object(
+            NewClassification, "should_operate", return_value=True
+        ) as mock_new_should_operate, patch.object(
+            NewClassification, "get_response"
+        ) as mock_new_get_response:
+            self.middleware(self.factory.post("/"))
+            assert mock_integration_operate.called
+            assert mock_plugin_operate.called
+            assert mock_new_should_operate.called
+            assert mock_new_get_response.called
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(IntegrationClassification, "should_operate", wraps=integration_cls.should_operate)
