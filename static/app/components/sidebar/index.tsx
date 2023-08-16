@@ -242,8 +242,8 @@ function Sidebar({location, organization}: Props) {
         <SidebarItem
           {...sidebarItemProps}
           label={<GuideAnchor target="starfish">{t('Database')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/starfish/database/`}
-          id="starfish"
+          to={`/organizations/${organization.slug}/performance/database/`}
+          id="performance-database"
           icon={<SubitemDot collapsed={collapsed} />}
         />
       </SidebarAccordion>
