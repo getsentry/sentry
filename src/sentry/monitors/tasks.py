@@ -180,7 +180,7 @@ def check_missing(current_datetime=None):
     # minute, otherwise we may mark checkins as missed if they didn't happen
     # immediately before this task was run (usually a few seconds into the minute)
     #
-    # Because we query `next_checkin__lt=current_datetime` clamping to the
+    # Because we query `next_checkin_latest__lt=current_datetime` clamping to the
     # minute will ignore monitors that haven't had their checkin yet within
     # this minute.
     current_datetime = current_datetime.replace(second=0, microsecond=0)

@@ -147,6 +147,13 @@ class CheckMonitorsTest(TestCase):
         ).replace(second=0, microsecond=0)
         assert missed_check.monitor_config == monitor.config
 
+        # Monitor environment next_checkin values are updated correctly
+        monitor_environment_updated = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        assert (
+            monitor_environment_updated.next_checkin_latest
+            == monitor_environment_updated.next_checkin + timedelta(minutes=5)
+        )
+
     def assert_state_does_not_change_for_state(self, state):
         org = self.create_organization()
         project = self.create_project(organization=org)
