@@ -41,7 +41,6 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
-from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
@@ -52,9 +51,31 @@ if TYPE_CHECKING:
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
-MIGRATED_GETTING_STARTD_DOCS = [
-    "javascript-react",
-    "javascript-remix",
+# NOTE:
+# - When you modify this list, ensure that the platform IDs listed in "sentry/static/app/data/platforms.tsx" match.
+# - Please keep this list organized alphabetically.
+GETTING_STARTD_DOCS_PLATFORMS = [
+    "android",
+    "apple",
+    "apple-ios",
+    "apple-macos",
+    "capacitor",
+    "cordova",
+    "dart",
+    "dotnet",
+    "dotnet-aspnet",
+    "dotnet-aspnetcore",
+    "dotnet-awslambda",
+    "dotnet-gcpfunctions",
+    "dotnet-maui",
+    "dotnet-uwp",
+    "dotnet-winforms",
+    "dotnet-wpf",
+    "dotnet-xamarin",
+    "electron",
+    "elixir",
+    "flutter",
+    "go",
     "go-echo",
     "go-fasthttp",
     "go-gin",
@@ -62,6 +83,67 @@ MIGRATED_GETTING_STARTD_DOCS = [
     "go-iris",
     "go-martini",
     "go-negroni",
+    "ionic",
+    "java",
+    "java-log4j2",
+    "java-logback",
+    "java-spring",
+    "java-spring-boot",
+    "javascript",
+    "javascript-angular",
+    "javascript-ember",
+    "javascript-gatsby",
+    "javascript-nextjs",
+    "javascript-react",
+    "javascript-remix",
+    "javascript-svelte",
+    "javascript-sveltekit",
+    "javascript-vue",
+    "kotlin",
+    "minidump",
+    "native",
+    "native-qt",
+    "node",
+    "node-awslambda",
+    "node-azurefunctions",
+    "node-connect",
+    "node-express",
+    "node-gcpfunctions",
+    "node-koa",
+    "node-serverlesscloud",
+    "php",
+    "php-laravel",
+    "php-symfony",
+    "python",
+    "python-aiohttp",
+    "python-asgi",
+    "python-awslambda",
+    "python-bottle",
+    "python-celery",
+    "python-chalice",
+    "python-django",
+    "python-falcon",
+    "python-fastapi",
+    "python-flask",
+    "python-gcpfunctions",
+    "python-pylons",
+    "python-pymongo",
+    "python-pyramid",
+    "python-quart",
+    "python-rq",
+    "python-sanic",
+    "python-serverless",
+    "python-starlette",
+    "python-tornado",
+    "python-tryton",
+    "python-wsgi",
+    "react-native",
+    "ruby",
+    "ruby-rack",
+    "ruby-rails",
+    "rust",
+    "unity",
+    "unreal",
 ]
 
 
@@ -541,9 +623,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
     @staticmethod
     def is_valid_platform(value):
-        if not value or value == "other" or value in MIGRATED_GETTING_STARTD_DOCS:
-            return True
-        return integration_doc_exists(value)
+        return value in GETTING_STARTD_DOCS_PLATFORMS
 
     @staticmethod
     def outbox_for_update(project_identifier: int, organization_identifier: int) -> RegionOutbox:

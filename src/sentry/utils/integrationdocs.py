@@ -184,12 +184,3 @@ def sync_integration_docs(
             "wizard_setup": data.get("wizard_setup", None),
         },
     )
-
-
-def integration_doc_exists(integration_id: str) -> bool:
-    # We use listdir() here as integration_id comes from user data
-    # and using os.path.join() would allow directory traversal vulnerabilities
-    # which we don't want.
-    docs = os.listdir(DOC_FOLDER)
-    filename = f"{integration_id}.json"
-    return filename in docs
