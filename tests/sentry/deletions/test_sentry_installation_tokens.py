@@ -1,8 +1,10 @@
 from sentry import deletions
 from sentry.models import ApiToken, SentryAppInstallation, SentryAppInstallationToken
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class TestSentryInstallationTokenDeletionTask(TestCase):
     def setUp(self):
         self.user = self.create_user()

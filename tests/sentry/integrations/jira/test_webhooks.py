@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -12,6 +14,7 @@ from sentry.integrations.mixins import IssueSyncMixin
 from sentry.integrations.utils import AtlassianConnectValidationError
 from sentry.models import Integration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils.cases import APITestCase, TestCase
 
@@ -169,7 +172,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
 
             mock_set_tag.assert_called_with("integration_id", self.integration.id)
-            mock_bind_org_context.assert_called_with(self.organization)
+            mock_bind_org_context.assert_called_with(serialize_rpc_organization(self.organization))
 
     def test_missing_changelog(self):
         with patch(
@@ -186,7 +189,7 @@ class MockErroringJiraEndpoint(JiraWebhookBase):
     # In order to be able to use `as_view`'s `initkwargs` (in other words, in order to be able to
     # pass kwargs to `as_view` and have `as_view` pass them onto the `__init__` method below), any
     # kwarg we'd like to pass must already be an attibute of the class
-    error = None
+    error = BaseException("unreachable")
 
     def __init__(self, error: Exception = dummy_exception, *args, **kwargs):
         # We allow the error to be passed in so that we have access to it in the test for use

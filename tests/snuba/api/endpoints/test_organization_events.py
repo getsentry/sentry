@@ -1,14 +1,13 @@
 import math
 import uuid
-from datetime import timedelta
+from datetime import timedelta, timezone
 from unittest import mock
 
 import pytest
 from django.test import override_settings
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from freezegun import freeze_time
-from pytz import utc
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
@@ -1296,13 +1295,13 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         replaced_release = self.create_release(
             version="replaced_release",
             environments=[self.environment],
-            adopted=timezone.now(),
-            unadopted=timezone.now(),
+            adopted=django_timezone.now(),
+            unadopted=django_timezone.now(),
         )
         adopted_release = self.create_release(
             version="adopted_release",
             environments=[self.environment],
-            adopted=timezone.now(),
+            adopted=django_timezone.now(),
         )
         self.create_release(version="not_adopted_release", environments=[self.environment])
 
@@ -4132,7 +4131,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
         self.create_project()
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=utc)
+        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
 
         # Don't quantize short time periods
         query = {"statsPeriod": "1h", "query": "", "field": ["id", "timestamp"]}

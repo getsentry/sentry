@@ -13,6 +13,7 @@ from sentry.issues.grouptype import (
     MonitorCheckInMissed,
     MonitorCheckInTimeout,
 )
+from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -25,7 +26,6 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.monitors.tasks import SUBTITLE_DATETIME_FORMAT
 from sentry.monitors.validators import ConfigValidator
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -40,12 +40,12 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
 
         monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
         )
 
@@ -57,12 +57,12 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
 
         monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
         )
 
@@ -78,14 +78,14 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
             2019, 1, 1, 12, 00, tzinfo=timezone.utc
         )
 
         # Europe/Berlin == UTC+01:00.
         # the run should be represented 1 hours earlier in UTC time
         monitor.config["timezone"] = "Europe/Berlin"
-        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
             2019, 1, 1, 11, 00, tzinfo=timezone.utc
         )
 
@@ -97,7 +97,7 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute.
-        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
             2019, 2, 1, 1, 10, 0, tzinfo=timezone.utc
         )
 
@@ -499,7 +499,7 @@ class MonitorEnvironmentTestCase(TestCase):
             status=monitor.status,
         )
         last_checkin = timezone.now()
-        expected_time = monitor.get_next_scheduled_checkin(last_checkin)
+        expected_time = monitor.get_next_expected_checkin(last_checkin)
 
         assert monitor_environment.mark_failed(
             last_checkin=last_checkin,
@@ -645,8 +645,7 @@ class MonitorEnvironmentTestCase(TestCase):
         validated_config = monitor.get_validated_config()
         assert validated_config is not None
 
-        # (rjo100): Commenting out temporarily
-        # # Check to make sure bad config fails validation
-        # validated_config["bad_key"] = 100
-        # monitor.config = validated_config
-        # assert monitor.get_validated_config() is None
+        # Check to make sure bad config fails validation
+        validated_config["bad_key"] = 100
+        monitor.config = validated_config
+        assert monitor.get_validated_config() is None

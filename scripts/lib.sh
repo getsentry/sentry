@@ -94,10 +94,12 @@ install-py-dev() {
     # pip doesn't do well with swapping drop-ins
     pip uninstall -qqy uwsgi
 
+    pip-install -r requirements-dev-frozen.txt
+
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.
-    SENTRY_LIGHT_BUILD=1 pip-install -e '.[dev]'
+    SENTRY_LIGHT_BUILD=1 pip-install -e . --no-deps
 }
 
 setup-git-config() {

@@ -12,6 +12,7 @@ from django.test.utils import override_settings
 from sentry import killswitches
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
+from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.consumers.monitor_consumer import StoreMonitorCheckInStrategyFactory
 from sentry.monitors.models import (
     CheckInStatus,
@@ -22,7 +23,6 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.monitors.tasks import TIMEOUT
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.locking.manager import LockManager
@@ -123,20 +123,17 @@ class MonitorConsumerTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
+        assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(
             checkin.date_added
         )
-        assert (
-            monitor_environment.next_checkin_latest
-            == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+        assert monitor_environment.next_checkin_latest == monitor.get_next_expected_checkin_latest(
+            checkin.date_added
         )
 
         # Process another check-in to verify we set an expected time for the next check-in
-        expected_time = monitor_environment.next_checkin
         self.send_checkin(monitor.slug)
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
-        # the expected time should not include the margin of 5 minutes
-        assert checkin.expected_time == expected_time - timedelta(minutes=5)
+        assert checkin.expected_time == monitor_environment.next_checkin
         assert checkin.trace_id.hex == self.trace_id
 
     def test_passing(self) -> None:
@@ -150,20 +147,18 @@ class MonitorConsumerTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
+        assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(
             checkin.date_added
         )
-        assert (
-            monitor_environment.next_checkin_latest
-            == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+        assert monitor_environment.next_checkin_latest == monitor.get_next_expected_checkin_latest(
+            checkin.date_added
         )
 
         # Process another check-in to verify we set an expected time for the next check-in
-        expected_time = monitor_environment.next_checkin
         self.send_checkin(monitor.slug)
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         # the expected time should not include the margin of 5 minutes
-        assert checkin.expected_time == expected_time - timedelta(minutes=5)
+        assert checkin.expected_time == monitor_environment.next_checkin
 
     def test_failing(self):
         monitor = self._create_monitor(slug="my-monitor")
@@ -175,12 +170,11 @@ class MonitorConsumerTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
+        assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(
             checkin.date_added
         )
-        assert (
-            monitor_environment.next_checkin_latest
-            == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+        assert monitor_environment.next_checkin_latest == monitor.get_next_expected_checkin_latest(
+            checkin.date_added
         )
 
     def test_disabled(self):
@@ -196,12 +190,11 @@ class MonitorConsumerTest(TestCase):
         # is disabled
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
+        assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(
             checkin.date_added
         )
-        assert (
-            monitor_environment.next_checkin_latest
-            == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+        assert monitor_environment.next_checkin_latest == monitor.get_next_expected_checkin_latest(
+            checkin.date_added
         )
 
     def test_create_lock(self):
@@ -294,12 +287,11 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.environment.name == "jungle"
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
+        assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(
             checkin.date_added
         )
-        assert (
-            monitor_environment.next_checkin_latest
-            == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+        assert monitor_environment.next_checkin_latest == monitor.get_next_expected_checkin_latest(
+            checkin.date_added
         )
 
     def test_monitor_create(self):
@@ -318,15 +310,11 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.last_checkin == checkin.date_added
         assert (
             monitor_environment.next_checkin
-            == monitor_environment.monitor.get_next_scheduled_checkin_with_margin(
-                checkin.date_added
-            )
+            == monitor_environment.monitor.get_next_expected_checkin(checkin.date_added)
         )
         assert (
             monitor_environment.next_checkin_latest
-            == monitor_environment.monitor.get_next_scheduled_checkin_with_margin(
-                checkin.date_added
-            )
+            == monitor_environment.monitor.get_next_expected_checkin_latest(checkin.date_added)
         )
 
     def test_monitor_update(self):
@@ -349,15 +337,11 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.last_checkin == checkin.date_added
         assert (
             monitor_environment.next_checkin
-            == monitor_environment.monitor.get_next_scheduled_checkin_with_margin(
-                checkin.date_added
-            )
+            == monitor_environment.monitor.get_next_expected_checkin(checkin.date_added)
         )
         assert (
             monitor_environment.next_checkin_latest
-            == monitor_environment.monitor.get_next_scheduled_checkin_with_margin(
-                checkin.date_added
-            )
+            == monitor_environment.monitor.get_next_expected_checkin_latest(checkin.date_added)
         )
 
     def test_check_in_empty_id(self):
@@ -570,78 +554,24 @@ class MonitorConsumerTest(TestCase):
 
         assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
 
-    @mock.patch("sentry.monitors.consumers.monitor_consumer.CHECKIN_QUOTA_LIMIT", 20)
-    @mock.patch("sentry.monitors.consumers.monitor_consumer._dispatch_tasks")
-    def test_monitor_task_trigger(self, dispatch_tasks):
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_tasks_trigger")
+    def test_monitor_tasks_trigger(self, try_monitor_tasks_trigger):
         monitor = self._create_monitor(slug="my-monitor")
-
-        assert dispatch_tasks.call_count == 0
 
         now = datetime.now().replace(second=0, microsecond=0)
 
         # First checkin triggers tasks
-        self.send_checkin(monitor.slug, ts=now)
-        assert dispatch_tasks.call_count == 1
-
-        # 5 seconds later does NOT trigger the task
-        self.send_checkin(monitor.slug, ts=now + timedelta(seconds=5))
-        assert dispatch_tasks.call_count == 1
-
-        # a minute later DOES trigger the task
-        self.send_checkin(monitor.slug, ts=now + timedelta(minutes=1))
-        assert dispatch_tasks.call_count == 2
-
-        # Same time does NOT trigger the task
-        self.send_checkin(monitor.slug, ts=now + timedelta(minutes=1))
-        assert dispatch_tasks.call_count == 2
-
-        # A skipped minute trigges the task AND captures an error
-        with mock.patch("sentry_sdk.capture_message") as capture_message:
-            assert capture_message.call_count == 0
-            self.send_checkin(monitor.slug, ts=now + timedelta(minutes=3, seconds=5))
-            assert dispatch_tasks.call_count == 3
-            capture_message.assert_called_with("Monitor task dispatch minute skipped")
+        self.send_checkin(monitor.slug)
+        assert try_monitor_tasks_trigger.call_count == 1
 
         # A clock pulse message also triggers the tasks
-        self.send_clock_pulse(ts=now + timedelta(minutes=4))
-        assert dispatch_tasks.call_count == 4
+        self.send_clock_pulse()
+        assert try_monitor_tasks_trigger.call_count == 2
 
         # An exception dispatching the tasks does NOT cause ingestion to fail
         with mock.patch("sentry.monitors.consumers.monitor_consumer.logger") as logger:
-            dispatch_tasks.side_effect = Exception()
+            try_monitor_tasks_trigger.side_effect = Exception()
             self.send_checkin(monitor.slug, ts=now + timedelta(minutes=5))
             assert MonitorCheckIn.objects.filter(guid=self.guid).exists()
             logger.exception.assert_called_with("Failed to trigger monitor tasks", exc_info=True)
-            dispatch_tasks.side_effect = None
-
-    @mock.patch("sentry.monitors.consumers.monitor_consumer._dispatch_tasks")
-    def test_monitor_task_trigger_partition_desync(self, dispatch_tasks):
-        """
-        When consumer partitions are not completely synchronized we may read
-        timestamps in a non-monotonic order. In this scenario we want to make
-        sure we still only trigger once
-        """
-        monitor = self._create_monitor(slug="my-monitor")
-
-        assert dispatch_tasks.call_count == 0
-
-        now = datetime.now().replace(second=0, microsecond=0)
-
-        # First message with timestamp just after the minute bounardary
-        # triggers the task
-        self.send_checkin(monitor.slug, ts=now + timedelta(seconds=1))
-        assert dispatch_tasks.call_count == 1
-
-        # Second message has a timestamp just before the minute boundary,
-        # should not trigger anything since we've already ticked ahead of this
-        self.send_checkin(monitor.slug, ts=now - timedelta(seconds=1))
-        assert dispatch_tasks.call_count == 1
-
-        # Third message again just after the minute bounadry does NOT trigger
-        # the task, we've already ticked at that time.
-        self.send_checkin(monitor.slug, ts=now + timedelta(seconds=1))
-        assert dispatch_tasks.call_count == 1
-
-        # Fourth message moves past a new minute boundary, tick
-        self.send_checkin(monitor.slug, ts=now + timedelta(minutes=1, seconds=1))
-        assert dispatch_tasks.call_count == 2
+            try_monitor_tasks_trigger.side_effect = None
