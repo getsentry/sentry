@@ -226,9 +226,9 @@ def test_spec_ignore_fields():
 
 
 def test_spec_custom_tag():
-    with_ignored_field = OnDemandMetricSpec("count()", "foo:bar")
+    custom_tag_spec = OnDemandMetricSpec("count()", "foo:bar")
 
-    assert with_ignored_field.condition() == {"name": "event.tags.foo", "op": "eq", "value": "bar"}
+    assert custom_tag_spec.condition() == {"name": "event.tags.foo", "op": "eq", "value": "bar"}
 
 
 @pytest.mark.parametrize(
