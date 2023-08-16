@@ -18,8 +18,6 @@ import {
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
 
-import {hasOnDemandMetricAlertFeature} from '../../../utils/onDemandMetrics/index';
-
 export type AlertType =
   | 'issues'
   | 'num_errors'
@@ -261,7 +259,7 @@ export function datasetSupportedTags(
 }
 
 function transactionSupportedTags(org: Organization) {
-  if (hasOnDemandMetricAlertFeature(org)) {
+  if (org.features.includes('on-demand-metrics-extraction')) {
     return [...ON_DEMAND_METRICS_SUPPORTED_TAGS];
   }
   return TRANSACTION_SUPPORTED_TAGS;
