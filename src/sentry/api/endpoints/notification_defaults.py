@@ -12,22 +12,32 @@ from sentry.notifications.types import (
 )
 from sentry.types.integrations import EXTERNAL_PROVIDERS
 
-# create the data structure outside the endpoint
-provider_defaults = []
-for key, value in NOTIFICATION_SETTING_DEFAULTS.items():
-    provider = EXTERNAL_PROVIDERS[key]
-    # if the value is NOTIFICATION_SETTINGS_ALL_SOMETIMES then it means the provider
-    # is on by default
-    if value == NOTIFICATION_SETTINGS_ALL_SOMETIMES:
-        provider_defaults.append(provider)
 
-# this tells us what the default value is for each notification type
-type_defaults = {}
-for key, value in NOTIFICATION_SETTINGS_ALL_SOMETIMES.items():
-    # for the given notification type, figure out what the default value is
-    notification_type = NOTIFICATION_SETTING_TYPES[key]
-    default = NOTIFICATION_SETTING_OPTION_VALUES[value]
-    type_defaults[notification_type] = default
+def get_provider_defaults():
+    # create the data structure outside the endpoint
+    provider_defaults = []
+    for key, value in NOTIFICATION_SETTING_DEFAULTS.items():
+        provider = EXTERNAL_PROVIDERS[key]
+        # if the value is NOTIFICATION_SETTINGS_ALL_SOMETIMES then it means the provider
+        # is on by default
+        if value == NOTIFICATION_SETTINGS_ALL_SOMETIMES:
+            provider_defaults.append(provider)
+    return provider_defaults
+
+
+def get_type_defaults():
+    # this tells us what the default value is for each notification type
+    type_defaults = {}
+    for key, value in NOTIFICATION_SETTINGS_ALL_SOMETIMES.items():
+        # for the given notification type, figure out what the default value is
+        notification_type = NOTIFICATION_SETTING_TYPES[key]
+        default = NOTIFICATION_SETTING_OPTION_VALUES[value]
+        type_defaults[notification_type] = default
+    return type_defaults
+
+
+PROVIDER_DEFAULTS = get_provider_defaults()
+TYPE_DEFAULTS = get_type_defaults()
 
 
 @control_silo_endpoint
@@ -42,7 +52,7 @@ class NotificationDefaultsEndpoints(Endpoint):
         """
         return Response(
             {
-                "providerDefaults": provider_defaults,
-                "typeDefaults": type_defaults,
+                "providerDefaults": PROVIDER_DEFAULTS,
+                "typeDefaults": TYPE_DEFAULTS,
             }
         )
