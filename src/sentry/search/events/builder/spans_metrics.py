@@ -5,7 +5,7 @@ from snuba_sdk import AliasedExpression, And, Condition, CurriedFunction, Granul
 
 from sentry.search.events import constants
 from sentry.search.events.builder import MetricsQueryBuilder, TimeseriesMetricQueryBuilder
-from sentry.search.events.types import ParamsType, SelectType, WhereType
+from sentry.search.events.types import ParamsType, QueryBuilderConfig, SelectType, WhereType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import create_result_key
 from sentry.utils.snuba import bulk_snql_query
@@ -21,9 +21,13 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
         *args: Any,
         **kwargs: Any,
     ):
-        parser_config_overrides = kwargs.pop("parser_config_overrides", {})
+        config = kwargs.pop("config", QueryBuilderConfig())
+        parser_config_overrides = (
+            config.parser_config_overrides if config.parser_config_overrides else {}
+        )
         parser_config_overrides["free_text_key"] = "span.description"
-        kwargs["parser_config_overrides"] = parser_config_overrides
+        config.parser_config_overrides = parser_config_overrides
+        kwargs["config"] = config
         super().__init__(*args, **kwargs)
 
     def get_field_type(self, field: str) -> Optional[str]:

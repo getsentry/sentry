@@ -21,7 +21,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.models import Organization
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, CursorResult
@@ -508,11 +508,13 @@ def query_suspect_span_groups(
         equations=equations,
         query=query,
         orderby=[direction + column for column in suspect_span_columns.suspect_op_group_sort],
-        auto_aggregations=True,
-        use_aggregate_conditions=True,
         limit=limit,
         offset=offset,
-        functions_acl=["array_join", "sumArray", "percentileArray", "maxArray"],
+        config=QueryBuilderConfig(
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+            functions_acl=["array_join", "sumArray", "percentileArray", "maxArray"],
+        ),
     )
 
     extra_conditions = []
