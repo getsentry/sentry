@@ -77,9 +77,11 @@ class RelayProjectConfigsEndpoint(Endpoint):
         return Response(response, status=200)
 
     def _should_post_or_schedule(self, version, request):
-        """Determine whether the full build should be used for project configs.
+        """Determine whether the `_post_or_schedule_by_key` function should be
+        used for project configs.
 
-        The full build should be used for v3 requests with full config and v4.
+        `_post_or_schedule_by_key` should be used for v3 requests with full
+        config and v4.
 
         By default, Relay requests full configs and the number of partial config
         requests should be low enough to handle them per-request, instead of
@@ -91,23 +93,23 @@ class RelayProjectConfigsEndpoint(Endpoint):
         is_full_config = request.relay_request_data.get("fullConfig")
         set_tag("relay_full_config", is_full_config)
 
-        full_build = True
+        post_or_schedule = True
         reason = "version"
 
         if version not in ["3", "4"]:
-            full_build = False
+            post_or_schedule = False
             reason = "version"
         elif not is_full_config:
-            full_build = False
+            post_or_schedule = False
             reason = "fullConfig"
             version = "2"  # Downgrade to 2 for reporting metrics
         elif no_cache:
-            full_build = False
+            post_or_schedule = False
             reason = "noCache"
             version = "2"  # Downgrade to 2 for reporting metrics
 
-        set_tag("relay_use_full_build", full_build)
-        set_tag("relay_use_full_build_rejected", reason)
+        set_tag("relay_use_post_or_schedule", post_or_schedule)
+        set_tag("relay_use_post_or_schedule_rejected", reason)
         if version == "2":
             metrics.incr(
                 "api.endpoints.relay.project_configs.post",
@@ -120,7 +122,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 tags={"version": version, "reason": reason},
             )
 
-        return full_build
+        return post_or_schedule
 
     def _post_or_schedule_by_key(self, request: Request):
         public_keys = set(request.relay_request_data.get("publicKeys") or ())
