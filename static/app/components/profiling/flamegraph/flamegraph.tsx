@@ -570,6 +570,7 @@ function Flamegraph(): ReactElement {
           barHeight: 0,
           depthOffset: 0,
           maxHeight: CPUChart.configSpace.height,
+          minHeight: CPUChart.configSpace.height,
         },
       });
 
@@ -611,6 +612,7 @@ function Flamegraph(): ReactElement {
           barHeight: 0,
           depthOffset: 0,
           maxHeight: memoryChart.configSpace.height,
+          minHeight: memoryChart.configSpace.height,
         },
       });
 
