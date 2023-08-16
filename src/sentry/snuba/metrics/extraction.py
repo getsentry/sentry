@@ -891,11 +891,13 @@ def _get_apdex_project_transaction_threshold(project: Project) -> Tuple[int, str
     # We will extract the threshold from the apdex(x) field where x is the threshold.
     threshold, metric = result[0]
 
-    if metric == TransactionMetric.DURATION:
+    if metric == TransactionMetric.DURATION.value:
         metric_field = "transaction.duration"
-    else:
+    elif metric == TransactionMetric.LCP.value:
         # We assume it's lcp since the enumerator contains only two possibilities.
         metric_field = "measurements.lcp"
+    else:
+        raise Exception("Invalid metric for project transaction threshold")
 
     return threshold, metric_field
 

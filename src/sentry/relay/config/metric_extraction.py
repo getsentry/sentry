@@ -84,7 +84,7 @@ def _get_alert_metric_specs(project: Project) -> List[HashedMetricSpec]:
     specs = []
     for alert in alert_rules:
         alert_snuba_query = alert.snuba_query
-        if result := _convert_snuba_query_to_metric(alert.snuba_query):
+        if result := _convert_snuba_query_to_metric(project, alert.snuba_query):
             _log_on_demand_metric_spec(
                 project_id=project.id,
                 spec_for="alert",
