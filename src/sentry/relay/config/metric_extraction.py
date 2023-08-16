@@ -9,6 +9,7 @@ from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
+    Organization,
     Project,
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
@@ -55,9 +56,6 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
      - Performance alert rules with advanced filter expressions.
      - On-demand metrics widgets.
     """
-    if not features.has("organizations:on-demand-metrics-extraction", project.organization):
-        return None
-
     alert_specs = _get_alert_metric_specs(project)
     widget_specs = _get_widget_metric_specs(project)
 
@@ -72,7 +70,30 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     }
 
 
+def _is_on_demand_metrics_extraction_enabled(organization: Organization) -> bool:
+    return features.has("organizations:on-demand-metrics-extraction", organization)
+
+
+def _is_on_demand_metrics_prefill_enabled(organization: Organization) -> bool:
+    return features.has(
+        "organizations:enable-on-demand-metrics-prefill", organization
+    ) and features.has("organizations:enable-on-demand-metrics-prefill", organization)
+
+
+def _is_on_demand_metrics_experimental_enabled(organization: Organization) -> bool:
+    return features.has("organizations:on-demand-metrics-extraction-experimental", organization)
+
+
+def _is_alerts_extraction_enabled(organization: Organization):
+    return _is_on_demand_metrics_extraction_enabled(
+        organization
+    ) or _is_on_demand_metrics_prefill_enabled(organization)
+
+
 def _get_alert_metric_specs(project: Project) -> List[HashedMetricSpec]:
+    if not _is_alerts_extraction_enabled(project.organization):
+        return []
+
     alert_rules = (
         AlertRule.objects.fetch_for_project(project)
         .filter(
@@ -107,10 +128,14 @@ def _get_alert_metric_specs(project: Project) -> List[HashedMetricSpec]:
     return specs
 
 
+def _is_widgets_extraction_enabled(organization: Organization):
+    return _is_on_demand_metrics_extraction_enabled(
+        organization
+    ) and _is_on_demand_metrics_experimental_enabled(organization)
+
+
 def _get_widget_metric_specs(project: Project) -> List[HashedMetricSpec]:
-    if not features.has(
-        "organizations:on-demand-metrics-extraction-experimental", project.organization
-    ):
+    if not _is_widgets_extraction_enabled(project.organization):
         return []
 
     # fetch all queries of all on demand metrics widgets of this organization

@@ -1,6 +1,8 @@
 from typing import Sequence
 from unittest.mock import ANY
 
+import pytest
+
 from sentry.incidents.models import AlertRule
 from sentry.models import (
     Dashboard,
@@ -17,6 +19,8 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 
 ON_DEMAND_METRICS = "organizations:on-demand-metrics-extraction"
+ON_DEMAND_METRICS_PREFILL = "organizations:on-demand-metrics-prefill"
+ON_DEMAND_METRIC_PREFILL_ENABLE = "organizations:enable-on-demand-metrics-prefill"
 ON_DEMAND_METRICS_WIDGETS = "organizations:on-demand-metrics-extraction-experimental"
 
 
@@ -339,3 +343,40 @@ def test_get_metric_extraction_config_alerts_and_widgets(default_project):
             "mri": "d:transactions/on_demand@none",
             "tags": [{"key": "query_hash", "value": ANY}],
         }
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "enabled_features, number_of_metrics",
+    [
+        ([ON_DEMAND_METRICS], 1),  # Only alerts.
+        ([ON_DEMAND_METRICS_WIDGETS, ON_DEMAND_METRICS_PREFILL], 0),  # Nothing.
+        ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS], 2),  # Alerts and widgets.
+        ([ON_DEMAND_METRICS_PREFILL, ON_DEMAND_METRIC_PREFILL_ENABLE], 1),  # Alerts.
+        ([ON_DEMAND_METRICS_PREFILL], 0),  # Nothing.
+        ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_PREFILL], 1),  # Alerts.
+        ([ON_DEMAND_METRICS, ON_DEMAND_METRIC_PREFILL_ENABLE], 1),  # Alerts.
+        (
+            [
+                ON_DEMAND_METRICS_PREFILL,
+                ON_DEMAND_METRIC_PREFILL_ENABLE,
+                ON_DEMAND_METRICS_WIDGETS,
+                ON_DEMAND_METRICS,
+            ],
+            2,
+        ),  # Alerts and widgets.
+    ],
+)
+def test_get_metrics_extraction_features_combinations(
+    enabled_features, number_of_metrics, default_project
+):
+    create_alert("count()", "transaction.duration:>=10", default_project)
+    create_widget(["count()"], "transaction.duration:>=20", default_project)
+
+    features = {feature: True for feature in enabled_features}
+    with Feature(features):
+        config = get_metric_extraction_config(default_project)
+        if number_of_metrics == 0:
+            assert config is None
+        else:
+            assert len(config["metrics"]) == number_of_metrics
