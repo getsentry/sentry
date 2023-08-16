@@ -568,7 +568,10 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
     @staticmethod
     def get_current_transaction(
-        transactions: Sequence[SnubaTransaction], errors: Sequence[SnubaError], event_id: str
+        transactions: Sequence[SnubaTransaction],
+        errors: Sequence[SnubaError],
+        event_id: str,
+        allow_orphan_errors: bool,
     ) -> Tuple[SnubaTransaction, Event]:
         """Given an event_id return the related transaction event
 
@@ -612,6 +615,9 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                     if span["span_id"] == error_event["trace.span"]:
                         return transaction_event, nodestore_event
 
+        if allow_orphan_errors:
+            return None, None
+
         # The current event couldn't be found in errors or transactions
         raise Http404()
 
@@ -628,7 +634,9 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         """Because the light endpoint could potentially have gaps between root and event we return a flattened list"""
         if event_id is None:
             raise ParseError(detail="An event_id is required for the light trace")
-        snuba_event, nodestore_event = self.get_current_transaction(transactions, errors, event_id)
+        snuba_event, nodestore_event = self.get_current_transaction(
+            transactions, errors, event_id, allow_orphan_errors
+        )
         parent_map = self.construct_parent_map(transactions)
         error_map = self.construct_error_map(errors)
         trace_results: List[TraceEvent] = []
@@ -636,6 +644,21 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         root_id: Optional[str] = None
 
         with sentry_sdk.start_span(op="building.trace", description="light trace"):
+
+            # Check if the event is an orphan_error
+            if not snuba_event and not nodestore_event and allow_orphan_errors:
+                orphan_error = find_event(
+                    errors, lambda item: item is not None and item["id"] == event_id
+                )
+                if orphan_error:
+                    return {
+                        "transactions": [],
+                        "orphan_errors": [self.serialize_error(orphan_error)],
+                    }
+                else:
+                    # The current event couldn't be found in errors or transactions
+                    raise Http404()
+
             # Going to nodestore is more expensive than looping twice so check if we're on the root first
             for root in roots:
                 if root["id"] == snuba_event["id"]:
@@ -714,6 +737,12 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                             for child_event in child_events
                         ]
                     )
+
+        if allow_orphan_errors:
+            return {
+                "transactions": [result.to_dict() for result in trace_results],
+                "orphan_errors": [],
+            }
 
         return [result.to_dict() for result in trace_results]
 

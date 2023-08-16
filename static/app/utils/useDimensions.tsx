@@ -1,11 +1,16 @@
-import {useCallback, useRef, useState} from 'react';
+import {RefObject, useCallback, useState} from 'react';
 import {useResizeObserver} from '@react-aria/utils';
+
+export type Dimensions = {height: number; width: number};
+
+interface Props<Element extends HTMLElement> {
+  elementRef: RefObject<Element>;
+}
 
 /**
  * Returns a ref to be added to an element and returns the dimensions of that element
  */
-export function useDimensions<Element extends HTMLElement>() {
-  const elementRef = useRef<Element>(null);
+export function useDimensions<Element extends HTMLElement>({elementRef}: Props<Element>) {
   const [dimensions, setDimensions] = useState({height: 0, width: 0});
 
   const onResize = useCallback(() => {
@@ -13,7 +18,7 @@ export function useDimensions<Element extends HTMLElement>() {
       height: elementRef.current?.clientHeight || 0,
       width: elementRef.current?.clientWidth || 0,
     });
-  }, [setDimensions]);
+  }, [elementRef, setDimensions]);
 
   useResizeObserver({ref: elementRef, onResize});
 

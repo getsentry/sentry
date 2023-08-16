@@ -3,16 +3,20 @@
   "replays.ReplayRecordingSegment": [],
   "sentry.Activity": [
     "sentry.Group",
-    "sentry.Project"
+    "sentry.Project",
+    "sentry.User"
   ],
-  "sentry.Actor": [],
+  "sentry.Actor": [
+    "sentry.User"
+  ],
   "sentry.AlertRule": [
     "sentry.Actor",
     "sentry.Organization",
     "sentry.SnubaQuery"
   ],
   "sentry.AlertRuleActivity": [
-    "sentry.AlertRule"
+    "sentry.AlertRule",
+    "sentry.User"
   ],
   "sentry.AlertRuleExcludedProjects": [
     "sentry.AlertRule",
@@ -22,7 +26,9 @@
     "sentry.AlertRule"
   ],
   "sentry.AlertRuleTriggerAction": [
-    "sentry.AlertRuleTrigger"
+    "sentry.AlertRuleTrigger",
+    "sentry.Integration",
+    "sentry.SentryApp"
   ],
   "sentry.AlertRuleTriggerExclusion": [
     "sentry.AlertRuleTrigger",
@@ -39,7 +45,9 @@
     "sentry.ApiApplication",
     "sentry.User"
   ],
-  "sentry.ApiKey": [],
+  "sentry.ApiKey": [
+    "sentry.Organization"
+  ],
   "sentry.ApiToken": [
     "sentry.ApiApplication",
     "sentry.User"
@@ -61,13 +69,16 @@
   ],
   "sentry.AuditLogEntry": [
     "sentry.ApiKey",
+    "sentry.Organization",
     "sentry.User"
   ],
   "sentry.AuthIdentity": [
     "sentry.AuthProvider",
     "sentry.User"
   ],
-  "sentry.AuthProvider": [],
+  "sentry.AuthProvider": [
+    "sentry.Organization"
+  ],
   "sentry.AuthProviderDefaultTeams": [],
   "sentry.Authenticator": [
     "sentry.User"
@@ -100,7 +111,8 @@
     "sentry.Project"
   ],
   "sentry.Dashboard": [
-    "sentry.Organization"
+    "sentry.Organization",
+    "sentry.User"
   ],
   "sentry.DashboardProject": [
     "sentry.Dashboard",
@@ -125,7 +137,8 @@
     "sentry.Release"
   ],
   "sentry.DiscoverSavedQuery": [
-    "sentry.Organization"
+    "sentry.Organization",
+    "sentry.User"
   ],
   "sentry.DiscoverSavedQueryProject": [
     "sentry.DiscoverSavedQuery",
@@ -151,16 +164,21 @@
   ],
   "sentry.EventUser": [],
   "sentry.ExportedData": [
-    "sentry.Organization"
+    "sentry.Organization",
+    "sentry.User"
   ],
   "sentry.ExportedDataBlob": [
     "sentry.ExportedData"
   ],
   "sentry.ExternalActor": [
     "sentry.Actor",
-    "sentry.Organization"
+    "sentry.Integration",
+    "sentry.Organization",
+    "sentry.Team",
+    "sentry.User"
   ],
   "sentry.ExternalIssue": [
+    "sentry.Integration",
     "sentry.Organization"
   ],
   "sentry.FeatureAdoption": [
@@ -188,11 +206,13 @@
   "sentry.GroupAssignee": [
     "sentry.Group",
     "sentry.Project",
-    "sentry.Team"
+    "sentry.Team",
+    "sentry.User"
   ],
   "sentry.GroupBookmark": [
     "sentry.Group",
-    "sentry.Project"
+    "sentry.Project",
+    "sentry.User"
   ],
   "sentry.GroupCommitResolution": [],
   "sentry.GroupEmailThread": [
@@ -231,7 +251,8 @@
     "sentry.Group",
     "sentry.Organization",
     "sentry.Project",
-    "sentry.Team"
+    "sentry.Team",
+    "sentry.User"
   ],
   "sentry.GroupRedirect": [],
   "sentry.GroupRelease": [],
@@ -246,18 +267,21 @@
   ],
   "sentry.GroupSeen": [
     "sentry.Group",
-    "sentry.Project"
+    "sentry.Project",
+    "sentry.User"
   ],
   "sentry.GroupShare": [
     "sentry.Group",
-    "sentry.Project"
+    "sentry.Project",
+    "sentry.User"
   ],
   "sentry.GroupSnooze": [
     "sentry.Group"
   ],
   "sentry.GroupSubscription": [
     "sentry.Group",
-    "sentry.Project"
+    "sentry.Project",
+    "sentry.User"
   ],
   "sentry.GroupTombstone": [
     "sentry.Project"
@@ -272,21 +296,24 @@
     "sentry.Organization"
   ],
   "sentry.IncidentActivity": [
-    "sentry.Incident"
+    "sentry.Incident",
+    "sentry.User"
   ],
   "sentry.IncidentProject": [
     "sentry.Incident",
     "sentry.Project"
   ],
   "sentry.IncidentSeen": [
-    "sentry.Incident"
+    "sentry.Incident",
+    "sentry.User"
   ],
   "sentry.IncidentSnapshot": [
     "sentry.Incident",
     "sentry.TimeSeriesSnapshot"
   ],
   "sentry.IncidentSubscription": [
-    "sentry.Incident"
+    "sentry.Incident",
+    "sentry.User"
   ],
   "sentry.IncidentTrigger": [
     "sentry.AlertRuleTrigger",
@@ -315,35 +342,53 @@
   ],
   "sentry.MonitorLocation": [],
   "sentry.NotificationAction": [
-    "sentry.Organization"
+    "sentry.Integration",
+    "sentry.Organization",
+    "sentry.SentryApp"
   ],
   "sentry.NotificationActionProject": [
     "sentry.NotificationAction",
     "sentry.Project"
   ],
   "sentry.NotificationSetting": [
+    "sentry.Actor",
+    "sentry.Team",
+    "sentry.User"
+  ],
+  "sentry.NotificationSettingOption": [
+    "sentry.Team",
+    "sentry.User"
+  ],
+  "sentry.NotificationSettingProvider": [
+    "sentry.Team",
     "sentry.User"
   ],
   "sentry.Option": [],
   "sentry.OrgAuthToken": [
+    "sentry.Organization",
+    "sentry.Project",
     "sentry.User"
   ],
   "sentry.Organization": [],
   "sentry.OrganizationAccessRequest": [
     "sentry.OrganizationMember",
-    "sentry.Team"
+    "sentry.Team",
+    "sentry.User"
   ],
   "sentry.OrganizationAvatar": [
     "sentry.Organization"
   ],
   "sentry.OrganizationIntegration": [
-    "sentry.Integration"
+    "sentry.Integration",
+    "sentry.Organization"
   ],
   "sentry.OrganizationMapping": [],
   "sentry.OrganizationMember": [
-    "sentry.Organization"
+    "sentry.Organization",
+    "sentry.User"
   ],
   "sentry.OrganizationMemberMapping": [
+    "sentry.Organization",
     "sentry.User"
   ],
   "sentry.OrganizationMemberTeam": [
@@ -352,7 +397,8 @@
   ],
   "sentry.OrganizationOnboardingTask": [
     "sentry.Organization",
-    "sentry.Project"
+    "sentry.Project",
+    "sentry.User"
   ],
   "sentry.OrganizationOption": [
     "sentry.Organization"
@@ -381,7 +427,8 @@
     "sentry.Project"
   ],
   "sentry.ProjectBookmark": [
-    "sentry.Project"
+    "sentry.Project",
+    "sentry.User"
   ],
   "sentry.ProjectCodeOwners": [
     "sentry.Project",
@@ -391,6 +438,7 @@
     "sentry.File"
   ],
   "sentry.ProjectIntegration": [
+    "sentry.Integration",
     "sentry.Project"
   ],
   "sentry.ProjectKey": [
@@ -413,13 +461,17 @@
   ],
   "sentry.ProjectTransactionThreshold": [
     "sentry.Organization",
-    "sentry.Project"
+    "sentry.Project",
+    "sentry.User"
   ],
   "sentry.ProjectTransactionThresholdOverride": [
     "sentry.Organization",
-    "sentry.Project"
+    "sentry.Project",
+    "sentry.User"
   ],
-  "sentry.PromptsActivity": [],
+  "sentry.PromptsActivity": [
+    "sentry.User"
+  ],
   "sentry.PullRequest": [
     "sentry.CommitAuthor"
   ],
@@ -438,7 +490,8 @@
     "sentry.Project"
   ],
   "sentry.RecentSearch": [
-    "sentry.Organization"
+    "sentry.Organization",
+    "sentry.User"
   ],
   "sentry.RegionOutbox": [],
   "sentry.RegionScheduledDeletion": [],
@@ -446,7 +499,8 @@
   "sentry.Relay": [],
   "sentry.RelayUsage": [],
   "sentry.Release": [
-    "sentry.Organization"
+    "sentry.Organization",
+    "sentry.User"
   ],
   "sentry.ReleaseActivity": [
     "sentry.Release"
@@ -481,6 +535,7 @@
   ],
   "sentry.Repository": [],
   "sentry.RepositoryProjectPathConfig": [
+    "sentry.OrganizationIntegration",
     "sentry.Project",
     "sentry.Repository"
   ],
@@ -492,7 +547,8 @@
     "sentry.Project"
   ],
   "sentry.RuleActivity": [
-    "sentry.Rule"
+    "sentry.Rule",
+    "sentry.User"
   ],
   "sentry.RuleFireHistory": [
     "sentry.Group",
@@ -501,14 +557,17 @@
   ],
   "sentry.RuleSnooze": [
     "sentry.AlertRule",
-    "sentry.Rule"
+    "sentry.Rule",
+    "sentry.User"
   ],
   "sentry.SavedSearch": [
-    "sentry.Organization"
+    "sentry.Organization",
+    "sentry.User"
   ],
   "sentry.ScheduledDeletion": [],
   "sentry.SentryApp": [
     "sentry.ApiApplication",
+    "sentry.Organization",
     "sentry.User"
   ],
   "sentry.SentryAppAvatar": [
@@ -520,9 +579,11 @@
   "sentry.SentryAppInstallation": [
     "sentry.ApiGrant",
     "sentry.ApiToken",
+    "sentry.Organization",
     "sentry.SentryApp"
   ],
   "sentry.SentryAppInstallationForProvider": [
+    "sentry.Organization",
     "sentry.SentryAppInstallation"
   ],
   "sentry.SentryAppInstallationToken": [
@@ -532,7 +593,10 @@
   "sentry.SentryFunction": [
     "sentry.Organization"
   ],
-  "sentry.ServiceHook": [],
+  "sentry.ServiceHook": [
+    "sentry.ApiApplication",
+    "sentry.SentryAppInstallation"
+  ],
   "sentry.ServiceHookProject": [
     "sentry.ServiceHook"
   ],
@@ -566,6 +630,8 @@
     "sentry.User"
   ],
   "sentry.UserOption": [
+    "sentry.Organization",
+    "sentry.Project",
     "sentry.User"
   ],
   "sentry.UserPermission": [

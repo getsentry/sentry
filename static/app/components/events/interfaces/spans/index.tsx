@@ -18,6 +18,7 @@ import {
   TraceError,
   TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
+import {isTraceError} from 'sentry/utils/performance/quickTrace/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import Filter from './filter';
@@ -99,51 +100,64 @@ function SpansInterface({event, affectedSpanIds, organization}: Props) {
   return (
     <Container hasErrors={!objectIsEmpty(event.errors)}>
       <QuickTraceContext.Consumer>
-        {quickTrace => (
-          <Fragment>
-            <TraceErrorAlerts
-              isLoading={quickTrace?.isLoading ?? false}
-              errors={quickTrace?.currentEvent?.errors}
-              performanceIssues={quickTrace?.currentEvent?.performance_issues}
-              parsedTrace={parsedTrace}
-            />
-            <Observer>
-              {() => {
-                return (
-                  <Search>
-                    <Filter
-                      operationNameCounts={waterfallModel.operationNameCounts}
-                      operationNameFilter={waterfallModel.operationNameFilters}
-                      toggleOperationNameFilter={waterfallModel.toggleOperationNameFilter}
-                    />
-                    <StyledSearchBar
-                      defaultQuery=""
-                      query={waterfallModel.searchQuery || ''}
-                      placeholder={t('Search for spans')}
-                      onSearch={handleSpanFilter}
-                    />
-                  </Search>
-                );
-              }}
-            </Observer>
-            <Panel>
+        {quickTrace => {
+          const errors: TraceError[] | undefined =
+            quickTrace?.currentEvent && !isTraceError(quickTrace?.currentEvent)
+              ? quickTrace?.currentEvent?.errors
+              : undefined;
+          const performance_issues: TracePerformanceIssue[] | undefined =
+            quickTrace?.currentEvent && !isTraceError(quickTrace?.currentEvent)
+              ? quickTrace?.currentEvent?.performance_issues
+              : undefined;
+
+          return (
+            <Fragment>
+              <TraceErrorAlerts
+                isLoading={quickTrace?.isLoading ?? false}
+                errors={errors}
+                performanceIssues={performance_issues}
+                parsedTrace={parsedTrace}
+              />
               <Observer>
                 {() => {
                   return (
-                    <TraceView
-                      performanceIssues={quickTrace?.currentEvent?.performance_issues}
-                      waterfallModel={waterfallModel}
-                      organization={organization}
-                    />
+                    <Search>
+                      <Filter
+                        operationNameCounts={waterfallModel.operationNameCounts}
+                        operationNameFilter={waterfallModel.operationNameFilters}
+                        toggleOperationNameFilter={
+                          waterfallModel.toggleOperationNameFilter
+                        }
+                      />
+                      <StyledSearchBar
+                        defaultQuery=""
+                        query={waterfallModel.searchQuery || ''}
+                        placeholder={t('Search for spans')}
+                        onSearch={handleSpanFilter}
+                      />
+                    </Search>
                   );
                 }}
               </Observer>
-              <GuideAnchorWrapper>
-                <GuideAnchor target="span_tree" position="bottom" />
-              </GuideAnchorWrapper>
-            </Panel>
-          </Fragment>
-        )}
+              <Panel>
+                <Observer>
+                  {() => {
+                    return (
+                      <TraceView
+                        performanceIssues={performance_issues}
+                        waterfallModel={waterfallModel}
+                        organization={organization}
+                      />
+                    );
+                  }}
+                </Observer>
+                <GuideAnchorWrapper>
+                  <GuideAnchor target="span_tree" position="bottom" />
+                </GuideAnchorWrapper>
+              </Panel>
+            </Fragment>
+          );
+        }}
       </QuickTraceContext.Consumer>
     </Container>
   );
