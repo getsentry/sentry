@@ -362,42 +362,21 @@ def _shuffle(items: list[pytest.Item]) -> None:
 
 
 def pytest_collection_modifyitems(config, items):
-    """
-    After collection, we need to:
-
-    - Filter tests that subclass SnubaTestCase as tests in `tests/acceptance` are not being marked as `snuba`
-    - Select tests based on group and group strategy
-
-    """
+    """After collection, we need to select tests based on group and group strategy"""
 
     total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
     current_group = int(os.environ.get("TEST_GROUP", 0))
     grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "file")
 
-    accepted, keep, discard = [], [], []
+    keep, discard = [], []
 
     for index, item in enumerate(items):
-        # XXX: For some reason tests in `tests/acceptance` are not being
-        # marked as snuba, so deselect test cases not a subclass of SnubaTestCase
-        if os.environ.get("RUN_SNUBA_TESTS_ONLY"):
-            import inspect
-
-            from sentry.testutils.cases import SnubaTestCase
-
-            if inspect.isclass(item.cls) and not issubclass(item.cls, SnubaTestCase):
-                # No need to group if we are deselecting this
-                discard.append(item)
-                continue
-            accepted.append(item)
-        else:
-            accepted.append(item)
-
         # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
         # we want to only include items in `accepted` list
         item_to_group = (
             int(md5(str(item.location[0]).encode("utf-8")).hexdigest(), 16)
             if grouping_strategy == "file"
-            else len(accepted) - 1
+            else index
         )
 
         # Split tests in different groups
