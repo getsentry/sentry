@@ -263,6 +263,7 @@ default_manager.add(
     )
 )
 default_manager.add(events.InternalIntegrationAddAuditLogEvent())
+default_manager.add(events.InternalIntegrationDisabledAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
         event_id=135,

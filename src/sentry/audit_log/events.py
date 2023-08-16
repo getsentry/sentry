@@ -266,7 +266,7 @@ class InternalIntegrationAddAuditLogEvent(AuditLogEvent):
 class InternalIntegrationDisabledAuditLogEvent(AuditLogEvent):
     def __init__(self):
         super().__init__(
-            event_id=130,
+            event_id=131,
             name="INTERNAL_INTEGRATION_DISABLED",
             api_name="internal-integration.disable",
         )
