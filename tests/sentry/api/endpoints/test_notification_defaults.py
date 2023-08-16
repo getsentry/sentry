@@ -5,7 +5,7 @@ from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test(stable=True)
-class NotificaitonDefaultTest(APITestCase):
+class NotificationDefaultTest(APITestCase):
     endpoint = "sentry-api-0-notification-defaults"
 
     def test_basic(self):
