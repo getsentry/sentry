@@ -1557,6 +1557,8 @@ SENTRY_FEATURES = {
     "organizations:performance-new-trends": False,
     # Enable debug views for trendsv2 to be used internally
     "organizations:performance-trendsv2-dev-only": False,
+    # Enabled creating issues out of trends
+    "organizations:performance-trends-issues": False,
     # Bypass 30 day date range selection when fetching new trends data
     "organizations:performance-trends-new-data-date-range-default": False,
     # Enable consecutive db performance issue type
@@ -1602,10 +1604,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-issue-emails": False,
     "organizations:session-replay-weekly-email": False,
     "organizations:session-replay-trace-table": False,
-    # Enable rage click and dead click columns in replay list.
-    "organizations:replay-rage-click-dead-click-columns": False,
-    # Enable experimental error and rage/dead click cards in replay list.
-    "organizations:replay-error-click-cards": False,
+    # Enable optimized serach feature.
+    "organizations:session-replay-optimized-search": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -1695,12 +1695,18 @@ SENTRY_FEATURES = {
     "organizations:recap-server": False,
     # Enable additional logging for alerts
     "organizations:detailed-alert-logging": False,
+    # Enable the new notification settings system
+    "organizations:notification-settings-v2": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable the new flat file indexing system for sourcemaps.
     "organizations:sourcemaps-bundle-flat-file-indexing": False,
+    # Signals that the organization supports the on demand metrics prefill.
+    "organizations:on-demand-metrics-prefill": False,
+    # Signals that the organization can start prefilling on demand metrics.
+    "organizations:enable-on-demand-metrics-prefill": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -3114,6 +3120,10 @@ KAFKA_EVENTSTREAM_GENERIC = "generic-events"
 KAFKA_GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
 KAFKA_GROUP_ATTRIBUTES = "group-attributes"
 
+# spans
+KAFKA_INGEST_SPANS = "ingest-spans"
+KAFKA_SNUBA_SPANS = "snuba-spans"
+
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
     "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
@@ -3159,6 +3169,8 @@ KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     KAFKA_EVENTSTREAM_GENERIC: {"cluster": "default"},
     KAFKA_GENERIC_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_GROUP_ATTRIBUTES: {"cluster": "default"},
+    KAFKA_INGEST_SPANS: {"cluster": "default"},
+    KAFKA_SNUBA_SPANS: {"cluster": "default"},
 }
 
 
