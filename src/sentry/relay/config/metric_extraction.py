@@ -24,6 +24,7 @@ from sentry.snuba.metrics.extraction import (
     should_use_on_demand_metrics,
 )
 from sentry.snuba.models import SnubaQuery
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +86,10 @@ def _is_on_demand_metrics_experimental_enabled(organization: Organization) -> bo
 
 
 def _is_alerts_extraction_enabled(organization: Organization):
+    # For alerts, we support extraction if the on demand is enabled, or the organization is supporting the prefilling.
+    #
+    # The idea of prefilling is to already start generating metrics for users that are going to be moving from
+    # indexed-data-based alerts to the new metric-based alerts.
     return _is_on_demand_metrics_extraction_enabled(
         organization
     ) or _is_on_demand_metrics_prefill_enabled(organization)
@@ -115,6 +120,10 @@ def _get_alert_metric_specs(project: Project) -> List[HashedMetricSpec]:
                 id=alert.id,
                 field=alert_snuba_query.aggregate,
                 query=alert_snuba_query.query,
+            )
+            metrics.incr(
+                "on_demand_metrics.on_demand_spec.for_alert",
+                tags={"prefilling": _is_on_demand_metrics_prefill_enabled(project.organization)},
             )
             specs.append(result)
 
@@ -220,6 +229,10 @@ def _convert_widget_query_to_metric(
                 id=widget_query.id,
                 field=aggregate,
                 query=widget_query.conditions,
+            )
+            metrics.incr(
+                "on_demand_metrics.on_demand_spec.for_widget",
+                tags={"prefilling": _is_on_demand_metrics_prefill_enabled(project.organization)},
             )
             metrics_specs.append(result)
 
