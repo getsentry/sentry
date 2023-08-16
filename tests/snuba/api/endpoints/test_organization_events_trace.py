@@ -741,7 +741,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         ):
             response = self.client.get(
                 self.url,
-                data={"event_id": "766758c00ff54d8ab865369ecab53ae6", "project": -1},
+                data={"event_id": "766758c00ff54d8ab865369ecab53ae6", "project": "-1"},
                 format="json",
             )
 
