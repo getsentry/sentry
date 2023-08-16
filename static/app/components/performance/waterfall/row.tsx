@@ -2,11 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
-import {
-  getBackgroundColor,
-  toPercent,
-} from 'sentry/components/performance/waterfall/utils';
+import {getBackgroundColor} from 'sentry/components/performance/waterfall/utils';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import toPercent from 'sentry/utils/number/toPercent';
 
 interface RowProps extends React.HTMLAttributes<HTMLDivElement> {
   cursor?: 'pointer' | 'default';

@@ -5,7 +5,7 @@ import {
   SpanBarType,
 } from 'sentry/components/performance/waterfall/constants';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
-import {toPercent} from 'sentry/components/performance/waterfall/utils';
+import toPercent from 'sentry/utils/number/toPercent';
 
 import {EnhancedSpan} from './types';
 import {SpanViewBoundsType} from './utils';

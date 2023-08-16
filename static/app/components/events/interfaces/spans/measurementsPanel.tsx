@@ -1,10 +1,10 @@
 import {Component, createRef} from 'react';
 import styled from '@emotion/styled';
 
-import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import toPercent from 'sentry/utils/number/toPercent';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {Vital} from 'sentry/utils/performance/vitals/types';
 

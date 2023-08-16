@@ -3,8 +3,8 @@ import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfal
 import {
   getDurationDisplay,
   getHumanDuration,
-  toPercent,
 } from 'sentry/components/performance/waterfall/utils';
+import toPercent from 'sentry/utils/number/toPercent';
 
 import {EnhancedSpan} from './types';
 import {getSpanGroupTimestamps, SpanViewBoundsType} from './utils';
