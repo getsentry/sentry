@@ -9,7 +9,7 @@ from sentry.models.notificationsettingoption import NotificationSettingOption
 
 
 @control_silo_endpoint
-class UserNotificationOptionsDetailEndpoint(UserEndpoint):
+class UserNotificationSettingsOptionsDetailEndpoint(UserEndpoint):
     # TODO(Steve): Make not private when we launch new system
     private = True
 
