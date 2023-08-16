@@ -4,7 +4,7 @@ import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsFields, StarfishFunctions} from 'sentry/views/starfish/types';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 import {getSpanOperationDescription} from 'sentry/views/starfish/views/spanSummaryPage/getSpanOperationDescription';
@@ -35,7 +35,10 @@ export function SpanMetricsRibbon({spanMetrics}: Props) {
           opDescription,
         })}
       >
-        <ThroughputCell rate={spanMetrics?.['spm()']} unit={RateUnits.PER_MINUTE} />
+        <ThroughputCell
+          rate={spanMetrics?.[`${StarfishFunctions.SPM}()`]}
+          unit={RateUnits.PER_MINUTE}
+        />
       </Block>
 
       <Block
@@ -54,7 +57,7 @@ export function SpanMetricsRibbon({spanMetrics}: Props) {
 
       {op.startsWith('http') && (
         <Block title={t('5XX Responses')} description={t('5XX responses in this span')}>
-          <CountCell count={spanMetrics?.[`http_error_count()`]} />
+          <CountCell count={spanMetrics?.[`${StarfishFunctions.HTTP_ERROR_COUNT}()`]} />
         </Block>
       )}
 
@@ -65,7 +68,7 @@ export function SpanMetricsRibbon({spanMetrics}: Props) {
         )}
       >
         <TimeSpentCell
-          percentage={spanMetrics?.['time_spent_percentage()']}
+          percentage={spanMetrics?.[`${StarfishFunctions.TIME_SPENT_PERCENTAGE}()`]}
           total={spanMetrics?.[`sum(${SpanMetricsFields.SPAN_SELF_TIME})`]}
         />
       </Block>
