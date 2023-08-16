@@ -591,15 +591,15 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         else:
             metrics.incr(f"alert_rule_trigger.unhandled_type.{self.type}")
 
-    def fire(self, action, incident, project, metric_value, new_status):
+    def fire(self, action, incident, project, metric_value, new_status, notification_uuid=None):
         handler = self.build_handler(action, incident, project)
         if handler:
-            return handler.fire(metric_value, new_status)
+            return handler.fire(metric_value, new_status, notification_uuid)
 
-    def resolve(self, action, incident, project, metric_value, new_status):
+    def resolve(self, action, incident, project, metric_value, new_status, notification_uuid=None):
         handler = self.build_handler(action, incident, project)
         if handler:
-            return handler.resolve(metric_value, new_status)
+            return handler.resolve(metric_value, new_status, notification_uuid)
 
     @classmethod
     def register_type(cls, slug, type, supported_target_types, integration_provider=None):

@@ -186,6 +186,7 @@ def handle_trigger_action(
     method: str,
     new_status: int,
     metric_value: Optional[int] = None,
+    notification_uuid: Optional[str] = None,
     **kwargs: Any,
 ) -> None:
     try:
@@ -215,7 +216,12 @@ def handle_trigger_action(
     )
 
     getattr(action, method)(
-        action, incident, project, metric_value=metric_value, new_status=IncidentStatus(new_status)
+        action,
+        incident,
+        project,
+        metric_value=metric_value,
+        new_status=IncidentStatus(new_status),
+        notification_uuid=notification_uuid,
     )
 
 

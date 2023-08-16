@@ -101,6 +101,7 @@ def send_incident_alert_notification(
     incident: Incident,
     metric_value: int | None,
     new_status: IncidentStatus,
+    notification_uuid: str | None = None,
 ) -> None:
     from .card_builder import build_incident_attachment
 

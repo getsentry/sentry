@@ -100,7 +100,9 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
     }
 
 
-def incident_attachment_info(incident: Incident, new_status: IncidentStatus, metric_value=None):
+def incident_attachment_info(
+    incident: Incident, new_status: IncidentStatus, metric_value=None, notification_uuid=None
+):
     alert_rule = incident.alert_rule
 
     status = INCIDENT_STATUS[new_status]
@@ -111,6 +113,13 @@ def incident_attachment_info(incident: Incident, new_status: IncidentStatus, met
     text = get_incident_status_text(alert_rule, metric_value)
     title = f"{status}: {alert_rule.name}"
 
+    title_link_params = {
+        "alert": str(incident.identifier),
+        "referrer": "metric_alert",
+    }
+    if notification_uuid:
+        title_link_params["notification_uuid"] = notification_uuid
+
     title_link = alert_rule.organization.absolute_url(
         reverse(
             "sentry-metric-alert-details",
@@ -119,7 +128,7 @@ def incident_attachment_info(incident: Incident, new_status: IncidentStatus, met
                 "alert_rule_id": alert_rule.id,
             },
         ),
-        query=parse.urlencode({"alert": str(incident.identifier)}),
+        query=parse.urlencode(title_link_params),
     )
 
     return {

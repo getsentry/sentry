@@ -54,6 +54,7 @@ def send_incident_alert_notification(
     incident: Incident,
     new_status: IncidentStatus,
     metric_value: str | None = None,
+    notification_uuid: str | None = None,
 ) -> None:
     """
     When a metric alert is triggered, send incident data to the SentryApp's webhook.

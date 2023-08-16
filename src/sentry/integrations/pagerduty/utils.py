@@ -55,6 +55,7 @@ def send_incident_alert_notification(
     incident: Incident,
     metric_value: int,
     new_status: IncidentStatus,
+    notification_uuid: str | None = None,
 ) -> None:
     integration_id = action.integration_id
     organization_id = incident.organization_id

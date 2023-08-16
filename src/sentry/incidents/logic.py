@@ -5,6 +5,7 @@ from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from uuid import uuid4
 
 from django.db import router, transaction
 from django.db.models.signals import post_save
@@ -158,7 +159,7 @@ def update_incident_status(
         # If the status isn't actually changing just no-op.
         return incident
     with transaction.atomic(router.db_for_write(Incident)):
-        create_incident_activity(
+        incident_activity = create_incident_activity(
             incident,
             IncidentActivityType.STATUS_CHANGE,
             user=user,
@@ -193,7 +194,8 @@ def update_incident_status(
             status_method == IncidentStatusMethod.MANUAL
             or status_method == IncidentStatusMethod.RULE_UPDATED
         ):
-            trigger_incident_triggers(incident)
+            notification_uuid = str(incident_activity.uuid) if incident_activity.uuid else None
+            trigger_incident_triggers(incident, notification_uuid)
 
         return incident
 
@@ -245,6 +247,7 @@ def create_incident_activity(
     kwargs = {}
     if date_added:
         kwargs["date_added"] = date_added
+    # Only some kinds of activity generate a notification
     activity = IncidentActivity.objects.create(
         incident=incident,
         type=activity_type.value,
@@ -252,6 +255,7 @@ def create_incident_activity(
         value=value,
         previous_value=previous_value,
         comment=comment,
+        notification_uuid=uuid4(),
         **kwargs,
     )
 
@@ -986,7 +990,7 @@ def get_triggers_for_alert_rule(alert_rule):
     return AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
 
 
-def trigger_incident_triggers(incident):
+def trigger_incident_triggers(incident, notification_uuid: Optional[str] = None):
     from sentry.incidents.tasks import handle_trigger_action
 
     incident_triggers = IncidentTrigger.objects.filter(incident=incident)
@@ -1006,6 +1010,7 @@ def trigger_incident_triggers(incident):
                         project_id=project.id,
                         method="resolve",
                         new_status=IncidentStatus.CLOSED.value,
+                        notification_uuid=notification_uuid,
                     ).delay,
                     router.db_for_write(AlertRuleTrigger),
                 )

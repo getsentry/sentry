@@ -26,6 +26,7 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         new_status: IncidentStatus,
         metric_value: Optional[int] = None,
         chart_url: Optional[str] = None,
+        notification_uuid: Optional[str] = None,
     ) -> None:
         """
         Builds an incident attachment for slack unfurling.
@@ -40,6 +41,7 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         self.metric_value = metric_value
         self.new_status = new_status
         self.chart_url = chart_url
+        self.notification_uuid = notification_uuid
 
     def build(self) -> SlackBody:
         data = incident_attachment_info(self.incident, self.new_status, self.metric_value)
