@@ -238,6 +238,59 @@ Deletes a replay instance.
 
 - Response 204
 
+## Replay Selectors [/organizations/<organization_slug>/replay-selectors/]
+
+- Parameters
+
+  - project (optional, string)
+  - sort (optional, string)
+    Default: -count_dead_clicks
+    Members:
+    - count_dead_clicks
+    - -count_dead_clicks
+    - count_rage_clicks
+    - -count_rage_clicks
+  - statsPeriod (optional, string) - A positive integer suffixed with a unit type.
+    Default: 7d
+    Members:
+    - s
+    - m
+    - h
+    - d
+    - w
+  - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
+  - end (optional, string) - ISO 8601 format. Required if `start` is set.
+  - limit (optional, number)
+    Default: 10
+  - offset (optional, number)
+    Default: 0
+
+### Browse Replay Selectors [GET]
+
+Retrieve a collection of selectors.
+
+**Attributes**
+
+| Column            | Type   | Description                                        |
+| ----------------- | ------ | -------------------------------------------------- |
+| dom_element       | string | -                                                  |
+| count_dead_clicks | number | The number of dead clicks for a given DOM element. |
+| count_rage_clicks | number | The number of rage clicks for a given DOM element. |
+
+- Response 200
+
+  ```json
+  {
+    "data": [
+      {
+        "dom_element": "div#myid.class1.class2",
+        "count_dead_clicks": 2,
+        "count_rage_clicks": 1
+      }
+    ]
+  }
+  ```
+
 ## Replay Recording Segments [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/recording-segments/]
 
 - Parameters
