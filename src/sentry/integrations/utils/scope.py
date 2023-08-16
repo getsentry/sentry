@@ -88,7 +88,13 @@ def bind_org_context_from_integration(
     elif len(org_integrations) == 1:
         org_integration = org_integrations[0]
         org = organization_service.get_organization_by_id(id=org_integration.organization_id)
-        bind_organization_context(org.organization)
+        if org is not None:
+            bind_organization_context(org.organization)
+        else:
+            logger.exception(
+                f"Unable to call organization_service.get_organization_by_id with organization id={org_integration.organization_id}.",
+                extra=extra,
+            )
     else:
         org_ids = [org_integration.organization_id for org_integration in org_integrations]
         org_slugs = []
