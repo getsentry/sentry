@@ -4,6 +4,7 @@ from urllib.parse import parse_qs, quote, urlencode, urlparse
 import responses
 from django.core.cache import cache
 from django.test import override_settings
+from isodate import parse_datetime
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.integrations.gitlab import GitlabIntegrationProvider
@@ -427,7 +428,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
         commit_context_expected = {
             "commitId": "d42409d56517157c48bf3bd97d3f75974dde19fb",
-            "committedDate": "2015-12-18T08:12:22.000Z",
+            "committedDate": parse_datetime("2015-12-18T08:12:22.000Z"),
             "commitMessage": "Add installation instructions",
             "commitAuthorName": "Nisanthan Nanthakumar",
             "commitAuthorEmail": "nisanthan.nanthakumar@sentry.io",
