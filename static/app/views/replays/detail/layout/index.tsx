@@ -1,11 +1,12 @@
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import ReplayView from 'sentry/components/replays/replayView';
 import {space} from 'sentry/styles/space';
-import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
+import useFullscreen from 'sentry/utils/window/useFullscreen';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 import FocusArea from 'sentry/views/replays/detail/layout/focusArea';
@@ -29,7 +30,10 @@ type Props = {
 };
 
 function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
-  const {ref: fullscreenRef, toggle: toggleFullscreen} = useFullscreen();
+  const fullscreenRef = useRef(null);
+  const {toggle: toggleFullscreen} = useFullscreen({
+    elementRef: fullscreenRef,
+  });
 
   const timeline = (
     <ErrorBoundary mini>
