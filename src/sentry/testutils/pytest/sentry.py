@@ -6,7 +6,6 @@ import random
 import shutil
 import sys
 from datetime import datetime
-from hashlib import md5
 from typing import TypeVar
 from unittest import mock
 
@@ -28,21 +27,21 @@ TEST_ROOT = os.path.normpath(
 TEST_REDIS_DB = 9
 
 
-def configure_split_db(_settings):
-    if "control" in _settings.DATABASES:
+def configure_split_db():
+    if "control" in settings.DATABASES:
         return
     # Add connections for the region & control silo databases.
-    _settings.DATABASES["control"] = _settings.DATABASES["default"].copy()
-    _settings.DATABASES["control"]["NAME"] = "control"
+    settings.DATABASES["control"] = settings.DATABASES["default"].copy()
+    settings.DATABASES["control"]["NAME"] = "control"
 
     # Use the region database in the default connection as region
     # silo database is the 'default' elsewhere in application logic.
-    _settings.DATABASES["default"]["NAME"] = "region"
+    settings.DATABASES["default"]["NAME"] = "region"
 
-    _settings.DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
+    settings.DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
 
 
-def pytest_configure(config):
+def pytest_configure(config: pytest.Config) -> None:
     import warnings
 
     # This is just to filter out an obvious warning before the pytest session starts.
@@ -96,7 +95,7 @@ def pytest_configure(config):
         else:
             raise RuntimeError("oops, wrong database: %r" % test_db)
 
-    configure_split_db(settings)
+    configure_split_db()
 
     # Ensure we can test secure ssl settings
     settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -274,7 +273,7 @@ def pytest_configure(config):
     freezegun.configure(extend_ignore_list=["sentry.utils.retries"])  # type: ignore[attr-defined]
 
 
-def register_extensions():
+def register_extensions() -> None:
     from sentry.plugins.base import plugins
     from sentry.plugins.utils import TestIssuePlugin2
 
@@ -305,14 +304,14 @@ def register_extensions():
     )
 
 
-def pytest_runtest_setup(item):
+def pytest_runtest_setup(item: pytest.Item) -> None:
     if not settings.MIGRATIONS_TEST_MIGRATE and any(
         mark for mark in item.iter_markers(name="migrations")
     ):
         pytest.skip("migrations are not enabled, run with MIGRATIONS_TEST_MIGRATE=1 pytest ...")
 
 
-def pytest_runtest_teardown(item):
+def pytest_runtest_teardown(item: pytest.Item) -> None:
     # XXX(dcramer): only works with DummyNewsletter
     from sentry import newsletter
 
@@ -378,33 +377,38 @@ def _shuffle(items: list[pytest.Item]) -> None:
     items[:] = new_items
 
 
-def pytest_collection_modifyitems(config, items):
+_TOTAL_GROUPS = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
+_CURRENT_GROUP = int(os.environ.get("TEST_GROUP", 0))
+_GROUPING_STRATEGY = os.environ.get("TEST_GROUP_STRATEGY", "scope")
+
+
+def pytest_collection_modifyitems(
+    config: pytest.Config,
+    items: list[pytest.Item],
+    *,
+    _total_groups: int = _TOTAL_GROUPS,
+    _current_group: int = _CURRENT_GROUP,
+    _grouping_strategy: str = _GROUPING_STRATEGY,
+) -> None:
     """After collection, we need to select tests based on group and group strategy"""
+    # ensure deterministic bucketing so tests aren't lost
+    items.sort(key=lambda item: item.nodeid)
 
-    total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
-    current_group = int(os.environ.get("TEST_GROUP", 0))
-    grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "file")
-
-    keep, discard = [], []
-
-    for index, item in enumerate(items):
-        # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
-        # we want to only include items in `accepted` list
-        item_to_group = (
-            int(md5(str(item.location[0]).encode("utf-8")).hexdigest(), 16)
-            if grouping_strategy == "file"
-            else index
-        )
-
-        # Split tests in different groups
-        group_num = item_to_group % total_groups
-
-        if group_num == current_group:
-            keep.append(item)
+    groups = collections.defaultdict(list)
+    for item in items:
+        if _grouping_strategy == "scope":
+            key = item.nodeid.rsplit("::", 1)[0]
         else:
-            discard.append(item)
+            key = item.nodeid
 
-    items[:] = keep
+        groups[key].append(item)
+
+    buckets: list[list[pytest.Item]] = [[] for _ in range(_total_groups)]
+    for group in sorted(groups.values(), key=lambda group: -len(group)):
+        min(buckets, key=lambda bucket: len(bucket)).extend(group)
+
+    items[:] = buckets[_current_group]
+    discard = [item for i, bucket in enumerate(buckets) for item in bucket if i != _current_group]
 
     if os.environ.get("SENTRY_SHUFFLE_TESTS"):
         _shuffle(items)
@@ -414,6 +418,6 @@ def pytest_collection_modifyitems(config, items):
         config.hook.pytest_deselected(items=discard)
 
 
-def pytest_xdist_setupnodes():
+def pytest_xdist_setupnodes() -> None:
     # prevent out-of-order django initialization
     os.environ.pop("DJANGO_SETTINGS_MODULE", None)
