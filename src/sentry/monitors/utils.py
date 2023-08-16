@@ -228,11 +228,9 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
         "conditions": [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                "name": "A new issue is created",
             },
             {
                 "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
-                "name": "The issue changes state from resolved to unresolved",
             },
         ],
         "createdBy": {
@@ -248,7 +246,6 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
                 "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
                 "key": "monitor.slug",
                 "match": "eq",
-                "name": f"The event's tags match monitor.slug contains {monitor.slug}",
                 "value": monitor.slug,
             }
         ],
@@ -265,7 +262,6 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
 
         action = {
             "id": "sentry.mail.actions.NotifyEmailAction",
-            "name": f"Send a notification to {target_type}",
             "targetIdentifier": target_identifier,
             "targetType": target_type,
         }
@@ -282,7 +278,6 @@ def update_alert_rule(request: Request, project: Project, alert_rule: Rule, aler
 
         action = {
             "id": "sentry.mail.actions.NotifyEmailAction",
-            "name": f"Send a notification to {target_type}",
             "targetIdentifier": target_identifier,
             "targetType": target_type,
         }
