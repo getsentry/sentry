@@ -10,7 +10,7 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
-import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
@@ -20,6 +20,7 @@ import {defined} from 'sentry/utils';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
 import {formatPercentage} from 'sentry/utils/formatters';
+import toPercent from 'sentry/utils/number/toPercent';
 import {
   ExampleTransaction,
   SuspectSpan,
