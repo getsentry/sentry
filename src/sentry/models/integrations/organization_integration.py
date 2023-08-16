@@ -55,7 +55,7 @@ class OrganizationIntegration(DefaultFieldsModel):
         ):
             for outbox in self.outboxes_for_update():
                 outbox.save()
-            super().delete(*args, **kwds)
+            return super().delete(*args, **kwds)
 
     @staticmethod
     def services_in(config: Mapping[str, Any]) -> List[PagerDutyServiceDict]:

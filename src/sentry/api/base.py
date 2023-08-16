@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Iterable, List, Mapping, Optional, Tuple, Type
 from urllib.parse import quote as urlquote
 
@@ -12,7 +12,6 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
 from django.views.decorators.csrf import csrf_exempt
-from pytz import utc
 from rest_framework import status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.exceptions import ParseError
@@ -281,7 +280,7 @@ class Endpoint(APIView):
         except json.JSONDecodeError:
             return
 
-    def initialize_request(self, request: Request, *args, **kwargs):
+    def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
         # XXX: Since DRF 3.x, when the request is passed into
         # `initialize_request` it's set as an internal variable on the returned
         # request. Then when we call `rv.auth` it attempts to authenticate,
@@ -528,24 +527,24 @@ class StatsMixin:
             resolution = request.GET.get("resolution")
             if resolution:
                 resolution = self._parse_resolution(resolution)
-                if restrict_rollups and resolution not in tsdb.get_rollups():
+                if restrict_rollups and resolution not in tsdb.backend.get_rollups():
                     raise ValueError
         except ValueError:
             raise ParseError(detail="Invalid resolution")
 
         try:
-            end = request.GET.get("until")
-            if end:
-                end = to_datetime(float(end))
+            end_s = request.GET.get("until")
+            if end_s:
+                end = to_datetime(float(end_s))
             else:
-                end = datetime.utcnow().replace(tzinfo=utc)
+                end = datetime.utcnow().replace(tzinfo=timezone.utc)
         except ValueError:
             raise ParseError(detail="until must be a numeric timestamp.")
 
         try:
-            start = request.GET.get("since")
-            if start:
-                start = to_datetime(float(start))
+            start_s = request.GET.get("since")
+            if start_s:
+                start = to_datetime(float(start_s))
                 assert start <= end
             else:
                 start = end - timedelta(days=1, seconds=-1)
@@ -555,7 +554,7 @@ class StatsMixin:
             raise ParseError(detail="start must be before or equal to end")
 
         if not resolution:
-            resolution = tsdb.get_optimal_rollup(start, end)
+            resolution = tsdb.backend.get_optimal_rollup(start, end)
 
         return {
             "start": start,

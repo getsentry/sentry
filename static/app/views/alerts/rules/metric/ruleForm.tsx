@@ -27,7 +27,10 @@ import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
-import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
+import {
+  hasOnDemandMetricAlertFeature,
+  isOnDemandQueryString,
+} from 'sentry/utils/onDemandMetrics';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
@@ -128,7 +131,7 @@ function determineAlertDataset(
   selectedDataset: Dataset,
   query: string
 ) {
-  if (!org.features.includes('on-demand-metrics-extraction')) {
+  if (!hasOnDemandMetricAlertFeature(org)) {
     return selectedDataset;
   }
 

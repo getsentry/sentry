@@ -22,8 +22,8 @@ function IssueQuickTrace({event, location, organization, quickTrace}: Props) {
   const isTraceMissing =
     !quickTrace ||
     quickTrace.error ||
-    !defined(quickTrace.trace) ||
-    quickTrace.trace.length === 0;
+    ((!defined(quickTrace.trace) || quickTrace.trace.length === 0) &&
+      (!quickTrace.orphanErrors || quickTrace.orphanErrors?.length === 0));
 
   useRouteAnalyticsParams({
     trace_status: isTraceMissing

@@ -24,6 +24,7 @@ import {space} from 'sentry/styles/space';
 import {Event, Group, Organization, Project} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -66,7 +67,8 @@ function GroupHeaderTabs({
 
   const hasSimilarView = projectFeatures.has('similarity-view');
   const hasEventAttachments = organizationFeatures.has('event-attachments');
-  const hasReplaySupport = organizationFeatures.has('session-replay');
+  const hasReplaySupport =
+    organizationFeatures.has('session-replay') && projectCanLinkToReplay(project);
 
   const issueTypeConfig = getConfigForIssueType(group);
 

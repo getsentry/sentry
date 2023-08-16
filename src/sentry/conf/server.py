@@ -632,6 +632,9 @@ SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 # If this instance is a region silo, which region is it running in?
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 
+# Returns the customer single tenant ID.
+CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
+
 # Enable siloed development environment.
 USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
 
@@ -962,8 +965,8 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": timedelta(seconds=30),
         "options": {"expires": 30},
     },
-    "monitors-temp-task-dispatcher": {
-        "task": "sentry.monitors.tasks.temp_task_dispatcher",
+    "monitors-clock-pulse": {
+        "task": "sentry.monitors.tasks.clock_pulse",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
@@ -1556,6 +1559,8 @@ SENTRY_FEATURES = {
     "organizations:performance-new-trends": False,
     # Enable debug views for trendsv2 to be used internally
     "organizations:performance-trendsv2-dev-only": False,
+    # Bypass 30 day date range selection when fetching new trends data
+    "organizations:performance-trends-new-data-date-range-default": False,
     # Enable consecutive db performance issue type
     "organizations:performance-consecutive-db-issue": False,
     # Enable consecutive http performance issue type
@@ -1599,6 +1604,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-issue-emails": False,
     "organizations:session-replay-weekly-email": False,
     "organizations:session-replay-trace-table": False,
+    # Enable optimized serach feature.
+    "organizations:session-replay-optimized-search": False,
     # Enable rage click and dead click columns in replay list.
     "organizations:replay-rage-click-dead-click-columns": False,
     # Enable experimental error and rage/dead click cards in replay list.
@@ -1690,12 +1697,18 @@ SENTRY_FEATURES = {
     "organizations:sdk-crash-detection": False,
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
+    # Enable additional logging for alerts
+    "organizations:detailed-alert-logging": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable the new flat file indexing system for sourcemaps.
     "organizations:sourcemaps-bundle-flat-file-indexing": False,
+    # Signals that the organization supports the on demand metrics prefill.
+    "organizations:on-demand-metrics-prefill": False,
+    # Signals that the organization can start prefilling on demand metrics.
+    "organizations:enable-on-demand-metrics-prefill": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.

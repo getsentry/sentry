@@ -1,14 +1,13 @@
 import copy
 import functools
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-import pytz
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.db import router
 from django.db.models import F
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from freezegun import freeze_time
 
 from sentry.constants import DataCategory
@@ -40,13 +39,12 @@ DISABLED_ORGANIZATIONS_USER_OPTION_KEY = "reports:disabled-organizations"
 
 @region_silo_test(stable=True)
 class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
-    @with_feature("organizations:weekly-email-refresh")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_integration(self):
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
-        now = datetime.now().replace(tzinfo=pytz.utc)
+        now = datetime.now().replace(tzinfo=timezone.utc)
 
         project = self.create_project(
             organization=self.organization, teams=[self.team], date_added=now - timedelta(days=90)
@@ -69,7 +67,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_with_empty_string_user_option(self):
-        now = datetime.now().replace(tzinfo=pytz.utc)
+        now = datetime.now().replace(tzinfo=timezone.utc)
 
         project = self.create_project(
             organization=self.organization, teams=[self.team], date_added=now - timedelta(days=90)
@@ -90,13 +88,12 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             assert self.organization.name in message.subject
 
     @with_feature("organizations:customer-domains")
-    @with_feature("organizations:weekly-email-refresh")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_message_links_customer_domains(self):
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
-        now = datetime.now().replace(tzinfo=pytz.utc)
+        now = datetime.now().replace(tzinfo=timezone.utc)
 
         project = self.create_project(
             organization=self.organization, teams=[self.team], date_added=now - timedelta(days=90)
@@ -115,9 +112,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             assert isinstance(message, EmailMultiAlternatives)
             assert self.organization.name in message.subject
             html = message.alternatives[0][0]
+
             assert isinstance(html, str)
             assert (
-                f"http://{self.organization.slug}.testserver/issues/?referrer=weekly-email" in html
+                f"http://{self.organization.slug}.testserver/issues/?referrer=weekly_report" in html
             )
 
     @mock.patch("sentry.tasks.weekly_reports.send_email")
@@ -169,7 +167,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     def test_organization_project_issue_summaries(self):
         self.login_as(user=self.user)
 
-        now = timezone.now()
+        now = django_timezone.now()
         min_ago = iso_format(now - timedelta(minutes=1))
 
         self.store_event(
@@ -209,7 +207,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     def test_organization_project_issue_substatus_summaries(self):
         self.login_as(user=self.user)
 
-        now = timezone.now()
+        now = django_timezone.now()
         min_ago = iso_format(now - timedelta(minutes=1))
 
         event1 = self.store_event(
@@ -250,16 +248,16 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         assert project_ctx.regression_substatus_count == 0
         assert project_ctx.total_substatus_count == 2
 
+    @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
-    def test_message_builder_simple(self, message_builder):
-        now = timezone.now()
+    def test_message_builder_simple(self, message_builder, record):
+        now = django_timezone.now()
 
         two_days_ago = now - timedelta(days=2)
         three_days_ago = now - timedelta(days=3)
 
-        self.create_member(
-            teams=[self.team], user=self.create_user(), organization=self.organization
-        )
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
 
         event1 = self.store_event(
             data={
@@ -346,10 +344,20 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             assert context["trends"]["total_transaction_count"] == 10
             assert "Weekly Report for" in message_params["subject"]
 
+            assert isinstance(context["notification_uuid"], str)
+
+        record.assert_called_with(
+            "weekly_report.sent",
+            user_id=user.id,
+            organization_id=self.organization.id,
+            notification_uuid=mock.ANY,
+            user_project_count=1,
+        )
+
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     @with_feature("organizations:escalating-issues")
     def test_message_builder_substatus_simple(self, message_builder):
-        now = timezone.now()
+        now = django_timezone.now()
         three_days_ago = now - timedelta(days=3)
 
         self.create_member(
@@ -409,7 +417,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_message_builder_advanced(self, message_builder):
 
-        now = timezone.now()
+        now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
         three_days_ago = now - timedelta(days=3)
 
@@ -460,7 +468,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
         assert ctx["trends"]["legend"][0] == {
             "slug": "bar",
-            "url": f"http://testserver/organizations/baz/issues/?project={self.project.id}",
+            "url": f"http://testserver/organizations/baz/issues/?referrer=weekly_report&notification_uuid={ctx['notification_uuid']}&project={self.project.id}",
             "color": "#422C6E",
             "dropped_error_count": 2,
             "accepted_error_count": 1,
@@ -479,7 +487,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
     @mock.patch("sentry.tasks.weekly_reports.send_email")
     def test_empty_report(self, mock_send_email):
-        now = timezone.now()
+        now = django_timezone.now()
 
         # date is out of range
         ten_days_ago = now - timedelta(days=10)
@@ -499,11 +507,11 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         assert mock_send_email.call_count == 0
 
     @with_feature("organizations:session-replay")
-    @with_feature("organizations:session-replay-weekly-email")
+    @with_feature("organizations:session-replay-weekly_report")
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_message_builder_replays(self, message_builder):
 
-        now = timezone.now()
+        now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
         timestamp = to_timestamp(floor_to_utc_day(now))
 
@@ -530,7 +538,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
         assert ctx["trends"]["legend"][0] == {
             "slug": "bar",
-            "url": f"http://testserver/organizations/baz/issues/?project={self.project.id}",
+            "url": f"http://testserver/organizations/baz/issues/?referrer=weekly_report&notification_uuid={ctx['notification_uuid']}&project={self.project.id}",
             "color": "#422C6E",
             "dropped_error_count": 0,
             "accepted_error_count": 0,
