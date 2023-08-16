@@ -499,10 +499,12 @@ class BaseApiClient(TrackResponseMixin):
         )
 
         if (
-            features.has("organizations:slack-fatal-disable-on-broken", org)
-            and rpc_integration.provider == "slack"
-        ) and buffer.is_integration_fatal_broken())
-        or (
+            (
+                features.has("organizations:slack-fatal-disable-on-broken", org)
+                and rpc_integration.provider == "slack"
+            )
+            and buffer.is_integration_fatal_broken()
+        ) or (
             features.has("organizations:github-disable-on-broken", org)
             and rpc_integration.provider == "github"
         ):
