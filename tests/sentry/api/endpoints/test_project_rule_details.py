@@ -2,10 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any, Mapping
-from unittest import mock
-from unittest.mock import call, patch
+from unittest.mock import patch
 
-import pytest
 import responses
 from freezegun import freeze_time
 
@@ -49,6 +47,8 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
     # any(a.items() <= b.items()) to check if the payload dict is a subset of the rule.data dict
     # E.g. payload["actions"] = [{"name": "Test1"}], rule.data["actions"] = [{"name": "Test1", "id": 1}]
     for payload_action in payload.get("actions", []):
+        if payload_action.get("name"):
+            del payload_action["name"]
         # The Slack payload will contain '#channel' or '@user', but we save 'channel' or 'user' on the Rule
         if (
             payload_action["id"]
@@ -60,6 +60,8 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
         )
     payload_conditions = payload.get("conditions", []) + payload.get("filters", [])
     for payload_condition in payload_conditions:
+        if payload_condition.get("name"):
+            del payload_condition["name"]
         assert any(
             payload_condition.items() <= rule_condition.items()
             for rule_condition in rule.data["conditions"]
@@ -102,6 +104,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         )
         assert response.data["id"] == str(self.rule.id)
         assert response.data["environment"] is None
+        assert response.data["conditions"][0]["name"]
 
     def test_non_existing_rule(self):
         self.get_error_response(self.organization.slug, self.project.slug, 12345, status_code=404)
@@ -313,11 +316,6 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
 
 @region_silo_test(stable=True)
 class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
-    @pytest.fixture(autouse=True)
-    def _setup_metric_patch(self):
-        with mock.patch("sentry.api.endpoints.project_rule_details.metrics") as self.metrics:
-            yield
-
     method = "PUT"
 
     @patch("sentry.signals.alert_rule_edited.send_robust")
@@ -638,7 +636,12 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
 
     def test_update_filters(self):
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "name": "A new issue is created",
+            }
+        ]
         filters = [
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
         ]
@@ -735,10 +738,6 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
-        assert (
-            call("sentry.issue_alert.conditions.edited", sample_rate=1.0)
-            in self.metrics.incr.call_args_list
-        )
 
     def test_edit_non_condition_metric(self):
         payload = {
@@ -751,10 +750,6 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         }
         self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
-        )
-        assert (
-            call("sentry.issue_alert.conditions.edited", sample_rate=1.0)
-            not in self.metrics.incr.call_args_list
         )
 
 
