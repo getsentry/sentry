@@ -777,13 +777,16 @@ CELERY_QUEUES_ALL = [
 
 CELERY_QUEUES_CONTROL = [
     Queue("app_platform.control", routing_key="app_platform.control", exchange=control_exchange),
-    Queue("auth", routing_key="auth", exchange=control_exchange),
-    Queue("integrations", routing_key="integrations", exchange=control_exchange),
+    Queue("auth.control", routing_key="auth.control", exchange=control_exchange),
+    Queue("cleanup.control", routing_key="cleanup.control", exchange=control_exchange),
+    Queue("integrations.control", routing_key="integrations.control", exchange=control_exchange),
+    Queue("files.delete.control", routing_key="files.delete.control", exchange=control_exchange),
     Queue(
         "hybrid_cloud.control_repair",
         routing_key="hybrid_cloud.control_repair",
         exchange=control_exchange,
     ),
+    Queue("options.control", routing_key="options.control", exchange=control_exchange),
 ]
 
 CELERY_ISSUE_STATES_QUEUE = Queue(
@@ -792,6 +795,7 @@ CELERY_ISSUE_STATES_QUEUE = Queue(
 
 CELERY_QUEUES_REGION = [
     Queue("activity.notify", routing_key="activity.notify"),
+    Queue("auth", routing_key="auth"),
     Queue("alerts", routing_key="alerts"),
     Queue("app_platform", routing_key="app_platform"),
     Queue("appstoreconnect", routing_key="sentry.tasks.app_store_connect.#"),
@@ -837,6 +841,7 @@ CELERY_QUEUES_REGION = [
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
     ),
     Queue("group_owners.process_commit_context", routing_key="group_owners.process_commit_context"),
+    Queue("integrations", routing_key="integrations"),
     Queue(
         "releasemonitor",
         routing_key="releasemonitor",
