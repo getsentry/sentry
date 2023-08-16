@@ -724,6 +724,7 @@ class GithubProxyClientTest(TestCase):
         assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.ACTIVE
 
     @responses.activate
+    @freeze_time("2022-01-01 03:30:00")
     def test_a_slow_integration_is_broken(self):
         """
         slow shut off with disable flag off
