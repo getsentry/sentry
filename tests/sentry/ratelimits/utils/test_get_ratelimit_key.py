@@ -5,7 +5,7 @@ from rest_framework.permissions import AllowAny
 from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.auth.system import SystemToken
-from sentry.models import User
+from sentry.models import ApiToken, User
 from sentry.ratelimits import get_rate_limit_config, get_rate_limit_key
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.testutils.cases import TestCase
@@ -85,6 +85,17 @@ class GetRateLimitKeyTest(TestCase):
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
             )
             == f"org:default:OrganizationGroupIndexEndpoint:GET:{install.organization_id}"
+        )
+
+    def test_api_token(self):
+        token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
+        self.request.auth = token
+        self.request.user = self.user
+        assert (
+            get_rate_limit_key(
+                self.view, self.request, self.rate_limit_group, self.rate_limit_config
+            )
+            == f"user:default:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
         )
 
 
