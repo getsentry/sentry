@@ -596,11 +596,7 @@ def _generate_stacktrace_fingerprint(
     stacktrace_fingerprint = ""
     try:
         stacktrace_frames_fingerprint = _generate_match_frames_fingerprint(stacktrace_match_frames)
-        stacktrace_type_value = ""
-        if stacktrace_container:
-            stacktrace_type_value = (
-                f'{stacktrace_container.get("type", "")}.stacktrace_container.get("value", "")'
-            )
+        stacktrace_type_value = _generate_stacktrace_container_fingerprint(stacktrace_container)
         # Hash of the three components involved for fingerprinting a stacktrace
         stacktrace_hash = md5()
         hash_value(
@@ -627,6 +623,16 @@ def _generate_stacktrace_fingerprint(
         },
     )
     return stacktrace_fingerprint
+
+
+def _generate_stacktrace_container_fingerprint(stacktrace_container: dict[str, Any]) -> str:
+    stacktrace_type_value = ""
+    if stacktrace_container:
+        cont_type = stacktrace_container.get("type", "")
+        cont_value = stacktrace_container.get("value", "")
+        stacktrace_type_value = f"{cont_type}.{cont_value}"
+
+    return stacktrace_type_value
 
 
 def _generate_match_frames_fingerprint(match_frames: Sequence[dict[str, Any]]) -> str:
