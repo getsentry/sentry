@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {RateUnits} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
@@ -11,10 +10,6 @@ import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/char
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
-import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
-import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
-import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
-import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import {
   SpanSummaryQueryFilters,
@@ -25,10 +20,9 @@ import {SpanMetricsFields, StarfishFunctions} from 'sentry/views/starfish/types'
 import {
   DataTitles,
   getThroughputChartTitle,
-  getThroughputTitle,
 } from 'sentry/views/starfish/views/spans/types';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
-import {getSpanOperationDescription} from 'sentry/views/starfish/views/spanSummaryPage/getSpanOperationDescription';
+import {SpanMetricsRibbon} from 'sentry/views/starfish/views/spanSummaryPage/spanMetricsRibbon';
 
 const CHART_HEIGHT = 160;
 
@@ -99,10 +93,6 @@ export function SpanSummaryView({groupId}: Props) {
     data: spanMetricsSeriesData?.['spm()'].data,
   };
 
-  const spanOperationDescription = getSpanOperationDescription(
-    span[SpanMetricsFields.SPAN_OP]
-  );
-
   return (
     <React.Fragment>
       <HeaderContainer>
@@ -110,58 +100,7 @@ export function SpanSummaryView({groupId}: Props) {
           <StarfishDatePicker />
         </FilterOptionsContainer>
 
-        <BlockContainer>
-          {span?.[SpanMetricsFields.SPAN_OP]?.startsWith('db') &&
-            span?.[SpanMetricsFields.SPAN_OP] !== 'db.redis' && (
-              <Block title={t('Table')}>{span?.[SpanMetricsFields.SPAN_DOMAIN]}</Block>
-            )}
-
-          <Block
-            title={getThroughputTitle(span?.[SpanMetricsFields.SPAN_OP])}
-            description={tct('Throughput of this [spanType] per minute', {
-              spanType: spanOperationDescription,
-            })}
-          >
-            <ThroughputCell rate={spanMetrics?.['spm()']} unit={RateUnits.PER_MINUTE} />
-          </Block>
-
-          <Block
-            title={DataTitles.avg}
-            description={tct(
-              'The average duration of [spanType] in the selected period',
-              {
-                spanType: spanOperationDescription.endsWith('y')
-                  ? `${spanOperationDescription.slice(0, -1)}ies`
-                  : `${spanOperationDescription}s`,
-              }
-            )}
-          >
-            <DurationCell
-              milliseconds={spanMetrics?.[`avg(${SpanMetricsFields.SPAN_SELF_TIME})`]}
-            />
-          </Block>
-
-          {span?.[SpanMetricsFields.SPAN_OP]?.startsWith('http') && (
-            <Block
-              title={t('5XX Responses')}
-              description={t('5XX responses in this span')}
-            >
-              <CountCell count={spanMetrics?.[`http_error_count()`]} />
-            </Block>
-          )}
-
-          <Block
-            title={t('Time Spent')}
-            description={t(
-              'Time spent in this span as a proportion of total application time'
-            )}
-          >
-            <TimeSpentCell
-              percentage={spanMetrics?.['time_spent_percentage()']}
-              total={spanMetrics?.[`sum(${SpanMetricsFields.SPAN_SELF_TIME})`]}
-            />
-          </Block>
-        </BlockContainer>
+        <SpanMetricsRibbon spanMetrics={span} />
       </HeaderContainer>
 
       {span?.[SpanMetricsFields.SPAN_DESCRIPTION] && (
