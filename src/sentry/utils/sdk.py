@@ -4,7 +4,7 @@ import copy
 import inspect
 import logging
 import random
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, List, Mapping, Sequence
 
 import sentry_sdk
 from django.conf import settings
@@ -657,7 +657,7 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
 
 
 def bind_ambiguous_org_context(
-    orgs: Sequence[Organization | RpcOrganization], source: str | None = None
+    orgs: Sequence[Organization] | Sequence[RpcOrganization] | List[str], source: str | None = None
 ) -> None:
     """
     Add org context information to the scope in the case where the current org might be one of a
@@ -667,7 +667,12 @@ def bind_ambiguous_org_context(
 
     MULTIPLE_ORGS_TAG = "[multiple orgs]"
 
-    org_slugs = [org.slug for org in orgs]
+    def parse_org_slug(x: Organization | RpcOrganization | str) -> str:
+        if isinstance(x, str):
+            return x
+        return x.slug
+
+    org_slugs = [parse_org_slug(org) for org in orgs]
 
     # Right now there is exactly one Integration instance shared by more than 30 orgs (the generic
     # GitLab integration, at the moment shared by ~500 orgs), so 50 should be plenty for all but
