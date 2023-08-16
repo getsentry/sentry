@@ -87,10 +87,7 @@ from sentry.monitors.models import (
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import TransactionTestCase
-from sentry.testutils.helpers.backups import (
-    clear_database_but_keep_sequences,
-    import_export_then_validate,
-)
+from sentry.testutils.helpers.backups import import_export_then_validate
 from sentry.utils.json import JSONData
 from tests.sentry.backup import run_backup_tests_only_on_single_db, targets
 
@@ -123,10 +120,6 @@ class ModelBackupTests(TransactionTestCase):
     file (called the "expected" JSON). It then imports the "expected" JSON and re-exports it into
     the "actual" JSON file, and diffs the two to ensure that they match per the specified
     comparators."""
-
-    def setUp(self):
-        # Empty the database without resetting primary keys.
-        clear_database_but_keep_sequences()
 
     def import_export_then_validate(self) -> JSONData:
         return import_export_then_validate(self._testMethodName, reset_pks=False)
