@@ -113,6 +113,7 @@ def _get_alert_metric_specs(project: Project) -> List[HashedMetricSpec]:
     for alert in alert_rules:
         alert_snuba_query = alert.snuba_query
         if result := _convert_snuba_query_to_metric(alert.snuba_query):
+            prefilling = _is_on_demand_metrics_prefill_enabled(project.organization)
             _log_on_demand_metric_spec(
                 project_id=project.id,
                 spec_for="alert",
@@ -120,10 +121,11 @@ def _get_alert_metric_specs(project: Project) -> List[HashedMetricSpec]:
                 id=alert.id,
                 field=alert_snuba_query.aggregate,
                 query=alert_snuba_query.query,
+                prefilling=prefilling,
             )
             metrics.incr(
                 "on_demand_metrics.on_demand_spec.for_alert",
-                tags={"prefilling": _is_on_demand_metrics_prefill_enabled(project.organization)},
+                tags={"prefilling": prefilling},
             )
             specs.append(result)
 
@@ -222,6 +224,7 @@ def _convert_widget_query_to_metric(
             aggregate,
             widget_query.conditions,
         ):
+            prefilling = _is_on_demand_metrics_prefill_enabled(project.organization)
             _log_on_demand_metric_spec(
                 project_id=project.id,
                 spec_for="widget",
@@ -229,10 +232,11 @@ def _convert_widget_query_to_metric(
                 id=widget_query.id,
                 field=aggregate,
                 query=widget_query.conditions,
+                prefilling=prefilling,
             )
             metrics.incr(
                 "on_demand_metrics.on_demand_spec.for_widget",
-                tags={"prefilling": _is_on_demand_metrics_prefill_enabled(project.organization)},
+                tags={"prefilling": prefilling},
             )
             metrics_specs.append(result)
 
@@ -268,6 +272,7 @@ def _log_on_demand_metric_spec(
     id: int,
     field: str,
     query: str,
+    prefilling: bool,
 ) -> None:
     spec_query_hash, spec_dict = spec
 
@@ -281,6 +286,7 @@ def _log_on_demand_metric_spec(
             "spec_for": spec_for,
             "spec_query_hash": spec_query_hash,
             "spec": spec_dict,
+            "prefilling": prefilling,
         },
     )
 
