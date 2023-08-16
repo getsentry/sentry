@@ -334,6 +334,12 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
             [self.project_1, self.project_2], project_ids=[self.project_1.id, self.project_2.id]
         )
 
+    def test_ids_exclude(self):
+        membership = self.create_team_membership(user=self.user, team=self.team_1)
+        membership.delete()
+        self.create_team_membership(user=self.user, team=self.team_3)
+        self.run_test([self.project_1], project_ids=[-1, self.project_2.id])
+
     def test_none_user(self):
         request = RequestFactory().get("/")
         request.session = SessionBase()

@@ -307,6 +307,17 @@ class OrganizationEndpoint(Endpoint):
     ) -> list[Project]:
         qs = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
         user = getattr(request, "user", None)
+
+        if -1 in project_ids and len(project_ids) > 1:
+            # if we pass in -1, if we include project ids as well,
+            # we'll NEGATE THEM OUT.
+            project_ids.remove(-1)
+            project_ids = set(
+                Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+                .exclude(id__in=project_ids)
+                .values_list("id", flat=True)
+            )
+
         # A project_id of -1 means 'all projects I have access to'
         # While no project_ids means 'all projects I am a member of'.
         if project_ids == ALL_ACCESS_PROJECTS:
