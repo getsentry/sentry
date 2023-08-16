@@ -100,7 +100,7 @@ class UserNotificationSettingsProvidersPutTest(UserNotificationSettingsProviders
             type="alerts",
             status_code=status.HTTP_201_CREATED,
             value="always",
-            provider=["slack"],
+            providers=["slack"],
         )
         assert NotificationSettingProvider.objects.filter(
             user_id=self.user.id,
@@ -120,7 +120,7 @@ class UserNotificationSettingsProvidersPutTest(UserNotificationSettingsProviders
             scope_identifier=self.project.id,
             type="alerts",
             status_code=status.HTTP_400_BAD_REQUEST,
-            provider=["slack"],
+            providers=["slack"],
         )
         assert response.data["scopeType"] == ["Invalid scope type"]
 
@@ -132,6 +132,6 @@ class UserNotificationSettingsProvidersPutTest(UserNotificationSettingsProviders
             scope_identifier=self.organization.id,
             type="alerts",
             status_code=status.HTTP_400_BAD_REQUEST,
-            provider=["github"],
+            providers=["github"],
         )
-        assert response.data["provider"] == ["Invalid provider"]
+        assert response.data["providers"] == ["Invalid provider"]
