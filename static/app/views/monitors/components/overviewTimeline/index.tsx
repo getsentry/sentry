@@ -31,7 +31,8 @@ export function OverviewTimeline({monitorList}: Props) {
   const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
   const nowRef = useRef<Date>(new Date());
   const start = getStartFromTimeWindow(nowRef.current, timeWindow);
-  const {elementRef, width: timelineWidth} = useDimensions<HTMLDivElement>();
+  const elementRef = useRef<HTMLDivElement>(null);
+  const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
   const rollup = Math.floor(
     (timeWindowConfig[timeWindow].elapsedMinutes * 60) / timelineWidth
