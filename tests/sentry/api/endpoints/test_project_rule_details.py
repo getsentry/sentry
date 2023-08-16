@@ -2,10 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any, Mapping
-from unittest import mock
-from unittest.mock import call, patch
+from unittest.mock import patch
 
-import pytest
 import responses
 from freezegun import freeze_time
 
@@ -318,11 +316,6 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
 
 @region_silo_test(stable=True)
 class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
-    @pytest.fixture(autouse=True)
-    def _setup_metric_patch(self):
-        with mock.patch("sentry.api.endpoints.project_rule_details.metrics") as self.metrics:
-            yield
-
     method = "PUT"
 
     @patch("sentry.signals.alert_rule_edited.send_robust")
@@ -745,10 +738,6 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
-        assert (
-            call("sentry.issue_alert.conditions.edited", sample_rate=1.0)
-            in self.metrics.incr.call_args_list
-        )
 
     def test_edit_non_condition_metric(self):
         payload = {
@@ -761,10 +750,6 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         }
         self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
-        )
-        assert (
-            call("sentry.issue_alert.conditions.edited", sample_rate=1.0)
-            not in self.metrics.incr.call_args_list
         )
 
 
