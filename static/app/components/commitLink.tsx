@@ -47,7 +47,6 @@ type Props = {
   onClick?: () => void;
   repository?: Repository;
   showIcon?: boolean;
-  useCommitTitle?: boolean;
 };
 
 function CommitLink({
@@ -57,14 +56,13 @@ function CommitLink({
   showIcon = true,
   onClick,
   commitTitle,
-  useCommitTitle = false,
 }: Props) {
   if (!commitId || !repository) {
     return <span>{t('Unknown Commit')}</span>;
   }
 
   let label: string;
-  if (useCommitTitle && commitTitle) {
+  if (commitTitle) {
     label = commitTitle;
   } else {
     label = getShortCommitHash(commitId);

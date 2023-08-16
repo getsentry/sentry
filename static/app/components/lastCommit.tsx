@@ -49,7 +49,6 @@ function LastCommit({commit, className}: Props) {
         commitId={commit.id}
         repository={commit.repository}
         commitTitle={finalMessage}
-        useCommitTitle
       />
     );
   }
