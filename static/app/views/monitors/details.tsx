@@ -12,6 +12,7 @@ import {space} from 'sentry/styles/space';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {CronDetailsTimeline} from 'sentry/views/monitors/components/cronDetailsTimeline';
 import DetailsSidebar from 'sentry/views/monitors/components/detailsSidebar';
 
 import MonitorCheckIns from './components/monitorCheckIns';
@@ -93,6 +94,7 @@ function MonitorDetails({params, location}: Props) {
               <MonitorOnboarding monitor={monitor} />
             ) : (
               <Fragment>
+                <CronDetailsTimeline organization={organization} monitor={monitor} />
                 <MonitorStats
                   orgSlug={organization.slug}
                   monitor={monitor}
