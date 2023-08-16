@@ -78,16 +78,23 @@ export default function QuickTrace({
   transactionDest,
 }: QuickTraceProps) {
   let parsedQuickTrace;
+  const noTrace = <Fragment>{'\u2014'}</Fragment>;
   try {
     if (quickTrace.orphanErrors && quickTrace.orphanErrors.length > 0) {
+      const orphanError = quickTrace.orphanErrors.find(e => e.event_id === event.id);
+
+      if (!orphanError) {
+        return noTrace;
+      }
+
       parsedQuickTrace = {
-        current: quickTrace.orphanErrors.find(e => e.event_id === event.id),
+        current: orphanError,
       };
     } else {
       parsedQuickTrace = parseQuickTrace(quickTrace, event, organization);
     }
   } catch (error) {
-    return <Fragment>{'\u2014'}</Fragment>;
+    return noTrace;
   }
 
   const traceLength =

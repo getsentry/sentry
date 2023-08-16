@@ -25,7 +25,6 @@ import {
 } from 'sentry/components/performance/waterfall/row';
 import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {
-  BadgeBorder,
   DividerContainer,
   DividerLine,
   DividerLineGhostContainer,
@@ -693,7 +692,6 @@ const ErrorLink = styled(Link)`
 `;
 
 const StyledRowRectangle = styled(RowRectangle)`
-  ${BadgeBorder} {
-    top: -4px;
-  }
+  display: flex;
+  align-items: center;
 `;

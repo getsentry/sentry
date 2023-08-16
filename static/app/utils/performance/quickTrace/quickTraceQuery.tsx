@@ -80,7 +80,7 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               if (orphanError) {
                 return children({
                   ...traceFullResults,
-                  trace: null,
+                  trace: [],
                   orphanErrors: [orphanError],
                   currentEvent: orphanError,
                 });
