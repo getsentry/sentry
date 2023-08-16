@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Literal, Mapping, Set, Tuple, TypedDict
 
 from sentry.api.api_owners import ApiOwner
+from sentry.apidocs.api_ownership_allowlist_dont_modify import API_OWNERSHIP_ALLOWLIST_DONT_MODIFY
 from sentry.apidocs.build import OPENAPI_TAGS
 from sentry.apidocs.utils import SentryApiBuildError
 
@@ -74,9 +75,11 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
     for (path, path_regex, method, callback) in endpoints:
 
         if callback.view_class.owner == ApiOwner.UNOWNED:
-            raise SentryApiBuildError(
-                "Please add owner attribute to your endpoint. If you can't find your team in ApiOwners feel free to add the associated github group. "
-            )
+            if path not in API_OWNERSHIP_ALLOWLIST_DONT_MODIFY:
+                raise SentryApiBuildError(
+                    "Please add owner attribute to your endpoint. If you can't find your team in ApiOwners feel free to add the associated github group. "
+                )
+
         if any(path.startswith(p) for p in EXCLUSION_PATH_PREFIXES):
             pass
 
@@ -93,7 +96,6 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
 
     # Register explicit ednpoints
     filtered.extend(__get_explicit_endpoints())
-
     return filtered
 
 
