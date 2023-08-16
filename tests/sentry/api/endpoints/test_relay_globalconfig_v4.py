@@ -42,6 +42,6 @@ def test_return_global_config_on_right_version(
     result, status_code = call_endpoint(version, request_global_config)
     assert status_code < 400
     if not expect_global_config:
-        assert result.get("global") is None
+        assert "global" not in result
     else:
         assert result.get("global") == {}

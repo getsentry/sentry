@@ -53,11 +53,10 @@ class RelayProjectConfigsEndpoint(Endpoint):
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
 
-        if version == "4":
-            if request.relay_request_data.get("global"):
-                response["global"] = get_global_config()
+        if version == "4" and request.relay_request_data.get("global"):
+            response["global"] = get_global_config()
 
-        if self._should_full_build_projconfig(version, request):
+        if self._should_post_or_schedule(version, request):
             # Always compute the full config. It's invalid to send partial
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
@@ -77,7 +76,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         return Response(response, status=200)
 
-    def _should_full_build_projconfig(self, version, request):
+    def _should_post_or_schedule(self, version, request):
         """Determine whether the full build should be used for project configs.
 
         The full build should be used for v3 requests with full config and v4.

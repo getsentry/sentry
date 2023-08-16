@@ -85,7 +85,7 @@ def test_return_full_config_if_in_cache(
     call_endpoint, default_projectkey, projectconfig_cache_get_mock_config
 ):
     result, status_code = call_endpoint(full_config=True)
-    assert status_code < 400
+    assert status_code == 200
     assert result == {
         "configs": {default_projectkey.public_key: {"is_mock_config": True}},
         "pending": [],
@@ -97,7 +97,7 @@ def test_return_project_and_global_config(
     call_endpoint, default_projectkey, projectconfig_cache_get_mock_config
 ):
     result, status_code = call_endpoint(full_config=True, global_=True)
-    assert status_code < 400
+    assert status_code == 200
     assert result == {
         "configs": {default_projectkey.public_key: {"is_mock_config": True}},
         "pending": [],
@@ -112,7 +112,7 @@ def test_proj_in_cache_and_another_pending(
     result, status_code = call_endpoint(
         full_config=True, public_keys=["must_exist", default_projectkey.public_key]
     )
-    assert status_code < 400
+    assert status_code == 200
     assert result == {
         "configs": {"must_exist": {"is_mock_config": True}},
         "pending": [default_projectkey.public_key],
@@ -127,7 +127,7 @@ def test_enqueue_task_if_config_not_cached_not_queued(
     default_projectkey,
 ):
     result, status_code = call_endpoint(full_config=True)
-    assert status_code < 400
+    assert status_code == 200
     assert result == {"configs": {}, "pending": [default_projectkey.public_key]}
     assert schedule_mock.call_count == 1
 
@@ -141,7 +141,7 @@ def test_debounce_task_if_proj_config_not_cached_already_enqueued(
     projectconfig_debounced_cache,
 ):
     result, status_code = call_endpoint(full_config=True)
-    assert status_code < 400
+    assert status_code == 200
     assert result == {"configs": {}, "pending": [default_projectkey.public_key]}
     assert task_mock.call_count == 0
 
