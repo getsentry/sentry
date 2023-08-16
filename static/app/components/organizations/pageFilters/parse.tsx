@@ -3,6 +3,7 @@ import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {IntervalPeriod, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
@@ -125,18 +126,35 @@ function getUtcValue(maybe: boolean | ParamValue) {
 
 /**
  * Normalizes a string or string[] into the project list parameter
+ *
+ * There is a special case this handles, when `project=-1` additional project
+ * entires will be used as an EXCLUSION from the list of all projects. This
+ * behaviour is used to guard against a large list of project's exceeding the
+ * URL query length limit.
  */
 function getProject(maybe: ParamValue) {
   if (!defined(maybe)) {
     return undefined;
   }
 
-  if (Array.isArray(maybe)) {
-    return maybe.map(p => parseInt(p, 10));
+  const projects: string[] = [];
+
+  if (!Array.isArray(maybe)) {
+    projects.push(maybe);
   }
 
-  const projectFromQueryIdInt = parseInt(maybe, 10);
-  return isNaN(projectFromQueryIdInt) ? [] : [projectFromQueryIdInt];
+  // No special case for project ID exclusion.
+  if (!projects.includes('-1') && projects.length > 1) {
+    return projects.map(p => parseInt(p, 10));
+  }
+
+  const projectIdsExcluded = projects.filter(id => id !== '-1');
+
+  const allProjectIds = ProjectsStore.getAll()
+    .map(p => p.id)
+    .filter(id => !projectIdsExcluded.includes(id));
+
+  return allProjectIds.map(p => parseInt(p, 10));
 }
 
 /**
