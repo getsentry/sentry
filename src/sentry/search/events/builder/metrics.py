@@ -65,18 +65,22 @@ def merge_series(columns: List[str], get_series_results: List[dict]):
     if len(get_series_results) == 0:
         return None
 
-    base = {"start": get_series_results[0]['start'], "end": get_series_results[0]['end'],
-            'intervals': get_series_results[0]['intervals'], 'groups': [{'by': {}, 'series': {}, 'totals': {}}],
-            'meta': [{'name': 'bucketed_time', 'type': "DateTime('Universal')"}]}
+    base = {
+        "start": get_series_results[0]["start"],
+        "end": get_series_results[0]["end"],
+        "intervals": get_series_results[0]["intervals"],
+        "groups": [{"by": {}, "series": {}, "totals": {}}],
+        "meta": [{"name": "bucketed_time", "type": "DateTime('Universal')"}],
+    }
 
     for i, column in enumerate(columns):
         result = get_series_results[i]
 
         # on-demand get-series results always have one group per result
-        base['groups'][0]['series'][column] = list(result['groups'][0]['series'].values())[0]
-        base['groups'][0]['totals'][column] = list(result['groups'][0]['totals'].values())[0]
+        base["groups"][0]["series"][column] = list(result["groups"][0]["series"].values())[0]
+        base["groups"][0]["totals"][column] = list(result["groups"][0]["totals"].values())[0]
 
-        base['meta'].append({'name': column, 'type': "Float64"})
+        base["meta"].append({"name": column, "type": "Float64"})
 
     return base
 
@@ -141,9 +145,9 @@ class MetricsQueryBuilder(QueryBuilder):
     @cached_property
     def _should_use_on_demand_metrics(self) -> bool:
         try:
-            return self.on_demand_metrics_enabled and should_use_on_demand_metrics(self.dataset,
-                                                                                   self.selected_columns[0],
-                                                                                   self.query)
+            return self.on_demand_metrics_enabled and should_use_on_demand_metrics(
+                self.dataset, self.selected_columns[0], self.query
+            )
         except:
             return False
 
@@ -867,15 +871,21 @@ class MetricsQueryBuilder(QueryBuilder):
                             for spec in _on_demand_metric_specs(self.selected_columns, self.query)
                         ]
 
-                        metrics_data = merge_series(self.selected_columns, [get_series(
-                            projects=self.params.projects,
-                            metrics_query=metrics_query,
-                            use_case_id=UseCaseID.TRANSACTIONS
-                            if self.is_performance
-                            else UseCaseID.SESSIONS,
-                            include_meta=True,
-                            tenant_ids=self.tenant_ids,
-                        ) for metrics_query in metrics_queries])
+                        metrics_data = merge_series(
+                            self.selected_columns,
+                            [
+                                get_series(
+                                    projects=self.params.projects,
+                                    metrics_query=metrics_query,
+                                    use_case_id=UseCaseID.TRANSACTIONS
+                                    if self.is_performance
+                                    else UseCaseID.SESSIONS,
+                                    include_meta=True,
+                                    tenant_ids=self.tenant_ids,
+                                )
+                                for metrics_query in metrics_queries
+                            ],
+                        )
                     else:
                         intermediate_query = self.get_metrics_layer_snql_query()
                         metrics_query = transform_mqb_query_to_metrics_query(
@@ -982,10 +992,11 @@ class MetricsQueryBuilder(QueryBuilder):
                 try:
                     with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
                         if self._should_use_on_demand_metrics:
-                            on_demand_specs = _on_demand_metric_specs(self.selected_columns, self.query)
+                            on_demand_specs = _on_demand_metric_specs(
+                                self.selected_columns, self.query
+                            )
                             metrics_query = self._get_metrics_query_from_on_demand_spec(
-                                spec=on_demand_specs[0],
-                                require_time_range=True
+                                spec=on_demand_specs[0], require_time_range=True
                             )
                         else:
                             metrics_query = transform_mqb_query_to_metrics_query(
@@ -1170,7 +1181,8 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
                 on_demand_specs = _on_demand_metric_specs(self.selected_columns, self.query)
                 metrics_query = self._get_metrics_query_from_on_demand_spec(
                     # Alert queries select a single column so there is only one spec
-                    spec=on_demand_specs[0], require_time_range=False
+                    spec=on_demand_specs[0],
+                    require_time_range=False,
                 )
             else:
                 intermediate_query = self.get_metrics_layer_snql_query()
@@ -1426,15 +1438,21 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                             for spec in _on_demand_metric_specs(self.selected_columns, self.query)
                         ]
 
-                        metrics_data = merge_series(self.selected_columns, [get_series(
-                            projects=self.params.projects,
-                            metrics_query=metrics_query,
-                            use_case_id=UseCaseID.TRANSACTIONS
-                            if self.is_performance
-                            else UseCaseID.SESSIONS,
-                            include_meta=True,
-                            tenant_ids=self.tenant_ids,
-                        ) for metrics_query in metrics_queries])
+                        metrics_data = merge_series(
+                            self.selected_columns,
+                            [
+                                get_series(
+                                    projects=self.params.projects,
+                                    metrics_query=metrics_query,
+                                    use_case_id=UseCaseID.TRANSACTIONS
+                                    if self.is_performance
+                                    else UseCaseID.SESSIONS,
+                                    include_meta=True,
+                                    tenant_ids=self.tenant_ids,
+                                )
+                                for metrics_query in metrics_queries
+                            ],
+                        )
 
                     elif self.use_metrics_layer:
                         snuba_query = self.get_snql_query()[0].query
