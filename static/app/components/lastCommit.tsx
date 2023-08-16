@@ -28,7 +28,7 @@ const unknownUser: AvatarUser = {
 function LastCommit({commit, className}: Props) {
   function renderMessage(message: Commit['message']) {
     if (!message) {
-      return t('No message provided');
+      return <CommitLink inline commitId={commit.id} repository={commit.repository} />;
     }
 
     let finalMessage = message.split(/\n/)[0];
