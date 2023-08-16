@@ -6,12 +6,15 @@ import {IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import TraceView from 'sentry/views/performance/traceDetails/traceView';
+import TraceView, {
+  StyledTracePanel,
+} from 'sentry/views/performance/traceDetails/traceView';
+import {hasTraceData} from 'sentry/views/performance/traceDetails/utils';
 import EmptyState from 'sentry/views/replays/detail/emptyState';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {
@@ -38,11 +41,13 @@ function TraceFound({
   performanceActive,
   eventView,
   traces,
+  orphanErrors,
 }: {
   eventView: EventView | null;
   organization: Organization;
   performanceActive: boolean;
   traces: TraceFullDetailed[] | null;
+  orphanErrors?: TraceError[];
 }) {
   const location = useLocation();
 
@@ -50,16 +55,17 @@ function TraceFound({
   useRouteAnalyticsParams(performanceActive ? {trace_status: 'success'} : {});
 
   return (
-    <FluidHeight>
+    <OverflowScrollBorderedSection>
       <TraceView
         meta={null}
-        traces={traces ?? null}
+        traces={traces || []}
         location={location}
         organization={organization}
         traceEventView={eventView!}
         traceSlug="Replay"
+        orphanErrors={orphanErrors}
       />
-    </FluidHeight>
+    </OverflowScrollBorderedSection>
   );
 }
 
@@ -71,7 +77,7 @@ function Trace({replayRecord}: Props) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {
-    state: {didInit, errors, isFetching, traces},
+    state: {didInit, errors, isFetching, traces, orphanErrors},
     eventView,
   } = useTransactionData();
 
@@ -103,7 +109,7 @@ function Trace({replayRecord}: Props) {
   const performanceActive =
     organization.features.includes('performance-view') && hasPerformance;
 
-  if (!traces?.length) {
+  if (!hasTraceData(traces, orphanErrors)) {
     return <TracesNotFound performanceActive={performanceActive} />;
   }
 
@@ -112,7 +118,8 @@ function Trace({replayRecord}: Props) {
       performanceActive={performanceActive}
       organization={organization}
       eventView={eventView}
-      traces={traces}
+      traces={traces ?? []}
+      orphanErrors={orphanErrors}
     />
   );
 }
@@ -127,6 +134,14 @@ const StyledPlaceholder = styled(Placeholder)`
 const BorderedSection = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+`;
+
+const OverflowScrollBorderedSection = styled(BorderedSection)`
+  overflow: scroll;
+
+  ${StyledTracePanel} {
+    border: none;
+  }
 `;
 
 export default Trace;

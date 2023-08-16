@@ -115,20 +115,31 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/fonts/                                           @getsentry/design
 /static/images/                                          @getsentry/design
 
-## Crons
-/static/app/views/monitors                                   @getsentry/crons
-/src/sentry/monitors                                         @getsentry/crons
-/tests/sentry/monitors                                       @getsentry/crons
-/src/sentry/utils/monitors.py                                @getsentry/crons
-/tests/sentry/utils/test_monitors.py                         @getsentry/crons
-
-
 # Owners by product feature
 #
 # The following ownership rules are specific to particular features of the
 # Sentry product. These rules generally map to a signle team, but that may not
 # always be the case.
 
+## Crons
+/static/app/views/monitors                               @getsentry/crons
+/src/sentry/monitors                                     @getsentry/crons
+/tests/sentry/monitors                                   @getsentry/crons
+/src/sentry/utils/monitors.py                            @getsentry/crons
+/tests/sentry/utils/test_monitors.py                     @getsentry/crons
+## End Crons
+
+
+## Hybrid Cloud
+/src/sentry/silo/                                        @getsentry/hybrid-cloud
+/src/sentry/services/hybrid_cloud/                       @getsentry/hybrid-cloud
+/src/sentry/api_gateway/                                 @getsentry/hybrid-cloud
+/src/sentry/middleware/api_gateway.py                    @getsentry/hybrid-cloud
+/src/sentry/middleware/customer_domain.py                @getsentry/hybrid-cloud
+/src/sentry/middleware/subdomain.py                      @getsentry/hybrid-cloud
+/src/sentry/middleware/integration/                      @getsentry/hybrid-cloud
+/src/sentry/api/endpoints/rpc.py                         @getsentry/hybrid-cloud
+## End of Hybrid Cloud
 
 ## Workflow
 /static/app/views/settings/projectAlerts/                 @getsentry/issues
@@ -200,7 +211,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_events_spans_histogram.py          @getsentry/performance
 /src/sentry/api/endpoints/organization_events_trace.py                    @getsentry/performance
 /src/sentry/api/endpoints/organization_events_trends.py                   @getsentry/performance
-/src/sentry/api/endpoints/organization_events_trendsv2.py                 @getsentry/performance
+/src/sentry/api/endpoints/organization_events_trends_v2.py                @getsentry/performance
 /src/sentry/api/endpoints/organization_events_vitals.py                   @getsentry/performance
 /src/sentry/api/endpoints/organization_transaction_anomaly_detection.py   @getsentry/data
 /src/sentry/utils/performance_issues/                                     @getsentry/performance
@@ -338,7 +349,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/models/groupresolution.py         @getsentry/data
 /src/sentry/models/integration.py             @getsentry/data @getsentry/issues
 /src/sentry/models/organization.py            @getsentry/data
-/src/sentry/models/organizationmember.py      @getsentry/data @AniketDas-Tekky
+/src/sentry/models/organizationmember.py      @getsentry/data
 /src/sentry/models/organizationoption.py      @getsentry/data
 /src/sentry/models/project.py                 @getsentry/data
 /src/sentry/models/projectoption.py           @getsentry/data
@@ -350,19 +361,17 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## Enterprise
-/static/app/views/organizationStats                   @getsentry/enterprise
-/src/sentry/api/endpoints/organization_stats*.py      @getsentry/enterprise
-
-/src/sentry/api/endpoints/organization_auditlogs.py   @getsentry/enterprise
-
-/static/app/views/settings/organizationAuth/          @getsentry/enterprise
-/tests/sentry/api/endpoints/test_auth*.py             @getsentry/enterprise
-
-/tests/sentry/api/test_data_secrecy.py                @getsentry/enterprise
-
-/src/sentry/scim/                                     @getsentry/enterprise
-/tests/sentry/api/test_scim*.py                       @getsentry/enterprise
-/src/sentry/tasks/integrations/github/pr_comment.py   @getsentry/enterprise @AniketDas-Tekky
+/static/app/views/organizationStats                                     @getsentry/enterprise
+/src/sentry/api/endpoints/organization_stats*.py                        @getsentry/enterprise
+/src/sentry/api/endpoints/organization_auditlogs.py                     @getsentry/enterprise
+/static/app/views/settings/organizationAuth/                            @getsentry/enterprise
+/tests/sentry/api/endpoints/test_auth*.py                               @getsentry/enterprise
+/tests/sentry/api/test_data_secrecy.py                                  @getsentry/enterprise
+/src/sentry/scim/                                                       @getsentry/enterprise
+/tests/sentry/api/test_scim*.py                                         @getsentry/enterprise
+/src/sentry/tasks/integrations/github/pr_comment.py                     @getsentry/enterprise
+/src/sentry/api/endpoints/organization_projects_experiment.py           @getsentry/enterprise
+/tests/sentry/api/endpoints/test_organization_projects_experiment.py    @getsentry/enterprise
 ## End of Enterprise
 
 
@@ -454,10 +463,6 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/views/organizationGroupDetails                   @getsentry/issues
 /src/sentry/api/endpoints/source_map_debug.py                @getsentry/issues
 /src/sentry/api/helpers/source_map_helper.py                  @getsentry/issues
+/src/sentry/api/endpoints/actionable_items.py                @getsentry/issues
+/src/sentry/api/helpers/actionable_items_helper.py                  @getsentry/issues
 ## End of Issues
-
-
-## Hybrid Cloud
-/src/sentry/silo/                     @getsentry/hybrid-cloud
-/src/sentry/services/hybrid_cloud/    @getsentry/hybrid-cloud
-## End of Hybrid Cloud

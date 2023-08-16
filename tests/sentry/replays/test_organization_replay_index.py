@@ -19,7 +19,7 @@ from sentry.utils.snuba import QueryMemoryLimitExceeded
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @apply_feature_flag_on_cls("organizations:global-views")
 class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-organization-replay-index"
@@ -65,6 +65,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "http://localhost:3000/login",
                 ],  # duplicate urls are okay,
                 tags={"test": "hello", "other": "hello"},
+                release="test",
             )
         )
         self.store_replays(
@@ -76,6 +77,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 urls=["http://localhost:3000/"],  # duplicate urls are okay
                 tags={"test": "world", "other": "hello"},
                 error_ids=[],
+                release="",
             )
         )
         self.store_replays(
@@ -95,6 +97,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 is_dead=1,
                 is_rage=1,
                 text="Hello",
+                release=None,
             )
         )
 
@@ -124,6 +127,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 activity=4,
                 count_dead_clicks=1,
                 count_rage_clicks=1,
+                releases=["test"],
                 clicks=[
                     {
                         "click.alt": "Alt",

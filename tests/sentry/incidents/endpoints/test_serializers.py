@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from functools import cached_property
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -41,7 +44,6 @@ from sentry.utils import json
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test(stable=True)
 class TestAlertRuleSerializerBase(TestCase):
     @assume_test_silo_mode(SiloMode.CONTROL)
     def setUp(self):
@@ -53,6 +55,7 @@ class TestAlertRuleSerializerBase(TestCase):
         self.integration.add_organization(self.organization, self.user)
 
 
+@region_silo_test(stable=True)
 class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def valid_params(self):
@@ -288,7 +291,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert trigger.alert_threshold == alert_threshold
 
     def test_simple_below_threshold(self):
-        payload = {
+        payload: dict[str, Any] = {
             "name": "hello_im_a_test",
             "time_window": 10,
             "query": "level:error",
@@ -356,7 +359,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert serializer.validated_data["resolve_threshold"] == resolve_threshold
 
     def test_boundary(self):
-        payload = {
+        payload: dict[str, Any] = {
             "name": "hello_im_a_test",
             "time_window": 10,
             "query": "level:error",
@@ -469,10 +472,13 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
                 "integration": str(self.integration.id),
             }
         )
-        serializer = AlertRuleSerializer(context=self.context, data=base_params)
-        assert serializer.is_valid()
-        with pytest.raises(ApiError):
-            serializer.save()
+
+        with assume_test_silo_mode(SiloMode.REGION), override_settings(SILO_MODE=SiloMode.REGION):
+            serializer = AlertRuleSerializer(context=self.context, data=base_params)
+            assert serializer.is_valid()
+
+            with pytest.raises(ApiError):
+                serializer.save()
 
         # Make sure the rule was not created.
         assert len(list(AlertRule.objects.filter(name="Aun1qu3n4m3"))) == 0
@@ -717,9 +723,11 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert serializer.is_valid(), serializer.errors
         with pytest.raises(serializers.ValidationError) as excinfo:
             serializer.save()
+        assert isinstance(excinfo.value.detail, list)
         assert excinfo.value.detail[0] == "You may not exceed 1 metric alerts per organization"
 
 
+@region_silo_test(stable=True)
 class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def other_project(self):
@@ -769,6 +777,7 @@ class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
         }
 
 
+@region_silo_test(stable=True)
 class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def other_project(self):

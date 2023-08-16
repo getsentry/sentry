@@ -1,49 +1,11 @@
 from __future__ import annotations
 
-import responses
-import sentry_kafka_schemas
-
-from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
-from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
-
-__all__ = (
-    "TestCase",
-    "TransactionTestCase",
-    "APITestCase",
-    "TwoFactorAPITestCase",
-    "AuthProviderTestCase",
-    "RuleTestCase",
-    "PermissionTestCase",
-    "PluginTestCase",
-    "CliTestCase",
-    "AcceptanceTestCase",
-    "IntegrationTestCase",
-    "SnubaTestCase",
-    "BaseMetricsTestCase",
-    "BaseMetricsLayerTestCase",
-    "BaseIncidentsTest",
-    "IntegrationRepositoryTestCase",
-    "ReleaseCommitPatchTest",
-    "SetRefsTestCase",
-    "OrganizationDashboardWidgetTestCase",
-    "SCIMTestCase",
-    "SCIMAzureTestCase",
-    "MetricsEnhancedPerformanceTestCase",
-    "MetricsAPIBaseTestCase",
-    "OrganizationMetricMetaIntegrationTestCase",
-    "ProfilesSnubaTestCase",
-    "ReplaysAcceptanceTestCase",
-    "ReplaysSnubaTestCase",
-    "MonitorTestCase",
-    "MonitorIngestTestCase",
-)
 import hashlib
 import inspect
 import os.path
 import time
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from typing import Dict, List, Literal, Optional, Sequence, Union
 from unittest import mock
@@ -52,8 +14,9 @@ from uuid import uuid4
 from zlib import compress
 
 import pytest
-import pytz
 import requests
+import responses
+import sentry_kafka_schemas
 from click.testing import CliRunner
 from django.conf import settings
 from django.contrib.auth import login
@@ -68,7 +31,7 @@ from django.test import TransactionTestCase as DjangoTransactionTestCase
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from django.utils.functional import cached_property
 from pkg_resources import iter_entry_points
 from rest_framework import status
@@ -139,6 +102,9 @@ from sentry.search.events.constants import (
     SPAN_METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
+from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
 from sentry.silo import SiloMode
 from sentry.snuba.metrics.datasource import get_series
 from sentry.tagstore.snuba import SnubaTagStorage
@@ -173,6 +139,38 @@ from .fixtures import Fixtures
 from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
 from .silo import assume_test_silo_mode
 from .skips import requires_snuba
+
+__all__ = (
+    "TestCase",
+    "TransactionTestCase",
+    "APITestCase",
+    "TwoFactorAPITestCase",
+    "AuthProviderTestCase",
+    "RuleTestCase",
+    "PermissionTestCase",
+    "PluginTestCase",
+    "CliTestCase",
+    "AcceptanceTestCase",
+    "IntegrationTestCase",
+    "SnubaTestCase",
+    "BaseMetricsTestCase",
+    "BaseMetricsLayerTestCase",
+    "BaseIncidentsTest",
+    "IntegrationRepositoryTestCase",
+    "ReleaseCommitPatchTest",
+    "SetRefsTestCase",
+    "OrganizationDashboardWidgetTestCase",
+    "SCIMTestCase",
+    "SCIMAzureTestCase",
+    "MetricsEnhancedPerformanceTestCase",
+    "MetricsAPIBaseTestCase",
+    "OrganizationMetricMetaIntegrationTestCase",
+    "ProfilesSnubaTestCase",
+    "ReplaysAcceptanceTestCase",
+    "ReplaysSnubaTestCase",
+    "MonitorTestCase",
+    "MonitorIngestTestCase",
+)
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -1449,7 +1447,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     # This time has been specifically chosen to be 10:00:00 so that all tests will automatically have the data inserted
     # and queried with automatically inferred timestamps (e.g., usage of - 1 second, get_date_range()...) without
     # incurring into problems.
-    MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
+    MOCK_DATETIME = (django_timezone.now() - timedelta(days=1)).replace(
         hour=10, minute=0, second=0, microsecond=0
     )
 
@@ -1828,7 +1826,7 @@ class BaseIncidentsTest(SnubaTestCase):
 
     @cached_property
     def now(self):
-        return timezone.now().replace(minute=0, second=0, microsecond=0)
+        return django_timezone.now().replace(minute=0, second=0, microsecond=0)
 
 
 @pytest.mark.snuba
@@ -1927,7 +1925,7 @@ class ProfilesSnubaTestCase(
             hasher.update(b"")
         hasher.update(b":")
         hasher.update(function["function"].encode())
-        return int(hasher.hexdigest()[:16], 16)
+        return int(hasher.hexdigest()[:8], 16)
 
 
 @pytest.mark.snuba
@@ -1947,7 +1945,7 @@ class ReplaysSnubaTestCase(TestCase):
 # AcceptanceTestCase and TestCase are mutually exclusive base classses
 class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        self.now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        self.now = datetime.utcnow().replace(tzinfo=timezone.utc)
         super().setUp()
         self.drop_replays()
         patcher = mock.patch("django.utils.timezone.now", return_value=self.now)
@@ -2339,7 +2337,7 @@ class ActivityTestCase(TestCase):
         release = Release.objects.create(
             version=name * 40,
             organization_id=self.project.organization_id,
-            date_released=timezone.now(),
+            date_released=django_timezone.now(),
         )
         release.add_project(self.project)
         release.add_project(self.project2)

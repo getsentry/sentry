@@ -44,10 +44,10 @@ function UnmemoizedMessageFormatter({frame, expandPaths, onExpand}: Props) {
     );
   }
 
-  const args = isConsoleFrame(frame) ? frame.data.arguments : undefined;
+  const args = frame.data.arguments;
 
   // Turn this back into an Error object so <Format> can pretty print it
-  if (args && isConsoleFrame(frame) && isSerializedError(frame)) {
+  if (args && isSerializedError(frame)) {
     // Sometimes message can include stacktrace
     const splitMessage = frame.message.split('\n');
     const errorMessagePiece = splitMessage[0].trim();

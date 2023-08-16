@@ -1,7 +1,10 @@
-export function ProjectKeys(params = []) {
+import {ProjectKey} from 'sentry/types/project';
+
+export function ProjectKeys(params: ProjectKey[] = []): ProjectKey[] {
   return [
     {
       dsn: {
+        unreal: '',
         secret:
           'http://188ee45a58094d939428d8585aa6f661:a33bf9aba64c4bbdaf873bb9023b6d2d@dev.getsentry.net:8000/1',
         minidump:
@@ -16,7 +19,7 @@ export function ProjectKeys(params = []) {
       secret: 'a33bf9aba64c4bbdaf873bb9023b6d2d',
       name: 'Natural Halibut',
       rateLimit: null,
-      projectId: 1,
+      projectId: '1',
       dateCreated: '2018-02-28T07:13:51.087Z',
       id: '188ee45a58094d939428d8585aa6f661',
       isActive: true,

@@ -53,7 +53,7 @@ repos:
       additional_dependencies: [packaging==21.3]
 
 -   repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.21.0
+    rev: 0.24.1
     hooks:
     - id: check-github-actions
     - id: check-github-workflows

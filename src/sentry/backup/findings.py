@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import IntEnum, auto, unique
 from typing import NamedTuple
 
 
@@ -21,17 +22,72 @@ class InstanceID(NamedTuple):
         return out + ")"
 
 
+@unique
+class ComparatorFindingKind(IntEnum):
+    # The instances of a particular model did not maintain total ordering of pks (that is, pks did not appear in ascending order, or appear multiple times).
+    UnorderedInput = auto()
+
+    # The number of instances of a particular model on the left and right side of the input were not
+    # equal.
+    UnequalCounts = auto()
+
+    # The JSON of two instances of a model, after certain fields have been scrubbed by all applicable comparators, were not byte-for-byte equivalent.
+    UnequalJSON = auto()
+
+    # Two datetime fields were not equal.
+    DatetimeEqualityComparator = auto()
+
+    # Failed to compare datetimes because one of the fields being compared was not present or
+    # `None`.
+    DatetimeEqualityComparatorExistenceCheck = auto()
+
+    # The right side field's datetime value was not greater (ie, "newer") than the left side's.
+    DateUpdatedComparator = auto()
+
+    # Failed to compare datetimes because one of the fields being compared was not present or
+    # `None`.
+    DateUpdatedComparatorExistenceCheck = auto()
+
+    # Email equality comparison failed.
+    EmailObfuscatingComparator = auto()
+
+    # Failed to compare emails because one of the fields being compared was not present or
+    # `None`.
+    EmailObfuscatingComparatorExistenceCheck = auto()
+
+    # Hash equality comparison failed.
+    HashObfuscatingComparator = auto()
+
+    # Failed to compare hashes because one of the fields being compared was not present or
+    # `None`.
+    HashObfuscatingComparatorExistenceCheck = auto()
+
+    # Foreign key field comparison failed.
+    ForeignKeyComparator = auto()
+
+    # Failed to compare foreign key fields because one of the fields being compared was not present
+    # or `None`.
+    ForeignKeyComparatorExistenceCheck = auto()
+
+    # Failed to compare an ignored field.
+    IgnoredComparator = auto()
+
+    # Failed to compare an ignored field because one of the fields being compared was not present or
+    # `None`.
+    IgnoredComparatorExistenceCheck = auto()
+
+
 class ComparatorFinding(NamedTuple):
     """Store all information about a single failed matching between expected and actual output."""
 
-    kind: str
+    kind: ComparatorFindingKind
     on: InstanceID
     left_pk: int | None = None
     right_pk: int | None = None
     reason: str = ""
 
     def pretty(self) -> str:
-        out = f"Finding(\n\tkind: {self.kind!r},\n\ton: {self.on.pretty()}"
+        out = f"Finding(\n\tkind: {self.kind.name},\n\ton: {self.on.pretty()}"
         if self.left_pk:
             out += f",\n\tleft_pk: {self.left_pk}"
         if self.right_pk:

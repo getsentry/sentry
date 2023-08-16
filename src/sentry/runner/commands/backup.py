@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import click
 
-from sentry.backup.exports import exports
-from sentry.backup.imports import imports
+from sentry.backup.exports import OldExportConfig, exports
+from sentry.backup.imports import OldImportConfig, imports
 from sentry.runner.decorators import configuration
 
 
@@ -12,9 +12,16 @@ from sentry.runner.decorators import configuration
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
 def import_(src, silent):
-    """CLI command wrapping the `exec_import` functionality."""
+    """Imports core data for a Sentry installation."""
 
-    imports(src, (lambda *args, **kwargs: None) if silent else click.echo)
+    imports(
+        src,
+        OldImportConfig(
+            use_update_instead_of_create=True,
+            use_natural_foreign_keys=True,
+        ),
+        (lambda *args, **kwargs: None) if silent else click.echo,
+    )
 
 
 @click.command()
@@ -26,6 +33,20 @@ def import_(src, silent):
 @click.option("--exclude", default=None, help="Models to exclude from export.", metavar="MODELS")
 @configuration
 def export(dest, silent, indent, exclude):
-    """Exports core metadata for the Sentry installation."""
+    """Exports core data for the Sentry installation."""
 
-    exports(dest, indent, exclude, (lambda *args, **kwargs: None) if silent else click.echo)
+    if exclude is None:
+        exclude = []
+    else:
+        exclude = exclude.lower().split(",")
+
+    exports(
+        dest,
+        OldExportConfig(
+            include_non_sentry_models=True,
+            excluded_models=set(exclude),
+            use_natural_foreign_keys=True,
+        ),
+        indent,
+        (lambda *args, **kwargs: None) if silent else click.echo,
+    )
