@@ -35,7 +35,7 @@ describe('SQLishParser', function () {
       expect(parser.parse('select ..')).toEqual([
         {
           type: 'Keyword',
-          content: 'select',
+          content: 'SELECT',
         },
         {
           type: 'Whitespace',
