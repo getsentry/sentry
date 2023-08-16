@@ -87,6 +87,7 @@ class NotificationSettingEnum(Enum):
     SPIKE_PROTECTION = "spikeProtection"
 
 
+# TODO(Steve): clean up after we finish migrating to settings 2.0
 NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.DEFAULT: NotificationSettingEnum.DEFAULT.value,
     NotificationSettingTypes.DEPLOY: NotificationSettingEnum.DEPLOY.value,
@@ -137,6 +138,7 @@ class NotificationSettingsOptionEnum(Enum):
     COMMITTED_ONLY = "committed_only"
 
 
+# TODO(Steve): clean up after we finish migrating to settings 2.0
 NOTIFICATION_SETTING_OPTION_VALUES = {
     NotificationSettingOptionValues.DEFAULT: NotificationSettingsOptionEnum.DEFAULT.value,
     NotificationSettingOptionValues.NEVER: NotificationSettingsOptionEnum.NEVER.value,
@@ -168,6 +170,7 @@ class NotificationScopeType(ValueEqualityEnum):
     TEAM = 30
 
 
+# TODO(Steve): clean up after we finish migrating to settings 2.0
 NOTIFICATION_SCOPE_TYPE = {
     NotificationScopeType.USER: NotificationScopeEnum.USER.value,
     NotificationScopeType.ORGANIZATION: NotificationScopeEnum.ORGANIZATION.value,
