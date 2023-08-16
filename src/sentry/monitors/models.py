@@ -72,6 +72,16 @@ MONITOR_CONFIG = {
 
 MAX_SLUG_LENGTH = 50
 
+# default maximum runtime for a monitor, in minutes
+TIMEOUT = 30
+
+# hard maximum runtime for a monitor, in minutes
+# current limit is 28 days
+MAX_TIMEOUT = 40_320
+
+# Format to use in the issue subtitle for the missed check-in timestamp
+SUBTITLE_DATETIME_FORMAT = "%b %d, %I:%M %p"
+
 
 class MonitorLimitsExceeded(Exception):
     pass
@@ -212,12 +222,6 @@ class MonitorType:
     @classmethod
     def get_name(cls, value):
         return dict(cls.as_choices())[value]
-
-
-class MonitorFailure:
-    UNKNOWN = "unknown"
-    MISSED_CHECKIN = "missed_checkin"
-    DURATION = "duration"
 
 
 class ScheduleType:
@@ -502,22 +506,26 @@ class MonitorEnvironment(Model):
             .first()
         )
 
-    def mark_failed(
-        self, last_checkin=None, reason=MonitorFailure.UNKNOWN, occurrence_context=None
-    ):
+    def mark_failed(self, failed_checkin: MonitorCheckIn):
         from sentry.signals import monitor_environment_failed
 
-        if last_checkin is None:
-            next_checkin_base = timezone.now()
-            last_checkin = self.last_checkin or timezone.now()
-        else:
-            next_checkin_base = last_checkin
+        checkin_status = failed_checkin.status
 
+        occurrence_context = {"trace_id": failed_checkin.trace_id}
         new_status = MonitorStatus.ERROR
-        if reason == MonitorFailure.MISSED_CHECKIN:
+        next_checkin_base = last_checkin = failed_checkin.date_added
+        if checkin_status == CheckInStatus.MISSED:
             new_status = MonitorStatus.MISSED_CHECKIN
-        elif reason == MonitorFailure.DURATION:
+            next_checkin_base = expected_time = failed_checkin.expected_time
+            last_checkin = self.last_checkin
+            occurrence_context["expected_time"] = (
+                expected_time.strftime(SUBTITLE_DATETIME_FORMAT) if expected_time else expected_time
+            )
+        elif checkin_status == CheckInStatus.TIMEOUT:
             new_status = MonitorStatus.TIMEOUT
+            occurrence_context["duration"] = (
+                (failed_checkin.monitor.config or {}).get("max_runtime") or TIMEOUT,
+            )
 
         next_checkin_latest = self.monitor.get_next_scheduled_checkin_with_margin(next_checkin_base)
 
@@ -551,15 +559,12 @@ class MonitorEnvironment(Model):
         except Organization.DoesNotExist:
             pass
 
+        occurrence_data = get_occurrence_data(failed_checkin.status, **occurrence_context)
+
         if use_issue_platform:
             from sentry.grouping.utils import hash_from_values
             from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
             from sentry.issues.producer import produce_occurrence_to_kafka
-
-            if not occurrence_context:
-                occurrence_context = {}
-
-            occurrence_data = get_occurrence_data(reason, **occurrence_context)
 
             # Get last successful check-in to show in evidence display
             last_successful_checkin_timestamp = "None"
@@ -621,9 +626,11 @@ class MonitorEnvironment(Model):
 
             event_manager = EventManager(
                 {
-                    "logentry": {"message": f"Monitor failure: {self.monitor.name} ({reason})"},
+                    "logentry": {
+                        "message": f'Monitor failure: {self.monitor.name} ({occurrence_data["reason"]})'
+                    },
                     "contexts": {"monitor": get_monitor_environment_context(self)},
-                    "fingerprint": ["monitor", str(self.monitor.guid), reason],
+                    "fingerprint": ["monitor", str(self.monitor.guid), occurrence_data["reason"]],
                     "environment": self.environment.name,
                     # TODO: Both of these values should be get transformed from context to tags
                     # We should understand why that is not happening and remove these when it correctly is
@@ -654,8 +661,8 @@ class MonitorEnvironment(Model):
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
 
 
-def get_occurrence_data(reason: str, **kwargs):
-    if reason == MonitorFailure.MISSED_CHECKIN:
+def get_occurrence_data(reason: CheckInStatus, **kwargs):
+    if reason == CheckInStatus.MISSED:
         expected_time = kwargs.get("expected_time", "the expected time")
         return {
             "group_type": MonitorCheckInMissed,
@@ -663,7 +670,7 @@ def get_occurrence_data(reason: str, **kwargs):
             "reason": "missed_checkin",
             "subtitle": f"No check-in reported on {expected_time}.",
         }
-    elif reason == MonitorFailure.DURATION:
+    elif reason == CheckInStatus.TIMEOUT:
         duration = kwargs.get("duration", 30)
         return {
             "group_type": MonitorCheckInTimeout,

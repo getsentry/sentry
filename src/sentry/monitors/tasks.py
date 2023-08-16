@@ -16,23 +16,9 @@ from sentry.utils import metrics, redis
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
-from .models import (
-    CheckInStatus,
-    MonitorCheckIn,
-    MonitorEnvironment,
-    MonitorFailure,
-    MonitorStatus,
-    MonitorType,
-)
+from .models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus, MonitorType
 
 logger = logging.getLogger("sentry")
-
-# default maximum runtime for a monitor, in minutes
-TIMEOUT = 30
-
-# hard maximum runtime for a monitor, in minutes
-# current limit is 28 days
-MAX_TIMEOUT = 40_320
 
 # This is the MAXIMUM number of MONITOR this job will check.
 #
@@ -45,9 +31,6 @@ MONITOR_LIMIT = 10_000
 # NOTE: We should keep an eye on this as we have more and more usage of
 # monitors the larger the number of checkins to check will exist.
 CHECKINS_LIMIT = 10_000
-
-# Format to use in the issue subtitle for the missed check-in timestamp
-SUBTITLE_DATETIME_FORMAT = "%b %d, %I:%M %p"
 
 # This key is used to store the last timestamp that the tasks were triggered.
 MONITOR_TASKS_LAST_TRIGGERED_KEY = "sentry.monitors.last_tasks_ts"
@@ -230,7 +213,7 @@ def check_missing(current_datetime=None):
                 expected_time = monitor.get_next_scheduled_checkin(monitor_environment.last_checkin)
 
             # add missed checkin
-            MonitorCheckIn.objects.create(
+            checkin = MonitorCheckIn.objects.create(
                 project_id=monitor_environment.monitor.project_id,
                 monitor=monitor_environment.monitor,
                 monitor_environment=monitor_environment,
@@ -238,14 +221,7 @@ def check_missing(current_datetime=None):
                 expected_time=expected_time,
                 monitor_config=monitor.get_validated_config(),
             )
-            monitor_environment.mark_failed(
-                reason=MonitorFailure.MISSED_CHECKIN,
-                occurrence_context={
-                    "expected_time": expected_time.strftime(SUBTITLE_DATETIME_FORMAT)
-                    if expected_time
-                    else expected_time
-                },
-            )
+            monitor_environment.mark_failed(checkin)
         except Exception:
             logger.exception("Exception in check_monitors - mark missed")
 
@@ -286,13 +262,7 @@ def check_timeout(current_datetime=None):
                 status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
             ).exists()
             if not has_newer_result:
-                monitor_environment.mark_failed(
-                    reason=MonitorFailure.DURATION,
-                    occurrence_context={
-                        "duration": (checkin.monitor.config or {}).get("max_runtime") or TIMEOUT,
-                        "trace_id": checkin.trace_id,
-                    },
-                )
+                monitor_environment.mark_failed(checkin)
         except Exception:
             logger.exception("Exception in check_monitors - mark timeout")
 

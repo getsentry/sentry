@@ -483,9 +483,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                         signal_first_checkin(project, monitor)
 
                 if check_in.status == CheckInStatus.ERROR:
-                    monitor_environment.mark_failed(
-                        start_time, occurrence_context={"trace_id": trace_id}
-                    )
+                    monitor_environment.mark_failed(check_in)
                 else:
                     monitor_environment.mark_ok(check_in, start_time)
 
