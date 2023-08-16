@@ -19,9 +19,9 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 
 ON_DEMAND_METRICS = "organizations:on-demand-metrics-extraction"
+ON_DEMAND_METRICS_WIDGETS = "organizations:on-demand-metrics-extraction-experimental"
 ON_DEMAND_METRICS_PREFILL = "organizations:on-demand-metrics-prefill"
 ON_DEMAND_METRIC_PREFILL_ENABLE = "organizations:enable-on-demand-metrics-prefill"
-ON_DEMAND_METRICS_WIDGETS = "organizations:on-demand-metrics-extraction-experimental"
 
 
 def create_alert(aggregate: str, query: str, project: Project) -> AlertRule:
@@ -356,15 +356,7 @@ def test_get_metric_extraction_config_alerts_and_widgets(default_project):
         ([ON_DEMAND_METRICS_PREFILL], 0),  # Nothing.
         ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_PREFILL], 1),  # Alerts.
         ([ON_DEMAND_METRICS, ON_DEMAND_METRIC_PREFILL_ENABLE], 1),  # Alerts.
-        (
-            [
-                ON_DEMAND_METRICS_PREFILL,
-                ON_DEMAND_METRIC_PREFILL_ENABLE,
-                ON_DEMAND_METRICS_WIDGETS,
-                ON_DEMAND_METRICS,
-            ],
-            2,
-        ),  # Alerts and widgets.
+        ([], 0),  # Nothing.
     ],
 )
 def test_get_metrics_extraction_features_combinations(
