@@ -375,7 +375,8 @@ class BackupTestCase(TransactionTestCase):
         Repository.objects.create(
             name=f"test_repo_for_{slug}",
             organization_id=org.id,
-            integration_id=self.integration.id,
+            # TODO(getsentry/issue#187): Re-activate once we add `Integration` model to exports.
+            # integration_id=self.integration.id,
         )
 
         return org
