@@ -1355,8 +1355,8 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Allow disabling github integrations when broken is detected
     "organizations:github-disable-on-broken": False,
-    # Allow disabling slack integrations when broken is detected
-    "organizations:slack-disable-on-broken": False,
+    # Allow disabling slack integrations when fatal broken is detected
+    "organizations:slack-disable-fatal-on-broken": False,
     # Allow disabling sentryapps when broken is detected
     "organizations:disable-sentryapps-on-broken": False,
     # Enable the 'discover' interface.
