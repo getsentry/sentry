@@ -1557,6 +1557,8 @@ SENTRY_FEATURES = {
     "organizations:performance-new-trends": False,
     # Enable debug views for trendsv2 to be used internally
     "organizations:performance-trendsv2-dev-only": False,
+    # Enabled creating issues out of trends
+    "organizations:performance-trends-issues": False,
     # Bypass 30 day date range selection when fetching new trends data
     "organizations:performance-trends-new-data-date-range-default": False,
     # Enable consecutive db performance issue type
@@ -1693,6 +1695,8 @@ SENTRY_FEATURES = {
     "organizations:recap-server": False,
     # Enable additional logging for alerts
     "organizations:detailed-alert-logging": False,
+    # Enable the new notification settings system
+    "organizations:notification-settings-v2": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
