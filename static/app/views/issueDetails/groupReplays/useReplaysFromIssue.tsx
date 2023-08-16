@@ -62,7 +62,10 @@ function useReplayFromIssue({
     });
   }, [location.query.sort, replayIds, organization]);
 
-  useCleanQueryParamsOnRouteLeave({fieldsToClean: ['cursor']});
+  useCleanQueryParamsOnRouteLeave({
+    fieldsToClean: ['cursor'],
+    shouldClean: newLocation => newLocation.pathname.includes(`/issues/${group.id}/`),
+  });
   useEffect(() => {
     fetchReplayIds();
   }, [fetchReplayIds]);
