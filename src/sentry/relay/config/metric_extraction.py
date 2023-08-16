@@ -91,12 +91,12 @@ def _on_demand_metrics_feature_flags(organization: Organization) -> Set[str]:
 
 
 def _get_alert_metric_specs(project: Project, enabled_features: Set[str]) -> List[HashedMetricSpec]:
-    is_prefilling = (
+    prefilling = (
         "organizations:on-demand-metrics-prefill" in enabled_features
         and "organizations:enable-on-demand-metrics-prefill" in enabled_features
     )
 
-    if not ("organizations:on-demand-metrics-extraction" in enabled_features or is_prefilling):
+    if not ("organizations:on-demand-metrics-extraction" in enabled_features or prefilling):
         return []
 
     alert_rules = (
@@ -112,7 +112,7 @@ def _get_alert_metric_specs(project: Project, enabled_features: Set[str]) -> Lis
     specs = []
     for alert in alert_rules:
         alert_snuba_query = alert.snuba_query
-        if result := _convert_snuba_query_to_metric(alert.snuba_query):
+        if result := _convert_snuba_query_to_metric(alert.snuba_query, prefilling):
             _log_on_demand_metric_spec(
                 project_id=project.id,
                 spec_for="alert",
@@ -120,11 +120,11 @@ def _get_alert_metric_specs(project: Project, enabled_features: Set[str]) -> Lis
                 id=alert.id,
                 field=alert_snuba_query.aggregate,
                 query=alert_snuba_query.query,
-                prefilling=is_prefilling,
+                prefilling=prefilling,
             )
             metrics.incr(
                 "on_demand_metrics.on_demand_spec.for_alert",
-                tags={"prefilling": is_prefilling},
+                tags={"prefilling": prefilling},
             )
             specs.append(result)
 
@@ -189,15 +189,15 @@ def _merge_metric_specs(
     return [metric for metric in metrics.values()]
 
 
-def _convert_snuba_query_to_metric(snuba_query: SnubaQuery) -> Optional[HashedMetricSpec]:
+def _convert_snuba_query_to_metric(
+    snuba_query: SnubaQuery, prefilling: bool
+) -> Optional[HashedMetricSpec]:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
     returns a tuple of (hash, MetricSpec) for the query. Otherwise, returns None.
     """
     return _convert_aggregate_and_query_to_metric(
-        snuba_query.dataset,
-        snuba_query.aggregate,
-        snuba_query.query,
+        snuba_query.dataset, snuba_query.aggregate, snuba_query.query, prefilling
     )
 
 
@@ -208,7 +208,7 @@ def _convert_widget_query_to_metric(
     Converts a passed metrics widget query to one or more MetricSpecs.
     Widget query can result in multiple metric specs if it selects multiple fields
     """
-    is_prefilling = (
+    prefilling = (
         "organizations:on-demand-metrics-prefill" in enabled_features
         and "organizations:enable-on-demand-metrics-prefill" in enabled_features
     )
@@ -225,6 +225,7 @@ def _convert_widget_query_to_metric(
             Dataset.PerformanceMetrics.value,
             aggregate,
             widget_query.conditions,
+            prefilling,
         ):
             _log_on_demand_metric_spec(
                 project_id=project.id,
@@ -233,11 +234,11 @@ def _convert_widget_query_to_metric(
                 id=widget_query.id,
                 field=aggregate,
                 query=widget_query.conditions,
-                prefilling=is_prefilling,
+                prefilling=prefilling,
             )
             metrics.incr(
                 "on_demand_metrics.on_demand_spec.for_widget",
-                tags={"prefilling": is_prefilling},
+                tags={"prefilling": prefilling},
             )
             metrics_specs.append(result)
 
@@ -245,10 +246,10 @@ def _convert_widget_query_to_metric(
 
 
 def _convert_aggregate_and_query_to_metric(
-    dataset: str, aggregate: str, query: str
+    dataset: str, aggregate: str, query: str, prefilling: bool
 ) -> Optional[HashedMetricSpec]:
     try:
-        if not should_use_on_demand_metrics(dataset, aggregate, query):
+        if not should_use_on_demand_metrics(dataset, aggregate, query, prefilling):
             return None
 
         spec = OnDemandMetricSpec(aggregate, query)

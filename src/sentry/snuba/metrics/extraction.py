@@ -25,7 +25,6 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import fields
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricOperationType
-from sentry.snuba.models import SnubaQuery
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
 
 logger = logging.getLogger(__name__)
@@ -237,19 +236,20 @@ class SupportedBy:
         )
 
 
-def is_on_demand_snuba_query(snuba_query: SnubaQuery) -> bool:
-    """Returns ``True`` if the snuba query can't be supported by standard metrics."""
-    return should_use_on_demand_metrics(
-        snuba_query.dataset, snuba_query.aggregate, snuba_query.query
-    )
-
-
 def should_use_on_demand_metrics(
-    dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
+    dataset: Optional[Union[str, Dataset]],
+    aggregate: str,
+    query: Optional[str],
+    prefilling: bool = False,
 ) -> bool:
     """On-demand metrics are used if the aggregate and query are supported by on-demand metrics but not standard"""
+    supported_datasets = [Dataset.PerformanceMetrics]
+    # In case we are running a prefill, we want to support also transactions, since our goal is to start extracting
+    # metrics that will be needed after a query is converted from using transactions to metrics.
+    if prefilling:
+        supported_datasets.append(Dataset.Transactions)
 
-    if not dataset or Dataset(dataset) != Dataset.PerformanceMetrics:
+    if not dataset or Dataset(dataset) not in supported_datasets:
         return False
 
     aggregate_supported_by = _get_aggregate_supported_by(aggregate)
