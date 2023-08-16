@@ -35,7 +35,8 @@ REGRESSION = "regression"
 ANY = "any"
 TREND_TYPES = [IMPROVED, REGRESSION, ANY]
 
-TOP_EVENTS_LIMIT = 45
+DEFAULT_TOP_EVENTS_LIMIT = 45
+MAX_TOP_EVENTS_LIMIT = 1000
 EVENTS_PER_QUERY = 15
 DAY_GRANULARITY_IN_SECONDS = METRICS_GRANULARITIES[0]
 ONE_DAY_IN_SECONDS = 24 * 60 * 60  # 86,400 seconds
@@ -99,16 +100,21 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             return Response([])
 
         modified_params = params.copy()
-        delta = modified_params["end"] - modified_params["start"]
-        duration = delta.total_seconds()
-        if duration >= 14 * ONE_DAY_IN_SECONDS and duration <= 30 * ONE_DAY_IN_SECONDS:
-            new_start = modified_params["end"] - timedelta(days=30)
-            min_start = timezone.now() - timedelta(days=90)
-            modified_params["start"] = new_start if min_start < new_start else min_start
-            sentry_sdk.set_tag("performance.trendsv2.extra_data_fetched", True)
-            sentry_sdk.set_tag(
-                "performance.trendsv2.optimized_start_out_of_bounds", new_start > min_start
-            )
+        if not features.has(
+            "organizations:performance-trends-new-data-date-range-default",
+            organization,
+            actor=request.user,
+        ):
+            delta = modified_params["end"] - modified_params["start"]
+            duration = delta.total_seconds()
+            if duration >= 14 * ONE_DAY_IN_SECONDS and duration <= 30 * ONE_DAY_IN_SECONDS:
+                new_start = modified_params["end"] - timedelta(days=30)
+                min_start = timezone.now() - timedelta(days=90)
+                modified_params["start"] = new_start if min_start < new_start else min_start
+                sentry_sdk.set_tag("performance.trendsv2.extra_data_fetched", True)
+                sentry_sdk.set_tag(
+                    "performance.trendsv2.optimized_start_out_of_bounds", new_start > min_start
+                )
 
         trend_type = request.GET.get("trendType", REGRESSION)
         if trend_type not in TREND_TYPES:
@@ -229,11 +235,15 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             return formatted_results
 
         def get_event_stats_metrics(_, user_query, params, rollup, zerofill_results, __):
+            top_event_limit = min(
+                int(request.GET.get("topEvents", DEFAULT_TOP_EVENTS_LIMIT)),
+                MAX_TOP_EVENTS_LIMIT,
+            )
             # Fetch transactions names with the highest event count
             top_events = get_top_events(
                 user_query=user_query,
                 params=params,
-                event_limit=TOP_EVENTS_LIMIT,
+                event_limit=top_event_limit,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS.value,
             )
 
@@ -245,6 +255,18 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
             # Fetch timeseries for each top transaction name
             return get_timeseries(top_events, params, rollup, zerofill_results)
+
+        def format_start_end(data):
+            # format start and end
+            data_start = data[1].pop("start", "")
+            data_end = data[1].pop("end", "")
+            # data start and end that analysis is ran on
+            data[1]["data_start"] = data_start
+            data[1]["data_end"] = data_end
+            # user requested start and end
+            data[1]["request_start"] = params["start"].timestamp()
+            data[1]["request_end"] = data_end
+            return data
 
         def get_trends_data(stats_data, request):
             trend_function = request.GET.get("trendFunction", "p50()")
@@ -263,16 +285,9 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             # list of requests to send to microservice async
             trends_requests = []
 
-            # format start and end
-            for data in list(stats_data.items()):
-                data_start = data[1].pop("start", "")
-                data_end = data[1].pop("end", "")
-                # data start and end that analysis is ran on
-                data[1]["data_start"] = data_start
-                data[1]["data_end"] = data_end
-                # user requested start and end
-                data[1]["request_start"] = params["start"].timestamp()
-                data[1]["request_end"] = data_end
+            stats_data = dict(
+                [format_start_end(data) for data in list(stats_data.items()) if data[1] is not None]
+            )
 
             # split the txns data into multiple dictionaries
             split_transactions_data = [

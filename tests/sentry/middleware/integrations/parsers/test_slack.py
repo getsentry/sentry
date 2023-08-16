@@ -5,7 +5,6 @@ from django.test import RequestFactory
 from django.urls import reverse
 
 from sentry.integrations.slack.requests.command import SlackCommandRequest
-from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.base import RegionResult
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.models.outbox import ControlOutbox
@@ -19,7 +18,6 @@ from sentry.utils.signing import sign
 @control_silo_test(stable=True)
 class SlackRequestParserTest(TestCase):
     get_response = MagicMock()
-    middleware = IntegrationControlMiddleware(get_response)
     factory = RequestFactory()
     region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
 

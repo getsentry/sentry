@@ -14,7 +14,7 @@ type ChildRenderProps = {
 
 type ChildFunction = (props: ChildRenderProps) => JSX.Element;
 
-export type Props = {
+type Props = {
   organization: Organization;
   /**
    * List of required access levels

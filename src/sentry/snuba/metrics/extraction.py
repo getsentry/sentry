@@ -235,18 +235,6 @@ class MetricSpec(TypedDict):
     tags: NotRequired[Sequence[TagSpec]]
 
 
-def is_on_demand_snuba_query(snuba_query: SnubaQuery) -> bool:
-    """Returns ``True`` if the snuba query can't be supported by standard metrics."""
-    return is_on_demand_metric_query(snuba_query.dataset, snuba_query.aggregate, snuba_query.query)
-
-
-def is_on_demand_metric_query(
-    dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
-) -> bool:
-    """Returns ``True`` if the dataset is performance metrics and query contains non-standard search fields."""
-    return should_use_on_demand_metrics(dataset, aggregate, query)
-
-
 @dataclass(frozen=True)
 class SupportedBy:
     """Result of a check for standard and on-demand metric support."""
@@ -268,6 +256,13 @@ class SupportedBy:
             standard_metrics=all(s.standard_metrics for s in supported_by),
             on_demand_metrics=all(s.on_demand_metrics for s in supported_by),
         )
+
+
+def is_on_demand_snuba_query(snuba_query: SnubaQuery) -> bool:
+    """Returns ``True`` if the snuba query can't be supported by standard metrics."""
+    return should_use_on_demand_metrics(
+        snuba_query.dataset, snuba_query.aggregate, snuba_query.query
+    )
 
 
 def should_use_on_demand_metrics(
@@ -294,7 +289,7 @@ def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
         function, args, _ = fields.parse_function(aggregate)
 
         function_support = _get_function_support(function)
-        args_support = _get_args_support(args)
+        args_support = _get_args_support(function, args)
 
         return SupportedBy.combine(function_support, args_support)
 
@@ -315,13 +310,17 @@ def _get_function_support(function: str) -> SupportedBy:
     )
 
 
-def _get_args_support(args: Sequence[str]) -> SupportedBy:
+def _get_args_support(function: str, args: Sequence[str]) -> SupportedBy:
+    # apdex can have two variations, either apdex() or apdex(value).
+    if function == "apdex" and len(args) < 2:
+        return SupportedBy.both()
+
     if len(args) == 0:
         return SupportedBy.both()
 
     arg = args[0]
 
-    standard_metrics = _is_standard_metrics_search_term(arg) or arg == "transaction.duration"
+    standard_metrics = _is_standard_metrics_field(arg)
     on_demand_metrics = _is_on_demand_supported_field(arg)
 
     return SupportedBy(standard_metrics=standard_metrics, on_demand_metrics=on_demand_metrics)
@@ -338,40 +337,6 @@ def _get_query_supported_by(query: Optional[str]) -> SupportedBy:
     except InvalidSearchQuery:
         logger.error(f"Failed to parse search query: {query}", exc_info=True)
         return SupportedBy.neither()
-
-
-def is_standard_metrics_compatible(
-    dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
-) -> bool:
-    """Returns ``True`` if the query can be supported by standard metrics."""
-
-    if not dataset or Dataset(dataset) not in [Dataset.Metrics, Dataset.PerformanceMetrics]:
-        return False
-
-    aggregate_supported_by = _get_aggregate_supported_by(aggregate)
-    query_supported_by = _get_query_supported_by(query)
-
-    return SupportedBy.combine(aggregate_supported_by, query_supported_by).standard_metrics
-
-
-def _get_aggregate_fields(aggregate: str) -> Sequence[str]:
-    """
-    Returns any fields referenced by the arguments of supported aggregate
-    functions, otherwise ``None``.
-    """
-    _SUPPORTED_AGG_FNS = ("count_if", "count_unique")
-
-    if not aggregate.startswith(_SUPPORTED_AGG_FNS):
-        return []
-
-    try:
-        function, arguments, _ = fields.parse_function(aggregate)
-        if function in _SUPPORTED_AGG_FNS and arguments:
-            return [arguments[0]]
-    except InvalidSearchQuery:
-        logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)
-
-    return []
 
 
 def _is_standard_metrics_query(tokens: Sequence[QueryToken]) -> bool:
@@ -416,7 +381,9 @@ def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
         if not _SEARCH_TO_RELAY_OPERATORS.get(token.operator):
             return False
 
-        return _is_on_demand_supported_field(token.key.name)
+        return not _is_excluding_transactions(token) and _is_on_demand_supported_field(
+            token.key.name
+        )
 
     if isinstance(token, ParenExpression):
         return _is_on_demand_supported_query(token.children)
@@ -424,8 +391,21 @@ def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
     return True
 
 
+def _is_excluding_transactions(token: SearchFilter) -> bool:
+    return (
+        token.key.name == "event.type"
+        and token.operator == "!="
+        and token.value.raw_value == "transaction"
+    )
+
+
 def _is_standard_metrics_field(field: str) -> bool:
-    return _is_standard_metrics_field(field) or is_measurement(field) or is_span_op_breakdown(field)
+    return (
+        _is_standard_metrics_search_term(field)
+        or is_measurement(field)
+        or is_span_op_breakdown(field)
+        or field == "transaction.duration"
+    )
 
 
 def _is_standard_metrics_search_term(field: str) -> bool:
@@ -594,6 +574,8 @@ def failure_rate_tag_spec(_1: Project, _2: Optional[str]) -> List[TagSpec]:
 def apdex_tag_spec(project: Project, argument: Optional[str]) -> List[TagSpec]:
     _, metric = _get_apdex_project_transaction_threshold(project)
 
+    # TODO: we can also opt to fallback on the db threshold in case it's not supplied, but we have to see if we want to
+    #  support that.
     if argument is None:
         raise Exception("apdex requires a threshold parameter.")
 
@@ -648,7 +630,11 @@ class QueryParsingResult:
 
 
 @dataclass
-class OndemandMetricSpec:
+class OnDemandMetricSpec:
+    """
+    Contains the information required to query or extract an on-demand metric.
+    """
+
     # Base fields from outside.
     field: str
     query: str
@@ -663,7 +649,6 @@ class OndemandMetricSpec:
     def __init__(self, field: str, query: str):
         self.field = field
         self.query = self._cleanup_query(query)
-
         self._eager_process()
 
     def _eager_process(self):
@@ -825,7 +810,7 @@ class OndemandMetricSpec:
 
     @staticmethod
     def _cleanup_query(query: str) -> str:
-        regexes = [r"event\.type:transaction\s*", r"project:[\w\"]+\s*"]
+        regexes = [r"event\.type:transaction\s*", r"project:[\w\d\"\-_]+\s*"]
 
         new_query = query
         for regex in regexes:
@@ -1037,7 +1022,7 @@ class SearchQueryConverter:
             }
 
         # In case we have negation operators, we have to wrap them in the `not` condition.
-        if token.operator == "!=" or token.operator == "NOT IN":
+        if token.operator in ["!=", "NOT IN"]:
             condition = {"op": "not", "inner": condition}
 
         return condition

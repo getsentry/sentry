@@ -428,7 +428,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         responses.add(
             responses.GET,
             "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
-            status=404,
+            status=500,
             content_type="application/json",
         )
 
@@ -448,7 +448,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
             (
                 "sentry.integrations.utils.codecov",
                 logging.ERROR,
-                "Expecting value: line 1 column 1 (char 0). Continuing execution.",
+                "Codecov HTTP error: 500. Continuing execution.",
             )
         ]
 

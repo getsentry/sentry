@@ -106,6 +106,8 @@ def get_codecov_data(repo: str, service: str, path: str) -> Tuple[LineCoverage |
             headers={"Authorization": f"Bearer {codecov_token}"},
             timeout=CODECOV_TIMEOUT,
         )
+        response.raise_for_status()
+
         tags = {
             "codecov.request_url": url,
             "codecov.request_path": path,
@@ -128,8 +130,6 @@ def get_codecov_data(repo: str, service: str, path: str) -> Tuple[LineCoverage |
 
         for key, value in tags.items():
             scope.set_tag(key, value)
-
-        response.raise_for_status()
 
     return line_coverage, codecov_url
 

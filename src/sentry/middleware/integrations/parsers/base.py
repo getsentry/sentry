@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Mapping, Optional, Sequence
 
 from django.http import HttpRequest, HttpResponse
 from django.urls import ResolverMatch, resolve
@@ -19,6 +19,8 @@ from sentry.silo.client import RegionSiloClient
 from sentry.types.region import Region, get_region_for_organization
 
 logger = logging.getLogger(__name__)
+if TYPE_CHECKING:
+    from sentry.middleware.integrations.integration_control import ResponseHandler
 
 
 class RegionResult:
@@ -32,7 +34,7 @@ class BaseRequestParser(abc.ABC):
 
     @property
     def provider(self) -> str:
-        raise NotImplementedError("'provider' property is required by IntegrationControlMiddleware")
+        raise NotImplementedError("'provider' property is required by IntegrationClassification")
 
     @property
     def webhook_identifier(self) -> WebhookProviderIdentifier:
@@ -40,10 +42,12 @@ class BaseRequestParser(abc.ABC):
             "'webhook_identifier' property is required for outboxing. Refer to WebhookProviderIdentifier enum."
         )
 
-    def __init__(self, request: HttpRequest, response_handler: Callable):
+    def __init__(self, request: HttpRequest, response_handler: ResponseHandler):
         self.request = request
         self.match: ResolverMatch = resolve(self.request.path)
-        self.view_class = self.match.func.view_class  # type:ignore
+        self.view_class = None
+        if hasattr(self.match.func, "view_class"):
+            self.view_class = self.match.func.view_class
         self.response_handler = response_handler
 
     # Common Helpers

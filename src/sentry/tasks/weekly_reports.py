@@ -19,7 +19,7 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Limit, Query
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
 from sentry.models import (
@@ -32,6 +32,7 @@ from sentry.models import (
     OrganizationMember,
     OrganizationStatus,
 )
+from sentry.notifications.utils import generate_notification_uuid
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -83,8 +84,7 @@ class ProjectContext:
     existing_issue_count = 0
     reopened_issue_count = 0
     new_issue_count = 0
-    # we merged organizations:issue-states flag to organizations:escalating-issues, so delete when
-    # organizations:escalating-issues GA
+    # delete when organizations:escalating-issues GA
     new_substatus_count = 0
     ongoing_substatus_count = 0
     escalating_substatus_count = 0
@@ -740,6 +740,8 @@ def render_template_context(ctx, user_id):
         "organizations:session-replay", ctx.organization
     ) and features.has("organizations:session-replay-weekly-email", ctx.organization)
 
+    notification_uuid = generate_notification_uuid()
+
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.
     def trends():
@@ -794,7 +796,9 @@ def render_template_context(ctx, user_id):
         legend = [
             {
                 "slug": project_ctx.project.slug,
-                "url": project_ctx.project.get_absolute_url(),
+                "url": project_ctx.project.get_absolute_url(
+                    params={"referrer": "weekly_report", "notification_uuid": notification_uuid}
+                ),
                 "color": project_breakdown_colors[i],
                 "dropped_error_count": project_ctx.dropped_error_count,
                 "accepted_error_count": project_ctx.accepted_error_count,
@@ -1032,6 +1036,8 @@ def render_template_context(ctx, user_id):
         "key_performance_issues": key_performance_issues(),
         "key_replays": key_replays() if has_replay_section else [],
         "issue_summary": issue_summary(),
+        "user_project_count": len(user_projects),
+        "notification_uuid": notification_uuid,
     }
 
 
@@ -1053,6 +1059,14 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
     )
     if dry_run:
         return
+    else:
+        analytics.record(
+            "weekly_report.sent",
+            user_id=user_id,
+            organization_id=ctx.organization.id,
+            notification_uuid=template_ctx["notification_uuid"],
+            user_project_count=template_ctx["user_project_count"],
+        )
     if email_override:
         message.send(to=(email_override,))
     else:
