@@ -215,6 +215,11 @@ type Props = WithRouterProps &
      */
     excludedTags?: string[];
     /**
+     * A function that returns a warning message for a given filter key
+     * will only show a render a warning if the value is truthy
+     */
+    getFilterWarning?: (key) => React.ReactNode;
+    /**
      * List user's recent searches
      */
     hasRecentSearches?: boolean;
@@ -360,6 +365,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     showDropdown: false,
     parsedQuery: parseSearch(this.initialQuery, {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
+      getFilterTokenWarning: this.props.getFilterWarning,
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
       disallowWildcard: this.props.disallowWildcard,
@@ -422,6 +428,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   makeQueryState(query: string) {
     const additionalConfig: Partial<SearchConfig> = {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
+      getFilterTokenWarning: this.props.getFilterWarning,
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
       disallowWildcard: this.props.disallowWildcard,

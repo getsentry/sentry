@@ -13,6 +13,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 
 interface Props {
+  getFilterWarning: SearchBarProps['getFilterWarning'];
   onClose: SearchBarProps['onClose'];
   organization: Organization;
   pageFilters: PageFilters;
@@ -22,6 +23,7 @@ interface Props {
 export function EventsSearchBar({
   organization,
   pageFilters,
+  getFilterWarning,
   onClose,
   widgetQuery,
 }: Props) {
@@ -40,6 +42,7 @@ export function EventsSearchBar({
       query={widgetQuery.conditions}
       fields={fields}
       onClose={onClose}
+      getFilterWarning={getFilterWarning}
       useFormWrapper={false}
       maxQueryLength={MAX_QUERY_LENGTH}
       maxSearchItems={MAX_SEARCH_ITEMS}
