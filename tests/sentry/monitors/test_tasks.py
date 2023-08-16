@@ -43,15 +43,15 @@ class CheckMonitorsTest(TestCase):
 
         # We truncate down to the minute when we mark the next_checkin, do the
         # same here.
-        next_checkin_ts = ts.replace(second=0, microsecond=0)
+        trimmed_ts = ts.replace(second=0, microsecond=0)
 
-        return task_run_ts, next_checkin_ts
+        return task_run_ts, trimmed_ts
 
     def test_missing_checkin(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        task_run_ts, next_checkin_ts = self.make_ref_time()
+        task_run_ts, ts = self.make_ref_time()
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -68,9 +68,9 @@ class CheckMonitorsTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            last_checkin=next_checkin_ts - timedelta(minutes=2),
-            next_checkin=next_checkin_ts - timedelta(minutes=1),
-            next_checkin_latest=next_checkin_ts - timedelta(minutes=1),
+            last_checkin=ts - timedelta(minutes=2),
+            next_checkin=ts - timedelta(minutes=1),
+            next_checkin_latest=ts - timedelta(minutes=1),
             status=MonitorStatus.OK,
         )
 
@@ -96,7 +96,7 @@ class CheckMonitorsTest(TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        task_run_ts, next_checkin_ts = self.make_ref_time()
+        task_run_ts, ts = self.make_ref_time()
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -113,9 +113,9 @@ class CheckMonitorsTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            last_checkin=next_checkin_ts - timedelta(minutes=12),
-            next_checkin=next_checkin_ts - timedelta(minutes=2),
-            next_checkin_latest=next_checkin_ts + timedelta(minutes=3),
+            last_checkin=ts - timedelta(minutes=12),
+            next_checkin=ts - timedelta(minutes=2),
+            next_checkin_latest=ts + timedelta(minutes=3),
             status=MonitorStatus.OK,
         )
 
@@ -158,7 +158,7 @@ class CheckMonitorsTest(TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        task_run_ts, next_checkin_ts = self.make_ref_time()
+        task_run_ts, ts = self.make_ref_time()
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -172,8 +172,8 @@ class CheckMonitorsTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            next_checkin=next_checkin_ts - timedelta(minutes=1),
-            next_checkin_latest=next_checkin_ts - timedelta(minutes=1),
+            next_checkin=ts - timedelta(minutes=1),
+            next_checkin_latest=ts - timedelta(minutes=1),
             status=MonitorStatus.ACTIVE,
         )
 
@@ -208,8 +208,8 @@ class CheckMonitorsTest(TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        task_run_ts, next_checkin_ts = self.make_ref_time()
-        last_checkin_ts = next_checkin_ts - timedelta(minutes=1)
+        task_run_ts, ts = self.make_ref_time()
+        last_checkin_ts = ts - timedelta(minutes=1)
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -222,8 +222,8 @@ class CheckMonitorsTest(TestCase):
             monitor=monitor,
             environment=self.environment,
             last_checkin=last_checkin_ts,
-            next_checkin=next_checkin_ts,
-            next_checkin_latest=next_checkin_ts,
+            next_checkin=ts,
+            next_checkin_latest=ts,
             status=MonitorStatus.OK,
         )
         # Last checkin was a minute ago
@@ -253,8 +253,8 @@ class CheckMonitorsTest(TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        task_run_ts, next_checkin_ts = self.make_ref_time()
-        check_in_24hr_ago = next_checkin_ts - timedelta(hours=24)
+        task_run_ts, ts = self.make_ref_time()
+        check_in_24hr_ago = ts - timedelta(hours=24)
 
         # Schedule is once a day
         monitor = Monitor.objects.create(
@@ -288,9 +288,9 @@ class CheckMonitorsTest(TestCase):
             monitor_environment=monitor_environment,
             project_id=project.id,
             status=CheckInStatus.IN_PROGRESS,
-            date_added=next_checkin_ts,
-            date_updated=next_checkin_ts,
-            timeout_at=next_checkin_ts + timedelta(minutes=30),
+            date_added=ts,
+            date_updated=ts,
+            timeout_at=ts + timedelta(minutes=30),
         )
 
         assert checkin1.date_added == checkin1.date_updated == check_in_24hr_ago
@@ -318,8 +318,8 @@ class CheckMonitorsTest(TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        task_run_ts, next_checkin_ts = self.make_ref_time()
-        check_in_24hr_ago = next_checkin_ts - timedelta(hours=24)
+        task_run_ts, ts = self.make_ref_time()
+        check_in_24hr_ago = ts - timedelta(hours=24)
 
         # Schedule is once a day
         monitor = Monitor.objects.create(
@@ -332,9 +332,9 @@ class CheckMonitorsTest(TestCase):
             monitor=monitor,
             environment=self.environment,
             # Next checkin is in the future, we just completed our last checkin
-            last_checkin=next_checkin_ts,
-            next_checkin=next_checkin_ts + timedelta(hours=24),
-            next_checkin_latest=next_checkin_ts + timedelta(hours=24),
+            last_checkin=ts,
+            next_checkin=ts + timedelta(hours=24),
+            next_checkin_latest=ts + timedelta(hours=24),
             status=MonitorStatus.OK,
         )
         # Checkin 24hr ago
@@ -352,9 +352,9 @@ class CheckMonitorsTest(TestCase):
             monitor_environment=monitor_environment,
             project_id=project.id,
             status=CheckInStatus.OK,
-            date_added=next_checkin_ts,
-            date_updated=next_checkin_ts,
-            timeout_at=next_checkin_ts + timedelta(minutes=30),
+            date_added=ts,
+            date_updated=ts,
+            timeout_at=ts + timedelta(minutes=30),
         )
 
         assert checkin1.date_added == checkin1.date_updated == check_in_24hr_ago
@@ -377,8 +377,8 @@ class CheckMonitorsTest(TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        task_run_ts, next_checkin_ts = self.make_ref_time()
-        check_in_24hr_ago = next_checkin_ts - timedelta(hours=24)
+        task_run_ts, ts = self.make_ref_time()
+        check_in_24hr_ago = ts - timedelta(hours=24)
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -390,8 +390,8 @@ class CheckMonitorsTest(TestCase):
             monitor=monitor,
             environment=self.environment,
             last_checkin=check_in_24hr_ago,
-            next_checkin=next_checkin_ts,
-            next_checkin_latest=next_checkin_ts,
+            next_checkin=ts,
+            next_checkin_latest=ts,
             status=MonitorStatus.OK,
         )
         checkin = MonitorCheckIn.objects.create(
@@ -399,12 +399,12 @@ class CheckMonitorsTest(TestCase):
             monitor_environment=monitor_environment,
             project_id=project.id,
             status=CheckInStatus.IN_PROGRESS,
-            date_added=next_checkin_ts,
-            date_updated=next_checkin_ts,
-            timeout_at=next_checkin_ts + timedelta(minutes=60),
+            date_added=ts,
+            date_updated=ts,
+            timeout_at=ts + timedelta(minutes=60),
         )
 
-        assert checkin.date_added == checkin.date_updated == next_checkin_ts
+        assert checkin.date_added == checkin.date_updated == ts
 
         # Running the check_monitors at 35 minutes does not mark the check-in as timed out, it's still allowed to be running
         check_timeout(task_run_ts + timedelta(minutes=35))
@@ -425,7 +425,7 @@ class CheckMonitorsTest(TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        task_run_ts, next_checkin_ts = self.make_ref_time()
+        task_run_ts, ts = self.make_ref_time()
 
         exception_monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -441,8 +441,8 @@ class CheckMonitorsTest(TestCase):
         MonitorEnvironment.objects.create(
             monitor=exception_monitor,
             environment=self.environment,
-            next_checkin=next_checkin_ts - timedelta(minutes=1),
-            next_checkin_latest=next_checkin_ts - timedelta(minutes=1),
+            next_checkin=ts - timedelta(minutes=1),
+            next_checkin_latest=ts - timedelta(minutes=1),
             status=MonitorStatus.OK,
         )
 
@@ -455,8 +455,8 @@ class CheckMonitorsTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            next_checkin=next_checkin_ts - timedelta(minutes=1),
-            next_checkin_latest=next_checkin_ts - timedelta(minutes=1),
+            next_checkin=ts - timedelta(minutes=1),
+            next_checkin_latest=ts - timedelta(minutes=1),
             status=MonitorStatus.OK,
         )
 
@@ -478,8 +478,8 @@ class CheckMonitorsTest(TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        task_run_ts, next_checkin_ts = self.make_ref_time()
-        check_in_24hr_ago = next_checkin_ts - timedelta(hours=24)
+        task_run_ts, ts = self.make_ref_time()
+        check_in_24hr_ago = ts - timedelta(hours=24)
 
         # This monitor will cause failure
         exception_monitor = Monitor.objects.create(
@@ -496,9 +496,9 @@ class CheckMonitorsTest(TestCase):
         exception_monitor_environment = MonitorEnvironment.objects.create(
             monitor=exception_monitor,
             environment=self.environment,
-            last_checkin=next_checkin_ts,
-            next_checkin=next_checkin_ts + timedelta(hours=24),
-            next_checkin_latest=next_checkin_ts + timedelta(hours=24),
+            last_checkin=ts,
+            next_checkin=ts + timedelta(hours=24),
+            next_checkin_latest=ts + timedelta(hours=24),
             status=MonitorStatus.OK,
         )
         MonitorCheckIn.objects.create(
@@ -522,9 +522,9 @@ class CheckMonitorsTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            last_checkin=next_checkin_ts,
-            next_checkin=next_checkin_ts + timedelta(hours=24),
-            next_checkin_latest=next_checkin_ts + timedelta(hours=24),
+            last_checkin=ts,
+            next_checkin=ts + timedelta(hours=24),
+            next_checkin_latest=ts + timedelta(hours=24),
             status=MonitorStatus.OK,
         )
         checkin1 = MonitorCheckIn.objects.create(
@@ -541,9 +541,9 @@ class CheckMonitorsTest(TestCase):
             monitor_environment=monitor_environment,
             project_id=project.id,
             status=CheckInStatus.IN_PROGRESS,
-            date_added=next_checkin_ts,
-            date_updated=next_checkin_ts,
-            timeout_at=next_checkin_ts + timedelta(minutes=30),
+            date_added=ts,
+            date_updated=ts,
+            timeout_at=ts + timedelta(minutes=30),
         )
 
         assert checkin1.date_added == checkin1.date_updated == check_in_24hr_ago
