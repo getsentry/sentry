@@ -261,3 +261,16 @@ class InternalIntegrationAddAuditLogEvent(AuditLogEvent):
     def render(self, audit_log_entry: AuditLogEntry):
         integration_name = audit_log_entry.data.get("name") or ""
         return f"created internal integration {integration_name}"
+
+
+class InternalIntegrationDisabledAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(
+            event_id=130,
+            name="INTERNAL_INTEGRATION_DISABLED",
+            api_name="internal-integration.disable",
+        )
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        integration_name = audit_log_entry.data.get("name") or ""
+        return f"created internal integration {integration_name}"
