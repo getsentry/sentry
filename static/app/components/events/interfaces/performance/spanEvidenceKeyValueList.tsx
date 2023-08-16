@@ -436,7 +436,7 @@ function getSpanEvidenceValue(span: Span | null) {
   if (span.op === 'db' && span.description) {
     return (
       <StyledCodeSnippet language="sql">
-        {`${span.op} - ${formatter.toString(span.description)}`}
+        {formatter.toString(span.description)}
       </StyledCodeSnippet>
     );
   }
@@ -449,6 +449,8 @@ const StyledCodeSnippet = styled(CodeSnippet)`
     /* overflow is set to visible in global styles so need to enforce auto here */
     overflow: auto !important;
   }
+
+  z-index: 0;
 `;
 
 const getConsecutiveDbTimeSaved = (

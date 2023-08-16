@@ -76,7 +76,7 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
         screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
-      ).toHaveTextContent('db - SELECT * FROM books');
+      ).toHaveTextContent('SELECT * FROM books');
       expect(
         screen.queryByTestId('span-evidence-key-value-list.')
       ).not.toBeInTheDocument();
@@ -148,7 +148,7 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
         screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
-      ).toHaveTextContent('db - SELECT * FROM books');
+      ).toHaveTextContent('SELECT * FROM books');
       expect(
         screen.queryByTestId('span-evidence-key-value-list.')
       ).not.toBeInTheDocument();
@@ -220,7 +220,7 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
         screen.getByTestId('span-evidence-key-value-list.repeating-spans-2')
-      ).toHaveTextContent('db - SELECT * FROM books');
+      ).toHaveTextContent('SELECT * FROM books');
       expect(screen.getByTestId('span-evidence-key-value-list.')).toHaveTextContent(
         'db.sql.active_record - SELECT * FROM books WHERE id = %s'
       );
@@ -297,7 +297,7 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(screen.getByRole('cell', {name: 'Starting Span'})).toBeInTheDocument();
       expect(
         screen.getByTestId('span-evidence-key-value-list.starting-span')
-      ).toHaveTextContent('db - SELECT * FROM USERS LIMIT 100');
+      ).toHaveTextContent('SELECT * FROM USERS LIMIT 100');
 
       expect(screen.queryAllByRole('cell', {name: 'Parallelizable Spans'}).length).toBe(
         1
@@ -306,12 +306,8 @@ describe('SpanEvidenceKeyValueList', () => {
         'span-evidence-key-value-list.parallelizable-spans'
       );
 
-      expect(parallelizableSpanKeyValue).toHaveTextContent(
-        'db - SELECT COUNT(*) FROM USERS'
-      );
-      expect(parallelizableSpanKeyValue).toHaveTextContent(
-        'db - SELECT COUNT(*) FROM ITEMS'
-      );
+      expect(parallelizableSpanKeyValue).toHaveTextContent('SELECT COUNT(*) FROM USERS');
+      expect(parallelizableSpanKeyValue).toHaveTextContent('SELECT COUNT(*) FROM ITEMS');
 
       expect(
         screen.getByTestId('span-evidence-key-value-list.duration-impact')
