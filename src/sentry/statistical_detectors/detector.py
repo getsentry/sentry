@@ -4,11 +4,8 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
+from typing import Any, Mapping, MutableMapping, Optional, Tuple
 
-from sentry_redis_tools.clients import RedisCluster, StrictRedis
-
-from sentry.models.project import Project
 from sentry.utils.math import ExponentialMovingAverage
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors")
@@ -79,68 +76,25 @@ class TrendPayload:
     timestamp: datetime
 
 
-def run_trend_detection(
-    client: RedisCluster | StrictRedis,
-    project: Project,
-    start: datetime,
-    payloads: List[TrendPayload],
-) -> Tuple[List[TrendPayload], List[TrendPayload]]:
-    with client.pipeline() as pipeline:
-        for payload in payloads:
-            key = make_key(project.id, payload, VERSION)
-            pipeline.hgetall(key)
-        results = pipeline.execute()
-
-    old_states = [TrendState.from_dict(result) for result in results]
-    new_states, regressed, improved = compute_new_trend_states(project.id, old_states, payloads)
-
-    with client.pipeline() as pipeline:
-        for key, value in new_states:
-            pipeline.hmset(key, value.as_dict())
-            pipeline.expire(key, KEY_TTL)
-
-        pipeline.execute()
-
-    return regressed, improved
-
-
 def compute_new_trend_states(
-    project_id: int,
-    old_states: List[TrendState],
-    payloads: List[TrendPayload],
-) -> Tuple[List[Tuple[str, TrendState]], List[TrendPayload], List[TrendPayload]]:
-    new_states: List[Tuple[str, TrendState]] = []
-    regressed: List[TrendPayload] = []
-    improved: List[TrendPayload] = []
+    cur_state: TrendState,
+    payload: TrendPayload,
+) -> Optional[Tuple[TrendState, Tuple[TrendType, TrendPayload]]]:
+    if cur_state.timestamp is not None and cur_state.timestamp > payload.timestamp:
+        # In the event that the timestamp is before the payload's timestamps,
+        # we do not want to process this payload.
+        #
+        # This should not happen other than in some error state.
+        logger.warning(
+            "Trend detection out of order. Processing %s, but last processed was %s",
+            payload.timestamp.isoformat(),
+            cur_state.timestamp.isoformat(),
+        )
+        return None
 
-    for payload, old_state in zip(payloads, old_states):
-        if old_state.timestamp is not None and old_state.timestamp > payload.timestamp:
-            # In the event that the timestamp is before the payload's timestamps,
-            # we do not want to process this payload.
-            #
-            # This should not happen other than in some error state.
-            logger.warning(
-                "Trend detection out of order. Processing %s, but last processed was %s",
-                payload.timestamp.isoformat(),
-                old_state.timestamp.isoformat(),
-            )
-            continue
+    trend, new_state = detect_trend(cur_state, payload)
 
-        key = make_key(project_id, payload, VERSION)
-        trend, value = detect_trend(old_state, payload)
-
-        if trend == TrendType.Regressed:
-            regressed.append(payload)
-        elif trend == TrendType.Improved:
-            improved.append(payload)
-
-        new_states.append((key, value))
-
-    return new_states, regressed, improved
-
-
-def make_key(project_id: int, payload: TrendPayload, version: int) -> str:
-    return f"statdtr:v:{version}:p:{project_id}:f:{payload.group}"
+    return new_state, (trend, payload)
 
 
 def detect_trend(state: TrendState, payload: TrendPayload) -> Tuple[TrendType, TrendState]:

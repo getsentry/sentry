@@ -971,12 +971,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
     },
-    "monitors-temp-task-dispatcher": {
-        "task": "sentry.monitors.tasks.temp_task_dispatcher",
-        # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
-        "options": {"expires": 60},
-    },
     "clear-expired-snoozes": {
         "task": "sentry.tasks.clear_expired_snoozes",
         # Run every 5 minutes

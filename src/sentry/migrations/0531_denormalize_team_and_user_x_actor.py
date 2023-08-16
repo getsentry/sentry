@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0529_remove_pagerduty_service"),
+        ("sentry", "0530_new_notification_tables"),
     ]
 
     operations = [
