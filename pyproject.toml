@@ -567,7 +567,6 @@ module = [
     "sentry.migrations.0418_add_actor_constraints",
     "sentry.models.artifactbundle",
     "sentry.models.auditlogentry",
-    "sentry.models.integrations.external_actor",
     "sentry.models.integrations.external_issue",
     "sentry.models.integrations.organization_integrity_backfill_mixin",
     "sentry.models.integrations.sentry_app",
