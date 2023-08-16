@@ -74,22 +74,23 @@ class UserNotificationOptionsPutTest(UserNotificationOptionsBaseTest):
         self.login_as(self.user)
 
     def test_simple(self):
-        self.get_success_response(
+        response = self.get_success_response(
             "me",
             user_id=self.user.id,
             scope_type="organization",
             scope_identifier=self.organization.id,
             type="alerts",
-            status_code=status.HTTP_204_NO_CONTENT,
+            status_code=status.HTTP_201_CREATED,
             value="always",
         )
-        assert NotificationSettingOption.objects.filter(
+        row = NotificationSettingOption.objects.filter(
             user_id=self.user.id,
             scope_type=NotificationScopeEnum.ORGANIZATION.value,
             scope_identifier=self.organization.id,
             type=NotificationSettingEnum.ISSUE_ALERTS.value,
             value=NotificationSettingsOptionEnum.ALWAYS.value,
-        ).exists()
+        ).first()
+        assert response.data["id"] == str(row.id)
 
     def test_invalid_scope_type(self):
         response = self.get_error_response(

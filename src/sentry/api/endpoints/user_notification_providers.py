@@ -51,12 +51,14 @@ class UserNotificationProvidersEndpoint(UserEndpoint):
         """
         Update the notification provider preferences for a user.
         Provider is an array of provider names.
+        Returns an array of NotificationSettingProvider rows for the updated providers.
         """
         serializer = UserNotificationSettingsProvidersDetailsSerializer(data=request.data)
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=400)
 
         data = serializer.validated_data
+        new_rows = []
         with transaction.atomic(router.db_for_write(NotificationSettingProvider)):
             for provider in allowed_providers:
                 value = (
@@ -64,7 +66,10 @@ class UserNotificationProvidersEndpoint(UserEndpoint):
                     if provider in data["provider"]
                     else NotificationSettingsOptionEnum.NEVER.value
                 )
-                NotificationSettingProvider.objects.update_or_create(
+                (
+                    notification_setting_provider,
+                    created,
+                ) = NotificationSettingProvider.objects.update_or_create(
                     user_id=user.id,
                     scope_type=data["scope_type"],
                     scope_identifier=data["scope_identifier"],
@@ -72,4 +77,8 @@ class UserNotificationProvidersEndpoint(UserEndpoint):
                     provider=provider,
                     defaults={"value": value},
                 )
-        return Response(status=status.HTTP_204_NO_CONTENT)
+                new_rows.append(notification_setting_provider)
+        return Response(
+            serialize(new_rows, request.user, NotificationSettingsProviderSerializer()),
+            status=status.HTTP_201_CREATED,
+        )

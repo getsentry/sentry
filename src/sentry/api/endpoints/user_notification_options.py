@@ -29,7 +29,7 @@ class UserNotificationOptionsEndpoint(UserEndpoint):
             try:
                 validate_type(notification_type)
             except ParameterValidationError:
-                return self.respond({"type": ["Invalid type"]}, status=400)
+                return self.respond({"type": ["Invalid type"]}, status=status.HTTP_400_BAD_REQUEST)
             notifications_settings = notifications_settings.filter(type=notification_type)
 
         notification_preferences = serialize(
@@ -41,17 +41,21 @@ class UserNotificationOptionsEndpoint(UserEndpoint):
     def put(self, request: Request, user: User) -> Response:
         """
         Update the notification preferences for a user.
+        Returns the new row of NotificationSettingOption.
         """
         serializer = UserNotificationSettingOptionWithValueSerializer(data=request.data)
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=400)
 
         data = serializer.validated_data
-        NotificationSettingOption.objects.update_or_create(
+        notification_option, _ = NotificationSettingOption.objects.update_or_create(
             user_id=user.id,
             scope_type=data["scope_type"],
             scope_identifier=data["scope_identifier"],
             type=data["type"],
             defaults={"value": data["value"]},
         )
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            serialize(notification_option, request.user, NotificationSettingsOptionSerializer()),
+            status=status.HTTP_201_CREATED,
+        )
