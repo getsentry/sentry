@@ -166,9 +166,8 @@ class GithubProxyClient(IntegrationProxyClient):
 
     def is_error_fatal(self, error: Exception) -> bool:
         if error.response.text:
-            for msg in ["suspended"]:
-                if msg in error.response.text:
-                    return True
+            if "suspended" in error.response.text:
+                return True
         return super().is_error_fatal(error)
 
 
