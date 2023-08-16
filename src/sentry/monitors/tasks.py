@@ -238,7 +238,7 @@ def check_missing(current_datetime=None):
                 },
             )
         except Exception:
-            logger.exception("Exception in check_monitors - mark missed")
+            logger.exception("Exception in check_monitors - mark missed", exc_info=True)
 
 
 @instrumented_task(
@@ -285,7 +285,7 @@ def check_timeout(current_datetime=None):
                     },
                 )
         except Exception:
-            logger.exception("Exception in check_monitors - mark timeout")
+            logger.exception("Exception in check_monitors - mark timeout", exc_info=True)
 
     # safety check for check-ins stuck in the backlog
     backlog_count = MonitorCheckIn.objects.filter(
