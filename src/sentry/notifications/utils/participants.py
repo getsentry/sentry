@@ -20,6 +20,7 @@ from sentry import features
 from sentry.models import (
     ActorTuple,
     Group,
+    GroupAssignee,
     GroupSubscription,
     NotificationSetting,
     Organization,
@@ -384,6 +385,19 @@ def determine_eligible_recipients(
 
     elif target_type == ActionTargetType.ISSUE_OWNERS:
         suggested_assignees, outcome = get_owners(project, event, fallthrough_choice)
+
+        # We're adding the current assignee to the list of suggested assignees because
+        # a new issue could have multiple codeowners and one of them got auto-assigned.
+        group_assignee: GroupAssignee | None = GroupAssignee.objects.filter(
+            group_id=event.group_id
+        ).first()
+        if group_assignee:
+            outcome = "match"
+            assignee_actor = RpcActor.from_orm_actor(
+                group_assignee.assigned_actor().resolve_to_actor()
+            )
+            suggested_assignees.append(assignee_actor)
+
         suspect_commit_users = None
         if features.has("organizations:streamline-targeting-context", project.organization):
             try:

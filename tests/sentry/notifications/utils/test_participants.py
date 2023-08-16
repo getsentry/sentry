@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import collections
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Iterable, Mapping, Optional, Sequence, Set, Union
 
 import pytest
 from django.utils import timezone
 
 from sentry.eventstore.models import Event
-from sentry.models import NotificationSetting, Project, Team, User
+from sentry.models import GroupAssignee, NotificationSetting, Project, Team, User
 from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
@@ -384,6 +384,78 @@ class GetSendToOwnersTest(_ParticipantsTest):
         event = self.store_event_owners("no_rule.cpp")
 
         assert self.get_send_to_owners(event) == {}
+
+    def test_send_to_current_assignee_team(self):
+        """
+        Test the current issue assignee is notified
+        """
+        event = self.store_event(
+            data={
+                "platform": "java",
+                "stacktrace": STACKTRACE,
+            },
+            project_id=self.project.id,
+        )
+        team = self.create_team(organization=self.organization, members=[self.user])
+        assert event.group is not None
+        GroupAssignee.objects.create(
+            group=event.group,
+            project=event.group.project,
+            team_id=team.id,
+            date_added=datetime.now(),
+        )
+
+        self.assert_recipients_are(
+            self.get_send_to_owners(event),
+            email=[self.user.id],
+            slack=[self.user.id],
+        )
+
+    def test_send_to_current_assignee_user(self):
+        """
+        Test the current issue assignee is notified
+        """
+        event = self.store_event(
+            data={
+                "platform": "java",
+                "stacktrace": STACKTRACE,
+            },
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+        GroupAssignee.objects.create(
+            group=event.group,
+            project=event.group.project,
+            user_id=self.user.id,
+            date_added=datetime.now(),
+        )
+
+        self.assert_recipients_are(
+            self.get_send_to_owners(event),
+            email=[self.user.id],
+            slack=[self.user.id],
+        )
+
+    def test_send_to_current_assignee_and_owners(self):
+        """
+        We currently send to both the current assignee and issue owners.
+        In the future we might consider only sending to the assignee.
+        """
+        member = self.create_user(email="member@example.com", is_active=True)
+        event = self.store_event_owners("team.py")
+        assert event.group is not None
+        GroupAssignee.objects.create(
+            group=event.group,
+            project=event.group.project,
+            user_id=member.id,
+            date_added=datetime.now(),
+        )
+
+        self.assert_recipients_are(
+            self.get_send_to_owners(event),
+            email=[self.user.id, self.user2.id, member.id],
+            slack=[self.user.id, self.user2.id, member.id],
+        )
 
     @with_feature("organizations:streamline-targeting-context")
     def test_send_to_suspect_committers(self):
