@@ -261,6 +261,7 @@ class IncidentActivity(Model):
     previous_value = models.TextField(null=True)
     comment = models.TextField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
+    notification_uuid = models.UUIDField("notification_uuid", null=True)
 
     class Meta:
         app_label = "sentry"
