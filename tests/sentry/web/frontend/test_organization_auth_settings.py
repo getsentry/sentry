@@ -307,6 +307,37 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         resp = self.client.post(path, {"op": "disable"})
         assert resp.status_code == 405
 
+    def test_disable__scim_missing(self):
+        organization, auth_provider = self.create_org_and_auth_provider()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            auth_provider.flags.scim_enabled = True
+            auth_provider.save()
+
+        member = self.create_om_and_link_sso(organization)
+        member.flags["idp:provisioned"] = True
+        member.save()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not SentryAppInstallationForProvider.objects.filter(
+                provider=auth_provider
+            ).exists()
+
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+        self.login_as(self.user, organization_id=organization.id)
+
+        with self.feature({"organizations:sso-basic": True}):
+            resp = self.client.post(path, {"op": "disable"}, follow=True)
+
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [
+            ("/settings/foo/auth/", 302),
+        ]
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not AuthProvider.objects.filter(organization_id=organization.id).exists()
+
+        member.refresh_from_db()
+        assert not member.flags["idp:provisioned"], "member should not be idp controlled now"
+
     @patch("sentry.web.frontend.organization_auth_settings.email_unlink_notifications")
     def test_superuser_disable_provider(self, email_unlink_notifications):
         organization, auth_provider = self.create_org_and_auth_provider()

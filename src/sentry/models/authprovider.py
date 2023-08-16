@@ -151,19 +151,24 @@ class AuthProvider(Model):
         from sentry.models import SentryAppInstallationForProvider
 
         if self.flags.scim_enabled:
-            install = SentryAppInstallationForProvider.objects.get(
-                organization_id=self.organization_id, provider=f"{self.provider}_scim"
-            )
             # Only one SCIM installation allowed per organization. So we can reset the idp flags for the orgs
             # We run this update before the app is uninstalled to avoid ending up in a situation where there are
             # members locked out because we failed to drop the IDP flag
             for outbox in self.outboxes_for_reset_idp_flags():
                 outbox.save()
-            sentry_app = install.sentry_app_installation.sentry_app
-            assert (
-                sentry_app.is_internal
-            ), "scim sentry apps should always be internal, thus deleting them without triggering InstallationNotifier is correct."
-            deletions.exec_sync(sentry_app)
+            try:
+                # Provider : Installation links aren't guaranteed to be around all the time.
+                # Customers can remove the SCIM sentry app before the auth provider
+                install = SentryAppInstallationForProvider.objects.get(
+                    organization_id=self.organization_id, provider=f"{self.provider}_scim"
+                )
+                sentry_app = install.sentry_app_installation.sentry_app
+                assert (
+                    sentry_app.is_internal
+                ), "scim sentry apps should always be internal, thus deleting them without triggering InstallationNotifier is correct."
+                deletions.exec_sync(sentry_app)
+            except SentryAppInstallationForProvider.DoesNotExist:
+                pass
             self.flags.scim_enabled = False
 
     def get_audit_log_data(self):
