@@ -84,9 +84,7 @@ class TestCommitContext(TestCommitContextMixin):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfwreqr",
-            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)).strftime(
-                "%Y-%m-%dT%H:%M:%SZ"
-            ),
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -149,9 +147,7 @@ class TestCommitContext(TestCommitContextMixin):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfasdf",
-            "committedDate": (
-                datetime.now(tz=datetime_timezone.utc) - timedelta(days=370)
-            ).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=370)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -186,9 +182,7 @@ class TestCommitContext(TestCommitContextMixin):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfasdf",
-            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)).strftime(
-                "%Y-%m-%dT%H:%M:%SZ"
-            ),
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -213,9 +207,7 @@ class TestCommitContext(TestCommitContextMixin):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfwreqr",
-            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)).strftime(
-                "%Y-%m-%dT%H:%M:%SZ"
-            ),
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -300,9 +292,7 @@ class TestCommitContext(TestCommitContextMixin):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "somekey",
-            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)).strftime(
-                "%Y-%m-%dT%H:%M:%SZ"
-            ),
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "randomuser@sentry.io",
@@ -343,9 +333,7 @@ class TestCommitContext(TestCommitContextMixin):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "somekey",
-            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)).strftime(
-                "%Y-%m-%dT%H:%M:%SZ"
-            ),
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "randomuser@sentry.io",
@@ -386,9 +374,7 @@ class TestCommitContext(TestCommitContextMixin):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "somekey",
-            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)).strftime(
-                "%Y-%m-%dT%H:%M:%SZ"
-            ),
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "randomuser@sentry.io",
@@ -474,9 +460,7 @@ class TestCommitContext(TestCommitContextMixin):
     Mock(
         return_value={
             "commitId": "asdfwreqr",
-            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)).strftime(
-                "%Y-%m-%dT%H:%M:%SZ"
-            ),
+            "committedDate": (datetime.now(tz=datetime_timezone.utc) - timedelta(days=7)),
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
