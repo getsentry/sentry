@@ -21,19 +21,15 @@ class UserNotificationOptionsDetailsEndpoint(UserEndpoint):
     def get(self, request: Request, user: User) -> Response:
 
         notification_type = request.GET.get("type")
+        notifications_settings = NotificationSettingOption.objects.filter(
+              user_id=user.id
+        )
         if notification_type:
             try:
                 validate_type(notification_type)
             except ParameterValidationError:
                 return self.respond({"type": ["Invalid type"]}, status=400)
-            notifications_settings = NotificationSettingOption.objects.filter(
-                type=notification_type,
-                user_id=user.id,
-            )
-        else:
-            notifications_settings = NotificationSettingOption.objects.filter(
-                user_id=user.id,
-            )
+            notifications_settings = notifications_settings.filter(type=notification_type)
 
         notification_preferences = serialize(
             list(notifications_settings), request.user, NotificationSettingsOptionSerializer()
