@@ -218,7 +218,7 @@ def check_missing(current_datetime=None):
             monitor = monitor_environment.monitor
             expected_time = None
             if monitor_environment.last_checkin:
-                expected_time = monitor.get_next_scheduled_checkin(monitor_environment.last_checkin)
+                expected_time = monitor.get_next_expected_checkin(monitor_environment.last_checkin)
 
             # add missed checkin
             MonitorCheckIn.objects.create(

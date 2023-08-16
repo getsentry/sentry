@@ -280,7 +280,10 @@ class Monitor(Model):
     def get_audit_log_data(self):
         return {"name": self.name, "type": self.type, "status": self.status, "config": self.config}
 
-    def get_next_scheduled_checkin(self, last_checkin):
+    def get_next_expected_checkin(self, last_checkin: datetime) -> datetime:
+        """
+        Computes the next expected checkin time given the most recent checkin time
+        """
         tz = pytz.timezone(self.config.get("timezone") or "UTC")
         schedule_type = self.config.get("schedule_type", ScheduleType.CRONTAB)
         next_checkin = get_next_schedule(
@@ -288,12 +291,14 @@ class Monitor(Model):
         )
         return next_checkin
 
-    def get_next_scheduled_checkin_with_margin(self, last_checkin):
-        next_checkin = self.get_next_scheduled_checkin(last_checkin)
+    def get_next_expected_checkin_latest(self, last_checkin: datetime) -> datetime:
+        """
+        Computes the latest time we will expect the next checkin at given the
+        most recent checkin time. This is determined by the user-conigured
+        margin.
+        """
+        next_checkin = self.get_next_expected_checkin(last_checkin)
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
-
-    def add_checkin_margin(self, checkin):
-        return checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
     def update_config(self, config_payload, validated_config):
         monitor_config = self.config
@@ -522,7 +527,8 @@ class MonitorEnvironment(Model):
         elif reason == MonitorFailure.DURATION:
             new_status = MonitorStatus.TIMEOUT
 
-        next_checkin = self.monitor.get_next_scheduled_checkin(next_checkin_base)
+        next_checkin = self.monitor.get_next_expected_checkin(next_checkin_base)
+        next_checkin_latest = self.monitor.get_next_expected_checkin_latest(next_checkin_base)
 
         affected = (
             type(self)
@@ -531,7 +537,7 @@ class MonitorEnvironment(Model):
             )
             .update(
                 next_checkin=next_checkin,
-                next_checkin_latest=self.monitor.add_checkin_margin(next_checkin),
+                next_checkin_latest=next_checkin_latest,
                 status=new_status,
                 last_checkin=last_checkin,
             )
@@ -645,11 +651,13 @@ class MonitorEnvironment(Model):
         return True
 
     def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
-        next_checkin = self.monitor.get_next_scheduled_checkin(ts)
+        next_checkin = self.monitor.get_next_expected_checkin(ts)
+        next_checkin_latest = self.monitor.get_next_expected_checkin_latest(ts)
+
         params = {
             "last_checkin": ts,
             "next_checkin": next_checkin,
-            "next_checkin_latest": self.monitor.add_checkin_margin(next_checkin),
+            "next_checkin_latest": next_checkin_latest,
         }
         if checkin.status == CheckInStatus.OK and self.monitor.status != ObjectStatus.DISABLED:
             params["status"] = MonitorStatus.OK
