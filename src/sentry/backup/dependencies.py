@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from enum import Enum, auto, unique
+from functools import lru_cache
 from typing import NamedTuple, Type
 
 from django.db import models
@@ -106,6 +107,8 @@ class PrimaryKeyMap:
         self.mapping[model][old] = new
 
 
+# No arguments, so we lazily cache the result after the first calculation.
+@lru_cache(maxsize=1)
 def dependencies() -> dict[str, ModelRelations]:
     """Produce a dictionary mapping model type definitions to a `ModelDeps` describing their dependencies."""
 
@@ -187,6 +190,8 @@ def dependencies() -> dict[str, ModelRelations]:
     return model_dependencies_list
 
 
+# No arguments, so we lazily cache the result after the first calculation.
+@lru_cache(maxsize=1)
 def sorted_dependencies():
     """Produce a list of model definitions such that, for every item in the list, all of the other models it mentions in its fields and/or natural key (ie, its "dependencies") have already appeared in the list.
 
