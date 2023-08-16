@@ -105,10 +105,10 @@ class AvatarChooser extends Component<Props, State> {
   }
 
   handleSuccess(model: Model) {
-    addSuccessMessage(t('Successfully saved avatar preferences'));
     const {onSave} = this.props;
     this.setState({model});
     onSave(model);
+    addSuccessMessage(t('Successfully saved avatar preferences'));
   }
 
   handleSaveSettings = (ev: React.MouseEvent) => {
