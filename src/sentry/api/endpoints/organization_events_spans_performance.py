@@ -328,7 +328,9 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
                     rollup,
                     query=query,
                     selected_columns=query_columns,
-                    functions_acl=["array_join", "percentileArray", "sumArray"],
+                    config=QueryBuilderConfig(
+                        functions_acl=["array_join", "percentileArray", "sumArray"],
+                    ),
                 )
 
                 span_op_column = builder.resolve_function("array_join(spans_op)")
