@@ -40,7 +40,8 @@ export function CronTimelineSection({event, organization}: Props) {
 
   const nowRef = useRef<Date>(new Date());
   const {start, end} = getTimeRangeFromEvent(event, nowRef.current, timeWindow);
-  const {elementRef, width: timelineWidth} = useDimensions<HTMLDivElement>();
+  const elementRef = useRef<HTMLDivElement>(null);
+  const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
   const elapsedMinutes = timeWindowConfig[timeWindow].elapsedMinutes;
   const rollup = Math.floor((elapsedMinutes * 60) / timelineWidth);
