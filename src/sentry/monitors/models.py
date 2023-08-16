@@ -67,7 +67,7 @@ MONITOR_CONFIG = {
     },
     # TODO(davidenwang): Old monitors may not have timezone or schedule_type, these should be added here once we've cleaned up old data
     "required": ["checkin_margin", "max_runtime", "schedule"],
-    "additionalProperties": True,
+    "additionalProperties": False,
 }
 
 MAX_SLUG_LENGTH = 50
@@ -309,7 +309,7 @@ class Monitor(Model):
             jsonschema.validate(self.config, MONITOR_CONFIG)
             return self.config
         except jsonschema.ValidationError:
-            logging.error(f"Monitor: {self.id} invalid config: {self.config}")
+            logging.exception(f"Monitor: {self.id} invalid config: {self.config}", exc_info=True)
 
     def get_alert_rule(self):
         alert_rule_id = self.config.get("alert_rule_id")
