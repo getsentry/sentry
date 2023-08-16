@@ -696,6 +696,7 @@ class GithubProxyClientTest(TestCase):
 
     @responses.activate
     @with_feature("organizations:github-disable-on-broken")
+    @freeze_time("2022-01-01 03:30:00")
     def test_slow_integration_is_not_broken_or_disabled(self):
         """
         slow test with disable flag on
