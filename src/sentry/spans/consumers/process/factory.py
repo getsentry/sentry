@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import atexit
 import random
 import uuid
 from datetime import datetime
@@ -128,7 +127,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 default_config=producer_config,
             )
         )
-        atexit.register(self.__producer.close)
         self.__output_topic = Topic(name=output_topic)
 
     def create_with_partitions(
@@ -150,3 +148,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             function=process_message,
             next_step=next_step,
         )
+
+    def shutdown(self) -> None:
+        self.__producer.close()

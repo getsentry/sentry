@@ -11,17 +11,18 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all
-def test_ingest_span():
+def test_ingest_span(request):
     create_default_projects()
 
-    processing_strategy = ProcessSpansStrategyFactory(
+    factory = ProcessSpansStrategyFactory(
         output_topic="snuba-spans",
         num_processes=1,
         max_batch_size=1,
         max_batch_time=1,
         input_block_size=1,
         output_block_size=1,
-    ).create_with_partitions(
+    )
+    strategy = factory.create_with_partitions(
         commit=Mock(),
         partitions={},
     )
@@ -52,7 +53,7 @@ def test_ingest_span():
     }
     payload = msgpack.packb(message_dict)
 
-    processing_strategy.submit(
+    strategy.submit(
         Message(
             BrokerValue(
                 KafkaPayload(
@@ -66,7 +67,7 @@ def test_ingest_span():
             )
         )
     )
-    processing_strategy.poll()
-    processing_strategy.join(1)
-    processing_strategy.close()
-    processing_strategy.terminate()
+    strategy.poll()
+    strategy.join(1)
+    strategy.terminate()
+    request.addfinalizer(factory.shutdown)
