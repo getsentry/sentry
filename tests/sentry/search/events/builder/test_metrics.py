@@ -2009,18 +2009,26 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_run_query_with_on_demand_distribution(self):
-        field = "p75(measurements.fp)"
+    def test_run_multi_series_query_with_on_demand_count_and_dist(self):
+        fields = ["count()", "p50(transaction.duration)"]
         query = "transaction.duration:>0"
-        spec = OnDemandMetricSpec(field=field, query=query)
+        specs = [OnDemandMetricSpec(field=field, query=query) for field in fields]
 
         for hour in range(0, 5):
+            self.store_transaction_metric(
+                value=hour * 100,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                tags={"query_hash": specs[0].query_hash()},
+                timestamp=self.start + datetime.timedelta(hours=hour),
+            )
             self.store_transaction_metric(
                 value=hour * 100,
                 metric=TransactionMetricKey.DIST_ON_DEMAND.value,
                 internal_metric=TransactionMRI.DIST_ON_DEMAND.value,
                 entity="metrics_distributions",
-                tags={"query_hash": spec.query_hash()},
+                tags={"query_hash": specs[1].query_hash()},
                 timestamp=self.start + datetime.timedelta(hours=hour),
             )
 
@@ -2029,10 +2037,12 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             interval=3600,
             query=query,
-            selected_columns=[field],
+            selected_columns=fields,
             on_demand_metrics_enabled=True,
         )
+
         result = query.run_query("test_query")
+
         assert result["data"][:5] == [
             {
                 "time": self.start.isoformat(),

@@ -52,6 +52,35 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 
 
+def _on_demand_metric_specs(selected_columns: List[str], query: str) -> List[OnDemandMetricSpec]:
+    try:
+        return [OnDemandMetricSpec(column, query) for column in selected_columns]
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return []
+
+
+def merge_series(columns: List[str], get_series_results: List[dict]):
+    """Merge the results of a bulk query into a single result"""
+    if len(get_series_results) == 0:
+        return None
+
+    base = {"start": get_series_results[0]['start'], "end": get_series_results[0]['end'],
+            'intervals': get_series_results[0]['intervals'], 'groups': [{'by': {}, 'series': {}, 'totals': {}}],
+            'meta': [{'name': 'bucketed_time', 'type': "DateTime('Universal')"}]}
+
+    for i, column in enumerate(columns):
+        result = get_series_results[i]
+
+        # on-demand get-series results always have one group per result
+        base['groups'][0]['series'][column] = list(result['groups'][0]['series'].values())[0]
+        base['groups'][0]['totals'][column] = list(result['groups'][0]['totals'].values())[0]
+
+        base['meta'].append({'name': column, 'type': "Float64"})
+
+    return base
+
+
 class MetricsQueryBuilder(QueryBuilder):
     requires_organization_condition = True
     is_alerts_query = False
@@ -104,31 +133,19 @@ class MetricsQueryBuilder(QueryBuilder):
     def are_columns_resolved(self) -> bool:
         # If we have an on demand spec, we want to mark the columns as resolved, since we are not running the
         # `resolve_query` method.
-        if self._on_demand_metric_spec:
+        if self._should_use_on_demand_metrics:
             return True
 
         return super().are_columns_resolved()
 
     @cached_property
-    def _on_demand_metric_spec(self) -> Optional[OnDemandMetricSpec]:
-        if not self.on_demand_metrics_enabled:
-            return None
-
-        field = self.selected_columns[0] if self.selected_columns else None
-        if not field:
-            return None
-
-        if self.query is None:
-            return None
-
-        if not should_use_on_demand_metrics(self.dataset, field, self.query):
-            return None
-
+    def _should_use_on_demand_metrics(self) -> bool:
         try:
-            return OnDemandMetricSpec(field, self.query)
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            return None
+            return self.on_demand_metrics_enabled and should_use_on_demand_metrics(self.dataset,
+                                                                                   self.selected_columns[0],
+                                                                                   self.query)
+        except:
+            return False
 
     def _get_metrics_query_from_on_demand_spec(
         self, spec: OnDemandMetricSpec, require_time_range: bool = True
@@ -138,12 +155,10 @@ class MetricsQueryBuilder(QueryBuilder):
 
         if isinstance(self, TimeseriesMetricQueryBuilder):
             limit = Limit(1)
-            alias = "count"
             include_series = True
             interval = self.interval
         else:
             limit = self.limit or Limit(1)
-            alias = spec.mri
             include_series = False
             interval = None
 
@@ -162,7 +177,7 @@ class MetricsQueryBuilder(QueryBuilder):
             )
 
         return MetricsQuery(
-            select=[MetricField(spec.op, spec.mri, alias=alias)],
+            select=[MetricField(spec.op, spec.mri)],
             where=[
                 Condition(
                     lhs=Column(QUERY_HASH_KEY),
@@ -218,12 +233,10 @@ class MetricsQueryBuilder(QueryBuilder):
 
         # Resolutions that we will perform only in case the query is not on demand. The reasoning for this is that
         # for building an on demand query we only require a time interval and granularity. All the other fields are
-        # automatically computed given the OnDemandMetricSpec.
-        if not self._on_demand_metric_spec:
-            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
-                self.where, self.having = self.resolve_conditions(
-                    query, use_aggregate_conditions=use_aggregate_conditions
-                )
+        if not self._should_use_on_demand_metrics:
+            self.where, self.having = self.resolve_conditions(
+                query, use_aggregate_conditions=use_aggregate_conditions
+            )
             with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
                 # params depends on parse_query, and conditions being resolved first since there may be projects
                 # in conditions
@@ -247,7 +260,7 @@ class MetricsQueryBuilder(QueryBuilder):
             col = tag_match.group("tag") if tag_match else col
 
         # on-demand metrics require metrics layer behavior
-        if self.use_metrics_layer or self._on_demand_metric_spec:
+        if self.use_metrics_layer or self._should_use_on_demand_metrics:
             if col in ["project_id", "timestamp"]:
                 return col
             # TODO: update resolve params so this isn't needed
@@ -630,7 +643,7 @@ class MetricsQueryBuilder(QueryBuilder):
         This dialect should NEVER be used outside of the transformer as it will create problems if parsed by the
         snuba SDK.
         """
-        if not self.use_metrics_layer and not self.on_demand_metrics_enabled:
+        if not self.use_metrics_layer and not self._should_use_on_demand_metrics:
             # The reasoning for this error is because if "use_metrics_layer" is false, the MQB will not generate the
             # snql dialect explained below as there is not need for that because it will directly generate normal snql
             # that can be returned via the "get_snql_query" method.
@@ -837,6 +850,71 @@ class MetricsQueryBuilder(QueryBuilder):
         return metric_layer_result
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+
+        if self.use_metrics_layer or self._should_use_on_demand_metrics:
+            from sentry.snuba.metrics.datasource import get_series
+            from sentry.snuba.metrics.mqb_query_transformer import (
+                transform_mqb_query_to_metrics_query,
+            )
+
+            try:
+                with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
+                    if self._should_use_on_demand_metrics:
+                        metrics_queries = [
+                            self._get_metrics_query_from_on_demand_spec(
+                                spec, require_time_range=True
+                            )
+                            for spec in _on_demand_metric_specs(self.selected_columns, self.query)
+                        ]
+
+                        metrics_data = merge_series(self.selected_columns, [get_series(
+                            projects=self.params.projects,
+                            metrics_query=metrics_query,
+                            use_case_id=UseCaseID.TRANSACTIONS
+                            if self.is_performance
+                            else UseCaseID.SESSIONS,
+                            include_meta=True,
+                            tenant_ids=self.tenant_ids,
+                        ) for metrics_query in metrics_queries])
+                    else:
+                        intermediate_query = self.get_metrics_layer_snql_query()
+                        metrics_query = transform_mqb_query_to_metrics_query(
+                            intermediate_query, self.is_alerts_query
+                        )
+
+                        with sentry_sdk.start_span(op="metric_layer", description="run_query"):
+                            metrics_data = get_series(
+                                projects=self.params.projects,
+                                metrics_query=metrics_query,
+                                use_case_id=UseCaseID.TRANSACTIONS
+                                if self.is_performance
+                                else UseCaseID.SESSIONS,
+                                include_meta=True,
+                                tenant_ids=self.tenant_ids,
+                            )
+            except Exception as err:
+                raise IncompatibleMetricsQuery(err)
+            with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
+                # series does some strange stuff to the clickhouse response, turn it back so we can handle it
+                metric_layer_result: Any = {
+                    "data": [],
+                    "meta": metrics_data["meta"],
+                }
+                for group in metrics_data["groups"]:
+                    data = group["by"]
+                    data.update(group["totals"])
+                    metric_layer_result["data"].append(data)
+                    for meta in metric_layer_result["meta"]:
+                        if data.get(meta["name"]) is None:
+                            data[meta["name"]] = self.get_default_value(meta["type"])
+
+            return metric_layer_result
+
+        self.validate_having_clause()
+        self.validate_orderby_clause()
+        # Need to split orderby between the 3 possible tables
+        primary, query_framework = self._create_query_framework()
+
         groupby_aliases = [
             groupby.alias
             if isinstance(groupby, (AliasedExpression, CurriedFunction))
@@ -856,7 +934,7 @@ class MetricsQueryBuilder(QueryBuilder):
         }
 
         # Check if we need to make multiple queries
-        if not self._on_demand_metric_spec:
+        if not self._should_use_on_demand_metrics:
             primary, query_framework = self._create_query_framework()
         else:
             primary = "metrics_layer"
@@ -869,14 +947,14 @@ class MetricsQueryBuilder(QueryBuilder):
                 )
             }
 
-        if self.use_metrics_layer or self._on_demand_metric_spec:
+        if self.use_metrics_layer or self._should_use_on_demand_metrics:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
             )
 
             for query_details in [query_framework.pop(primary), *query_framework.values()]:
-                if len(query_details.functions) == 0 and not self._on_demand_metric_spec:
+                if len(query_details.functions) == 0 and not self._should_use_on_demand_metrics:
                     continue
                 if groupby_values:
                     extra_conditions = [
@@ -903,9 +981,11 @@ class MetricsQueryBuilder(QueryBuilder):
                     extra_conditions = None
                 try:
                     with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                        if self._on_demand_metric_spec:
+                        if self._should_use_on_demand_metrics:
+                            on_demand_specs = _on_demand_metric_specs(self.selected_columns, self.query)
                             metrics_query = self._get_metrics_query_from_on_demand_spec(
-                                spec=self._on_demand_metric_spec, require_time_range=True
+                                spec=on_demand_specs[0],
+                                require_time_range=True
                             )
                         else:
                             metrics_query = transform_mqb_query_to_metrics_query(
@@ -1080,15 +1160,17 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         we are going to import the purposfully hidden SnubaQueryBuilder which is a component that takes a MetricsQuery
         and returns one or more equivalent snql query(ies).
         """
-        if self.use_metrics_layer or self._on_demand_metric_spec:
+        if self.use_metrics_layer or self._should_use_on_demand_metrics:
             from sentry.snuba.metrics import SnubaQueryBuilder
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
             )
 
-            if self._on_demand_metric_spec:
+            if self._should_use_on_demand_metrics:
+                on_demand_specs = _on_demand_metric_specs(self.selected_columns, self.query)
                 metrics_query = self._get_metrics_query_from_on_demand_spec(
-                    spec=self._on_demand_metric_spec, require_time_range=False
+                    # Alert queries select a single column so there is only one spec
+                    spec=on_demand_specs[0], require_time_range=False
                 )
             else:
                 intermediate_query = self.get_metrics_layer_snql_query()
@@ -1328,7 +1410,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         return queries
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        if self.use_metrics_layer or self._on_demand_metric_spec:
+        if self.use_metrics_layer or self._should_use_on_demand_metrics:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
@@ -1336,25 +1418,39 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                    if self._on_demand_metric_spec:
-                        metrics_query = self._get_metrics_query_from_on_demand_spec(
-                            spec=self._on_demand_metric_spec, require_time_range=True
-                        )
+                    if self._should_use_on_demand_metrics:
+                        metrics_queries = [
+                            self._get_metrics_query_from_on_demand_spec(
+                                spec, require_time_range=True
+                            )
+                            for spec in _on_demand_metric_specs(self.selected_columns, self.query)
+                        ]
+
+                        metrics_data = merge_series(self.selected_columns, [get_series(
+                            projects=self.params.projects,
+                            metrics_query=metrics_query,
+                            use_case_id=UseCaseID.TRANSACTIONS
+                            if self.is_performance
+                            else UseCaseID.SESSIONS,
+                            include_meta=True,
+                            tenant_ids=self.tenant_ids,
+                        ) for metrics_query in metrics_queries])
+
                     elif self.use_metrics_layer:
                         snuba_query = self.get_snql_query()[0].query
                         metrics_query = transform_mqb_query_to_metrics_query(
                             snuba_query, self.is_alerts_query
                         )
-                with sentry_sdk.start_span(op="metric_layer", description="run_query"):
-                    metrics_data = get_series(
-                        projects=self.params.projects,
-                        metrics_query=metrics_query,
-                        use_case_id=UseCaseID.TRANSACTIONS
-                        if self.is_performance
-                        else UseCaseID.SESSIONS,
-                        include_meta=True,
-                        tenant_ids=self.tenant_ids,
-                    )
+                        with sentry_sdk.start_span(op="metric_layer", description="run_query"):
+                            metrics_data = get_series(
+                                projects=self.params.projects,
+                                metrics_query=metrics_query,
+                                use_case_id=UseCaseID.TRANSACTIONS
+                                if self.is_performance
+                                else UseCaseID.SESSIONS,
+                                include_meta=True,
+                                tenant_ids=self.tenant_ids,
+                            )
             except Exception as err:
                 raise IncompatibleMetricsQuery(err)
             with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
