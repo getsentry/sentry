@@ -12,7 +12,7 @@ class OrganizationIntegrationAlertRulesTest(APITestCase):
         self.organization = self.create_organization(owner=self.user)
 
     def get_path(self, integration_id):
-        return f"/api/0/organizations/{self.organization.slug}/integrations/{integration_id}/alert-rules/"
+        return f"/api/0/organizations/{self.organization.slug}/integrations/{integration_id}/migrate-opsgenie/"
 
     def test_no_integration(self):
         path = self.get_path(integration_id=-1)
@@ -27,12 +27,14 @@ class OrganizationIntegrationAlertRulesTest(APITestCase):
         response = self.client.put(path, format="json")
         assert response.status_code == 400
 
-    @patch("sentry.integrations.opsgenie.integration.OpsgenieIntegration.migrate_alert_rules")
-    def test_simple(self, mock_migrate_alert_rules):
+    @patch(
+        "sentry.integrations.opsgenie.integration.OpsgenieIntegration.schedule_migrate_opsgenie_plugin"
+    )
+    def test_simple(self, mock_migrate_opsgenie_plugin):
         integration = self.create_integration(
             organization=self.organization, provider="opsgenie", external_id="cool_opsgenie"
         )
         path = self.get_path(integration_id=integration.id)
         response = self.client.put(path, format="json")
         assert response.status_code == 204
-        assert mock_migrate_alert_rules.called
+        assert mock_migrate_opsgenie_plugin.called

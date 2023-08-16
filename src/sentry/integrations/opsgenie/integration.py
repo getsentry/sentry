@@ -19,6 +19,7 @@ from sentry.integrations.base import (
 from sentry.models import Integration, OrganizationIntegration
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.tasks.integrations import migrate_opsgenie_plugin
 from sentry.web.helpers import render_to_response
 
 from .client import OpsgenieClient
@@ -149,8 +150,8 @@ class OpsgenieIntegration(IntegrationInstallation):
             team["id"] = str(self.org_integration.id) + "-" + team["team"]
         return super().update_organization_config(data)
 
-    def migrate_alert_rules(self):
-        migrate_alert_rules.apply_async(
+    def schedule_migrate_opsgenie_plugin(self):
+        migrate_opsgenie_plugin.apply_async(
             kwargs={
                 "integration_id": self.model.id,
                 "organization_id": self.organization_id,

@@ -183,7 +183,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         )
 
         with self.tasks():
-            self.installation.migrate_alert_rules()
+            self.installation.schedule_migrate_opsgenie_plugin()
 
         org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
         id1 = str(self.organization.id) + "-thonk"
@@ -242,7 +242,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         plugin2.set_option("api_key", "123-key", project2)
 
         with self.tasks():
-            self.installation.migrate_alert_rules()
+            self.installation.schedule_migrate_opsgenie_plugin()
 
         org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
         id1 = str(self.organization.id) + "-thonk"
@@ -274,7 +274,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         )
 
         with self.tasks():
-            self.installation.migrate_alert_rules()
+            self.installation.schedule_migrate_opsgenie_plugin()
 
         org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
         id1 = str(self.organization.id) + "-thonk"
