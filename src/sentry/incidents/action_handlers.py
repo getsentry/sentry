@@ -349,6 +349,11 @@ def generate_incident_trigger_email_context(
             tz = options[0].value
 
     organization = incident.organization
+    alert_link_params = {
+        "referrer": "alert_email",
+    }
+    if notification_uuid:
+        alert_link_params["notification_uuid"] = notification_uuid
 
     alert_link = organization.absolute_url(
         reverse(
@@ -358,7 +363,7 @@ def generate_incident_trigger_email_context(
                 "incident_id": incident.identifier,
             },
         ),
-        query=f"referrer=alert_email&notification_uuid={notification_uuid}",
+        query=urlencode(alert_link_params),
     )
 
     snooze_alert_url = None

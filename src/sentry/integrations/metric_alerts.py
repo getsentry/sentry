@@ -101,7 +101,11 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
 
 
 def incident_attachment_info(
-    incident: Incident, new_status: IncidentStatus, metric_value=None, notification_uuid=None
+    incident: Incident,
+    new_status: IncidentStatus,
+    metric_value=None,
+    notification_uuid=None,
+    referrer="metric_alert",
 ):
     alert_rule = incident.alert_rule
 
@@ -115,7 +119,7 @@ def incident_attachment_info(
 
     title_link_params = {
         "alert": str(incident.identifier),
-        "referrer": "metric_alert",
+        "referrer": referrer,
     }
     if notification_uuid:
         title_link_params["notification_uuid"] = notification_uuid

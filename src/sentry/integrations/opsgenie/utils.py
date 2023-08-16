@@ -15,9 +15,14 @@ from .client import OpsgenieClient
 
 
 def build_incident_attachment(
-    incident: Incident, new_status: IncidentStatus, metric_value: int | None = None
+    incident: Incident,
+    new_status: IncidentStatus,
+    metric_value: int | None = None,
+    notification_uuid: str | None = None,
 ) -> dict[str, Any]:
-    data = incident_attachment_info(incident, new_status, metric_value)
+    data = incident_attachment_info(
+        incident, new_status, metric_value, notification_uuid, referrer="metric_alert_opsgenie"
+    )
     alert_key = f"incident_{incident.organization_id}_{incident.identifier}"
     if new_status == IncidentStatus.CLOSED:
         payload = {"identifier": alert_key}
@@ -77,7 +82,7 @@ def send_incident_alert_notification(
         integration_key=integration_key,
         org_integration_id=incident.organization_id,
     )
-    attachment = build_incident_attachment(incident, new_status, metric_value)
+    attachment = build_incident_attachment(incident, new_status, metric_value, notification_uuid)
     try:
         client.send_notification(attachment)
     except ApiError as e:

@@ -1,3 +1,5 @@
+import uuid
+
 import responses
 from freezegun import freeze_time
 
@@ -57,8 +59,13 @@ class PagerDutyActionHandlerTest(FireTest):
             integration=self.integration,
         )
         metric_value = 1000
+        notification_uuid = str(uuid.uuid4())
         data = build_incident_attachment(
-            incident, self.integration_key, IncidentStatus(incident.status), metric_value
+            incident,
+            self.integration_key,
+            IncidentStatus(incident.status),
+            metric_value,
+            notification_uuid,
         )
 
         assert data["routing_key"] == self.integration_key
@@ -73,7 +80,7 @@ class PagerDutyActionHandlerTest(FireTest):
         assert data["links"][0]["text"] == f"Critical: {alert_rule.name}"
         assert (
             data["links"][0]["href"]
-            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert_pagerduty&notification_uuid={notification_uuid}"
         )
 
     @responses.activate

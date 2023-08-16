@@ -32,13 +32,14 @@ def build_incident_attachment(
     incident: Incident,
     new_status: IncidentStatus,
     metric_value: int | None = None,
+    notification_uuid: str | None = None,
 ) -> dict[str, str]:
     from sentry.api.serializers.rest_framework.base import (
         camel_to_snake_case,
         convert_dict_key_case,
     )
 
-    data = incident_attachment_info(incident, new_status, metric_value)
+    data = incident_attachment_info(incident, new_status, metric_value, notification_uuid)
     return {
         "metric_alert": convert_dict_key_case(
             serialize(incident, serializer=IncidentSerializer()), camel_to_snake_case
@@ -65,7 +66,9 @@ def send_incident_alert_notification(
     :return:
     """
     organization = serialize_rpc_organization(incident.organization)
-    incident_attachment = build_incident_attachment(incident, new_status, metric_value)
+    incident_attachment = build_incident_attachment(
+        incident, new_status, metric_value, notification_uuid
+    )
 
     integration_service.send_incident_alert_notification(
         sentry_app_id=action.sentry_app_id,
