@@ -28,7 +28,11 @@ from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.builder.utils import remove_hours, remove_minutes
+from sentry.search.events.builder.utils import (
+    adjust_datetime_to_granularity,
+    remove_hours,
+    remove_minutes,
+)
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
     HistogramParams,
@@ -1214,17 +1218,22 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
     def resolve_granularity(self) -> Granularity:
         """Find the largest granularity that is smaller than the interval"""
-        granularity = super().resolve_granularity()
-        if granularity.granularity > self.interval:
-            for available_granularity in constants.METRICS_GRANULARITIES:
-                if available_granularity <= self.interval:
-                    return Granularity(available_granularity)
+        for available_granularity in constants.METRICS_GRANULARITIES:
+            if available_granularity <= self.interval:
+                granularity = available_granularity
+                break
+        else:
             # if we are here the user requested an interval smaller than the smallest granularity available.
             # We'll force the interval to be the smallest granularity (since we don't have data at the requested interval)
             # and return the smallest granularity
             self.interval = constants.METRICS_GRANULARITIES[-1]
-            return Granularity(self.interval)
-        return granularity
+            granularity = self.interval
+
+        # the start time should be at granularity boundary (otherwse we'll miss data between the start time and the
+        # next granularity boundary, e.g. if start time is 10:20 and granularity 1h we'll miss all data between
+        # 10:20 and 11:00 since the timestamp for our data will be 10:00--> so we need to).
+        self.start = adjust_datetime_to_granularity(self.start, self.interval)
+        return Granularity(granularity)
 
     def resolve_split_granularity(self) -> Tuple[List[Condition], Optional[Granularity]]:
         """Don't do this for timeseries"""
