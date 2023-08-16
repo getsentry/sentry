@@ -145,6 +145,7 @@ NOTIFICATION_SETTING_OPTION_VALUES = {
     NotificationSettingOptionValues.COMMITTED_ONLY: NotificationSettingsOptionEnum.COMMITTED_ONLY.value,
 }
 
+# default is not a choice anymore, we just delete the row if we want to the default
 NOTIFICATION_SETTING_V2_CHOICES = [
     NotificationSettingsOptionEnum.ALWAYS.value,
     NotificationSettingsOptionEnum.NEVER.value,

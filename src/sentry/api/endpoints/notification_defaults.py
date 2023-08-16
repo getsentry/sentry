@@ -16,6 +16,7 @@ from sentry.types.integrations import EXTERNAL_PROVIDERS
 @control_silo_endpoint
 class NotificationDefaultsEndpoints(Endpoint):
     permission_classes = ()
+    private = True
 
     def get(self, request: Request) -> Response:
         """

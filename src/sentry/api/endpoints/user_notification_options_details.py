@@ -10,20 +10,21 @@ from sentry.api.validators.notifications import validate_type
 from sentry.models import User
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.serializers import NotificationSettingsOptionSerializer
-from sentry.notifications.validators import (
-    UserNotificationSettingOptionWithValueSerializer,
-    UserNotificationSettingsOptionsDetailsSerializer,
-)
+from sentry.notifications.validators import UserNotificationSettingOptionWithValueSerializer
 
 
 @control_silo_endpoint
 class UserNotificationOptionsDetailsEndpoint(UserEndpoint):
-    def get(self, request: Request, user: User) -> Response:
+    # TODO(Steve): Make not private when we launch new system
+    private = True
 
+    def get(self, request: Request, user: User) -> Response:
+        """
+        Retrieve the notification preferences for a user.
+        Returns a list of NotificationSettingOption rows.
+        """
         notification_type = request.GET.get("type")
-        notifications_settings = NotificationSettingOption.objects.filter(
-              user_id=user.id
-        )
+        notifications_settings = NotificationSettingOption.objects.filter(user_id=user.id)
         if notification_type:
             try:
                 validate_type(notification_type)
@@ -38,6 +39,9 @@ class UserNotificationOptionsDetailsEndpoint(UserEndpoint):
         return Response(notification_preferences)
 
     def put(self, request: Request, user: User) -> Response:
+        """
+        Update the notification preferences for a user.
+        """
         serializer = UserNotificationSettingOptionWithValueSerializer(data=request.data)
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=400)
@@ -50,23 +54,4 @@ class UserNotificationOptionsDetailsEndpoint(UserEndpoint):
             type=data["type"],
             defaults={"value": data["value"]},
         )
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    def delete(self, request: Request, user: User) -> Response:
-        serializer = UserNotificationSettingsOptionsDetailsSerializer(data=request.data)
-        if not serializer.is_valid():
-            return self.respond(serializer.errors, status=400)
-
-        data = serializer.validated_data
-        try:
-            option = NotificationSettingOption.objects.get(
-                user_id=user.id,
-                scope_type=data["scope_type"],
-                scope_identifier=data["scope_identifier"],
-                type=data["type"],
-            )
-        except NotificationSettingOption.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
-        option.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

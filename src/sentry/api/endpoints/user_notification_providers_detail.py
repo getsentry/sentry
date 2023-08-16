@@ -20,21 +20,25 @@ from sentry.notifications.validators import (
 
 @control_silo_endpoint
 class UserNotificationProvidersDetailsEndpoint(UserEndpoint):
+    # TODO(Steve): Make not private when we launch new system
+    private = True
+
     def get(self, request: Request, user: User) -> Response:
+        """
+        Retrieve the notification provider preferences for a user.
+        Returns a list of NotificationSettingProvider rows.
+        """
+        notifications_settings = NotificationSettingProvider.objects.filter(
+            user_id=user.id,
+        )
         notification_type = request.GET.get("type")
         if notification_type:
             try:
                 validate_type(notification_type)
             except ParameterValidationError:
                 return self.respond({"type": ["Invalid type"]}, status=400)
-
-            notifications_settings = NotificationSettingProvider.objects.filter(
+            notifications_settings = notifications_settings.filter(
                 type=notification_type,
-                user_id=user.id,
-            )
-        else:
-            notifications_settings = NotificationSettingProvider.objects.filter(
-                user_id=user.id,
             )
 
         notification_preferences = serialize(
@@ -44,6 +48,10 @@ class UserNotificationProvidersDetailsEndpoint(UserEndpoint):
         return Response(notification_preferences)
 
     def put(self, request: Request, user: User) -> Response:
+        """
+        Update the notification provider preferences for a user.
+        Provider is an array of provider names.
+        """
         serializer = UserNotificationSettingsProvidersDetailsSerializer(data=request.data)
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=400)
