@@ -1,4 +1,5 @@
 from .discover import (  # NOQA
+    BaseQueryBuilder,
     HistogramQueryBuilder,
     QueryBuilder,
     TimeseriesQueryBuilder,
@@ -35,6 +36,7 @@ from .spans_metrics import (  # NOQA
 )
 
 __all__ = [
+    "BaseQueryBuilder",
     "HistogramQueryBuilder",
     "QueryBuilder",
     "TimeseriesQueryBuilder",

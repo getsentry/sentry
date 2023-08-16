@@ -509,7 +509,7 @@ class MetricsQueryBuilder(QueryBuilder):
             return value
         return self.resolve_metric_index(value)
 
-    def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name
         operator = search_filter.operator
         value = search_filter.value.value
