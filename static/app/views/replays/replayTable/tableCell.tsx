@@ -531,7 +531,7 @@ const ActionMenuTrigger = styled(Button)`
   top: 50%;
   transform: translateY(-50%);
   padding: ${space(0.75)};
-  left: -10%;
+  left: -${space(0.75)};
   display: flex;
   align-items: center;
   opacity: 0;
