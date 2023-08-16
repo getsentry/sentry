@@ -54,16 +54,14 @@ class ExternalActor(DefaultFieldsModel):
     def delete(self, **kwargs):
         from sentry.services.hybrid_cloud.integration import integration_service
 
-        # TODO: Extract this out of the delete method into the endpoint / controller instead.
-        if self.team_id is not None:
-            integration = integration_service.get_integration(integration_id=self.integration_id)
-            if integration:
-                install = integration.get_installation(organization_id=self.organization.id)
-                team = self.team
-                install.notify_remove_external_team(external_team=self, team=team)
-                notifications_service.remove_notification_settings_for_team(
-                    team_id=team.id, provider=ExternalProviders(self.provider)
-                )
+        integration = integration_service.get_integration(integration_id=self.integration_id)
+        install = integration.get_installation(organization_id=self.organization.id)
+
+        team = self.actor.resolve()
+        install.notify_remove_external_team(external_team=self, team=team)
+        notifications_service.remove_notification_settings_for_team(
+            team_id=team.id, provider=ExternalProviders(self.provider)
+        )
 
         return super().delete(**kwargs)
 
