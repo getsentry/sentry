@@ -882,14 +882,14 @@ def _get_apdex_project_transaction_threshold(project: Project) -> Tuple[int, str
         value_list=["threshold", "metric"],
     )
 
-    # We expect to find only 1 entry, if we find many or none, we throw an error.
     if len(result) == 0:
-        raise Exception(f"No apdex threshold found for apdex in project {project.id}")
-    elif len(result) > 1:
-        raise Exception(f"Multiple thresholds found for apdex in project {project.id}")
-
-    # We will extract the threshold from the apdex(x) field where x is the threshold.
-    threshold, metric = result[0]
+        # We use the default threshold shown in the UI.
+        threshold = 300
+        metric = TransactionMetric.DURATION.value
+    else:
+        # We technically don't use this threshold since we extract it from the apdex(x) field where x is the threshold,
+        # but we still return it to have it in case a fallback will be needed.
+        threshold, metric = result[0]
 
     if metric == TransactionMetric.DURATION.value:
         metric_field = "transaction.duration"
