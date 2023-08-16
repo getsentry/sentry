@@ -21,6 +21,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
@@ -56,30 +58,36 @@ function DropdownFilter({
           children: [
             {
               key: 'name_add',
-              label: tct('Add [name] to filter', {
-                name: <b>{name}</b>,
-              }),
+              label: t('Add to filter'),
               onAction: () => {
+                const search = new MutableSearch(
+                  decodeScalar(location.query.query) || ''
+                );
                 browserHistory.push({
                   pathname: location.pathname,
                   query: {
                     ...location.query,
-                    query: `${type}.name:"${name}"`,
+                    query: search
+                      .setFilterValues(`${type}.name`, [name ?? ''])
+                      .formatString(),
                   },
                 });
               },
             },
             {
               key: 'name_exclude',
-              label: tct('Exclude [name] from filter', {
-                name: <b>{name}</b>,
-              }),
+              label: t('Exclude from filter'),
               onAction: () => {
+                const search = new MutableSearch(
+                  decodeScalar(location.query.query) || ''
+                );
                 browserHistory.push({
                   pathname: location.pathname,
                   query: {
                     ...location.query,
-                    query: '',
+                    query: search
+                      .removeFilterValue(`${type}.name`, name ?? '')
+                      .formatString(),
                   },
                 });
               },
@@ -97,30 +105,36 @@ function DropdownFilter({
                 children: [
                   {
                     key: 'version_add',
-                    label: tct('Add version [version] to filter', {
-                      version: <b>{version}</b>,
-                    }),
+                    label: t('Add to filter'),
                     onAction: () => {
+                      const search = new MutableSearch(
+                        decodeScalar(location.query.query) || ''
+                      );
                       browserHistory.push({
                         pathname: location.pathname,
                         query: {
                           ...location.query,
-                          query: `${type}.version:"${version}"`,
+                          query: search
+                            .setFilterValues(`${type}.version`, [version ?? ''])
+                            .formatString(),
                         },
                       });
                     },
                   },
                   {
                     key: 'version_exclude',
-                    label: tct('Exclude version [version] from filter', {
-                      version: <b>{version}</b>,
-                    }),
+                    label: t('Exclude from filter'),
                     onAction: () => {
+                      const search = new MutableSearch(
+                        decodeScalar(location.query.query) || ''
+                      );
                       browserHistory.push({
                         pathname: location.pathname,
                         query: {
                           ...location.query,
-                          query: '',
+                          query: search
+                            .removeFilterValue(`${type}.version`, version ?? '')
+                            .formatString(),
                         },
                       });
                     },

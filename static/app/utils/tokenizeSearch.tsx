@@ -288,6 +288,7 @@ export class MutableSearch {
         values.filter(item => item !== value)
       );
     }
+    return this;
   }
 
   addFreeText(value: string) {
