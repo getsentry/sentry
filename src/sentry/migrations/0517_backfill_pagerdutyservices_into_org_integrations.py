@@ -1,4 +1,4 @@
-from django.db import migrations, router, transaction
+from django.db import ProgrammingError, migrations, router, transaction
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapper
@@ -16,6 +16,11 @@ def as_dict(pds):
 def backfill_pagerdutyservices(apps, schema_editor):
     PagerDutyService = apps.get_model("sentry", "PagerDutyService")
     OrganizationIntegration = apps.get_model("sentry", "OrganizationIntegration")
+    try:
+        PagerDutyService.objects.first()
+    except ProgrammingError:
+        # Table was not created as the pagerdutyservice model has been removed.
+        return
 
     for pds in RangeQuerySetWrapper(PagerDutyService.objects.all()):
         try:
@@ -55,6 +60,6 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             backfill_pagerdutyservices,
             reverse_code=migrations.RunPython.noop,
-            hints={"tables": ["sentry_pagerdutyservice", "sentry_organizationintegration"]},
+            hints={"tables": ["sentry_organizationintegration"]},
         ),
     ]
