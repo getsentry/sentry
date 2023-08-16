@@ -201,7 +201,7 @@ class MonitorConsumerTest(TestCase):
         monitor = self._create_monitor(slug="my-monitor")
         guid = uuid.uuid4().hex
 
-        lock = locks.get(f"checkin-creation:{uuid.UUID(guid)}", duration=2, name="checkin_creation")
+        lock = locks.get(f"checkin-creation:{guid}", duration=2, name="checkin_creation")
         lock.acquire()
 
         self.send_checkin(monitor.slug, guid=guid)
