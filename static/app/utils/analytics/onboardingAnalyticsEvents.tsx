@@ -20,7 +20,6 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
-
   'onboarding.js_loader_npm_docs_shown': {
     platform: string;
     project_id: string;
