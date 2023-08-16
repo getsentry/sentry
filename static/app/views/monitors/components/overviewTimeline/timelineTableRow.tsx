@@ -18,17 +18,11 @@ import {MonitorBucket} from './types';
 interface Props extends Omit<CheckInTimelineProps, 'bucketedData' | 'environment'> {
   monitor: Monitor;
   bucketedData?: MonitorBucket[];
-  singleMonitorView?: boolean;
 }
 
 const MAX_SHOWN_ENVIRONMENTS = 4;
 
-export function TimelineTableRow({
-  monitor,
-  bucketedData,
-  singleMonitorView,
-  ...timelineProps
-}: Props) {
+export function TimelineTableRow({monitor, bucketedData, ...timelineProps}: Props) {
   const [isExpanded, setExpanded] = useState(
     monitor.environments.length <= MAX_SHOWN_ENVIRONMENTS
   );
@@ -38,8 +32,8 @@ export function TimelineTableRow({
     : monitor.environments.slice(0, MAX_SHOWN_ENVIRONMENTS);
 
   return (
-    <TimelineRow key={monitor.id} isZebraStriped={!singleMonitorView}>
-      {!singleMonitorView && <MonitorDetails monitor={monitor} />}
+    <TimelineRow key={monitor.id}>
+      <MonitorDetails monitor={monitor} />
       <MonitorEnvContainer>
         {environments.map(({name, status}) => (
           <EnvWithStatus key={name}>
@@ -93,19 +87,16 @@ function MonitorDetails({monitor}: {monitor: Monitor}) {
   );
 }
 
-const TimelineRow = styled('div')<{isZebraStriped: boolean}>`
+const TimelineRow = styled('div')`
   display: contents;
 
-  ${p =>
-    p.isZebraStriped &&
-    `&:nth-child(odd) > * {
-    background: ${p.theme.backgroundSecondary};
+  &:nth-child(odd) > * {
+    background: ${p => p.theme.backgroundSecondary};
   }
 
   &:hover > * {
-    background: ${p.theme.backgroundTertiary};
+    background: ${p => p.theme.backgroundTertiary};
   }
-  `}
 
   > * {
     transition: background 50ms ease-in-out;

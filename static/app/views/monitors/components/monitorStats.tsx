@@ -119,7 +119,7 @@ function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
     <React.Fragment>
       <Panel>
         <PanelBody withPadding>
-          <StyledHeaderTitle>{t('Status')}</StyledHeaderTitle>
+          <StyledHeaderTitle>{t('Check-Ins')}</StyledHeaderTitle>
           {isLoading ? (
             <Placeholder height={`${height}px`} />
           ) : (

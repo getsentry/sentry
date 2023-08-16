@@ -18,7 +18,7 @@ export function getStartFromTimeWindow(end: Date, timeWindow: TimeWindow): Date 
   return start.toDate();
 }
 
-// The space to allocate to each time label based on (MMM DD HH:SS AM/PM)
+// The pixels to allocate to each time label based on (MMM DD HH:SS AM/PM)
 const TIMELABEL_WIDTH = 100;
 
 export function getConfigFromTimeRange(
