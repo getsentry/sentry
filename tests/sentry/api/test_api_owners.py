@@ -12,7 +12,7 @@ class APIOwnersTestCase(TestCase):
         lines = code_owners_file.readlines()
         code_owners_file.close()
         for line in lines:
-            if line.find("src/sentry/api/endpoints/") != -1:
+            if line.find("src/sentry/api/") != -1:
                 tokens = [s.strip() for s in line.split("@getsentry/")]
                 self.teams.update(tokens[1:])
 
