@@ -30,6 +30,7 @@ TAG_MAPPING = {
     "transaction.op": "transaction_op",
 }
 SPAN_SCHEMA_VERSION = 1
+DEFAULT_SPAN_RETENTION_DAYS = 90
 
 
 def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
@@ -39,7 +40,7 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         quotas.backend.get_event_retention(
             organization=organization,
         )
-        or 90
+        or DEFAULT_SPAN_RETENTION_DAYS
     )
 
     snuba_span: MutableMapping[str, Any] = {}
