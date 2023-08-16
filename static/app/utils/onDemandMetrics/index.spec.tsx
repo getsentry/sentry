@@ -23,6 +23,7 @@ describe('createOnDemandFilterWarning', () => {
     expect(getOnDemandFilterWarning('transaction.duration')).toBe(message);
     expect(getOnDemandFilterWarning('user.email')).toBe(message);
     expect(getOnDemandFilterWarning('device.family')).toBe(message);
+    expect(getOnDemandFilterWarning('foo.bar')).toBe(message);
   });
 
   it('should return null if the query key is a standard search key', () => {
@@ -31,12 +32,5 @@ describe('createOnDemandFilterWarning', () => {
     STANDARD_SEARCH_FIELD_KEYS.forEach(key => {
       expect(getOnDemandFilterWarning(key)).toBe(null);
     });
-  });
-
-  it('should return null if the query key is not a supported on-demand metrics key', () => {
-    const message = "This filter isn't supported";
-    const getOnDemandFilterWarning = createOnDemandFilterWarning(message);
-
-    expect(getOnDemandFilterWarning('not_a_valid_key')).toBe(null);
   });
 });
