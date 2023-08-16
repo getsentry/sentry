@@ -11,11 +11,11 @@ import {getSpanOperationDescription} from 'sentry/views/starfish/views/spanSumma
 
 interface Props {
   spanMetrics: {
-    [SpanMetricsFields.SPAN_OP]: string;
-    [SpanMetricsFields.SPAN_DESCRIPTION]: string;
-    [SpanMetricsFields.SPAN_ACTION]: string;
-    [SpanMetricsFields.SPAN_DOMAIN]: string;
-    [SpanMetricsFields.SPAN_GROUP]: string;
+    [SpanMetricsFields.SPAN_OP]?: string;
+    [SpanMetricsFields.SPAN_DESCRIPTION]?: string;
+    [SpanMetricsFields.SPAN_ACTION]?: string;
+    [SpanMetricsFields.SPAN_DOMAIN]?: string;
+    [SpanMetricsFields.SPAN_GROUP]?: string;
   };
 }
 
