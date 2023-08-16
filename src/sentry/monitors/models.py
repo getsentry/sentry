@@ -292,7 +292,7 @@ class Monitor(Model):
         next_checkin = self.get_next_scheduled_checkin(last_checkin)
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
-    def get_checkin_with_margin(self, checkin):
+    def add_checkin_margin(self, checkin):
         return checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
     def update_config(self, config_payload, validated_config):
@@ -531,7 +531,7 @@ class MonitorEnvironment(Model):
             )
             .update(
                 next_checkin=next_checkin,
-                next_checkin_latest=self.monitor.get_checkin_with_margin(next_checkin),
+                next_checkin_latest=self.monitor.add_checkin_margin(next_checkin),
                 status=new_status,
                 last_checkin=last_checkin,
             )
@@ -649,7 +649,7 @@ class MonitorEnvironment(Model):
         params = {
             "last_checkin": ts,
             "next_checkin": next_checkin,
-            "next_checkin_latest": self.monitor.get_checkin_with_margin(next_checkin),
+            "next_checkin_latest": self.monitor.add_checkin_margin(next_checkin),
         }
         if checkin.status == CheckInStatus.OK and self.monitor.status != ObjectStatus.DISABLED:
             params["status"] = MonitorStatus.OK
