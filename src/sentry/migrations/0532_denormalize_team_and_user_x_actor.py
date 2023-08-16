@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0530_new_notification_tables"),
+        ("sentry", "0531_add_notification_uuid_to_incident_activity"),
     ]
 
     operations = [
