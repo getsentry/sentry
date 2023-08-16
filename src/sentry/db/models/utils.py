@@ -60,7 +60,7 @@ def slugify_instance(
     **kwargs: Any,
 ) -> None:
     base_value = re.sub(r"\d+", "", label)  # remove all digits from input
-    base_value = slugify(label)[:max_length]
+    base_value = slugify(base_value)[:max_length]
     base_value = base_value.strip("-")
 
     if base_value is not None:

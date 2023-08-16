@@ -53,6 +53,9 @@ class AuthSAML2Test(AuthProviderTestCase):
     def setUp(self):
         self.user = self.create_user("rick@onehundredyears.com")
         self.organization = self.create_organization(owner=self.user, name="saml2-org")
+        # # Ensure the organization has a numeric slug by using update to bypass the save method
+        # # in Organizations model, which would otherwise remove the numeric slug
+        # self.organization.update(slug="saml2-org")
         self.auth_provider_inst = AuthProvider.objects.create(
             provider=self.provider_name,
             config=dummy_provider_config,
@@ -76,15 +79,15 @@ class AuthSAML2Test(AuthProviderTestCase):
 
     @cached_property
     def login_path(self):
-        return reverse("sentry-auth-organization", args=["saml2-org"])
+        return reverse("sentry-auth-organization", args=[self.organization.slug])
 
     @cached_property
     def acs_path(self):
-        return reverse("sentry-auth-organization-saml-acs", args=["saml2-org"])
+        return reverse("sentry-auth-organization-saml-acs", args=[self.organization.slug])
 
     @cached_property
     def setup_path(self):
-        return reverse("sentry-organization-auth-provider-settings", args=["saml2-org"])
+        return reverse("sentry-organization-auth-provider-settings", args=[self.organization.slug])
 
     def test_redirects_to_idp(self):
         resp = self.client.post(self.login_path, {"init": True})
@@ -126,7 +129,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert resp.status_code == 200
         assert resp.redirect_chain == [
             ("/auth/login/", 302),
-            ("/organizations/saml2-org/issues/", 302),
+            (f"/organizations/{self.organization.slug}/issues/", 302),
         ]
 
     def test_auth_sp_initiated_customer_domain(self):
@@ -272,7 +275,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         self.login_as(self.user)
 
-        path = reverse("sentry-auth-organization-saml-sls", args=["saml2-org"])
+        path = reverse("sentry-auth-organization-saml-sls", args=[self.organization.slug])
         path = path + "?" + urlencode({"SAMLRequest": saml_request})
         resp = self.client.get(path)
 
