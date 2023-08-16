@@ -42,18 +42,31 @@ const SUPPORTED_PROVIDERS: Readonly<CommitProvider[]> = [
 
 type Props = {
   commitId?: string;
+  commitTitle?: string;
   inline?: boolean;
   onClick?: () => void;
   repository?: Repository;
   showIcon?: boolean;
 };
 
-function CommitLink({inline, commitId, repository, showIcon = true, onClick}: Props) {
+function CommitLink({
+  inline,
+  commitId,
+  repository,
+  showIcon = true,
+  onClick,
+  commitTitle,
+}: Props) {
   if (!commitId || !repository) {
     return <span>{t('Unknown Commit')}</span>;
   }
 
-  const shortId = getShortCommitHash(commitId);
+  let label: string;
+  if (commitTitle) {
+    label = commitTitle;
+  } else {
+    label = getShortCommitHash(commitId);
+  }
 
   const providerData = SUPPORTED_PROVIDERS.find(provider => {
     if (!repository.provider) {
@@ -63,7 +76,7 @@ function CommitLink({inline, commitId, repository, showIcon = true, onClick}: Pr
   });
 
   if (providerData === undefined) {
-    return <span>{shortId}</span>;
+    return <span>{label}</span>;
   }
 
   const commitUrl =
@@ -81,12 +94,12 @@ function CommitLink({inline, commitId, repository, showIcon = true, onClick}: Pr
       icon={showIcon ? providerData.icon : null}
       onClick={onClick}
     >
-      {shortId}
+      {label}
     </Button>
   ) : (
     <ExternalLink href={commitUrl} onClick={onClick}>
       {showIcon ? providerData.icon : null}
-      {' ' + shortId}
+      {' ' + label}
     </ExternalLink>
   );
 }
