@@ -12,7 +12,6 @@ import {formatTime} from 'sentry/components/replays/utils';
 import StringWalker from 'sentry/components/replays/walker/stringWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconCalendar, IconDelete, IconEllipsis, IconFire} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -34,6 +33,123 @@ type Props = {
 };
 
 export type ReferrerTableType = 'main' | 'dead-table' | 'errors-table' | 'rage-table';
+
+function DropdownFilter({
+  type,
+  name,
+  version,
+}: {
+  name: string | null;
+  type: string;
+  version: string | null;
+}) {
+  const location = useLocation<ReplayListLocationQuery>();
+  return (
+    <DropdownMenu
+      items={[
+        {
+          key: 'name',
+          label: tct('[type] name: [name]', {
+            type: <b>{type}</b>,
+            name: <b>{name}</b>,
+          }),
+          children: [
+            {
+              key: 'name_add',
+              label: tct('Add [name] to filter', {
+                name: <b>{name}</b>,
+              }),
+              onAction: () => {
+                browserHistory.push({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    query: `${type}.name:"${name}"`,
+                  },
+                });
+              },
+            },
+            {
+              key: 'name_exclude',
+              label: tct('Exclude [name] from filter', {
+                name: <b>{name}</b>,
+              }),
+              onAction: () => {
+                browserHistory.push({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    query: '',
+                  },
+                });
+              },
+            },
+          ],
+        },
+        ...(version
+          ? [
+              {
+                key: 'version',
+                label: tct('[type] version: [version]', {
+                  type: <b>{type}</b>,
+                  version: <b>{version}</b>,
+                }),
+                children: [
+                  {
+                    key: 'version_add',
+                    label: tct('Add version [version] to filter', {
+                      version: <b>{version}</b>,
+                    }),
+                    onAction: () => {
+                      browserHistory.push({
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          query: `${type}.version:"${version}"`,
+                        },
+                      });
+                    },
+                  },
+                  {
+                    key: 'version_exclude',
+                    label: tct('Exclude version [version] from filter', {
+                      version: <b>{version}</b>,
+                    }),
+                    onAction: () => {
+                      browserHistory.push({
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          query: '',
+                        },
+                      });
+                    },
+                  },
+                ],
+              },
+            ]
+          : []),
+      ]}
+      usePortal
+      size="xs"
+      offset={4}
+      position="bottom"
+      preventOverflowOptions={{padding: 4}}
+      flipOptions={{
+        fallbackPlacements: ['top', 'right-start', 'right-end', 'left-start', 'left-end'],
+      }}
+      trigger={triggerProps => (
+        <ActionMenuTrigger
+          {...triggerProps}
+          translucentBorder
+          aria-label={t('Actions')}
+          icon={<IconEllipsis size="xs" />}
+          size="zero"
+        />
+      )}
+    />
+  );
+}
 
 function getUserBadgeUser(replay: Props['replay']) {
   return replay.is_archived
@@ -231,7 +347,6 @@ export function OSCell({replay}: Props) {
   const {name, version} = replay.os ?? {};
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
-  const location = useLocation<ReplayListLocationQuery>();
 
   if (replay.is_archived) {
     return <Item isArchived />;
@@ -245,75 +360,7 @@ export function OSCell({replay}: Props) {
           showVersion={false}
           showTooltip={false}
         />
-        <DropdownMenu
-          items={[
-            {
-              key: 'name',
-              label: 'Add OS name to filter',
-              onAction: () => {
-                browserHistory.push({
-                  pathname: location.pathname,
-                  query: {
-                    ...location.query,
-                    query: `os.name:"${name}"`,
-                  },
-                });
-              },
-              tooltip: (
-                <Tooltip title="OS name">
-                  <dt>{t('OS name:')}</dt>
-                  <dd>{name}</dd>
-                </Tooltip>
-              ),
-            },
-            ...(version
-              ? [
-                  {
-                    key: 'version',
-                    label: 'Add OS version to filter',
-                    onAction: () => {
-                      browserHistory.push({
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: `os.version:"${version}"`,
-                        },
-                      });
-                    },
-                    tooltip: (
-                      <Tooltip title="OS version">
-                        <dt>{t('OS version:')}</dt>
-                        <dd>{version}</dd>
-                      </Tooltip>
-                    ),
-                  },
-                ]
-              : []),
-          ]}
-          usePortal
-          size="xs"
-          offset={4}
-          position="bottom"
-          preventOverflowOptions={{padding: 4}}
-          flipOptions={{
-            fallbackPlacements: [
-              'top',
-              'right-start',
-              'right-end',
-              'left-start',
-              'left-end',
-            ],
-          }}
-          trigger={triggerProps => (
-            <ActionMenuTrigger
-              {...triggerProps}
-              translucentBorder
-              aria-label={t('Actions')}
-              icon={<IconEllipsis size="xs" />}
-              size="zero"
-            />
-          )}
-        />
+        <DropdownFilter type="os" name={name} version={version} />
       </Container>
     </Item>
   );
@@ -323,7 +370,6 @@ export function BrowserCell({replay}: Props) {
   const {name, version} = replay.browser ?? {};
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
-  const location = useLocation<ReplayListLocationQuery>();
 
   if (replay.is_archived) {
     return <Item isArchived />;
@@ -337,79 +383,7 @@ export function BrowserCell({replay}: Props) {
           showVersion={false}
           showTooltip={false}
         />
-        <DropdownMenu
-          items={[
-            {
-              key: 'name',
-              label: tct('Add [name] to filter', {
-                name: <b>{name}</b>,
-              }),
-              onAction: () => {
-                browserHistory.push({
-                  ...location,
-                  query: {
-                    ...location.query,
-                    query: `browser.name:"${name}"`,
-                  },
-                });
-              },
-              tooltip: (
-                <Tooltip title="Browser name">
-                  <dt>{t('Browser name:')}</dt>
-                  <dd>{name}</dd>
-                </Tooltip>
-              ),
-            },
-            ...(version
-              ? [
-                  {
-                    key: 'version',
-                    label: tct('Add version [version] to filter', {
-                      version: <b>{version}</b>,
-                    }),
-                    onAction: () => {
-                      browserHistory.push({
-                        ...location,
-                        query: {
-                          ...location.query,
-                          query: `browser.version:"${version}"`,
-                        },
-                      });
-                    },
-                    tooltip: (
-                      <Tooltip title="Browser version">
-                        <dt>{t('Browser version:')}</dt>
-                        <dd>{version}</dd>
-                      </Tooltip>
-                    ),
-                  },
-                ]
-              : []),
-          ]}
-          usePortal
-          size="xs"
-          offset={4}
-          position="bottom"
-          preventOverflowOptions={{padding: 4}}
-          flipOptions={{
-            fallbackPlacements: [
-              'top',
-              'right-start',
-              'right-end',
-              'left-start',
-              'left-end',
-            ],
-          }}
-          trigger={triggerProps => (
-            <ActionMenuTrigger
-              {...triggerProps}
-              translucentBorder
-              aria-label={t('Actions')}
-              icon={<IconEllipsis size="xs" />}
-              size="zero"
-            />
-          )}
-        />
+        <DropdownFilter type="browser" name={name} version={version} />
       </Container>
     </Item>
   );
