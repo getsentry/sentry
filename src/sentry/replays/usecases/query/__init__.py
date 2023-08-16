@@ -236,14 +236,13 @@ def query_using_aggregated_search(
     #   FROM replays_local
     #   GROUP BY replay_id
     #   ORDER BY any(os_name)
-  ordered_results = [None] * len(replay_ids)
-  replay_id_to_index = {replay_id: index for index,replay_id in enumerate(replay_ids)}
-  for result in results:
-      index = replay_id_to_index[result["replay_id"]]
-      ordered_results[index] = result
+    ordered_results = [None] * len(replay_ids)
+    replay_id_to_index = {replay_id: index for index, replay_id in enumerate(replay_ids)}
+    for result in results:
+        index = replay_id_to_index[result["replay_id"]]
+        ordered_results[index] = result
 
-
-  return ordered_results
+    return ordered_results
 
 
 def make_simple_aggregation_query(
