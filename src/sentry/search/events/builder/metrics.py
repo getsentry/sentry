@@ -1232,7 +1232,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         # the start time should be at granularity boundary (otherwse we'll miss data between the start time and the
         # next granularity boundary, e.g. if start time is 10:20 and granularity 1h we'll miss all data between
         # 10:20 and 11:00 since the timestamp for our data will be 10:00--> so we need to).
-        self.start = adjust_datetime_to_granularity(self.start, self.interval)
+        self.start = adjust_datetime_to_granularity(self.start, granularity)
         return Granularity(granularity)
 
     def resolve_split_granularity(self) -> Tuple[List[Condition], Optional[Granularity]]:
