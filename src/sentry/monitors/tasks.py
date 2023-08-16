@@ -9,6 +9,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
+from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT, TIMEOUT
 from sentry.monitors.types import ClockPulseMessage
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -27,13 +28,6 @@ from .models import (
 
 logger = logging.getLogger("sentry")
 
-# default maximum runtime for a monitor, in minutes
-TIMEOUT = 30
-
-# hard maximum runtime for a monitor, in minutes
-# current limit is 28 days
-MAX_TIMEOUT = 40_320
-
 # This is the MAXIMUM number of MONITOR this job will check.
 #
 # NOTE: We should keep an eye on this as we have more and more usage of
@@ -45,9 +39,6 @@ MONITOR_LIMIT = 10_000
 # NOTE: We should keep an eye on this as we have more and more usage of
 # monitors the larger the number of checkins to check will exist.
 CHECKINS_LIMIT = 10_000
-
-# Format to use in the issue subtitle for the missed check-in timestamp
-SUBTITLE_DATETIME_FORMAT = "%b %d, %I:%M %p"
 
 # This key is used to store the last timestamp that the tasks were triggered.
 MONITOR_TASKS_LAST_TRIGGERED_KEY = "sentry.monitors.last_tasks_ts"

@@ -13,6 +13,7 @@ from sentry.issues.grouptype import (
     MonitorCheckInMissed,
     MonitorCheckInTimeout,
 )
+from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -25,7 +26,6 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.monitors.tasks import SUBTITLE_DATETIME_FORMAT
 from sentry.monitors.validators import ConfigValidator
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
