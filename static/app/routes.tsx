@@ -1568,6 +1568,19 @@ function buildRoutes() {
         path="trends/"
         component={make(() => import('sentry/views/performance/trends'))}
       />
+      <Route path="database/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/performance/database/databaseLandingPage')
+          )}
+        />
+        <Route
+          path="spans/span/:groupId/"
+          component={make(
+            () => import('sentry/views/performance/database/databaseSpanSummaryPage')
+          )}
+        />
+      </Route>
       <Route path="summary/">
         <IndexRoute
           component={make(
