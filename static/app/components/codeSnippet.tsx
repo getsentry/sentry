@@ -14,7 +14,7 @@ interface CodeSnippetProps {
   className?: string;
   dark?: boolean;
   /**
-   * Makes the text of the element and its sub-elements is not selectable.
+   * Makes the text of the element and its sub-elements not selectable.
    * Userful when loading parts of a code snippet, and
    * we wish to avoid users copying them manually.
    */
