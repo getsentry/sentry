@@ -33,8 +33,6 @@ export function updateUser(user: User) {
   if (
     previousUser.options &&
     user.options &&
-    'theme' in user.options &&
-    'theme' in previousUser.options &&
     previousUser.options.theme !== user.options.theme &&
     user.options.theme !== 'system'
   ) {
