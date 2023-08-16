@@ -524,6 +524,12 @@ def create_silo_limited_copy(self: BaseManager[M], limit: SiloLimit) -> BaseMana
         "select_for_update": limit.create_override(cls.select_for_update),
         "update": limit.create_override(cls.update),
         "update_or_create": limit.create_override(cls.update_or_create),
+        "get_from_cache": limit.create_override(cls.get_from_cache)
+        if hasattr(cls, "get_from_cache")
+        else None,
+        "get_many_from_cache": limit.create_override(cls.get_many_from_cache)
+        if hasattr(cls, "get_many_from_cache")
+        else None,
     }
     manager_subclass = type(cls.__name__, (cls,), overrides)
     manager_instance = manager_subclass()

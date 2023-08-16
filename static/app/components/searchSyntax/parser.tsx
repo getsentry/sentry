@@ -320,6 +320,10 @@ type FilterMap = {
      * The value of the filter
      */
     value: KVConverter<FilterTypeConfig[F]['validValues'][number]>;
+    /**
+     * A warning message associated with this filter
+     */
+    warning: React.ReactNode;
   };
 };
 
@@ -404,6 +408,7 @@ export class TokenConverter {
       negated,
       operator: operator ?? TermOperator.DEFAULT,
       invalid: this.checkInvalidFilter(filter, key, value),
+      warning: this.checkFilterWarning(key),
     } as FilterResult;
 
     return {
@@ -669,6 +674,19 @@ export class TokenConverter {
   /**
    * Checks a filter against some non-grammar validation rules
    */
+  checkFilterWarning = <T extends FilterType>(key: FilterMap[T]['key']) => {
+    if (![Token.KEY_SIMPLE, Token.KEY_EXPLICIT_TAG].includes(key.type)) {
+      return null;
+    }
+    const keyName = getKeyName(
+      key as TokenResult<Token.KEY_SIMPLE | Token.KEY_EXPLICIT_TAG>
+    );
+    return this.config.getFilterTokenWarning?.(keyName) ?? null;
+  };
+
+  /**
+   * Checks a filter against some non-grammar validation rules
+   */
   checkInvalidFilter = <T extends FilterType>(
     filter: T,
     key: FilterMap[T]['key'],
@@ -910,6 +928,10 @@ export type SearchConfig = {
    * Text filter keys we allow to have operators
    */
   textOperatorKeys: Set<string>;
+  /**
+   * A function that returns a warning message for a given filter token key
+   */
+  getFilterTokenWarning?: (key: string) => React.ReactNode;
   /**
    * If validateKeys is set to true, tag keys that don't exist in supportedTags will be consider invalid
    */
