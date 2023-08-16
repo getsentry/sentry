@@ -238,6 +238,10 @@
       "file": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.File"
+      },
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
       }
     },
     "model": "sentry.ArtifactBundle",
@@ -250,6 +254,10 @@
       "flat_file_index": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.File"
+      },
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Project"
       }
     },
     "model": "sentry.ArtifactBundleFlatFileIndex",
@@ -262,6 +270,10 @@
       "artifact_bundle": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.ArtifactBundle"
+      },
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
       }
     },
     "model": "sentry.ArtifactBundleIndex",
@@ -334,7 +346,16 @@
     ]
   },
   "sentry.AuthProviderDefaultTeams": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "authprovider_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.AuthProvider"
+      },
+      "team_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Team"
+      }
+    },
     "model": "sentry.AuthProviderDefaultTeams",
     "silos": [
       "CONTROL"
@@ -380,6 +401,14 @@
       "author": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.CommitAuthor"
+      },
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      },
+      "repository_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Repository"
       }
     },
     "model": "sentry.Commit",
@@ -388,7 +417,12 @@
     ]
   },
   "sentry.CommitAuthor": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      }
+    },
     "model": "sentry.CommitAuthor",
     "silos": [
       "REGION"
@@ -399,6 +433,10 @@
       "commit": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Commit"
+      },
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
       }
     },
     "model": "sentry.CommitFileChange",
@@ -441,6 +479,10 @@
       "blob": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.ControlFileBlob"
+      },
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
       }
     },
     "model": "sentry.ControlFileBlobOwner",
@@ -554,6 +596,10 @@
       "artifact_bundle": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.ArtifactBundle"
+      },
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
       }
     },
     "model": "sentry.DebugIdArtifactBundle",
@@ -569,14 +615,24 @@
     ]
   },
   "sentry.DeletedProject": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      }
+    },
     "model": "sentry.DeletedProject",
     "silos": [
       "REGION"
     ]
   },
   "sentry.DeletedTeam": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      }
+    },
     "model": "sentry.DeletedTeam",
     "silos": [
       "REGION"
@@ -584,6 +640,14 @@
   },
   "sentry.Deploy": {
     "foreign_keys": {
+      "environment_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Environment"
+      },
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      },
       "release": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Release"
@@ -628,6 +692,10 @@
   },
   "sentry.Distribution": {
     "foreign_keys": {
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      },
       "release": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Release"
@@ -647,9 +715,17 @@
   },
   "sentry.DocIntegrationAvatar": {
     "foreign_keys": {
+      "control_file_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.ControlFile"
+      },
       "doc_integration": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.DocIntegration"
+      },
+      "file_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.File"
       }
     },
     "model": "sentry.DocIntegrationAvatar",
@@ -665,7 +741,12 @@
     ]
   },
   "sentry.Environment": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      }
+    },
     "model": "sentry.Environment",
     "silos": [
       "REGION"
@@ -688,7 +769,20 @@
     ]
   },
   "sentry.EventAttachment": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "file_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.File"
+      },
+      "group_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Group"
+      },
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Project"
+      }
+    },
     "model": "sentry.EventAttachment",
     "silos": [
       "REGION"
@@ -711,7 +805,12 @@
     ]
   },
   "sentry.EventUser": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Project"
+      }
+    },
     "model": "sentry.EventUser",
     "silos": [
       "REGION"
@@ -719,6 +818,10 @@
   },
   "sentry.ExportedData": {
     "foreign_keys": {
+      "file_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.File"
+      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Organization"
@@ -841,6 +944,10 @@
       "blob": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.FileBlob"
+      },
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
       }
     },
     "model": "sentry.FileBlobOwner",
@@ -925,7 +1032,16 @@
     ]
   },
   "sentry.GroupCommitResolution": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "commit_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Commit"
+      },
+      "group_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Group"
+      }
+    },
     "model": "sentry.GroupCommitResolution",
     "silos": [
       "REGION"
@@ -972,6 +1088,10 @@
       "group": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Group"
+      },
+      "group_tombstone_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.GroupTombstone"
       },
       "project": {
         "kind": "FlexibleForeignKey",
@@ -1088,14 +1208,36 @@
     ]
   },
   "sentry.GroupRedirect": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "group_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Group"
+      },
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      }
+    },
     "model": "sentry.GroupRedirect",
     "silos": [
       "REGION"
     ]
   },
   "sentry.GroupRelease": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "group_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Group"
+      },
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Project"
+      },
+      "release_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Release"
+      }
+    },
     "model": "sentry.GroupRelease",
     "silos": [
       "REGION"
@@ -1364,7 +1506,12 @@
     ]
   },
   "sentry.IntegrationExternalProject": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "organization_integration_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.OrganizationIntegration"
+      }
+    },
     "model": "sentry.IntegrationExternalProject",
     "silos": [
       "CONTROL"
@@ -1390,7 +1537,28 @@
     ]
   },
   "sentry.LatestRepoReleaseEnvironment": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "commit_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Commit"
+      },
+      "deploy_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Deploy"
+      },
+      "environment_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Environment"
+      },
+      "release_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Release"
+      },
+      "repository_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Repository"
+      }
+    },
     "model": "sentry.LatestRepoReleaseEnvironment",
     "silos": [
       "REGION"
@@ -1416,7 +1584,16 @@
     ]
   },
   "sentry.Monitor": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      },
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Project"
+      }
+    },
     "model": "sentry.Monitor",
     "silos": [
       "REGION"
@@ -1435,6 +1612,10 @@
       "monitor_environment": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.MonitorEnvironment"
+      },
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Project"
       }
     },
     "model": "sentry.MonitorCheckIn",
@@ -1609,6 +1790,10 @@
   },
   "sentry.OrganizationAvatar": {
     "foreign_keys": {
+      "file_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.File"
+      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Organization"
@@ -1636,7 +1821,12 @@
     ]
   },
   "sentry.OrganizationMapping": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      }
+    },
     "model": "sentry.OrganizationMapping",
     "silos": [
       "CONTROL"
@@ -1671,6 +1861,10 @@
       "organization_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.Organization"
+      },
+      "organizationmember_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.OrganizationMember"
       },
       "user": {
         "kind": "FlexibleForeignKey",
@@ -1743,7 +1937,12 @@
     ]
   },
   "sentry.PerfStringIndexer": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      }
+    },
     "model": "sentry.PerfStringIndexer",
     "silos": [
       "REGION"
@@ -1779,9 +1978,17 @@
   },
   "sentry.ProguardArtifactRelease": {
     "foreign_keys": {
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      },
       "project_debug_file": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.ProjectDebugFile"
+      },
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Project"
       }
     },
     "model": "sentry.ProguardArtifactRelease",
@@ -1806,6 +2013,14 @@
       "artifact_bundle": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.ArtifactBundle"
+      },
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      },
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Project"
       }
     },
     "model": "sentry.ProjectArtifactBundle",
@@ -1815,6 +2030,10 @@
   },
   "sentry.ProjectAvatar": {
     "foreign_keys": {
+      "file_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.File"
+      },
       "project": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Project"
@@ -1862,6 +2081,10 @@
       "file": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.File"
+      },
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Project"
       }
     },
     "model": "sentry.ProjectDebugFile",
@@ -1922,7 +2145,12 @@
     ]
   },
   "sentry.ProjectPlatform": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Project"
+      }
+    },
     "model": "sentry.ProjectPlatform",
     "silos": [
       "REGION"
@@ -2002,6 +2230,14 @@
   },
   "sentry.PromptsActivity": {
     "foreign_keys": {
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      },
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Project"
+      },
       "user_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.User"
@@ -2017,6 +2253,14 @@
       "author": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.CommitAuthor"
+      },
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      },
+      "repository_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Repository"
       }
     },
     "model": "sentry.PullRequest",
@@ -2140,6 +2384,10 @@
       "owner_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.User"
+      },
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Project"
       }
     },
     "model": "sentry.Release",
@@ -2164,6 +2412,10 @@
       "artifact_bundle": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.ArtifactBundle"
+      },
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
       }
     },
     "model": "sentry.ReleaseArtifactBundle",
@@ -2176,6 +2428,14 @@
       "commit": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Commit"
+      },
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      },
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Project"
       },
       "release": {
         "kind": "FlexibleForeignKey",
@@ -2197,6 +2457,10 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.Organization"
       },
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Project"
+      },
       "release": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Release"
@@ -2212,6 +2476,18 @@
       "file": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.File"
+      },
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      },
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Project"
+      },
+      "release_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Release"
       }
     },
     "model": "sentry.ReleaseFile",
@@ -2225,9 +2501,17 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.Commit"
       },
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      },
       "release": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Release"
+      },
+      "repository_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Repository"
       }
     },
     "model": "sentry.ReleaseHeadCommit",
@@ -2272,7 +2556,16 @@
     ]
   },
   "sentry.Repository": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "integration_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Integration"
+      },
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      }
+    },
     "model": "sentry.Repository",
     "silos": [
       "REGION"
@@ -2280,6 +2573,14 @@
   },
   "sentry.RepositoryProjectPathConfig": {
     "foreign_keys": {
+      "integration_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Integration"
+      },
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      },
       "organization_integration_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.OrganizationIntegration"
@@ -2312,6 +2613,10 @@
   },
   "sentry.Rule": {
     "foreign_keys": {
+      "environment_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Environment"
+      },
       "owner": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Actor"
@@ -2435,6 +2740,14 @@
   },
   "sentry.SentryAppAvatar": {
     "foreign_keys": {
+      "control_file_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.ControlFile"
+      },
+      "file_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.File"
+      },
       "sentry_app": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.SentryApp"
@@ -2534,6 +2847,14 @@
       "installation_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.SentryAppInstallation"
+      },
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      },
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Project"
       }
     },
     "model": "sentry.ServiceHook",
@@ -2543,6 +2864,10 @@
   },
   "sentry.ServiceHookProject": {
     "foreign_keys": {
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Project"
+      },
       "service_hook": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.ServiceHook"
@@ -2578,7 +2903,12 @@
     ]
   },
   "sentry.StringIndexer": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Organization"
+      }
+    },
     "model": "sentry.StringIndexer",
     "silos": [
       "REGION"
@@ -2602,6 +2932,10 @@
   },
   "sentry.TeamAvatar": {
     "foreign_keys": {
+      "file_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.File"
+      },
       "team": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Team"
@@ -2644,6 +2978,14 @@
   },
   "sentry.UserAvatar": {
     "foreign_keys": {
+      "control_file_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.ControlFile"
+      },
+      "file_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.File"
+      },
       "user": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.User"
@@ -2711,7 +3053,24 @@
     ]
   },
   "sentry.UserReport": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "environment_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Environment"
+      },
+      "event_user_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.EventUser"
+      },
+      "group_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Group"
+      },
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.Project"
+      }
+    },
     "model": "sentry.UserReport",
     "silos": [
       "REGION"

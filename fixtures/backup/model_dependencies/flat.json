@@ -56,13 +56,16 @@
     "sentry.Project"
   ],
   "sentry.ArtifactBundle": [
-    "sentry.File"
+    "sentry.File",
+    "sentry.Organization"
   ],
   "sentry.ArtifactBundleFlatFileIndex": [
-    "sentry.File"
+    "sentry.File",
+    "sentry.Project"
   ],
   "sentry.ArtifactBundleIndex": [
-    "sentry.ArtifactBundle"
+    "sentry.ArtifactBundle",
+    "sentry.Organization"
   ],
   "sentry.AssistantActivity": [
     "sentry.User"
@@ -79,7 +82,10 @@
   "sentry.AuthProvider": [
     "sentry.Organization"
   ],
-  "sentry.AuthProviderDefaultTeams": [],
+  "sentry.AuthProviderDefaultTeams": [
+    "sentry.AuthProvider",
+    "sentry.Team"
+  ],
   "sentry.Authenticator": [
     "sentry.User"
   ],
@@ -89,11 +95,16 @@
     "sentry.User"
   ],
   "sentry.Commit": [
-    "sentry.CommitAuthor"
+    "sentry.CommitAuthor",
+    "sentry.Organization",
+    "sentry.Repository"
   ],
-  "sentry.CommitAuthor": [],
+  "sentry.CommitAuthor": [
+    "sentry.Organization"
+  ],
   "sentry.CommitFileChange": [
-    "sentry.Commit"
+    "sentry.Commit",
+    "sentry.Organization"
   ],
   "sentry.ControlFile": [],
   "sentry.ControlFileBlob": [],
@@ -102,7 +113,8 @@
     "sentry.ControlFileBlob"
   ],
   "sentry.ControlFileBlobOwner": [
-    "sentry.ControlFileBlob"
+    "sentry.ControlFileBlob",
+    "sentry.Organization"
   ],
   "sentry.ControlOption": [],
   "sentry.ControlOutbox": [],
@@ -128,12 +140,19 @@
     "sentry.DashboardWidget"
   ],
   "sentry.DebugIdArtifactBundle": [
-    "sentry.ArtifactBundle"
+    "sentry.ArtifactBundle",
+    "sentry.Organization"
   ],
   "sentry.DeletedOrganization": [],
-  "sentry.DeletedProject": [],
-  "sentry.DeletedTeam": [],
+  "sentry.DeletedProject": [
+    "sentry.Organization"
+  ],
+  "sentry.DeletedTeam": [
+    "sentry.Organization"
+  ],
   "sentry.Deploy": [
+    "sentry.Environment",
+    "sentry.Organization",
     "sentry.Release"
   ],
   "sentry.DiscoverSavedQuery": [
@@ -145,25 +164,37 @@
     "sentry.Project"
   ],
   "sentry.Distribution": [
+    "sentry.Organization",
     "sentry.Release"
   ],
   "sentry.DocIntegration": [],
   "sentry.DocIntegrationAvatar": [
-    "sentry.DocIntegration"
+    "sentry.ControlFile",
+    "sentry.DocIntegration",
+    "sentry.File"
   ],
   "sentry.Email": [],
-  "sentry.Environment": [],
+  "sentry.Environment": [
+    "sentry.Organization"
+  ],
   "sentry.EnvironmentProject": [
     "sentry.Environment",
     "sentry.Project"
   ],
-  "sentry.EventAttachment": [],
+  "sentry.EventAttachment": [
+    "sentry.File",
+    "sentry.Group",
+    "sentry.Project"
+  ],
   "sentry.EventProcessingIssue": [
     "sentry.ProcessingIssue",
     "sentry.RawEvent"
   ],
-  "sentry.EventUser": [],
+  "sentry.EventUser": [
+    "sentry.Project"
+  ],
   "sentry.ExportedData": [
+    "sentry.File",
     "sentry.Organization",
     "sentry.User"
   ],
@@ -193,7 +224,8 @@
     "sentry.FileBlob"
   ],
   "sentry.FileBlobOwner": [
-    "sentry.FileBlob"
+    "sentry.FileBlob",
+    "sentry.Organization"
   ],
   "sentry.FlatFileIndexState": [
     "sentry.ArtifactBundle",
@@ -214,7 +246,10 @@
     "sentry.Project",
     "sentry.User"
   ],
-  "sentry.GroupCommitResolution": [],
+  "sentry.GroupCommitResolution": [
+    "sentry.Commit",
+    "sentry.Group"
+  ],
   "sentry.GroupEmailThread": [
     "sentry.Group",
     "sentry.Project"
@@ -226,6 +261,7 @@
   ],
   "sentry.GroupHash": [
     "sentry.Group",
+    "sentry.GroupTombstone",
     "sentry.Project"
   ],
   "sentry.GroupHistory": [
@@ -254,8 +290,15 @@
     "sentry.Team",
     "sentry.User"
   ],
-  "sentry.GroupRedirect": [],
-  "sentry.GroupRelease": [],
+  "sentry.GroupRedirect": [
+    "sentry.Group",
+    "sentry.Organization"
+  ],
+  "sentry.GroupRelease": [
+    "sentry.Group",
+    "sentry.Project",
+    "sentry.Release"
+  ],
   "sentry.GroupResolution": [
     "sentry.Group",
     "sentry.Release"
@@ -320,21 +363,33 @@
     "sentry.Incident"
   ],
   "sentry.Integration": [],
-  "sentry.IntegrationExternalProject": [],
+  "sentry.IntegrationExternalProject": [
+    "sentry.OrganizationIntegration"
+  ],
   "sentry.IntegrationFeature": [],
   "sentry.LatestAppConnectBuildsCheck": [
     "sentry.Project"
   ],
-  "sentry.LatestRepoReleaseEnvironment": [],
+  "sentry.LatestRepoReleaseEnvironment": [
+    "sentry.Commit",
+    "sentry.Deploy",
+    "sentry.Environment",
+    "sentry.Release",
+    "sentry.Repository"
+  ],
   "sentry.LostPasswordHash": [
     "sentry.User"
   ],
   "sentry.MetricsKeyIndexer": [],
-  "sentry.Monitor": [],
+  "sentry.Monitor": [
+    "sentry.Organization",
+    "sentry.Project"
+  ],
   "sentry.MonitorCheckIn": [
     "sentry.Monitor",
     "sentry.MonitorEnvironment",
-    "sentry.MonitorLocation"
+    "sentry.MonitorLocation",
+    "sentry.Project"
   ],
   "sentry.MonitorEnvironment": [
     "sentry.Environment",
@@ -376,19 +431,23 @@
     "sentry.User"
   ],
   "sentry.OrganizationAvatar": [
+    "sentry.File",
     "sentry.Organization"
   ],
   "sentry.OrganizationIntegration": [
     "sentry.Integration",
     "sentry.Organization"
   ],
-  "sentry.OrganizationMapping": [],
+  "sentry.OrganizationMapping": [
+    "sentry.Organization"
+  ],
   "sentry.OrganizationMember": [
     "sentry.Organization",
     "sentry.User"
   ],
   "sentry.OrganizationMemberMapping": [
     "sentry.Organization",
+    "sentry.OrganizationMember",
     "sentry.User"
   ],
   "sentry.OrganizationMemberTeam": [
@@ -406,7 +465,9 @@
   "sentry.PendingIncidentSnapshot": [
     "sentry.Incident"
   ],
-  "sentry.PerfStringIndexer": [],
+  "sentry.PerfStringIndexer": [
+    "sentry.Organization"
+  ],
   "sentry.PlatformExternalIssue": [
     "sentry.Group",
     "sentry.Project"
@@ -415,15 +476,20 @@
     "sentry.Project"
   ],
   "sentry.ProguardArtifactRelease": [
+    "sentry.Organization",
+    "sentry.Project",
     "sentry.ProjectDebugFile"
   ],
   "sentry.Project": [
     "sentry.Organization"
   ],
   "sentry.ProjectArtifactBundle": [
-    "sentry.ArtifactBundle"
+    "sentry.ArtifactBundle",
+    "sentry.Organization",
+    "sentry.Project"
   ],
   "sentry.ProjectAvatar": [
+    "sentry.File",
     "sentry.Project"
   ],
   "sentry.ProjectBookmark": [
@@ -435,7 +501,8 @@
     "sentry.RepositoryProjectPathConfig"
   ],
   "sentry.ProjectDebugFile": [
-    "sentry.File"
+    "sentry.File",
+    "sentry.Project"
   ],
   "sentry.ProjectIntegration": [
     "sentry.Integration",
@@ -450,7 +517,9 @@
   "sentry.ProjectOwnership": [
     "sentry.Project"
   ],
-  "sentry.ProjectPlatform": [],
+  "sentry.ProjectPlatform": [
+    "sentry.Project"
+  ],
   "sentry.ProjectRedirect": [
     "sentry.Organization",
     "sentry.Project"
@@ -470,10 +539,14 @@
     "sentry.User"
   ],
   "sentry.PromptsActivity": [
+    "sentry.Organization",
+    "sentry.Project",
     "sentry.User"
   ],
   "sentry.PullRequest": [
-    "sentry.CommitAuthor"
+    "sentry.CommitAuthor",
+    "sentry.Organization",
+    "sentry.Repository"
   ],
   "sentry.PullRequestComment": [
     "sentry.PullRequest"
@@ -500,29 +573,39 @@
   "sentry.RelayUsage": [],
   "sentry.Release": [
     "sentry.Organization",
+    "sentry.Project",
     "sentry.User"
   ],
   "sentry.ReleaseActivity": [
     "sentry.Release"
   ],
   "sentry.ReleaseArtifactBundle": [
-    "sentry.ArtifactBundle"
+    "sentry.ArtifactBundle",
+    "sentry.Organization"
   ],
   "sentry.ReleaseCommit": [
     "sentry.Commit",
+    "sentry.Organization",
+    "sentry.Project",
     "sentry.Release"
   ],
   "sentry.ReleaseEnvironment": [
     "sentry.Environment",
     "sentry.Organization",
+    "sentry.Project",
     "sentry.Release"
   ],
   "sentry.ReleaseFile": [
-    "sentry.File"
+    "sentry.File",
+    "sentry.Organization",
+    "sentry.Project",
+    "sentry.Release"
   ],
   "sentry.ReleaseHeadCommit": [
     "sentry.Commit",
-    "sentry.Release"
+    "sentry.Organization",
+    "sentry.Release",
+    "sentry.Repository"
   ],
   "sentry.ReleaseProject": [
     "sentry.Project",
@@ -533,8 +616,13 @@
     "sentry.Project",
     "sentry.Release"
   ],
-  "sentry.Repository": [],
+  "sentry.Repository": [
+    "sentry.Integration",
+    "sentry.Organization"
+  ],
   "sentry.RepositoryProjectPathConfig": [
+    "sentry.Integration",
+    "sentry.Organization",
     "sentry.OrganizationIntegration",
     "sentry.Project",
     "sentry.Repository"
@@ -544,6 +632,7 @@
   ],
   "sentry.Rule": [
     "sentry.Actor",
+    "sentry.Environment",
     "sentry.Project"
   ],
   "sentry.RuleActivity": [
@@ -571,6 +660,8 @@
     "sentry.User"
   ],
   "sentry.SentryAppAvatar": [
+    "sentry.ControlFile",
+    "sentry.File",
     "sentry.SentryApp"
   ],
   "sentry.SentryAppComponent": [
@@ -595,9 +686,12 @@
   ],
   "sentry.ServiceHook": [
     "sentry.ApiApplication",
+    "sentry.Organization",
+    "sentry.Project",
     "sentry.SentryAppInstallation"
   ],
   "sentry.ServiceHookProject": [
+    "sentry.Project",
     "sentry.ServiceHook"
   ],
   "sentry.SnubaQuery": [
@@ -606,12 +700,15 @@
   "sentry.SnubaQueryEventType": [
     "sentry.SnubaQuery"
   ],
-  "sentry.StringIndexer": [],
+  "sentry.StringIndexer": [
+    "sentry.Organization"
+  ],
   "sentry.Team": [
     "sentry.Actor",
     "sentry.Organization"
   ],
   "sentry.TeamAvatar": [
+    "sentry.File",
     "sentry.Team"
   ],
   "sentry.TeamKeyTransaction": [
@@ -621,6 +718,8 @@
   "sentry.TimeSeriesSnapshot": [],
   "sentry.User": [],
   "sentry.UserAvatar": [
+    "sentry.ControlFile",
+    "sentry.File",
     "sentry.User"
   ],
   "sentry.UserEmail": [
@@ -637,7 +736,12 @@
   "sentry.UserPermission": [
     "sentry.User"
   ],
-  "sentry.UserReport": [],
+  "sentry.UserReport": [
+    "sentry.Environment",
+    "sentry.EventUser",
+    "sentry.Group",
+    "sentry.Project"
+  ],
   "sentry.UserRole": [],
   "sentry.UserRoleUser": [
     "sentry.User",

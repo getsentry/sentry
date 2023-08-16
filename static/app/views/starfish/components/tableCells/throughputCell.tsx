@@ -11,7 +11,7 @@ type Props = {
   rate?: number;
 };
 
-export default function ThroughputCell({rate, unit, containerProps}: Props) {
+export function ThroughputCell({rate, unit, containerProps}: Props) {
   return (
     <NumberContainer {...containerProps}>
       {rate ? formatRate(rate, unit) : '--'}
