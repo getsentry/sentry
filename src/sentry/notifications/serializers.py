@@ -1,9 +1,8 @@
 from typing import Any, Mapping
 
-from sentry.api.serializers import Serializer, register
+from sentry.api.serializers import Serializer
 from sentry.models.notificationsettingbase import NotificationSettingBase
 from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 
 
 class NotificationSettingsBaseSerializer(Serializer):
@@ -24,7 +23,6 @@ class NotificationSettingsBaseSerializer(Serializer):
         }
 
 
-@register(NotificationSettingOption)
 class NotificationSettingsOptionSerializer(NotificationSettingsBaseSerializer):
     def serialize(
         self,
@@ -33,16 +31,3 @@ class NotificationSettingsOptionSerializer(NotificationSettingsBaseSerializer):
         **kwargs: Any,
     ) -> Mapping[str, str]:
         return super().serialize(obj, **kwargs)
-
-
-@register(NotificationSettingProvider)
-class NotificationSettingsProviderSerializer(NotificationSettingsBaseSerializer):
-    def serialize(
-        self,
-        obj: NotificationSettingProvider,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Mapping[str, str]:
-        output = super().serialize(obj, **kwargs)
-        output["provider"] = obj.provider
-        return output

@@ -547,7 +547,6 @@ from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_notification_fine_tuning import UserNotificationFineTuningEndpoint
 from .endpoints.user_notification_options import UserNotificationOptionsEndpoint
-from .endpoints.user_notification_providers import UserNotificationProvidersEndpoint
 from .endpoints.user_notification_settings_details import UserNotificationSettingsDetailsEndpoint
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
@@ -824,11 +823,6 @@ USER_URLS = [
         r"^(?P<user_id>[^\/]+)/notification-options/$",
         UserNotificationOptionsEndpoint.as_view(),
         name="sentry-api-0-user-notification-options",
-    ),
-    re_path(
-        r"^(?P<user_id>[^\/]+)/notification-providers/$",
-        UserNotificationProvidersEndpoint.as_view(),
-        name="sentry-api-0-user-notification-providers",
     ),
     re_path(
         r"^(?P<user_id>[^\/]+)/password/$",
