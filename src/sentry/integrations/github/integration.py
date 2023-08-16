@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import timezone
 from typing import Any, Collection, Dict, Mapping, Sequence
 
 from django.http import HttpResponse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
+from isodate import parse_datetime
 from rest_framework.request import Request
 
 from sentry import features, options
@@ -242,7 +243,6 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         except ApiError as e:
             raise e
 
-        date_format_expected = "%Y-%m-%dT%H:%M:%SZ"
         try:
             commit: Mapping[str, Any] = max(
                 (
@@ -250,9 +250,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
                     for blame in blame_range
                     if blame.get("startingLine", 0) <= lineno <= blame.get("endingLine", 0)
                 ),
-                key=lambda blame: datetime.strptime(
-                    blame.get("commit", {}).get("committedDate"), date_format_expected
-                ),
+                key=lambda blame: parse_datetime(blame.get("commit", {}).get("committedDate")),
                 default={},
             )
             if not commit:
@@ -264,9 +262,9 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         if not commitInfo:
             return None
         else:
-            committed_date = datetime.strptime(
-                commitInfo.get("committed_date"), date_format_expected
-            ).astimezone(timezone.utc)
+            committed_date = parse_datetime(commitInfo.get("committed_date")).astimezone(
+                timezone.utc
+            )
 
             return {
                 "commitId": commitInfo.get("oid"),
