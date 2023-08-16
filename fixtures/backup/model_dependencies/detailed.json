@@ -22,6 +22,10 @@
       "project": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Project"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.Activity",
@@ -30,7 +34,12 @@
     ]
   },
   "sentry.Actor": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
+      }
+    },
     "model": "sentry.Actor",
     "silos": [
       "REGION"
@@ -65,6 +74,10 @@
       "previous_alert_rule": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.AlertRule"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.AlertRuleActivity",
@@ -105,6 +118,14 @@
       "alert_rule_trigger": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.AlertRuleTrigger"
+      },
+      "integration_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Integration"
+      },
+      "sentry_app_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.SentryApp"
       }
     },
     "model": "sentry.AlertRuleTriggerAction",
@@ -173,7 +194,12 @@
     ]
   },
   "sentry.ApiKey": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Organization"
+      }
+    },
     "model": "sentry.ApiKey",
     "silos": [
       "CONTROL"
@@ -265,6 +291,10 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.ApiKey"
       },
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Organization"
+      },
       "target_user": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.User"
@@ -292,7 +322,12 @@
     ]
   },
   "sentry.AuthProvider": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Organization"
+      }
+    },
     "model": "sentry.AuthProvider",
     "silos": [
       "CONTROL"
@@ -448,6 +483,10 @@
   },
   "sentry.Dashboard": {
     "foreign_keys": {
+      "created_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
+      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Organization"
@@ -557,6 +596,10 @@
   },
   "sentry.DiscoverSavedQuery": {
     "foreign_keys": {
+      "created_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
+      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Organization"
@@ -679,6 +722,10 @@
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Organization"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.ExportedData",
@@ -704,6 +751,10 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.Actor"
       },
+      "integration_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Integration"
+      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Organization"
@@ -711,6 +762,10 @@
       "team": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Team"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.ExternalActor",
@@ -720,6 +775,10 @@
   },
   "sentry.ExternalIssue": {
     "foreign_keys": {
+      "integration_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Integration"
+      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Organization"
@@ -834,6 +893,10 @@
       "team": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Team"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.GroupAssignee",
@@ -850,6 +913,10 @@
       "project": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Project"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.GroupBookmark",
@@ -1009,6 +1076,10 @@
       "team": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Team"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.GroupOwner",
@@ -1075,6 +1146,10 @@
       "project": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Project"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.GroupSeen",
@@ -1091,6 +1166,10 @@
       "project": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Project"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.GroupShare",
@@ -1119,6 +1198,10 @@
       "project": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Project"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.GroupSubscription",
@@ -1182,6 +1265,10 @@
       "incident": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Incident"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.IncidentActivity",
@@ -1210,6 +1297,10 @@
       "incident": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Incident"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.IncidentSeen",
@@ -1238,6 +1329,10 @@
       "incident": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Incident"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.IncidentSubscription",
@@ -1372,9 +1467,17 @@
   },
   "sentry.NotificationAction": {
     "foreign_keys": {
+      "integration_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Integration"
+      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Organization"
+      },
+      "sentry_app_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.SentryApp"
       }
     },
     "model": "sentry.NotificationAction",
@@ -1400,6 +1503,14 @@
   },
   "sentry.NotificationSetting": {
     "foreign_keys": {
+      "target_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Actor"
+      },
+      "team_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Team"
+      },
       "user": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.User"
@@ -1412,6 +1523,10 @@
   },
   "sentry.NotificationSettingOption": {
     "foreign_keys": {
+      "team_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Team"
+      },
       "user": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.User"
@@ -1424,6 +1539,10 @@
   },
   "sentry.NotificationSettingProvider": {
     "foreign_keys": {
+      "team_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Team"
+      },
       "user": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.User"
@@ -1446,6 +1565,14 @@
       "created_by": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.User"
+      },
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Organization"
+      },
+      "project_last_used_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Project"
       }
     },
     "model": "sentry.OrgAuthToken",
@@ -1465,6 +1592,10 @@
       "member": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.OrganizationMember"
+      },
+      "requester_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       },
       "team": {
         "kind": "FlexibleForeignKey",
@@ -1493,6 +1624,10 @@
       "integration": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Integration"
+      },
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Organization"
       }
     },
     "model": "sentry.OrganizationIntegration",
@@ -1509,9 +1644,17 @@
   },
   "sentry.OrganizationMember": {
     "foreign_keys": {
+      "inviter_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
+      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Organization"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.OrganizationMember",
@@ -1524,6 +1667,10 @@
       "inviter": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.User"
+      },
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Organization"
       },
       "user": {
         "kind": "FlexibleForeignKey",
@@ -1560,6 +1707,10 @@
       "project": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Project"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.OrganizationOnboardingTask",
@@ -1679,6 +1830,10 @@
       "project": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Project"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.ProjectBookmark",
@@ -1716,6 +1871,10 @@
   },
   "sentry.ProjectIntegration": {
     "foreign_keys": {
+      "integration_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Integration"
+      },
       "project": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Project"
@@ -1803,6 +1962,10 @@
   },
   "sentry.ProjectTransactionThreshold": {
     "foreign_keys": {
+      "edited_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
+      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Organization"
@@ -1819,6 +1982,10 @@
   },
   "sentry.ProjectTransactionThresholdOverride": {
     "foreign_keys": {
+      "edited_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
+      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Organization"
@@ -1834,7 +2001,12 @@
     ]
   },
   "sentry.PromptsActivity": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
+      }
+    },
     "model": "sentry.PromptsActivity",
     "silos": [
       "REGION"
@@ -1913,6 +2085,10 @@
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Organization"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.RecentSearch",
@@ -1960,6 +2136,10 @@
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Organization"
+      },
+      "owner_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.Release",
@@ -2100,6 +2280,10 @@
   },
   "sentry.RepositoryProjectPathConfig": {
     "foreign_keys": {
+      "organization_integration_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.OrganizationIntegration"
+      },
       "project": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Project"
@@ -2147,6 +2331,10 @@
       "rule": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Rule"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.RuleActivity",
@@ -2180,9 +2368,17 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.AlertRule"
       },
+      "owner_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
+      },
       "rule": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Rule"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.RuleSnooze",
@@ -2195,6 +2391,10 @@
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Organization"
+      },
+      "owner_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
       }
     },
     "model": "sentry.SavedSearch",
@@ -2218,6 +2418,10 @@
       "creator_user": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.User"
+      },
+      "owner_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Organization"
       },
       "proxy_user": {
         "kind": "DefaultOneToOneField",
@@ -2263,6 +2467,10 @@
         "kind": "DefaultOneToOneField",
         "model": "sentry.ApiToken"
       },
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Organization"
+      },
       "sentry_app": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.SentryApp"
@@ -2275,6 +2483,10 @@
   },
   "sentry.SentryAppInstallationForProvider": {
     "foreign_keys": {
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Organization"
+      },
       "sentry_app_installation": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.SentryAppInstallation"
@@ -2314,7 +2526,16 @@
     ]
   },
   "sentry.ServiceHook": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "application_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.ApiApplication"
+      },
+      "installation_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.SentryAppInstallation"
+      }
+    },
     "model": "sentry.ServiceHook",
     "silos": [
       "REGION"
@@ -2459,6 +2680,14 @@
   },
   "sentry.UserOption": {
     "foreign_keys": {
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Organization"
+      },
+      "project_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Project"
+      },
       "user": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.User"

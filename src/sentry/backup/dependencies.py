@@ -124,13 +124,14 @@ def dependencies() -> dict[str, ModelRelations]:
         if app_config.label in EXCLUDED_APPS:
             continue
 
+        models_from_names = {model._meta.object_name: model for model in app_config.get_models()}
         model_iterator = app_config.get_models()
 
         for model in model_iterator:
             foreign_keys: dict[str, ForeignField] = dict()
 
             # Now add a dependency for any FK relation with a model that defines a natural key.
-            for field in model._meta.fields:
+            for field in model._meta.get_fields():
                 rel_model = getattr(field.remote_field, "model", None)
                 if rel_model is not None and rel_model != model:
                     # TODO(hybrid-cloud): actor refactor.
@@ -144,16 +145,17 @@ def dependencies() -> dict[str, ModelRelations]:
                             model=rel_model,
                             kind=ForeignFieldKind.FlexibleForeignKey,
                         )
-                    elif isinstance(field, HybridCloudForeignKey):
-                        foreign_keys[field.name] = ForeignField(
-                            model=rel_model,
-                            kind=ForeignFieldKind.HybridCloudForeignKey,
-                        )
                     elif isinstance(field, ForeignKey):
                         foreign_keys[field.name] = ForeignField(
                             model=rel_model,
                             kind=ForeignFieldKind.DefaultForeignKey,
                         )
+                elif isinstance(field, HybridCloudForeignKey):
+                    rel_model = models_from_names[field.foreign_model_name[7:]]
+                    foreign_keys[field.name] = ForeignField(
+                        model=rel_model,
+                        kind=ForeignFieldKind.HybridCloudForeignKey,
+                    )
 
             # Get all simple O2O relations as well.
             one_to_one_fields = [
