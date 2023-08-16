@@ -1,7 +1,6 @@
 from typing import Any, Optional, Union
 
-from datadog import initialize
-from datadog.dogstatsd.base import statsd
+from datadog import initialize, statsd
 
 from .base import MetricsBackend, Tags
 

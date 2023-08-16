@@ -63,6 +63,7 @@ def test_date_updated_with_unzeroed_milliseconds(tmp_path):
     assert """+  "last_updated": "2023-06-22T00:00:00.000Z",""" in findings[0].reason
 
 
+@run_backup_tests_only_on_single_db
 @django_db_all(transaction=True, reset_sequences=True)
 def test_good_continuing_sequences(tmp_path):
     # Populate once to set the sequences.
@@ -77,6 +78,7 @@ def test_good_continuing_sequences(tmp_path):
 
 
 # User models are unique and important enough that we target them with a specific test case.
+@run_backup_tests_only_on_single_db
 @django_db_all(transaction=True)
 def test_user_pk_mapping(tmp_path):
     import_export_from_fixture_then_validate(tmp_path, "user-pk-mapping.json", DEFAULT_COMPARATORS)

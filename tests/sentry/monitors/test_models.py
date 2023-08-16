@@ -645,8 +645,7 @@ class MonitorEnvironmentTestCase(TestCase):
         validated_config = monitor.get_validated_config()
         assert validated_config is not None
 
-        # (rjo100): Commenting out temporarily
-        # # Check to make sure bad config fails validation
-        # validated_config["bad_key"] = 100
-        # monitor.config = validated_config
-        # assert monitor.get_validated_config() is None
+        # Check to make sure bad config fails validation
+        validated_config["bad_key"] = 100
+        monitor.config = validated_config
+        assert monitor.get_validated_config() is None
