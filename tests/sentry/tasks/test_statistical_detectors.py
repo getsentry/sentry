@@ -2,8 +2,10 @@ from datetime import datetime, timedelta, timezone
 from unittest import mock
 
 import pytest
+from django.db.models import F
 from freezegun import freeze_time
 
+from sentry.models import Project
 from sentry.statistical_detectors.detector import TrendPayload
 from sentry.tasks.statistical_detectors import (
     detect_function_trends,
@@ -36,59 +38,38 @@ def organization(owner):
 
 
 @pytest.fixture
-def team(organization, owner):
-    team = Factories.create_team(organization=organization)
-    Factories.create_team_membership(team=team, user=owner)
-    return team
-
-
-@pytest.fixture
-def project(organization, team):
-    return Factories.create_project(organization=organization, teams=[team])
+def project(organization):
+    return Factories.create_project(organization=organization)
 
 
 @pytest.mark.parametrize(
-    "options,performance_projects,profiling_projects",
     [
+        "project_flags",
+        "enable",
+        "performance_project",
+        "expected_performance_project",
+        "profiling_project",
+        "expected_profiling_project",
+    ],
+    [
+        pytest.param(None, False, True, False, True, False, id="disabled"),
+        pytest.param(None, True, False, False, False, False, id="no projects"),
+        pytest.param(None, True, True, False, False, False, id="no transactions"),
+        pytest.param(None, True, False, False, True, False, id="no profiles"),
         pytest.param(
-            {
-                "statistical_detectors.enable": False,
-                "statistical_detectors.enable.projects.performance": [1],
-                "statistical_detectors.enable.projects.profiling": [1],
-            },
-            None,
-            None,
-            id="disabled",
+            Project.flags.has_transactions, True, True, True, False, False, id="performance only"
         ),
         pytest.param(
-            {
-                "statistical_detectors.enable": True,
-                "statistical_detectors.enable.projects.performance": [],
-                "statistical_detectors.enable.projects.profiling": [],
-            },
-            None,
-            None,
-            id="no projects",
+            Project.flags.has_profiles, True, False, False, True, True, id="profiling only"
         ),
         pytest.param(
-            {
-                "statistical_detectors.enable": True,
-                "statistical_detectors.enable.projects.performance": [1],
-                "statistical_detectors.enable.projects.profiling": [],
-            },
-            [[1]],
-            None,
-            id="performance only",
-        ),
-        pytest.param(
-            {
-                "statistical_detectors.enable": True,
-                "statistical_detectors.enable.projects.performance": [],
-                "statistical_detectors.enable.projects.profiling": [1],
-            },
-            None,
-            [[1]],
-            id="profiling only",
+            Project.flags.has_transactions | Project.flags.has_profiles,
+            True,
+            False,
+            False,
+            True,
+            True,
+            id="performance + profiling",
         ),
     ],
 )
@@ -98,33 +79,93 @@ def project(organization, team):
 def test_run_detection_options(
     detect_function_trends,
     detect_transaction_trends,
-    options,
-    performance_projects,
-    profiling_projects,
+    project_flags,
+    enable,
+    performance_project,
+    profiling_project,
+    expected_performance_project,
+    expected_profiling_project,
+    project,
     timestamp,
 ):
+    if project_flags is not None:
+        project.update(flags=F("flags").bitor(project_flags))
+
+    options = {
+        "statistical_detectors.enable": enable,
+        "statistical_detectors.enable.projects.performance": [project.id]
+        if performance_project
+        else [],
+        "statistical_detectors.enable.projects.profiling": [project.id]
+        if profiling_project
+        else [],
+    }
+
     with freeze_time(timestamp), override_options(options), TaskRunner():
         run_detection()
 
-    if performance_projects is None:
-        assert not detect_transaction_trends.delay.called
-    else:
+    if expected_performance_project:
         assert detect_transaction_trends.delay.called
-        detect_transaction_trends.delay.assert_has_calls(
-            [mock.call(projects) for projects in performance_projects]
-        )
-
-    if profiling_projects is None:
-        assert not detect_function_trends.delay.called
+        detect_transaction_trends.delay.assert_has_calls([mock.call([project.id], timestamp)])
     else:
+        assert not detect_transaction_trends.delay.called
+
+    if expected_profiling_project:
         assert detect_function_trends.delay.called
-        detect_function_trends.delay.assert_has_calls(
-            [mock.call(call, timestamp) for call in profiling_projects],
-        )
+        detect_function_trends.delay.assert_has_calls([mock.call([project.id], timestamp)])
+    else:
+        assert not detect_function_trends.delay.called
+
+
+@mock.patch("sentry.tasks.statistical_detectors.detect_transaction_trends")
+@mock.patch("sentry.tasks.statistical_detectors.detect_function_trends")
+@mock.patch("sentry.tasks.statistical_detectors.PROJECTS_PER_BATCH", 5)
+@django_db_all
+def test_run_detection_options_multiple_batches(
+    detect_function_trends,
+    detect_transaction_trends,
+    organization,
+    timestamp,
+):
+    projects = []
+
+    flags = Project.flags.has_transactions | Project.flags.has_profiles
+    for _ in range(9):
+        project = Factories.create_project(organization=organization)
+        project.update(flags=F("flags").bitor(flags))
+        projects.append(project)
+
+    project_ids = [project.id for project in projects]
+
+    options = {
+        "statistical_detectors.enable": True,
+        "statistical_detectors.enable.projects.performance": project_ids,
+        "statistical_detectors.enable.projects.profiling": project_ids,
+    }
+
+    with freeze_time(timestamp), override_options(options), TaskRunner():
+        run_detection()
+
+    # total of 9 projects, broken into batches of 5 means batch sizes of 5 + 4
+
+    assert detect_transaction_trends.delay.called
+    detect_transaction_trends.delay.assert_has_calls(
+        [
+            mock.call([project.id for project in projects[:5]], timestamp),
+            mock.call([project.id for project in projects[5:]], timestamp),
+        ]
+    )
+    assert detect_function_trends.delay.called
+    detect_function_trends.delay.assert_has_calls(
+        [
+            mock.call([project.id for project in projects[:5]], timestamp),
+            mock.call([project.id for project in projects[5:]], timestamp),
+        ]
+    )
 
 
 @pytest.mark.parametrize(
-    "enabled",
+    ["enabled"],
     [
         pytest.param(False, id="disabled"),
         pytest.param(True, id="enabled"),
@@ -144,7 +185,7 @@ def test_detect_transaction_trends_options(
 
 
 @pytest.mark.parametrize(
-    "enabled",
+    ["enabled"],
     [
         pytest.param(False, id="disabled"),
         pytest.param(True, id="enabled"),
