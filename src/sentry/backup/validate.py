@@ -5,7 +5,7 @@ from copy import deepcopy
 from difflib import unified_diff
 from typing import Dict, Tuple
 
-from sentry.backup.comparators import DEFAULT_COMPARATORS, ComparatorMap, ForeignKeyComparator
+from sentry.backup.comparators import ComparatorMap, ForeignKeyComparator, get_default_comparators
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.findings import (
     ComparatorFinding,
@@ -24,7 +24,7 @@ JSON_PRETTY_PRINTER = JSONEncoder(
 def validate(
     expect: JSONData,
     actual: JSONData,
-    comparators: ComparatorMap = DEFAULT_COMPARATORS,
+    comparators: ComparatorMap | None = None,
 ) -> ComparatorFindings:
     """Ensures that originally imported data correctly matches actual outputted data, and produces a
     list of reasons why not when it doesn't.
@@ -86,6 +86,9 @@ def validate(
         """Take a JSONData object and pretty-print it as JSON."""
 
         return JSON_PRETTY_PRINTER.encode(obj).splitlines()
+
+    if comparators is None:
+        comparators = get_default_comparators()
 
     # Because we may be scrubbing data from the objects as we compare them, we may (optionally) make
     # deep copies to start to avoid potentially mangling the input data.

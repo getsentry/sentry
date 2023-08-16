@@ -12,6 +12,7 @@ from django.test.utils import override_settings
 from sentry import killswitches
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
+from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.consumers.monitor_consumer import StoreMonitorCheckInStrategyFactory
 from sentry.monitors.models import (
     CheckInStatus,
@@ -22,7 +23,6 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.monitors.tasks import TIMEOUT
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.locking.manager import LockManager
@@ -123,7 +123,7 @@ class MonitorConsumerTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
             checkin.date_added
         )
         assert (
@@ -132,11 +132,9 @@ class MonitorConsumerTest(TestCase):
         )
 
         # Process another check-in to verify we set an expected time for the next check-in
-        expected_time = monitor_environment.next_checkin
         self.send_checkin(monitor.slug)
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
-        # the expected time should not include the margin of 5 minutes
-        assert checkin.expected_time == expected_time - timedelta(minutes=5)
+        assert checkin.expected_time == monitor_environment.next_checkin
         assert checkin.trace_id.hex == self.trace_id
 
     def test_passing(self) -> None:
@@ -150,7 +148,7 @@ class MonitorConsumerTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
             checkin.date_added
         )
         assert (
@@ -159,11 +157,10 @@ class MonitorConsumerTest(TestCase):
         )
 
         # Process another check-in to verify we set an expected time for the next check-in
-        expected_time = monitor_environment.next_checkin
         self.send_checkin(monitor.slug)
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         # the expected time should not include the margin of 5 minutes
-        assert checkin.expected_time == expected_time - timedelta(minutes=5)
+        assert checkin.expected_time == monitor_environment.next_checkin
 
     def test_failing(self):
         monitor = self._create_monitor(slug="my-monitor")
@@ -175,7 +172,7 @@ class MonitorConsumerTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
             checkin.date_added
         )
         assert (
@@ -196,7 +193,7 @@ class MonitorConsumerTest(TestCase):
         # is disabled
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
             checkin.date_added
         )
         assert (
@@ -294,7 +291,7 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.environment.name == "jungle"
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
             checkin.date_added
         )
         assert (
@@ -318,9 +315,7 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.last_checkin == checkin.date_added
         assert (
             monitor_environment.next_checkin
-            == monitor_environment.monitor.get_next_scheduled_checkin_with_margin(
-                checkin.date_added
-            )
+            == monitor_environment.monitor.get_next_scheduled_checkin(checkin.date_added)
         )
         assert (
             monitor_environment.next_checkin_latest
@@ -349,9 +344,7 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.last_checkin == checkin.date_added
         assert (
             monitor_environment.next_checkin
-            == monitor_environment.monitor.get_next_scheduled_checkin_with_margin(
-                checkin.date_added
-            )
+            == monitor_environment.monitor.get_next_scheduled_checkin(checkin.date_added)
         )
         assert (
             monitor_environment.next_checkin_latest

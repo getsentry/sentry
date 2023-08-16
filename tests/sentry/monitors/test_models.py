@@ -13,6 +13,7 @@ from sentry.issues.grouptype import (
     MonitorCheckInMissed,
     MonitorCheckInTimeout,
 )
+from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -25,7 +26,6 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.monitors.tasks import SUBTITLE_DATETIME_FORMAT
 from sentry.monitors.validators import ConfigValidator
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -645,8 +645,7 @@ class MonitorEnvironmentTestCase(TestCase):
         validated_config = monitor.get_validated_config()
         assert validated_config is not None
 
-        # (rjo100): Commenting out temporarily
-        # # Check to make sure bad config fails validation
-        # validated_config["bad_key"] = 100
-        # monitor.config = validated_config
-        # assert monitor.get_validated_config() is None
+        # Check to make sure bad config fails validation
+        validated_config["bad_key"] = 100
+        monitor.config = validated_config
+        assert monitor.get_validated_config() is None
