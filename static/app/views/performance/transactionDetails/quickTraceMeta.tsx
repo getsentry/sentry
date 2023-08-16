@@ -63,7 +63,11 @@ export default function QuickTraceMeta({
   let body: React.ReactNode;
   let footer: React.ReactNode;
 
-  if (!traceId || !quickTrace || quickTrace.trace === null) {
+  if (
+    !traceId ||
+    !quickTrace ||
+    (quickTrace.trace === null && !quickTrace.orphanErrors)
+  ) {
     // this platform doesn't support performance don't show anything here
     if (docsLink === null) {
       return null;
@@ -83,10 +87,7 @@ export default function QuickTraceMeta({
         <ErrorBoundary mini>
           <QuickTrace
             event={event}
-            quickTrace={{
-              type: quickTrace.type,
-              trace: quickTrace.trace,
-            }}
+            quickTrace={quickTrace}
             location={location}
             organization={organization}
             anchor={anchor}
