@@ -1,7 +1,10 @@
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Avatar from 'sentry/components/avatar';
+import {Button} from 'sentry/components/button';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
@@ -9,8 +12,9 @@ import {formatTime} from 'sentry/components/replays/utils';
 import StringWalker from 'sentry/components/replays/walker/stringWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconCalendar, IconDelete, IconFire} from 'sentry/icons';
+import {IconCalendar, IconDelete, IconEllipsis, IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
@@ -23,7 +27,7 @@ import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
@@ -227,17 +231,90 @@ export function OSCell({replay}: Props) {
   const {name, version} = replay.os ?? {};
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
+  const location = useLocation<ReplayListLocationQuery>();
 
   if (replay.is_archived) {
     return <Item isArchived />;
   }
   return (
     <Item>
-      <ContextIcon
-        name={name ?? ''}
-        version={version && hasRoomForColumns ? version : undefined}
-        showVersion={false}
-      />
+      <Container>
+        <ContextIcon
+          name={name ?? ''}
+          version={version && hasRoomForColumns ? version : undefined}
+          showVersion={false}
+          showTooltip={false}
+        />
+        <DropdownMenu
+          items={[
+            {
+              key: 'name',
+              label: 'Add OS name to filter',
+              onAction: () => {
+                browserHistory.push({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    query: `os.name:"${name}"`,
+                  },
+                });
+              },
+              tooltip: (
+                <Tooltip title="OS name">
+                  <dt>{t('OS name:')}</dt>
+                  <dd>{name}</dd>
+                </Tooltip>
+              ),
+            },
+            ...(version
+              ? [
+                  {
+                    key: 'version',
+                    label: 'Add OS version to filter',
+                    onAction: () => {
+                      browserHistory.push({
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          query: `os.version:"${version}"`,
+                        },
+                      });
+                    },
+                    tooltip: (
+                      <Tooltip title="OS version">
+                        <dt>{t('OS version:')}</dt>
+                        <dd>{version}</dd>
+                      </Tooltip>
+                    ),
+                  },
+                ]
+              : []),
+          ]}
+          usePortal
+          size="xs"
+          offset={4}
+          position="bottom"
+          preventOverflowOptions={{padding: 4}}
+          flipOptions={{
+            fallbackPlacements: [
+              'top',
+              'right-start',
+              'right-end',
+              'left-start',
+              'left-end',
+            ],
+          }}
+          trigger={triggerProps => (
+            <ActionMenuTrigger
+              {...triggerProps}
+              translucentBorder
+              aria-label={t('Actions')}
+              icon={<IconEllipsis size="xs" />}
+              size="zero"
+            />
+          )}
+        />
+      </Container>
     </Item>
   );
 }
@@ -246,17 +323,90 @@ export function BrowserCell({replay}: Props) {
   const {name, version} = replay.browser ?? {};
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
+  const location = useLocation<ReplayListLocationQuery>();
 
   if (replay.is_archived) {
     return <Item isArchived />;
   }
   return (
     <Item>
-      <ContextIcon
-        name={name ?? ''}
-        version={version && hasRoomForColumns ? version : undefined}
-        showVersion={false}
-      />
+      <Container>
+        <ContextIcon
+          name={name ?? ''}
+          version={version && hasRoomForColumns ? version : undefined}
+          showVersion={false}
+          showTooltip={false}
+        />
+        <DropdownMenu
+          items={[
+            {
+              key: 'name',
+              label: 'Add browser name to filter',
+              onAction: () => {
+                browserHistory.push({
+                  ...location,
+                  query: {
+                    ...location.query,
+                    query: `browser.name:"${name}"`,
+                  },
+                });
+              },
+              tooltip: (
+                <Tooltip title="Browser name">
+                  <dt>{t('Browser name:')}</dt>
+                  <dd>{name}</dd>
+                </Tooltip>
+              ),
+            },
+            ...(version
+              ? [
+                  {
+                    key: 'version',
+                    label: 'Add browser version to filter',
+                    onAction: () => {
+                      browserHistory.push({
+                        ...location,
+                        query: {
+                          ...location.query,
+                          query: `browser.version:"${version}"`,
+                        },
+                      });
+                    },
+                    tooltip: (
+                      <Tooltip title="Browser version">
+                        <dt>{t('Browser version:')}</dt>
+                        <dd>{version}</dd>
+                      </Tooltip>
+                    ),
+                  },
+                ]
+              : []),
+          ]}
+          usePortal
+          size="xs"
+          offset={4}
+          position="bottom"
+          preventOverflowOptions={{padding: 4}}
+          flipOptions={{
+            fallbackPlacements: [
+              'top',
+              'right-start',
+              'right-end',
+              'left-start',
+              'left-end',
+            ],
+          }}
+          trigger={triggerProps => (
+            <ActionMenuTrigger
+              {...triggerProps}
+              translucentBorder
+              aria-label={t('Actions')}
+              icon={<IconEllipsis size="xs" />}
+              size="zero"
+            />
+          )}
+        />
+      </Container>
     </Item>
   );
 }
@@ -373,4 +523,30 @@ const SpanOperationBreakdown = styled('div')`
   color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: right;
+`;
+
+const Container = styled('div')`
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+`;
+
+const ActionMenuTrigger = styled(Button)`
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: ${space(0.75)};
+  left: -10%;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.1s;
+  &.focus-visible,
+  &[aria-expanded='true'],
+  ${Container}:hover & {
+    opacity: 1;
+  }
 `;
