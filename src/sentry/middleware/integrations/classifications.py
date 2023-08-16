@@ -95,10 +95,7 @@ class IntegrationClassification(BaseClassification):
         integration_prefix_regex = re.escape(self.integration_prefix)
         provider_regex = rf"^{integration_prefix_regex}(\w+)"
         result = re.search(provider_regex, request.path)
-        if not result:
-            self.logger.error("invalid_provider", extra={"path": request.path})
-            return None
-        return result[1]
+        return result[1] if result else None
 
     def should_operate(self, request: HttpRequest) -> bool:
         return request.path.startswith(self.integration_prefix) and not request.path.endswith(

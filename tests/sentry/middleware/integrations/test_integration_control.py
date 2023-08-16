@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from django.test import RequestFactory, override_settings
 
 from sentry.middleware.integrations.classifications import (
+    BaseClassification,
     IntegrationClassification,
     PluginClassification,
 )
@@ -56,9 +57,18 @@ class IntegrationControlMiddlewareTest(TestCase):
     @patch.object(IntegrationClassification, "should_operate", wraps=integration_cls.should_operate)
     @patch.object(PluginClassification, "should_operate", wraps=plugin_cls.should_operate)
     def test_attempts_all_classifications(self, mock_plugin_operate, mock_integration_operate):
+        class NewClassification(BaseClassification):
+            pass
+
+        new_classification = NewClassification
+        new_classification.should_operate = MagicMock(return_value=True)
+        new_classification.get_response = MagicMock()
+        self.middleware.register_classifications(classifications=[new_classification])
         self.middleware(self.factory.post("/"))
         assert mock_integration_operate.called
         assert mock_plugin_operate.called
+        assert new_classification.should_operate.called
+        assert new_classification.get_response.called
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(IntegrationClassification, "should_operate", wraps=integration_cls.should_operate)
