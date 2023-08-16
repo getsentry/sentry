@@ -12,6 +12,23 @@ from sentry.notifications.types import (
 )
 from sentry.types.integrations import EXTERNAL_PROVIDERS
 
+# create the data structure outside the endpoint
+provider_defaults = []
+for key, value in NOTIFICATION_SETTING_DEFAULTS.items():
+    provider = EXTERNAL_PROVIDERS[key]
+    # if the value is NOTIFICATION_SETTINGS_ALL_SOMETIMES then it means the provider
+    # is on by default
+    if value == NOTIFICATION_SETTINGS_ALL_SOMETIMES:
+        provider_defaults.append(provider)
+
+# this tells us what the default value is for each notification type
+type_defaults = {}
+for key, value in NOTIFICATION_SETTINGS_ALL_SOMETIMES.items():
+    # for the given notification type, figure out what the default value is
+    notification_type = NOTIFICATION_SETTING_TYPES[key]
+    default = NOTIFICATION_SETTING_OPTION_VALUES[value]
+    type_defaults[notification_type] = default
+
 
 @control_silo_endpoint
 class NotificationDefaultsEndpoints(Endpoint):
@@ -23,17 +40,6 @@ class NotificationDefaultsEndpoints(Endpoint):
         Return the default config for notification settings.
         This becomes the fallback in the UI.
         """
-        provider_defaults = []
-        for key, value in NOTIFICATION_SETTING_DEFAULTS.items():
-            provider = EXTERNAL_PROVIDERS[key]
-            if value == NOTIFICATION_SETTINGS_ALL_SOMETIMES:
-                provider_defaults.append(provider)
-
-        type_defaults = {}
-        for key, value in NOTIFICATION_SETTINGS_ALL_SOMETIMES.items():
-            notification_type = NOTIFICATION_SETTING_TYPES[key]
-            default = NOTIFICATION_SETTING_OPTION_VALUES[value]
-            type_defaults[notification_type] = default
         return Response(
             {
                 "providerDefaults": provider_defaults,
