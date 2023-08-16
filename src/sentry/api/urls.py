@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from django.conf.urls import include
-from django.urls import re_path
+from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
@@ -305,7 +307,7 @@ from .endpoints.organization_events_trends import (
     OrganizationEventsTrendsEndpoint,
     OrganizationEventsTrendsStatsEndpoint,
 )
-from .endpoints.organization_events_trendsv2 import OrganizationEventsNewTrendsStatsEndpoint
+from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
@@ -562,7 +564,7 @@ __all__ = ("urlpatterns",)
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
-GROUP_URLS = [
+GROUP_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<issue_id>[^\/]+)/$",
         GroupDetailsEndpoint.as_view(),
@@ -576,7 +578,7 @@ GROUP_URLS = [
         GroupEventsEndpoint.as_view(),
     ),
     re_path(
-        r"^(?P<issue_id>[^\/]+)/events/(?P<event_id>(?:latest|oldest|helpful|\d+|[A-Fa-f0-9-]{32,36}))/$",
+        r"^(?P<issue_id>[^\/]+)/events/(?P<event_id>(?:latest|oldest|helpful|recommended|\d+|[A-Fa-f0-9-]{32,36}))/$",
         GroupEventDetailsEndpoint.as_view(),
     ),
     re_path(
@@ -1821,7 +1823,7 @@ ORGANIZATION_URLS = [
     ),
 ]
 
-PROJECT_URLS = [
+PROJECT_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^$",
         ProjectIndexEndpoint.as_view(),

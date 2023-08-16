@@ -25,6 +25,7 @@ export enum SpanMetricsFields {
   SPAN_GROUP = 'span.group',
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
+  PROJECT_ID = 'project.id',
 }
 
 export type SpanMetricsFieldTypes = {

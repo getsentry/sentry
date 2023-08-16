@@ -243,7 +243,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
           sort: 'trend_percentage()',
           statsPeriod: '14d',
-          trendFunction: 'avg(transaction.duration)',
+          trendFunction: 'p50(transaction.duration)',
           trendType: 'improved',
         }),
       })
@@ -838,7 +838,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
           sort: 'trend_percentage()',
           statsPeriod: '7d',
-          trendFunction: 'avg(transaction.duration)',
+          trendFunction: 'p50(transaction.duration)',
           trendType: 'improved',
         }),
       })
@@ -874,7 +874,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
           sort: '-trend_percentage()',
           statsPeriod: '7d',
-          trendFunction: 'avg(transaction.duration)',
+          trendFunction: 'p50(transaction.duration)',
           trendType: 'regression',
         }),
       })

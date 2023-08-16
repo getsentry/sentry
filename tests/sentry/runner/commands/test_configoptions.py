@@ -5,15 +5,8 @@ import pytest
 
 from sentry import options
 from sentry.options.manager import FLAG_AUTOMATOR_MODIFIABLE, FLAG_IMMUTABLE, UpdateChannel
-from sentry.runner.commands.configoptions import (
-    CHANNEL_UPDATE_MSG,
-    DB_VALUE,
-    DRIFT_MSG,
-    SET_MSG,
-    UNSET_MSG,
-    UPDATE_MSG,
-    configoptions,
-)
+from sentry.runner.commands.configoptions import configoptions
+from sentry.runner.commands.presenters.consolepresenter import ConsolePresenter
 from sentry.testutils.cases import CliTestCase
 
 
@@ -88,37 +81,28 @@ class ConfigOptionsTest(CliTestCase):
             assert not options.isset("list_option")
 
         def assert_output(rv):
-            assert rv.exit_code == 0, rv.output
+            assert rv.exit_code == 2, rv.output
 
             # The script produces log lines when DRIFT is detected. This
             # makes it easier to surface these as Sentry errors.
-            # This also means the output is polluted with a log line
-            # because reconfiguring the logger in the test is quite tricky
-            # as it is initialized at the beginning of the test.
-            # So we just split the output in two and check each part
-            # independently.
-            output_before_log = "\n".join(
-                [
-                    SET_MSG % ("int_option", 40),
-                    UPDATE_MSG % ("str_option", "old value", "new value"),
-                    SET_MSG % ("map_option", {"a": 1, "b": 2}),
-                    SET_MSG % ("list_option", [1, 2]),
-                    DRIFT_MSG % "drifted_option",
-                ]
-            )
 
-            output_after_log = "\n".join(
+            expected_output = "\n".join(
                 [
-                    DB_VALUE % "drifted_option",
+                    ConsolePresenter.DRIFT_MSG % "drifted_option",
+                    ConsolePresenter.DB_VALUE % "drifted_option",
                     "- 1",
                     "- 2",
                     "- 3",
                     "",
-                    CHANNEL_UPDATE_MSG % "change_channel_option",
+                    ConsolePresenter.CHANNEL_UPDATE_MSG % "change_channel_option",
+                    ConsolePresenter.UPDATE_MSG % ("str_option", "old value", "new value"),
+                    ConsolePresenter.SET_MSG % ("int_option", 40),
+                    ConsolePresenter.SET_MSG % ("map_option", {"a": 1, "b": 2}),
+                    ConsolePresenter.SET_MSG % ("list_option", [1, 2]),
                 ]
             )
-            assert output_before_log in rv.output
-            assert output_after_log in rv.output
+
+            assert expected_output in rv.output
 
         assert_not_set()
         rv = self.invoke(
@@ -153,7 +137,7 @@ class ConfigOptionsTest(CliTestCase):
             ).read_text(),
         )
 
-        assert rv.exit_code == 0
+        assert rv.exit_code == 2
         assert options.get("int_option") == 40
         assert options.get("str_option") == "new value"
         assert options.get("map_option") == {
@@ -169,30 +153,25 @@ class ConfigOptionsTest(CliTestCase):
             "tests/sentry/runner/commands/valid_patch.yaml",
             "sync",
         )
-        assert rv.exit_code == 0, rv.output
-        output_before_log = "\n".join(
+        assert rv.exit_code == 2, rv.output
+        expected_output = "\n".join(
             [
-                SET_MSG % ("int_option", 40),
-                UPDATE_MSG % ("str_option", "old value", "new value"),
-                SET_MSG % ("map_option", {"a": 1, "b": 2}),
-                SET_MSG % ("list_option", [1, 2]),
-                DRIFT_MSG % "drifted_option",
-            ]
-        )
-        output_after_log = "\n".join(
-            [
-                DB_VALUE % "drifted_option",
+                ConsolePresenter.DRIFT_MSG % "drifted_option",
+                ConsolePresenter.DB_VALUE % "drifted_option",
                 "- 1",
                 "- 2",
                 "- 3",
                 "",
-                CHANNEL_UPDATE_MSG % "change_channel_option",
-                UNSET_MSG % "to_unset_option",
+                ConsolePresenter.CHANNEL_UPDATE_MSG % "change_channel_option",
+                ConsolePresenter.UPDATE_MSG % ("str_option", "old value", "new value"),
+                ConsolePresenter.SET_MSG % ("int_option", 40),
+                ConsolePresenter.SET_MSG % ("map_option", {"a": 1, "b": 2}),
+                ConsolePresenter.SET_MSG % ("list_option", [1, 2]),
+                ConsolePresenter.UNSET_MSG % "to_unset_option",
             ]
         )
 
-        assert output_before_log in rv.output
-        assert output_after_log in rv.output
+        assert expected_output in rv.output
 
         assert options.get("int_option") == 40
         assert options.get("str_option") == "new value"
@@ -211,11 +190,14 @@ class ConfigOptionsTest(CliTestCase):
             "patch",
         )
 
-        assert rv.exit_code == 0, rv.output
+        assert rv.exit_code == 2, rv.output
 
-        assert SET_MSG % ("int_option", 50) in rv.output
-        assert "Option invalid_type has invalid type." in rv.output
-        assert "Option inexistent_option is not registered." in rv.output
+        assert ConsolePresenter.SET_MSG % ("int_option", 50) in rv.output
+        assert (
+            ConsolePresenter.INVALID_TYPE_ERROR % ("invalid_type", "<class 'list'>", "integer")
+            in rv.output
+        )
+        assert ConsolePresenter.UNREGISTERED_OPTION_ERROR % "inexistent_option" in rv.output
 
         assert not options.isset("readonly_option")
         assert not options.isset("invalid_type")

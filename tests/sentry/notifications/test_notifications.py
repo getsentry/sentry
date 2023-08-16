@@ -5,10 +5,11 @@ from unittest.mock import patch
 from urllib.parse import parse_qs
 
 import responses
+from django.conf import settings
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.utils import timezone
-from sentry_relay import parse_release
+from sentry_relay.processing import parse_release
 
 from sentry.event_manager import EventManager
 from sentry.models import (
@@ -105,6 +106,9 @@ class ActivityNotificationTest(APITestCase):
             body='{"ok": true}',
             status=200,
             content_type="application/json",
+        )
+        responses.add_passthru(
+            settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
         )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id

@@ -112,7 +112,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
             save_issue_occurrence(occurrence.to_dict(), event)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         data = self.build_occurrence_data(fingerprint=["hi", "bye"])
@@ -123,7 +123,7 @@ class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):
         ]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
     def test_new_group(self) -> None:
         occurrence = self.build_occurrence(type=ErrorGroupType.type_id)
@@ -242,6 +242,42 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
             assert group_info is not None
 
+    def test_frame_mix_metric_logged(self) -> None:
+        event = self.store_event(
+            data={"platform": "javascript"},
+            project_id=self.project.id,
+        )
+
+        # Normally this is done by `normalize_stacktraces_for_grouping`, but that can't be mocked
+        # because it's imported inside its calling function to avoid circular imports
+        event.data.setdefault("metadata", {})
+        event.data["metadata"]["in_app_frame_mix"] = "in-app-only"
+
+        with patch("sentry.issues.ingest.metrics.incr") as mock_metrics_incr:
+            occurrence = self.build_occurrence()
+            save_issue_from_occurrence(occurrence, event, None)
+
+            mock_metrics_incr.assert_any_call(
+                "grouping.in_app_frame_mix",
+                sample_rate=1.0,
+                tags={
+                    "platform": "javascript",
+                    "frame_mix": "in-app-only",
+                },
+            )
+
+    def test_frame_mix_metric_not_logged(self) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+
+        assert event.get_event_metadata().get("in_app_frame_mix") is None
+
+        with patch("sentry.issues.ingest.metrics.incr") as mock_metrics_incr:
+            occurrence = self.build_occurrence()
+            save_issue_from_occurrence(occurrence, event, None)
+
+            metrics_logged = [call.args[0] for call in mock_metrics_incr.mock_calls]
+            assert "grouping.in_app_frame_mix" not in metrics_logged
+
 
 class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
@@ -262,7 +298,7 @@ class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
 
 
 class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
-    def test(self) -> None:
+    def test_simple(self) -> None:
         occurrence = self.build_occurrence()
         event = self.store_event(data={}, project_id=self.project.id)
         assert materialize_metadata(occurrence, event) == {
@@ -272,6 +308,19 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "title": occurrence.issue_title,
             "location": event.location,
             "last_received": json.datetime_to_str(event.datetime),
+        }
+
+    def test_preserves_existing_metadata(self) -> None:
+        occurrence = self.build_occurrence()
+        event = self.store_event(data={}, project_id=self.project.id)
+        event.data.setdefault("metadata", {})
+        event.data["metadata"]["dogs"] = "are great"  # should not get clobbered
+
+        materialized = materialize_metadata(occurrence, event)
+        assert materialized["metadata"] == {
+            "title": occurrence.issue_title,
+            "value": occurrence.subtitle,
+            "dogs": "are great",
         }
 
 

@@ -9,6 +9,7 @@ import {
   TraceFull,
   TraceFullDetailed,
   TraceRequestProps,
+  TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {
   getTraceRequestPayload,
@@ -96,12 +97,27 @@ function GenericTraceFullQuery<T>({
   );
 }
 
-export function TraceFullQuery(props: Omit<QueryProps<TraceFull[]>, 'detailed'>) {
-  return <GenericTraceFullQuery<TraceFull[]> {...props} detailed={false} />;
+export function TraceFullQuery(
+  props: Omit<QueryProps<TraceFull[] | TraceSplitResults<TraceFull>>, 'detailed'>
+) {
+  return (
+    <GenericTraceFullQuery<TraceFull[] | TraceSplitResults<TraceFull>>
+      {...props}
+      detailed={false}
+    />
+  );
 }
 
 export function TraceFullDetailedQuery(
-  props: Omit<QueryProps<TraceFullDetailed[]>, 'detailed'>
+  props: Omit<
+    QueryProps<TraceFullDetailed[] | TraceSplitResults<TraceFullDetailed>>,
+    'detailed'
+  >
 ) {
-  return <GenericTraceFullQuery<TraceFullDetailed[]> {...props} detailed />;
+  return (
+    <GenericTraceFullQuery<TraceFullDetailed[] | TraceSplitResults<TraceFullDetailed>>
+      {...props}
+      detailed
+    />
+  );
 }

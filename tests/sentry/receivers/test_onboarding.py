@@ -1,9 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 import pytest
-import pytz
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry.api.invite_helper import ApiInviteHelper
 from sentry.models import (
@@ -14,7 +13,7 @@ from sentry.models import (
     OrganizationOption,
     Rule,
 )
-from sentry.plugins.bases import IssueTrackingPlugin
+from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import (
     alert_rule_created,
@@ -46,7 +45,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
     def test_no_existing_task(self):
-        now = timezone.now()
+        now = django_timezone.now()
         project = self.create_project(first_event=now)
         event = self.store_event(data={}, project_id=project.id)
         first_event_received.send(project=project, event=event, sender=type(project))
@@ -59,7 +58,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task.date_completed == project.first_event
 
     def test_existing_pending_task(self):
-        now = timezone.now()
+        now = django_timezone.now()
         project = self.create_project(first_event=now)
 
         first_event_pending.send(project=project, user=self.user, sender=type(project))
@@ -83,7 +82,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task.date_completed == project.first_event
 
     def test_existing_complete_task(self):
-        now = timezone.now()
+        now = django_timezone.now()
         project = self.create_project(first_event=now)
         task = OrganizationOnboardingTask.objects.create(
             organization=project.organization,
@@ -100,7 +99,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     # Tests on the receivers
     def test_event_processed(self):
-        now = timezone.now()
+        now = django_timezone.now()
         project = self.create_project(first_event=now)
         event = self.store_event(
             data={
@@ -156,7 +155,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
     def test_project_created(self):
-        now = timezone.now()
+        now = django_timezone.now()
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
 
@@ -168,7 +167,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
     def test_first_event_pending(self):
-        now = timezone.now()
+        now = django_timezone.now()
         project = self.create_project(first_event=now)
         first_event_pending.send(project=project, user=self.user, sender=type(project))
 
@@ -180,7 +179,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
     def test_first_event_received(self):
-        now = timezone.now()
+        now = django_timezone.now()
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
         event = self.store_event(
@@ -273,11 +272,13 @@ class OrganizationOnboardingTaskTest(TestCase):
         om = self.create_member(
             organization=self.organization, teams=[self.team], email="someemail@example.com"
         )
+        invite = organization_service.get_invite_by_id(
+            organization_member_id=om.id, organization_id=om.organization_id
+        )
+        assert invite is not None
         helper = ApiInviteHelper(
             self.make_request(user=user),
-            organization_service.get_invite_by_id(
-                organization_member_id=om.id, organization_id=om.organization_id
-            ),
+            invite,
             None,
         )
 
@@ -301,11 +302,13 @@ class OrganizationOnboardingTaskTest(TestCase):
         om2 = self.create_member(
             organization=self.organization, teams=[self.team], email="blah@example.com"
         )
+        invite = organization_service.get_invite_by_id(
+            organization_member_id=om2.id, organization_id=om2.organization_id
+        )
+        assert invite is not None
         helper = ApiInviteHelper(
             self.make_request(user=user2),
-            organization_service.get_invite_by_id(
-                organization_member_id=om2.id, organization_id=om2.organization_id
-            ),
+            invite,
             None,
         )
 
@@ -426,7 +429,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
     def test_onboarding_complete(self):
-        now = timezone.now()
+        now = django_timezone.now()
         user = self.create_user(email="test@example.org")
         project = self.create_project(first_event=now)
         second_project = self.create_project(first_event=now)
@@ -538,7 +541,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         Test that an analytics event is NOT recorded when
         there no event with minified stack trace is received
         """
-        now = timezone.now()
+        now = django_timezone.now()
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
         data = load_data("javascript")
@@ -563,7 +566,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         Test that an analytics event is recorded when
         a first event with minified stack trace is received
         """
-        now = timezone.now()
+        now = django_timezone.now()
         project = self.create_project(first_event=now, platform="VueJS")
         project_created.send(project=project, user=self.user, sender=type(project))
         url = "http://localhost:3000"
@@ -619,7 +622,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         Test that an analytic event is triggered only once when
         multiple events with minified stack trace are received
         """
-        now = timezone.now()
+        now = django_timezone.now()
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
         url = "http://localhost:3000"
@@ -679,7 +682,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         In this test we also check  if the has_minified_stack_trace is being set to "True" in old projects
         """
-        old_date = datetime(2022, 12, 10, tzinfo=pytz.UTC)
+        old_date = datetime(2022, 12, 10, tzinfo=timezone.utc)
         project = self.create_project(first_event=old_date, date_added=old_date)
         project_created.send(project=project, user=self.user, sender=type(project))
         url = "http://localhost:3000"

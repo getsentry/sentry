@@ -3,27 +3,30 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from click.testing import CliRunner
+from django.apps import apps
 from django.core.management import call_command
+from django.db import connections, router, transaction
 
 from sentry.backup.comparators import ComparatorMap
+from sentry.backup.dependencies import sorted_dependencies
+from sentry.backup.exports import OldExportConfig, exports
 from sentry.backup.findings import ComparatorFindings
-from sentry.backup.helpers import get_exportable_final_derivations_of, get_final_derivations_of
+from sentry.backup.imports import OldImportConfig, imports
 from sentry.backup.validate import validate
-from sentry.runner.commands.backup import export, import_
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.silo import unguarded_write
 from sentry.testutils.factories import get_fixture_path
 from sentry.utils import json
 from sentry.utils.json import JSONData
 
 __all__ = [
-    "ValidationError",
     "export_to_file",
-    "get_final_derivations_of",
-    "get_exportable_final_derivations_of",
     "import_export_then_validate",
     "import_export_from_fixture_then_validate",
+    "ValidationError",
 ]
+
+NOOP_PRINTER = lambda *args, **kwargs: None
 
 
 class ValidationError(Exception):
@@ -36,18 +39,38 @@ def export_to_file(path: Path) -> JSONData:
     """Helper function that exports the current state of the database to the specified file."""
 
     json_file_path = str(path)
-    rv = CliRunner().invoke(
-        export, [json_file_path], obj={"silent": True, "indent": 2, "exclude": None}
-    )
-    assert rv.exit_code == 0, rv.output
+    with open(json_file_path, "w+") as tmp_file:
+        exports(tmp_file, OldExportConfig(), 2, NOOP_PRINTER)
 
     with open(json_file_path) as tmp_file:
-        # print("\n\n\nOUT: \n\n\n" + tmp_file.read())
         output = json.load(tmp_file)
     return output
 
 
-def import_export_then_validate(method_name: str) -> JSONData:
+REVERSED_DEPENDENCIES = sorted_dependencies()
+REVERSED_DEPENDENCIES.reverse()
+
+
+def clear_database_but_keep_sequences():
+    """Deletes all models we care about from the database, in a sequence that ensures we get no
+    foreign key errors."""
+
+    with unguarded_write(using="default"), transaction.atomic(using="default"):
+        for model in REVERSED_DEPENDENCIES:
+            # For some reason, the tables for `SentryApp*` models don't get deleted properly here
+            # when using `model.objects.all().delete()`, so we have to call out to Postgres
+            # manually.
+            connection = connections[router.db_for_write(SentryApp)]
+            with connection.cursor() as cursor:
+                table = model._meta.db_table
+                cursor.execute(f"DELETE FROM {table:s};")
+
+        # Clear remaining tables that are not explicitly in Sentry's own model dependency graph.
+        for model in set(apps.get_models()) - set(REVERSED_DEPENDENCIES):
+            model.objects.all().delete()
+
+
+def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> JSONData:
     """Test helper that validates that dat imported from an export of the current state of the test
     database correctly matches the actual outputted export data."""
 
@@ -62,11 +85,13 @@ def import_export_then_validate(method_name: str) -> JSONData:
         # Write the contents of the "expected" JSON file into the now clean database.
         # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
         with unguarded_write(using="default"):
-            # Reset the Django database.
-            call_command("flush", verbosity=0, interactive=False)
+            if reset_pks:
+                call_command("flush", verbosity=0, interactive=False)
+            else:
+                clear_database_but_keep_sequences()
 
-            rv = CliRunner().invoke(import_, [str(tmp_expect)])
-            assert rv.exit_code == 0, rv.output
+            with open(tmp_expect) as tmp_file:
+                imports(tmp_file, OldImportConfig(), NOOP_PRINTER)
 
         # Validate that the "expected" and "actual" JSON matches.
         actual = export_to_file(tmp_actual)
@@ -93,9 +118,8 @@ def import_export_from_fixture_then_validate(
         expect = json.load(backup_file)
 
     # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
-    with unguarded_write(using="default"):
-        rv = CliRunner().invoke(import_, [str(fixture_file_path)])
-        assert rv.exit_code == 0, rv.output
+    with unguarded_write(using="default"), open(fixture_file_path) as fixture_file:
+        imports(fixture_file, OldImportConfig(), NOOP_PRINTER)
 
     res = validate(expect, export_to_file(tmp_path.joinpath("tmp_test_file.json")), map)
     if res.findings:

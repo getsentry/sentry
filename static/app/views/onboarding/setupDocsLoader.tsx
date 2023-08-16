@@ -33,14 +33,14 @@ export function SetupDocsLoader({
   project,
   platform,
   close,
-  showDocsWithProductSelection,
+  newOrg,
 }: {
   close: () => void;
   location: Location;
   organization: Organization;
   platform: PlatformKey | null;
   project: Project;
-  showDocsWithProductSelection?: boolean;
+  newOrg?: boolean;
 }) {
   const api = useApi();
   const currentPlatform = platform ?? project?.platform ?? 'other';
@@ -143,21 +143,15 @@ export function SetupDocsLoader({
 
   return (
     <Fragment>
-      {showDocsWithProductSelection ? (
+      {!newOrg ? (
         <ProductSelectionAvailabilityHook
           organization={organization}
           lazyLoader
           skipLazyLoader={close}
+          platform={currentPlatform}
         />
       ) : (
-        <ProductSelection
-          defaultSelectedProducts={[
-            ProductSolution.PERFORMANCE_MONITORING,
-            ProductSolution.SESSION_REPLAY,
-          ]}
-          lazyLoader
-          skipLazyLoader={close}
-        />
+        <ProductSelection lazyLoader skipLazyLoader={close} platform={currentPlatform} />
       )}
 
       {projectKeyUpdateError && (

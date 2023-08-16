@@ -137,7 +137,9 @@ export function ReplayCell({
       {showUrl ? <StringWalker urls={replay.urls} /> : undefined}
       <Row gap={1}>
         <Row gap={0.5}>
+          {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
           {project ? <Avatar size={12} project={project} /> : null}
+          {project ? project.slug : null}
           <Link to={detailsTab} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}
           </Link>
@@ -277,7 +279,7 @@ export function RageClickCountCell({replay}: Props) {
   return (
     <Item data-test-id="replay-table-count-rage-clicks">
       {replay.count_rage_clicks ? (
-        <Count>{replay.count_rage_clicks}</Count>
+        <DeadRageCount>{replay.count_rage_clicks}</DeadRageCount>
       ) : (
         <Count>0</Count>
       )}
@@ -292,7 +294,7 @@ export function DeadClickCountCell({replay}: Props) {
   return (
     <Item data-test-id="replay-table-count-dead-clicks">
       {replay.count_dead_clicks ? (
-        <Count>{replay.count_dead_clicks}</Count>
+        <DeadRageCount>{replay.count_dead_clicks}</DeadRageCount>
       ) : (
         <Count>0</Count>
       )}
@@ -345,6 +347,11 @@ const Item = styled('div')<{isArchived?: boolean}>`
 
 const Count = styled('span')`
   font-variant-numeric: tabular-nums;
+`;
+
+const DeadRageCount = styled(Count)`
+  display: flex;
+  width: 40px;
 `;
 
 const ErrorCount = styled(Count)`

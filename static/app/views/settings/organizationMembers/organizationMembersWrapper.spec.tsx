@@ -92,11 +92,16 @@ describe('OrganizationMembersWrapper', function () {
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
-  it('renders member list', function () {
+  it('renders member list', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       method: 'GET',
       body: [member],
+    });
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      method: 'GET',
+      body: {},
     });
     render(
       <OrganizationMembersWrapper organization={organization} {...routerProps}>
@@ -104,7 +109,7 @@ describe('OrganizationMembersWrapper', function () {
       </OrganizationMembersWrapper>
     );
 
-    expect(screen.getByText('Members')).toBeInTheDocument();
+    expect(await screen.findByText('Members')).toBeInTheDocument();
     expect(screen.getByText(member.name)).toBeInTheDocument();
   });
 });

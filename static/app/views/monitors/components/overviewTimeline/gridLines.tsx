@@ -18,6 +18,7 @@ interface Props {
   width: number;
   className?: string;
   showCursor?: boolean;
+  stickyCursor?: boolean;
 }
 
 function clampTimeBasedOnResolution(date: moment.Moment, resolution: string) {
@@ -55,9 +56,9 @@ function getTimeMarkers(end: Date, timeWindow: TimeWindow, width: number): TimeM
   return times;
 }
 
-export function GridLineTimeLabels({end, timeWindow, width}: Props) {
+export function GridLineTimeLabels({end, timeWindow, width, className}: Props) {
   return (
-    <LabelsContainer>
+    <LabelsContainer className={className}>
       {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
         <TimeLabelContainer key={date.getTime()} left={position}>
           <TimeLabel date={date} {...timeWindowConfig[timeWindow].dateTimeProps} />
@@ -67,7 +68,14 @@ export function GridLineTimeLabels({end, timeWindow, width}: Props) {
   );
 }
 
-export function GridLineOverlay({end, timeWindow, width, showCursor}: Props) {
+export function GridLineOverlay({
+  end,
+  timeWindow,
+  width,
+  showCursor,
+  stickyCursor,
+  className,
+}: Props) {
   const {cursorLabelFormat} = timeWindowConfig[timeWindow];
 
   const makeCursorText = useCallback(
@@ -82,11 +90,12 @@ export function GridLineOverlay({end, timeWindow, width, showCursor}: Props) {
 
   const {cursorContainerRef, timelineCursor} = useTimelineCursor<HTMLDivElement>({
     enabled: showCursor,
+    sticky: stickyCursor,
     labelText: makeCursorText,
   });
 
   return (
-    <Overlay ref={cursorContainerRef}>
+    <Overlay ref={cursorContainerRef} className={className}>
       {timelineCursor}
       <GridLineContainer>
         {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
