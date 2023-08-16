@@ -1,0 +1,20 @@
+from enum import Enum
+
+
+class ApiOwner(Enum):
+    """
+    Used to track ownership of APIs
+    Value should map to team's github group
+    """
+
+    DISCOVER_N_DASHBOARDS = "discover-n-dashboards"
+    TELEMETRY_EXPERIENCE = "telemetry-experience"
+    ENTERPRISE = "enterprise"
+    SECURITY = "security"
+    HYBRID_CLOUD = "hybrid-cloud"
+    ISSUES = "issues"
+    PERFORMANCE = "performance"
+    TEAM_STARTFISH = "team-starfish"
+    PROFILING = "profiling"
+    GROWTH = "growth"
+    UNOWNED = "unowned"

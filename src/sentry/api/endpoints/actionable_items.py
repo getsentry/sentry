@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from typing_extensions import TypedDict
 
 from sentry import eventstore, features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.actionable_items_helper import (
@@ -38,6 +39,8 @@ class SourceMapProcessingResponse(TypedDict):
 # errors or messages we show to users about problems with their event which we will show the user how to fix.
 @region_silo_endpoint
 class ActionableItemsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ISSUES
+
     def has_feature(self, organization: Organization, request: Request):
         return features.has("organizations:actionable-items", organization, actor=request.user)
 

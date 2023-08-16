@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Hub, set_tag, start_span, start_transaction
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.authentication import RelayAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import RelayPermission
@@ -39,6 +40,7 @@ def _sample_apm():
 
 @region_silo_endpoint
 class RelayProjectConfigsEndpoint(Endpoint):
+    owner = ApiOwner.OWNERS_INGEST
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
     enforce_rate_limit = False
