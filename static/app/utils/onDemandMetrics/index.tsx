@@ -72,3 +72,14 @@ export const extrapolatedAreaStyle = {
   },
   opacity: 1.0,
 };
+
+export function hasOnDemandMetricAlertFeature(organization) {
+  return organization.features.includes('on-demand-metrics-extraction');
+}
+
+export function hasOnDemandMetricWidgetFeature(organization) {
+  return (
+    organization.features.includes('on-demand-metrics-extraction') &&
+    organization.features.includes('on-demand-metrics-extraction-experimental')
+  );
+}

@@ -42,7 +42,10 @@ import {
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import {createOnDemandFilterWarning} from 'sentry/utils/onDemandMetrics';
+import {
+  createOnDemandFilterWarning,
+  hasOnDemandMetricWidgetFeature,
+} from 'sentry/utils/onDemandMetrics';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -405,7 +408,11 @@ function WidgetViewerModal(props: Props) {
         ? parseSearch(
             conditions +
               (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`),
-            {getFilterTokenWarning: getOnDemandFilterWarning}
+            {
+              getFilterTokenWarning: hasOnDemandMetricWidgetFeature(organization)
+                ? getOnDemandFilterWarning
+                : undefined,
+            }
           )
         : null;
     const getHighlightedQuery = (

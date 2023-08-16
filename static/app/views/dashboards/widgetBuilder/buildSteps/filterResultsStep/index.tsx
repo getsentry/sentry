@@ -16,6 +16,7 @@ import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {
   createOnDemandFilterWarning,
+  hasOnDemandMetricWidgetFeature,
   isOnDemandQueryString,
 } from 'sentry/utils/onDemandMetrics';
 import {decodeList} from 'sentry/utils/queryString';
@@ -158,7 +159,11 @@ export function FilterResultsStep({
             >
               <SearchConditionsWrapper>
                 <datasetConfig.SearchBar
-                  getFilterWarning={getOnDemandFilterWarning}
+                  getFilterWarning={
+                    hasOnDemandMetricWidgetFeature(organization)
+                      ? getOnDemandFilterWarning
+                      : undefined
+                  }
                   organization={organization}
                   pageFilters={selection}
                   onClose={handleClose(queryIndex)}
