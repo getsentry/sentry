@@ -1,8 +1,8 @@
 import {t, tct} from 'sentry/locale';
 import {RateUnits} from 'sentry/utils/discover/fields';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
-import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
-import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
+import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {SpanMetricsFields, StarfishFunctions} from 'sentry/views/starfish/types';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
