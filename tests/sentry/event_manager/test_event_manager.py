@@ -35,7 +35,9 @@ from sentry.event_manager import (
     HashDiscarded,
     _get_event_instance,
     _save_grouphash_and_group,
+    get_event_type,
     has_pending_commit_resolution,
+    materialize_metadata,
 )
 from sentry.eventstore.models import Event
 from sentry.grouping.utils import hash_from_values
@@ -186,262 +188,33 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data.get("type") == "default"
         assert group.data.get("metadata") == {"title": "foo bar"}
 
-    def test_applies_secondary_grouping(self):
-        project = self.project
-        project.update_option("sentry:grouping_config", "legacy:2019-03-12")
-        project.update_option("sentry:secondary_grouping_expiry", 0)
+    def test_materialze_metadata_simple(self):
+        manager = EventManager(make_event(transaction="/dogs/are/great/"))
+        event = manager.save(self.project.id)
 
-        timestamp = time() - 300
-        manager = EventManager(
-            make_event(message="foo 123", event_id="a" * 32, timestamp=timestamp)
-        )
-        manager.normalize()
-        event = manager.save(project.id)
+        event_type = get_event_type(event.data)
+        event_metadata = event_type.get_metadata(event.data)
 
-        project.update_option("sentry:grouping_config", "newstyle:2023-01-11")
-        project.update_option("sentry:secondary_grouping_config", "legacy:2019-03-12")
-        project.update_option("sentry:secondary_grouping_expiry", time() + (24 * 90 * 3600))
+        assert materialize_metadata(event.data, event_type, event_metadata) == {
+            "type": "default",
+            "culprit": "/dogs/are/great/",
+            "metadata": {"title": "<unlabeled event>"},
+            "title": "<unlabeled event>",
+            "location": None,
+        }
 
-        # Switching to newstyle grouping changes hashes as 123 will be removed
-        manager = EventManager(
-            make_event(message="foo 123", event_id="b" * 32, timestamp=timestamp + 2.0)
-        )
-        manager.normalize()
+    def test_materialze_metadata_preserves_existing_metadata(self):
+        manager = EventManager(make_event())
+        event = manager.save(self.project.id)
 
-        with self.tasks():
-            event2 = manager.save(project.id)
+        event.data.setdefault("metadata", {})
+        event.data["metadata"]["dogs"] = "are great"  # should not get clobbered
 
-        # make sure that events did get into same group because of fallback grouping, not because of hashes which come from primary grouping only
-        assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
-        assert event.group_id == event2.group_id
+        event_type = get_event_type(event.data)
+        event_metadata_from_type = event_type.get_metadata(event.data)
+        materialized = materialize_metadata(event.data, event_type, event_metadata_from_type)
 
-        group = Group.objects.get(id=event.group_id)
-
-        assert group.times_seen == 2
-        assert group.last_seen == event2.datetime
-        assert group.message == event2.message
-        assert group.data.get("type") == "default"
-        assert group.data.get("metadata") == {"title": "foo 123"}
-
-        # After expiry, new events are still assigned to the same group:
-        project.update_option("sentry:secondary_grouping_expiry", 0)
-        manager = EventManager(
-            make_event(message="foo 123", event_id="c" * 32, timestamp=timestamp + 4.0)
-        )
-        manager.normalize()
-
-        with self.tasks():
-            event3 = manager.save(project.id)
-        assert event3.group_id == event2.group_id
-
-    def test_applies_secondary_grouping_hierarchical(self):
-        project = self.project
-        project.update_option("sentry:grouping_config", "legacy:2019-03-12")
-        project.update_option("sentry:secondary_grouping_expiry", 0)
-
-        timestamp = time() - 300
-
-        def save_event(ts_offset):
-            ts = timestamp + ts_offset
-            manager = EventManager(
-                make_event(
-                    message="foo 123",
-                    event_id=hex(2**127 + int(ts))[-32:],
-                    timestamp=ts,
-                    exception={
-                        "values": [
-                            {
-                                "type": "Hello",
-                                "stacktrace": {
-                                    "frames": [
-                                        {
-                                            "function": "not_in_app_function",
-                                        },
-                                        {
-                                            "function": "in_app_function",
-                                        },
-                                    ]
-                                },
-                            }
-                        ]
-                    },
-                )
-            )
-            manager.normalize()
-            with self.tasks():
-                return manager.save(project.id)
-
-        event = save_event(0)
-
-        project.update_option("sentry:grouping_config", "mobile:2021-02-12")
-        project.update_option("sentry:secondary_grouping_config", "legacy:2019-03-12")
-        project.update_option("sentry:secondary_grouping_expiry", time() + (24 * 90 * 3600))
-
-        # Switching to newstyle grouping changes hashes as 123 will be removed
-        event2 = save_event(2)
-
-        # make sure that events did get into same group because of fallback grouping, not because of hashes which come from primary grouping only
-        assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
-        assert event.group_id == event2.group_id
-
-        group = Group.objects.get(id=event.group_id)
-
-        assert group.times_seen == 2
-        assert group.last_seen == event2.datetime
-
-        # After expiry, new events are still assigned to the same group:
-        project.update_option("sentry:secondary_grouping_expiry", 0)
-        event3 = save_event(4)
-        assert event3.group_id == event2.group_id
-
-    def test_applies_downgrade_hierarchical(self):
-        project = self.project
-        project.update_option("sentry:grouping_config", "mobile:2021-02-12")
-        project.update_option("sentry:secondary_grouping_expiry", 0)
-
-        timestamp = time() - 300
-
-        def save_event(ts_offset):
-            ts = timestamp + ts_offset
-            manager = EventManager(
-                make_event(
-                    message="foo 123",
-                    event_id=hex(2**127 + int(ts))[-32:],
-                    timestamp=ts,
-                    exception={
-                        "values": [
-                            {
-                                "type": "Hello",
-                                "stacktrace": {
-                                    "frames": [
-                                        {
-                                            "function": "not_in_app_function",
-                                        },
-                                        {
-                                            "function": "in_app_function",
-                                        },
-                                    ]
-                                },
-                            }
-                        ]
-                    },
-                )
-            )
-            manager.normalize()
-            with self.tasks():
-                return manager.save(project.id)
-
-        event = save_event(0)
-
-        project.update_option("sentry:grouping_config", "legacy:2019-03-12")
-        project.update_option("sentry:secondary_grouping_config", "mobile:2021-02-12")
-        project.update_option("sentry:secondary_grouping_expiry", time() + (24 * 90 * 3600))
-
-        # Switching to newstyle grouping changes hashes as 123 will be removed
-        event2 = save_event(2)
-
-        # make sure that events did get into same group because of fallback grouping, not because of hashes which come from primary grouping only
-        assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
-        assert event.group_id == event2.group_id
-
-        group = Group.objects.get(id=event.group_id)
-
-        group_hashes = GroupHash.objects.filter(
-            project=self.project, hash__in=event.get_hashes().hashes
-        )
-        assert group_hashes
-        for hash in group_hashes:
-            assert hash.group_id == event.group_id
-
-        assert group.times_seen == 2
-        assert group.last_seen == event2.datetime
-
-        # After expiry, new events are still assigned to the same group:
-        project.update_option("sentry:secondary_grouping_expiry", 0)
-        event3 = save_event(4)
-        assert event3.group_id == event2.group_id
-
-    @mock.patch("sentry.event_manager._calculate_background_grouping")
-    def test_applies_background_grouping(self, mock_calc_grouping):
-        timestamp = time() - 300
-        manager = EventManager(
-            make_event(message="foo 123", event_id="a" * 32, timestamp=timestamp)
-        )
-        manager.normalize()
-        manager.save(self.project.id)
-
-        assert mock_calc_grouping.call_count == 0
-
-        with self.options(
-            {
-                "store.background-grouping-config-id": "mobile:2021-02-12",
-                "store.background-grouping-sample-rate": 1.0,
-            }
-        ):
-            manager.save(self.project.id)
-
-        assert mock_calc_grouping.call_count == 1
-
-    @mock.patch("sentry.event_manager._calculate_background_grouping")
-    def test_background_grouping_sample_rate(self, mock_calc_grouping):
-
-        timestamp = time() - 300
-        manager = EventManager(
-            make_event(message="foo 123", event_id="a" * 32, timestamp=timestamp)
-        )
-        manager.normalize()
-        manager.save(self.project.id)
-
-        assert mock_calc_grouping.call_count == 0
-
-        with self.options(
-            {
-                "store.background-grouping-config-id": "mobile:2021-02-12",
-                "store.background-grouping-sample-rate": 0.0,
-            }
-        ):
-            manager.save(self.project.id)
-
-        manager.save(self.project.id)
-
-        assert mock_calc_grouping.call_count == 0
-
-    def test_updates_group_with_fingerprint(self):
-        ts = time() - 200
-        manager = EventManager(
-            make_event(message="foo", event_id="a" * 32, fingerprint=["a" * 32], timestamp=ts)
-        )
-        with self.tasks():
-            event = manager.save(self.project.id)
-
-        manager = EventManager(
-            make_event(message="foo bar", event_id="b" * 32, fingerprint=["a" * 32], timestamp=ts)
-        )
-        with self.tasks():
-            event2 = manager.save(self.project.id)
-
-        group = Group.objects.get(id=event.group_id)
-
-        assert group.times_seen == 2
-        assert group.last_seen == event.datetime
-        assert group.message == event2.message
-
-    def test_differentiates_with_fingerprint(self):
-        manager = EventManager(
-            make_event(message="foo", event_id="a" * 32, fingerprint=["{{ default }}", "a" * 32])
-        )
-        with self.tasks():
-            manager.normalize()
-            event = manager.save(self.project.id)
-
-        manager = EventManager(
-            make_event(message="foo bar", event_id="b" * 32, fingerprint=["a" * 32])
-        )
-        with self.tasks():
-            manager.normalize()
-            event2 = manager.save(self.project.id)
-
-        assert event.group_id != event2.group_id
+        assert materialized["metadata"] == {"title": "<unlabeled event>", "dogs": "are great"}
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolves_group(self, send_robust):
@@ -1527,13 +1300,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             group_states=[{"id": event.group.id, **group_states2}],
         )
 
-    def test_default_fingerprint(self):
-        manager = EventManager(make_event())
-        manager.normalize()
-        event = manager.save(self.project.id)
-
-        assert event.data.get("fingerprint") == ["{{ default }}"]
-
     def test_user_report_gets_environment(self):
         project = self.create_project()
         environment = Environment.objects.create(
@@ -1769,6 +1535,68 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert "test" not in search_message
         assert "hello world" in search_message
         assert "sentry.tasks.process" in search_message
+
+    def test_search_message_skips_requested_keys(self):
+        from sentry.eventstore import models
+
+        with patch.object(models, "SEARCH_MESSAGE_SKIPPED_KEYS", ("dogs",)):
+            manager = EventManager(
+                make_event(
+                    **{
+                        "logentry": {"message": "hello world"},
+                        "transaction": "sentry.tasks.process",
+                    }
+                )
+            )
+            manager.normalize()
+            # Normalizing nukes any metadata we might pass when creating the event and event
+            # manager, so we have to add it in here
+            manager._data["metadata"] = {"dogs": "are great", "maisey": "silly", "charlie": "goofy"}
+
+            event = manager.save(
+                self.project.id,
+            )
+
+            search_message = event.search_message
+            assert "hello world" in search_message
+            assert "sentry.tasks.process" in search_message
+            assert "silly" in search_message
+            assert "goofy" in search_message
+            assert "are great" not in search_message  # "dogs" key is skipped
+
+    def test_search_message_skips_bools_and_numbers(self):
+        from sentry.eventstore import models
+
+        with patch.object(models, "SEARCH_MESSAGE_SKIPPED_KEYS", ("dogs",)):
+            manager = EventManager(
+                make_event(
+                    **{
+                        "logentry": {"message": "hello world"},
+                        "transaction": "sentry.tasks.process",
+                    }
+                )
+            )
+            manager.normalize()
+            # Normalizing nukes any metadata we might pass when creating the event and event
+            # manager, so we have to add it in here
+            manager._data["metadata"] = {
+                "dogs are great": True,
+                "maisey": 12312012,
+                "charlie": 1121.2012,
+                "adopt": "don't shop",
+            }
+
+            event = manager.save(
+                self.project.id,
+            )
+
+            search_message = event.search_message
+            assert "hello world" in search_message
+            assert "sentry.tasks.process" in search_message
+            assert "True" not in search_message  # skipped because it's a boolean
+            assert "12312012" not in search_message  # skipped because it's an int
+            assert "1121.2012" not in search_message  # skipped because it's a float
+            assert "don't shop" in search_message
 
     def test_stringified_message(self):
         manager = EventManager(make_event(**{"message": 1234}))
@@ -2141,57 +1969,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 tenant_ids={"organization_id": 123, "referrer": "r"},
             )[self.project.id]
             == 0
-        )
-
-    @freeze_time()
-    def test_fingerprint_ignored(self):
-        manager1 = EventManager(make_event(event_id="a" * 32, fingerprint="fingerprint1"))
-        event1 = manager1.save(self.project.id)
-
-        manager2 = EventManager(
-            make_event(
-                event_id="b" * 32,
-                fingerprint="fingerprint1",
-                transaction="wait",
-                contexts={
-                    "trace": {
-                        "parent_span_id": "bce14471e0e9654d",
-                        "op": "foobar",
-                        "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
-                        "span_id": "bf5be759039ede9a",
-                    }
-                },
-                spans=[],
-                timestamp=iso_format(before_now(minutes=1)),
-                start_timestamp=iso_format(before_now(minutes=1)),
-                type="transaction",
-                platform="python",
-            )
-        )
-        event2 = manager2.save(self.project.id)
-
-        assert event1.group is not None
-        assert event2.group is None
-        assert (
-            tsdb.backend.get_sums(
-                TSDBModel.project,
-                [self.project.id],
-                event1.datetime,
-                event1.datetime,
-                tenant_ids={"organization_id": 123, "referrer": "r"},
-            )[self.project.id]
-            == 1
-        )
-
-        assert (
-            tsdb.backend.get_sums(
-                TSDBModel.group,
-                [event1.group.id],
-                event1.datetime,
-                event1.datetime,
-                tenant_ids={"organization_id": 123, "referrer": "r"},
-            )[event1.group.id]
-            == 1
         )
 
     def test_category_match_in_app(self):
@@ -2683,6 +2460,34 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 "platform": "javascript",
             },
         )
+
+    def test_new_group_metrics_logging_with_frame_mix(self) -> None:
+        with patch("sentry.event_manager.metrics.incr") as mock_metrics_incr:
+            manager = EventManager(make_event(platform="javascript"))
+            manager.normalize()
+            # IRL, `normalize_stacktraces_for_grouping` adds frame mix metadata to the event, but we
+            # can't mock that because it's imported inside its calling function to avoid circular imports
+            manager._data["metadata"] = {"in_app_frame_mix": "in-app-only"}
+            manager.save(self.project.id)
+
+            mock_metrics_incr.assert_any_call(
+                "grouping.in_app_frame_mix",
+                sample_rate=1.0,
+                tags={
+                    "platform": "javascript",
+                    "frame_mix": "in-app-only",
+                },
+            )
+
+    def test_new_group_metrics_logging_without_frame_mix(self) -> None:
+        with patch("sentry.event_manager.metrics.incr") as mock_metrics_incr:
+            manager = EventManager(make_event(platform="javascript"))
+            event = manager.save(self.project.id)
+
+            assert event.get_event_metadata().get("in_app_frame_mix") is None
+
+            metrics_logged = [call.args[0] for call in mock_metrics_incr.mock_calls]
+            assert "grouping.in_app_frame_mix" not in metrics_logged
 
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):

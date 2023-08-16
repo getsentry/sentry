@@ -9,10 +9,10 @@ from collections import namedtuple
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Tuple, cast
 
-import sentry_relay
+import sentry_relay.consts
+import sentry_relay.processing
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
-from typing_extensions import TypeAlias
 
 from sentry.utils.geo import rust_geoip
 from sentry.utils.integrationdocs import load_doc
@@ -302,7 +302,7 @@ SENTRY_APP_ACTIONS = frozenset(
 HTTP_METHODS = ("GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH")
 
 # See https://github.com/getsentry/relay/blob/master/relay-general/src/protocol/constants.rs
-VALID_PLATFORMS = sentry_relay.VALID_PLATFORMS
+VALID_PLATFORMS = sentry_relay.processing.VALID_PLATFORMS
 
 OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
 
@@ -632,14 +632,14 @@ TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
 APDEX_THRESHOLD_DEFAULT = 300
 AI_SUGGESTED_SOLUTION = True
-GITHUB_PR_BOT_DEFAULT = True
+GITHUB_COMMENT_BOT_DEFAULT = True
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
 ALERTS_MEMBER_WRITE_DEFAULT = True
 
 # Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
-DataCategory: TypeAlias = sentry_relay.DataCategory
+DataCategory = sentry_relay.consts.DataCategory
 
 CRASH_RATE_ALERT_SESSION_COUNT_ALIAS = "_total_count"
 CRASH_RATE_ALERT_AGGREGATE_ALIAS = "_crash_rate_alert_aggregate"

@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from django.db import IntegrityError, models, router
 from django.utils import timezone
+from typing_extensions import Self
 
 from sentry.celery import SentryTask
 from sentry.db.models import BoundedPositiveIntegerField, Model
@@ -170,7 +171,7 @@ class AbstractFileBlob(Model):
             logger.debug("FileBlob.from_files.end")
 
     @classmethod
-    def from_file(cls, fileobj, logger=nooplogger):
+    def from_file(cls, fileobj, logger=nooplogger) -> Self:
         """
         Retrieve a single FileBlob instances for the given file.
         """

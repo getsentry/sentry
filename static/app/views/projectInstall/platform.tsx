@@ -10,7 +10,10 @@ import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {
+  platformProductAvailability,
+  ProductSolution,
+} from 'sentry/components/onboarding/productSelection';
 import {
   performance as performancePlatforms,
   Platform,
@@ -177,7 +180,7 @@ export function ProjectInstallPlatform({location, params}: Props) {
   const isGettingStarted = window.location.href.indexOf('getting-started') > 0;
   const showDocsWithProductSelection =
     gettingStartedDocWithProductSelection &&
-    (platform.key === 'javascript' || !!platform.key.match('^javascript-([A-Za-z]+)$'));
+    (platformProductAvailability[platform.key] ?? []).length > 0;
 
   return (
     <Fragment>
@@ -233,7 +236,9 @@ export function ProjectInstallPlatform({location, params}: Props) {
             busy={loadingProjects}
             to={{
               pathname: issueStreamLink,
-              query: project?.id,
+              query: {
+                project: project?.id,
+              },
               hash: '#welcome',
             }}
           >
@@ -243,7 +248,9 @@ export function ProjectInstallPlatform({location, params}: Props) {
             busy={loadingProjects}
             to={{
               pathname: performanceOverviewLink,
-              query: project?.id,
+              query: {
+                project: project?.id,
+              },
             }}
           >
             {t('Take me to Performance')}

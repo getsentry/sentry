@@ -4,12 +4,19 @@ import {Event} from 'sentry/types/event';
 import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceLiteQuery from 'sentry/utils/performance/quickTrace/traceLiteQuery';
-import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
+import {
+  QuickTraceQueryChildrenProps,
+  TraceFull,
+  TraceSplitResults,
+} from 'sentry/utils/performance/quickTrace/types';
 import {
   flattenRelevantPaths,
   getTraceTimeRangeFromEvent,
   isCurrentEvent,
+  isTraceSplitResult,
 } from 'sentry/utils/performance/quickTrace/utils';
+import useOrganization from 'sentry/utils/useOrganization';
+import {getTraceSplitResults} from 'sentry/views/performance/traceDetails/utils';
 
 type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
   children: (props: QuickTraceQueryChildrenProps) => React.ReactNode;
@@ -17,6 +24,7 @@ type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
 };
 
 export default function QuickTraceQuery({children, event, ...props}: QueryProps) {
+  const organization = useOrganization();
   const renderEmpty = () => (
     <Fragment>
       {children({
@@ -58,12 +66,28 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
           {...props}
         >
           {traceFullResults => {
+            const {transactions, orphanErrors} = getTraceSplitResults<TraceFull>(
+              traceFullResults.traces ?? [],
+              organization
+            );
+
             if (
               !traceFullResults.isLoading &&
               traceFullResults.error === null &&
               traceFullResults.traces !== null
             ) {
-              for (const subtrace of traceFullResults.traces) {
+              const orphanError = orphanErrors?.find(e => e.event_id === event.id);
+              if (orphanError) {
+                return children({
+                  ...traceFullResults,
+                  trace: [],
+                  orphanErrors: [orphanError],
+                  currentEvent: orphanError,
+                });
+              }
+
+              for (const subtrace of transactions ??
+                (traceFullResults.traces as TraceFull[])) {
                 try {
                   const trace = flattenRelevantPaths(event, subtrace);
                   return children({
@@ -103,7 +127,15 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               // if we reach this point but there were some traces in the full results,
               // that means there were other transactions in the trace, but the current
               // event could not be found
-              type: traceFullResults.traces?.length ? 'missing' : 'empty',
+              type:
+                (transactions && transactions.length) ||
+                (traceFullResults.traces &&
+                  !isTraceSplitResult<TraceSplitResults<TraceFull>, TraceFull[]>(
+                    traceFullResults.traces
+                  ) &&
+                  traceFullResults.traces?.length)
+                  ? 'missing'
+                  : 'empty',
               currentEvent: null,
             });
           }}

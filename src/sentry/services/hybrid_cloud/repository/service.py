@@ -81,5 +81,19 @@ class RepositoryService(RpcService):
         """
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def disassociate_organization_integration(
+        self,
+        *,
+        organization_id: int,
+        organization_integration_id: int,
+        integration_id: int,
+    ) -> None:
+        """
+        Disassociates all repositories, code owners, and code mapping associated with the given organization integration.
+        """
+        pass
+
 
 repository_service = cast(RepositoryService, RepositoryService.create_delegation())

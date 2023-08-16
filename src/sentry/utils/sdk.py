@@ -106,11 +106,8 @@ if settings.ADDITIONAL_SAMPLED_URLS:
 # tasks will not be sampled
 SAMPLED_TASKS = {
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.tasks.store.symbolicate_event": settings.SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING,
-    "sentry.tasks.store.symbolicate_event_from_reprocessing": settings.SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
-    "sentry.tasks.assemble.assemble_dif": 0.1,
     "sentry.tasks.app_store_connect.dsym_download": settings.SENTRY_APPCONNECT_APM_SAMPLING,
     "sentry.tasks.app_store_connect.refresh_all_builds": settings.SENTRY_APPCONNECT_APM_SAMPLING,
     "sentry.tasks.process_suspect_commits": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
@@ -133,6 +130,12 @@ SAMPLED_TASKS = {
     "sentry.monitors.tasks.check_missing": 1.0,
     "sentry.monitors.tasks.check_timeout": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2,
+    "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2,
+    "sentry.dynamic_sampling.tasks.sliding_window": 0.2,
+    "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,
+    "sentry.dynamic_sampling.tasks.collect_orgs": 0.2,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
