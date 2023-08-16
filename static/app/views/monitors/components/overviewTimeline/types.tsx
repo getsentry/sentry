@@ -19,9 +19,11 @@ export interface TimeWindowOptions {
    * The interval between each grid line and time label in minutes
    */
   timeMarkerInterval: number;
+  /**
+   * Props to pass to <DateTime> when displaying the job tick tooltip
+   */
+  tooltipDateTimeProps: {dateOnly?: boolean; timeOnly?: boolean};
 }
-
-export type TimeWindowData = Record<TimeWindow, TimeWindowOptions>;
 
 // TODO(davidenwang): Remove this type as its a little too specific
 export type MonitorBucketData = MonitorBucket[];

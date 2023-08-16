@@ -18,7 +18,7 @@ import {Monitor} from '../../types';
 import {ResolutionSelector} from './resolutionSelector';
 import {TimelineTableRow} from './timelineTableRow';
 import {MonitorBucketData, TimeWindow} from './types';
-import {getStartFromTimeWindow, timeWindowConfig} from './utils';
+import {getConfigFromTimeRange, getStartFromTimeWindow} from './utils';
 
 interface Props {
   monitorList: Monitor[];
@@ -33,9 +33,8 @@ export function OverviewTimeline({monitorList}: Props) {
   const start = getStartFromTimeWindow(nowRef.current, timeWindow);
   const {elementRef, width: timelineWidth} = useDimensions<HTMLDivElement>();
 
-  const rollup = Math.floor(
-    (timeWindowConfig[timeWindow].elapsedMinutes * 60) / timelineWidth
-  );
+  const timeWindowConfig = getConfigFromTimeRange(start, nowRef.current, timelineWidth);
+  const rollup = Math.floor((timeWindowConfig.elapsedMinutes * 60) / timelineWidth);
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
     [
@@ -64,7 +63,8 @@ export function OverviewTimeline({monitorList}: Props) {
       </StickyResolutionSelector>
       <StickyGridLineTimeLabels>
         <BorderlessGridLineTimeLabels
-          timeWindow={timeWindow}
+          timeWindowConfig={timeWindowConfig}
+          start={start}
           end={nowRef.current}
           width={timelineWidth}
         />
@@ -72,7 +72,8 @@ export function OverviewTimeline({monitorList}: Props) {
       <GridLineOverlay
         stickyCursor
         showCursor={!isLoading}
-        timeWindow={timeWindow}
+        timeWindowConfig={timeWindowConfig}
+        start={start}
         end={nowRef.current}
         width={timelineWidth}
       />
@@ -81,10 +82,10 @@ export function OverviewTimeline({monitorList}: Props) {
         <TimelineTableRow
           key={monitor.id}
           monitor={monitor}
-          timeWindow={timeWindow}
+          timeWindowConfig={timeWindowConfig}
+          start={start}
           bucketedData={monitorStats?.[monitor.slug]}
           end={nowRef.current}
-          start={start}
           width={timelineWidth}
         />
       ))}
