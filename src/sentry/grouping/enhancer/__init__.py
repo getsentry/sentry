@@ -33,6 +33,7 @@ from .matchers import (
     create_match_frame,
 )
 
+DATADOG_KEY = "save_event.stacktrace"
 logger = logging.getLogger(__name__)
 
 # Grammar is defined in EBNF syntax.
@@ -509,11 +510,19 @@ def _update_frames_from_cached_values(
     """
     frames_changed = False
     # XXX: Test the fallback value
-    changed_frames_values = cache.get(cache_key, {})
+    with metrics.timer(
+        f"{DATADOG_KEY}.cache.get.timer",
+    ):
+        changed_frames_values = cache.get(cache_key, {})
+
     # This helps tracking changes in the hit/miss ratio of the cache
     metrics.incr(
-        "save_event.stacktrace.cache.get",
-        tags={"success": bool(changed_frames_values), "platform": platform},
+        f"{DATADOG_KEY}.cache.get",
+        tags={
+            "success": bool(changed_frames_values),
+            "platform": platform,
+            "loading_from_cache": load_from_cache,
+        },
     )
     if changed_frames_values and load_from_cache:
         try:
@@ -537,8 +546,12 @@ def _update_frames_from_cached_values(
                 raise error
 
     metrics.incr(
-        "save_event.stacktrace.merged_cached_values",
-        tags={"success": frames_changed, "platform": platform},
+        f"{DATADOG_KEY}.merged_cached_values",
+        tags={
+            "success": frames_changed,
+            "platform": platform,
+            "loading_from_cache": load_from_cache,
+        },
     )
     return frames_changed
 
@@ -568,7 +581,7 @@ def _cache_changed_frame_values(
         logger.exception("Failed to store changed frames in cache", extra={"platform": platform})
 
     metrics.incr(
-        "save_event.stacktrace.cache.set",
+        f"{DATADOG_KEY}.cache.set",
         tags={"success": caching_succeeded, "platform": platform},
     )
 
@@ -607,7 +620,7 @@ def _generate_stacktrace_fingerprint(
 
     # This will help us calculate the success ratio for fingerprint calculation
     metrics.incr(
-        "save_event.stacktrace.fingerprint",
+        f"{DATADOG_KEY}.fingerprint",
         tags={
             "hashing_failure": stacktrace_fingerprint == "",
             "platform": platform,
