@@ -39,6 +39,8 @@
   "sentry.LatestRepoReleaseEnvironment",
   "sentry.User",
   "sentry.NotificationSetting",
+  "sentry.NotificationSettingOption",
+  "sentry.NotificationSettingProvider",
   "sentry.OrganizationMapping",
   "sentry.OrganizationMemberMapping",
   "sentry.OrgAuthToken",

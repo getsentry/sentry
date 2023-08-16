@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from enum import Enum, auto, unique
-from typing import NamedTuple
+from typing import NamedTuple, Type
 
 from django.db import models
 from django.db.models.fields.related import ForeignKey, OneToOneField
@@ -35,24 +35,24 @@ class ForeignFieldKind(Enum):
 class ForeignField(NamedTuple):
     """A field that creates a dependency on another Sentry model."""
 
-    model: models.base.ModelBase
+    model: Type[models.base.Model]
     kind: ForeignFieldKind
 
 
 class ModelRelations(NamedTuple):
     """What other models does this model depend on, and how?"""
 
-    model: models.base.ModelBase
+    model: Type[models.base.Model]
     foreign_keys: dict[str, ForeignField]
     silos: list[SiloMode]
 
-    def flatten(self) -> set[models.base.ModelBase]:
+    def flatten(self) -> set[Type[models.base.Model]]:
         """Returns a flat list of all related models, omitting the kind of relation they have."""
 
         return {ff.model for ff in self.foreign_keys.values()}
 
 
-def normalize_model_name(model):
+def normalize_model_name(model: Type[models.base.Model]):
     return f"{model._meta.app_label}.{model._meta.object_name}"
 
 
@@ -61,8 +61,11 @@ class DependenciesJSONEncoder(json.JSONEncoder):
     `ModelRelations`."""
 
     def default(self, obj):
-        if isinstance(obj, models.base.ModelBase):
-            return normalize_model_name(obj)
+        if isinstance(obj, models.base.Model):
+            return normalize_model_name(type(obj))
+        if meta := getattr(obj, "_meta", None):
+            # Note: done to accommodate `node.Nodestore`.
+            return f"{meta.app_label}.{meta.object_name}"
         if isinstance(obj, ForeignFieldKind):
             return obj.name
         if isinstance(obj, SiloMode):
@@ -226,7 +229,7 @@ def sorted_dependencies():
                 "Can't resolve dependencies for %s in serialized app list."
                 % ", ".join(
                     normalize_model_name(m.model)
-                    for m in sorted(skipped, key=lambda obj: normalize_model_name(obj))
+                    for m in sorted(skipped, key=lambda mr: normalize_model_name(mr.model))
                 )
             )
         model_dependencies_list = skipped

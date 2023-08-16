@@ -11,13 +11,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 export function SampleDataAlert() {
   const user = ConfigStore.get('user');
-  const organization = useOrganization();
+  const {slug, isDynamicallySampled} = useOrganization();
 
   const {dismiss, isDismissed} = useDismissAlert({
-    key: `${organization.slug}-${user.id}:sample-data-alert-dismissed`,
+    key: `${slug}-${user.id}:sample-data-alert-dismissed`,
   });
 
-  if (isDismissed) {
+  if (isDismissed || !isDynamicallySampled) {
     return null;
   }
 
