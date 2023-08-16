@@ -55,13 +55,14 @@ class ExternalActor(DefaultFieldsModel):
         from sentry.services.hybrid_cloud.integration import integration_service
 
         integration = integration_service.get_integration(integration_id=self.integration_id)
-        install = integration.get_installation(organization_id=self.organization.id)
+        if integration:
+            install = integration.get_installation(organization_id=self.organization.id)
 
-        team = self.actor.resolve()
-        install.notify_remove_external_team(external_team=self, team=team)
-        notifications_service.remove_notification_settings_for_team(
-            team_id=team.id, provider=ExternalProviders(self.provider)
-        )
+            team = self.actor.resolve()
+            install.notify_remove_external_team(external_team=self, team=team)
+            notifications_service.remove_notification_settings_for_team(
+                team_id=team.id, provider=ExternalProviders(self.provider)
+            )
 
         return super().delete(**kwargs)
 
