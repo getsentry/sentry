@@ -324,6 +324,12 @@
   "sentry.NotificationSetting": [
     "sentry.User"
   ],
+  "sentry.NotificationSettingOption": [
+    "sentry.User"
+  ],
+  "sentry.NotificationSettingProvider": [
+    "sentry.User"
+  ],
   "sentry.Option": [],
   "sentry.OrgAuthToken": [
     "sentry.User"
@@ -356,9 +362,6 @@
   ],
   "sentry.OrganizationOption": [
     "sentry.Organization"
-  ],
-  "sentry.PagerDutyService": [
-    "sentry.OrganizationIntegration"
   ],
   "sentry.PendingIncidentSnapshot": [
     "sentry.Incident"

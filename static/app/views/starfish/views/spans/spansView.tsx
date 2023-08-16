@@ -1,26 +1,19 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import pick from 'lodash/pick';
 
 import {space} from 'sentry/styles/space';
-import {fromSorts} from 'sentry/utils/discover/eventView';
-import type {Sort} from 'sentry/utils/discover/fields';
-import {useLocation} from 'sentry/utils/useLocation';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
 import {SpanOperationSelector} from 'sentry/views/starfish/views/spans/selectors/spanOperationSelector';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
+import {useModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
+import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 
-import SpansTable, {isAValidSort} from './spansTable';
+import SpansTable from './spansTable';
 
-const {SPAN_ACTION, SPAN_DOMAIN, SPAN_OP, SPAN_GROUP} = SpanMetricsFields;
+const {SPAN_ACTION, SPAN_DOMAIN, SPAN_OP} = SpanMetricsFields;
 
-const DEFAULT_SORT: Sort = {
-  kind: 'desc',
-  field: 'time_spent_percentage()',
-};
 const LIMIT: number = 25;
 
 type Props = {
@@ -28,34 +21,17 @@ type Props = {
   spanCategory?: string;
 };
 
-type Query = {
-  'span.action': string;
-  'span.domain': string;
-  'span.group': string;
-  'span.op': string;
-  [QueryParameterNames.SORT]: string;
-};
-
 export default function SpansView(props: Props) {
   const moduleName = props.moduleName ?? ModuleName.ALL;
 
-  const location = useLocation<Query>();
-  const appliedFilters = pick(location.query, [
-    SPAN_ACTION,
-    SPAN_DOMAIN,
-    SPAN_OP,
-    SPAN_GROUP,
-  ]);
-
-  const sort =
-    fromSorts(location.query[QueryParameterNames.SORT]).filter(isAValidSort)[0] ??
-    DEFAULT_SORT; // We only allow one sort on this table in this view
+  const moduleFilters = useModuleFilters();
+  const sort = useModuleSort();
 
   return (
     <Fragment>
       <SpanTimeCharts
         moduleName={moduleName}
-        appliedFilters={appliedFilters}
+        appliedFilters={moduleFilters}
         spanCategory={props.spanCategory}
       />
 
@@ -66,20 +42,20 @@ export default function SpansView(props: Props) {
         {[ModuleName.ALL, ModuleName.OTHER].includes(moduleName) && (
           <SpanOperationSelector
             moduleName={moduleName}
-            value={appliedFilters[SPAN_OP] || ''}
+            value={moduleFilters[SPAN_OP] || ''}
             spanCategory={props.spanCategory}
           />
         )}
 
         <ActionSelector
           moduleName={moduleName}
-          value={appliedFilters[SPAN_ACTION] || ''}
+          value={moduleFilters[SPAN_ACTION] || ''}
           spanCategory={props.spanCategory}
         />
 
         <DomainSelector
           moduleName={moduleName}
-          value={appliedFilters[SPAN_DOMAIN] || ''}
+          value={moduleFilters[SPAN_DOMAIN] || ''}
           spanCategory={props.spanCategory}
         />
       </FilterOptionsContainer>

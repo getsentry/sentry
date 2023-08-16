@@ -2,7 +2,6 @@ import moment from 'moment';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {setIntersectionObserver} from 'sentry/components/carousel.spec';
 import {DEFAULT_SNOOZE_PROMPT_DAYS} from 'sentry/utils/promptIsDismissed';
 import {InviteBanner} from 'sentry/views/settings/organizationMembers/inviteBanner';
 
@@ -32,11 +31,6 @@ describe('inviteBanner', function () {
         snoozed_ts: undefined,
       },
     });
-
-    setIntersectionObserver([
-      {target: {id: 'left-anchor'}, isIntersecting: true},
-      {target: {id: 'right-anchor'}, isIntersecting: true},
-    ]);
   });
 
   it('render banners with feature flag', async function () {

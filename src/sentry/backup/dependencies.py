@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from enum import Enum, auto, unique
-from typing import NamedTuple
+from typing import NamedTuple, Type
 
 from django.db import models
 from django.db.models.fields.related import ForeignKey, OneToOneField
@@ -34,24 +35,24 @@ class ForeignFieldKind(Enum):
 class ForeignField(NamedTuple):
     """A field that creates a dependency on another Sentry model."""
 
-    model: models.base.ModelBase
+    model: Type[models.base.Model]
     kind: ForeignFieldKind
 
 
 class ModelRelations(NamedTuple):
     """What other models does this model depend on, and how?"""
 
-    model: models.base.ModelBase
+    model: Type[models.base.Model]
     foreign_keys: dict[str, ForeignField]
     silos: list[SiloMode]
 
-    def flatten(self) -> set[models.base.ModelBase]:
+    def flatten(self) -> set[Type[models.base.Model]]:
         """Returns a flat list of all related models, omitting the kind of relation they have."""
 
         return {ff.model for ff in self.foreign_keys.values()}
 
 
-def normalize_model_name(model):
+def normalize_model_name(model: Type[models.base.Model]):
     return f"{model._meta.app_label}.{model._meta.object_name}"
 
 
@@ -60,8 +61,11 @@ class DependenciesJSONEncoder(json.JSONEncoder):
     `ModelRelations`."""
 
     def default(self, obj):
-        if isinstance(obj, models.base.ModelBase):
-            return normalize_model_name(obj)
+        if isinstance(obj, models.base.Model):
+            return normalize_model_name(type(obj))
+        if meta := getattr(obj, "_meta", None):
+            # Note: done to accommodate `node.Nodestore`.
+            return f"{meta.app_label}.{meta.object_name}"
         if isinstance(obj, ForeignFieldKind):
             return obj.name
         if isinstance(obj, SiloMode):
@@ -69,6 +73,37 @@ class DependenciesJSONEncoder(json.JSONEncoder):
         if isinstance(obj, set):
             return sorted(list(obj), key=lambda obj: normalize_model_name(obj))
         return super().default(obj)
+
+
+class PrimaryKeyMap:
+    """
+    A map between a primary key in one primary key sequence (like a database) and another (like the
+    ordinals in a backup JSON file). As models are moved between databases, their absolute contents
+    may stay the same, but their relative identifiers may change. This class allows us to track how
+    those relations have been transformed, thereby preserving the model references between one
+    another.
+
+    Note that the map assumes that the primary keys in question are integers. In particular, natural
+    keys are not supported!
+    """
+
+    mapping: dict[str, dict[int, int]]
+
+    def __init__(self):
+        self.mapping = defaultdict(dict)
+
+    def get(self, model: str, old: int) -> int | None:
+        """Get the new, post-mapping primary key from an old primary key."""
+
+        pk_map = self.mapping.get(model)
+        if pk_map is None:
+            return None
+        return pk_map.get(old)
+
+    def insert(self, model: str, old: int, new: int):
+        """Create a new OLD_PK -> NEW_PK mapping for the given model."""
+
+        self.mapping[model][old] = new
 
 
 def dependencies() -> dict[str, ModelRelations]:
@@ -194,7 +229,7 @@ def sorted_dependencies():
                 "Can't resolve dependencies for %s in serialized app list."
                 % ", ".join(
                     normalize_model_name(m.model)
-                    for m in sorted(skipped, key=lambda obj: normalize_model_name(obj))
+                    for m in sorted(skipped, key=lambda mr: normalize_model_name(mr.model))
                 )
             )
         model_dependencies_list = skipped

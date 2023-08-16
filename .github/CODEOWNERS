@@ -361,19 +361,17 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## Enterprise
-/static/app/views/organizationStats                   @getsentry/enterprise
-/src/sentry/api/endpoints/organization_stats*.py      @getsentry/enterprise
-
-/src/sentry/api/endpoints/organization_auditlogs.py   @getsentry/enterprise
-
-/static/app/views/settings/organizationAuth/          @getsentry/enterprise
-/tests/sentry/api/endpoints/test_auth*.py             @getsentry/enterprise
-
-/tests/sentry/api/test_data_secrecy.py                @getsentry/enterprise
-
-/src/sentry/scim/                                     @getsentry/enterprise
-/tests/sentry/api/test_scim*.py                       @getsentry/enterprise
-/src/sentry/tasks/integrations/github/pr_comment.py   @getsentry/enterprise
+/static/app/views/organizationStats                                     @getsentry/enterprise
+/src/sentry/api/endpoints/organization_stats*.py                        @getsentry/enterprise
+/src/sentry/api/endpoints/organization_auditlogs.py                     @getsentry/enterprise
+/static/app/views/settings/organizationAuth/                            @getsentry/enterprise
+/tests/sentry/api/endpoints/test_auth*.py                               @getsentry/enterprise
+/tests/sentry/api/test_data_secrecy.py                                  @getsentry/enterprise
+/src/sentry/scim/                                                       @getsentry/enterprise
+/tests/sentry/api/test_scim*.py                                         @getsentry/enterprise
+/src/sentry/tasks/integrations/github/pr_comment.py                     @getsentry/enterprise
+/src/sentry/api/endpoints/organization_projects_experiment.py           @getsentry/enterprise
+/tests/sentry/api/endpoints/test_organization_projects_experiment.py    @getsentry/enterprise
 ## End of Enterprise
 
 
