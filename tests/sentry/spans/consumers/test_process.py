@@ -68,4 +68,5 @@ def test_ingest_span():
     )
     processing_strategy.poll()
     processing_strategy.join(1)
+    processing_strategy.close()
     processing_strategy.terminate()

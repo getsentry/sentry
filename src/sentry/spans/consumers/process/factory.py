@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import atexit
 import random
 import uuid
 from datetime import datetime
@@ -7,16 +8,17 @@ from typing import Any, Mapping, MutableMapping, Optional
 
 import msgpack
 import sentry_sdk
-from arroyo.backends.kafka.consumer import KafkaPayload, KafkaProducer
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.processing.strategies import CommitOffsets, Produce
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.processing.strategies.commit import CommitOffsets
-from arroyo.processing.strategies.produce import Produce
 from arroyo.types import Commit, Message, Partition, Topic
+from django.conf import settings
 
 from sentry import quotas
 from sentry.models import Project
-from sentry.utils import json, kafka_config, metrics
+from sentry.utils import json, metrics
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 TAG_MAPPING = {
     "span.action": "action",
@@ -117,19 +119,28 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.__input_block_size = input_block_size
         self.__output_block_size = output_block_size
 
-        snuba_spans = kafka_config.get_topic_definition(output_topic)
-        self.__output_topic = Topic(name=output_topic)
+        cluster_name = get_topic_definition(
+            settings.KAFKA_INGEST_SPANS,
+        )["cluster"]
+        producer_config = get_kafka_producer_cluster_options(cluster_name)
         self.__producer = KafkaProducer(
-            kafka_config.get_kafka_producer_cluster_options(
-                snuba_spans["cluster"],
-            ),
+            build_kafka_configuration(
+                default_config=producer_config,
+            )
         )
+        atexit.register(self.__producer.close)
+        self.__output_topic = Topic(name=output_topic)
 
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
+        next_step = Produce(
+            producer=self.__producer,
+            topic=self.__output_topic,
+            next_step=CommitOffsets(commit),
+        )
         return RunTaskWithMultiprocessing(
             num_processes=self.__num_processes,
             max_batch_size=self.__max_batch_size,
@@ -137,9 +148,5 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             input_block_size=self.__input_block_size,
             output_block_size=self.__output_block_size,
             function=process_message,
-            next_step=Produce(
-                producer=self.__producer,
-                topic=self.__output_topic,
-                next_step=CommitOffsets(commit),
-            ),
+            next_step=next_step,
         )
