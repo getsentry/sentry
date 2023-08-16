@@ -12,7 +12,6 @@ logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
 KEY_TTL = 24 * 60 * 60  # 1 day TTL
 MIN_DATA_POINTS = 6
-VERSION = 1
 
 
 class TrendType(Enum):
@@ -28,6 +27,9 @@ class TrendState:
     short_ma: float
     long_ma: float
 
+    VERSION: int = 1
+
+    FIELD_VERSION = "V"
     FIELD_TIMESTAMP = "T"
     FIELD_COUNT = "N"
     FIELD_SHORT_TERM = "S"
@@ -35,6 +37,7 @@ class TrendState:
 
     def as_dict(self) -> Mapping[str | bytes, str | float | int]:
         d: MutableMapping[str | bytes, str | float | int] = {
+            TrendState.FIELD_VERSION: self.VERSION,
             TrendState.FIELD_COUNT: self.count,
             TrendState.FIELD_SHORT_TERM: self.short_ma,
             TrendState.FIELD_LONG_TERM: self.long_ma,
@@ -43,8 +46,16 @@ class TrendState:
             d[TrendState.FIELD_TIMESTAMP] = self.timestamp.isoformat()
         return d
 
-    @staticmethod
-    def from_dict(d: Any) -> TrendState:
+    @classmethod
+    def from_dict(cls, d: Any) -> TrendState:
+        try:
+            version = int(d.get(TrendState.FIELD_VERSION, 0))
+        except ValueError:
+            version = 0
+
+        if version != cls.VERSION:
+            return TrendState(None, 0, 0, 0)
+
         try:
             count = int(d.get(TrendState.FIELD_COUNT, 0))
         except ValueError:
@@ -79,7 +90,7 @@ class TrendPayload:
 def compute_new_trend_states(
     cur_state: TrendState,
     payload: TrendPayload,
-) -> Optional[Tuple[TrendState, Tuple[TrendType, TrendPayload]]]:
+) -> Optional[Tuple[TrendState, TrendType]]:
     if cur_state.timestamp is not None and cur_state.timestamp > payload.timestamp:
         # In the event that the timestamp is before the payload's timestamps,
         # we do not want to process this payload.
@@ -94,7 +105,7 @@ def compute_new_trend_states(
 
     trend, new_state = detect_trend(cur_state, payload)
 
-    return new_state, (trend, payload)
+    return new_state, trend
 
 
 def detect_trend(state: TrendState, payload: TrendPayload) -> Tuple[TrendType, TrendState]:

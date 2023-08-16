@@ -16,6 +16,7 @@ from sentry.statistical_detectors.detector import (
         pytest.param(
             {},
             {
+                TrendState.FIELD_VERSION: 1,
                 TrendState.FIELD_COUNT: 0,
                 TrendState.FIELD_SHORT_TERM: 0,
                 TrendState.FIELD_LONG_TERM: 0,
@@ -24,12 +25,14 @@ from sentry.statistical_detectors.detector import (
         ),
         pytest.param(
             {
+                TrendState.FIELD_VERSION: "1",
                 TrendState.FIELD_COUNT: "1",
                 TrendState.FIELD_SHORT_TERM: "2",
                 TrendState.FIELD_LONG_TERM: "3",
                 TrendState.FIELD_TIMESTAMP: datetime(2023, 8, 9, 14, 17).isoformat(),
             },
             {
+                TrendState.FIELD_VERSION: 1,
                 TrendState.FIELD_COUNT: 1,
                 TrendState.FIELD_SHORT_TERM: 2,
                 TrendState.FIELD_LONG_TERM: 3,
@@ -39,11 +42,13 @@ from sentry.statistical_detectors.detector import (
         ),
         pytest.param(
             {
+                TrendState.FIELD_VERSION: "1",
                 TrendState.FIELD_COUNT: "1",
                 TrendState.FIELD_SHORT_TERM: "2",
                 TrendState.FIELD_LONG_TERM: "3",
             },
             {
+                TrendState.FIELD_VERSION: 1,
                 TrendState.FIELD_COUNT: 1,
                 TrendState.FIELD_SHORT_TERM: 2,
                 TrendState.FIELD_LONG_TERM: 3,
@@ -52,12 +57,28 @@ from sentry.statistical_detectors.detector import (
         ),
         pytest.param(
             {
+                TrendState.FIELD_COUNT: "1",
+                TrendState.FIELD_SHORT_TERM: "2",
+                TrendState.FIELD_LONG_TERM: "3",
+            },
+            {
+                TrendState.FIELD_VERSION: 1,
+                TrendState.FIELD_COUNT: 0,
+                TrendState.FIELD_SHORT_TERM: 0,
+                TrendState.FIELD_LONG_TERM: 0,
+            },
+            id="no version",
+        ),
+        pytest.param(
+            {
+                TrendState.FIELD_VERSION: "1",
                 TrendState.FIELD_COUNT: "foo",
                 TrendState.FIELD_SHORT_TERM: "bar",
                 TrendState.FIELD_LONG_TERM: "baz",
                 TrendState.FIELD_TIMESTAMP: "qux",
             },
             {
+                TrendState.FIELD_VERSION: 1,
                 TrendState.FIELD_COUNT: 0,
                 TrendState.FIELD_SHORT_TERM: 0,
                 TrendState.FIELD_LONG_TERM: 0,
@@ -120,11 +141,11 @@ def test_run_trend_detection(initial, values, regressed_indices, improved_indice
     for payload in payloads:
         new_state = compute_new_trend_states(state, payload)
         assert new_state is not None
-        state, (trend_type, result) = new_state
+        state, trend_type = new_state
         if trend_type == TrendType.Regressed:
-            all_regressed.append(result)
+            all_regressed.append(payload)
         elif trend_type == TrendType.Improved:
-            all_improved.append(result)
+            all_improved.append(payload)
 
     assert all_regressed == [payloads[i] for i in regressed_indices]
     assert all_improved == [payloads[i] for i in improved_indices]
@@ -137,7 +158,9 @@ def test_run_trend_detection_bad_order():
 
     new_state = compute_new_trend_states(state, TrendPayload(0, 2, 100, now))
     assert new_state is not None
-    state, (trend_type, result) = new_state
+    state, trend_type = new_state
+    assert state is not None
+    assert trend_type == TrendType.Unchanged
 
     new_state = compute_new_trend_states(state, TrendPayload(0, 1, 100, now - timedelta(hours=1)))
     assert new_state is None
