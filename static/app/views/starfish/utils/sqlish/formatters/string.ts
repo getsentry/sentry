@@ -58,7 +58,6 @@ export function string(tokens: Token[]): string {
         accumulator.space();
       } else if (['LeftParenthesis', 'RightParenthesis'].includes(token.type)) {
         // Parenthesis contents are appended above, so we can skip them here
-        accumulator.add('');
       } else {
         if (accumulator.endsWith(NEWLINE)) {
           accumulator.add(INDENTATION.repeat(indentation));
@@ -115,19 +114,24 @@ class StringAccumulator {
   }
 
   space() {
+    this.rtrim();
     this.tokens.push(SPACE);
   }
 
   break() {
-    if (this.tokens.at(-1) === SPACE) {
-      this.tokens.pop();
-    }
+    this.rtrim();
 
     this.tokens.push(NEWLINE);
   }
 
   indent(count: number = 1) {
     this.tokens.push(INDENTATION.repeat(count));
+  }
+
+  rtrim() {
+    while (this.tokens.at(-1)?.trim() === '') {
+      this.tokens.pop();
+    }
   }
 
   endsWith(token: string) {
