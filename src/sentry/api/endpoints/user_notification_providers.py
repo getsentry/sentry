@@ -19,7 +19,7 @@ from sentry.notifications.validators import (
 
 
 @control_silo_endpoint
-class UserNotificationProvidersDetailsEndpoint(UserEndpoint):
+class UserNotificationProvidersEndpoint(UserEndpoint):
     # TODO(Steve): Make not private when we launch new system
     private = True
 

@@ -11,12 +11,12 @@ from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviderEnum
 
 
-class UserNotificationProviderDetailsBaseTest(APITestCase):
+class UserNotificationProvidersBaseTest(APITestCase):
     endpoint = "sentry-api-0-user-notification-providers"
 
 
 @control_silo_test(stable=True)
-class UserNotificationProviderDetailsGetTest(UserNotificationProviderDetailsBaseTest):
+class UserNotificationProvidersGetTest(UserNotificationProvidersBaseTest):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
@@ -84,7 +84,7 @@ class UserNotificationProviderDetailsGetTest(UserNotificationProviderDetailsBase
 
 
 @control_silo_test(stable=True)
-class UserNotificationProviderDetailsPutTest(UserNotificationProviderDetailsBaseTest):
+class UserNotificationProvidersPutTest(UserNotificationProvidersBaseTest):
     method = "PUT"
 
     def setUp(self):
