@@ -20,7 +20,7 @@ class NotificationDefaultsEndpoints(Endpoint):
     def get(self, request: Request) -> Response:
         """
         Return the default config for notification settings.
-        This becomes the fallback in the UI
+        This becomes the fallback in the UI.
         """
         provider_defaults = []
         for key, value in NOTIFICATION_SETTING_DEFAULTS.items():
