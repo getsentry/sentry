@@ -679,6 +679,7 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
     }
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_resolved_with_aggregation_options(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
@@ -823,6 +824,7 @@ def test_resolved_with_aggregation_options(caplog, settings):
     ]
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_all_resolved(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
@@ -971,6 +973,7 @@ def test_all_resolved(caplog, settings):
     ]
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_all_resolved_with_routing_information(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
@@ -1125,6 +1128,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
     ]
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_all_resolved_retention_days_honored(caplog, settings):
     """
@@ -1280,6 +1284,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
     ]
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_batch_resolve_with_values_not_indexed(caplog, settings):
     """
@@ -1429,6 +1434,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
     ]
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_metric_id_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
@@ -1543,6 +1549,7 @@ def test_metric_id_rate_limited(caplog, settings):
     ]
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_tag_key_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
@@ -1634,6 +1641,7 @@ def test_tag_key_rate_limited(caplog, settings):
     assert _deconstruct_messages(snuba_payloads) == []
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_tag_value_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
@@ -1774,6 +1782,7 @@ def test_tag_value_rate_limited(caplog, settings):
     ]
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_one_org_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
