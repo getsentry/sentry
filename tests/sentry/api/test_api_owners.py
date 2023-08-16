@@ -1,10 +1,11 @@
+from typing import Set
 from unittest import TestCase
 
 from sentry.api.api_owners import ApiOwner
 
 
 class APIOwnersTestCase(TestCase):
-    teams = set()
+    teams: Set[str] = set()
 
     def setUp(self):
         super().setUp()
@@ -12,7 +13,7 @@ class APIOwnersTestCase(TestCase):
         lines = code_owners_file.readlines()
         code_owners_file.close()
         for line in lines:
-            if line.find("src/sentry/api/") != -1:
+            if line.startswith("/src/"):
                 tokens = [s.strip() for s in line.split("@getsentry/")]
                 self.teams.update(tokens[1:])
 

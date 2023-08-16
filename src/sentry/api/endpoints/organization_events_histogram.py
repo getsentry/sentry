@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.snuba import discover
@@ -41,6 +42,8 @@ class HistogramSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
+    owner = ApiOwner.PERFORMANCE
+
     def has_feature(self, organization, request):
         return features.has("organizations:performance-view", organization, actor=request.user)
 
