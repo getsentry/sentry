@@ -29,6 +29,8 @@ type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
 };
 
+export type ReferrerTableType = 'main' | 'dead-table' | 'errors-table' | 'rage-table';
+
 function getUserBadgeUser(replay: Props['replay']) {
   return replay.is_archived
     ? {
@@ -53,10 +55,12 @@ export function ReplayCell({
   referrer,
   replay,
   showUrl,
+  referrer_table,
 }: Props & {
   eventView: EventView;
   organization: Organization;
   referrer: string;
+  referrer_table: ReferrerTableType;
   showUrl: boolean;
 }) {
   const {projects} = useProjects();
@@ -70,12 +74,45 @@ export function ReplayCell({
     },
   };
 
+  const replayDetailsErrorTab = {
+    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
+    query: {
+      referrer,
+      ...eventView.generateQueryStringObject(),
+      t_main: 'errors',
+    },
+  };
+
+  const replayDetailsDOMEventsTab = {
+    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
+    query: {
+      referrer,
+      ...eventView.generateQueryStringObject(),
+      t_main: 'dom',
+      f_d_type: 'ui.slowClickDetected',
+    },
+  };
+
+  const detailsTab = () => {
+    switch (referrer_table) {
+      case 'errors-table':
+        return replayDetailsErrorTab;
+      case 'dead-table':
+        return replayDetailsDOMEventsTab;
+      case 'rage-table':
+        return replayDetailsDOMEventsTab;
+      default:
+        return replayDetails;
+    }
+  };
+
   const trackNavigationEvent = () =>
     trackAnalytics('replay.list-navigate-to-details', {
       project_id: project?.id,
       platform: project?.platform,
       organization,
       referrer,
+      referrer_table,
     });
 
   if (replay.is_archived) {
@@ -100,8 +137,10 @@ export function ReplayCell({
       {showUrl ? <StringWalker urls={replay.urls} /> : undefined}
       <Row gap={1}>
         <Row gap={0.5}>
+          {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
           {project ? <Avatar size={12} project={project} /> : null}
-          <Link to={replayDetails} onClick={trackNavigationEvent}>
+          {project ? project.slug : null}
+          <Link to={detailsTab} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}
           </Link>
         </Row>
@@ -121,7 +160,7 @@ export function ReplayCell({
           replay.is_archived ? (
             replay.user.display_name || t('Unknown User')
           ) : (
-            <MainLink to={replayDetails} onClick={trackNavigationEvent}>
+            <MainLink to={detailsTab} onClick={trackNavigationEvent}>
               {replay.user.display_name || t('Unknown User')}
             </MainLink>
           )
@@ -240,7 +279,7 @@ export function RageClickCountCell({replay}: Props) {
   return (
     <Item data-test-id="replay-table-count-rage-clicks">
       {replay.count_rage_clicks ? (
-        <Count>{replay.count_rage_clicks}</Count>
+        <DeadRageCount>{replay.count_rage_clicks}</DeadRageCount>
       ) : (
         <Count>0</Count>
       )}
@@ -255,7 +294,7 @@ export function DeadClickCountCell({replay}: Props) {
   return (
     <Item data-test-id="replay-table-count-dead-clicks">
       {replay.count_dead_clicks ? (
-        <Count>{replay.count_dead_clicks}</Count>
+        <DeadRageCount>{replay.count_dead_clicks}</DeadRageCount>
       ) : (
         <Count>0</Count>
       )}
@@ -308,6 +347,11 @@ const Item = styled('div')<{isArchived?: boolean}>`
 
 const Count = styled('span')`
   font-variant-numeric: tabular-nums;
+`;
+
+const DeadRageCount = styled(Count)`
+  display: flex;
+  width: 40px;
 `;
 
 const ErrorCount = styled(Count)`

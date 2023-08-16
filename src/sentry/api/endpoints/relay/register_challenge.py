@@ -2,7 +2,7 @@ from django.conf import settings
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_relay import create_register_challenge, is_version_supported
+from sentry_relay.auth import create_register_challenge, is_version_supported
 
 from sentry import options
 from sentry.api.authentication import is_internal_relay, is_static_relay, relay_from_id

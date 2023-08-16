@@ -31,7 +31,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
     public = {"GET"}
 
     @extend_schema(
-        operation_id="Debug issues related to source maps for a given event",
+        operation_id="Debug Issues Related to Source Maps for a Given Event",
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
@@ -49,21 +49,26 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
     )
     def get(self, request: Request, project: Project, event_id: str) -> Response:
         """
-        Retrieve information about source maps for a given event.
-        ```````````````````````````````````````````
         Return a list of source map errors for a given event.
         """
         frame_idx = request.GET.get("frame_idx")
+
         if not frame_idx:
             raise ParseError(detail="Query parameter 'frame_idx' is required")
 
-        frame_idx = int(frame_idx)
+        try:
+            frame_idx = int(frame_idx)
+        except ValueError:
+            raise ParseError(detail="Query parameter 'frame_idx' must be an integer")
 
         exception_idx = request.GET.get("exception_idx")
         if not exception_idx:
             raise ParseError(detail="Query parameter 'exception_idx' is required")
 
-        exception_idx = int(exception_idx)
+        try:
+            exception_idx = int(exception_idx)
+        except ValueError:
+            raise ParseError(detail="Query parameter 'exception_idx' must be an integer")
 
         debug_response = source_map_debug(project, event_id, exception_idx, frame_idx)
         issue, data = debug_response.issue, debug_response.data

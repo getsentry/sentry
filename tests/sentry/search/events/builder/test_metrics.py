@@ -1,10 +1,10 @@
 import datetime
 import math
+from datetime import timezone
 from typing import List
 from unittest import mock
 
 import pytest
-from django.utils import timezone
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 
 from sentry.exceptions import IncompatibleMetricsQuery
@@ -17,10 +17,13 @@ from sentry.search.events.builder import (
 )
 from sentry.search.events.types import HistogramParams
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.extraction import QUERY_HASH_KEY
+from sentry.snuba.metrics import TransactionMRI
+from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, OnDemandMetricSpec
+from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -1952,36 +1955,104 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             allow_metric_aggregates=False,
         )
 
-    def test_on_demand_metrics(self):
+    def test_run_query_with_on_demand_count(self):
+        field = "count()"
+        query = "transaction.duration:>0"
+        spec = OnDemandMetricSpec(field=field, query=query)
+
+        for hour in range(0, 5):
+            self.store_transaction_metric(
+                value=hour * 100,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                tags={"query_hash": spec.query_hash()},
+                timestamp=self.start + datetime.timedelta(hours=hour),
+            )
+
         query = TimeseriesMetricQueryBuilder(
             self.params,
             dataset=Dataset.PerformanceMetrics,
             interval=3600,
-            query="transaction.duration:>0",
-            selected_columns=["count()"],
+            query=query,
+            selected_columns=[field],
             on_demand_metrics_enabled=True,
         )
         result = query.run_query("test_query")
         assert result["data"][:5] == [
             {
                 "time": self.start.isoformat(),
-                "count": 0,
+                "count": 0.0,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-                "count": 0,
+                "count": 100.0,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
-                "count": 0,
+                "count": 200.0,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
-                "count": 0,
+                "count": 300.0,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
-                "count": 0,
+                "count": 400.0,
+            },
+        ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "count", "type": "Float64"},
+            ],
+        )
+
+    def test_run_query_with_on_demand_distribution(self):
+        field = "p75(measurements.fp)"
+        query = "transaction.duration:>0"
+        spec = OnDemandMetricSpec(field=field, query=query)
+
+        for hour in range(0, 5):
+            self.store_transaction_metric(
+                value=hour * 100,
+                metric=TransactionMetricKey.DIST_ON_DEMAND.value,
+                internal_metric=TransactionMRI.DIST_ON_DEMAND.value,
+                entity="metrics_distributions",
+                tags={"query_hash": spec.query_hash()},
+                timestamp=self.start + datetime.timedelta(hours=hour),
+            )
+
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query,
+            selected_columns=[field],
+            on_demand_metrics_enabled=True,
+        )
+        result = query.run_query("test_query")
+        assert result["data"][:5] == [
+            {
+                "time": self.start.isoformat(),
+                "count": 0.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+                "count": 100.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+                "count": 200.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
+                "count": 300.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
+                "count": 400.0,
             },
         ]
         self.assertCountEqual(
@@ -2025,16 +2096,19 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
             100,
             tags={"transaction": "foo_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
+            aggregation_option=AggregationOption.HIST,
         )
         self.store_transaction_metric(
             100,
             tags={"transaction": "foo_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
+            aggregation_option=AggregationOption.HIST,
         )
         self.store_transaction_metric(
             450,
             tags={"transaction": "foo_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
+            aggregation_option=AggregationOption.HIST,
         )
 
         query = HistogramMetricQueryBuilder(
@@ -2067,6 +2141,7 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
                     100 * i + 50,
                     tags={"transaction": "foo_transaction"},
                     timestamp=self.start + datetime.timedelta(minutes=5),
+                    aggregation_option=AggregationOption.HIST,
                 )
 
         query = HistogramMetricQueryBuilder(
@@ -2094,36 +2169,110 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
 
 
 class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
-    def test_run_on_demand_query(self):
+    def test_run_query_with_on_demand_distribution(self):
+        field = "p75(measurements.fp)"
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query)
+
+        self.store_transaction_metric(
+            value=200,
+            metric=TransactionMetricKey.DIST_ON_DEMAND.value,
+            internal_metric=TransactionMRI.DIST_ON_DEMAND.value,
+            entity="metrics_distributions",
+            tags={"query_hash": spec.query_hash()},
+            timestamp=self.start + datetime.timedelta(minutes=15),
+        )
+
         query = AlertMetricsQueryBuilder(
             self.params,
             use_metrics_layer=False,
             granularity=3600,
-            query="transaction.duration:>=100",
+            query=query,
             dataset=Dataset.PerformanceMetrics,
-            selected_columns=["p75(measurements.fp)"],
+            selected_columns=[field],
             on_demand_metrics_enabled=True,
+            skip_time_conditions=False,
         )
 
         result = query.run_query("test_query")
 
-        assert len(result["data"]) == 1
-
+        assert result["data"] == [{"d:transactions/on_demand@none": 200.0}]
         meta = result["meta"]
+        assert len(meta) == 1
+        assert meta[0]["name"] == "d:transactions/on_demand@none"
 
-        assert len(meta) == 2
-        assert meta[0]["name"] == "bucketed_time"
-        assert meta[1]["name"] == "d:transactions/on_demand@none"
+    def test_run_query_with_on_demand_count(self):
+        field = "count(measurements.fp)"
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query)
 
-    def test_get_snql_query(self):
+        self.store_transaction_metric(
+            value=100,
+            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            entity="metrics_counters",
+            tags={"query_hash": spec.query_hash()},
+            timestamp=self.start + datetime.timedelta(minutes=15),
+        )
+
         query = AlertMetricsQueryBuilder(
             self.params,
+            use_metrics_layer=False,
+            granularity=3600,
+            query=query,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[field],
+            on_demand_metrics_enabled=True,
+            skip_time_conditions=False,
+        )
+
+        result = query.run_query("test_query")
+
+        assert result["data"] == [{"c:transactions/on_demand@none": 100.0}]
+        meta = result["meta"]
+        assert len(meta) == 1
+        assert meta[0]["name"] == "c:transactions/on_demand@none"
+
+    def test_get_run_query_with_on_demand_count_and_time_range_required_and_not_supplied(self):
+        params = {
+            "organization_id": self.organization.id,
+            "project_id": self.projects,
+        }
+
+        query = AlertMetricsQueryBuilder(
+            params,
+            use_metrics_layer=False,
+            granularity=3600,
+            query="transaction.duration:>=100",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=["count(transaction.duration)"],
+            on_demand_metrics_enabled=True,
+            # We set here the skipping of conditions, since this is true for alert subscriptions, but we want to verify
+            # whether our secondary error barrier works.
+            skip_time_conditions=True,
+        )
+
+        with pytest.raises(IncompatibleMetricsQuery):
+            query.run_query("test_query")
+
+    def test_get_snql_query_with_on_demand_distribution_and_time_range_not_required_and_not_supplied(
+        self,
+    ):
+        params = {
+            "organization_id": self.organization.id,
+            "project_id": self.projects,
+        }
+        query = AlertMetricsQueryBuilder(
+            params,
             use_metrics_layer=False,
             granularity=3600,
             query="transaction.duration:>=100",
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["p75(measurements.fp)"],
             on_demand_metrics_enabled=True,
+            # We want to test the snql generation when a time range is not supplied, which is the case for alert
+            # subscriptions.
+            skip_time_conditions=True,
         )
 
         snql_request = query.get_snql_query()
@@ -2162,7 +2311,59 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query_hash_index = indexer.resolve(UseCaseID.TRANSACTIONS, None, QUERY_HASH_KEY)
 
         query_hash_clause = Condition(
-            lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="80237309"
+            lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="3b902501"
         )
 
+        assert query_hash_clause in snql_query.where
+
+    def test_get_snql_query_with_on_demand_count_and_time_range_required_and_supplied(self):
+        query = AlertMetricsQueryBuilder(
+            self.params,
+            use_metrics_layer=False,
+            granularity=3600,
+            query="transaction.duration:>=100",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=["count(transaction.duration)"],
+            on_demand_metrics_enabled=True,
+            # We want to test the snql generation when a time range is supplied.
+            skip_time_conditions=False,
+        )
+
+        snql_request = query.get_snql_query()
+        assert snql_request.dataset == "generic_metrics"
+        snql_query = snql_request.query
+        self.assertCountEqual(
+            [
+                Function(
+                    "sumIf",
+                    [
+                        Column("value"),
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                indexer.resolve(
+                                    UseCaseID.TRANSACTIONS,
+                                    None,
+                                    "c:transactions/on_demand@none",
+                                ),
+                            ],
+                        ),
+                    ],
+                    "c:transactions/on_demand@none",
+                )
+            ],
+            snql_query.select,
+        )
+
+        query_hash_index = indexer.resolve(UseCaseID.TRANSACTIONS, None, QUERY_HASH_KEY)
+
+        start_time_clause = Condition(lhs=Column(name="timestamp"), op=Op.GTE, rhs=self.start)
+        end_time_clause = Condition(lhs=Column(name="timestamp"), op=Op.LT, rhs=self.end)
+        query_hash_clause = Condition(
+            lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="88f3eb66"
+        )
+
+        assert start_time_clause in snql_query.where
+        assert end_time_clause in snql_query.where
         assert query_hash_clause in snql_query.where

@@ -3,6 +3,7 @@ from datetime import datetime
 from django.core.exceptions import ValidationError
 from django.db.models import Value
 from django.db.models.functions import Coalesce
+from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework import status
 from rest_framework.request import Request
@@ -10,23 +11,31 @@ from rest_framework.response import Response
 
 from sentry import analytics, audit_log, roles
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrgAuthTokenPermission
+from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAuthTokenPermission
 from sentry.api.serializers import serialize
 from sentry.api.utils import generate_region_url
-from sentry.models.organization import Organization
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.user import User
 from sentry.security.utils import capture_security_activity
+from sentry.services.hybrid_cloud.organization.model import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 @control_silo_endpoint
-class OrgAuthTokensEndpoint(OrganizationEndpoint):
+class OrgAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
     permission_classes = (OrgAuthTokenPermission,)
 
-    @never_cache
-    def get(self, request: Request, organization: Organization) -> Response:
+    @method_decorator(never_cache)
+    def get(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+    ) -> Response:
         # We want to sort by date_last_used, but sort NULLs last
         the_past = datetime.min
 
@@ -40,7 +49,12 @@ class OrgAuthTokensEndpoint(OrganizationEndpoint):
 
         return Response(serialize(token_list, request.user, token=None))
 
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+    ) -> Response:
         token_str = generate_token(organization.slug, generate_region_url())
         token_hashed = hash_token(token_str)
 

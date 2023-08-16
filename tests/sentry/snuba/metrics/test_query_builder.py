@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 import re
-from dataclasses import dataclass, replace
+import types
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest import mock
 
 import freezegun
 import pytest
-import pytz
 import sentry_sdk
 from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
@@ -69,18 +72,15 @@ from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.query import MetricConditionField, MetricField, MetricGroupByField
 from sentry.snuba.metrics.query_builder import QUERY_PROJECT_LIMIT, QueryDefinition
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.utils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.fixtures import django_db_all
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@dataclass
-class PseudoProject:
-    organization_id: int
-    id: int
-    slug: str = "project-slug"
+def PseudoProject(organization_id: int, id: int) -> Any:  # TODO: use real projects
+    return types.SimpleNamespace(organization_id=organization_id, id=id, slug="project-slug")
 
 
 MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=timezone.utc)
@@ -334,8 +334,8 @@ def test_exclusive_end():
     start, end, interval = get_date_range(
         {"start": "2021-02-24T00:00:00", "end": "2021-02-25T00:00:00", "interval": "1h"},
     )
-    assert start == datetime(2021, 2, 24, tzinfo=pytz.utc)
-    assert end == datetime(2021, 2, 25, 0, tzinfo=pytz.utc)
+    assert start == datetime(2021, 2, 24, tzinfo=timezone.utc)
+    assert end == datetime(2021, 2, 25, 0, tzinfo=timezone.utc)
 
 
 @freeze_time("2020-12-18T11:14:17.105Z")
@@ -487,7 +487,7 @@ def test_build_snuba_query_mri(mock_now, mock_now2):
     org_id = 1
     use_case_id = UseCaseID.SESSIONS
     # Your typical release health query querying everything
-    query_params = MultiValueDict(
+    query_params: MultiValueDict[str, str] = MultiValueDict(
         {
             "groupBy": [],
             "field": [
@@ -569,7 +569,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
     org_id = 1
     use_case_id = UseCaseID.SESSIONS
     # Your typical release health query querying everything
-    query_params = MultiValueDict(
+    query_params: MultiValueDict[str, str] = MultiValueDict(
         {
             "groupBy": [],
             "field": [
@@ -737,7 +737,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
                 "sum(sentry.sessions.session)",
             ],
             "orderBy": ["-sum(sentry.sessions.session)"],
-            "per_page": [2],
+            "per_page": ["2"],
         }
     )
     query_definition = QueryDefinition(
@@ -778,8 +778,8 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=pytz.utc)),
-            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=timezone.utc)),
+            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=timezone.utc)),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
                 Op.IN,
@@ -807,8 +807,8 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=pytz.utc)),
-            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=timezone.utc)),
+            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=timezone.utc)),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
                 Op.IN,
@@ -837,7 +837,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
             "field": [
                 "p95(session.duration)",
             ],
-            "per_page": [2],
+            "per_page": ["2"],
         }
     )
     query_definition = QueryDefinition(
@@ -896,8 +896,8 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=pytz.utc)),
-            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=timezone.utc)),
+            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=timezone.utc)),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
                 Op.IN,
@@ -926,8 +926,8 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=pytz.utc)),
-            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=timezone.utc)),
+            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=timezone.utc)),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
                 Op.IN,
@@ -949,7 +949,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_translate_results_derived_metrics(_1, _2):
-    query_params = MultiValueDict(
+    query_params: MultiValueDict[str, str] = MultiValueDict(
         {
             "groupBy": [],
             "field": [

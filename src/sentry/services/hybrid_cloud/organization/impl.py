@@ -55,10 +55,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def check_membership_by_id(
         self, organization_id: int, user_id: int
     ) -> Optional[RpcOrganizationMember]:
-        from sentry.auth.access import get_cached_organization_member
-
         try:
-            member = get_cached_organization_member(
+            member = OrganizationMember.objects.get(
                 user_id=user_id, organization_id=organization_id
             )
         except OrganizationMember.DoesNotExist:
@@ -368,12 +366,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def get_all_org_roles(
         self,
-        organization_member: Optional[RpcOrganizationMember] = None,
-        member_id: Optional[int] = None,
+        *,
+        organization_id: int,
+        member_id: int,
     ) -> List[str]:
-        if member_id:
-            member = OrganizationMember.objects.get(id=member_id)
-            organization_member = serialize_member(member)
+        member = OrganizationMember.objects.get(id=member_id)
+        organization_member = serialize_member(member)
 
         org_roles: List[str] = []
         if organization_member:

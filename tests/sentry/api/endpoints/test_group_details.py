@@ -26,7 +26,7 @@ from sentry.models import (
 )
 from sentry.plugins.base import plugins
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 

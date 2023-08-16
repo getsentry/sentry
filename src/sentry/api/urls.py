@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from django.conf.urls import include
-from django.urls import re_path
+from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
@@ -8,7 +10,11 @@ from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_facets_stats_performance import (
     OrganizationEventsFacetsStatsPerformanceEndpoint,
 )
+from sentry.api.endpoints.organization_events_root_cause_analysis import (
+    OrganizationEventsRootCauseAnalysisEndpoint,
+)
 from sentry.api.endpoints.organization_events_starfish import OrganizationEventsStarfishEndpoint
+from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
@@ -108,6 +114,7 @@ from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, Organizatio
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
+from .endpoints.actionable_items import ActionableItemsEndpoint
 from .endpoints.admin_project_configs import AdminRelayProjectConfigsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_application_rotate_secret import ApiApplicationRotateSecretEndpoint
@@ -186,8 +193,6 @@ from .endpoints.group_tombstone import GroupTombstoneEndpoint
 from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
-from .endpoints.grouping_level_new_issues import GroupingLevelNewIssuesEndpoint
-from .endpoints.grouping_levels import GroupingLevelsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.integration_features import IntegrationFeaturesEndpoint
 from .endpoints.integrations import (
@@ -233,6 +238,7 @@ from .endpoints.internal import (
     InternalWarningsEndpoint,
 )
 from .endpoints.issue_occurrence import IssueOccurrenceEndpoint
+from .endpoints.notification_defaults import NotificationDefaultsEndpoints
 from .endpoints.notifications import (
     NotificationActionsAvailableEndpoint,
     NotificationActionsDetailsEndpoint,
@@ -273,7 +279,7 @@ from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
-from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsGeoEndpoint
+from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
     OrganizationEventsFacetsPerformanceEndpoint,
@@ -305,7 +311,7 @@ from .endpoints.organization_events_trends import (
     OrganizationEventsTrendsEndpoint,
     OrganizationEventsTrendsStatsEndpoint,
 )
-from .endpoints.organization_events_trendsv2 import OrganizationEventsNewTrendsStatsEndpoint
+from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
@@ -337,6 +343,9 @@ from .endpoints.organization_metrics import (
     OrganizationMetricsEndpoint,
     OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
+)
+from .endpoints.organization_metrics_estimation_stats import (
+    OrganizationMetricsEstimationStatsEndpoint,
 )
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
@@ -416,7 +425,10 @@ from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
-from .endpoints.project_dynamic_sampling import ProjectDynamicSamplingDistributionEndpoint
+from .endpoints.project_dynamic_sampling import (
+    ProjectDynamicSamplingDistributionEndpoint,
+    ProjectDynamicSamplingRateEndpoint,
+)
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_event_details import EventJsonEndpoint, ProjectEventDetailsEndpoint
@@ -537,6 +549,7 @@ from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_notification_fine_tuning import UserNotificationFineTuningEndpoint
+from .endpoints.user_notification_options import UserNotificationOptionsEndpoint
 from .endpoints.user_notification_settings_details import UserNotificationSettingsDetailsEndpoint
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
@@ -556,7 +569,7 @@ __all__ = ("urlpatterns",)
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
-GROUP_URLS = [
+GROUP_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<issue_id>[^\/]+)/$",
         GroupDetailsEndpoint.as_view(),
@@ -570,7 +583,7 @@ GROUP_URLS = [
         GroupEventsEndpoint.as_view(),
     ),
     re_path(
-        r"^(?P<issue_id>[^\/]+)/events/(?P<event_id>(?:latest|oldest|helpful|\d+|[A-Fa-f0-9-]{32,36}))/$",
+        r"^(?P<issue_id>[^\/]+)/events/(?P<event_id>(?:latest|oldest|helpful|recommended|\d+|[A-Fa-f0-9-]{32,36}))/$",
         GroupEventDetailsEndpoint.as_view(),
     ),
     re_path(
@@ -584,14 +597,6 @@ GROUP_URLS = [
     re_path(
         r"^(?P<issue_id>[^\/]+)/hashes/$",
         GroupHashesEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/grouping/levels/$",
-        GroupingLevelsEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/grouping/levels/(?P<id>[^\/]+)/new-issues/$",
-        GroupingLevelNewIssuesEndpoint.as_view(),
     ),
     re_path(
         r"^(?P<issue_id>[^\/]+)/hashes/split/$",
@@ -816,6 +821,11 @@ USER_URLS = [
         r"^(?P<user_id>[^\/]+)/notifications/(?P<notification_type>[^\/]+)/$",
         UserNotificationFineTuningEndpoint.as_view(),
         name="sentry-api-0-user-notifications-fine-tuning",
+    ),
+    re_path(
+        r"^(?P<user_id>[^\/]+)/notification-options/$",
+        UserNotificationOptionsEndpoint.as_view(),
+        name="sentry-api-0-user-notification-options",
     ),
     re_path(
         r"^(?P<user_id>[^\/]+)/password/$",
@@ -1175,9 +1185,9 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-events-stats",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/events-geo/$",
-        OrganizationEventsGeoEndpoint.as_view(),
-        name="sentry-api-0-organization-events-geo",
+        r"^(?P<organization_slug>[^\/]+)/metrics-estimation-stats/$",
+        OrganizationMetricsEstimationStatsEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-estimation-stats",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/events-facets/$",
@@ -1225,6 +1235,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-events-spans-stats",
     ),
     re_path(
+        r"^(?P<organization_slug>[^\/]+)/events-root-cause-analysis/$",
+        OrganizationEventsRootCauseAnalysisEndpoint.as_view(),
+        name="sentry-api-0-organization-events-root-cause-analysis",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/events-meta/$",
         OrganizationEventsMetaEndpoint.as_view(),
         name="sentry-api-0-organization-events-meta",
@@ -1243,6 +1258,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/metrics-compatibility-sums/$",
         OrganizationMetricsCompatibilitySums.as_view(),
         name="sentry-api-0-organization-metrics-compatibility-sums",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/missing-members/$",
+        OrganizationMissingMembersEndpoint.as_view(),
+        name="sentry-api-0-organization-missing-members",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/events-histogram/$",
@@ -1818,7 +1838,7 @@ ORGANIZATION_URLS = [
     ),
 ]
 
-PROJECT_URLS = [
+PROJECT_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^$",
         ProjectIndexEndpoint.as_view(),
@@ -1948,6 +1968,11 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/source-map-debug/$",
         SourceMapDebugEndpoint.as_view(),
         name="sentry-api-0-event-source-map-debug",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/actionable-items/$",
+        ActionableItemsEndpoint.as_view(),
+        name="sentry-api-0-event-actionable-items",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$",
@@ -2375,6 +2400,11 @@ PROJECT_URLS = [
         name="sentry-api-0-project-profiling-transactions",
     ),
     re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/rate/$",
+        ProjectDynamicSamplingRateEndpoint.as_view(),
+        name="sentry-api-0-project-dynamic-sampling-rate",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/distribution/$",
         ProjectDynamicSamplingDistributionEndpoint.as_view(),
         name="sentry-api-0-project-dynamic-sampling-distribution",
@@ -2768,6 +2798,11 @@ urlpatterns = [
         r"^issues/(?P<issue_id>[^\/]+)/participants/$",
         GroupParticipantsEndpoint.as_view(),
         name="sentry-api-0-group-stats",
+    ),
+    re_path(
+        r"^notification-defaults/$",
+        NotificationDefaultsEndpoints.as_view(),
+        name="sentry-api-0-notification-defaults",
     ),
     # TODO: include in the /organizations/ route tree + remove old dupe once hybrid cloud launches
     re_path(

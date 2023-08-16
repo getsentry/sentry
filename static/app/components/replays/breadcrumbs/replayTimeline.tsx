@@ -13,15 +13,24 @@ import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
 import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {Resizeable} from 'sentry/components/replays/resizeable';
+import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
+import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useDimensions} from 'sentry/utils/useDimensions';
 
 type Props = {};
 
 function ReplayTimeline({}: Props) {
   const {replay} = useReplayContext();
+  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
-  const elem = useRef<HTMLDivElement>(null);
-  const mouseTrackingProps = useScrubberMouseTracking({elem});
+  const {setActiveTab} = useActiveReplayTab();
+
+  const panelRef = useRef<HTMLDivElement>(null);
+  const mouseTrackingProps = useScrubberMouseTracking({elem: panelRef});
+
+  const stackedRef = useRef<HTMLDivElement>(null);
+  const {width} = useDimensions<HTMLDivElement>({elementRef: stackedRef});
 
   if (!replay) {
     return <Placeholder height="54px" bottomGutter={2} />;
@@ -33,31 +42,33 @@ function ReplayTimeline({}: Props) {
   const networkFrames = replay.getNetworkFrames();
 
   return (
-    <Panel ref={elem} {...mouseTrackingProps}>
-      <Resizeable>
-        {({width}) => (
-          <Stacked>
-            <MinorGridlines durationMs={durationMs} width={width} />
-            <MajorGridlines durationMs={durationMs} width={width} />
-            <TimelineScrubber />
-            <UnderTimestamp paddingTop="36px">
-              <ReplayTimelineSpans
-                durationMs={durationMs}
-                frames={networkFrames}
-                startTimestampMs={startTimestampMs}
-              />
-            </UnderTimestamp>
-            <UnderTimestamp paddingTop="26px">
-              <ReplayTimelineEvents
-                frames={chapterFrames}
-                durationMs={durationMs}
-                startTimestampMs={startTimestampMs}
-                width={width}
-              />
-            </UnderTimestamp>
-          </Stacked>
-        )}
-      </Resizeable>
+    <Panel ref={panelRef} {...mouseTrackingProps}>
+      <Stacked ref={stackedRef}>
+        <MinorGridlines durationMs={durationMs} width={width} />
+        <MajorGridlines durationMs={durationMs} width={width} />
+        <TimelineScrubber />
+        <UnderTimestamp paddingTop="36px">
+          <ReplayTimelineSpans
+            durationMs={durationMs}
+            frames={networkFrames}
+            startTimestampMs={startTimestampMs}
+          />
+        </UnderTimestamp>
+        <UnderTimestamp paddingTop="26px">
+          <ReplayTimelineEvents
+            durationMs={durationMs}
+            frames={chapterFrames}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
+            onClickTimestamp={frame => {
+              onClickTimestamp(frame);
+              setActiveTab(getFrameDetails(frame).tabKey);
+            }}
+            startTimestampMs={startTimestampMs}
+            width={width}
+          />
+        </UnderTimestamp>
+      </Stacked>
     </Panel>
   );
 }

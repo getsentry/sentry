@@ -51,6 +51,11 @@ function init({organizationProps = {features: ['session-replay']}}: InitializeOr
 describe('GroupReplays', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/sdk-updates/`,
+      body: [],
+    });
   });
 
   describe('Replay Feature Disabled', () => {
@@ -120,7 +125,9 @@ describe('GroupReplays', () => {
               field: [
                 'activity',
                 'browser',
+                'count_dead_clicks',
                 'count_errors',
+                'count_rage_clicks',
                 'duration',
                 'finished_at',
                 'id',

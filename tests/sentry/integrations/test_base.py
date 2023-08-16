@@ -2,7 +2,7 @@ from sentry.integrations import IntegrationInstallation
 from sentry.models import Identity, IdentityProvider
 from sentry.services.hybrid_cloud.identity.serial import serialize_identity
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class IntegrationTestCase(TestCase):
@@ -28,10 +28,6 @@ class IntegrationTestCase(TestCase):
             integration_id=self.model.id,
             organization_id=self.organization.id,
         )
-
-    def test_no_context(self):
-        integration = IntegrationInstallation(self.model, self.organization.id)
-        integration.name = "Base"
 
     def test_with_context(self):
         integration = IntegrationInstallation(self.model, self.organization.id)

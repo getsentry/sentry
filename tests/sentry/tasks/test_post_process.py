@@ -2,16 +2,15 @@ from __future__ import annotations
 
 import abc
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest import mock
 from unittest.mock import Mock, patch
 
 import pytest
-import pytz
 from django.db import router
 from django.test import override_settings
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
@@ -32,7 +31,6 @@ from sentry.models import (
     GroupSnooze,
     GroupStatus,
     Integration,
-    ProjectOwnership,
 )
 from sentry.models.activity import ActivityIntegration
 from sentry.models.groupowner import (
@@ -41,6 +39,7 @@ from sentry.models.groupowner import (
     ISSUE_OWNERS_DEBOUNCE_DURATION,
     ISSUE_OWNERS_DEBOUNCE_KEY,
 )
+from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.rules import init_registry
@@ -53,8 +52,7 @@ from sentry.tasks.post_process import (
     post_process_group,
     process_event,
 )
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase
+from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
@@ -389,8 +387,8 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         MOCK_RULES = ("sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",)
 
         redis_buffer = RedisBuffer()
-        with mock.patch("sentry.buffer.get", redis_buffer.get), mock.patch(
-            "sentry.buffer.incr", redis_buffer.incr
+        with mock.patch("sentry.buffer.backend.get", redis_buffer.get), mock.patch(
+            "sentry.buffer.backend.incr", redis_buffer.incr
         ), patch("sentry.constants._SENTRY_RULES", MOCK_RULES), patch(
             "sentry.rules.processor.rules", init_registry()
         ) as rules:
@@ -427,7 +425,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             event.group.update(times_seen=2)
             assert MockAction.return_value.after.call_count == 0
 
-            buffer.incr(Group, {"times_seen": 15}, filters={"pk": event.group.id})
+            buffer.backend.incr(Group, {"times_seen": 15}, filters={"pk": event.group.id})
             self.call_post_process_group(
                 is_new=True,
                 is_regression=False,
@@ -585,7 +583,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
                 "message": "Foo bar",
                 "exception": {"type": "Foo", "value": "oh no"},
                 "level": "error",
-                "timestamp": iso_format(timezone.now()),
+                "timestamp": iso_format(django_timezone.now()),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -616,7 +614,11 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_not_called_for_non_errors(self, delay):
         event = self.create_event(
-            data={"message": "Foo bar", "level": "info", "timestamp": iso_format(timezone.now())},
+            data={
+                "message": "Foo bar",
+                "level": "info",
+                "timestamp": iso_format(django_timezone.now()),
+            },
             project_id=self.project.id,
             assert_no_errors=False,
         )
@@ -633,7 +635,11 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_not_called_without_feature_flag(self, delay):
         event = self.create_event(
-            data={"message": "Foo bar", "level": "info", "timestamp": iso_format(timezone.now())},
+            data={
+                "message": "Foo bar",
+                "level": "info",
+                "timestamp": iso_format(django_timezone.now()),
+            },
             project_id=self.project.id,
             assert_no_errors=False,
         )
@@ -655,7 +661,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
                 "message": "Foo bar",
                 "level": "error",
                 "exception": {"type": "Foo", "value": "oh no"},
-                "timestamp": iso_format(timezone.now()),
+                "timestamp": iso_format(django_timezone.now()),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -1420,7 +1426,9 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         group.status = GroupStatus.IGNORED
         group.substatus = GroupSubStatus.UNTIL_CONDITION_MET
         group.save(update_fields=["status", "substatus"])
-        snooze = GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(hours=1))
+        snooze = GroupSnooze.objects.create(
+            group=group, until=django_timezone.now() - timedelta(hours=1)
+        )
 
         # Check for has_reappeared=True if is_new=False
         self.call_post_process_group(
@@ -1456,8 +1464,8 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_invalidates_snooze_with_buffers(self, mock_processor, send_robust):
         redis_buffer = RedisBuffer()
-        with mock.patch("sentry.buffer.get", redis_buffer.get), mock.patch(
-            "sentry.buffer.incr", redis_buffer.incr
+        with mock.patch("sentry.buffer.backend.get", redis_buffer.get), mock.patch(
+            "sentry.buffer.backend.incr", redis_buffer.incr
         ):
             event = self.create_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
@@ -1480,7 +1488,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             )
             assert GroupSnooze.objects.filter(id=snooze.id).exists()
 
-            buffer.incr(Group, {"times_seen": 60}, filters={"pk": event.group.id})
+            buffer.backend.incr(Group, {"times_seen": 60}, filters={"pk": event.group.id})
             self.call_post_process_group(
                 is_new=False,
                 is_regression=False,
@@ -1495,7 +1503,9 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         group = event.group
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.ONGOING
-        snooze = GroupSnooze.objects.create(group=group, until=timezone.now() + timedelta(hours=1))
+        snooze = GroupSnooze.objects.create(
+            group=group, until=django_timezone.now() + timedelta(hours=1)
+        )
 
         self.call_post_process_group(
             is_new=True,
@@ -1685,7 +1695,7 @@ class PostProcessGroupPerformanceTest(
         mock_processor,
         run_post_process_job_mock,
     ):
-        min_ago = before_now(minutes=1).replace(tzinfo=pytz.utc)
+        min_ago = before_now(minutes=1).replace(tzinfo=timezone.utc)
         event = self.store_transaction(
             project_id=self.project.id,
             user_id=self.create_user(name="user1").name,
@@ -1769,7 +1779,7 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
         self,
         mock_store_transaction_name,
     ):
-        min_ago = before_now(minutes=1).replace(tzinfo=pytz.utc)
+        min_ago = before_now(minutes=1).replace(tzinfo=timezone.utc)
         event = process_event(
             data={
                 "project": self.project.id,

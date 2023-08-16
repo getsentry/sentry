@@ -8,7 +8,7 @@ import re
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from typing import (
     TYPE_CHECKING,
@@ -32,7 +32,6 @@ from django.db import IntegrityError, OperationalError, connection, router, tran
 from django.db.models import Func
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
-from pytz import UTC
 
 from sentry import (
     eventstore,
@@ -174,6 +173,10 @@ def get_tag(data: dict[str, Any], key: str) -> Optional[Any]:
         if k == key:
             return v
     return None
+
+
+def is_sample_event(job):
+    return get_tag(job["data"], "sample_event") == "yes"
 
 
 def plugin_is_regression(group: Group, event: Event) -> bool:
@@ -414,6 +417,11 @@ class EventManager:
         with metrics.timer("event_manager.save.project.get_from_cache"):
             project = Project.objects.get_from_cache(id=project_id)
 
+        with metrics.timer("event_manager.save.organization.get_from_cache"):
+            project.set_cached_field_value(
+                "organization", Organization.objects.get_from_cache(id=project.organization_id)
+            )
+
         projects = {project.id: project}
 
         job = {"data": self._data, "project_id": project.id, "raw": raw, "start_time": start_time}
@@ -454,17 +462,19 @@ class EventManager:
         raw: bool = False,
         cache_key: Optional[str] = None,
     ) -> Event:
-        with metrics.timer("event_manager.save.organization.get_from_cache"):
-            project.set_cached_field_value(
-                "organization", Organization.objects.get_from_cache(id=project.organization_id)
-            )
-
         jobs = [job]
 
-        is_reprocessed = is_reprocessed_event(job["data"])
+        if is_sample_event(job):
+            logger.info(
+                "save_error_events: processing sample event",
+                extra={
+                    "event.id": job["event"].event_id,
+                    "project_id": project.id,
+                    "sample_event": True,
+                },
+            )
 
-        # This metric can be used to track how many error events there are per platform
-        metrics.incr("save_event.error", tags={"platform": job["event"].platform or "unknown"})
+        is_reprocessed = is_reprocessed_event(job["data"])
 
         with sentry_sdk.start_span(op="event_manager.save.get_or_create_release_many"):
             _get_or_create_release_many(jobs, projects)
@@ -581,6 +591,15 @@ class EventManager:
             raise
 
         if not group_info:
+            if is_sample_event(job):
+                logger.info(
+                    "save_error_events: no groupinfo found, returning event",
+                    extra={
+                        "event.id": job["event"].event_id,
+                        "project_id": project.id,
+                        "sample_event": True,
+                    },
+                )
             return job["event"]
 
         job["event"].group = group_info.group
@@ -869,8 +888,8 @@ def _associate_commits_with_release(release: Release, project: Project) -> None:
             integration = integration_service.get_integration(integration_id=oi.integration_id)
             if not integration:
                 continue
-            integration_installation = integration_service.get_installation(
-                integration=integration, organization_id=oi.organization_id
+            integration_installation = integration.get_installation(
+                organization_id=oi.organization_id
             )
             if not integration_installation:
                 continue
@@ -1266,7 +1285,7 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
 
 @metrics.wraps("save_event.nodestore_save_many")
 def _nodestore_save_many(jobs: Sequence[Job]) -> None:
-    inserted_time = datetime.utcnow().replace(tzinfo=UTC).timestamp()
+    inserted_time = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
     for job in jobs:
         # Write the event to Nodestore
         subkeys = {}
@@ -1288,6 +1307,16 @@ def _nodestore_save_many(jobs: Sequence[Job]) -> None:
 @metrics.wraps("save_event.eventstream_insert_many")
 def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
+        if is_sample_event(job):
+            logger.info(
+                "_eventstream_insert_many: attempting to insert event into eventstream",
+                extra={
+                    "event.id": job["event"].event_id,
+                    "project_id": job["event"].project_id,
+                    "sample_event": True,
+                },
+            )
+
         if job["event"].project_id == settings.SENTRY_PROJECT:
             metrics.incr(
                 "internal.captured.eventstream_insert",
@@ -1320,6 +1349,15 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                 if gi is not None
             ]
 
+        if is_sample_event(job):
+            logger.info(
+                "_eventstream_insert_many: inserting into evenstream",
+                extra={
+                    "event.id": job["event"].event_id,
+                    "project_id": job["event"].project_id,
+                    "sample_event": True,
+                },
+            )
         eventstream.backend.insert(
             event=job["event"],
             is_new=is_new,
@@ -1441,7 +1479,7 @@ EventMetadata = Dict[str, Any]
 
 
 def materialize_metadata(
-    data: Mapping[str, Any], event_type: EventType, event_metadata: Mapping[str, Any]
+    data: Mapping[str, Any], event_type: EventType, event_metadata: dict[str, Any]
 ) -> EventMetadata:
     """Returns the materialized metadata to be merged with group or
     event data.  This currently produces the keys `type`, `culprit`,
@@ -1450,6 +1488,24 @@ def materialize_metadata(
 
     # XXX(markus): Ideally this wouldn't take data or event_type, and instead
     # calculate culprit + type from event_metadata
+
+    # Don't clobber existing metadata
+    try:
+        event_metadata.update(data.get("metadata", {}))
+    except TypeError:
+        # On a small handful of occasions, the line above has errored with `TypeError: 'NoneType'
+        # object is not iterable`, even though it's clear from looking at the local variable values
+        # in the event in Sentry that this shouldn't be possible.
+        logger.exception(
+            "Non-None being read as None",
+            extra={
+                "data is None": data is None,
+                "event_metadata is None": event_metadata is None,
+                "data.get": data.get,
+                "event_metadata.update": event_metadata.update,
+                "data.get('metadata', {})": data.get("metadata", {}),
+            },
+        )
 
     return {
         "type": event_type.key,
@@ -1584,6 +1640,18 @@ def _save_aggregate(
                     skip_internal=True,
                     tags={"platform": event.platform or "unknown"},
                 )
+
+                # This only applies to events with stacktraces
+                frame_mix = event.get_event_metadata().get("in_app_frame_mix")
+                if frame_mix:
+                    metrics.incr(
+                        "grouping.in_app_frame_mix",
+                        sample_rate=1.0,
+                        tags={
+                            "platform": event.platform or "unknown",
+                            "frame_mix": frame_mix,
+                        },
+                    )
 
                 return GroupInfo(group, is_new, is_regression)
 
@@ -1765,18 +1833,44 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
 
 
 def _handle_regression(group: Group, event: Event, release: Optional[Release]) -> Optional[bool]:
+    should_log_extra_info = features.has(
+        "organizations:detailed-alert-logging", group.project.organization
+    )
+    logging_details = {
+        "group_id": group.id,
+        "event_id": event.event_id,
+    }
+    if should_log_extra_info:
+        logger.info("_handle_regression", extra={**logging_details})
+
     if not group.is_resolved():
+        if should_log_extra_info:
+            logger.info(
+                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
+            )
         return None
 
     # we only mark it as a regression if the event's release is newer than
     # the release which we originally marked this as resolved
     elif GroupResolution.has_resolution(group, release):
+        if should_log_extra_info:
+            logger.info(
+                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
+            )
         return None
 
     elif has_pending_commit_resolution(group):
+        if should_log_extra_info:
+            logger.info(
+                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
+            )
         return None
 
     if not plugin_is_regression(group, event):
+        if should_log_extra_info:
+            logger.info(
+                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
+            )
         return None
 
     # we now think its a regression, rely on the database to validate that
@@ -1803,6 +1897,12 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             substatus=GroupSubStatus.REGRESSED,
         )
     )
+    if should_log_extra_info:
+        logger.info(
+            f"_handle_regression: is_regression evaluated to {is_regression}",
+            extra={**logging_details},
+        )
+
     group.active_at = date
     group.status = GroupStatus.UNRESOLVED
     group.substatus = GroupSubStatus.REGRESSED
@@ -2153,7 +2253,7 @@ def save_attachment(
     if start_time is not None:
         timestamp = to_datetime(start_time)
     else:
-        timestamp = datetime.utcnow().replace(tzinfo=UTC)
+        timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
 
     try:
         data = attachment.data
@@ -2280,7 +2380,7 @@ def _calculate_event_grouping(
 
     with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
         # Here we try to use the grouping config that was requested in the
-        # event.  If that config has since been deleted (because it was an
+        # event. If that config has since been deleted (because it was an
         # experimental grouping config) we fall back to the default.
         try:
             hashes = event.get_hashes(grouping_config)

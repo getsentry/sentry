@@ -67,7 +67,7 @@ class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
         :auth required:
         """
 
-        notification_settings = validate(request.data, team=team)
+        notification_settings = validate(request.data)
         NotificationSetting.objects.update_settings_bulk(notification_settings, team=team)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

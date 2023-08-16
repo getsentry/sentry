@@ -30,7 +30,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 
 import CronsFeedbackButton from './components/cronsFeedbackButton';
-import {OverviewTable} from './components/overviewTable';
 import {OverviewTimeline} from './components/overviewTimeline';
 import {Monitor} from './types';
 import {makeMonitorListQueryKey} from './utils';
@@ -73,16 +72,12 @@ export default function Monitors() {
   const monitorListPageLinks = monitorListHeaders?.('Link');
 
   const handleSearch = (query: string) => {
-    const currentQuery = router.location.query ?? {};
+    const currentQuery = {...(router.location.query ?? {}), cursor: undefined};
     router.push({
       pathname: location.pathname,
       query: normalizeDateTimeParams({...currentQuery, query}),
     });
   };
-
-  const monitorsTimelineView = organization.features.includes(
-    'crons-timeline-listing-page'
-  );
 
   return (
     <SentryDocumentTitle title={`Crons — ${organization.slug}`}>
@@ -126,11 +121,7 @@ export default function Monitors() {
               <LoadingIndicator />
             ) : monitorList?.length ? (
               <Fragment>
-                {monitorsTimelineView ? (
-                  <OverviewTimeline monitorList={monitorList} />
-                ) : (
-                  <OverviewTable monitorList={monitorList} />
-                )}
+                <OverviewTimeline monitorList={monitorList} />
                 {monitorListPageLinks && <Pagination pageLinks={monitorListPageLinks} />}
               </Fragment>
             ) : (

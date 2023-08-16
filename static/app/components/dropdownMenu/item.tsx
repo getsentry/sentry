@@ -1,5 +1,5 @@
 import {forwardRef, Fragment, useContext, useEffect, useRef} from 'react';
-import {useHover, useKeyboard, usePress} from '@react-aria/interactions';
+import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
 import {mergeProps} from '@react-aria/utils';
 import {TreeState} from '@react-stately/tree';
@@ -37,7 +37,7 @@ export interface MenuItemProps extends MenuListItemProps {
    * from the selection manager.
    */
   hidden?: boolean;
-  /*
+  /**
    * Whether this menu item is a trigger for a nested sub-menu. Only works
    * when `children` is also defined.
    */
@@ -132,10 +132,6 @@ function BaseDropdownMenuItem(
 
   // Open submenu on hover
   const {hoverProps, isHovered} = useHover({});
-  // Toggle submenu on press
-  const {pressProps} = usePress({
-    onPress: () => state.selectionManager.toggleSelection(node.key),
-  });
   const prevIsHovered = usePrevious(isHovered);
   const prevIsFocused = usePrevious(isFocused);
   useEffect(() => {
@@ -200,13 +196,7 @@ function BaseDropdownMenuItem(
 
   // Merged menu item props, class names are combined, event handlers chained,
   // etc. See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
-  const mergedProps = mergeProps(
-    props,
-    menuItemProps,
-    hoverProps,
-    keyboardProps,
-    pressProps
-  );
+  const mergedProps = mergeProps(props, menuItemProps, hoverProps, keyboardProps);
   const itemLabel = node.rendered ?? label;
   const innerWrapProps = {as: to ? Link : 'div', to};
 

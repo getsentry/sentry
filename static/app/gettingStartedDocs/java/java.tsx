@@ -7,12 +7,16 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
-const introduction = tct(
-  'Sentry for Java is a collection of modules provided by Sentry; it supports Java 1.8 and above. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong:Spring Boot, Spring, Logback, or Log4j2], we recommend visiting our Sentry Java documentation for installation instructions.',
-  {
-    strong: <strong />,
-    link: <ExternalLink href="https://docs.sentry.io/platforms/java/" />,
-  }
+const introduction = (
+  <p>
+    {tct(
+      'Sentry for Java is a collection of modules provided by Sentry; it supports Java 1.8 and above. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong:Spring Boot, Spring, Logback, or Log4j2], we recommend visiting our Sentry Java documentation for installation instructions.',
+      {
+        strong: <strong />,
+        link: <ExternalLink href="https://docs.sentry.io/platforms/java/" />,
+      }
+    )}
+  </p>
 );
 
 export const steps = ({
@@ -44,7 +48,7 @@ repositories {
 
 // Add Sentry's SDK as a dependency.
 dependencies {
-    implementation 'io.sentry:sentry:6.25.2'
+    implementation 'io.sentry:sentry:6.27.0'
 }
           `,
           },
@@ -92,7 +96,7 @@ sentry {
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry</artifactId>
-  <version>6.25.2</version>
+  <version>6.27.0</version>
 </dependency>
             `,
           },
@@ -107,7 +111,7 @@ sentry {
     <plugin>
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
-      <version>0.0.2</version>
+      <version>0.0.3</version>
       <configuration>
       <!-- for showing output of sentry-cli -->
       <debugSentryCli>true</debugSentryCli>
@@ -150,7 +154,7 @@ sentry {
           {
             description: <p>{tct('For [strong:SBT]:', {strong: <strong />})}</p>,
             language: 'scala',
-            code: `libraryDependencies += "io.sentry" % "sentry" % "6.25.2"`,
+            code: `libraryDependencies += "io.sentry" % "sentry" % "6.27.0"`,
           },
         ],
       },

@@ -10,7 +10,6 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    ProjectOwnership,
     RegionScheduledDeletion,
     Release,
     ReleaseProject,
@@ -20,14 +19,14 @@ from sentry.models import (
     UserOption,
 )
 from sentry.models.actor import get_actor_for_user
+from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.models import SnubaQuery
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.testutils import TestCase
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
@@ -331,7 +330,7 @@ class ProjectTest(APITestCase, TestCase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class CopyProjectSettingsTest(TestCase):
     def setUp(self):
         super().setUp()

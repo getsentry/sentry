@@ -7,19 +7,23 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
-const introduction = tct(
-  "There are two variants of Sentry available for Spring. If you're using Spring 5, use [sentrySpringLink:sentry-spring]. If you're using Spring 6, use [sentrySpringJakartaLink:sentry-spring-jakarta] instead. Sentry's integration with Spring supports Spring Framework 5.1.2 and above to report unhandled exceptions and optional user information. If you're on an older version, use [legacyIntegrationLink:our legacy integration].",
-  {
-    sentrySpringLink: (
-      <ExternalLink href="https://github.com/getsentry/sentry-java/tree/master/sentry-spring" />
-    ),
-    sentrySpringJakartaLink: (
-      <ExternalLink href="https://github.com/getsentry/sentry-java/tree/master/sentry-spring-jakarta" />
-    ),
-    legacyIntegrationLink: (
-      <ExternalLink href="https://docs.sentry.io/platforms/java/guides/spring/legacy/" />
-    ),
-  }
+const introduction = (
+  <p>
+    {tct(
+      "There are two variants of Sentry available for Spring. If you're using Spring 5, use [sentrySpringLink:sentry-spring]. If you're using Spring 6, use [sentrySpringJakartaLink:sentry-spring-jakarta] instead. Sentry's integration with Spring supports Spring Framework 5.1.2 and above to report unhandled exceptions and optional user information. If you're on an older version, use [legacyIntegrationLink:our legacy integration].",
+      {
+        sentrySpringLink: (
+          <ExternalLink href="https://github.com/getsentry/sentry-java/tree/master/sentry-spring" />
+        ),
+        sentrySpringJakartaLink: (
+          <ExternalLink href="https://github.com/getsentry/sentry-java/tree/master/sentry-spring-jakarta" />
+        ),
+        legacyIntegrationLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/java/guides/spring/legacy/" />
+        ),
+      }
+    )}
+  </p>
 );
 
 export const steps = ({
@@ -43,7 +47,7 @@ export const steps = ({
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry-spring</artifactId>
-  <version>6.25.2</version>
+  <version>6.27.0</version>
 </dependency>
           `,
           },
@@ -54,7 +58,7 @@ export const steps = ({
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry-spring-jakarta</artifactId>
-  <version>6.25.2</version>
+  <version>6.27.0</version>
 </dependency>
         `,
           },
@@ -160,7 +164,7 @@ import org.springframework.core.Ordered
     <plugin>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-maven-plugin</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.3</version>
     <configuration>
       <!-- for showing output of sentry-cli -->
       <debugSentryCli>true</debugSentryCli>
@@ -202,12 +206,12 @@ import org.springframework.core.Ordered
           {
             description: <strong>{t('Spring 5')}</strong>,
             language: 'groovy',
-            code: `implementation 'io.sentry:sentry-spring:6.25.2'`,
+            code: `implementation 'io.sentry:sentry-spring:6.27.0'`,
           },
           {
             description: <strong>{t('Spring 6')}</strong>,
             language: 'groovy',
-            code: `implementation 'io.sentry:sentry-spring-jakarta:6.25.2'`,
+            code: `implementation 'io.sentry:sentry-spring-jakarta:6.27.0'`,
           },
         ],
       },

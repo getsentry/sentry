@@ -16,12 +16,14 @@ from snuba_sdk import (
     Limit,
     Offset,
     Op,
+    Or,
     Query,
     Request,
 )
 from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry import features
 from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import (
@@ -37,6 +39,7 @@ from sentry.replays.lib.query import (
     generate_valid_conditions,
     get_valid_sort_commands,
 )
+from sentry.replays.usecases.query import query_using_aggregated_search
 from sentry.utils.snuba import raw_snql_query
 
 MAX_PAGE_SIZE = 100
@@ -71,6 +74,19 @@ def query_replays_collection(
         conditions.append(Condition(Column("agg_environment"), Op.IN, environment))
 
     paginators = make_pagination_values(limit, offset)
+
+    if features.has("organizations:session-replay-optimized-search", organization, actor=actor):
+        return query_using_aggregated_search(
+            fields,
+            search_filters,
+            environment,
+            sort,
+            paginators,
+            organization,
+            project_ids,
+            start,
+            end,
+        )
 
     # Attempt to eager return with subquery.
 
@@ -133,7 +149,7 @@ def query_replay_instance(
 
 
 def query_replays_dataset(
-    project_ids: List[str],
+    project_ids: List[int],
     start: datetime,
     end: datetime,
     where: List[Condition],
@@ -199,7 +215,7 @@ def query_replays_dataset(
 
 
 def query_replays_dataset_with_subquery(
-    project_ids: List[str],
+    project_ids: List[int],
     start: datetime,
     end: datetime,
     environments: List[str],
@@ -298,13 +314,12 @@ def query_replays_dataset_with_subquery(
 
 
 def query_replays_count(
-    project_ids: List[str],
+    project_ids: List[int],
     start: datetime,
     end: datetime,
     replay_ids: List[str],
     tenant_ids: dict[str, Any],
 ):
-
     snuba_request = Request(
         dataset="replays",
         app_id="replay-backend-web",
@@ -348,7 +363,7 @@ def query_replays_count(
 
 
 def query_replays_dataset_tagkey_values(
-    project_ids: List[str],
+    project_ids: List[int],
     start: datetime,
     end: datetime,
     environment: str | None,
@@ -393,7 +408,12 @@ def query_replays_dataset_tagkey_values(
                 Condition(Column("project_id"), Op.IN, project_ids),
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("timestamp"), Op.GTE, start),
-                Condition(Column("is_archived"), Op.IS_NULL),
+                Or(
+                    [
+                        Condition(Column("is_archived"), Op.EQ, 0),
+                        Condition(Column("is_archived"), Op.IS_NULL),
+                    ]
+                ),
                 *where,
             ],
             orderby=[OrderBy(Column("times_seen"), Direction.DESC)],
@@ -439,22 +459,19 @@ def make_select_statement(
     return select_from_fields(list(unique_fields))
 
 
-def _grouped_unique_values(
-    column_name: str, alias: Optional[str] = None, aliased: bool = False
+def anyIfNonZeroIP(
+    column_name: str,
+    alias: Optional[str] = None,
+    aliased: bool = True,
 ) -> Function:
-    """Returns an array of unique, non-null values.
-
-    E.g.
-        [1, 2, 2, 3, 3, 3, null] => [1, 2, 3]
-    """
     return Function(
-        "groupUniqArray",
-        parameters=[Column(column_name)],
+        "anyIf",
+        parameters=[Column(column_name), Function("greater", parameters=[Column(column_name), 0])],
         alias=alias or column_name if aliased else None,
     )
 
 
-def take_any_from_aggregation(
+def anyIf(
     column_name: str,
     alias: Optional[str] = None,
     aliased: bool = True,
@@ -463,10 +480,8 @@ def take_any_from_aggregation(
     so the value should be consistent.
     """
     return Function(
-        "any",
-        parameters=[
-            Column(column_name),
-        ],
+        "anyIf",
+        parameters=[Column(column_name), Function("notEmpty", [Column(column_name)])],
         alias=alias or column_name if aliased else None,
     )
 
@@ -888,10 +903,26 @@ QUERY_ALIAS_COLUMN_MAP = {
         alias="count_urls",
     ),
     "count_dead_clicks": Function(
-        "sum", parameters=[Column("click_is_dead")], alias="count_dead_clicks"
+        "sumIf",
+        parameters=[
+            Column("click_is_dead"),
+            Function(
+                "greaterOrEquals",
+                [Column("timestamp"), datetime(year=2023, month=7, day=24)],
+            ),
+        ],
+        alias="count_dead_clicks",
     ),
     "count_rage_clicks": Function(
-        "sum", parameters=[Column("click_is_rage")], alias="count_rage_clicks"
+        "sumIf",
+        parameters=[
+            Column("click_is_rage"),
+            Function(
+                "greaterOrEquals",
+                [Column("timestamp"), datetime(year=2023, month=7, day=24)],
+            ),
+        ],
+        alias="count_rage_clicks",
     ),
     "is_archived": Function(
         "ifNull",
@@ -905,31 +936,33 @@ QUERY_ALIAS_COLUMN_MAP = {
         alias="isArchived",
     ),
     "activity": _activity_score(),
-    "releases": _grouped_unique_values(column_name="release", alias="releases", aliased=True),
-    "replay_type": take_any_from_aggregation(column_name="replay_type", alias="replay_type"),
-    "platform": take_any_from_aggregation(column_name="platform"),
-    "agg_environment": take_any_from_aggregation(
-        column_name="environment", alias="agg_environment"
+    "releases": Function(
+        "groupUniqArrayIf",
+        parameters=[Column("release"), Function("notEmpty", [Column("release")])],
+        alias="releases",
     ),
-    "dist": take_any_from_aggregation(column_name="dist"),
-    "user_id": take_any_from_aggregation(column_name="user_id"),
-    "user_email": take_any_from_aggregation(column_name="user_email"),
-    "user_username": take_any_from_aggregation(column_name="user_name", alias="user_username"),
+    "replay_type": anyIf(column_name="replay_type", alias="replay_type"),
+    "platform": anyIf(column_name="platform"),
+    "agg_environment": anyIf(column_name="environment", alias="agg_environment"),
+    "dist": anyIf(column_name="dist"),
+    "user_id": anyIf(column_name="user_id"),
+    "user_email": anyIf(column_name="user_email"),
+    "user_username": anyIf(column_name="user_name", alias="user_username"),
     "user_ip": Function(
         "IPv4NumToString",
-        parameters=[take_any_from_aggregation(column_name="ip_address_v4", aliased=False)],
+        parameters=[anyIfNonZeroIP(column_name="ip_address_v4", aliased=False)],
         alias="user_ip",
     ),
-    "os_name": take_any_from_aggregation(column_name="os_name"),
-    "os_version": take_any_from_aggregation(column_name="os_version"),
-    "browser_name": take_any_from_aggregation(column_name="browser_name"),
-    "browser_version": take_any_from_aggregation(column_name="browser_version"),
-    "device_name": take_any_from_aggregation(column_name="device_name"),
-    "device_brand": take_any_from_aggregation(column_name="device_brand"),
-    "device_family": take_any_from_aggregation(column_name="device_family"),
-    "device_model": take_any_from_aggregation(column_name="device_model"),
-    "sdk_name": take_any_from_aggregation(column_name="sdk_name"),
-    "sdk_version": take_any_from_aggregation(column_name="sdk_version"),
+    "os_name": anyIf(column_name="os_name"),
+    "os_version": anyIf(column_name="os_version"),
+    "browser_name": anyIf(column_name="browser_name"),
+    "browser_version": anyIf(column_name="browser_version"),
+    "device_name": anyIf(column_name="device_name"),
+    "device_brand": anyIf(column_name="device_brand"),
+    "device_family": anyIf(column_name="device_family"),
+    "device_model": anyIf(column_name="device_model"),
+    "sdk_name": anyIf(column_name="sdk_name"),
+    "sdk_version": anyIf(column_name="sdk_version"),
     "tk": Function("groupArrayArray", parameters=[Column("tags.key")], alias="tk"),
     "tv": Function("groupArrayArray", parameters=[Column("tags.value")], alias="tv"),
     "click.alt": Function("groupArray", parameters=[Column("click_alt")], alias="click_alt"),

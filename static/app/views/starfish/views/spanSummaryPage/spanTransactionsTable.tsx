@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
@@ -18,6 +17,7 @@ import {Sort} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 import {
   renderHeadCell,
   SORTABLE_FIELDS,
@@ -33,15 +33,16 @@ import {
   SpanMetricsFieldTypes,
 } from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
+import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
-const {SPAN_OP} = SpanMetricsFields;
-
 type Row = {
-  metrics: SpanTransactionMetrics;
+  'avg(span.self_time)': number;
+  'spm()': number;
+  'time_spent_percentage(local)': number;
   transaction: string;
   transactionMethod: string;
-};
+} & SpanTransactionMetrics;
 
 type Props = {
   sort: ValidSort;
@@ -51,26 +52,19 @@ type Props = {
   >;
   endpoint?: string;
   endpointMethod?: string;
-  onClickTransaction?: (row: Row) => void;
-  openSidebar?: boolean;
 };
 
 type ValidSort = Sort & {
   field: keyof Row;
 };
 
-export type TableColumnHeader = GridColumnHeader<keyof Row['metrics']>;
+export type TableColumnHeader = GridColumnHeader<keyof Row>;
 
-export function SpanTransactionsTable({
-  span,
-  openSidebar,
-  onClickTransaction,
-  endpoint,
-  endpointMethod,
-  sort,
-}: Props) {
+export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Props) {
   const location = useLocation();
+  const routingContext = useRoutingContext();
   const organization = useOrganization();
+  const router = useRouter();
 
   const {
     data: spanTransactionMetrics = [],
@@ -84,25 +78,41 @@ export function SpanTransactionsTable({
 
   const spanTransactionsWithMetrics = spanTransactionMetrics.map(row => {
     return {
-      transaction: row.transaction,
+      ...row,
       transactionMethod: row['transaction.method'],
-      metrics: row,
     };
   });
 
   const renderBodyCell = (column: TableColumnHeader, row: Row) => {
     if (column.key === 'transaction') {
+      const label =
+        row.transactionMethod && !row.transaction.startsWith(row.transactionMethod)
+          ? `${row.transactionMethod} ${row.transaction}`
+          : row.transaction;
+
+      const pathname = `${routingContext.baseURL}/${
+        extractRoute(location) ?? 'spans'
+      }/span/${encodeURIComponent(span[SpanMetricsFields.SPAN_GROUP])}`;
+      const query = {
+        ...location.query,
+        endpoint,
+        endpointMethod,
+        transaction: row.transaction,
+        transactionMethod: row.transactionMethod,
+      };
+
       return (
-        <TransactionCell
-          endpoint={endpoint}
-          endpointMethod={endpointMethod}
-          span={span}
-          row={row}
-          column={column}
-          openSidebar={openSidebar}
-          onClickTransactionName={onClickTransaction}
-          location={location}
-        />
+        <Link
+          to={`${pathname}?${qs.stringify(query)}`}
+          onClick={() => {
+            router.replace({
+              pathname,
+              query,
+            });
+          }}
+        >
+          <Truncate value={label} maxLength={75} />
+        </Link>
       );
     }
 
@@ -111,7 +121,7 @@ export function SpanTransactionsTable({
     }
 
     const renderer = getFieldRenderer(column.key, meta.fields, false);
-    const rendered = renderer(row.metrics, {
+    const rendered = renderer(row, {
       location,
       organization,
       unit: meta.units?.[column.key],
@@ -155,43 +165,6 @@ export function SpanTransactionsTable({
   );
 }
 
-type CellProps = {
-  column: TableColumnHeader;
-  location: Location;
-  row: Row;
-  span: Pick<
-    SpanMetricsFieldTypes,
-    SpanMetricsFields.SPAN_OP | SpanMetricsFields.SPAN_GROUP
-  >;
-  endpoint?: string;
-  endpointMethod?: string;
-  onClickTransactionName?: (row: Row) => void;
-  openSidebar?: boolean;
-};
-
-function TransactionCell({span, row, endpoint, endpointMethod, location}: CellProps) {
-  const label = row.transactionMethod
-    ? `${row.transactionMethod} ${row.transaction}`
-    : row.transaction;
-  return (
-    <Fragment>
-      <Link
-        to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${encodeURIComponent(
-          span[SpanMetricsFields.SPAN_GROUP]
-        )}?${qs.stringify({
-          ...location.query,
-          endpoint,
-          endpointMethod,
-          transaction: row.transaction,
-          transactionMethod: row.transactionMethod,
-        })}`}
-      >
-        <Truncate value={label} maxLength={75} />
-      </Link>
-    </Fragment>
-  );
-}
-
 const getColumnOrder = (
   span: Pick<
     SpanIndexedFieldTypes,
@@ -204,13 +177,13 @@ const getColumnOrder = (
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'sps()',
-    name: getThroughputTitle(span[SPAN_OP]),
+    key: 'spm()',
+    name: getThroughputTitle(span[SpanIndexedFields.SPAN_OP]),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `p95(${SpanMetricsFields.SPAN_SELF_TIME})`,
-    name: DataTitles.p95,
+    key: `avg(${SpanMetricsFields.SPAN_SELF_TIME})`,
+    name: DataTitles.avg,
     width: COL_WIDTH_UNDEFINED,
   },
   ...(span?.['span.op']?.startsWith('http')

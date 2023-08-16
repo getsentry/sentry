@@ -1,13 +1,19 @@
-from typing import List, Optional, Tuple
+from __future__ import annotations
+
+from typing import Any, ClassVar, List, Optional, Tuple
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
-from rest_framework.authentication import BasicAuthentication, get_authorization_header
+from rest_framework.authentication import (
+    BasicAuthentication,
+    SessionAuthentication,
+    get_authorization_header,
+)
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
-from sentry_relay import UnpackError
+from sentry_relay.exceptions import UnpackError
 
 from sentry import options
 from sentry.auth.system import SystemToken, is_internal_ip
@@ -75,15 +81,18 @@ def relay_from_id(request, relay_id) -> Tuple[Optional[Relay], bool]:
 
 
 class QuietBasicAuthentication(BasicAuthentication):
-    def authenticate_header(self, request: Request):
+    def authenticate_header(self, request: Request) -> str:
         return 'xBasic realm="%s"' % self.www_authenticate_realm
 
 
 class StandardAuthentication(QuietBasicAuthentication):
-    token_name = None
+    token_name: ClassVar[bytes]
 
-    def accepts_auth(self, auth: "list[bytes]") -> bool:
-        return auth and auth[0].lower() == self.token_name
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        return bool(auth) and auth[0].lower() == self.token_name
+
+    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+        raise NotImplementedError
 
     def authenticate(self, request: Request):
         auth = get_authorization_header(request).split()
@@ -98,7 +107,7 @@ class StandardAuthentication(QuietBasicAuthentication):
             msg = "Invalid token header. Token string should not contain spaces."
             raise AuthenticationFailed(msg)
 
-        return self.authenticate_credentials(request, force_str(auth[1]))
+        return self.authenticate_token(request, force_str(auth[1]))
 
 
 class RelayAuthentication(BasicAuthentication):
@@ -135,8 +144,8 @@ class RelayAuthentication(BasicAuthentication):
 class ApiKeyAuthentication(QuietBasicAuthentication):
     token_name = b"basic"
 
-    def accepts_auth(self, auth: "list[bytes]") -> bool:
-        return auth and auth[0].lower() == self.token_name
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        return bool(auth) and auth[0].lower() == self.token_name
 
     def authenticate_credentials(self, userid, password, request=None):
         # We don't use request, but it needs to be passed through to DRF 3.7+.
@@ -155,6 +164,14 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
             scope.set_tag("api_key", key.id)
 
         return (AnonymousUser(), key)
+
+
+class SessionNoAuthTokenAuthentication(SessionAuthentication):
+    def authenticate(self, request: Request):
+        auth = get_authorization_header(request)
+        if auth:
+            return None
+        return super().authenticate(request)
 
 
 class ClientIdSecretAuthentication(QuietBasicAuthentication):
@@ -196,7 +213,7 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
 class TokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
 
-    def accepts_auth(self, auth: "list[bytes]") -> bool:
+    def accepts_auth(self, auth: list[bytes]) -> bool:
         if not super().accepts_auth(auth):
             return False
 
@@ -208,7 +225,7 @@ class TokenAuthentication(StandardAuthentication):
         token_str = force_str(auth[1])
         return not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
-    def authenticate_credentials(self, request: Request, token_str):
+    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         token = SystemToken.from_request(request, token_str)
         try:
             token = (
@@ -240,14 +257,14 @@ class TokenAuthentication(StandardAuthentication):
 class OrgAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
 
-    def accepts_auth(self, auth: "list[bytes]") -> bool:
+    def accepts_auth(self, auth: list[bytes]) -> bool:
         if not super().accepts_auth(auth) or len(auth) != 2:
             return False
 
         token_str = force_str(auth[1])
         return token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
-    def authenticate_credentials(self, request: Request, token_str):
+    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         token = None
         token_hashed = hash_token(token_str)
 
@@ -269,7 +286,7 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
 class DSNAuthentication(StandardAuthentication):
     token_name = b"dsn"
 
-    def authenticate_credentials(self, request: Request, token):
+    def authenticate_token(self, request: Request, token: str) -> tuple[Any, Any]:
         try:
             key = ProjectKey.from_dsn(token)
         except ProjectKey.DoesNotExist:
@@ -298,7 +315,7 @@ class RpcSignatureAuthentication(StandardAuthentication):
             return False
         return auth[0].lower() == self.token_name
 
-    def authenticate_credentials(self, request: Request, token: str):
+    def authenticate_token(self, request: Request, token: str) -> tuple[Any, Any]:
         if not compare_signature(request.path_info, request.body, token):
             raise AuthenticationFailed("Invalid signature")
 

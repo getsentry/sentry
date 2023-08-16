@@ -5,7 +5,7 @@ from sentry.api.serializers.models.team import TeamSCIMSerializer, TeamWithProje
 from sentry.app import env
 from sentry.models import InviteStatus
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
@@ -33,7 +33,6 @@ class TeamSerializerTest(TestCase):
             "teamRole": None,
             "flags": {"idp:provisioned": False},
             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-            "orgRole": None,
             "memberCount": 0,
         }
 
@@ -344,7 +343,6 @@ class TeamWithProjectsSerializerTest(TestCase):
             "flags": {"idp:provisioned": False},
             "projects": serialized_projects,
             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-            "orgRole": None,
             "memberCount": 0,
             "dateCreated": team.date_added,
             "externalTeams": [],

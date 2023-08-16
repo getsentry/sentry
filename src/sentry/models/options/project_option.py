@@ -101,7 +101,7 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
 
         return created or inst > 0
 
-    def get_all_values(self, project: Project) -> Mapping[str, Value]:
+    def get_all_values(self, project: Project | int) -> Mapping[str, Value]:
         if isinstance(project, models.Model):
             project_id = project.id
         else:

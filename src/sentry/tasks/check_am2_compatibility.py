@@ -1,15 +1,15 @@
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, Mapping, Optional, Set, Tuple
 
-import pytz
 import sentry_sdk
 from django.db.models import Q
 
 from sentry.dynamic_sampling import get_redis_client_for_ds
 from sentry.incidents.models import AlertRule
 from sentry.models import DashboardWidgetQuery, Organization, Project
+from sentry.silo import SiloMode
 from sentry.snuba import metrics_performance
 from sentry.snuba.discover import query as discover_query
 from sentry.snuba.metrics_enhanced_performance import query as performance_query
@@ -330,8 +330,8 @@ class CheckAM2Compatibility:
         params = {
             "organization_id": organization_id,
             "project_objects": project_objects,
-            "start": datetime.now(tz=pytz.UTC) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
-            "end": datetime.now(tz=pytz.UTC),
+            "start": datetime.now(tz=timezone.utc) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
+            "end": datetime.now(tz=timezone.utc),
         }
 
         try:
@@ -355,8 +355,8 @@ class CheckAM2Compatibility:
         params = {
             "organization_id": organization_id,
             "project_objects": project_objects,
-            "start": datetime.now(tz=pytz.UTC) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
-            "end": datetime.now(tz=pytz.UTC),
+            "start": datetime.now(tz=timezone.utc) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
+            "end": datetime.now(tz=timezone.utc),
         }
 
         try:
@@ -413,8 +413,8 @@ class CheckAM2Compatibility:
         params = {
             "organization_id": organization.id,
             "project_objects": project_objects,
-            "start": datetime.now(tz=pytz.UTC) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
-            "end": datetime.now(tz=pytz.UTC),
+            "start": datetime.now(tz=timezone.utc) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
+            "end": datetime.now(tz=timezone.utc),
         }
 
         projects = {project.id: project for project in project_objects}
@@ -576,6 +576,7 @@ def get_check_results(org_id):
     max_retries=1,  # We don't want the system to retry such computations.
     soft_time_limit=TASK_SOFT_LIMIT_IN_SECONDS,  # 30 minutes
     time_limit=TASK_SOFT_LIMIT_IN_SECONDS + 5,  # 30 minutes + 5 seconds
+    silo_mode=SiloMode.REGION,
 )
 def run_compatibility_check_async(org_id):
     try:

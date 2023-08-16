@@ -190,6 +190,9 @@ class AuthenticatedToken(RpcModel):
     organization_id: Optional[int] = None
     application_id: Optional[int] = None  # only relevant for ApiToken
 
+    def token_has_org_access(self, organization_id: int) -> bool:
+        return self.kind == "api_token" and self.organization_id == organization_id
+
     @classmethod
     def from_token(cls, token: Any) -> Optional["AuthenticatedToken"]:
         if token is None:
@@ -315,9 +318,23 @@ class RpcAuthProvider(RpcModel):
     organization_id: int = -1
     provider: str = ""
     flags: RpcAuthProviderFlags = Field(default_factory=lambda: RpcAuthProviderFlags())
+    config: Mapping[str, Any]
 
     def __hash__(self) -> int:
         return hash((self.id, self.organization_id, self.provider))
+
+    def get_audit_log_data(self):
+        return {"provider": self.provider, "config": self.config}
+
+    def get_provider(self):
+        from sentry.auth import manager
+
+        return manager.get(self.provider, **self.config)
+
+    def get_scim_token(self) -> Optional[str]:
+        from sentry.models import get_scim_token
+
+        return get_scim_token(self.flags.scim_enabled, self.organization_id, self.provider)
 
 
 class RpcAuthIdentity(RpcModel):

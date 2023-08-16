@@ -21,8 +21,8 @@ from sentry.models import (
 )
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
@@ -67,6 +67,7 @@ class StatusActionTest(APITestCase):
             data={"message": "oh no"},
             project_id=self.project1.id,
         )
+        assert self.event1.group is not None
         self.group1 = self.event1.group
 
     def post_webhook(

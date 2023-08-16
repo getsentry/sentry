@@ -1,16 +1,16 @@
 import datetime
+from datetime import timezone
 from functools import cached_property
 
 import pytest
 import responses
-from django.utils import timezone
 
 from fixtures.bitbucket import COMMIT_DIFF_PATCH, COMPARE_COMMITS_EXAMPLE, REPO
 from sentry.integrations.bitbucket.repository import BitbucketRepositoryProvider
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo import SiloMode
-from sentry.testutils import IntegrationRepositoryTestCase, TestCase
+from sentry.testutils.cases import IntegrationRepositoryTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 

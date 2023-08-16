@@ -248,11 +248,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
                   tooltipRawVersion
                 />
               ),
-              semver: organization.features.includes('issue-release-semver')
-                ? isSemverRelease(currentVersion)
-                  ? t('(semver)')
-                  : t('(non-semver)')
-                : '',
+              semver: isSemverRelease(currentVersion) ? t('(semver)') : t('(non-semver)'),
             }
           );
         }
@@ -264,11 +260,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
               version: (
                 <Version version={version} projectId={projectId} tooltipRawVersion />
               ),
-              semver: organization.features.includes('issue-release-semver')
-                ? isSemverRelease(version)
-                  ? t('(semver)')
-                  : t('(non-semver)')
-                : '',
+              semver: isSemverRelease(version) ? t('(semver)') : t('(non-semver)'),
             })
           : tct('[author] marked this issue as resolved in the upcoming release', {
               author,
@@ -380,14 +372,52 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
         return tct('[author] made this issue private', {author});
       case GroupActivityType.SET_REGRESSION: {
         const {data} = activity;
-        return data.version
-          ? tct('[author] marked this issue as a regression in [version]', {
+        let subtext: React.ReactNode = null;
+        if (data.version && data.resolved_in_version && 'follows_semver' in data) {
+          subtext = (
+            <Subtext>
+              {tct(
+                '[regressionVersion] is greater than or equal to [resolvedVersion] compared via [comparison]',
+                {
+                  regressionVersion: (
+                    <Version
+                      version={data.version}
+                      projectId={projectId}
+                      tooltipRawVersion
+                    />
+                  ),
+                  resolvedVersion: (
+                    <Version
+                      version={data.resolved_in_version}
+                      projectId={projectId}
+                      tooltipRawVersion
+                    />
+                  ),
+                  comparison: data.follows_semver ? t('semver') : t('release date'),
+                }
+              )}
+            </Subtext>
+          );
+        }
+
+        return data.version ? (
+          <Fragment>
+            {tct('[author] marked this issue as a regression in [version]', {
               author,
               version: (
                 <Version version={data.version} projectId={projectId} tooltipRawVersion />
               ),
-            })
-          : tct('[author] marked this issue as a regression', {author});
+            })}
+            {subtext}
+          </Fragment>
+        ) : (
+          <Fragment>
+            {tct('[author] marked this issue as a regression', {
+              author,
+            })}
+            {subtext}
+          </Fragment>
+        );
       }
       case GroupActivityType.CREATE_ISSUE: {
         const {data} = activity;
@@ -493,6 +523,10 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
 }
 
 export default GroupActivityItem;
+
+const Subtext = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
 const CodeWrapper = styled('div')`
   overflow-wrap: anywhere;

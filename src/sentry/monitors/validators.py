@@ -11,6 +11,7 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
+from sentry.monitors.constants import MAX_TIMEOUT
 from sentry.monitors.models import (
     MAX_SLUG_LENGTH,
     CheckInStatus,
@@ -18,7 +19,6 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.monitors.tasks import MAX_TIMEOUT
 
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
@@ -106,6 +106,22 @@ class ConfigValidator(serializers.Serializer):
         choices=pytz.all_timezones,
         required=False,
         help_text="tz database style timezone string",
+    )
+
+    failure_issue_threshold = EmptyIntegerField(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="How many consecutive missed or failed check-ins in a row before creating a new issue.",
+        min_value=1,
+    )
+
+    recovery_threshold = EmptyIntegerField(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="How many successful check-ins in a row before resolving an issue.",
+        min_value=1,
     )
 
     def bind(self, *args, **kwargs):

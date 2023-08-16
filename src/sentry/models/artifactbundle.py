@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import zipfile
 from enum import Enum
-from io import BytesIO
 from typing import IO, Callable, Dict, List, Mapping, Optional, Set, Tuple
 
-from django.db import models, router
-from django.db.models.signals import post_delete
+import sentry_sdk
+from django.conf import settings
+from django.db import models
+from django.db.models.signals import post_delete, pre_delete
 from django.utils import timezone
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
@@ -16,9 +19,10 @@ from sentry.db.models import (
     Model,
     region_silo_only_model,
 )
-from sentry.utils import json
-from sentry.utils.db import atomic_transaction
+from sentry.nodestore.base import NodeStorage
+from sentry.utils import json, metrics
 from sentry.utils.hashlib import sha1_text
+from sentry.utils.services import LazyServiceWrapper
 
 # Sentinel values used to represent a null state in the database. This is done since the `NULL` type in the db is
 # always different from `NULL`.
@@ -39,7 +43,7 @@ class SourceFileType(Enum):
         return [(key.value, key.name) for key in cls]
 
     @classmethod
-    def from_lowercase_key(cls, lowercase_key: Optional[str]) -> Optional["SourceFileType"]:
+    def from_lowercase_key(cls, lowercase_key: Optional[str]) -> Optional[SourceFileType]:
         if lowercase_key is None:
             return None
 
@@ -87,8 +91,8 @@ class ArtifactBundle(Model):
 
     @classmethod
     def get_release_associations(
-        cls, organization_id: int, artifact_bundle: "ArtifactBundle"
-    ) -> List[Mapping[str, str]]:
+        cls, organization_id: int, artifact_bundle: ArtifactBundle
+    ) -> List[Mapping[str, str | None]]:
         release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
             organization_id=organization_id, artifact_bundle=artifact_bundle
         )
@@ -112,7 +116,24 @@ def delete_file_for_artifact_bundle(instance, **kwargs):
     instance.file.delete()
 
 
+def delete_bundle_from_index(instance, **kwargs):
+    from sentry.debug_files.artifact_bundle_indexing import remove_artifact_bundle_from_indexes
+
+    try:
+        remove_artifact_bundle_from_indexes(instance)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+
+
+pre_delete.connect(delete_bundle_from_index, sender=ArtifactBundle)
 post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
+
+indexstore = LazyServiceWrapper(
+    NodeStorage,
+    settings.SENTRY_INDEXSTORE,
+    settings.SENTRY_INDEXSTORE_OPTIONS,
+    metrics_path="indexstore",
+)
 
 
 @region_silo_only_model
@@ -122,9 +143,11 @@ class ArtifactBundleFlatFileIndex(Model):
     project_id = BoundedBigIntegerField(db_index=True)
     release_name = models.CharField(max_length=250)
     dist_name = models.CharField(max_length=64, default=NULL_STRING)
-    # This association is nullable since we need it for a correct durable implementation of the `FlatFileIndexState`.
-    flat_file_index = FlexibleForeignKey("sentry.File", null=True)
     date_added = models.DateTimeField(default=timezone.now)
+
+    # TODO: This column is in the process of being removed.
+    # For now, it still exists only to facilitate deleting all existing files.
+    flat_file_index = FlexibleForeignKey("sentry.File", null=True)
 
     class Meta:
         app_label = "sentry"
@@ -132,41 +155,23 @@ class ArtifactBundleFlatFileIndex(Model):
 
         index_together = (("project_id", "release_name", "dist_name"),)
 
-    def update_flat_file_index(self, file_contents: str):
-        from sentry.models import File
+    def _indexstore_id(self) -> str:
+        return f"bundle_index:{self.project_id}:{self.id}"
 
-        with atomic_transaction(
-            using=(router.db_for_write(File), router.db_for_write(ArtifactBundleFlatFileIndex))
-        ):
-            current_file = self.flat_file_index
+    def update_flat_file_index(self, data: str):
+        encoded_data = data.encode()
 
-            updated_file = self._create_flat_file_index_object(file_contents)
-
-            # We have to update the new index file and also the date added, which is required for expiration.
-            self.update(flat_file_index=updated_file, date_added=timezone.now())
-
-            if current_file is not None:
-                # It's important to also delete the old file, otherwise we will end up with orphan files in the
-                # database.
-                current_file.delete()
-
-    def load_flat_file_index(self) -> Optional[str]:
-        if self.flat_file_index is None:
-            return None
-
-        return self.flat_file_index.getfile().read().decode()
-
-    @classmethod
-    def _create_flat_file_index_object(cls, file_contents: str):
-        from sentry.models import File
-
-        file = File.objects.create(
-            name="artifact_bundle_flat_file_index",
-            type="flat_file_index",
+        metric_name = "debug_id_index" if self.dist_name == NULL_STRING else "url_index"
+        metrics.timing(
+            f"artifact_bundle_flat_file_indexing.{metric_name}.size_in_bytes",
+            value=len(encoded_data),
         )
-        file.putfile(BytesIO(file_contents.encode()))
 
-        return file
+        indexstore.set_bytes(self._indexstore_id(), encoded_data)
+        self.update(date_added=timezone.now())
+
+    def load_flat_file_index(self) -> Optional[bytes]:
+        return indexstore.get_bytes(self._indexstore_id())
 
 
 @region_silo_only_model
@@ -183,17 +188,17 @@ class FlatFileIndexState(Model):
         db_table = "sentry_flatfileindexstate"
 
     @staticmethod
-    def compare_state_and_set(
+    def mark_as_indexed(
         flat_file_index_id: int,
         artifact_bundle_id: int,
-        indexing_state: ArtifactBundleIndexingState,
-        new_indexing_state: ArtifactBundleIndexingState,
     ) -> bool:
         updated_rows = FlatFileIndexState.objects.filter(
             flat_file_index_id=flat_file_index_id,
             artifact_bundle_id=artifact_bundle_id,
-            indexing_state=indexing_state.value,
-        ).update(indexing_state=new_indexing_state.value, date_added=timezone.now())
+            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+        ).update(
+            indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value, date_added=timezone.now()
+        )
 
         # If we had one row being updated, it means that the cas operation succeeded.
         return updated_rows == 1
@@ -328,6 +333,9 @@ class ArtifactBundleArchive:
     def _build_memory_maps(self):
         files = self.manifest.get("files", {})
         for file_path, info in files.items():
+            url = info.get("url")
+            if not url:
+                continue
             # Building the map for debug_id lookup.
             headers = self.normalize_headers(info.get("headers", {}))
             if (debug_id := headers.get("debug-id")) is not None:
@@ -341,18 +349,18 @@ class ArtifactBundleArchive:
                 ):
                     self._entries_by_debug_id[(debug_id, source_file_type)] = (
                         file_path,
-                        info.get("url"),
+                        url,
                         info,
                     )
 
             # Building the map for url lookup.
-            self._entries_by_url[info.get("url")] = (file_path, info)
+            self._entries_by_url[url] = (file_path, info)
 
-    def get_all_urls(self):
-        return self._entries_by_url.keys()
+    def get_all_urls(self) -> List[str]:
+        return [url for url in self._entries_by_url.keys()]
 
-    def get_all_debug_ids(self):
-        return self._entries_by_debug_id.keys()
+    def get_all_debug_ids(self) -> List[str]:
+        return list({debug_id for debug_id, _ty in self._entries_by_debug_id.keys()})
 
     def has_debug_ids(self):
         return len(self._entries_by_debug_id) > 0

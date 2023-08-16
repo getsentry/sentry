@@ -9,6 +9,10 @@ from typing import Any, Mapping, MutableMapping, Optional, Tuple
 
 import sentry_sdk
 
+# The maximum length of a column that is indexed in postgres. It is important to keep this in
+# sync between the consumers and the models defined in src/sentry/sentry_metrics/models.py
+MAX_INDEXED_COLUMN_LENGTH = 200
+
 
 class UseCaseKey(Enum):
     RELEASE_HEALTH = "release-health"
@@ -42,7 +46,7 @@ class MetricsIngestConfiguration:
     cardinality_limiter_cluster_options: Mapping[str, Any]
     cardinality_limiter_namespace: str
 
-    index_tag_values_option_name: Optional[str] = None
+    should_index_tag_values: bool
     is_output_sliced: Optional[bool] = False
 
 
@@ -73,6 +77,7 @@ def get_ingest_config(
                 writes_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
                 cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS,
                 cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
+                should_index_tag_values=True,
             )
         )
 
@@ -88,8 +93,8 @@ def get_ingest_config(
                 writes_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
                 cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
                 cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
-                index_tag_values_option_name="sentry-metrics.performance.index-tag-values",
                 is_output_sliced=settings.SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER,
+                should_index_tag_values=False,
             )
         )
 
@@ -106,6 +111,7 @@ def get_ingest_config(
                 writes_limiter_namespace="test-namespace",
                 cardinality_limiter_cluster_options={},
                 cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
+                should_index_tag_values=True,
             )
         )
 

@@ -3,15 +3,15 @@ from __future__ import annotations
 import functools
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Iterable, List, Mapping, Optional, Tuple, Type
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
+from django.http.request import HttpRequest
 from django.views.decorators.csrf import csrf_exempt
-from pytz import utc
 from rest_framework import status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.exceptions import ParseError
@@ -114,7 +114,8 @@ def allow_cors_options(func):
         response["Access-Control-Expose-Headers"] = "X-Sentry-Error, Retry-After"
 
         if request.META.get("HTTP_ORIGIN") == "null":
-            origin = "null"  # if ORIGIN header is explicitly specified as 'null' leave it alone
+            # if ORIGIN header is explicitly specified as 'null' leave it alone
+            origin: str | None = "null"
         else:
             origin = origin_from_request(request)
 
@@ -183,7 +184,6 @@ class Endpoint(APIView):
         return f'<{uri}>; rel="{rel}">'
 
     def build_cursor_link(self, request: Request, name: str, cursor: Cursor):
-        querystring = None
         if request.GET.get("cursor") is None:
             querystring = request.GET.urlencode()
         else:
@@ -198,10 +198,10 @@ class Endpoint(APIView):
         )
         base_url = absolute_uri(urlquote(request.path), url_prefix=url_prefix)
 
-        if querystring is not None:
+        if querystring:
             base_url = f"{base_url}?{querystring}"
         else:
-            base_url = base_url + "?"
+            base_url = f"{base_url}?"
 
         return CURSOR_LINK_HEADER.format(
             uri=base_url,
@@ -213,7 +213,7 @@ class Endpoint(APIView):
     def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
 
-    def handle_exception(
+    def handle_exception(  # type: ignore[override]
         self,
         request: Request,
         exc: Exception,
@@ -280,7 +280,7 @@ class Endpoint(APIView):
         except json.JSONDecodeError:
             return
 
-    def initialize_request(self, request: Request, *args, **kwargs):
+    def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
         # XXX: Since DRF 3.x, when the request is passed into
         # `initialize_request` it's set as an internal variable on the returned
         # request. Then when we call `rv.auth` it attempts to authenticate,
@@ -527,24 +527,24 @@ class StatsMixin:
             resolution = request.GET.get("resolution")
             if resolution:
                 resolution = self._parse_resolution(resolution)
-                if restrict_rollups and resolution not in tsdb.get_rollups():
+                if restrict_rollups and resolution not in tsdb.backend.get_rollups():
                     raise ValueError
         except ValueError:
             raise ParseError(detail="Invalid resolution")
 
         try:
-            end = request.GET.get("until")
-            if end:
-                end = to_datetime(float(end))
+            end_s = request.GET.get("until")
+            if end_s:
+                end = to_datetime(float(end_s))
             else:
-                end = datetime.utcnow().replace(tzinfo=utc)
+                end = datetime.utcnow().replace(tzinfo=timezone.utc)
         except ValueError:
             raise ParseError(detail="until must be a numeric timestamp.")
 
         try:
-            start = request.GET.get("since")
-            if start:
-                start = to_datetime(float(start))
+            start_s = request.GET.get("since")
+            if start_s:
+                start = to_datetime(float(start_s))
                 assert start <= end
             else:
                 start = end - timedelta(days=1, seconds=-1)
@@ -554,7 +554,7 @@ class StatsMixin:
             raise ParseError(detail="start must be before or equal to end")
 
         if not resolution:
-            resolution = tsdb.get_optimal_rollup(start, end)
+            resolution = tsdb.backend.get_optimal_rollup(start, end)
 
         return {
             "start": start,
@@ -587,7 +587,7 @@ class ReleaseAnalyticsMixin:
         )
 
 
-def resolve_region(request: Request) -> Optional[str]:
+def resolve_region(request: HttpRequest) -> Optional[str]:
     subdomain = getattr(request, "subdomain", None)
     if subdomain is None:
         return None
@@ -609,26 +609,6 @@ class EndpointSiloLimit(SiloLimit):
         )
         new_class.__module__ = decorated_class.__module__
         return new_class
-
-    def create_override(
-        self,
-        original_method: Callable[..., Any],
-    ) -> Callable[..., Any]:
-        limiting_override = super().create_override(original_method)
-
-        def single_process_silo_mode_wrapper(*args: Any, **kwargs: Any) -> Any:
-            if SiloMode.single_process_silo_mode():
-                entering_mode: SiloMode = SiloMode.MONOLITH
-                for mode in self.modes:
-                    # Select a mode, if available, from the target modes.
-                    entering_mode = mode
-                with SiloMode.enter_single_process_silo_context(entering_mode):
-                    return limiting_override(*args, **kwargs)
-            else:
-                return limiting_override(*args, **kwargs)
-
-        functools.update_wrapper(single_process_silo_mode_wrapper, limiting_override)
-        return single_process_silo_mode_wrapper
 
     def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
         return self.create_override(decorated_method)
@@ -666,7 +646,18 @@ class EndpointSiloLimit(SiloLimit):
 
 
 control_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL)
+"""
+Apply to endpoints that exist in CONTROL silo.
+If a request is received and the application is not in CONTROL
+mode 404s will be returned.
+"""
+
 region_silo_endpoint = EndpointSiloLimit(SiloMode.REGION)
+"""
+Apply to endpoints that exist in REGION silo.
+If a request is received and the application is not in REGION
+mode 404s will be returned.
+"""
 
 # Use this decorator to mark endpoints that still need to be marked as either
 # control_silo_endpoint or region_silo_endpoint. Marking a class with
@@ -675,5 +666,10 @@ region_silo_endpoint = EndpointSiloLimit(SiloMode.REGION)
 # Eventually we should replace all instances of this decorator and delete it.
 pending_silo_endpoint = EndpointSiloLimit()
 
-# This should be rarely used, but this should be used for any endpoints that exist in any silo mode.
+
 all_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)
+"""
+Apply to endpoints that are available in all silo modes.
+
+This should be rarely used, but is relevant for resources like ROBOTS.txt.
+"""

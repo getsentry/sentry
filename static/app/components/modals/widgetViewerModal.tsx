@@ -42,6 +42,10 @@ import {
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
+import {
+  createOnDemandFilterWarning,
+  hasOnDemandMetricWidgetFeature,
+} from 'sentry/utils/onDemandMetrics';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -115,7 +119,6 @@ interface Props extends ModalRenderProps, WidgetViewerModalOptions {
 
 const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
-const GEO_COUNTRY_CODE = 'geo.country_code';
 const HALF_CONTAINER_HEIGHT = 300;
 const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
@@ -323,14 +326,6 @@ function WidgetViewerModal(props: Props) {
     }]`;
   }
 
-  // World Map view should always have geo.country in the table chart
-  if (
-    widget.displayType === DisplayType.WORLD_MAP &&
-    !columns.includes(GEO_COUNTRY_CODE)
-  ) {
-    fields.unshift(GEO_COUNTRY_CODE);
-    columns.unshift(GEO_COUNTRY_CODE);
-  }
   // Default table columns for visualizations that don't have a column setting
   const shouldReplaceTableColumns =
     [
@@ -385,8 +380,7 @@ function WidgetViewerModal(props: Props) {
   const eventView = eventViewFromWidget(
     tableWidget.title,
     tableWidget.queries[0],
-    modalTableSelection,
-    tableWidget.displayType
+    modalTableSelection
   );
 
   let columnOrder = decodeColumnOrder(
@@ -400,6 +394,12 @@ function WidgetViewerModal(props: Props) {
     width: parseInt(widths[index], 10) || -1,
   }));
 
+  const getOnDemandFilterWarning = createOnDemandFilterWarning(
+    t(
+      'We don’t routinely collect metrics from this property. As such, historical data may be limited.'
+    )
+  );
+
   const queryOptions = sortedQueries.map(({name, conditions}, index) => {
     // Creates the highlighted query elements to be used in the Query Select
     const dashboardFiltersString = dashboardFiltersToString(dashboardFilters);
@@ -407,7 +407,12 @@ function WidgetViewerModal(props: Props) {
       !name && !!conditions
         ? parseSearch(
             conditions +
-              (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`)
+              (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`),
+            {
+              getFilterTokenWarning: hasOnDemandMetricWidgetFeature(organization)
+                ? getOnDemandFilterWarning
+                : undefined,
+            }
           )
         : null;
     const getHighlightedQuery = (

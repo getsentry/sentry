@@ -271,6 +271,12 @@ const GuideContainer = styled('div')`
   background-color: ${p => p.theme.purple300};
   border-color: ${p => p.theme.purple300};
   color: ${p => p.theme.white};
+
+  a {
+    :hover {
+      color: ${p => p.theme.white};
+    }
+  }
 `;
 
 const GuideContent = styled('div')`

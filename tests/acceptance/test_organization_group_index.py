@@ -1,20 +1,19 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
-import pytz
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from fixtures.page_objects.issue_list import IssueListPage
 from sentry.models import AssistantActivity, GroupInboxReason, GroupStatus
 from sentry.models.groupinbox import add_group_to_inbox
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import no_silo_test
 
-event_time = before_now(days=3).replace(tzinfo=pytz.utc)
+event_time = before_now(days=3).replace(tzinfo=timezone.utc)
 
 
-@region_silo_test
+@no_silo_test(stable=True)
 class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -36,7 +35,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": iso_format(event_time),
+                "timestamp": iso_format(event_time - timedelta(hours=1)),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -60,14 +59,14 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.snapshot("organization issues onboarding")
 
     def test_with_no_results(self):
-        self.project.update(first_event=timezone.now())
+        self.project.update(first_event=django_timezone.now())
         self.page.visit_issue_list(self.org.slug, query="?query=assigned%3Ame")
         self.browser.wait_until_test_id("empty-state")
         self.browser.snapshot("organization issues no results")
 
     @patch("django.utils.timezone.now")
     def test_with_results(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
         self.create_issues()
         self.page.visit_issue_list(self.org.slug)
         self.page.wait_for_stream()
@@ -80,7 +79,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_resolve_issues_removal(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
         self.create_issues()
         group1 = self.event_a.group
 
@@ -99,7 +98,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_resolve_issues_removal_multi_projects(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
         self.create_issues()
 
         with self.feature(["organizations:global-views"]):
@@ -120,7 +119,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_ignore_issues(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
         self.create_issues()
 
         group1 = self.event_a.group
@@ -140,7 +139,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_ignore_issues_multi_projects(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
         self.create_issues()
 
         group1 = self.event_a.group
@@ -161,7 +160,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_delete_issues(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
         self.create_issues()
 
         group1 = self.event_a.group
@@ -181,7 +180,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_delete_issues_multi_projects(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
         self.create_issues()
 
         group1 = self.event_a.group
@@ -202,7 +201,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_merge_issues(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
         self.create_issues()
 
         group1 = self.event_a.group
@@ -225,10 +224,12 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_inbox_results(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
         self.create_issues()
         # Disable for_review_guide
-        AssistantActivity.objects.create(user=self.user, guide_id=9, viewed_ts=timezone.now())
+        AssistantActivity.objects.create(
+            user=self.user, guide_id=9, viewed_ts=django_timezone.now()
+        )
 
         self.page.visit_issue_list(
             self.org.slug,

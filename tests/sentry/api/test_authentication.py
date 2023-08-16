@@ -6,7 +6,7 @@ from django.http import HttpRequest
 from django.test import RequestFactory, override_settings
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
-from sentry_relay import generate_key_pair
+from sentry_relay.auth import generate_key_pair
 
 from sentry.api.authentication import (
     ClientIdSecretAuthentication,
@@ -20,9 +20,9 @@ from sentry.models import ProjectKeyStatus, Relay
 from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.services.hybrid_cloud.rpc import RpcServiceSetupException, generate_request_signature
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import control_silo_test
-from sentry.utils.pytest.fixtures import django_db_all
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 

@@ -1,11 +1,14 @@
+import styled from '@emotion/styled';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useOrganization from 'sentry/utils/useOrganization';
-import ReplaysFilters from 'sentry/views/replays/list/filters';
+import {ReplaysFilters, ReplaysSearch} from 'sentry/views/replays/list/filters';
 import ReplaysErroneousDeadRageCards from 'sentry/views/replays/list/replaysErroneousDeadRageCards';
 import ReplaysList from 'sentry/views/replays/list/replaysList';
 
@@ -31,9 +34,12 @@ function ReplaysListContainer() {
       <PageFiltersContainer>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <ReplaysFilters />
-            <ReplaysErroneousDeadRageCards />
-            <ReplaysList />
+            <LayoutGap>
+              <ReplaysFilters />
+              <ReplaysErroneousDeadRageCards />
+              <ReplaysSearch />
+              <ReplaysList />
+            </LayoutGap>
           </Layout.Main>
         </Layout.Body>
       </PageFiltersContainer>
@@ -41,4 +47,8 @@ function ReplaysListContainer() {
   );
 }
 
+const LayoutGap = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+`;
 export default ReplaysListContainer;

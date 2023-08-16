@@ -572,6 +572,7 @@ function WidgetBuilder({
       return {...newState, errors: undefined};
     });
   }
+
   function getHandleColumnFieldChange(isMetricsData?: boolean) {
     function handleColumnFieldChange(newFields: QueryFieldValue[]) {
       const fieldStrings = newFields.map(generateFieldAsString);
@@ -916,11 +917,9 @@ function WidgetBuilder({
     [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(state.displayType) &&
     state.queries.length < 3;
 
-  const hideLegendAlias = [
-    DisplayType.TABLE,
-    DisplayType.WORLD_MAP,
-    DisplayType.BIG_NUMBER,
-  ].includes(state.displayType);
+  const hideLegendAlias = [DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(
+    state.displayType
+  );
 
   // Tabular visualizations will always have only one query and that query cannot be deleted,
   // so we will always have the first query available to get data from.

@@ -16,7 +16,9 @@ interface Props {
   end: Date;
   timeWindow: TimeWindow;
   width: number;
+  className?: string;
   showCursor?: boolean;
+  stickyCursor?: boolean;
 }
 
 function clampTimeBasedOnResolution(date: moment.Moment, resolution: string) {
@@ -54,9 +56,9 @@ function getTimeMarkers(end: Date, timeWindow: TimeWindow, width: number): TimeM
   return times;
 }
 
-export function GridLineTimeLabels({end, timeWindow, width}: Props) {
+export function GridLineTimeLabels({end, timeWindow, width, className}: Props) {
   return (
-    <LabelsContainer>
+    <LabelsContainer className={className}>
       {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
         <TimeLabelContainer key={date.getTime()} left={position}>
           <TimeLabel date={date} {...timeWindowConfig[timeWindow].dateTimeProps} />
@@ -66,7 +68,14 @@ export function GridLineTimeLabels({end, timeWindow, width}: Props) {
   );
 }
 
-export function GridLineOverlay({end, timeWindow, width, showCursor}: Props) {
+export function GridLineOverlay({
+  end,
+  timeWindow,
+  width,
+  showCursor,
+  stickyCursor,
+  className,
+}: Props) {
   const {cursorLabelFormat} = timeWindowConfig[timeWindow];
 
   const makeCursorText = useCallback(
@@ -81,11 +90,12 @@ export function GridLineOverlay({end, timeWindow, width, showCursor}: Props) {
 
   const {cursorContainerRef, timelineCursor} = useTimelineCursor<HTMLDivElement>({
     enabled: showCursor,
+    sticky: stickyCursor,
     labelText: makeCursorText,
   });
 
   return (
-    <Overlay ref={cursorContainerRef}>
+    <Overlay ref={cursorContainerRef} className={className}>
       {timelineCursor}
       <GridLineContainer>
         {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
@@ -108,6 +118,7 @@ const Overlay = styled('div')`
 const GridLineContainer = styled('div')`
   position: relative;
   height: 100%;
+  z-index: 1;
 `;
 
 const LabelsContainer = styled('div')`
@@ -119,7 +130,7 @@ const LabelsContainer = styled('div')`
 const Gridline = styled('div')<{left: number}>`
   position: absolute;
   left: ${p => p.left}px;
-  border-left: 1px solid ${p => p.theme.innerBorder};
+  border-left: 1px solid ${p => p.theme.translucentInnerBorder};
   height: 100%;
 `;
 
@@ -127,6 +138,7 @@ const TimeLabelContainer = styled(Gridline)`
   display: flex;
   height: 100%;
   align-items: center;
+  border-left: none;
 `;
 
 const TimeLabel = styled(DateTime)`

@@ -11,6 +11,7 @@ from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
+from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -20,8 +21,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.monitors.tasks import TIMEOUT
-from sentry.testutils import MonitorIngestTestCase
+from sentry.testutils.cases import MonitorIngestTestCase
 from sentry.testutils.silo import region_silo_test
 
 
@@ -83,9 +83,12 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
             assert monitor_environment.status == MonitorStatus.OK
             assert monitor_environment.last_checkin == checkin.date_added
+            assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(
+                checkin.date_added
+            )
             assert (
-                monitor_environment.next_checkin
-                == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+                monitor_environment.next_checkin_latest
+                == monitor.get_next_expected_checkin_latest(checkin.date_added)
             )
 
             # Confirm next check-in is populated with config and expected time
@@ -154,9 +157,12 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
             assert monitor_environment.status == MonitorStatus.ERROR
             assert monitor_environment.last_checkin == checkin.date_added
+            assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(
+                checkin.date_added
+            )
             assert (
-                monitor_environment.next_checkin
-                == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+                monitor_environment.next_checkin_latest
+                == monitor.get_next_expected_checkin_latest(checkin.date_added)
             )
 
     def test_disabled(self):
@@ -176,9 +182,12 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             # is disabled
             assert monitor_environment.status == MonitorStatus.ERROR
             assert monitor_environment.last_checkin == checkin.date_added
+            assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(
+                checkin.date_added
+            )
             assert (
-                monitor_environment.next_checkin
-                == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+                monitor_environment.next_checkin_latest
+                == monitor.get_next_expected_checkin_latest(checkin.date_added)
             )
 
     def test_pending_deletion(self):
@@ -324,7 +333,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 },
                 **self.dsn_auth_headers,
             )
-            assert resp.status_code == 403
+            assert resp.status_code == 400
             assert "MonitorLimitsExceeded" in resp.data.keys()
 
             Monitor.objects.filter(organization_id=self.organization.id).delete()
@@ -356,7 +365,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 },
                 **self.dsn_auth_headers,
             )
-            assert resp.status_code == 403
+            assert resp.status_code == 400
             assert "MonitorEnvironmentLimitsExceeded" in resp.data.keys()
 
     def test_monitor_environment_validation(self):
@@ -375,7 +384,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 },
                 **self.dsn_auth_headers,
             )
-            assert resp.status_code == 403
+            assert resp.status_code == 400
             assert "MonitorEnvironmentValidationFailed" in resp.data.keys()
 
     def test_with_dsn_auth_and_guid(self):

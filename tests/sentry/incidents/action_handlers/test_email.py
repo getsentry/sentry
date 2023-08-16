@@ -28,7 +28,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.integrations import ExternalProviders
 
@@ -38,7 +38,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 @freeze_time()
-class EmailActionHandlerTest(FireTest, TestCase):
+class EmailActionHandlerTest(FireTest):
     @responses.activate
     def run_test(self, incident, method):
         action = self.create_alert_rule_trigger_action(

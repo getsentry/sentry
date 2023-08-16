@@ -5,6 +5,8 @@ import orderBy from 'lodash/orderBy';
 import {bulkUpdate, useFetchIssueTags} from 'sentry/actionCreators/group';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {Group, GroupActivity} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -35,6 +37,12 @@ export function fetchGroupUserReports(groupId: string, query: Record<string, str
     includeAllArgs: true,
     query,
   });
+}
+
+export function useDefaultIssueEvent() {
+  const user = useLegacyStore(ConfigStore).user;
+  const options = user ? user.options : null;
+  return options?.defaultIssueEvent ?? 'recommended';
 }
 
 /**

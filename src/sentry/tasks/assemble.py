@@ -17,7 +17,7 @@ from sentry import analytics, features, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.debug_files.artifact_bundle_indexing import (
-    BundleMeta,
+    BundleManifest,
     mark_bundle_for_flat_file_indexing,
     update_artifact_bundle_index,
 )
@@ -34,6 +34,7 @@ from sentry.models.artifactbundle import (
     ReleaseArtifactBundle,
 )
 from sentry.models.releasefile import ReleaseArchive, update_artifact_index
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
@@ -191,7 +192,11 @@ def set_assemble_status(task, scope, checksum, state, detail=None):
     default_cache.set(cache_key, (state, detail), 600)
 
 
-@instrumented_task(name="sentry.tasks.assemble.assemble_dif", queue="assemble")
+@instrumented_task(
+    name="sentry.tasks.assemble.assemble_dif",
+    queue="assemble",
+    silo_mode=SiloMode.REGION,
+)
 def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     """
     Assembles uploaded chunks into a ``ProjectDebugFile``.
@@ -359,7 +364,9 @@ class ReleaseBundlePostAssembler(PostAssembler):
         min_artifact_count = options.get("processing.release-archive-min-files")
         saved_as_archive = False
 
-        if self.archive.artifact_count >= min_artifact_count:
+        artifact_count = self.archive.artifact_count
+
+        if artifact_count >= min_artifact_count:
             try:
                 update_artifact_index(
                     release,
@@ -372,17 +379,17 @@ class ReleaseBundlePostAssembler(PostAssembler):
             except Exception as exc:
                 logger.error("Unable to update artifact index", exc_info=exc)
 
-        if not saved_as_archive:
+        if not saved_as_archive and artifact_count > 0:
             meta = {
                 "organization_id": self.organization.id,
                 "release_id": release.id,
                 "dist_id": dist.id if dist else dist,
             }
             metrics.incr("sourcemaps.upload.release_file")
-            self._store_single_files(meta, True)
+            self._store_single_files(meta)
 
     @sentry_sdk.tracing.trace
-    def _store_single_files(self, meta: dict, count_as_artifacts: bool):
+    def _store_single_files(self, meta: dict):
         try:
             temp_dir = self.archive.extract()
         except Exception:
@@ -403,7 +410,7 @@ class ReleaseBundlePostAssembler(PostAssembler):
                     file.putfile(fp, logger=logger)
 
                 kwargs = dict(meta, name=artifact_url)
-                extra_fields = {"artifact_count": 1 if count_as_artifacts else 0}
+                extra_fields = {"artifact_count": 1}
                 self._upsert_release_file(file, self._simple_update, kwargs, extra_fields)
 
     @staticmethod
@@ -586,6 +593,11 @@ class ArtifactBundlePostAssembler(PostAssembler):
 
         metrics.incr("sourcemaps.upload.artifact_bundle")
 
+        # When uploading a zero-artifact bundle, there is no need to index anything
+        # FIXME: we might even want to early-return *a lot* earlier in this case?
+        if self.archive.artifact_count == 0:
+            return
+
         # If we don't have a release set, we don't want to run indexing, since we need at least the release for
         # fast indexing performance. We might though run indexing if a customer has debug ids in the manifest, since
         # we want to have a fallback mechanism in case they have problems setting them up (e.g., SDK version does
@@ -751,15 +763,17 @@ class ArtifactBundlePostAssembler(PostAssembler):
             artifact_bundle, self.project_ids, self.release, self.dist
         )
 
-        bundle_meta = BundleMeta(
-            id=artifact_bundle.id,
-            # We give priority to the date last modified for total ordering.
-            timestamp=(artifact_bundle.date_last_modified or artifact_bundle.date_uploaded),
-        )
+        bundles_to_add = [BundleManifest.from_artifact_bundle(artifact_bundle, self.archive)]
 
         for identifier in identifiers:
             try:
-                update_artifact_bundle_index(bundle_meta, self.archive, identifier)
+                was_indexed = update_artifact_bundle_index(
+                    identifier, bundles_to_add=bundles_to_add
+                )
+                if not was_indexed:
+                    metrics.incr("artifact_bundle_flat_file_indexing.indexing.would_block")
+                    # TODO: spawn an async task to backfill the indexing
+                    pass
             except Exception as e:
                 metrics.incr("artifact_bundle_flat_file_indexing.error_when_indexing")
                 sentry_sdk.capture_exception(e)
@@ -795,7 +809,11 @@ def prepare_post_assembler(
         )
 
 
-@instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
+@instrumented_task(
+    name="sentry.tasks.assemble.assemble_artifacts",
+    queue="assemble",
+    silo_mode=SiloMode.REGION,
+)
 def assemble_artifacts(
     org_id,
     version,

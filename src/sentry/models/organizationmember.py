@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import datetime
+import secrets
 from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
 from typing import TYPE_CHECKING, FrozenSet, List, Mapping, MutableMapping, Set, TypedDict
 from urllib.parse import urlencode
-from uuid import uuid4
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -28,6 +29,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
@@ -43,6 +45,18 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.services.hybrid_cloud.integration import RpcIntegration
     from sentry.services.hybrid_cloud.user import RpcUser
+
+_OrganizationMemberFlags = TypedDict(
+    "_OrganizationMemberFlags",
+    {
+        "sso:linked": bool,
+        "sso:invalid": bool,
+        "member-limit:restricted": bool,
+        "idp:provisioned": bool,
+        "idp:role-restricted": bool,
+    },
+)
+
 
 INVITE_DAYS_VALID = 30
 
@@ -85,7 +99,7 @@ class OrganizationMemberManager(BaseManager):
             user_id__isnull=False,
         )
 
-    def delete_expired(self, threshold: int) -> None:
+    def delete_expired(self, threshold: datetime.datetime) -> None:
         """Delete un-accepted member invitations that expired `threshold` days ago."""
         from sentry.services.hybrid_cloud.auth import auth_service
 
@@ -194,19 +208,7 @@ class OrganizationMember(Model):
     email = models.EmailField(null=True, blank=True, max_length=75)
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
 
-    flags = typed_dict_bitfield(
-        TypedDict(
-            "flags",
-            {
-                "sso:linked": bool,
-                "sso:invalid": bool,
-                "member-limit:restricted": bool,
-                "idp:provisioned": bool,
-                "idp:role-restricted": bool,
-            },
-        ),
-        default=0,
-    )
+    flags = typed_dict_bitfield(_OrganizationMemberFlags, default=0)
 
     token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     date_added = models.DateTimeField(default=timezone.now)
@@ -351,7 +353,7 @@ class OrganizationMember(Model):
         return checksum.hexdigest()
 
     def generate_token(self):
-        return uuid4().hex + uuid4().hex
+        return secrets.token_hex(nbytes=32)
 
     def get_invite_link(self):
         if not self.is_pending or not self.invite_approved:
@@ -474,7 +476,12 @@ class OrganizationMember(Model):
         if self.user_id:
             if self.user_email:
                 return self.user_email
-            user = user_service.get_user(user_id=self.user_id)
+
+            # This is a fallback case when the org member outbox message from
+            #  the control-silo has not been drained/denormalized, but we need
+            #  to retrieve it, so we skip our rpc-in-transaction validations here.
+            with in_test_hide_transaction_boundary():
+                user = user_service.get_user(user_id=self.user_id)
             if user and user.email:
                 return user.email
         return self.email

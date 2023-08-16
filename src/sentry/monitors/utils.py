@@ -13,8 +13,8 @@ from sentry.models import Group, Rule, RuleActivity, RuleActivityType, RuleSourc
 from sentry.models.project import Project
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 
+from .constants import MAX_TIMEOUT, TIMEOUT
 from .models import CheckInStatus, Monitor, MonitorCheckIn
-from .tasks import MAX_TIMEOUT, TIMEOUT
 
 
 def signal_first_checkin(project: Project, monitor: Monitor):

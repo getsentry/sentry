@@ -7,15 +7,19 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
-const introduction = tct(
-  'The [code:sentry-log4j2] library provides [log4jLink:Log4j 2.x] support for Sentry via an [appenderLink:Appender] that sends logged exceptions to Sentry.',
-  {
-    log4jLink: <ExternalLink href="https://logging.apache.org/log4j/2.x//" />,
-    appenderLink: (
-      <ExternalLink href="https://logging.apache.org/log4j/2.x/manual/appenders.html" />
-    ),
-    code: <code />,
-  }
+const introduction = (
+  <p>
+    {tct(
+      'The [code:sentry-log4j2] library provides [log4jLink:Log4j 2.x] support for Sentry via an [appenderLink:Appender] that sends logged exceptions to Sentry.',
+      {
+        log4jLink: <ExternalLink href="https://logging.apache.org/log4j/2.x//" />,
+        appenderLink: (
+          <ExternalLink href="https://logging.apache.org/log4j/2.x/manual/appenders.html" />
+        ),
+        code: <code />,
+      }
+    )}
+  </p>
 );
 
 export const steps = ({
@@ -38,7 +42,7 @@ export const steps = ({
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry-log4j2</artifactId>
-  <version>6.25.2</version>
+  <version>6.27.0</version>
 </dependency>
           `,
           },
@@ -53,7 +57,7 @@ export const steps = ({
     <plugin>
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
-      <version>0.0.2</version>
+      <version>0.0.3</version>
       <configuration>
       <!-- for showing output of sentry-cli -->
       <debugSentryCli>true</debugSentryCli>
@@ -95,7 +99,7 @@ export const steps = ({
         configurations: [
           {
             language: 'groovy',
-            code: "implementation 'io.sentry:sentry-log4j2:6.25.2'",
+            code: "implementation 'io.sentry:sentry-log4j2:6.27.0'",
           },
           {
             description: t(

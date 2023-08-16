@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from unittest.mock import patch
 
@@ -12,6 +13,7 @@ from sentry.issues.grouptype import (
     MonitorCheckInMissed,
     MonitorCheckInTimeout,
 )
+from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -24,9 +26,8 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.monitors.tasks import SUBTITLE_DATETIME_FORMAT
 from sentry.monitors.validators import ConfigValidator
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
@@ -39,12 +40,12 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
 
         monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
         )
 
@@ -56,12 +57,12 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
 
         monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
         )
 
@@ -77,14 +78,14 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
             2019, 1, 1, 12, 00, tzinfo=timezone.utc
         )
 
         # Europe/Berlin == UTC+01:00.
         # the run should be represented 1 hours earlier in UTC time
         monitor.config["timezone"] = "Europe/Berlin"
-        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
             2019, 1, 1, 11, 00, tzinfo=timezone.utc
         )
 
@@ -96,7 +97,7 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute.
-        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
             2019, 2, 1, 1, 10, 0, tzinfo=timezone.utc
         )
 
@@ -325,7 +326,10 @@ class MonitorEnvironmentTestCase(TestCase):
         )
 
         last_checkin = timezone.now()
-        assert monitor_environment.mark_failed(last_checkin=last_checkin)
+        trace_id = uuid.uuid4().hex
+        assert monitor_environment.mark_failed(
+            last_checkin=last_checkin, occurrence_context={"trace_id": trace_id}
+        )
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
 
@@ -383,6 +387,7 @@ class MonitorEnvironmentTestCase(TestCase):
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": monitor.slug,
                 },
+                "trace_id": trace_id,
             },
         ) == dict(event)
 
@@ -394,7 +399,11 @@ class MonitorEnvironmentTestCase(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "max_runtime": 10,
+            },
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -411,7 +420,7 @@ class MonitorEnvironmentTestCase(TestCase):
         assert monitor_environment.mark_failed(
             last_checkin=last_checkin,
             reason=MonitorFailure.DURATION,
-            occurrence_context={"duration": 30},
+            occurrence_context={"duration": monitor.config.get("max_runtime")},
         )
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
@@ -425,7 +434,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 "project_id": self.project.id,
                 "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "duration"])],
                 "issue_title": f"Monitor failure: {monitor.name}",
-                "subtitle": "Check-in exceeded maximum duration of 30 minutes.",
+                "subtitle": "Check-in exceeded maximum duration of 10 minutes.",
                 "resource_id": None,
                 "evidence_data": {},
                 "evidence_display": [
@@ -454,7 +463,7 @@ class MonitorEnvironmentTestCase(TestCase):
                     "monitor": {
                         "status": "active",
                         "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
+                        "config": {"schedule_type": 2, "schedule": [1, "month"], "max_runtime": 10},
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
@@ -470,6 +479,7 @@ class MonitorEnvironmentTestCase(TestCase):
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": monitor.slug,
                 },
+                "trace_id": None,
             },
         ) == dict(event)
 
@@ -489,7 +499,7 @@ class MonitorEnvironmentTestCase(TestCase):
             status=monitor.status,
         )
         last_checkin = timezone.now()
-        expected_time = monitor.get_next_scheduled_checkin(last_checkin)
+        expected_time = monitor.get_next_expected_checkin(last_checkin)
 
         assert monitor_environment.mark_failed(
             last_checkin=last_checkin,
@@ -557,6 +567,7 @@ class MonitorEnvironmentTestCase(TestCase):
                     "monitor.id": str(monitor.guid),
                     "monitor.slug": monitor.slug,
                 },
+                "trace_id": None,
             },
         ) == dict(event)
 

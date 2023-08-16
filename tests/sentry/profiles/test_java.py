@@ -36,6 +36,7 @@ def mapper():
         # invalid signatures
         ("", ""),
         ("()", ""),
+        ("(L)", ""),
         # valid signatures
         ("()V", "()"),
         ("([I)V", "(int[])"),
@@ -44,7 +45,11 @@ def mapper():
         ("([[J)V", "(long[][])"),
         ("(I)I", "(int): int"),
         ("([B)V", "(byte[])"),
+        (
+            "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;",
+            "(java.lang.String, java.lang.String): java.lang.String",
+        ),
     ],
 )
 def test_deobfuscate_signature(mapper, obfuscated, expected):
-    assert deobfuscate_signature(mapper, obfuscated) == expected
+    assert deobfuscate_signature(obfuscated, mapper) == expected

@@ -5,11 +5,8 @@ import hashlib
 import itertools
 import logging
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
-
-import pytz
-from django.utils import timezone
 
 from sentry import eventstream, tagstore, tsdb
 from sentry.eventstore.models import Event
@@ -24,7 +21,7 @@ from sentry.tasks.unmerge import (
     get_group_creation_attributes,
     unmerge,
 )
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.tsdb.base import TSDBModel
@@ -169,7 +166,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
     @with_feature("projects:similarity-indexing")
     def test_unmerge(self):
-        now = before_now(minutes=5).replace(microsecond=0, tzinfo=pytz.utc)
+        now = before_now(minutes=5).replace(microsecond=0, tzinfo=timezone.utc)
 
         def time_from_now(offset=0):
             return now + timedelta(seconds=offset)
