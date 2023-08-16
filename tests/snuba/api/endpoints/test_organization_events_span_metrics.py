@@ -150,47 +150,57 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["percentile(span.self_time, 0.95)"] == 1
         assert meta["dataset"] == "spansMetrics"
 
-    def test_p50(self):
+    def test_fixed_percentile_functions(self):
         self.store_span_metric(
             1,
             internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.min_ago,
         )
-        response = self.do_request(
-            {
-                "field": ["p50()"],
-                "query": "",
-                "project": self.project.id,
-                "dataset": "spansMetrics",
-            }
-        )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        meta = response.data["meta"]
-        assert len(data) == 1
-        assert data[0]["p50()"] == 1
-        assert meta["dataset"] == "spansMetrics"
+        for function in ["p50()", "p75()", "p95()", "p99()", "p100()"]:
+            response = self.do_request(
+                {
+                    "field": [function],
+                    "query": "",
+                    "project": self.project.id,
+                    "dataset": "spansMetrics",
+                }
+            )
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            meta = response.data["meta"]
+            assert len(data) == 1
+            assert data[0][function] == 1, function
+            assert meta["dataset"] == "spansMetrics", function
+            assert meta["fields"][function] == "duration", function
 
-    def test_p50_with_duration(self):
+    def test_fixed_percentile_functions_with_duration(self):
         self.store_span_metric(
             1,
             internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
             timestamp=self.min_ago,
         )
-        response = self.do_request(
-            {
-                "field": ["p50(span.duration)"],
-                "query": "",
-                "project": self.project.id,
-                "dataset": "spansMetrics",
-            }
-        )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        meta = response.data["meta"]
-        assert len(data) == 1
-        assert data[0]["p50(span.duration)"] == 1
-        assert meta["dataset"] == "spansMetrics"
+        for function in [
+            "p50(span.duration)",
+            "p75(span.duration)",
+            "p95(span.duration)",
+            "p99(span.duration)",
+            "p100(span.duration)",
+        ]:
+            response = self.do_request(
+                {
+                    "field": [function],
+                    "query": "",
+                    "project": self.project.id,
+                    "dataset": "spansMetrics",
+                }
+            )
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            meta = response.data["meta"]
+            assert len(data) == 1, function
+            assert data[0][function] == 1, function
+            assert meta["dataset"] == "spansMetrics", function
+            assert meta["fields"][function] == "duration", function
 
     def test_avg(self):
         self.store_span_metric(
