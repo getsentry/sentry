@@ -276,3 +276,16 @@ class TestGenerateDeterministicOrganizationSlug(TestCase):
         )
 
         assert slug == "si-sentry-3471b1b85"
+
+    def test_slug_with_0_length(self):
+        unicoded_str = "😅"
+
+        with pytest.raises(AssertionError):
+            generate_deterministic_organization_slug(
+                desired_slug_base=unicoded_str, desired_org_name=unicoded_str, owning_user_id=42
+            )
+
+        with pytest.raises(AssertionError):
+            generate_deterministic_organization_slug(
+                desired_slug_base="", desired_org_name=unicoded_str, owning_user_id=42
+            )

@@ -127,6 +127,8 @@ def generate_deterministic_organization_slug(
     # Start by slugifying the original name using django utils
     slugified_base_str = slugify(desired_slug_base)
 
+    assert len(slugified_base_str) > 0, "Slugs must be valid strings that can be ASCII encoded"
+
     hashed_org_data = hashlib.md5(
         "/".join([slugified_base_str, desired_org_name, str(owning_user_id)]).encode("utf8")
     ).hexdigest()
