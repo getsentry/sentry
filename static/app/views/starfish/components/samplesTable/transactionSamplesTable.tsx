@@ -20,7 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
 import useErrorSamples from 'sentry/views/starfish/components/samplesTable/useErrorSamples';
 import useSlowMedianFastSamplesQuery from 'sentry/views/starfish/components/samplesTable/useSlowMedianFastSamplesQuery';
-import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
+import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {
   OverflowEllipsisTextContainer,
   TextAlignLeft,
