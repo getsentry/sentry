@@ -181,6 +181,7 @@ class GitlabIntegration(
         if not commitInfo:
             return None
         else:
+            # TODO(nisanthan): Use dateutil.parser.isoparse once on python 3.11
             committed_date = datetime.strptime(
                 commitInfo.get("committed_date"), date_format_expected
             ).astimezone(timezone.utc)
