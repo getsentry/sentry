@@ -170,7 +170,8 @@ export function FilterResultsStep({
                   onSearch={handleSearch(queryIndex)}
                   widgetQuery={query}
                 />
-                {isOnDemandQueryString(query.conditions) && <OnDemandWarningIcon />}
+                {hasOnDemandMetricWidgetFeature(organization) &&
+                  isOnDemandQueryString(query.conditions) && <OnDemandWarningIcon />}
                 {!hideLegendAlias && (
                   <LegendAliasInput
                     type="text"
