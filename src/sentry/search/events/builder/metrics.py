@@ -220,7 +220,10 @@ class MetricsQueryBuilder(QueryBuilder):
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_granularity"):
             # Needs to happen before params and after time conditions since granularity can change start&end
             self.granularity = self.resolve_granularity()
-            self.start = adjust_datetime_to_granularity(self.start, self.granularity.granularity)
+            if self.start is not None:
+                self.start = adjust_datetime_to_granularity(
+                    self.start, self.granularity.granularity
+                )
 
         # Resolutions that we will perform only in case the query is not on demand. The reasoning for this is that
         # for building an on demand query we only require a time interval and granularity. All the other fields are
