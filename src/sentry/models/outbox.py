@@ -399,7 +399,7 @@ class ControlOutboxBase(OutboxBase):
         return OutboxWebhookPayload(
             method=request.method,
             path=request.get_full_path(),
-            uri=request.get_raw_uri(),
+            uri=request.build_absolute_uri(),
             headers={k: v for k, v in request.headers.items()},
             body=request.body.decode(encoding="utf-8"),
         )
