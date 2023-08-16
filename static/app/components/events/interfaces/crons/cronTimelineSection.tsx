@@ -43,8 +43,8 @@ export function CronTimelineSection({event, organization}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
-  const {elapsedMinutes} = getConfigFromTimeRange(start, end, timelineWidth);
-  const rollup = Math.floor((elapsedMinutes * 60) / timelineWidth);
+  const timeWindowConfig = getConfigFromTimeRange(start, end, timelineWidth);
+  const rollup = Math.floor((timeWindowConfig.elapsedMinutes * 60) / timelineWidth);
 
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
@@ -69,7 +69,7 @@ export function CronTimelineSection({event, organization}: Props) {
     return null;
   }
 
-  const msPerPixel = (elapsedMinutes * 60 * 1000) / timelineWidth;
+  const msPerPixel = (timeWindowConfig.elapsedMinutes * 60 * 1000) / timelineWidth;
   const eventTickLeft =
     (new Date(event.dateReceived).valueOf() - start.valueOf()) / msPerPixel;
 
