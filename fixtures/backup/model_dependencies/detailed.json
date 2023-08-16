@@ -707,6 +707,10 @@
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Organization"
+      },
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Team"
       }
     },
     "model": "sentry.ExternalActor",

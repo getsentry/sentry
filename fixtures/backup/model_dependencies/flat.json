@@ -158,7 +158,8 @@
   ],
   "sentry.ExternalActor": [
     "sentry.Actor",
-    "sentry.Organization"
+    "sentry.Organization",
+    "sentry.Team"
   ],
   "sentry.ExternalIssue": [
     "sentry.Organization"
