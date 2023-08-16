@@ -41,7 +41,7 @@ class NotificationSettingsProviderSerializer(NotificationSettingsBaseSerializer)
         obj: NotificationSettingProvider,
         *args: Any,
         **kwargs: Any,
-    ) -> Mapping[str, str]:
+    ) -> Mapping[str, Optional[str]]:
         output = super().serialize(obj, **kwargs)
         output["provider"] = obj.provider
         return output
