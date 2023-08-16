@@ -181,11 +181,10 @@ class GitlabIntegration(
         if not commitInfo:
             return None
         else:
-            committed_date = "{}Z".format(
-                datetime.strptime(commitInfo.get("committed_date"), date_format_expected)
-                .astimezone(timezone.utc)
-                .strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
-            )
+            committed_date = datetime.strptime(
+                commitInfo.get("committed_date"), date_format_expected
+            ).astimezone(timezone.utc)
+
             return {
                 "commitId": commitInfo.get("id"),
                 "committedDate": committed_date,

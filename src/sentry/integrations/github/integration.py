@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Collection, Dict, Mapping, Sequence
 
 from django.http import HttpResponse
@@ -242,6 +242,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         except ApiError as e:
             raise e
 
+        date_format_expected = "%Y-%m-%dT%H:%M:%SZ"
         try:
             commit: Mapping[str, Any] = max(
                 (
@@ -250,7 +251,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
                     if blame.get("startingLine", 0) <= lineno <= blame.get("endingLine", 0)
                 ),
                 key=lambda blame: datetime.strptime(
-                    blame.get("commit", {}).get("committedDate"), "%Y-%m-%dT%H:%M:%SZ"
+                    blame.get("commit", {}).get("committedDate"), date_format_expected
                 ),
                 default={},
             )
@@ -263,9 +264,13 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         if not commitInfo:
             return None
         else:
+            committed_date = datetime.strptime(
+                commitInfo.get("committed_date"), date_format_expected
+            ).astimezone(timezone.utc)
+
             return {
                 "commitId": commitInfo.get("oid"),
-                "committedDate": commitInfo.get("committedDate"),
+                "committedDate": committed_date,
                 "commitMessage": commitInfo.get("message"),
                 "commitAuthorName": commitInfo.get("author", {}).get("name"),
                 "commitAuthorEmail": commitInfo.get("author", {}).get("email"),
