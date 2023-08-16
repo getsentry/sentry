@@ -61,8 +61,8 @@ class IntegrationControlMiddlewareTest(TestCase):
             pass
 
         new_classification = NewClassification
-        new_classification.should_operate = MagicMock(return_value=True)
-        new_classification.get_response = MagicMock()
+        new_classification.should_operate = MagicMock(return_value=True)  # type:ignore
+        new_classification.get_response = MagicMock()  # type:ignore
         self.middleware.register_classifications(classifications=[new_classification])
         self.middleware(self.factory.post("/"))
         assert mock_integration_operate.called
