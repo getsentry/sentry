@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
+import CommitLink from 'sentry/components/commitLink';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -30,23 +31,27 @@ function LastCommit({commit, className}: Props) {
       return t('No message provided');
     }
 
-    const firstLine = message.split(/\n/)[0];
-    if (firstLine.length > 100) {
-      let truncated = firstLine.substring(0, 90);
+    let finalMessage = message.split(/\n/)[0];
+    if (finalMessage.length > 100) {
+      let truncated = finalMessage.substring(0, 90);
       const words = truncated.split(/ /);
       // try to not have ellipsis mid-word
       if (words.length > 1) {
         words.pop();
         truncated = words.join(' ');
       }
-      return `${truncated}\u2026`;
+      finalMessage = `${truncated}\u2026`;
     }
 
-    if (commit.repository !== undefined) {
-      const commitURL = commit.repository.url + '/commit/' + commit.id;
-      return <a href={commitURL}>{firstLine}</a>;
-    }
-    return firstLine;
+    return (
+      <CommitLink
+        inline
+        commitId={commit.id}
+        repository={commit.repository}
+        commitTitle={finalMessage}
+        useCommitTitle
+      />
+    );
   }
 
   const commitAuthor = commit?.author;
