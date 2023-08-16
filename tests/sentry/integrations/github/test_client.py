@@ -635,7 +635,7 @@ class GithubProxyClientTest(TestCase):
         )
         assert (
             self.organization.absolute_url(
-                f"/settings/{self.organization.slug}/integrations/{self.integration.provider}/?referrer=disabled-integration/"
+                f"/settings/{self.organization.slug}/integrations/{self.integration.provider}/?referrer=disabled-integration"
             )
             in msg.body
         )
