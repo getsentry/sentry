@@ -247,7 +247,6 @@ def create_incident_activity(
     kwargs = {}
     if date_added:
         kwargs["date_added"] = date_added
-    # Only some kinds of activity generate a notification
     activity = IncidentActivity.objects.create(
         incident=incident,
         type=activity_type.value,

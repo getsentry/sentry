@@ -1,3 +1,4 @@
+import uuid
 from datetime import timedelta, timezone
 from functools import cached_property
 from unittest import mock
@@ -216,6 +217,7 @@ class HandleTriggerActionTest(TestCase):
             )
             incident = self.create_incident()
             metric_value = 1234
+            notification_uuid = str(uuid.uuid4())
             with self.tasks():
                 handle_trigger_action.delay(
                     self.action.id,
@@ -224,10 +226,11 @@ class HandleTriggerActionTest(TestCase):
                     "fire",
                     IncidentStatus.CRITICAL.value,
                     metric_value=metric_value,
+                    notification_uuid=notification_uuid,
                 )
             mock_handler.assert_called_once_with(self.action, incident, self.project)
             mock_handler.return_value.fire.assert_called_once_with(
-                metric_value, IncidentStatus.CRITICAL
+                metric_value, IncidentStatus.CRITICAL, notification_uuid
             )
 
 
