@@ -11,6 +11,7 @@ from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
+from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -20,7 +21,6 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.monitors.tasks import TIMEOUT
 from sentry.testutils.cases import MonitorIngestTestCase
 from sentry.testutils.silo import region_silo_test
 
