@@ -352,7 +352,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=self._resolve_avg_compare,
+                    snql_distribution=lambda args, alias: function_aliases.resolve_avg_compare(
+                        self.builder.column, args, alias
+                    ),
                     default_result_type="percent_change",
                 ),
             ]
@@ -526,56 +528,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 if interval is None
                 else Function("divide", [args["interval"], interval]),
             ],
-            alias,
-        )
-
-    def _resolve_percent_change(
-        self, first_value: SelectType, second_value: SelectType, alias: Optional[str] = None
-    ) -> SelectType:
-        """(v2-v1)/abs(v1)"""
-        return Function(
-            "divide",
-            [
-                Function("minus", [second_value, first_value]),
-                Function("abs", [first_value]),
-            ],
-            alias,
-        )
-
-    def _resolve_avg_compare_if(
-        self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        value_key: str,
-        alias: Optional[str],
-    ) -> SelectType:
-        """Helper function for avg compare"""
-        return Function(
-            "avgIf",
-            [
-                Column("value"),
-                Function(
-                    "and",
-                    [
-                        Function("equals", [Column("metric_id"), args["metric_id"]]),
-                        Function(
-                            "equals",
-                            [self.builder.column(args["comparison_column"]), args[value_key]],
-                        ),
-                    ],
-                ),
-            ],
-            f"{alias}__{value_key}",
-        )
-
-    def _resolve_avg_compare(
-        self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
-        extra_condition: Optional[Function] = None,
-    ) -> SelectType:
-        return self._resolve_percent_change(
-            self._resolve_avg_compare_if(args, "first_value", alias),
-            self._resolve_avg_compare_if(args, "second_value", alias),
             alias,
         )
 
