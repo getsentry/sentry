@@ -296,7 +296,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert resp.status_code == 400
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
 
@@ -352,7 +352,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     )
     def test_various_options(self, mock_get_repositories):
         initial = self.organization.get_audit_log_data()
-        AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
         self.create_integration(
             organization=self.organization, provider="github", external_id="extid"
         )
@@ -387,10 +388,12 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         # needed to set require2FA
         interface = TotpInterface()
-        interface.enroll(self.user)
-        assert self.user.has_2fa()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            interface.enroll(self.user)
+            assert self.user.has_2fa()
 
-        self.get_success_response(self.organization.slug, **data)
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, **data)
 
         org = Organization.objects.get(id=self.organization.id)
         assert initial != org.get_audit_log_data()
@@ -416,7 +419,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:events_member_admin") is False
 
         # log created
-        log = AuditLogEntry.objects.get(organization_id=org.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            log = AuditLogEntry.objects.get(organization_id=org.id)
         assert audit_log.get(log.event).api_name == "org.edit"
         # org fields & flags
         assert "to {}".format(data["defaultRole"]) in log.data["default_role"]
@@ -474,7 +478,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         Try to put the same key twice and check we get an error
         """
-        AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         trusted_relays = [
             {
@@ -506,7 +511,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert resp_str.find(_VALID_RELAY_KEYS[0]) >= 0
 
     def test_creating_trusted_relays(self):
-        AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         trusted_relays = [
             {
@@ -523,7 +529,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         data = {"trustedRelays": trusted_relays}
 
-        with self.feature("organizations:relay"):
+        with self.feature("organizations:relay"), outbox_runner():
             start_time = datetime.utcnow().replace(tzinfo=timezone.utc)
             response = self.get_success_response(self.organization.slug, **data)
             end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
@@ -549,7 +555,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             assert start_time < created < end_time
             assert response_data[i]["created"] == actual[i]["created"]
 
-        log = AuditLogEntry.objects.get(organization_id=self.organization.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            log = AuditLogEntry.objects.get(organization_id=self.organization.id)
         trusted_relay_log = log.data["trustedRelays"]
 
         assert trusted_relay_log is not None
@@ -560,7 +567,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert trusted_relays[1]["publicKey"] in trusted_relay_log
 
     def test_modifying_trusted_relays(self):
-        AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         initial_trusted_relays = [
             {
@@ -605,7 +613,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         initial_settings = {"trustedRelays": initial_trusted_relays}
         changed_settings = {"trustedRelays": modified_trusted_relays}
 
-        with self.feature("organizations:relay"):
+        with self.feature("organizations:relay"), outbox_runner():
             start_time = datetime.utcnow().replace(tzinfo=timezone.utc)
             self.get_success_response(self.organization.slug, **initial_settings)
             after_initial = datetime.utcnow().replace(tzinfo=timezone.utc)
@@ -638,7 +646,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 assert after_initial < last_modified < after_final
 
         # we should have 2 log messages from the two calls
-        (first_log, second_log) = AuditLogEntry.objects.filter(organization_id=self.organization.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            (first_log, second_log) = AuditLogEntry.objects.filter(
+                organization_id=self.organization.id
+            )
         log_str_1 = first_log.data["trustedRelays"]
         log_str_2 = second_log.data["trustedRelays"]
 
@@ -656,7 +667,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             assert modified_trusted_relays[i]["publicKey"] in modif_log
 
     def test_deleting_trusted_relays(self):
-        AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         initial_trusted_relays = [
             {
@@ -802,7 +814,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             ).exists()
 
     def test_update_slug(self):
-        organization_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            organization_mapping = OrganizationMapping.objects.get(
+                organization_id=self.organization.id
+            )
         assert organization_mapping.slug == self.organization.slug
 
         desired_slug = "new-santry"
@@ -820,9 +835,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             slug=desired_slug, name="collision-imminent"
         )
 
-        colliding_org_mapping = OrganizationMapping.objects.get(
-            organization_id=org_with_colliding_slug.id
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            colliding_org_mapping = OrganizationMapping.objects.get(
+                organization_id=org_with_colliding_slug.id
+            )
         assert colliding_org_mapping.slug == desired_slug
 
         # Queue a slug update but don't drain the shard yet to ensure a temporary collision happens
@@ -838,7 +854,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         with pytest.raises(OutboxFlushError):
             Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
 
-        organization_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            organization_mapping = OrganizationMapping.objects.get(
+                organization_id=self.organization.id
+            )
         assert organization_mapping.slug == previous_slug
 
         # Flush the colliding org slug change
