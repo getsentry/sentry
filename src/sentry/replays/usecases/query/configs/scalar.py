@@ -4,8 +4,8 @@ from __future__ import annotations
 from typing import Tuple, Union
 
 from sentry.api.event_search import ParenExpression, SearchFilter
-from sentry.replays.lib.new_query.conditions import IPv4Scalar, StringArray, StringScalar
-from sentry.replays.lib.new_query.fields import ColumnField, StringColumnField
+from sentry.replays.lib.new_query.conditions import IPv4Scalar, StringArray, StringScalar, UUIDArray
+from sentry.replays.lib.new_query.fields import ColumnField, StringColumnField, UUIDColumnField
 from sentry.replays.lib.new_query.parsers import parse_str, parse_uuid
 from sentry.replays.usecases.query.conditions import ErrorIdsArray
 from sentry.replays.usecases.query.fields import ComputedField, TagField
@@ -37,7 +37,7 @@ static_search_config: dict[str, ColumnField] = {
 # config allowed".
 varying_search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = {
     "error_ids": ComputedField(parse_uuid, ErrorIdsArray),
-    "trace_ids": StringColumnField("trace_ids", lambda x: str(parse_uuid(x)), StringArray),
+    "trace_ids": UUIDColumnField("trace_ids", parse_uuid, UUIDArray),
     "urls": StringColumnField("urls", parse_str, StringArray),
     "user.email": StringColumnField("user_email", parse_str, StringScalar),
     "user.id": StringColumnField("user_id", parse_str, StringScalar),
