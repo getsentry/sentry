@@ -18,7 +18,7 @@ type ReleaseRegistrySdk = Record<
 
 // This exists because /extensions/type/search API is not prefixed with
 // /api/0/, but the default API client on the abstract issue form is...
-const API_CLIENT = new Client({baseUrl: '', headers: {}, credentials: 'omit'});
+const API_CLIENT = new Client({baseUrl: '', credentials: 'omit'});
 
 /**
  * Fetches the release registry list for SDKs
