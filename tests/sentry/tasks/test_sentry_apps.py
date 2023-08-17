@@ -886,7 +886,7 @@ class TestWebhookRequests(TestCase):
         assert AuditLogEntry.objects.filter(
             event=audit_log.get_event_id("INTERNAL_INTEGRATION_DISABLED"),
             organization_id=self.organization.id,
-        )
+        ).exists()
 
     @patch(
         "sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockFailureResponseInstance
