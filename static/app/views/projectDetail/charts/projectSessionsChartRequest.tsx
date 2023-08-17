@@ -119,9 +119,26 @@ class ProjectSessionsChartRequest extends Component<
 
     try {
       const queryParams = this.queryParams({shouldFetchWithPrevious});
-      const response: SessionApiResponse = await api.requestPromise(this.path, {
-        query: queryParams,
-      });
+      const requests = [
+        api.requestPromise(this.path, {
+          query: queryParams,
+        }),
+      ];
+      // for users, we need to make a separate request to get the total count in period
+      if (displayMode === DisplayModes.STABILITY_USERS) {
+        requests.push(
+          api.requestPromise(this.path, {
+            query: {
+              ...queryParams,
+              groupBy: undefined,
+              ...(shouldFetchWithPrevious ? {statsPeriod: datetime.period} : {}),
+            },
+          })
+        );
+      }
+      const [response, responseUsersTotal]: SessionApiResponse[] = await Promise.all(
+        requests
+      );
 
       const filteredResponse = filterSessionsInTimeWindow(
         response,
@@ -129,12 +146,18 @@ class ProjectSessionsChartRequest extends Component<
         queryParams.end
       );
 
+      // totalSessions can't be used when we're talking about users
+      // users are a set and counting together buckets or statuses is not correct
+      // because one user can be present in multiple buckets/statuses
       const {timeseriesData, previousTimeseriesData, totalSessions} =
         displayMode === DisplayModes.SESSIONS
           ? this.transformSessionCountData(filteredResponse)
           : this.transformData(filteredResponse, {
               fetchedWithPrevious: shouldFetchWithPrevious,
             });
+      const totalUsers = responseUsersTotal?.groups[0].totals[this.field];
+      const totalNumber =
+        displayMode === DisplayModes.STABILITY_USERS ? totalUsers : totalSessions;
 
       if (this.unmounting) {
         return;
@@ -144,9 +167,9 @@ class ProjectSessionsChartRequest extends Component<
         reloading: false,
         timeseriesData,
         previousTimeseriesData,
-        totalSessions,
+        totalSessions: totalNumber,
       });
-      onTotalValuesChange(totalSessions);
+      onTotalValuesChange(totalNumber);
     } catch {
       addErrorMessage(t('Error loading chart data'));
       this.setState({
