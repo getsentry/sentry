@@ -1,3 +1,6 @@
+import startCase from 'lodash/startCase';
+import moment from 'moment';
+
 import {
   GenericSchemaErrors,
   HttpProcessingErrors,
@@ -5,9 +8,16 @@ import {
   NativeProcessingErrors,
   ProguardProcessingErrors,
 } from 'sentry/constants/eventErrors';
-import type {Organization} from 'sentry/types';
+import {t} from 'sentry/locale';
+import type {Organization, SharedViewOrganization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {ApiQueryKey, useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+
+const keyMapping = {
+  image_uuid: 'Debug ID',
+  image_name: 'File Name',
+  image_path: 'File Path',
+};
 
 export enum SourceMapProcessingIssueType {
   UNKNOWN_ERROR = 'unknown_error',
@@ -21,15 +31,17 @@ export enum SourceMapProcessingIssueType {
   DEBUG_ID_NO_SOURCEMAPS = 'debug_id_no_sourcemaps',
 }
 
+export type ActionableItemTypes =
+  | SourceMapProcessingIssueType
+  | JavascriptProcessingErrors
+  | HttpProcessingErrors
+  | GenericSchemaErrors
+  | ProguardProcessingErrors
+  | NativeProcessingErrors;
+
 interface BaseActionableItem {
   message: string;
-  type:
-    | SourceMapProcessingIssueType
-    | JavascriptProcessingErrors
-    | HttpProcessingErrors
-    | GenericSchemaErrors
-    | ProguardProcessingErrors
-    | NativeProcessingErrors;
+  type: ActionableItemTypes;
 }
 
 interface UnknownErrorDebugError extends BaseActionableItem {
@@ -144,10 +156,6 @@ export type ActionableItems =
   | InvalidEnvironmentError
   | InvalidAttributeError;
 
-export interface ActionableItemsResponse {
-  actions: ActionableItems[];
-}
-
 const actionableItemsQuery = ({
   orgSlug,
   projectSlug,
@@ -156,16 +164,17 @@ const actionableItemsQuery = ({
   `/projects/${orgSlug}/${projectSlug}/events/${eventId}/actionable-items/`,
 ];
 
+export interface ActionableItemsResponse {
+  errors: ActionableItems[];
+}
+
 interface UseActionableItemsProps {
   eventId: string;
   orgSlug: string;
   projectSlug: string;
 }
 
-export function useActionableItems(
-  props?: UseActionableItemsProps,
-  options: Partial<UseApiQueryOptions<ActionableItemsResponse>> = {}
-) {
+export function useActionableItems(props?: UseActionableItemsProps) {
   return useApiQuery<ActionableItemsResponse>(
     props ? actionableItemsQuery(props) : [''],
     {
@@ -173,8 +182,7 @@ export function useActionableItems(
       retry: false,
       refetchOnWindowFocus: false,
       notifyOnChangeProps: ['data'],
-      ...options,
-      enabled: !!options.enabled && defined(props),
+      enabled: defined(props),
     }
   );
 }
@@ -182,20 +190,59 @@ export function useActionableItems(
 /**
  * Check we have all required props and feature flag
  */
-export function actionablIemsEnabled({
+export function actionableItemsEnabled({
   eventId,
   organization,
   projectSlug,
 }: {
   eventId?: string;
-  organization?: Organization | null;
+  organization?: Organization | SharedViewOrganization | null;
   projectSlug?: string;
 }) {
   if (!organization || !organization.features || !projectSlug || !eventId) {
     return false;
   }
-  if (organization.features.includes('organization:actionable-items')) {
-    return true;
+  return organization.features.includes('actionable-items');
+}
+
+export function cleanData(data) {
+  // The name is rendered as path in front of the message
+  if (typeof data.name === 'string') {
+    delete data.name;
   }
-  return false;
+
+  if (data.message === 'None') {
+    // Python ensures a message string, but "None" doesn't make sense here
+    delete data.message;
+  }
+
+  if (typeof data.image_path === 'string') {
+    // Separate the image name for readability
+    const separator = /^([a-z]:\\|\\\\)/i.test(data.image_path) ? '\\' : '/';
+    const path = data.image_path.split(separator);
+    data.image_name = path.splice(-1, 1)[0];
+    data.image_path = path.length ? path.join(separator) + separator : '';
+  }
+
+  if (typeof data.server_time === 'string' && typeof data.sdk_time === 'string') {
+    data.message = t(
+      'Adjusted timestamps by %s',
+      moment
+        .duration(moment.utc(data.server_time).diff(moment.utc(data.sdk_time)))
+        .humanize()
+    );
+  }
+
+  return Object.entries(data)
+    .map(([key, value]) => ({
+      key,
+      value,
+      subject: keyMapping[key] || startCase(key),
+    }))
+    .filter(d => {
+      if (!d.value) {
+        return true;
+      }
+      return !!d.value;
+    });
 }

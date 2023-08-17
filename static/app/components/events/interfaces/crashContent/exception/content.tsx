@@ -157,9 +157,10 @@ export function Content({
     : [];
 
   const children = values.map((exc, excIdx) => {
-    const hasSourcemapDebug = debugFrames.some(
-      ({query}) => query.exceptionIdx === excIdx
-    );
+    const hasSourcemapDebug =
+      debugFrames.some(({query}) => query.exceptionIdx === excIdx) &&
+      !organization?.features.includes('actionable-items');
+
     const id = defined(exc.mechanism?.exception_id)
       ? `exception-${exc.mechanism?.exception_id}`
       : undefined;

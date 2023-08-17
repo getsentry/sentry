@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import SourceMapsWizard from 'sentry/components/events/interfaces/crashContent/exception/sourcemapsWizard';
+import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {
@@ -13,18 +14,20 @@ import {
   NativeProcessingErrors,
   ProguardProcessingErrors,
 } from 'sentry/constants/eventErrors';
-import {t, tct, tn} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
-// import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {
   ActionableItems,
   ActionableItemsResponse,
+  ActionableItemTypes,
+  cleanData,
   SourceMapProcessingIssueType,
   useActionableItems,
 } from './useActionableItems';
@@ -43,9 +46,7 @@ const sentryInit = <code>Sentry.init</code>;
       type,
     });
   };
-  * Add expand title to all errors
   * Fill in TBDs
-  * Add route analytics
   * Add in warning mode
  */
 
@@ -55,7 +56,9 @@ function getErrorMessage(
 ): Array<{
   // Description in expansion
   desc: React.ReactNode;
+  expandTitle: string;
   title: string;
+  data?: any;
   docsLink?: string;
 }> {
   const docPlatform = (sdkName && sourceMapSdkDocsMap[sdkName]) ?? 'javascript';
@@ -76,6 +79,7 @@ function getErrorMessage(
     );
   }
   const defaultDocsLink = `${baseSourceMapDocsLink}#uploading-source-maps`;
+  const sourcemapTitle = t('Fix Source Maps');
 
   switch (error.type) {
     case SourceMapProcessingIssueType.MISSING_RELEASE:
@@ -86,6 +90,7 @@ function getErrorMessage(
             'Integrate Sentry into your release pipeline using a tool like Webpack or the CLI.'
           ),
           docsLink: defaultDocsLink,
+          expandTitle: sourcemapTitle,
         },
       ];
     case SourceMapProcessingIssueType.PARTIAL_MATCH:
@@ -103,6 +108,7 @@ function getErrorMessage(
           docsLink: getTroubleshootingLink(
             'verify-artifact-names-match-stack-trace-frames'
           ),
+          expandTitle: sourcemapTitle,
         },
       ];
     case SourceMapProcessingIssueType.MISSING_SOURCEMAPS:
@@ -113,6 +119,7 @@ function getErrorMessage(
             "It looks like you're creating, but not uploading your source maps. Read our docs for troubleshooting help."
           ),
           docsLink: defaultDocsLink,
+          expandTitle: sourcemapTitle,
         },
       ];
     case SourceMapProcessingIssueType.URL_NOT_VALID:
@@ -129,6 +136,7 @@ function getErrorMessage(
           docsLink: getTroubleshootingLink(
             'verify-artifact-names-match-stack-trace-frames'
           ),
+          expandTitle: sourcemapTitle,
         },
       ];
     case SourceMapProcessingIssueType.NO_URL_MATCH:
@@ -145,6 +153,7 @@ function getErrorMessage(
           docsLink: getTroubleshootingLink(
             'verify-artifact-names-match-stack-trace-frames'
           ),
+          expandTitle: sourcemapTitle,
         },
       ];
     case SourceMapProcessingIssueType.DIST_MISMATCH:
@@ -162,6 +171,7 @@ function getErrorMessage(
           docsLink: getTroubleshootingLink(
             'verify-artifact-distribution-value-matches-value-configured-in-your-sdk'
           ),
+          expandTitle: sourcemapTitle,
         },
       ];
     case SourceMapProcessingIssueType.SOURCEMAP_NOT_FOUND:
@@ -172,12 +182,18 @@ function getErrorMessage(
             "Sentry couldn't fetch the source map file for this event. Read our docs for troubleshooting help."
           ),
           docsLink: getTroubleshootingLink(),
+          expandTitle: sourcemapTitle,
         },
       ];
     // Need to return something but this does not need to follow the pattern since it uses a different alert
     case SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS:
       return [
-        {title: 'Debug Id but no Sourcemaps', desc: 'Try using the Source Maps Wizard'},
+        {
+          title: 'Debug Id but no Sourcemaps',
+          desc: 'Try using the Source Maps Wizard',
+          expandTitle: sourcemapTitle,
+          data: {url: 'www.google.com'},
+        },
       ];
     // Event Errors
     case ProguardProcessingErrors.PROGUARD_MISSING_LINENO:
@@ -185,6 +201,7 @@ function getErrorMessage(
         {
           title: t('A proguard mapping file does not contain line info.'),
           desc: t('TBD'),
+          expandTitle: t('Fix Proguard Processing Error'),
         },
       ];
     case ProguardProcessingErrors.PROGUARD_MISSING_MAPPING:
@@ -192,6 +209,7 @@ function getErrorMessage(
         {
           title: t('A proguard mapping file was missing.'),
           desc: t('TBD'),
+          expandTitle: t('Fix Proguard Processing Error'),
         },
       ];
     case NativeProcessingErrors.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM:
@@ -199,6 +217,7 @@ function getErrorMessage(
         {
           title: t('An optional debug information file was missing.'),
           desc: t('TBD'),
+          expandTitle: t('Fix Native Processing Error'),
         },
       ];
 
@@ -207,6 +226,7 @@ function getErrorMessage(
         {
           title: t('A required debug information file was missing.'),
           desc: t('TBD'),
+          expandTitle: t('Fix Native Processing Error'),
         },
       ];
     case NativeProcessingErrors.NATIVE_BAD_DSYM:
@@ -214,6 +234,7 @@ function getErrorMessage(
         {
           title: t('The debug information file used was broken.'),
           desc: t('TBD'),
+          expandTitle: t('Fix Native Processing Error'),
         },
       ];
     case JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTEXT:
@@ -221,6 +242,7 @@ function getErrorMessage(
         {
           title: t('TBD'),
           desc: t('TBD'),
+          expandTitle: t('Fix Processing Error'),
         },
       ];
     case HttpProcessingErrors.FETCH_GENERIC_ERROR:
@@ -228,6 +250,7 @@ function getErrorMessage(
         {
           title: t('Unable to fetch HTTP resource'),
           desc: t('TBD'),
+          expandTitle: t('Fix Processing Error'),
         },
       ];
     case HttpProcessingErrors.RESTRICTED_IP:
@@ -235,6 +258,7 @@ function getErrorMessage(
         {
           title: t('Cannot fetch resource due to restricted IP address'),
           desc: t('TBD'),
+          expandTitle: t('Fix Processing Error'),
         },
       ];
     case HttpProcessingErrors.SECURITY_VIOLATION:
@@ -242,6 +266,7 @@ function getErrorMessage(
         {
           title: t('Cannot fetch resource due to security violation'),
           desc: t('TBD'),
+          expandTitle: t('Fix Processing Error'),
         },
       ];
     case GenericSchemaErrors.FUTURE_TIMESTAMP:
@@ -249,6 +274,7 @@ function getErrorMessage(
         {
           title: t('Invalid timestamp (in future)'),
           desc: t('TBD'),
+          expandTitle: t('Fix Processing Error'),
         },
       ];
 
@@ -257,6 +283,7 @@ function getErrorMessage(
         {
           title: t('Clock drift detected in SDK'),
           desc: t('TBD'),
+          expandTitle: t('Fix Processing Error'),
         },
       ];
     case GenericSchemaErrors.PAST_TIMESTAMP:
@@ -264,6 +291,7 @@ function getErrorMessage(
         {
           title: t('Invalid timestamp (too old)'),
           desc: t('TBD'),
+          expandTitle: t('Fix Processing Error'),
         },
       ];
     case GenericSchemaErrors.VALUE_TOO_LONG:
@@ -271,6 +299,7 @@ function getErrorMessage(
         {
           title: t('Discarded value due to exceeding maximum length'),
           desc: t('TBD'),
+          expandTitle: t('Fix Processing Error'),
         },
       ];
 
@@ -279,6 +308,7 @@ function getErrorMessage(
         {
           title: t('Discarded invalid value'),
           desc: t('TBD'),
+          expandTitle: t('Fix Processing Error'),
         },
       ];
     case GenericSchemaErrors.INVALID_ENVIRONMENT:
@@ -286,6 +316,7 @@ function getErrorMessage(
         {
           title: t('Environment cannot contain "/" or newlines'),
           desc: t('TBD'),
+          expandTitle: t('Fix Processing Error'),
         },
       ];
     case GenericSchemaErrors.INVALID_ATTRIBUTE:
@@ -293,6 +324,7 @@ function getErrorMessage(
         {
           title: t('Discarded unknown attribute'),
           desc: t('TBD'),
+          expandTitle: t('Fix Processing Error'),
         },
       ];
 
@@ -304,47 +336,57 @@ function getErrorMessage(
 interface ExpandableErrorListProps {
   errorList: any;
   handleExpandClick: any;
-  children?: React.ReactNode;
-  expandText?: string;
 }
 
-function ExpandableErrorList({
-  children,
-  handleExpandClick,
-  expandText,
-  errorList,
-}: ExpandableErrorListProps) {
+function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorListProps) {
   const [expanded, setExpanded] = useState(false);
-  const title = errorList[0].title;
+  const firstError = errorList[0];
+  const {title, desc: children, expandTitle, type} = firstError;
+  const numErrors = errorList.length;
   return (
     <List symbol="bullet">
       <StyledListItem>
         <ErrorTitleFlex>
-          <ErrorTitleFlex>
-            <strong>{title}</strong>
-            {children && (
-              <ToggleButton
-                priority="link"
-                size="zero"
-                onClick={() => {
-                  setExpanded(!expanded);
-                  handleExpandClick();
-                }}
-              >
-                {expanded ? t('Collapse') : t('Expand')}
-              </ToggleButton>
-            )}
-          </ErrorTitleFlex>
-          <Button> {expandText} </Button>
+          <strong>
+            {title} ({numErrors})
+          </strong>
+          {children && (
+            <ToggleButton
+              priority="link"
+              size="zero"
+              onClick={() => {
+                setExpanded(!expanded);
+                handleExpandClick(type);
+              }}
+            >
+              {expandTitle}
+            </ToggleButton>
+          )}
         </ErrorTitleFlex>
-        {expanded && <div>{children}</div>}
+        {expanded && (
+          <div>
+            <div>{children}</div>
+            {errorList.map((error, idx) => {
+              const data = error.data ?? {};
+              return (
+                <div key={idx}>
+                  <KeyValueList data={cleanData(data)} isContextData />
+                  {idx !== numErrors - 1 && <hr />}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </StyledListItem>
     </List>
   );
 }
 
-function groupedErrors(data: ActionableItemsResponse, sdkName?: string) {
-  const errors = data.actions
+function groupedErrors(data?: ActionableItemsResponse, sdkName?: string) {
+  if (!data) {
+    return {};
+  }
+  const errors = data.errors
     .map(error =>
       getErrorMessage(error, sdkName).map(message => ({...message, type: error.type}))
     )
@@ -361,22 +403,28 @@ function groupedErrors(data: ActionableItemsResponse, sdkName?: string) {
 
 interface ActionableItemsProps {
   event: Event;
+  projectSlug: string;
 }
 
-export function SourceMapDebug({event}: ActionableItemsProps) {
+export function ActionableItem({event, projectSlug}: ActionableItemsProps) {
   const sdkName = event.sdk?.name;
   const organization = useOrganization();
   const {data, isLoading} = useActionableItems({
     eventId: event.id,
     orgSlug: organization.slug,
-    projectSlug: event.projectSlug || '',
+    projectSlug,
   });
 
-  if (isLoading || !defined(data)) {
+  const errorMessages = groupedErrors(data, sdkName);
+
+  useRouteAnalyticsParams({
+    show_actionable_items_cta: data ? data.errors.length > 0 : false,
+    actionable_items: data ? Object.keys(errorMessages) : [],
+  });
+
+  if (isLoading || !defined(data) || data.errors.length === 0) {
     return null;
   }
-
-  const errorMessages = groupedErrors(data, sdkName);
 
   const analyticsParams = {
     organization,
@@ -385,56 +433,55 @@ export function SourceMapDebug({event}: ActionableItemsProps) {
     ...getAnalyticsDataForEvent(event),
   };
 
-  const handleExpandClick = (type: SourceMapProcessingIssueType) => {
-    trackAnalytics('source_map_debug.expand_clicked', {
+  const handleExpandClick = (type: ActionableItemTypes) => {
+    trackAnalytics('actionable_items.expand_clicked', {
       ...analyticsParams,
       type,
     });
   };
 
   if (
-    errorMessages.SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS &&
-    errorMessages.SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS.length > 0
+    errorMessages[SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS] &&
+    errorMessages[SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS].length > 0
   ) {
     return <SourceMapsWizard analyticsParams={analyticsParams} />;
   }
 
   return (
-    <Alert
+    <StyledAlert
       defaultExpanded
       showIcon
       type="error"
       expand={
         <Fragment>
-          {errorMessages.map((errorList, idx) => {
+          {Object.keys(errorMessages).map((error, idx) => {
             return (
               <ExpandableErrorList
                 key={idx}
-                errorList={errorList}
+                errorList={errorMessages[error]}
                 handleExpandClick={handleExpandClick}
-              >
-                {errorList[0].desc}
-              </ExpandableErrorList>
+              />
             );
           })}
         </Fragment>
       }
     >
-      {tn(
-        "We've encountered %s problem un-minifying your applications source code!",
-        "We've encountered %s problems un-minifying your applications source code!",
-        errorMessages.length
-      )}
-    </Alert>
+      {t("There are problems you'll need to fix for future events")}
+    </StyledAlert>
   );
 }
 
+const StyledAlert = styled(Alert)`
+  margin: 0 30px;
+`;
 const StyledListItem = styled(ListItem)`
   margin-bottom: ${space(0.75)};
 `;
 
 const ToggleButton = styled(Button)`
   color: ${p => p.theme.subText};
+  text-decoration: underline;
+
   :hover,
   :focus {
     color: ${p => p.theme.textColor};

@@ -16,6 +16,8 @@ import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
+import {ActionableItem} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
+import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
@@ -68,6 +70,7 @@ function GroupEventDetailsContent({
 }: GroupEventDetailsContentProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const projectSlug = project.slug;
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
   const mechanism = event?.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
@@ -83,9 +86,17 @@ function GroupEventDetailsContent({
 
   const eventEntryProps = {group, event, project};
 
+  const hasActionableItems = actionableItemsEnabled({
+    eventId: event.id,
+    organization,
+    projectSlug,
+  });
+
   return (
     <Fragment>
       <EventErrors event={event} project={project} isShare={false} />
+      {hasActionableItems && <ActionableItem event={event} projectSlug={projectSlug} />}
+
       <EventCause
         project={project}
         eventId={event.id}
