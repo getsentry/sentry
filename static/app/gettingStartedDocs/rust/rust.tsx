@@ -6,9 +6,10 @@ import {t, tct} from 'sentry/locale';
 // Configuration Start
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+}: Partial<
+  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
+> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -22,9 +23,14 @@ export const steps = ({
     configurations: [
       {
         language: 'toml',
+        partialLoading: sourcePackageRegistries?.isLoading,
         code: `
 [dependencies]
-sentry = "0.31.5"
+sentry = "${
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.rust'] ?? '0.31.5'
+        }"
         `,
       },
     ],
@@ -76,8 +82,12 @@ fn main() {
 ];
 // Configuration End
 
-export function GettingStartedWithRust({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
+export function GettingStartedWithRust({
+  dsn,
+  sourcePackageRegistries,
+  ...props
+}: ModuleProps) {
+  return <Layout steps={steps({dsn, sourcePackageRegistries})} {...props} />;
 }
 
 export default GettingStartedWithRust;
