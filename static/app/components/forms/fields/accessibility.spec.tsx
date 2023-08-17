@@ -106,6 +106,16 @@ describe('Field accessibility', function () {
           help="This is a select field field"
           name="mySelectbox"
         />
+        <SelectField
+          multiple
+          label="My Multiple Select"
+          options={[
+            {value: 'item1', label: 'Item 1'},
+            {value: 'item2', label: 'Item 2'},
+          ]}
+          help="This is a multiple select field filed"
+          name="myMultiSelectBox"
+        />
       </Form>
     );
 
@@ -192,5 +202,16 @@ describe('Field accessibility', function () {
 
     await selectEvent.select(select, ['Item 2']);
     expect(model.getValue('mySelectbox')).toBe('item2');
+
+    // Multiple Select field
+    //
+    // The input is a textbox, and we can test with `selectEvent`
+    const multiSelect = screen.getByRole('textbox', {name: 'My Multiple Select'});
+
+    await selectEvent.select(multiSelect, ['Item 1']);
+    expect(model.getValue('myMultiSelectBox')).toEqual(['item1']);
+
+    await selectEvent.select(multiSelect, ['Item 2']);
+    expect(model.getValue('myMultiSelectBox')).toEqual(['item1', 'item2']);
   });
 });

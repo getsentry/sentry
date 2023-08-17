@@ -65,6 +65,7 @@ class MonitorTaskCheckMissingTest(TestCase):
                 "checkin_margin": None,
             },
         )
+
         # Expected check-in was a full minute ago.
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -77,17 +78,21 @@ class MonitorTaskCheckMissingTest(TestCase):
 
         check_missing(task_run_ts)
 
-        assert MonitorEnvironment.objects.filter(
+        # Monitor status is updated
+        monitor_environment = MonitorEnvironment.objects.get(
             id=monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
-        ).exists()
+        )
+
+        # last_checkin was NOT updated. We only update this for real user check-ins.
+        assert monitor_environment.last_checkin == ts - timedelta(minutes=2)
 
         # Because our checkin was a minute ago we'll have produced a missed checkin
-        assert MonitorCheckIn.objects.filter(
-            monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
-        )
         missed_check = MonitorCheckIn.objects.get(
             monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
         )
+        assert missed_check.date_added == (
+            monitor_environment.last_checkin + timedelta(minutes=1)
+        ).replace(second=0, microsecond=0)
         assert missed_check.expected_time == (
             monitor_environment.last_checkin + timedelta(minutes=1)
         ).replace(second=0, microsecond=0)
@@ -110,7 +115,11 @@ class MonitorTaskCheckMissingTest(TestCase):
                 "checkin_margin": 5,
             },
         )
-        # Expected check-in was 12 minutes ago.
+
+        # Last check-in was 12 minutes ago.
+        #
+        # The expected checkin was 2 min ago, but has a 5 minute margin, so we
+        # still have 3 minutes to check in.
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
@@ -120,7 +129,7 @@ class MonitorTaskCheckMissingTest(TestCase):
             status=MonitorStatus.OK,
         )
 
-        # No missed check-in generated as expected time was still within margin
+        # No missed check-in generated as we're still within the check-in margin
         check_missing(task_run_ts)
 
         assert not MonitorEnvironment.objects.filter(
@@ -133,9 +142,12 @@ class MonitorTaskCheckMissingTest(TestCase):
         # Missed check-in generated as clock now exceeds expected time plus margin
         check_missing(task_run_ts + timedelta(minutes=4))
 
-        assert MonitorEnvironment.objects.filter(
+        monitor_environment = MonitorEnvironment.objects.get(
             id=monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
-        ).exists()
+        )
+
+        # last_checkin was NOT updated. We only update this for real user check-ins.
+        assert monitor_environment.last_checkin == ts - timedelta(minutes=12)
 
         assert MonitorCheckIn.objects.filter(
             monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
@@ -143,9 +155,16 @@ class MonitorTaskCheckMissingTest(TestCase):
         missed_check = MonitorCheckIn.objects.get(
             monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
         )
+
+        # Missed checkins are back-dated to when the checkin was expected to
+        # happpen. In this case the expected_time is equal to the date_added.
+        assert missed_check.date_added == (
+            monitor_environment.last_checkin + timedelta(minutes=10)
+        ).replace(second=0, microsecond=0)
         assert missed_check.expected_time == (
             monitor_environment.last_checkin + timedelta(minutes=10)
         ).replace(second=0, microsecond=0)
+
         assert missed_check.monitor_config == monitor.config
 
         # Monitor environment next_checkin values are updated correctly
