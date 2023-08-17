@@ -33,7 +33,7 @@ function ReplayTimeline({}: Props) {
   const {width} = useDimensions<HTMLDivElement>({elementRef: stackedRef});
 
   if (!replay) {
-    return <Placeholder height="54px" bottomGutter={2} />;
+    return <Placeholder height="54px" />;
   }
 
   const durationMs = replay.getDurationMs();
@@ -42,19 +42,19 @@ function ReplayTimeline({}: Props) {
   const networkFrames = replay.getNetworkFrames();
 
   return (
-    <Panel ref={panelRef} {...mouseTrackingProps}>
+    <PanelNoMargin ref={panelRef} {...mouseTrackingProps}>
       <Stacked ref={stackedRef}>
         <MinorGridlines durationMs={durationMs} width={width} />
         <MajorGridlines durationMs={durationMs} width={width} />
         <TimelineScrubber />
-        <UnderTimestamp paddingTop="36px">
+        <div style={{paddingTop: '36px'}}>
           <ReplayTimelineSpans
             durationMs={durationMs}
             frames={networkFrames}
             startTimestampMs={startTimestampMs}
           />
-        </UnderTimestamp>
-        <UnderTimestamp paddingTop="26px">
+        </div>
+        <div style={{paddingTop: '26px'}}>
           <ReplayTimelineEvents
             durationMs={durationMs}
             frames={chapterFrames}
@@ -67,15 +67,14 @@ function ReplayTimeline({}: Props) {
             startTimestampMs={startTimestampMs}
             width={width}
           />
-        </UnderTimestamp>
+        </div>
       </Stacked>
-    </Panel>
+    </PanelNoMargin>
   );
 }
 
-const UnderTimestamp = styled('div')<{paddingTop: string}>`
-  /* Weird size to put equal space above/below a <small> node that MajorGridlines emits */
-  padding-top: ${p => p.paddingTop};
+const PanelNoMargin = styled(Panel)`
+  margin: 0;
 `;
 
 export default ReplayTimeline;
