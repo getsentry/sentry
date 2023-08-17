@@ -218,3 +218,34 @@ def resolve_metrics_percentile(
             alias,
         )
     )
+
+
+def resolve_metrics_layer_percentile(
+    args: Mapping[str, Union[str, Column, SelectType, int, float]],
+    alias: str,
+    resolve_mri: Callable[[str], Column],
+    fixed_percentile: Optional[float] = None,
+):
+    # TODO: rename to just resolve_metrics_percentile once the non layer code can be retired
+    if fixed_percentile is None:
+        fixed_percentile = args["percentile"]
+    if fixed_percentile not in constants.METRIC_PERCENTILES:
+        raise IncompatibleMetricsQuery("Custom quantile incompatible with metrics")
+    column = resolve_mri(args["column"])
+    return (
+        Function(
+            "max",
+            [
+                column,
+            ],
+            alias,
+        )
+        if fixed_percentile == 1
+        else Function(
+            f"p{int(fixed_percentile * 100)}",
+            [
+                column,
+            ],
+            alias,
+        )
+    )
