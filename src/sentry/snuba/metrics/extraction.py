@@ -1024,7 +1024,7 @@ class SearchQueryConverter:
             }
 
         # In case we have negation operators, we have to wrap them in the `not` condition.
-        if token.operator in ["!=", "NOT IN"]:
+        if token.operator in ("!=", "NOT IN"):
             condition = {"op": "not", "inner": condition}
 
         return condition
