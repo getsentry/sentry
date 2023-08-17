@@ -2017,8 +2017,13 @@ function buildRoutes() {
         path="profile/:projectId/:eventId/"
         component={make(() => import('sentry/views/profiling/profilesProvider'))}
       >
+        {/* @TODO Remove flamechart route name */}
         <Route
           path="flamechart/"
+          component={make(() => import('sentry/views/profiling/profileFlamechart'))}
+        />
+        <Route
+          path="flamegraph/"
           component={make(() => import('sentry/views/profiling/profileFlamechart'))}
         />
       </Route>
