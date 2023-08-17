@@ -360,7 +360,7 @@ class SymbolicatorSession:
 
     @classmethod
     def _get_worker_id(cls) -> str:
-        if options.get("symbolicator.worker-id-randomization-sample-rate") <= random.random():
+        if random.random() <= options.get("symbolicator.worker-id-randomization-sample-rate"):
             return uuid.uuid4().hex
 
         # as class attribute to keep it static for life of process

@@ -211,7 +211,7 @@ def get_internal_artifact_lookup_source_url(project: Project):
 def get_bundle_index_urls(
     project: Project, release: Optional[str], dist: Optional[str]
 ) -> Tuple[Optional[str], Optional[str]]:
-    if options.get("symbolicator.sourcemaps-bundle-index-sample-rate") <= random.random():
+    if random.random() >= options.get("symbolicator.sourcemaps-bundle-index-sample-rate"):
         return None, None
 
     base_url = get_internal_artifact_lookup_source_url(project)
