@@ -5,22 +5,22 @@ function useUrlParams(
   defaultKey: string,
   defaultValue: string
 ): {
-  getParamValue: () => string;
+  getParamValue: () => string | undefined;
   setParamValue: (value: string) => void;
 };
 function useUrlParams(defaultKey: string): {
-  getParamValue: () => string;
+  getParamValue: () => string | undefined;
   setParamValue: (value: string) => void;
 };
 function useUrlParams(): {
-  getParamValue: (key: string) => string;
+  getParamValue: (key: string) => string | undefined;
   setParamValue: (key: string, value: string) => void;
 };
 function useUrlParams(defaultKey?: string, defaultValue?: string) {
   const getParamValue = useCallback(
     (key: string) => {
       const location = browserHistory.getCurrentLocation();
-      return location.query[key] || defaultValue;
+      return location.query[key] ?? defaultValue;
     },
     [defaultValue]
   );

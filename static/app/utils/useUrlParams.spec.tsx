@@ -25,6 +25,7 @@ describe('useUrlParams', () => {
 
     expect(result.current.getParamValue('page')).toBe('3');
     expect(result.current.getParamValue('limit')).toBe('50');
+    expect(result.current.getParamValue('foo')).toBeUndefined();
   });
 
   it('should read a specific query value if the defaultKey is passed along', () => {
