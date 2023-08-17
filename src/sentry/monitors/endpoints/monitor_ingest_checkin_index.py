@@ -17,6 +17,7 @@ from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models import Project, ProjectKey
+from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -213,7 +214,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             signal_first_checkin(project, monitor)
 
             if checkin.status == CheckInStatus.ERROR:
-                monitor_failed = monitor_environment.mark_failed(last_checkin=checkin.date_added)
+                monitor_failed = mark_failed(monitor_environment, last_checkin=checkin.date_added)
                 if not monitor_failed:
                     if isinstance(request.auth, ProjectKey):
                         return self.respond(status=200)
