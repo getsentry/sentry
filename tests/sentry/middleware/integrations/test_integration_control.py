@@ -14,6 +14,11 @@ from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 
 
+@patch.object(
+    IntegrationControlMiddleware,
+    "classifications",
+    [IntegrationClassification, PluginClassification],
+)
 class IntegrationControlMiddlewareTest(TestCase):
     get_response = MagicMock()
     middleware = IntegrationControlMiddleware(get_response=get_response)
@@ -60,7 +65,6 @@ class IntegrationControlMiddlewareTest(TestCase):
         class NewClassification(BaseClassification):
             pass
 
-        original_classifications = self.middleware.classifications
         self.middleware.register_classifications(classifications=[NewClassification])
 
         with patch.object(
@@ -73,9 +77,6 @@ class IntegrationControlMiddlewareTest(TestCase):
             assert mock_plugin_operate.called
             assert mock_new_should_operate.called
             assert mock_new_get_response.called
-
-        # Reset classification registry after tests
-        self.middleware.classifications = original_classifications
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(IntegrationClassification, "should_operate", wraps=integration_cls.should_operate)
