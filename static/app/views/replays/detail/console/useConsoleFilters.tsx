@@ -76,7 +76,7 @@ function useConsoleFilters({frames}: Options): Return {
   // re-render when items are expanded/collapsed, though it may work in state as well.
   const expandPathsRef = useRef(new Map<number, Set<string>>());
 
-  const logLevel = decodeList(query.f_c_logLevel);
+  const logLevel = useMemo(() => decodeList(query.f_c_logLevel), [query.f_c_logLevel]);
   const searchTerm = decodeScalar(query.f_c_search, '').toLowerCase();
 
   const items = useMemo(

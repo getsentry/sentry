@@ -43,7 +43,7 @@ const FILTERS = {
 function useErrorFilters({errorFrames}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
-  const project = decodeList(query.f_e_project);
+  const project = useMemo(() => decodeList(query.f_e_project), [query.f_e_project]);
   const searchTerm = decodeScalar(query.f_e_search, '').toLowerCase();
 
   const items = useMemo(
