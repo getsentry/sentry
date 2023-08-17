@@ -70,25 +70,29 @@ function OSBrowserDropdownFilter({
   return (
     <DropdownMenu
       items={[
-        {
-          key: 'name',
-          label: tct('[type] name: [name]', {
-            type: <b>{type}</b>,
-            name: <b>{name}</b>,
-          }),
-          children: [
-            {
-              key: 'name_add',
-              label: t('Add to filter'),
-              onAction: GenerateAction(`${type}.name`, name ?? '', 'set'),
-            },
-            {
-              key: 'name_exclude',
-              label: t('Exclude from filter'),
-              onAction: GenerateAction(`${type}.name`, name ?? '', 'remove'),
-            },
-          ],
-        },
+        ...(name
+          ? [
+              {
+                key: 'name',
+                label: tct('[type] name: [name]', {
+                  type: <b>{type}</b>,
+                  name: <b>{name}</b>,
+                }),
+                children: [
+                  {
+                    key: 'name_add',
+                    label: t('Add to filter'),
+                    onAction: GenerateAction(`${type}.name`, name ?? '', 'set'),
+                  },
+                  {
+                    key: 'name_exclude',
+                    label: t('Exclude from filter'),
+                    onAction: GenerateAction(`${type}.name`, name ?? '', 'remove'),
+                  },
+                ],
+              },
+            ]
+          : []),
         ...(version
           ? [
               {
