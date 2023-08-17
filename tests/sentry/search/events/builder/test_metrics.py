@@ -2121,7 +2121,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             interval=3600,
             query=query,
             selected_columns=[field],
-            on_demand_metrics_enabled=True,
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+            ),
         )
         result = query.run_query("test_query")
         assert result["data"][:5] == [
@@ -2353,13 +2355,15 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         query = AlertMetricsQueryBuilder(
             self.params,
-            use_metrics_layer=False,
             granularity=3600,
             query=query,
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
-            on_demand_metrics_enabled=True,
-            skip_time_conditions=False,
+            config=QueryBuilderConfig(
+                use_metrics_layer=False,
+                on_demand_metrics_enabled=True,
+                skip_time_conditions=False,
+            ),
         )
 
         result = query.run_query("test_query")
@@ -2395,13 +2399,15 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         query = AlertMetricsQueryBuilder(
             self.params,
-            use_metrics_layer=False,
             granularity=3600,
             query=query,
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
-            on_demand_metrics_enabled=True,
-            skip_time_conditions=False,
+            config=QueryBuilderConfig(
+                use_metrics_layer=False,
+                on_demand_metrics_enabled=True,
+                skip_time_conditions=False,
+            ),
         )
 
         result = query.run_query("test_query")
