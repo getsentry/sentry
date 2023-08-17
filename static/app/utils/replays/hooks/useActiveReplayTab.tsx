@@ -40,7 +40,7 @@ function useDefaultTab() {
     return TabKey.DOM;
   }
 
-  return TabKey.NETWORK;
+  return TabKey.CONSOLE;
 }
 
 function useActiveReplayTab() {
