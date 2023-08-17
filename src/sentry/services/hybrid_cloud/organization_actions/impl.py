@@ -3,6 +3,7 @@ from typing import Optional
 
 from django.db import router, transaction
 from django.db.models.expressions import CombinedExpression
+from django.utils.text import slugify
 from typing_extensions import TypedDict
 
 from sentry import roles
@@ -34,8 +35,8 @@ def create_organization_with_outbox_message(
 
 
 def create_organization_and_member_for_monolith(
-    organization_name,
-    user_id,
+    organization_name: str,
+    user_id: int,
     slug: str,
 ) -> OrganizationAndMemberCreationResult:
     org = create_organization_with_outbox_message(
@@ -122,8 +123,14 @@ def generate_deterministic_organization_slug(
     :param owning_user_id:
     :return:
     """
+
+    # Start by slugifying the original name using django utils
+    slugified_base_str = slugify(desired_slug_base)
+
+    assert len(slugified_base_str) > 0, "Slugs must be valid strings that can be ASCII encoded"
+
     hashed_org_data = hashlib.md5(
-        "/".join([desired_slug_base, desired_org_name, str(owning_user_id)]).encode("utf8")
+        "/".join([slugified_base_str, desired_org_name, str(owning_user_id)]).encode("utf8")
     ).hexdigest()
 
-    return f"{desired_slug_base[:20]}-{hashed_org_data[:9]}"
+    return f"{slugified_base_str[:20]}-{hashed_org_data[:9]}"
