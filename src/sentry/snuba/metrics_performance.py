@@ -110,11 +110,11 @@ def bulk_timeseries_query(
                     dataset=Dataset.PerformanceMetrics,
                     query=query,
                     selected_columns=columns,
+                    groupby=groupby,
                     config=QueryBuilderConfig(
                         functions_acl=functions_acl,
                         allow_metric_aggregates=allow_metric_aggregates,
                         use_metrics_layer=use_metrics_layer,
-                        groupby=groupby,
                     ),
                 )
                 snql_query = metrics_query.get_snql_query()

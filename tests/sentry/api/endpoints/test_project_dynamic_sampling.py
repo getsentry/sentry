@@ -260,14 +260,12 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
                 limit=requested_sample_size,
                 equations=[],
                 referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS_COUNT.value,
-                config=QueryBuilderConfig(
-                    auto_fields=True,
-                    auto_aggregations=True,
-                    allow_metric_aggregates=True,
-                    use_aggregate_conditions=True,
-                    transform_alias_to_input_format=True,
-                    functions_acl=None,
-                ),
+                auto_fields=True,
+                auto_aggregations=True,
+                allow_metric_aggregates=True,
+                use_aggregate_conditions=True,
+                transform_alias_to_input_format=True,
+                functions_acl=None,
             ),
         ]
         if extra_call_trace_ids is not None:
@@ -293,14 +291,12 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
                     limit=20,
                     equations=[],
                     referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_BREAKDOWN.value,
-                    config=QueryBuilderConfig(
-                        auto_fields=True,
-                        auto_aggregations=True,
-                        allow_metric_aggregates=True,
-                        use_aggregate_conditions=True,
-                        transform_alias_to_input_format=True,
-                        functions_acl=None,
-                    ),
+                    auto_fields=True,
+                    auto_aggregations=True,
+                    allow_metric_aggregates=True,
+                    use_aggregate_conditions=True,
+                    transform_alias_to_input_format=True,
+                    functions_acl=None,
                 )
             )
         return calls
@@ -812,13 +808,13 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
                 offset=0,
                 limit=1,
                 equations=[],
+                referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_GET_MOST_RECENT_DAY_WITH_TRANSACTIONS.value,
                 auto_fields=True,
                 auto_aggregations=True,
                 allow_metric_aggregates=True,
                 use_aggregate_conditions=True,
                 transform_alias_to_input_format=True,
                 functions_acl=None,
-                referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_GET_MOST_RECENT_DAY_WITH_TRANSACTIONS.value,
             ),
         ]
         snuba_query_random_transactions = random_transactions_snuba_query(

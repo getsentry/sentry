@@ -271,13 +271,15 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             ],
             equations=[],
             orderby=None,
-            auto_fields=True,
-            auto_aggregations=True,
-            use_aggregate_conditions=True,
-            functions_acl=["random_number", "modulo"],
             limit=sample_size,
             offset=0,
-            equation_config={"auto_add": False},
+            config=QueryBuilderConfig(
+                auto_fields=True,
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+                functions_acl=["random_number", "modulo"],
+                equation_config={"auto_add": False},
+            ),
         )
         builder.add_conditions([Condition(lhs=Column("modulo_num"), op=Op.EQ, rhs=0)])
         snuba_query = builder.get_snql_query().query
