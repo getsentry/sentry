@@ -169,10 +169,10 @@ def query_using_optimized_search(
             SearchFilter(SearchKey("environment"), "IN", SearchValue(environments))
         )
 
-    can_sort = can_scalar_sort_subquery(sort or "started_at")
-    can_search, has_varying_condition = can_scalar_search_subquery(search_filters)
+    can_scalar_sort = can_scalar_sort_subquery(sort or "started_at")
+    can_scalar_search, has_varying_condition = can_scalar_search_subquery(search_filters)
 
-    if can_sort and can_search:
+    if can_scalar_sort and can_scalar_search:
         query = make_simple_scalar_query(
             search_filters=search_filters,
             sort=sort,
