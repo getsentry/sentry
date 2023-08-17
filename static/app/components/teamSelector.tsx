@@ -49,14 +49,6 @@ const unassignedOption = {
 };
 
 const CREATE_TEAM_VALUE = 'CREATE_TEAM_VALUE';
-const createOption = {
-  value: CREATE_TEAM_VALUE,
-  label: 'Create team',
-  leadingItems: <IconAdd isCircled />,
-  searchKey: 'create',
-  actor: null,
-  disabled: false,
-};
 
 const optionFilter = createFilter({
   stringify: option => `${option.label} ${option.value}`,
@@ -146,7 +138,6 @@ function TeamSelector(props: Props) {
 
   const canCreateTeam = organization.access.includes('project:admin');
   const canAddTeam = organization.access.includes('project:write');
-  const includeCreate = allowCreate && canCreateTeam;
 
   const createTeamOption = (team: Team): TeamOption => ({
     value: useId ? team.id : team.slug,
@@ -205,15 +196,16 @@ function TeamSelector(props: Props) {
       } else {
         onChange?.(options);
       }
+      return;
+    }
+
+    const option = newValue as TeamOption;
+    if (option.value === CREATE_TEAM_VALUE) {
+      createTeam().then(newTramOption => {
+        onChange?.(newTramOption);
+      });
     } else {
-      const option = newValue as TeamOption;
-      if (option.value === CREATE_TEAM_VALUE) {
-        createTeam().then(newTramOption => {
-          onChange?.(newTramOption);
-        });
-      } else {
-        onChange?.(option);
-      }
+      onChange?.(option);
     }
   };
 
@@ -274,6 +266,14 @@ function TeamSelector(props: Props) {
 
   function getOptions() {
     const filteredTeams = teamFilter ? teams.filter(teamFilter) : teams;
+    const createOption = {
+      value: CREATE_TEAM_VALUE,
+      label: t('Create team'),
+      leadingItems: <IconAdd isCircled />,
+      searchKey: 'create',
+      actor: null,
+      disabled: !canCreateTeam,
+    };
 
     if (project) {
       const teamsInProjectIdSet = new Set(project.teams.map(team => team.id));
@@ -285,7 +285,7 @@ function TeamSelector(props: Props) {
       );
 
       return [
-        ...(includeCreate ? [createOption] : []),
+        ...(allowCreate ? [createOption] : []),
         ...teamsInProject.map(createTeamOption),
         ...teamsNotInProject.map(createTeamOutsideProjectOption),
         ...(includeUnassigned ? [unassignedOption] : []),
@@ -293,7 +293,7 @@ function TeamSelector(props: Props) {
     }
 
     return [
-      ...(includeCreate ? [createOption] : []),
+      ...(allowCreate ? [createOption] : []),
       ...filteredTeams.map(createTeamOption),
       ...(includeUnassigned ? [unassignedOption] : []),
     ];

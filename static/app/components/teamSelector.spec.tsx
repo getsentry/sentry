@@ -144,41 +144,41 @@ describe('Team Selector', function () {
   });
 
   it('allows to create a new team if org admin', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+    });
+    const onChangeMock = jest.fn();
     const orgWithAccess = TestStubs.Organization({access: ['project:admin']});
 
-    const onChangeMock = jest.fn();
     createWrapper({
       allowCreate: true,
       onChange: onChangeMock,
       organization: orgWithAccess,
     });
-    await userEvent.type(screen.getByText('Select...'), '{keyDown}');
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/teams/`,
-    });
-
     renderGlobalModal();
+
+    await userEvent.type(screen.getByText('Select...'), '{keyDown}');
     await userEvent.click(screen.getByText('Create team'));
     // it opens the create team modal
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('does not allow to create a new team if not org owner', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+    });
+    const onChangeMock = jest.fn();
     const orgWithoutAccess = TestStubs.Organization({access: ['project:write']});
 
-    const onChangeMock = jest.fn();
     createWrapper({
       allowCreate: true,
       onChange: onChangeMock,
       organization: orgWithoutAccess,
     });
+
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/teams/`,
-    });
-
-    expect(screen.queryByText('Create team')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByText('Create team'));
+    // it does no open the create team modal
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
