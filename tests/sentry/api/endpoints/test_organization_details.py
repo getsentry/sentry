@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from base64 import b64encode
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import patch
 
@@ -11,8 +11,7 @@ import responses
 from dateutil.parser import parse as parse_date
 from django.core import mail
 from django.db import router
-from django.utils import timezone
-from pytz import UTC
+from django.utils import timezone as django_timezone
 from rest_framework import status
 
 from sentry import audit_log
@@ -67,6 +66,16 @@ class OrganizationDetailsTestBase(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
+
+
+class MockAccess:
+    def has_scope(self, scope):
+        # For the "test_as_no_org_read_user" we need a set of scopes that allows GET on the
+        # OrganizationDetailsEndpoint to allow high-level access, but without "org:read" scope
+        # to cover that branch with test. The scope "org:write" is a good candidate for this.
+        if scope == "org:write":
+            return True
+        return False
 
 
 @region_silo_test(stable=True)
@@ -176,6 +185,15 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert "projects" not in response.data
         assert "teams" not in response.data
 
+    def test_as_no_org_read_user(self):
+        with patch("sentry.auth.access.Access.has_scope", MockAccess().has_scope):
+            response = self.get_success_response(self.organization.slug)
+
+            assert "access" in response.data
+            assert "projects" not in response.data
+            assert "teams" not in response.data
+            assert "orgRoleList" not in response.data
+
     def test_as_superuser(self):
         self.user = self.create_user("super@example.org", is_superuser=True)
         org = self.create_organization(owner=self.user)
@@ -223,9 +241,9 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         data = {"trustedRelays": trusted_relays}
 
         with self.feature("organizations:relay"):
-            start_time = datetime.utcnow().replace(tzinfo=UTC)
+            start_time = datetime.utcnow().replace(tzinfo=timezone.utc)
             self.get_success_response(self.organization.slug, method="put", **data)
-            end_time = datetime.utcnow().replace(tzinfo=UTC)
+            end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
             response = self.get_success_response(self.organization.slug)
 
         response_data = response.data.get("trustedRelays")
@@ -368,6 +386,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "isEarlyAdopter": True,
             "codecovAccess": True,
             "aiSuggestedSolution": False,
+            "githubOpenPRBot": False,
             "githubPRBot": False,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
@@ -439,6 +458,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
         assert "to {}".format(data["aiSuggestedSolution"]) in log.data["aiSuggestedSolution"]
         assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
+        assert "to {}".format(data["githubOpenPRBot"]) in log.data["githubOpenPRBot"]
 
     @responses.activate
     @patch(
@@ -523,9 +543,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {"trustedRelays": trusted_relays}
 
         with self.feature("organizations:relay"):
-            start_time = datetime.utcnow().replace(tzinfo=UTC)
+            start_time = datetime.utcnow().replace(tzinfo=timezone.utc)
             response = self.get_success_response(self.organization.slug, **data)
-            end_time = datetime.utcnow().replace(tzinfo=UTC)
+            end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
             response_data = response.data.get("trustedRelays")
 
         actual = get_trusted_relay_value(self.organization)
@@ -605,11 +625,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         changed_settings = {"trustedRelays": modified_trusted_relays}
 
         with self.feature("organizations:relay"):
-            start_time = datetime.utcnow().replace(tzinfo=UTC)
+            start_time = datetime.utcnow().replace(tzinfo=timezone.utc)
             self.get_success_response(self.organization.slug, **initial_settings)
-            after_initial = datetime.utcnow().replace(tzinfo=UTC)
+            after_initial = datetime.utcnow().replace(tzinfo=timezone.utc)
             self.get_success_response(self.organization.slug, **changed_settings)
-            after_final = datetime.utcnow().replace(tzinfo=UTC)
+            after_final = datetime.utcnow().replace(tzinfo=timezone.utc)
 
         actual = get_trusted_relay_value(self.organization)
         assert len(actual) == len(modified_trusted_relays)
@@ -875,7 +895,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 
         schedule = RegionScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
         # Delay is 24 hours but to avoid wobbling microseconds we compare with 23 hours.
-        assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
+        assert schedule.date_scheduled >= django_timezone.now() + timedelta(hours=23)
 
         # Make sure we've emailed all owners
         assert len(mail.outbox) == len(owners)

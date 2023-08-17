@@ -81,7 +81,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             if file is not None and (data := file.load_flat_file_index()):
                 return HttpResponse(data, content_type="application/json")
             else:
-                return Http404
+                raise Http404
 
         if file is None:
             raise Http404

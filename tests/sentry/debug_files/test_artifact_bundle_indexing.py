@@ -9,11 +9,16 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.debug_files.artifact_bundle_indexing import (
+    BundleManifest,
     BundleMeta,
     FlatFileIndex,
+    backfill_artifact_index_updates,
+    get_all_deletions_key,
+    get_deletion_key,
     mark_bundle_for_flat_file_indexing,
     update_artifact_bundle_index,
 )
+from sentry.debug_files.artifact_bundles import get_redis_cluster_for_artifact_bundles
 from sentry.models import File
 from sentry.models.artifactbundle import (
     ArtifactBundle,
@@ -124,14 +129,12 @@ class FlatFileIndexingTest(FlatFileTestCase):
         identifiers = mark_bundle_for_flat_file_indexing(
             artifact_bundle, [self.project.id], release, dist
         )
-        bundle_meta = BundleMeta(
-            id=artifact_bundle.id,
-            timestamp=artifact_bundle.date_last_modified,
-        )
 
         with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
-            for identifier in identifiers:
-                update_artifact_bundle_index(bundle_meta, archive, identifier)
+            bundles_to_add = [BundleManifest.from_artifact_bundle(artifact_bundle, archive)]
+
+        for identifier in identifiers:
+            update_artifact_bundle_index(identifier, bundles_to_add=bundles_to_add)
 
         assert ArtifactBundleFlatFileIndex.objects.get(
             project_id=self.project.id, release_name=release, dist_name=dist
@@ -143,14 +146,12 @@ class FlatFileIndexingTest(FlatFileTestCase):
         identifiers = mark_bundle_for_flat_file_indexing(
             artifact_bundle, [self.project.id], None, None
         )
-        bundle_meta = BundleMeta(
-            id=artifact_bundle.id,
-            timestamp=artifact_bundle.date_last_modified,
-        )
 
         with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
-            for identifier in identifiers:
-                update_artifact_bundle_index(bundle_meta, archive, identifier)
+            bundles_to_add = [BundleManifest.from_artifact_bundle(artifact_bundle, archive)]
+
+        for identifier in identifiers:
+            update_artifact_bundle_index(identifier, bundles_to_add=bundles_to_add)
 
         assert ArtifactBundleFlatFileIndex.objects.get(
             project_id=self.project.id, release_name="", dist_name=""
@@ -165,14 +166,12 @@ class FlatFileIndexingTest(FlatFileTestCase):
         identifiers = mark_bundle_for_flat_file_indexing(
             artifact_bundle, [self.project.id], release, dist
         )
-        bundle_meta = BundleMeta(
-            id=artifact_bundle.id,
-            timestamp=artifact_bundle.date_last_modified,
-        )
 
         with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
-            for identifier in identifiers:
-                update_artifact_bundle_index(bundle_meta, archive, identifier)
+            bundles_to_add = [BundleManifest.from_artifact_bundle(artifact_bundle, archive)]
+
+        for identifier in identifiers:
+            update_artifact_bundle_index(identifier, bundles_to_add=bundles_to_add)
 
         assert ArtifactBundleFlatFileIndex.objects.get(
             project_id=self.project.id, release_name=release, dist_name=dist
@@ -190,17 +189,15 @@ class FlatFileIndexingTest(FlatFileTestCase):
         identifiers = mark_bundle_for_flat_file_indexing(
             artifact_bundle, [self.project.id], None, None
         )
-        bundle_meta = BundleMeta(
-            id=artifact_bundle.id,
-            timestamp=artifact_bundle.date_last_modified,
-        )
 
         with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
-            for identifier in identifiers:
-                try:
-                    update_artifact_bundle_index(bundle_meta, archive, identifier)
-                except Exception:
-                    pass
+            bundles_to_add = [BundleManifest.from_artifact_bundle(artifact_bundle, archive)]
+
+        for identifier in identifiers:
+            try:
+                update_artifact_bundle_index(identifier, bundles_to_add=bundles_to_add)
+            except Exception:
+                pass
 
         index = ArtifactBundleFlatFileIndex.objects.get(
             project_id=self.project.id, release_name="", dist_name=""
@@ -215,18 +212,16 @@ class FlatFileIndexingTest(FlatFileTestCase):
         identifiers = mark_bundle_for_flat_file_indexing(
             artifact_bundle, [self.project.id], release, dist
         )
-        bundle_meta = BundleMeta(
-            id=artifact_bundle.id,
-            timestamp=artifact_bundle.date_last_modified,
-        )
 
         with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
-            for identifier in identifiers:
-                update_artifact_bundle_index(bundle_meta, archive, identifier)
+            bundles_to_add = [BundleManifest.from_artifact_bundle(artifact_bundle, archive)]
 
-            # We run the indexing twice, it should still succeed
-            for identifier in identifiers:
-                update_artifact_bundle_index(bundle_meta, archive, identifier)
+        for identifier in identifiers:
+            update_artifact_bundle_index(identifier, bundles_to_add=bundles_to_add)
+
+        # We run the indexing twice, it should still succeed
+        for identifier in identifiers:
+            update_artifact_bundle_index(identifier, bundles_to_add=bundles_to_add)
 
         assert ArtifactBundleFlatFileIndex.objects.filter(
             project_id=self.project.id, release_name=release, dist_name=dist
@@ -234,6 +229,100 @@ class FlatFileIndexingTest(FlatFileTestCase):
         assert ArtifactBundleFlatFileIndex.objects.filter(
             project_id=self.project.id, release_name="", dist_name=""
         ).exists()
+
+    def test_remove_bundle_from_index(self):
+        release = "1.0"
+        dist = "android"
+        artifact_bundle1 = self.mock_simple_artifact_bundle()
+        artifact_bundle2 = self.mock_simple_artifact_bundle()
+
+        identifiers1 = mark_bundle_for_flat_file_indexing(
+            artifact_bundle1, [self.project.id], release, dist
+        )
+        identifiers2 = mark_bundle_for_flat_file_indexing(
+            artifact_bundle2, [self.project.id], release, dist
+        )
+        assert identifiers1 == identifiers2
+
+        bundles_to_add = []
+        with ArtifactBundleArchive(artifact_bundle1.file.getfile()) as archive:
+            bundles_to_add.append(BundleManifest.from_artifact_bundle(artifact_bundle1, archive))
+        with ArtifactBundleArchive(artifact_bundle2.file.getfile()) as archive:
+            bundles_to_add.append(BundleManifest.from_artifact_bundle(artifact_bundle2, archive))
+
+        for identifier in identifiers1:
+            update_artifact_bundle_index(identifier, bundles_to_add=bundles_to_add)
+
+        identifier = identifiers1[0]
+        index = ArtifactBundleFlatFileIndex.objects.get(
+            project_id=identifier.project_id,
+            release_name=identifier.release,
+            dist_name=identifier.dist,
+        )
+
+        json_index = json.loads(index.load_flat_file_index() or b"")
+        assert len(json_index["bundles"]) == 2
+        assert json_index["bundles"][0]["bundle_id"] == f"artifact_bundle/{artifact_bundle1.id}"
+        assert json_index["files_by_url"]["~/app.js"] == [0, 1]
+
+        # remove explicitly
+        update_artifact_bundle_index(identifier, bundles_to_remove=[artifact_bundle1.id])
+
+        json_index = json.loads(index.load_flat_file_index() or b"")
+        assert len(json_index["bundles"]) == 1
+        assert json_index["bundles"][0]["bundle_id"] == f"artifact_bundle/{artifact_bundle2.id}"
+        assert json_index["files_by_url"]["~/app.js"] == [0]
+
+        # remove via delete hook
+        artifact_bundle2.delete()
+
+        json_index = json.loads(index.load_flat_file_index() or b"")
+        assert len(json_index["bundles"]) == 0
+        assert json_index["files_by_url"] == {}
+
+    def test_index_backfilling(self):
+        release = "1.0"
+        dist = "android"
+        artifact_bundle1 = self.mock_simple_artifact_bundle()
+        artifact_bundle2 = self.mock_simple_artifact_bundle()
+
+        identifiers1 = mark_bundle_for_flat_file_indexing(
+            artifact_bundle1, [self.project.id], release, dist
+        )
+        identifiers2 = mark_bundle_for_flat_file_indexing(
+            artifact_bundle2, [self.project.id], release, dist
+        )
+        assert identifiers1 == identifiers2
+        identifier = identifiers1[0]
+
+        index = ArtifactBundleFlatFileIndex.objects.get(
+            project_id=identifier.project_id,
+            release_name=identifier.release,
+            dist_name=identifier.dist,
+        )
+
+        assert index.load_flat_file_index() is None
+
+        # bundle 2 is both scheduled for addition *and* removal.
+        # this could in theory happen if it is being created and deleted in quick succession,
+        # and there is a race between querying its indexing state, and its removal.
+        redis_client = get_redis_cluster_for_artifact_bundles()
+        redis_client.sadd(get_deletion_key(index.id), artifact_bundle2.id)
+
+        backfill_artifact_index_updates()
+
+        json_index = json.loads(index.load_flat_file_index() or b"")
+        assert len(json_index["bundles"]) == 1
+        assert json_index["bundles"][0]["bundle_id"] == f"artifact_bundle/{artifact_bundle1.id}"
+        assert json_index["files_by_url"]["~/app.js"] == [0]
+
+        redis_client.sadd(get_all_deletions_key(), index.id)
+        redis_client.sadd(get_deletion_key(index.id), artifact_bundle1.id)
+
+        backfill_artifact_index_updates()
+
+        json_index = json.loads(index.load_flat_file_index() or b"")
+        assert len(json_index["bundles"]) == 0
 
 
 @freeze_time("2023-07-13T10:00:00.000Z")
@@ -255,11 +344,13 @@ class FlatFileIndexTest(FlatFileTestCase):
         )
 
         with ArtifactBundleArchive(artifact_bundle.file.getfile()) as bundle_archive:
-            flat_file_index = FlatFileIndex()
-            bundle_meta = BundleMeta(
-                id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified
-            )
-            flat_file_index.merge_urls(bundle_meta, bundle_archive)
+            urls = bundle_archive.get_all_urls()
+
+        flat_file_index = FlatFileIndex()
+        bundle_meta = BundleMeta(
+            id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified
+        )
+        flat_file_index.merge_urls(bundle_meta, urls)
 
         assert json.loads(flat_file_index.to_json()) == {
             "bundles": [
@@ -291,11 +382,13 @@ class FlatFileIndexTest(FlatFileTestCase):
         )
 
         with ArtifactBundleArchive(artifact_bundle.file.getfile()) as bundle_archive:
-            flat_file_index = FlatFileIndex()
-            bundle_meta = BundleMeta(
-                id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified
-            )
-            flat_file_index.merge_debug_ids(bundle_meta, bundle_archive)
+            debug_ids = bundle_archive.get_all_debug_ids()
+
+        flat_file_index = FlatFileIndex()
+        bundle_meta = BundleMeta(
+            id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified
+        )
+        flat_file_index.merge_debug_ids(bundle_meta, debug_ids)
 
         assert json.loads(flat_file_index.to_json()) == {
             "bundles": [
@@ -340,12 +433,14 @@ class FlatFileIndexTest(FlatFileTestCase):
         )
 
         with ArtifactBundleArchive(artifact_bundle.file.getfile()) as bundle_archive:
-            flat_file_index = FlatFileIndex()
-            flat_file_index.from_json(json.dumps(existing_json_index))
-            bundle_meta = BundleMeta(
-                id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified
-            )
-            flat_file_index.merge_urls(bundle_meta, bundle_archive)
+            urls = bundle_archive.get_all_urls()
+
+        flat_file_index = FlatFileIndex()
+        flat_file_index.from_json(json.dumps(existing_json_index))
+        bundle_meta = BundleMeta(
+            id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified
+        )
+        flat_file_index.merge_urls(bundle_meta, urls)
 
         assert json.loads(flat_file_index.to_json()) == {
             "bundles": [
@@ -393,12 +488,14 @@ class FlatFileIndexTest(FlatFileTestCase):
         )
 
         with ArtifactBundleArchive(artifact_bundle.file.getfile()) as bundle_archive:
-            flat_file_index = FlatFileIndex()
-            flat_file_index.from_json(json.dumps(existing_json_index))
-            bundle_meta = BundleMeta(
-                id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified
-            )
-            flat_file_index.merge_debug_ids(bundle_meta, bundle_archive)
+            debug_ids = bundle_archive.get_all_debug_ids()
+
+        flat_file_index = FlatFileIndex()
+        flat_file_index.from_json(json.dumps(existing_json_index))
+        bundle_meta = BundleMeta(
+            id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified
+        )
+        flat_file_index.merge_debug_ids(bundle_meta, debug_ids)
 
         assert json.loads(flat_file_index.to_json()) == {
             "bundles": [
@@ -488,13 +585,15 @@ class FlatFileIndexTest(FlatFileTestCase):
         )
 
         with ArtifactBundleArchive(artifact_bundle.file.getfile()) as bundle_archive:
-            flat_file_index = FlatFileIndex()
-            flat_file_index.from_json(json.dumps(existing_json_index))
-            # We use the id of the existing bundle.
-            bundle_meta = BundleMeta(
-                id=existing_bundle_id, timestamp=artifact_bundle.date_last_modified
-            )
-            flat_file_index.merge_urls(bundle_meta, bundle_archive)
+            urls = bundle_archive.get_all_urls()
+
+        flat_file_index = FlatFileIndex()
+        flat_file_index.from_json(json.dumps(existing_json_index))
+        # We use the id of the existing bundle.
+        bundle_meta = BundleMeta(
+            id=existing_bundle_id, timestamp=artifact_bundle.date_last_modified
+        )
+        flat_file_index.merge_urls(bundle_meta, urls)
 
         assert json.loads(flat_file_index.to_json()) == {
             "bundles": [

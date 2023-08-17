@@ -34,9 +34,9 @@ import {
   TreeToggle,
   TreeToggleContainer,
 } from 'sentry/components/performance/waterfall/treeConnector';
-import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import toPercent from 'sentry/utils/number/toPercent';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
 
 import * as DividerHandlerManager from './dividerHandlerManager';

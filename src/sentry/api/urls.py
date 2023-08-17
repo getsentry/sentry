@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from django.conf.urls import include
-from django.urls import re_path
+from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
@@ -233,6 +235,7 @@ from .endpoints.internal import (
     InternalWarningsEndpoint,
 )
 from .endpoints.issue_occurrence import IssueOccurrenceEndpoint
+from .endpoints.notification_defaults import NotificationDefaultsEndpoints
 from .endpoints.notifications import (
     NotificationActionsAvailableEndpoint,
     NotificationActionsDetailsEndpoint,
@@ -543,6 +546,9 @@ from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_notification_fine_tuning import UserNotificationFineTuningEndpoint
+from .endpoints.user_notification_options import UserNotificationOptionsEndpoint
+from .endpoints.user_notification_options_detail import UserNotificationOptionsDetailEndpoint
+from .endpoints.user_notification_providers import UserNotificationProvidersEndpoint
 from .endpoints.user_notification_settings_details import UserNotificationSettingsDetailsEndpoint
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
@@ -562,7 +568,7 @@ __all__ = ("urlpatterns",)
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
-GROUP_URLS = [
+GROUP_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<issue_id>[^\/]+)/$",
         GroupDetailsEndpoint.as_view(),
@@ -814,6 +820,21 @@ USER_URLS = [
         r"^(?P<user_id>[^\/]+)/notifications/(?P<notification_type>[^\/]+)/$",
         UserNotificationFineTuningEndpoint.as_view(),
         name="sentry-api-0-user-notifications-fine-tuning",
+    ),
+    re_path(
+        r"^(?P<user_id>[^\/]+)/notification-options/$",
+        UserNotificationOptionsEndpoint.as_view(),
+        name="sentry-api-0-user-notification-options",
+    ),
+    re_path(
+        r"^(?P<user_id>[^\/]+)/notification-options/(?P<notification_option_id>[^\/]+)/$",
+        UserNotificationOptionsDetailEndpoint.as_view(),
+        name="sentry-api-0-user-notification-options-details",
+    ),
+    re_path(
+        r"^(?P<user_id>[^\/]+)/notification-providers/$",
+        UserNotificationProvidersEndpoint.as_view(),
+        name="sentry-api-0-user-notification-providers",
     ),
     re_path(
         r"^(?P<user_id>[^\/]+)/password/$",
@@ -1821,7 +1842,7 @@ ORGANIZATION_URLS = [
     ),
 ]
 
-PROJECT_URLS = [
+PROJECT_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^$",
         ProjectIndexEndpoint.as_view(),
@@ -2781,6 +2802,11 @@ urlpatterns = [
         r"^issues/(?P<issue_id>[^\/]+)/participants/$",
         GroupParticipantsEndpoint.as_view(),
         name="sentry-api-0-group-stats",
+    ),
+    re_path(
+        r"^notification-defaults/$",
+        NotificationDefaultsEndpoints.as_view(),
+        name="sentry-api-0-notification-defaults",
     ),
     # TODO: include in the /organizations/ route tree + remove old dupe once hybrid cloud launches
     re_path(

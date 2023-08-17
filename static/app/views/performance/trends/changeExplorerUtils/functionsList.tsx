@@ -25,6 +25,7 @@ import {
   ErrorWrapper,
   ListItemWrapper,
   ListLink,
+  TimeDifference,
 } from 'sentry/views/performance/trends/changeExplorerUtils/spansList';
 import {
   NormalizedTrendsTransaction,
@@ -419,6 +420,7 @@ export function NumberedFunctionsList(props: NumberedFunctionsListProps) {
             <ListLink to={functionSummaryView} onClick={handleClickAnalytics}>
               {func.function}
             </ListLink>
+            <TimeDifference difference={func.avgTimeDifference / 1000000} />
           </ListItemWrapper>
         </li>
       );

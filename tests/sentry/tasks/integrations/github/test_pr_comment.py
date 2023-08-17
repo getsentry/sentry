@@ -138,8 +138,11 @@ class GithubCommentTestCase(IntegrationTestCase):
         )
         return groupowner
 
-    def create_pr_issues(self):
-        commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
+    def create_pr_issues(self, gh_repo=None):
+        if gh_repo is None:
+            gh_repo = self.gh_repo
+
+        commit_1 = self.add_commit_to_repo(gh_repo, self.user, self.project)
         pr = self.add_pr_to_commit(commit_1)
         self.add_groupowner_to_commit(commit_1, self.project, self.user)
         self.add_groupowner_to_commit(commit_1, self.another_org_project, self.another_org_user)
@@ -319,7 +322,7 @@ class TestFormatComment(TestCase):
         ]
 
         formatted_comment = format_comment(issues)
-        expected_comment = "## Suspect Issues\nThis pull request has been deployed and Sentry observed the following issues:\n\n- ‼️ **TypeError** `sentry.tasks.derive_code_mappings.derive_code_m...` [View Issue](https://sentry.sentry.io/issues/?referrer=github-pr-bot)\n- ‼️ **KafkaException** `query_subscription_consumer_process_message` [View Issue](https://sentry.sentry.io/stats/?referrer=github-pr-bot)\n\n<sub>Did you find this useful? React with a 👍 or 👎</sub>"
+        expected_comment = "## Suspect Issues\nThis pull request was deployed and Sentry observed the following issues:\n\n- ‼️ **TypeError** `sentry.tasks.derive_code_mappings.derive_code_m...` [View Issue](https://sentry.sentry.io/issues/?referrer=github-pr-bot)\n- ‼️ **KafkaException** `query_subscription_consumer_process_message` [View Issue](https://sentry.sentry.io/stats/?referrer=github-pr-bot)\n\n<sub>Did you find this useful? React with a 👍 or 👎</sub>"
         assert formatted_comment == expected_comment
 
 
@@ -360,7 +363,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         assert (
             responses.calls[1].request.body
-            == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
+            == f'{{"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
         )
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 1
@@ -409,7 +412,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         assert (
             responses.calls[1].request.body
-            == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
+            == f'{{"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
         )
         pull_request_comment.refresh_from_db()
         assert pull_request_comment.group_ids == [g.id for g in Group.objects.all()]
@@ -622,6 +625,14 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         self.expired_pr = self.create_pr_issues()
         self.expired_pr.date_added = timezone.now() - timedelta(days=35)
         self.expired_pr.save()
+        self.comment_reactions = {
+            "reactions": {
+                "url": "abcdef",
+                "hooray": 1,
+                "+1": 2,
+                "-1": 0,
+            }
+        }
 
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @responses.activate
@@ -639,18 +650,10 @@ class TestCommentReactionsTask(GithubCommentTestCase):
             self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
             json={"token": self.access_token, "expires_at": self.expires_at},
         )
-        comment_reactions = {
-            "reactions": {
-                "url": "abcdef",
-                "hooray": 1,
-                "+1": 2,
-                "-1": 0,
-            }
-        }
         responses.add(
             responses.GET,
             self.base_url + "/repos/getsentry/sentry/issues/comments/2",
-            json=comment_reactions,
+            json=self.comment_reactions,
         )
 
         github_comment_reactions()
@@ -659,7 +662,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         assert old_comment.reactions is None
 
         self.comment.refresh_from_db()
-        stored_reactions = comment_reactions["reactions"]
+        stored_reactions = self.comment_reactions["reactions"]
         del stored_reactions["url"]
         assert self.comment.reactions == stored_reactions
 
@@ -717,7 +720,22 @@ class TestCommentReactionsTask(GithubCommentTestCase):
 
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @responses.activate
-    def test_comment_reactions_task_api_error(self, mock_metrics):
+    def test_comment_reactions_task_api_error_one(self, mock_metrics):
+        gh_repo = self.create_repo(
+            name="getsentry/santry",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            project=self.project,
+            url="https://github.com/getsentry/santry",
+        )
+        no_error_comment = PullRequestComment.objects.create(
+            external_id="3",
+            pull_request=self.create_pr_issues(gh_repo=gh_repo),
+            created_at=timezone.now(),
+            updated_at=timezone.now(),
+            group_ids=[7, 8],
+        )
+
         responses.add(
             responses.POST,
             self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
@@ -729,12 +747,24 @@ class TestCommentReactionsTask(GithubCommentTestCase):
             status=400,
             json={},
         )
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/getsentry/santry/issues/comments/3",
+            json=self.comment_reactions,
+        )
 
         github_comment_reactions()
 
         self.comment.refresh_from_db()
         assert self.comment.reactions is None
-        mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.api_error")
+
+        no_error_comment.refresh_from_db()
+        stored_reactions = self.comment_reactions["reactions"]
+        del stored_reactions["url"]
+        assert no_error_comment.reactions == stored_reactions
+
+        # assert the last metric emitted is a success
+        mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.success")
 
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @responses.activate

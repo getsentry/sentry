@@ -67,7 +67,7 @@ MONITOR_CONFIG = {
     },
     # TODO(davidenwang): Old monitors may not have timezone or schedule_type, these should be added here once we've cleaned up old data
     "required": ["checkin_margin", "max_runtime", "schedule"],
-    "additionalProperties": True,
+    "additionalProperties": False,
 }
 
 MAX_SLUG_LENGTH = 50
@@ -198,7 +198,7 @@ class CheckInStatus:
 
 class MonitorType:
     # In the future we may have other types of monitors such as health check
-    # monitors. But for now we just have CRON_JOB style moniotors.
+    # monitors. But for now we just have CRON_JOB style monitors.
     UNKNOWN = 0
     CRON_JOB = 3
 
@@ -280,7 +280,10 @@ class Monitor(Model):
     def get_audit_log_data(self):
         return {"name": self.name, "type": self.type, "status": self.status, "config": self.config}
 
-    def get_next_scheduled_checkin(self, last_checkin):
+    def get_next_expected_checkin(self, last_checkin: datetime) -> datetime:
+        """
+        Computes the next expected checkin time given the most recent checkin time
+        """
         tz = pytz.timezone(self.config.get("timezone") or "UTC")
         schedule_type = self.config.get("schedule_type", ScheduleType.CRONTAB)
         next_checkin = get_next_schedule(
@@ -288,8 +291,13 @@ class Monitor(Model):
         )
         return next_checkin
 
-    def get_next_scheduled_checkin_with_margin(self, last_checkin):
-        next_checkin = self.get_next_scheduled_checkin(last_checkin)
+    def get_next_expected_checkin_latest(self, last_checkin: datetime) -> datetime:
+        """
+        Computes the latest time we will expect the next checkin at given the
+        most recent checkin time. This is determined by the user-conigured
+        margin.
+        """
+        next_checkin = self.get_next_expected_checkin(last_checkin)
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
     def update_config(self, config_payload, validated_config):
@@ -309,7 +317,7 @@ class Monitor(Model):
             jsonschema.validate(self.config, MONITOR_CONFIG)
             return self.config
         except jsonschema.ValidationError:
-            logging.error(f"Monitor: {self.id} invalid config: {self.config}")
+            logging.exception(f"Monitor: {self.id} invalid config: {self.config}", exc_info=True)
 
     def get_alert_rule(self):
         alert_rule_id = self.config.get("alert_rule_id")
@@ -444,7 +452,7 @@ class MonitorLocation(Model):
 
 class MonitorEnvironmentManager(BaseManager):
     """
-    A manager that consolidates logic for monitor enviroment updates
+    A manager that consolidates logic for monitor environment updates
     """
 
     def ensure_environment(
@@ -519,7 +527,8 @@ class MonitorEnvironment(Model):
         elif reason == MonitorFailure.DURATION:
             new_status = MonitorStatus.TIMEOUT
 
-        next_checkin_latest = self.monitor.get_next_scheduled_checkin_with_margin(next_checkin_base)
+        next_checkin = self.monitor.get_next_expected_checkin(next_checkin_base)
+        next_checkin_latest = self.monitor.get_next_expected_checkin_latest(next_checkin_base)
 
         affected = (
             type(self)
@@ -527,7 +536,7 @@ class MonitorEnvironment(Model):
                 Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=self.id
             )
             .update(
-                next_checkin=next_checkin_latest,
+                next_checkin=next_checkin,
                 next_checkin_latest=next_checkin_latest,
                 status=new_status,
                 last_checkin=last_checkin,
@@ -642,10 +651,12 @@ class MonitorEnvironment(Model):
         return True
 
     def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
-        next_checkin_latest = self.monitor.get_next_scheduled_checkin_with_margin(ts)
+        next_checkin = self.monitor.get_next_expected_checkin(ts)
+        next_checkin_latest = self.monitor.get_next_expected_checkin_latest(ts)
+
         params = {
             "last_checkin": ts,
-            "next_checkin": next_checkin_latest,
+            "next_checkin": next_checkin,
             "next_checkin_latest": next_checkin_latest,
         }
         if checkin.status == CheckInStatus.OK and self.monitor.status != ObjectStatus.DISABLED:

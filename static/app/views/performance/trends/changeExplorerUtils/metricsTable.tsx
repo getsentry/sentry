@@ -41,7 +41,7 @@ type MetricsTableProps = {
   trendView: TrendView;
 };
 
-const fieldsNeeded: AggregationKeyWithAlias[] = ['tps', 'p50', 'p95'];
+const fieldsNeeded: AggregationKeyWithAlias[] = ['tps', 'p50', 'p95', 'failure_rate'];
 
 type MetricColumnKey = 'metric' | 'before' | 'after' | 'change';
 
@@ -135,35 +135,6 @@ export function MetricsTable(props: MetricsTableProps) {
     )
   );
 
-  const {data: beforeBreakpointErrors, isLoading: isLoadingBeforeErrors} =
-    useDiscoverQuery(
-      getQueryParams(
-        startTime,
-        breakpointTime,
-        ['count'],
-        'error',
-        DiscoverDatasets.DISCOVER,
-        organization,
-        trendView,
-        transaction.transaction,
-        location
-      )
-    );
-
-  const {data: afterBreakpointErrors, isLoading: isLoadingAfterErrors} = useDiscoverQuery(
-    getQueryParams(
-      breakpointTime,
-      endTime,
-      ['count'],
-      'error',
-      DiscoverDatasets.DISCOVER,
-      organization,
-      trendView,
-      transaction.transaction,
-      location
-    )
-  );
-
   const throughput: TableDataRow = getEventsRowData(
     'tps()',
     'Throughput',
@@ -198,21 +169,21 @@ export function MetricsTable(props: MetricsTableProps) {
       )
     : p95;
 
-  const errors: TableDataRow = getEventsRowData(
-    'count()',
-    'Errors',
-    '',
+  const failureRate: TableDataRow = getEventsRowData(
+    'failure_rate()',
+    'Failure Rate',
+    '%',
     0,
     true,
-    beforeBreakpointErrors,
-    afterBreakpointErrors
+    beforeBreakpoint,
+    afterBreakpoint
   );
 
   const columnOrder = MetricColumnOrder.map(column => COLUMNS[column]);
 
   return (
     <GridEditable
-      data={[throughput, p50Events, p95Events, errors]}
+      data={[throughput, p50Events, p95Events, failureRate]}
       columnOrder={columnOrder}
       columnSortBy={[]}
       grid={{
@@ -220,13 +191,7 @@ export function MetricsTable(props: MetricsTableProps) {
         renderBodyCell,
       }}
       location={location}
-      isLoading={
-        isLoadingBefore ||
-        isLoadingAfter ||
-        isLoading ||
-        isLoadingBeforeErrors ||
-        isLoadingAfterErrors
-      }
+      isLoading={isLoadingBefore || isLoadingAfter || isLoading}
     />
   );
 }
@@ -236,26 +201,32 @@ function getEventsRowData(
   rowTitle: string,
   suffix: string,
   nullValue: string | number,
-  wholeNumbers: boolean,
+  percentage: boolean,
   beforeData?: TableData,
   afterData?: TableData
 ): TableDataRow {
-  if (beforeData?.data[0][field] && afterData?.data[0][field]) {
+  if (
+    beforeData?.data[0][field] !== undefined &&
+    afterData?.data[0][field] !== undefined
+  ) {
     return {
       metric: rowTitle,
-      before: !wholeNumbers
+      before: !percentage
         ? toFormattedNumber(beforeData.data[0][field].toString(), 1) + ' ' + suffix
-        : beforeData.data[0][field],
-      after: !wholeNumbers
+        : formatPercentage(beforeData.data[0][field] as number, 1),
+      after: !percentage
         ? toFormattedNumber(afterData.data[0][field].toString(), 1) + ' ' + suffix
-        : afterData.data[0][field],
-      change: formatPercentage(
-        relativeChange(
-          beforeData.data[0][field] as number,
-          afterData.data[0][field] as number
-        ),
-        1
-      ),
+        : formatPercentage(afterData.data[0][field] as number, 1),
+      change:
+        beforeData.data[0][field] && afterData.data[0][field]
+          ? formatPercentage(
+              relativeChange(
+                beforeData.data[0][field] as number,
+                afterData.data[0][field] as number
+              ),
+              1
+            )
+          : '-',
     };
   }
   return {
