@@ -97,6 +97,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
 
     # Register explicit ednpoints
     filtered.extend(__get_explicit_endpoints())
+
     return filtered
 
 
