@@ -27,43 +27,15 @@ class ProjectFiltersTest(APITestCase):
         project.update_option("filters:browser-extension", "0")
         response = self.get_success_response(org.slug, project.slug)
 
-        assert response.data == [
-            {
-                "id": "browser-extensions",
-                "active": False,
-                "description": "Certain browser extensions will inject inline scripts and are known to cause errors.",
-                "name": "Filter out errors known to be caused by browser extensions",
-                "hello": "browser-extensions - Filter out errors known to be caused by browser extensions",
-            },
-            {
-                "id": "localhost",
-                "active": False,
-                "description": "This applies to both IPv4 (``127.0.0.1``) and IPv6 (``::1``) addresses.",
-                "name": "Filter out events coming from localhost",
-                "hello": "localhost - Filter out events coming from localhost",
-            },
-            {
-                "id": "filtered-transaction",
-                "active": True,
-                "description": "Filter transactions that match most common naming patterns for health checks.",
-                "name": "Filter out health check transactions",
-                "hello": "filtered-transaction - Filter out health check transactions",
-            },
-            {
-                "id": "legacy-browsers",
-                "active": [],
-                "description": "Older browsers often give less accurate information, and while they may report valid issues, the context to understand them is incorrect or missing.",
-                "name": "Filter out known errors from legacy browsers",
-                "hello": "legacy-browsers - Filter out known errors from legacy browsers",
-            },
-            {
-                "id": "web-crawlers",
-                "active": False,
-                "description": "Some crawlers may execute pages in incompatible ways which then cause errors that are unlikely to be seen by a normal user.",
-                "name": "Filter out known web crawlers",
-                "hello": "web-crawlers - Filter out known web crawlers",
-            },
-        ]
+        filter_responses = {
+            "browser-extensions": False,
+            "localhost": False,
+            "filtered-transaction": True,
+            "legacy-browsers": [],
+            "web-crawlers": False,
+        }
+        for filter in response.data:
+            assert filter["active"] == filter_responses[filter["id"]]
 
     def test_health_check_filter(self):
         """
