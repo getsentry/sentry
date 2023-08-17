@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.endpoints.organization_dashboards import OrganizationDashboardsPermission
@@ -19,6 +20,7 @@ READ_FEATURE = "organizations:dashboards-basic"
 
 
 class OrganizationDashboardBase(OrganizationEndpoint):
+    owner = ApiOwner.DISCOVER_N_DASHBOARDS
     permission_classes = (OrganizationDashboardsPermission,)
 
     def convert_args(self, request: Request, organization_slug, dashboard_id, *args, **kwargs):
