@@ -36,7 +36,29 @@ type Props = {
 
 export type ReferrerTableType = 'main' | 'dead-table' | 'errors-table' | 'rage-table';
 
-function DropdownFilter({
+type EditType = 'set' | 'remove';
+
+function GenerateAction(key: string, value: string, edit: EditType) {
+  const location = useLocation<ReplayListLocationQuery>();
+  const search = new MutableSearch(decodeScalar(location.query.query) || '');
+
+  const modifiedQuery =
+    edit === 'set' ? search.setFilterValues(key, [value]) : search.removeFilter(key);
+
+  const onAction = () => {
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        query: modifiedQuery.formatString(),
+      },
+    });
+  };
+
+  return onAction;
+}
+
+function OSBrowserDropdownFilter({
   type,
   name,
   version,
@@ -45,7 +67,6 @@ function DropdownFilter({
   type: string;
   version: string | null;
 }) {
-  const location = useLocation<ReplayListLocationQuery>();
   return (
     <DropdownMenu
       items={[
@@ -59,38 +80,12 @@ function DropdownFilter({
             {
               key: 'name_add',
               label: t('Add to filter'),
-              onAction: () => {
-                const search = new MutableSearch(
-                  decodeScalar(location.query.query) || ''
-                );
-                browserHistory.push({
-                  pathname: location.pathname,
-                  query: {
-                    ...location.query,
-                    query: search
-                      .setFilterValues(`${type}.name`, [name ?? ''])
-                      .formatString(),
-                  },
-                });
-              },
+              onAction: GenerateAction(`${type}.name`, name ?? '', 'set'),
             },
             {
               key: 'name_exclude',
               label: t('Exclude from filter'),
-              onAction: () => {
-                const search = new MutableSearch(
-                  decodeScalar(location.query.query) || ''
-                );
-                browserHistory.push({
-                  pathname: location.pathname,
-                  query: {
-                    ...location.query,
-                    query: search
-                      .removeFilterValue(`${type}.name`, name ?? '')
-                      .formatString(),
-                  },
-                });
-              },
+              onAction: GenerateAction(`${type}.name`, name ?? '', 'remove'),
             },
           ],
         },
@@ -106,38 +101,12 @@ function DropdownFilter({
                   {
                     key: 'version_add',
                     label: t('Add to filter'),
-                    onAction: () => {
-                      const search = new MutableSearch(
-                        decodeScalar(location.query.query) || ''
-                      );
-                      browserHistory.push({
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: search
-                            .setFilterValues(`${type}.version`, [version ?? ''])
-                            .formatString(),
-                        },
-                      });
-                    },
+                    onAction: GenerateAction(`${type}.version`, version ?? '', 'set'),
                   },
                   {
                     key: 'version_exclude',
                     label: t('Exclude from filter'),
-                    onAction: () => {
-                      const search = new MutableSearch(
-                        decodeScalar(location.query.query) || ''
-                      );
-                      browserHistory.push({
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: search
-                            .removeFilterValue(`${type}.version`, version ?? '')
-                            .formatString(),
-                        },
-                      });
-                    },
+                    onAction: GenerateAction(`${type}.version`, version ?? '', 'remove'),
                   },
                 ],
               },
@@ -154,6 +123,52 @@ function DropdownFilter({
       }}
       trigger={triggerProps => (
         <ActionMenuTrigger
+          {...triggerProps}
+          translucentBorder
+          aria-label={t('Actions')}
+          icon={<IconEllipsis size="xs" />}
+          size="zero"
+        />
+      )}
+    />
+  );
+}
+
+function NumericDropdownFilter({type, val}: {type: string; val: number}) {
+  return (
+    <DropdownMenu
+      items={[
+        {
+          key: 'add',
+          label: 'Add to filter',
+          onAction: GenerateAction(type, val.toString(), 'set'),
+        },
+        {
+          key: 'greater',
+          label: 'Show values greater than',
+          onAction: GenerateAction(type, '>' + val.toString(), 'set'),
+        },
+        {
+          key: 'less',
+          label: 'Show values less than',
+          onAction: GenerateAction(type, '<' + val.toString(), 'set'),
+        },
+        {
+          key: 'exclude',
+          label: t('Exclude from filter'),
+          onAction: GenerateAction(type, val.toString(), 'remove'),
+        },
+      ]}
+      usePortal
+      size="xs"
+      offset={4}
+      position="bottom"
+      preventOverflowOptions={{padding: 4}}
+      flipOptions={{
+        fallbackPlacements: ['top', 'right-start', 'right-end', 'left-start', 'left-end'],
+      }}
+      trigger={triggerProps => (
+        <NumericActionMenuTrigger
           {...triggerProps}
           translucentBorder
           aria-label={t('Actions')}
@@ -374,7 +389,7 @@ export function OSCell({replay}: Props) {
           showVersion={false}
           showTooltip={false}
         />
-        <DropdownFilter type="os" name={name} version={version} />
+        <OSBrowserDropdownFilter type="os" name={name} version={version} />
       </Container>
     </Item>
   );
@@ -397,7 +412,7 @@ export function BrowserCell({replay}: Props) {
           showVersion={false}
           showTooltip={false}
         />
-        <DropdownFilter type="browser" name={name} version={version} />
+        <OSBrowserDropdownFilter type="browser" name={name} version={version} />
       </Container>
     </Item>
   );
@@ -409,7 +424,10 @@ export function DurationCell({replay}: Props) {
   }
   return (
     <Item>
-      <Time>{formatTime(replay.duration.asMilliseconds())}</Time>
+      <Container>
+        <Time>{formatTime(replay.duration.asMilliseconds())}</Time>
+        <NumericDropdownFilter type="duration" val={replay.duration.asSeconds()} />
+      </Container>
     </Item>
   );
 }
@@ -420,11 +438,17 @@ export function RageClickCountCell({replay}: Props) {
   }
   return (
     <Item data-test-id="replay-table-count-rage-clicks">
-      {replay.count_rage_clicks ? (
-        <DeadRageCount>{replay.count_rage_clicks}</DeadRageCount>
-      ) : (
-        <Count>0</Count>
-      )}
+      <Container>
+        {replay.count_rage_clicks ? (
+          <DeadRageCount>{replay.count_rage_clicks}</DeadRageCount>
+        ) : (
+          <Count>0</Count>
+        )}
+        <NumericDropdownFilter
+          type="count_rage_clicks"
+          val={replay.count_rage_clicks ?? 0}
+        />
+      </Container>
     </Item>
   );
 }
@@ -435,11 +459,17 @@ export function DeadClickCountCell({replay}: Props) {
   }
   return (
     <Item data-test-id="replay-table-count-dead-clicks">
-      {replay.count_dead_clicks ? (
-        <DeadRageCount>{replay.count_dead_clicks}</DeadRageCount>
-      ) : (
-        <Count>0</Count>
-      )}
+      <Container>
+        {replay.count_dead_clicks ? (
+          <DeadRageCount>{replay.count_dead_clicks}</DeadRageCount>
+        ) : (
+          <Count>0</Count>
+        )}
+        <NumericDropdownFilter
+          type="count_dead_clicks"
+          val={replay.count_dead_clicks ?? 0}
+        />
+      </Container>
     </Item>
   );
 }
@@ -450,14 +480,17 @@ export function ErrorCountCell({replay}: Props) {
   }
   return (
     <Item data-test-id="replay-table-count-errors">
-      {replay.count_errors ? (
-        <ErrorCount>
-          <IconFire />
-          {replay.count_errors}
-        </ErrorCount>
-      ) : (
-        <Count>0</Count>
-      )}
+      <Container>
+        {replay.count_errors ? (
+          <ErrorCount>
+            <IconFire />
+            {replay.count_errors}
+          </ErrorCount>
+        ) : (
+          <Count>0</Count>
+        )}
+        <NumericDropdownFilter type="count_errors" val={replay.count_errors ?? 0} />
+      </Container>
     </Item>
   );
 }
@@ -541,4 +574,8 @@ const ActionMenuTrigger = styled(Button)`
   ${Container}:hover & {
     opacity: 1;
   }
+`;
+
+const NumericActionMenuTrigger = styled(ActionMenuTrigger)`
+  left: ${space(3)};
 `;
