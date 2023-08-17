@@ -14,8 +14,8 @@ class SanitizeUserImportsMixin:
     backup to a clean install. In this case, one may want to import so-called "superusers": users
     with powerful various instance-wide permissions generally reserved for admins and instance
     maintainers. Thus, for security reasons, running this import in any `ImportScope` other than
-    `Global` will sanitize user imports by ignoring imports of the `UserPermission`, `UserRole`, and
-    `UserRoleUser` models.
+    `Global` will sanitize user imports by ignoring imports of the `Authenticator`,
+    `UserPermission`, `UserRole`, and `UserRoleUser` models.
     """
 
     def write_relocation_import(
