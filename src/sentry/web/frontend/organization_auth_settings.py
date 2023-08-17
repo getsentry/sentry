@@ -4,7 +4,8 @@ from django import forms
 from django.contrib import messages
 from django.db import router, transaction
 from django.db.models import F
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect
+from django.http.response import HttpResponse, HttpResponseBadRequest, HttpResponseBase
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
@@ -212,7 +213,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
 
         return self.respond("sentry/organization-auth-provider-settings.html", context)
 
-    def handle(self, request: Request, organization: RpcOrganization) -> HttpResponse:
+    def handle(self, request: Request, organization: RpcOrganization) -> HttpResponseBase:  # type: ignore[override]
         providers = auth_service.get_auth_providers(organization_id=organization.id)
         if providers:
             # if the org has SSO set up already, allow them to modify the existing provider
@@ -224,8 +225,8 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
 
         if request.method == "POST":
             provider_key = request.POST.get("provider")
-            if not manager.exists(provider_key):
-                raise ValueError(f"Provider not found: {provider_key}")
+            if provider_key is None or not manager.exists(provider_key):
+                return HttpResponseBadRequest()
 
             helper = AuthHelper(
                 request=request,

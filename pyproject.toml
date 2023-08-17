@@ -824,7 +824,6 @@ module = [
     "sentry.web.frontend.newest_issue",
     "sentry.web.frontend.oauth_authorize",
     "sentry.web.frontend.oauth_token",
-    "sentry.web.frontend.organization_auth_settings",
     "sentry.web.frontend.organization_integration_setup",
     "sentry.web.frontend.out",
     "sentry.web.frontend.pipeline_advancer",
