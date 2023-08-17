@@ -61,9 +61,9 @@ const FILTERS = {
 function useNetworkFilters({networkFrames}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
-  const method = decodeList(query.f_n_method);
-  const status = decodeList(query.f_n_status);
-  const type = decodeList(query.f_n_type);
+  const method = useMemo(() => decodeList(query.f_n_method), [query.f_n_method]);
+  const status = useMemo(() => decodeList(query.f_n_status), [query.f_n_status]);
+  const type = useMemo(() => decodeList(query.f_n_type), [query.f_n_type]);
   const searchTerm = decodeScalar(query.f_n_search, '').toLowerCase();
 
   // Need to clear Network Details URL params when we filter, otherwise you can
