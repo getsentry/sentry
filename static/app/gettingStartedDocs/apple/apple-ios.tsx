@@ -45,7 +45,7 @@ https://github.com/getsentry/sentry-cocoa.git
           </p>
         ),
         language: 'swift',
-        loading: sourcePackageRegistries?.isLoading,
+        partialLoading: sourcePackageRegistries?.isLoading,
         code: `
 .package(url: "https://github.com/getsentry/sentry-cocoa", from: "${
           sourcePackageRegistries?.data?.['sentry.cocoa']?.version ?? '8.9.3'

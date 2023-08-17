@@ -29,7 +29,7 @@ export const steps = ({
     configurations: [
       {
         language: 'groovy',
-        loading: sourcePackageRegistries?.isLoading,
+        partialLoading: sourcePackageRegistries?.isLoading,
         code: `
 plugins {
   id "com.android.application" // should be in the same module

@@ -21,10 +21,6 @@ interface CodeSnippetProps {
   disableUserSelection?: boolean;
   filename?: string;
   hideCopyButton?: boolean;
-  /**
-   * Weather the code snippet or parts of it, it is currently being loaded
-   */
-  loading?: boolean;
   onCopy?: (copiedCode: string) => void;
   /**
    * Fired when the user selects and copies code snippet manually

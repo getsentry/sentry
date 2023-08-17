@@ -26,7 +26,7 @@ export const steps = ({
     configurations: [
       {
         language: 'yml',
-        loading: sourcePackageRegistries?.isLoading,
+        partialLoading: sourcePackageRegistries?.isLoading,
         code: `
 dependencies:
   sentry: ^${sourcePackageRegistries?.data?.['sentry.dart']?.version ?? '7.8.0'}

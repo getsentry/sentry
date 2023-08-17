@@ -27,7 +27,7 @@ export const steps = ({
     configurations: [
       {
         language: 'shell',
-        loading: sourcePackageRegistries?.isLoading,
+        partialLoading: sourcePackageRegistries?.isLoading,
         description: t('Package Manager:'),
         code: `Install-Package Sentry.AspNetCore -Version ${
           sourcePackageRegistries?.data?.['sentry.dotnet.aspnetcore']?.version ?? '3.34.0'
@@ -35,7 +35,7 @@ export const steps = ({
       },
       {
         language: 'shell',
-        loading: sourcePackageRegistries?.isLoading,
+        partialLoading: sourcePackageRegistries?.isLoading,
         description: t('Or .NET Core CLI:'),
         code: `dotnet add package Sentry.AspNetCore -v ${
           sourcePackageRegistries?.data?.['sentry.dotnet.aspnetcore']?.version ?? '3.34.0'

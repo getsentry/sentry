@@ -38,7 +38,7 @@ export const steps = ({
     configurations: [
       {
         language: 'shell',
-        loading: sourcePackageRegistries?.isLoading,
+        partialLoading: sourcePackageRegistries?.isLoading,
         code: `
 # Using Package Manager
 Install-Package Sentry -Version ${

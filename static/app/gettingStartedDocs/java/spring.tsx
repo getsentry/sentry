@@ -43,7 +43,7 @@ export const steps = ({
         configurations: [
           {
             language: 'xml',
-            loading: sourcePackageRegistries?.isLoading,
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: <strong>{t('Spring 5')}</strong>,
             code: `
 <dependency>
@@ -57,7 +57,7 @@ export const steps = ({
           },
           {
             language: 'xml',
-            loading: sourcePackageRegistries?.isLoading,
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: <strong>{t('Spring 6')}</strong>,
             code: `
 <dependency>
@@ -162,7 +162,7 @@ import org.springframework.core.Ordered
         configurations: [
           {
             language: 'xml',
-            loading: sourcePackageRegistries?.isLoading,
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: t(
               'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
             ),
@@ -216,7 +216,7 @@ import org.springframework.core.Ordered
           {
             description: <strong>{t('Spring 5')}</strong>,
             language: 'groovy',
-            loading: sourcePackageRegistries?.isLoading,
+            partialLoading: sourcePackageRegistries?.isLoading,
             code: `implementation 'io.sentry:sentry-spring:${
               sourcePackageRegistries?.data?.['sentry.java.spring']?.version ?? '6.27.0'
             }'`,
@@ -288,7 +288,7 @@ try {
     configurations: [
       {
         language: 'groovy',
-        loading: sourcePackageRegistries?.isLoading,
+        partialLoading: sourcePackageRegistries?.isLoading,
         description: t(
           'To upload your source code to Sentry so it can be shown in stack traces, use our Gradle plugin.'
         ),

@@ -23,7 +23,7 @@ export const steps = ({
     configurations: [
       {
         language: 'toml',
-        loading: sourcePackageRegistries?.isLoading,
+        partialLoading: sourcePackageRegistries?.isLoading,
         code: `
 [dependencies]
 sentry = "${sourcePackageRegistries?.data?.['sentry.rust'] ?? '0.31.5'}"

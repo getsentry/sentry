@@ -29,14 +29,14 @@ export const steps = ({
     configurations: [
       {
         language: 'powershell',
-        loading: sourcePackageRegistries?.isLoading,
+        partialLoading: sourcePackageRegistries?.isLoading,
         code: `Install-Package Sentry.AspNetCore -Version ${
           sourcePackageRegistries?.data?.['sentry.dotnet.aspnetcore']?.version ?? '3.34.0'
         }`,
       },
       {
         language: 'shell',
-        loading: sourcePackageRegistries?.isLoading,
+        partialLoading: sourcePackageRegistries?.isLoading,
         code: `dotnet add package Sentry.AspNetCore -v ${
           sourcePackageRegistries?.data?.['sentry.dotnet.aspnetcore']?.version ?? '3.34.0'
         }`,

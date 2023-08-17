@@ -37,7 +37,7 @@ export const steps = ({
         configurations: [
           {
             language: 'xml',
-            loading: sourcePackageRegistries?.isLoading,
+            partialLoading: sourcePackageRegistries?.isLoading,
             code: `
 <dependency>
   <groupId>io.sentry</groupId>
@@ -50,7 +50,7 @@ export const steps = ({
           },
           {
             language: 'xml',
-            loading: sourcePackageRegistries?.isLoading,
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: t(
               'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
             ),
@@ -104,7 +104,7 @@ export const steps = ({
         configurations: [
           {
             language: 'groovy',
-            loading: sourcePackageRegistries?.isLoading,
+            partialLoading: sourcePackageRegistries?.isLoading,
             code: `implementation 'io.sentry:sentry-logback:${
               sourcePackageRegistries?.data?.['sentry.java.logback']?.version ?? '6.27.0'
             }'`,
@@ -114,7 +114,7 @@ export const steps = ({
               'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
             ),
             language: 'groovy',
-            loading: sourcePackageRegistries?.isLoading,
+            partialLoading: sourcePackageRegistries?.isLoading,
             code: `
 buildscript {
   repositories {

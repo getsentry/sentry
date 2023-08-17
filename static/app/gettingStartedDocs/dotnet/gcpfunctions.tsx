@@ -27,7 +27,7 @@ export const steps = ({
     configurations: [
       {
         language: 'shell',
-        loading: sourcePackageRegistries?.isLoading,
+        partialLoading: sourcePackageRegistries?.isLoading,
         description: t('Package Manager:'),
         code: `Install-Package Sentry.Google.Cloud.Functions -Version ${
           sourcePackageRegistries?.data?.['sentry.dotnet.google-cloud-function']
@@ -36,7 +36,7 @@ export const steps = ({
       },
       {
         language: 'shell',
-        loading: sourcePackageRegistries?.isLoading,
+        partialLoading: sourcePackageRegistries?.isLoading,
         description: t('Or .NET Core CLI:'),
         code: `dotnet add package Sentry.Google.Cloud.Functions -v ${
           sourcePackageRegistries?.data?.['sentry.dotnet.google-cloud-function']
@@ -45,7 +45,7 @@ export const steps = ({
       },
       {
         language: 'xml',
-        loading: sourcePackageRegistries?.isLoading,
+        partialLoading: sourcePackageRegistries?.isLoading,
         description: t('Or, manually add the Sentry dependency into your csproj file:'),
         code: `
 <ItemGroup>

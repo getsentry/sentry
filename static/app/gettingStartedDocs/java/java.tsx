@@ -34,7 +34,7 @@ export const steps = ({
         configurations: [
           {
             language: 'groovy',
-            loading: sourcePackageRegistries?.isLoading,
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: (
               <p>
                 {tct('For Gradle, add to your [code:build.gradle] file:', {
@@ -58,7 +58,7 @@ dependencies {
           },
           {
             language: 'groovy',
-            loading: sourcePackageRegistries?.isLoading,
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: t(
               'To upload your source code to Sentry so it can be shown in stack traces, use our Gradle plugin.'
             ),
@@ -95,7 +95,7 @@ sentry {
         configurations: [
           {
             language: 'xml',
-            loading: sourcePackageRegistries?.isLoading,
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: (
               <p>
                 {tct('For Maven, add to your [code:pom.xml] file:', {code: <code />})}
@@ -113,7 +113,7 @@ sentry {
           },
           {
             language: 'xml',
-            loading: sourcePackageRegistries?.isLoading,
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: t(
               'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
             ),
@@ -168,7 +168,7 @@ sentry {
           {
             description: <p>{tct('For [strong:SBT]:', {strong: <strong />})}</p>,
             language: 'scala',
-            loading: sourcePackageRegistries?.isLoading,
+            partialLoading: sourcePackageRegistries?.isLoading,
             code: `libraryDependencies += "io.sentry" % "sentry" % "${
               sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.27.0'
             }"`,

@@ -42,7 +42,7 @@ export const steps = ({
         configurations: [
           {
             language: 'xml',
-            loading: sourcePackageRegistries?.isLoading,
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: <strong>{t('Spring Boot 2')}</strong>,
             code: `
 <dependency>
@@ -56,7 +56,7 @@ export const steps = ({
           },
           {
             language: 'xml',
-            loading: sourcePackageRegistries?.isLoading,
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: <strong>{t('Spring Boot 3')}</strong>,
             code: `
 <dependency>
@@ -77,7 +77,7 @@ export const steps = ({
           {
             language: 'properties',
             description: <strong>{t('Spring Boot 2')}</strong>,
-            loading: sourcePackageRegistries?.isLoading,
+            partialLoading: sourcePackageRegistries?.isLoading,
             code: `implementation 'io.sentry:sentry-spring-boot-starter:${
               sourcePackageRegistries?.data?.['sentry.java.spring-boot']?.version ??
               '6.27.0'
@@ -85,7 +85,7 @@ export const steps = ({
           },
           {
             language: 'properties',
-            loading: sourcePackageRegistries?.isLoading,
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: <strong>{t('Spring Boot 3')}</strong>,
             code: `implementation 'io.sentry:sentry-spring-boot-starter-jakarta:${
               sourcePackageRegistries?.data?.['sentry.java.spring-boot.jakarta']
@@ -213,7 +213,7 @@ sentry:
         configurations: [
           {
             language: 'properties',
-            loading: sourcePackageRegistries?.isLoading,
+            partialLoading: sourcePackageRegistries?.isLoading,
             code: `implementation 'io.sentry:sentry-logback:${
               sourcePackageRegistries?.data?.['sentry.java.logback']?.version ?? '6.27.0'
             }'`,

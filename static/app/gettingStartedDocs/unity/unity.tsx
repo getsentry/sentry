@@ -32,7 +32,7 @@ export const steps = ({
     configurations: [
       {
         language: 'bash',
-        loading: sourcePackageRegistries?.isLoading,
+        partialLoading: sourcePackageRegistries?.isLoading,
         code: `https://github.com/getsentry/unity.git#${
           sourcePackageRegistries?.data?.['sentry.dotnet.unity']?.version ?? '1.5.0'
         }`,

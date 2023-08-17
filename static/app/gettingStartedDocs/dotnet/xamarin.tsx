@@ -25,7 +25,7 @@ export const steps = ({
     configurations: [
       {
         language: 'shell',
-        loading: sourcePackageRegistries?.isLoading,
+        partialLoading: sourcePackageRegistries?.isLoading,
         code: `
 # For Xamarin.Forms
 Install-Package Sentry.Xamarin.Forms -Version ${

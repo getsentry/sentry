@@ -44,7 +44,7 @@ export const steps = ({
             })}
           </p>
         ),
-        loading: sourcePackageRegistries?.isLoading,
+        partialLoading: sourcePackageRegistries?.isLoading,
         code: `
 // Make sure mavenCentral is there.
 repositories {
@@ -60,7 +60,7 @@ dependencies {
       },
       {
         language: 'xml',
-        loading: sourcePackageRegistries?.isLoading,
+        partialLoading: sourcePackageRegistries?.isLoading,
         description: (
           <p>
             {tct('For [strong:Maven], add to your [code:pom.xml] file:', {
