@@ -5,8 +5,10 @@ import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceLiteQuery from 'sentry/utils/performance/quickTrace/traceLiteQuery';
 import {
+  EventLite,
   QuickTraceQueryChildrenProps,
   TraceFull,
+  TraceLite,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {
@@ -108,9 +110,22 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               traceLiteResults.trace !== null
             ) {
               const {trace} = traceLiteResults;
+              const {transactions: transactionLite, orphanErrors: orphanErrorsLite} =
+                getTraceSplitResults<EventLite>(trace ?? [], organization);
+
+              const orphanError =
+                orphanErrorsLite && orphanErrorsLite.length === 1
+                  ? orphanErrorsLite[0]
+                  : undefined;
+              const traceTransactions = transactionLite ?? (trace as TraceLite);
               return children({
                 ...traceLiteResults,
-                currentEvent: trace.find(e => isCurrentEvent(e, event)) ?? null,
+                trace: traceTransactions,
+                orphanErrors: orphanErrorsLite,
+                currentEvent:
+                  orphanError ??
+                  traceTransactions.find(e => isCurrentEvent(e, event)) ??
+                  null,
               });
             }
 

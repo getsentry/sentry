@@ -3,6 +3,7 @@ import {LocationDescriptor, Query} from 'history';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {Organization, OrganizationSummary} from 'sentry/types';
 import {
+  EventLite,
   TraceError,
   TraceFull,
   TraceFullDetailed,
@@ -63,7 +64,7 @@ export function hasTraceData(
   );
 }
 
-export function getTraceSplitResults<U extends TraceFullDetailed | TraceFull>(
+export function getTraceSplitResults<U extends TraceFullDetailed | TraceFull | EventLite>(
   trace: TraceSplitResults<U> | U[],
   organization: Organization
 ) {
