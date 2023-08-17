@@ -7,6 +7,7 @@ describe('isOnDemandQueryString', () => {
     expect(isOnDemandQueryString('transaction.duration:>1')).toBeTruthy();
     expect(isOnDemandQueryString('device.name:foo')).toBeTruthy();
     expect(isOnDemandQueryString('geo.region:>US')).toBeTruthy();
+    expect(isOnDemandQueryString('foo:bar')).toBeTruthy();
   });
 
   it('should return false for an alert that has only standard fields', () => {

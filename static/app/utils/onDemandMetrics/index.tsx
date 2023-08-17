@@ -42,7 +42,8 @@ export function isOnDemandQueryString(query: string): boolean {
   const isOnDemandSupportedSearch = searchFilterKeys.some(key =>
     ON_DEMAND_METRICS_SUPPORTED_TAGS.has(key)
   );
-  return !isStandardSearch && isOnDemandSupportedSearch;
+  const hasCustomTags = searchFilterKeys.some(isCustomTag);
+  return !isStandardSearch && (isOnDemandSupportedSearch || hasCustomTags);
 }
 
 type SearchFilterKey = FieldKey | null;
