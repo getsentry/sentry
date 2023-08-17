@@ -22,13 +22,7 @@ from django.utils.functional import cached_property
 from typing_extensions import NotRequired
 
 from sentry.api import event_search
-from sentry.api.event_search import (
-    AggregateFilter,
-    ParenExpression,
-    SearchFilter,
-    SearchKey,
-    SearchValue,
-)
+from sentry.api.event_search import AggregateFilter, ParenExpression, SearchFilter
 from sentry.constants import DataCategory
 from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
@@ -1000,8 +994,8 @@ class SearchQueryConverter:
             raise ValueError(f"Unsupported operator {token.operator}")
 
         # We propagate the filter in order to give as output a better error message with more context.
-        key: str = self._eval_search_key(token.key)
-        value: Any = self._eval_search_value(token.value)
+        key: str = token.key.name
+        value: Any = token.value.raw_value
         if operator == "eq" and token.value.is_wildcard():
             condition: RuleCondition = {
                 "op": "glob",
@@ -1028,13 +1022,3 @@ class SearchQueryConverter:
             condition = {"op": "not", "inner": condition}
 
         return condition
-
-    @staticmethod
-    def _eval_search_key(
-        search_key: SearchKey,
-    ) -> str:
-        return search_key.name
-
-    @staticmethod
-    def _eval_search_value(search_value: SearchValue) -> Any:
-        return search_value.raw_value
