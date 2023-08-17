@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import Avatar from 'sentry/components/avatar';
 import {Button} from 'sentry/components/button';
@@ -36,7 +37,38 @@ type Props = {
 
 export type ReferrerTableType = 'main' | 'dead-table' | 'errors-table' | 'rage-table';
 
-function DropdownFilter({
+type EditType = 'set' | 'remove';
+
+function generateAction({
+  key,
+  value,
+  edit,
+  location,
+}: {
+  edit: EditType;
+  key: string;
+  location: Location<ReplayListLocationQuery>;
+  value: string;
+}) {
+  const search = new MutableSearch(decodeScalar(location.query.query) || '');
+
+  const modifiedQuery =
+    edit === 'set' ? search.setFilterValues(key, [value]) : search.removeFilter(key);
+
+  const onAction = () => {
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        query: modifiedQuery.formatString(),
+      },
+    });
+  };
+
+  return onAction;
+}
+
+function OSBrowserDropdownFilter({
   type,
   name,
   version,
@@ -49,51 +81,39 @@ function DropdownFilter({
   return (
     <DropdownMenu
       items={[
-        {
-          key: 'name',
-          label: tct('[type] name: [name]', {
-            type: <b>{type}</b>,
-            name: <b>{name}</b>,
-          }),
-          children: [
-            {
-              key: 'name_add',
-              label: t('Add to filter'),
-              onAction: () => {
-                const search = new MutableSearch(
-                  decodeScalar(location.query.query) || ''
-                );
-                browserHistory.push({
-                  pathname: location.pathname,
-                  query: {
-                    ...location.query,
-                    query: search
-                      .setFilterValues(`${type}.name`, [name ?? ''])
-                      .formatString(),
+        ...(name
+          ? [
+              {
+                key: 'name',
+                label: tct('[type] name: [name]', {
+                  type: <b>{type}</b>,
+                  name: <b>{name}</b>,
+                }),
+                children: [
+                  {
+                    key: 'name_add',
+                    label: t('Add to filter'),
+                    onAction: generateAction({
+                      key: `${type}.name`,
+                      value: name ?? '',
+                      edit: 'set',
+                      location,
+                    }),
                   },
-                });
-              },
-            },
-            {
-              key: 'name_exclude',
-              label: t('Exclude from filter'),
-              onAction: () => {
-                const search = new MutableSearch(
-                  decodeScalar(location.query.query) || ''
-                );
-                browserHistory.push({
-                  pathname: location.pathname,
-                  query: {
-                    ...location.query,
-                    query: search
-                      .removeFilterValue(`${type}.name`, name ?? '')
-                      .formatString(),
+                  {
+                    key: 'name_exclude',
+                    label: t('Exclude from filter'),
+                    onAction: generateAction({
+                      key: `${type}.name`,
+                      value: name ?? '',
+                      edit: 'remove',
+                      location,
+                    }),
                   },
-                });
+                ],
               },
-            },
-          ],
-        },
+            ]
+          : []),
         ...(version
           ? [
               {
@@ -106,38 +126,22 @@ function DropdownFilter({
                   {
                     key: 'version_add',
                     label: t('Add to filter'),
-                    onAction: () => {
-                      const search = new MutableSearch(
-                        decodeScalar(location.query.query) || ''
-                      );
-                      browserHistory.push({
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: search
-                            .setFilterValues(`${type}.version`, [version ?? ''])
-                            .formatString(),
-                        },
-                      });
-                    },
+                    onAction: generateAction({
+                      key: `${type}.version`,
+                      value: version ?? '',
+                      edit: 'set',
+                      location,
+                    }),
                   },
                   {
                     key: 'version_exclude',
                     label: t('Exclude from filter'),
-                    onAction: () => {
-                      const search = new MutableSearch(
-                        decodeScalar(location.query.query) || ''
-                      );
-                      browserHistory.push({
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: search
-                            .removeFilterValue(`${type}.version`, version ?? '')
-                            .formatString(),
-                        },
-                      });
-                    },
+                    onAction: generateAction({
+                      key: `${type}.version`,
+                      value: version ?? '',
+                      edit: 'remove',
+                      location,
+                    }),
                   },
                 ],
               },
@@ -161,6 +165,91 @@ function DropdownFilter({
           size="zero"
         />
       )}
+    />
+  );
+}
+
+function NumericDropdownFilter({
+  type,
+  val,
+  triggerOverlay,
+}: {
+  type: string;
+  val: number;
+  triggerOverlay?: boolean;
+}) {
+  const location = useLocation<ReplayListLocationQuery>();
+  return (
+    <DropdownMenu
+      items={[
+        {
+          key: 'add',
+          label: 'Add to filter',
+          onAction: generateAction({
+            key: type,
+            value: val.toString(),
+            edit: 'set',
+            location,
+          }),
+        },
+        {
+          key: 'greater',
+          label: 'Show values greater than',
+          onAction: generateAction({
+            key: type,
+            value: '>' + val.toString(),
+            edit: 'set',
+            location,
+          }),
+        },
+        {
+          key: 'less',
+          label: 'Show values less than',
+          onAction: generateAction({
+            key: type,
+            value: '<' + val.toString(),
+            edit: 'set',
+            location,
+          }),
+        },
+        {
+          key: 'exclude',
+          label: t('Exclude from filter'),
+          onAction: generateAction({
+            key: type,
+            value: val.toString(),
+            edit: 'remove',
+            location,
+          }),
+        },
+      ]}
+      usePortal
+      size="xs"
+      offset={4}
+      position="bottom"
+      preventOverflowOptions={{padding: 4}}
+      flipOptions={{
+        fallbackPlacements: ['top', 'right-start', 'right-end', 'left-start', 'left-end'],
+      }}
+      trigger={triggerProps =>
+        triggerOverlay ? (
+          <OverlayActionMenuTrigger
+            {...triggerProps}
+            translucentBorder
+            aria-label={t('Actions')}
+            icon={<IconEllipsis size="xs" />}
+            size="zero"
+          />
+        ) : (
+          <NumericActionMenuTrigger
+            {...triggerProps}
+            translucentBorder
+            aria-label={t('Actions')}
+            icon={<IconEllipsis size="xs" />}
+            size="zero"
+          />
+        )
+      }
     />
   );
 }
@@ -374,7 +463,7 @@ export function OSCell({replay}: Props) {
           showVersion={false}
           showTooltip={false}
         />
-        <DropdownFilter type="os" name={name} version={version} />
+        <OSBrowserDropdownFilter type="os" name={name} version={version} />
       </Container>
     </Item>
   );
@@ -397,7 +486,7 @@ export function BrowserCell({replay}: Props) {
           showVersion={false}
           showTooltip={false}
         />
-        <DropdownFilter type="browser" name={name} version={version} />
+        <OSBrowserDropdownFilter type="browser" name={name} version={version} />
       </Container>
     </Item>
   );
@@ -409,7 +498,10 @@ export function DurationCell({replay}: Props) {
   }
   return (
     <Item>
-      <Time>{formatTime(replay.duration.asMilliseconds())}</Time>
+      <Container>
+        <Time>{formatTime(replay.duration.asMilliseconds())}</Time>
+        <NumericDropdownFilter type="duration" val={replay.duration.asSeconds()} />
+      </Container>
     </Item>
   );
 }
@@ -420,11 +512,17 @@ export function RageClickCountCell({replay}: Props) {
   }
   return (
     <Item data-test-id="replay-table-count-rage-clicks">
-      {replay.count_rage_clicks ? (
-        <DeadRageCount>{replay.count_rage_clicks}</DeadRageCount>
-      ) : (
-        <Count>0</Count>
-      )}
+      <Container>
+        {replay.count_rage_clicks ? (
+          <DeadRageCount>{replay.count_rage_clicks}</DeadRageCount>
+        ) : (
+          <Count>0</Count>
+        )}
+        <NumericDropdownFilter
+          type="count_rage_clicks"
+          val={replay.count_rage_clicks ?? 0}
+        />
+      </Container>
     </Item>
   );
 }
@@ -435,11 +533,17 @@ export function DeadClickCountCell({replay}: Props) {
   }
   return (
     <Item data-test-id="replay-table-count-dead-clicks">
-      {replay.count_dead_clicks ? (
-        <DeadRageCount>{replay.count_dead_clicks}</DeadRageCount>
-      ) : (
-        <Count>0</Count>
-      )}
+      <Container>
+        {replay.count_dead_clicks ? (
+          <DeadRageCount>{replay.count_dead_clicks}</DeadRageCount>
+        ) : (
+          <Count>0</Count>
+        )}
+        <NumericDropdownFilter
+          type="count_dead_clicks"
+          val={replay.count_dead_clicks ?? 0}
+        />
+      </Container>
     </Item>
   );
 }
@@ -450,14 +554,17 @@ export function ErrorCountCell({replay}: Props) {
   }
   return (
     <Item data-test-id="replay-table-count-errors">
-      {replay.count_errors ? (
-        <ErrorCount>
-          <IconFire />
-          {replay.count_errors}
-        </ErrorCount>
-      ) : (
-        <Count>0</Count>
-      )}
+      <Container>
+        {replay.count_errors ? (
+          <ErrorCount>
+            <IconFire />
+            {replay.count_errors}
+          </ErrorCount>
+        ) : (
+          <Count>0</Count>
+        )}
+        <NumericDropdownFilter type="count_errors" val={replay.count_errors ?? 0} />
+      </Container>
     </Item>
   );
 }
@@ -469,12 +576,19 @@ export function ActivityCell({replay}: Props) {
   const scoreBarPalette = new Array(10).fill([CHART_PALETTE[0][0]]);
   return (
     <Item>
-      <ScoreBar
-        size={20}
-        score={replay?.activity ?? 1}
-        palette={scoreBarPalette}
-        radius={0}
-      />
+      <Container>
+        <ScoreBar
+          size={20}
+          score={replay?.activity ?? 1}
+          palette={scoreBarPalette}
+          radius={0}
+        />
+        <NumericDropdownFilter
+          type="activity"
+          val={replay?.activity ?? 0}
+          triggerOverlay
+        />
+      </Container>
     </Item>
   );
 }
@@ -519,8 +633,6 @@ const SpanOperationBreakdown = styled('div')`
 
 const Container = styled('div')`
   position: relative;
-  width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -541,4 +653,15 @@ const ActionMenuTrigger = styled(Button)`
   ${Container}:hover & {
     opacity: 1;
   }
+`;
+
+const NumericActionMenuTrigger = styled(ActionMenuTrigger)`
+  left: 100%;
+  margin-left: ${space(0.75)};
+  z-index: 1;
+`;
+
+const OverlayActionMenuTrigger = styled(NumericActionMenuTrigger)`
+  right: 0%;
+  left: unset;
 `;
