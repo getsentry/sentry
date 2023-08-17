@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT, TIMEOUT
+from sentry.monitors.logic.mark_failed import MonitorFailure, mark_failed
 from sentry.monitors.types import ClockPulseMessage
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -17,14 +18,7 @@ from sentry.utils import metrics, redis
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
-from .models import (
-    CheckInStatus,
-    MonitorCheckIn,
-    MonitorEnvironment,
-    MonitorFailure,
-    MonitorStatus,
-    MonitorType,
-)
+from .models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus, MonitorType
 
 logger = logging.getLogger("sentry")
 
@@ -218,18 +212,24 @@ def check_missing(current_datetime=None):
             monitor = monitor_environment.monitor
             expected_time = None
             if monitor_environment.last_checkin:
-                expected_time = monitor.get_next_scheduled_checkin(monitor_environment.last_checkin)
+                expected_time = monitor.get_next_expected_checkin(monitor_environment.last_checkin)
 
-            # add missed checkin
+            # add missed checkin.
+            #
+            # XXX(epurkhiser): The date_added is backdated so that this missed
+            # check-in correctly reflects the time of when the checkin SHOULD
+            # have happened. It is the same as the expected_time.
             MonitorCheckIn.objects.create(
                 project_id=monitor_environment.monitor.project_id,
                 monitor=monitor_environment.monitor,
                 monitor_environment=monitor_environment,
                 status=CheckInStatus.MISSED,
+                date_added=expected_time,
                 expected_time=expected_time,
                 monitor_config=monitor.get_validated_config(),
             )
-            monitor_environment.mark_failed(
+            mark_failed(
+                monitor_environment,
                 reason=MonitorFailure.MISSED_CHECKIN,
                 occurrence_context={
                     "expected_time": expected_time.strftime(SUBTITLE_DATETIME_FORMAT)
@@ -238,7 +238,7 @@ def check_missing(current_datetime=None):
                 },
             )
         except Exception:
-            logger.exception("Exception in check_monitors - mark missed")
+            logger.exception("Exception in check_monitors - mark missed", exc_info=True)
 
 
 @instrumented_task(
@@ -277,7 +277,8 @@ def check_timeout(current_datetime=None):
                 status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
             ).exists()
             if not has_newer_result:
-                monitor_environment.mark_failed(
+                mark_failed(
+                    monitor_environment,
                     reason=MonitorFailure.DURATION,
                     occurrence_context={
                         "duration": (checkin.monitor.config or {}).get("max_runtime") or TIMEOUT,
@@ -285,7 +286,7 @@ def check_timeout(current_datetime=None):
                     },
                 )
         except Exception:
-            logger.exception("Exception in check_monitors - mark timeout")
+            logger.exception("Exception in check_monitors - mark timeout", exc_info=True)
 
     # safety check for check-ins stuck in the backlog
     backlog_count = MonitorCheckIn.objects.filter(
