@@ -416,6 +416,7 @@ function buildRoutes() {
         name={t('General')}
         component={make(() => import('sentry/views/settings/projectGeneralSettings'))}
       />
+      <Redirect from="install/" to="/projects/:projectId/getting-started/" />
       <Route
         path="teams/"
         name={t('Teams')}
@@ -1568,6 +1569,19 @@ function buildRoutes() {
         path="trends/"
         component={make(() => import('sentry/views/performance/trends'))}
       />
+      <Route path="database/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/performance/database/databaseLandingPage')
+          )}
+        />
+        <Route
+          path="spans/span/:groupId/"
+          component={make(
+            () => import('sentry/views/performance/database/databaseSpanSummaryPage')
+          )}
+        />
+      </Route>
       <Route path="summary/">
         <IndexRoute
           component={make(

@@ -760,6 +760,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.check_am2_compatibility",
     "sentry.dynamic_sampling.tasks.collect_orgs",
     "sentry.tasks.statistical_detectors",
+    "sentry.debug_files.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -1134,6 +1135,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.statistical_detectors.run_detection",
         "schedule": crontab(minute=0, hour="*/1"),
     },
+    "backfill-artifact-bundle-index": {
+        "task": "sentry.debug_files.tasks.backfill_artifact_index_updates",
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -1356,7 +1362,7 @@ SENTRY_FEATURES = {
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Allow disabling integrations when broken is detected
-    "organizations:slack-disable-on-broken": False,
+    "organizations:slack-fatal-disable-on-broken": False,
     # Allow disabling sentryapps when broken is detected
     "organizations:disable-sentryapps-on-broken": False,
     # Enable the 'discover' interface.

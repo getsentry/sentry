@@ -83,7 +83,7 @@ export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
   tags?: EventTag[];
 };
 
-export type TraceSplitResults<U extends TraceFull | TraceFullDetailed> = {
+export type TraceSplitResults<U extends TraceFull | TraceFullDetailed | EventLite> = {
   orphan_errors: TraceError[];
   transactions: U[];
 };
