@@ -304,7 +304,7 @@ describe('Incident Rules Form', () => {
       editTrigger = MockApiClient.addMockResponse({
         url: `/organizations/org-slug/alert-rules/${rule.id}/triggers/1/`,
         method: 'PUT',
-        body: TestStubs.IncidentTrigger({id: 1}),
+        body: TestStubs.IncidentTrigger({id: '1'}),
       });
     });
     afterEach(() => {

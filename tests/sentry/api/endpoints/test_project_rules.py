@@ -54,6 +54,14 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
 class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     method = "post"
 
+    def clean_data(self, data):
+        cleaned_data = []
+        for datum in data:
+            if datum.get("name"):
+                del datum["name"]
+            cleaned_data.append(datum)
+        return cleaned_data
+
     def run_test(
         self,
         actions: Sequence[Mapping[str, Any]] | None = None,
@@ -101,9 +109,15 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert rule.owner == get_actor_for_user(self.user)
         assert rule.data["action_match"] == action_match
         assert rule.data["filter_match"] == filter_match
-        assert rule.data["actions"] == actions
+
+        updated_actions = self.clean_data(actions)
+        assert rule.data["actions"] == updated_actions
+
+        if conditions:
+            updated_conditions = self.clean_data(conditions)
+
         assert rule.data["conditions"] == (
-            expected_conditions if expected_conditions is not None else conditions
+            expected_conditions if expected_conditions is not None else updated_conditions
         )
         assert rule.data["frequency"] == frequency
         assert rule.created_by_id == self.user.id
@@ -124,6 +138,22 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     def test_simple(self):
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+
+        self.run_test(actions=actions, conditions=conditions)
+
+    def test_with_name(self):
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "name": "A new issue is created",
+            }
+        ]
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+            }
+        ]
 
         self.run_test(actions=actions, conditions=conditions)
 
@@ -352,7 +382,10 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
     def test_with_filters(self):
         conditions: list[dict[str, Any]] = [
-            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "name": "A new issue is created",
+            }
         ]
         filters: list[dict[str, Any]] = [
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
@@ -459,6 +492,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
         self.user = User.objects.get(id=self.user.id)  # reload user to get actor
         assert not Rule.objects.filter(label=payload["name"]).exists()
+        payload["actions"][0].pop("name")
         kwargs = {
             "name": payload["name"],
             "owner": get_actor_id_for_user(self.user),

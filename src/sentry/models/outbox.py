@@ -82,7 +82,7 @@ class OutboxCategory(IntEnum):
     ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE = 15
     ORGAUTHTOKEN_UPDATE = 16
     PROVISION_ORGANIZATION = 17
-    PROVISION_SUBSCRIPTION = 18
+    POST_ORGANIZATION_PROVISION = 18
     SEND_MODEL_SIGNAL = 19
     DISABLE_AUTH_PROVIDER = 20
     RESET_IDP_FLAGS = 21
@@ -113,6 +113,7 @@ class WebhookProviderIdentifier(IntEnum):
     JIRA_SERVER = 7
     GITHUB_ENTERPRISE = 8
     BITBUCKET_SERVER = 9
+    LEGACY_PLUGIN = 10
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -155,7 +156,7 @@ class OutboxBase(Model):
         )
 
     @classmethod
-    def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> OutboxBase | None:
+    def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> Self | None:
         using = router.db_for_write(cls)
         with transaction.atomic(using=using, savepoint=False):
             next_outbox: OutboxBase | None
@@ -398,7 +399,7 @@ class ControlOutboxBase(OutboxBase):
         return OutboxWebhookPayload(
             method=request.method,
             path=request.get_full_path(),
-            uri=request.get_raw_uri(),
+            uri=request.build_absolute_uri(),
             headers={k: v for k, v in request.headers.items()},
             body=request.body.decode(encoding="utf-8"),
         )

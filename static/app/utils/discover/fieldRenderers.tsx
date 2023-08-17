@@ -14,7 +14,7 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
-import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
@@ -31,17 +31,14 @@ import {
   getSpanOperationName,
   isEquation,
   isRelativeSpanOperationBreakdownField,
-  RATE_UNIT_LABELS,
+  RateUnits,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {getShortEventId} from 'sentry/utils/events';
-import {
-  formatAbbreviatedNumber,
-  formatFloat,
-  formatPercentage,
-} from 'sentry/utils/formatters';
+import {formatFloat, formatPercentage, formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
 import toArray from 'sentry/utils/toArray';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
@@ -236,12 +233,11 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data, baggage) => {
       const {unit} = baggage ?? {};
-      const renderedUnit = unit ? RATE_UNIT_LABELS[unit] : '';
-      const formattedNumber = `${formatAbbreviatedNumber(
-        data[field],
-        DEFAULT_RATE_SIG_DIGITS
-      )}${renderedUnit}`;
-      return <NumberContainer>{formattedNumber}</NumberContainer>;
+      return (
+        <NumberContainer>
+          {formatRate(data[field], unit as RateUnits, DEFAULT_RATE_SIG_DIGITS)}
+        </NumberContainer>
+      );
     },
   },
   integer: {

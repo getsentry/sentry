@@ -1,8 +1,8 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
 beautifulsoup4>=4.7.1
-boto3>=1.22.12
-botocore>=1.25.12
+boto3>=1.28.26
+botocore>=1.31.26
 cachetools>=5
 celery>=4.4.7
 click>=8.0.4
@@ -58,7 +58,7 @@ requests>=2.25.1
 rfc3339-validator>=0.1.2
 rfc3986-validator>=0.1.1
 # [end] jsonschema format validators
-sentry-arroyo>=2.14.1
+sentry-arroyo>=2.14.4
 sentry-kafka-schemas>=0.1.22
 sentry-redis-tools>=0.1.7
 sentry-relay>=0.8.29
@@ -75,8 +75,6 @@ ua-parser>=0.10.0
 unidiff>=0.7.4
 urllib3[brotli]>=1.26.9
 brotli>=1.0.9
-# See if we can remove LDFLAGS from lib.sh
-# https://github.com/getsentry/sentry/pull/30094
 pyuwsgi==2.0.20.0
 zstandard>=0.18.0
 
@@ -95,17 +93,7 @@ grpcio>=1.47.0
 # not directly used, but provides a speedup for redis
 hiredis>=0.3.1
 
-# not directly used, but pinned for at least semaphore/symbolic
-cffi>=1.15.0
-
-# not directly used, but pinned for toronado because it doesn't pin these
-cssutils>=2.4.0
-
 # sentry-plugins specific dependencies
 phabricator>=0.7.0
-
-# test dependencies, but unable to move to requirements-test until
-# sentry.utils.pytest and sentry.testutils are moved to tests/
-selenium>=4.1.5
 
 openai==0.27.0

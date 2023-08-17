@@ -352,6 +352,42 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert len(resp.data["errors"]) == 0
 
+    def test_skip_node_context_line(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "platform": "node",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "TypeError",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "/app",
+                                        "filename": "/static/js/main.fa8fe19f.js",
+                                        "lineno": 5,
+                                        "colno": 45,
+                                        "context_line": "throw new Error('foo')",
+                                    }
+                                ]
+                            },
+                        },
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+        assert len(resp.data["errors"]) == 0
+
     def test_no_valid_url_skips_node(self):
         event = self.store_event(
             data={

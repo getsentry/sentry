@@ -1,4 +1,4 @@
-from typing import Dict, Sequence
+import types
 from urllib.parse import parse_qs, urlparse
 
 from sentry.issues.grouptype import (
@@ -22,7 +22,6 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.notifications.utils import (
-    NotificationRuleDetails,
     NPlusOneAPICallProblemContext,
     PerformanceProblemContext,
     RenderBlockingAssetProblemContext,
@@ -35,9 +34,8 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-class MockEvent:
-    data: dict
-    transaction: str
+def mock_event(*, transaction, data=None):
+    return types.SimpleNamespace(data=data or {}, transaction=transaction)
 
 
 class NotificationHelpersTest(TestCase):
@@ -177,18 +175,14 @@ class NotificationHelpersTest(TestCase):
 
     def test_get_group_settings_link(self):
         rule: Rule = self.create_project_rule(self.project)
-        rule_details: Sequence[NotificationRuleDetails] = get_rules(
-            [rule], self.organization, self.project
-        )
+        rule_details = get_rules([rule], self.organization, self.project)
         link = get_group_settings_link(
             self.group, self.environment.name, rule_details, 1337, extra="123"
         )
 
         parsed = urlparse(link)
         query_dict = dict(map(lambda x: (x[0], x[1][0]), parse_qs(parsed.query).items()))
-        assert (
-            parsed.scheme + "://" + parsed.hostname + parsed.path == self.group.get_absolute_url()
-        )
+        assert f"{parsed.scheme}://{parsed.hostname}{parsed.path}" == self.group.get_absolute_url()
         assert query_dict == {
             "referrer": "alert_email",
             "environment": self.environment.name,
@@ -203,10 +197,8 @@ class NotificationHelpersTest(TestCase):
         project2 = self.create_project()
         rule2 = self.create_project_rule(project2)
 
-        rule_details: Sequence[NotificationRuleDetails] = get_rules(
-            [rule, rule2], self.organization, self.project
-        )
-        extra_params: Dict[int, str] = {
+        rule_details = get_rules([rule, rule2], self.organization, self.project)
+        extra_params = {
             k: dict(map(lambda x: (x[0], x[1][0]), parse_qs(v.strip("?")).items()))
             for k, v in get_email_link_extra_params(
                 "digest_email", None, rule_details, 1337
@@ -263,8 +255,7 @@ class PerformanceProblemContextTestCase(TestCase):
         )
 
     def test_returns_n_plus_one_db_query_context(self):
-        event = MockEvent()
-        event.transaction = "sentry transaction"
+        event = mock_event(transaction="sentry transaction")
         context = PerformanceProblemContext(
             PerformanceProblem(
                 fingerprint=f"1-{PerformanceNPlusOneGroupType.type_id}-153198dd61706844cf3d9a922f6f82543df8125f",
@@ -292,8 +283,7 @@ class PerformanceProblemContextTestCase(TestCase):
         }
 
     def test_returns_n_plus_one_api_call_context(self):
-        event = MockEvent()
-        event.transaction = "/resources"
+        event = mock_event(transaction="/resources")
         context = NPlusOneAPICallProblemContext(
             PerformanceProblem(
                 fingerprint=f"1-{PerformanceNPlusOneAPICallsGroupType.type_id}-153198dd61706844cf3d9a922f6f82543df8125f",
@@ -328,13 +318,14 @@ class PerformanceProblemContextTestCase(TestCase):
         }
 
     def test_returns_render_blocking_asset_context(self):
-        event = MockEvent()
-        event.transaction = "/details"
-        event.data = {
-            "start_timestamp": 0,
-            "timestamp": 3,
-            "measurements": {"fcp": {"value": 1500, "unit": "milliseconds"}},
-        }
+        event = mock_event(
+            transaction="/details",
+            data={
+                "start_timestamp": 0,
+                "timestamp": 3,
+                "measurements": {"fcp": {"value": 1500, "unit": "milliseconds"}},
+            },
+        )
 
         context = RenderBlockingAssetProblemContext(
             PerformanceProblem(

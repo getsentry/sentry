@@ -16,12 +16,14 @@ from snuba_sdk import (
     Limit,
     Offset,
     Op,
+    Or,
     Query,
     Request,
 )
 from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry import features
 from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import (
@@ -37,6 +39,7 @@ from sentry.replays.lib.query import (
     generate_valid_conditions,
     get_valid_sort_commands,
 )
+from sentry.replays.usecases.query import query_using_aggregated_search
 from sentry.utils.snuba import raw_snql_query
 
 MAX_PAGE_SIZE = 100
@@ -71,6 +74,19 @@ def query_replays_collection(
         conditions.append(Condition(Column("agg_environment"), Op.IN, environment))
 
     paginators = make_pagination_values(limit, offset)
+
+    if features.has("organizations:session-replay-optimized-search", organization, actor=actor):
+        return query_using_aggregated_search(
+            fields,
+            search_filters,
+            environment,
+            sort,
+            paginators,
+            organization,
+            project_ids,
+            start,
+            end,
+        )
 
     # Attempt to eager return with subquery.
 
@@ -392,7 +408,12 @@ def query_replays_dataset_tagkey_values(
                 Condition(Column("project_id"), Op.IN, project_ids),
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("timestamp"), Op.GTE, start),
-                Condition(Column("is_archived"), Op.IS_NULL),
+                Or(
+                    [
+                        Condition(Column("is_archived"), Op.EQ, 0),
+                        Condition(Column("is_archived"), Op.IS_NULL),
+                    ]
+                ),
                 *where,
             ],
             orderby=[OrderBy(Column("times_seen"), Direction.DESC)],
@@ -436,21 +457,6 @@ def make_select_statement(
         unique_fields.add(sort.exp.name)
 
     return select_from_fields(list(unique_fields))
-
-
-def _grouped_unique_values(
-    column_name: str, alias: Optional[str] = None, aliased: bool = False
-) -> Function:
-    """Returns an array of unique, non-null values.
-
-    E.g.
-        [1, 2, 2, 3, 3, 3, null] => [1, 2, 3]
-    """
-    return Function(
-        "groupUniqArray",
-        parameters=[Column(column_name)],
-        alias=alias or column_name if aliased else None,
-    )
 
 
 def anyIfNonZeroIP(
@@ -930,7 +936,11 @@ QUERY_ALIAS_COLUMN_MAP = {
         alias="isArchived",
     ),
     "activity": _activity_score(),
-    "releases": _grouped_unique_values(column_name="release", alias="releases", aliased=True),
+    "releases": Function(
+        "groupUniqArrayIf",
+        parameters=[Column("release"), Function("notEmpty", [Column("release")])],
+        alias="releases",
+    ),
     "replay_type": anyIf(column_name="replay_type", alias="replay_type"),
     "platform": anyIf(column_name="platform"),
     "agg_environment": anyIf(column_name="environment", alias="agg_environment"),

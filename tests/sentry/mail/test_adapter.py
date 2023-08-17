@@ -1,6 +1,6 @@
 import uuid
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import cached_property
 from typing import Mapping, Sequence
 from unittest import mock
@@ -10,7 +10,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
@@ -60,7 +60,7 @@ from sentry.types.rules import RuleFuture
 from sentry.utils.dates import ensure_aware
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
-from tests.sentry.mail import make_event_data, send_notification
+from tests.sentry.mail import make_event_data, mock_notify
 
 
 class BaseMailAdapterTest(TestCase, PerformanceIssueTestCase):
@@ -405,7 +405,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         _get_title.assert_called_once_with()
         _to_email_html.assert_called_once_with(event)
 
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    @mock_notify
     def test_notify_users_does_email(self, mock_func):
         UserOption.objects.create(user=self.user, key="timezone", value="Europe/Vienna")
         event_manager = EventManager({"message": "hello world", "level": "error"})
@@ -443,7 +443,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.assertEqual(notification.reference, group)
         assert notification.get_subject() == "BAR-1 - hello world"
 
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    @mock_notify
     def test_email_notification_is_not_sent_to_deleted_email(self, mock_func):
         """
         Test that ensures if we still have some stale emails in UserOption, then upon attempting
@@ -502,7 +502,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert "ahmed@ahmed.io" in get_email_addresses(user_ids, self.project).values()
         assert not len(UserOption.objects.filter(key="mail:email", value="foo@bar.dodo"))
 
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    @mock_notify
     def test_multiline_error(self, mock_func):
         event_manager = EventManager({"message": "hello world\nfoo bar", "level": "error"})
         event_manager.normalize()
@@ -550,8 +550,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         """
         from django.template.defaultfilters import date
 
-        timestamp = datetime.now(tz=pytz.utc)
-        local_timestamp_s = timezone.localtime(timestamp, pytz.timezone("Europe/Vienna"))
+        timestamp = datetime.now(tz=timezone.utc)
+        local_timestamp_s = django_timezone.localtime(timestamp, pytz.timezone("Europe/Vienna"))
         local_timestamp = date(local_timestamp_s, "N j, Y, g:i:s a e")
 
         UserOption.objects.create(user=self.user, key="timezone", value="Europe/Vienna")
@@ -785,8 +785,8 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         )
         self.create_member(user=user2, organization=organization, teams=[team])
         self.group = self.create_group(
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
+            first_seen=django_timezone.now(),
+            last_seen=django_timezone.now(),
             project=project,
             message="hello  world",
             logger="root",
@@ -1183,7 +1183,7 @@ class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
             get_digest_subject(
                 mock.Mock(qualified_short_id="BAR-1"),
                 Counter({mock.sentinel.group: 3}),
-                datetime(2016, 9, 19, 1, 2, 3, tzinfo=pytz.utc),
+                datetime(2016, 9, 19, 1, 2, 3, tzinfo=timezone.utc),
             )
             == "BAR-1 - 1 new alert since Sept. 19, 2016, 1:02 a.m. UTC"
         )

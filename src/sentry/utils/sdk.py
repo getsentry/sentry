@@ -4,7 +4,7 @@ import copy
 import inspect
 import logging
 import random
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, List, Mapping, Sequence
 
 import sentry_sdk
 from django.conf import settings
@@ -106,11 +106,8 @@ if settings.ADDITIONAL_SAMPLED_URLS:
 # tasks will not be sampled
 SAMPLED_TASKS = {
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.tasks.store.symbolicate_event": settings.SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING,
-    "sentry.tasks.store.symbolicate_event_from_reprocessing": settings.SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
-    "sentry.tasks.assemble.assemble_dif": 0.1,
     "sentry.tasks.app_store_connect.dsym_download": settings.SENTRY_APPCONNECT_APM_SAMPLING,
     "sentry.tasks.app_store_connect.refresh_all_builds": settings.SENTRY_APPCONNECT_APM_SAMPLING,
     "sentry.tasks.process_suspect_commits": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
@@ -132,6 +129,7 @@ SAMPLED_TASKS = {
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.monitors.tasks.check_missing": 1.0,
     "sentry.monitors.tasks.check_timeout": 1.0,
+    "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2,
@@ -660,7 +658,7 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
 
 
 def bind_ambiguous_org_context(
-    orgs: Sequence[Organization | RpcOrganization], source: str | None = None
+    orgs: Sequence[Organization] | Sequence[RpcOrganization] | List[str], source: str | None = None
 ) -> None:
     """
     Add org context information to the scope in the case where the current org might be one of a
@@ -670,7 +668,12 @@ def bind_ambiguous_org_context(
 
     MULTIPLE_ORGS_TAG = "[multiple orgs]"
 
-    org_slugs = [org.slug for org in orgs]
+    def parse_org_slug(x: Organization | RpcOrganization | str) -> str:
+        if isinstance(x, str):
+            return x
+        return x.slug
+
+    org_slugs = [parse_org_slug(org) for org in orgs]
 
     # Right now there is exactly one Integration instance shared by more than 30 orgs (the generic
     # GitLab integration, at the moment shared by ~500 orgs), so 50 should be plenty for all but

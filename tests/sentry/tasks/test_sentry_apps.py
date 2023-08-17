@@ -879,6 +879,7 @@ class TestWebhookRequests(TestCase):
     @patch(
         "sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockFailureResponseInstance
     )
+    @freeze_time("2022-01-01 03:30:00")
     def test_slow_broken_not_disable(self, safe_urlopen):
         """
         Tests that the integration is broken after 10 days of errors but still enabled since flag is off
@@ -887,7 +888,7 @@ class TestWebhookRequests(TestCase):
         self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         events = self.sentry_app.events  # save events to check later
         data = {"issue": serialize(self.issue)}
-        now = datetime.now() + timedelta(hours=1)
+        now = datetime.now()
         for i in reversed(range(0, 10)):
             with freeze_time(now - timedelta(days=i)):
                 send_webhooks(
@@ -911,10 +912,7 @@ class TestWebhookRequests(TestCase):
             )
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
-        assert (
-            msg.subject
-            == f"Action required: re-authenticate or fix your {self.sentry_app.name} integration"
-        )
+        assert msg.subject == f"Action required: Fix your {self.sentry_app.name} integration"
         assert (
             self.organization.absolute_url(
                 f"/settings/{self.organization.slug}/developer-settings/{self.sentry_app.slug}"
@@ -923,7 +921,19 @@ class TestWebhookRequests(TestCase):
         )
         assert (
             self.organization.absolute_url(
+                f"/settings/{self.organization.slug}/developer-settings/{self.sentry_app.slug}/?referrer=disabled-sentry-app"
+            )
+            in msg.body
+        )
+        assert (
+            self.organization.absolute_url(
                 f"/settings/{self.organization.slug}/developer-settings/{self.sentry_app.slug}/dashboard"
+            )
+            in msg.body
+        )
+        assert (
+            self.organization.absolute_url(
+                f"/settings/{self.organization.slug}/developer-settings/{self.sentry_app.slug}/dashboard/?referrer=disabled-sentry-app/"
             )
             in msg.body
         )

@@ -35,6 +35,7 @@ import {
   getShortEventId,
 } from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -53,9 +54,9 @@ type GroupEventCarouselProps = {
 };
 
 type GroupEventNavigationProps = {
+  event: Event;
   group: Group;
   isDisabled: boolean;
-  relativeTime: string;
 };
 
 type EventNavigationButtonProps = {
@@ -118,11 +119,7 @@ function EventNavigationButton({
   );
 }
 
-function EventNavigationDropdown({
-  group,
-  relativeTime,
-  isDisabled,
-}: GroupEventNavigationProps) {
+function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigationProps) {
   const location = useLocation();
   const params = useParams<{eventId?: string}>();
   const theme = useTheme();
@@ -196,13 +193,24 @@ function EventNavigationDropdown({
         value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
         triggerLabel={
           !selectedValue ? (
-            <TimeSince date={relativeTime} disabledAbsoluteTooltip />
+            <TimeSince
+              date={event.dateCreated ?? event.dateReceived}
+              disabledAbsoluteTooltip
+            />
           ) : selectedValue === EventNavDropdownOption.RECOMMENDED ? (
             t('Recommended')
           ) : undefined
         }
         menuWidth={232}
         onChange={selectedOption => {
+          trackAnalytics('issue_details.event_dropdown_option_selected', {
+            organization,
+            selected_event_type: selectedOption.value,
+            from_event_type: selectedValue ?? EventNavDropdownOption.CUSTOM,
+            event_id: event.id,
+            group_id: group.id,
+          });
+
           switch (selectedOption.value) {
             case EventNavDropdownOption.RECOMMENDED:
             case EventNavDropdownOption.LATEST:
@@ -239,7 +247,9 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
   const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
 
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
-  const isReplayEnabled = organization.features.includes('session-replay');
+  const isReplayEnabled =
+    organization.features.includes('session-replay') &&
+    projectCanLinkToReplay(group.project);
   const latencyThreshold = 30 * 60 * 1000; // 30 minutes
   const isOverLatencyThreshold =
     event.dateReceived &&
@@ -424,7 +434,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
         <EventNavigationDropdown
           isDisabled={!hasPreviousEvent && !hasNextEvent}
           group={group}
-          relativeTime={event.dateCreated ?? event.dateReceived}
+          event={event}
         />
         <NavButtons>
           {!isHelpfulEventUiEnabled && (
