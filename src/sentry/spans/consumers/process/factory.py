@@ -82,11 +82,18 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     return snuba_span
 
 
+def _format_event_id(payload: Mapping[str, Any]) -> str:
+    event_id = payload.get("event_id")
+    if not event_id:
+        return ""
+    return uuid.UUID(event_id).hex
+
+
 def _process_message(message: Message[KafkaPayload]) -> KafkaPayload:
     payload = msgpack.unpackb(message.payload.value)
     relay_span = payload["span"]
     relay_span["project_id"] = payload["project_id"]
-    relay_span["event_id"] = payload.get("event_id", "")
+    relay_span["event_id"] = _format_event_id(payload)
     snuba_span = _build_snuba_span(relay_span)
     snuba_payload = json.dumps(snuba_span).encode("utf-8")
     return KafkaPayload(key=None, value=snuba_payload, headers=[])
