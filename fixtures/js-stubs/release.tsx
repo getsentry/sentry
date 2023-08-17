@@ -1,18 +1,39 @@
-export function Release(params, healthParams) {
+import {Health, ReleaseStatus, ReleaseWithHealth} from 'sentry/types';
+
+export function Release(
+  params: Partial<ReleaseWithHealth>,
+  healthParams: Health
+): ReleaseWithHealth {
   return {
-    dateReleased: null,
     newGroups: 0,
     commitCount: 0,
-    url: null,
+    url: '',
     data: {},
-    lastDeploy: null,
+    lastDeploy: {
+      dateFinished: '',
+      dateStarted: '',
+      environment: '',
+      id: '',
+      name: '',
+      url: '',
+      version: '',
+    },
     deployCount: 0,
+    shortVersion: '',
+    fileCount: 0,
+    status: ReleaseStatus.ACTIVE,
     dateCreated: '2020-03-23T01:02:30Z',
+    dateReleased: '',
+    id: '',
     lastEvent: '2020-03-24T02:04:50Z',
     version: 'sentry-android-shop@1.2.0',
-    firstEvent: null,
-    lastCommit: null,
-    shortVersion: 'sentry-android-shop@1.2.0',
+    firstEvent: '',
+    lastCommit: {
+      dateCreated: '',
+      id: '',
+      message: null,
+      releases: [],
+    },
     authors: [],
     owner: null,
     versionInfo: {
@@ -29,17 +50,25 @@ export function Release(params, healthParams) {
       description: '1.2.0',
       package: 'sentry-android-shop',
     },
-    ref: null,
+    ref: '',
     projects: [
       {
-        hasHealthData: true,
         healthData: {
           totalUsers24h: null,
           durationP50: 231,
+          hasHealthData: true,
+          sessionsAdoption: 0,
+          totalProjectSessions24h: 0,
+          totalProjectUsers24h: 0,
+          totalSessions24h: 0,
           totalSessions: 74949,
           totalUsers: 2544,
           crashFreeSessions: 99.59839357429719,
           sessionsErrored: 301,
+          crashFreeUsers: 98.07389937106919,
+          durationP90: 333,
+          adoption: null,
+          sessionsCrashed: 301,
           stats: {
             '24h': [
               [1585472400, 0],
@@ -68,17 +97,14 @@ export function Release(params, healthParams) {
               [1585555200, 0],
             ],
           },
-          totalSessions24h: null,
-          crashFreeUsers: 98.07389937106919,
-          durationP90: 333,
-          adoption: null,
-          sessionsCrashed: 301,
-          ...healthParams,
         },
         id: 4383603,
         name: 'Sentry-Android-Shop',
         slug: 'sentry-android-shop',
         platform: 'android',
+        newGroups: 3,
+        platforms: [],
+        ...healthParams,
       },
     ],
     currentProjectMeta: {
