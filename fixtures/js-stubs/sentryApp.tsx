@@ -1,4 +1,6 @@
-export function SentryApp(params = {}) {
+import {SentryApp as SentryAppType} from 'sentry/types';
+
+export function SentryApp(params: Partial<SentryAppType> = {}): SentryAppType {
   return {
     name: 'Sample App',
     author: 'Sentry',
@@ -14,6 +16,10 @@ export function SentryApp(params = {}) {
     clientSecret: 'client-secret',
     overview: 'This is an app.',
     schema: {},
+    featureData: [],
+    popularity: 3,
+    verifyInstall: false,
+    avatars: [],
     ...params,
   };
 }
