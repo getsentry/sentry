@@ -124,6 +124,7 @@ class ProjectSessionsChartRequest extends Component<
           query: queryParams,
         }),
       ];
+      // for users, we need to make a separate request to get the total count in period
       if (displayMode === DisplayModes.STABILITY_USERS) {
         requests.push(
           api.requestPromise(this.path, {
@@ -146,8 +147,8 @@ class ProjectSessionsChartRequest extends Component<
       );
 
       // totalSessions can't be used when we're talking about users
-      // users are a set and counting together buckets or statuses does not make sense
-      // as one user can be present in multiple buckets/statuses
+      // users are a set and counting together buckets or statuses is not correct
+      // because one user can be present in multiple buckets/statuses
       const {timeseriesData, previousTimeseriesData, totalSessions} =
         displayMode === DisplayModes.SESSIONS
           ? this.transformSessionCountData(filteredResponse)
