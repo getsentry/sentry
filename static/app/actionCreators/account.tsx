@@ -2,6 +2,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import {User, UserIdentityConfig} from 'sentry/types';
+import {ChangeAvatarUser} from 'sentry/views/settings/account/accountDetails';
 
 export async function disconnectIdentity(
   identity: UserIdentityConfig,
@@ -25,20 +26,23 @@ export async function disconnectIdentity(
   onSuccess();
 }
 
-export function updateUser(user: User) {
+export function updateUser(user: User | ChangeAvatarUser) {
   const previousUser = ConfigStore.get('user');
 
   // If the user changed their theme preferences, we should also update
   // the config store
   if (
-    previousUser.options?.theme !== user.options?.theme &&
-    user.options?.theme !== 'system'
+    user.options &&
+    previousUser.options.theme !== user.options.theme &&
+    user.options.theme !== 'system'
   ) {
-    ConfigStore.set('theme', user.options?.theme);
+    ConfigStore.set('theme', user.options.theme);
   }
 
+  const options = {...previousUser.options, ...user.options};
+
   // Ideally we'd fire an action but this is gonna get refactored soon anyway
-  ConfigStore.set('user', user);
+  ConfigStore.set('user', {...previousUser, ...user, options});
 }
 
 export function logout(api: Client) {

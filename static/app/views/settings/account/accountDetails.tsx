@@ -7,44 +7,27 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import accountDetailsFields from 'sentry/data/forms/accountDetails';
 import accountPreferencesFields from 'sentry/data/forms/accountPreferences';
 import {t} from 'sentry/locale';
-import {Avatar, Organization, User} from 'sentry/types';
-import {UserExperiments} from 'sentry/types/experiments';
+import {Organization, User} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView, {AsyncViewProps} from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
-export type ChangeAvatarUser = {
-  avatar: Avatar;
-  avatarUrl: string;
-  dateJoined: string;
-  email: string;
-  emails: {
-    email: string;
-    id: string;
-    is_verified: boolean;
-  }[];
-  experiments: Partial<UserExperiments>;
-  has2fa: boolean;
-  hasPasswordAuth: boolean;
-  id: string;
-  isActive: boolean;
-  isManaged: boolean;
-  isStaff: boolean;
-  isSuperuser: boolean;
-  lastActive: string;
-  lastLogin: string;
-  name: string;
-  username: string;
-  canReset2fa?: boolean;
-  flags?: {newsletter_consent_prompt: boolean};
-  identities?: any[];
-  ip_address?: string;
-  isAuthenticated?: boolean;
-  options?: {
-    avatarType: Avatar['avatarType'];
-  };
-  permissions?: Set<string>;
-};
+// The avatar endpoint ("/users/me/avatar/") returns a user type without options and other properties that are present in User
+export type ChangeAvatarUser = Omit<
+  User,
+  'canReset2fa' | 'flags' | 'identities' | 'isAuthenticated' | 'options' | 'permissions'
+> &
+  Partial<
+    Pick<
+      User,
+      | 'canReset2fa'
+      | 'flags'
+      | 'identities'
+      | 'isAuthenticated'
+      | 'options'
+      | 'permissions'
+    >
+  >;
 
 const ENDPOINT = '/users/me/';
 
@@ -61,7 +44,7 @@ class AccountDetails extends DeprecatedAsyncView<Props> {
   handleSubmitSuccess = (user: User | ChangeAvatarUser) => {
     // the updateUser method updates our Config Store
     // No components listen to the ConfigStore, they just access it directly
-    updateUser(user as User);
+    updateUser(user);
     // We need to update the state, because AvatarChooser is using it,
     // otherwise it will flick
     this.setState({
