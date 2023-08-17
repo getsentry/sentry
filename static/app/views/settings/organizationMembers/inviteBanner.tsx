@@ -125,7 +125,12 @@ export function InviteBanner({
   ));
 
   cards.push(
-    <SeeMoreCard key="see-more" missingUsers={users} organization={organization} />
+    <SeeMoreCard
+      key="see-more"
+      missingUsers={users}
+      organization={organization}
+      invitableRoles={invitableRoles}
+    />
   );
 
   return (
@@ -184,11 +189,12 @@ export function InviteBanner({
 export default withOrganization(InviteBanner);
 
 type SeeMoreCardProps = {
+  invitableRoles: OrgRole[];
   missingUsers: MissingMember[];
   organization: Organization;
 };
 
-function SeeMoreCard({missingUsers, organization}: SeeMoreCardProps) {
+function SeeMoreCard({missingUsers, organization, invitableRoles}: SeeMoreCardProps) {
   return (
     <MemberCard data-test-id="see-more-card">
       <MemberCardContent>
