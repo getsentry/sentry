@@ -41,5 +41,5 @@ export function useSourcePackageRegistries() {
     }
   }, [releaseRegistrySdk.error]);
 
-  return {...releaseRegistrySdk, isLoading};
+  return releaseRegistrySdk;
 }
