@@ -37,6 +37,32 @@ export const steps = ({
     description: t('Install using either Maven or Gradle:'),
     configurations: [
       {
+        language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
+        description: <h5>{t('Gradle')}</h5>,
+        code: `
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+}
+
+plugins {
+  id "io.sentry.jvm.gradle" version "3.12.0"
+}
+
+sentry {
+  // Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
+  // This enables source context, allowing you to see your source
+  // code as part of your stack traces in Sentry.
+  includeSourceContext = true
+
+  org = "___ORG_SLUG___"
+  projectName = "___PROJECT_SLUG___"
+  authToken = "your-sentry-auth-token"
+}
+        `,
+      },
+      {
         description: <h5>{t('Maven')}</h5>,
         configurations: [
           {
@@ -46,7 +72,7 @@ export const steps = ({
 <dependency>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-spring-boot-starter</artifactId>
-    <version>6.27.0</version>
+    <version>6.28.0</version>
 </dependency>
           `,
           },
@@ -57,24 +83,9 @@ export const steps = ({
 <dependency>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-spring-boot-starter-jakarta</artifactId>
-    <version>6.27.0</version>
+    <version>6.28.0</version>
 </dependency>
         `,
-          },
-        ],
-      },
-      {
-        description: <h5>{t('Graddle')}</h5>,
-        configurations: [
-          {
-            language: 'properties',
-            description: <strong>{t('Spring Boot 2')}</strong>,
-            code: "implementation 'io.sentry:sentry-spring-boot-starter:6.27.0'",
-          },
-          {
-            language: 'properties',
-            description: <strong>{t('Spring Boot 3')}</strong>,
-            code: "implementation 'io.sentry:sentry-spring-boot-starter-jakarta:6.27.0'",
           },
         ],
       },
@@ -136,7 +147,7 @@ sentry:
 <dependency>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-logback</artifactId>
-    <version>6.27.0</version>
+    <version>6.28.0</version>
 </dependency>
           `,
           },
@@ -193,35 +204,7 @@ sentry:
         configurations: [
           {
             language: 'properties',
-            code: "implementation 'io.sentry:sentry-logback:6.27.0'",
-          },
-          {
-            language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
-            description: t(
-              'To upload your source code to Sentry so it can be shown in stack traces, use our Gradle plugin.'
-            ),
-            code: `
-buildscript {
-  repositories {
-    mavenCentral()
-  }
-}
-
-plugins {
-  id "io.sentry.jvm.gradle" version "3.11.1"
-}
-
-sentry {
-  // Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
-  // This enables source context, allowing you to see your source
-  // code as part of your stack traces in Sentry.
-  includeSourceContext = true
-
-  org = "___ORG_SLUG___"
-  projectName = "___PROJECT_SLUG___"
-  authToken = "your-sentry-auth-token"
-}
-        `,
+            code: "implementation 'io.sentry:sentry-logback:6.28.0'",
           },
         ],
       },

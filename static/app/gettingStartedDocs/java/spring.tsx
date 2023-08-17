@@ -38,6 +38,32 @@ export const steps = ({
     ),
     configurations: [
       {
+        description: <h5>{t('Gradle')}</h5>,
+        language: 'groovy',
+        code: `
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+}
+
+plugins {
+  id "io.sentry.jvm.gradle" version "3.12.0"
+}
+
+sentry {
+  // Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
+  // This enables source context, allowing you to see your source
+  // code as part of your stack traces in Sentry.
+  includeSourceContext = true
+
+  org = "___ORG_SLUG___"
+  projectName = "___PROJECT_SLUG___"
+  authToken = "your-sentry-auth-token"
+}
+          `,
+      },
+      {
         description: <h5>{t('Maven')}</h5>,
         configurations: [
           {
@@ -47,7 +73,7 @@ export const steps = ({
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry-spring</artifactId>
-  <version>6.27.0</version>
+  <version>6.28.0</version>
 </dependency>
           `,
           },
@@ -58,7 +84,7 @@ export const steps = ({
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry-spring-jakarta</artifactId>
-  <version>6.27.0</version>
+  <version>6.28.0</version>
 </dependency>
         `,
           },
@@ -200,21 +226,6 @@ import org.springframework.core.Ordered
           },
         ],
       },
-      {
-        description: <h5>{t('Graddle')}</h5>,
-        configurations: [
-          {
-            description: <strong>{t('Spring 5')}</strong>,
-            language: 'groovy',
-            code: `implementation 'io.sentry:sentry-spring:6.27.0'`,
-          },
-          {
-            description: <strong>{t('Spring 6')}</strong>,
-            language: 'groovy',
-            code: `implementation 'io.sentry:sentry-spring-jakarta:6.27.0'`,
-          },
-        ],
-      },
     ],
   },
   {
@@ -268,48 +279,17 @@ try {
     ),
   },
   {
-    title: t('Source Context'),
-    configurations: [
-      {
-        language: 'groovy',
-        description: t(
-          'To upload your source code to Sentry so it can be shown in stack traces, use our Gradle plugin.'
-        ),
-        code: `
-buildscript {
-repositories {
-  mavenCentral()
-}
-}
-
-plugins {
-id "io.sentry.jvm.gradle" version "3.11.1"
-}
-
-sentry {
-// Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
-// This enables source context, allowing you to see your source
-// code as part of your stack traces in Sentry.
-includeSourceContext = true
-
-org = "___ORG_SLUG___"
-projectName = "___PROJECT_SLUG___"
-authToken = "your-sentry-auth-token"
-}
-          `,
-      },
-    ],
-
+    title: t('Other build tools'),
     additionalInfo: (
       <p>
         {tct(
           'For other dependency managers see the [mavenRepositorySpring5Link:central Maven repository (Spring 5)] and [mavenRepositorySpring6Link:central Maven repository (Spring 6)].',
           {
             mavenRepositorySpring5Link: (
-              <ExternalLink href="https://central.sonatype.com/artifact/io.sentry/sentry-spring/6.26.0" />
+              <ExternalLink href="https://central.sonatype.com/artifact/io.sentry/sentry-spring/6.28.0" />
             ),
             mavenRepositorySpring6Link: (
-              <ExternalLink href="https://central.sonatype.com/artifact/io.sentry/sentry-spring-jakarta/6.26.0" />
+              <ExternalLink href="https://central.sonatype.com/artifact/io.sentry/sentry-spring-jakarta/6.28.0" />
             ),
           }
         )}

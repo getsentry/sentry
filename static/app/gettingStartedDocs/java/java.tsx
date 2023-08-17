@@ -41,23 +41,6 @@ export const steps = ({
               </p>
             ),
             code: `
-// Make sure mavenCentral is there.
-repositories {
-    mavenCentral()
-}
-
-// Add Sentry's SDK as a dependency.
-dependencies {
-    implementation 'io.sentry:sentry:6.27.0'
-}
-          `,
-          },
-          {
-            language: 'groovy',
-            description: t(
-              'To upload your source code to Sentry so it can be shown in stack traces, use our Gradle plugin.'
-            ),
-            code: `
 buildscript {
   repositories {
     mavenCentral()
@@ -65,7 +48,7 @@ buildscript {
 }
 
 plugins {
-  id "io.sentry.jvm.gradle" version "3.11.1"
+  id "io.sentry.jvm.gradle" version "3.12.0"
 }
 
 sentry {
@@ -78,7 +61,7 @@ sentry {
   projectName = "___PROJECT_SLUG___"
   authToken = "your-sentry-auth-token"
 }
-        `,
+          `,
           },
         ],
       },
@@ -96,7 +79,7 @@ sentry {
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry</artifactId>
-  <version>6.27.0</version>
+  <version>6.28.0</version>
 </dependency>
             `,
           },
@@ -154,7 +137,7 @@ sentry {
           {
             description: <p>{tct('For [strong:SBT]:', {strong: <strong />})}</p>,
             language: 'scala',
-            code: `libraryDependencies += "io.sentry" % "sentry" % "6.27.0"`,
+            code: `libraryDependencies += "io.sentry" % "sentry" % "6.28.0"`,
           },
         ],
       },

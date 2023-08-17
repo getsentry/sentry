@@ -34,6 +34,43 @@ export const steps = ({
     ),
     configurations: [
       {
+        description: <h5>{t('Gradle')}</h5>,
+        configurations: [
+          {
+            description: (
+              <p>
+                {tct('For Gradle, add to your [code:build.gradle] file:', {
+                  code: <code />,
+                })}
+              </p>
+            ),
+            language: 'groovy',
+            code: `
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+}
+
+plugins {
+  id "io.sentry.jvm.gradle" version "3.12.0"
+}
+
+sentry {
+  // Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
+  // This enables source context, allowing you to see your source
+  // code as part of your stack traces in Sentry.
+  includeSourceContext = true
+
+  org = "___ORG_SLUG___"
+  projectName = "___PROJECT_SLUG___"
+  authToken = "your-sentry-auth-token"
+}
+            `,
+          },
+        ],
+      },
+      {
         description: <h5>{t('Maven')}</h5>,
         configurations: [
           {
@@ -42,7 +79,7 @@ export const steps = ({
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry-log4j2</artifactId>
-  <version>6.27.0</version>
+  <version>6.28.0</version>
 </dependency>
           `,
           },
@@ -91,43 +128,6 @@ export const steps = ({
   ...
 </build>
         `,
-          },
-        ],
-      },
-      {
-        description: <h5>{t('Graddle')}</h5>,
-        configurations: [
-          {
-            language: 'groovy',
-            code: "implementation 'io.sentry:sentry-log4j2:6.27.0'",
-          },
-          {
-            description: t(
-              'To upload your source code to Sentry so it can be shown in stack traces, use our Gradle plugin.'
-            ),
-            language: 'groovy',
-            code: `
-buildscript {
-  repositories {
-    mavenCentral()
-  }
-}
-
-plugins {
-  id "io.sentry.jvm.gradle" version "3.11.1"
-}
-
-sentry {
-  // Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
-  // This enables source context, allowing you to see your source
-  // code as part of your stack traces in Sentry.
-  includeSourceContext = true
-
-  org = "___ORG_SLUG___"
-  projectName = "___PROJECT_SLUG___"
-  authToken = "your-sentry-auth-token"
-}
-            `,
           },
         ],
       },
