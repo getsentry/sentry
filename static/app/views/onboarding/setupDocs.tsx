@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import {motion} from 'framer-motion';
 
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
@@ -76,18 +75,6 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
             />
           ) : (
             <Fragment>
-              <button
-                onClick={() => {
-                  Sentry.withScope(function (scope) {
-                    scope.setTag('my-tag', 'my value');
-                    scope.setLevel('error');
-                    // will be tagged with my-tag="my value"
-                    Sentry.captureException(new Error('my error'));
-                  });
-                }}
-              >
-                Throw and error
-              </button>
               <SetupIntroduction
                 stepHeaderText={t('Configure %s SDK', platformName)}
                 platform={currentPlatformKey}
