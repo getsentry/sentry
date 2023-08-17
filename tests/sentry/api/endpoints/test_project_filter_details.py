@@ -1,5 +1,9 @@
+from sentry import audit_log
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -9,9 +13,8 @@ class ProjectFilterDetailsTest(APITestCase):
 
     def setUp(self):
         super().setUp()
-        self.org = self.create_organization(name="baz", slug="1", owner=self.user)
-        self.team = self.create_team(organization=self.org, name="foo", slug="foo")
-        self.project = self.create_project(name="Bar", slug="bar", teams=[self.team])
+        self.team = self.create_team(organization=self.organization)
+        self.project = self.create_project(organization=self.organization, teams=[self.team])
         self.subfilters = [
             "safari_pre_6",
             "ie11",
@@ -19,56 +22,126 @@ class ProjectFilterDetailsTest(APITestCase):
         ]
         self.login_as(user=self.user)
 
-    def test_put(self):
+    def test_browser_extensions(self):
+        # test enabling
         self.project.update_option("filters:browser-extensions", "0")
         response = self.get_success_response(
-            self.org.slug, self.project.slug, "browser-extensions", active=True, status_code=200
+            self.organization.slug,
+            self.project.slug,
+            "browser-extensions",
+            active=True,
+            status_code=200,
         )
+
+        print(
+            self.project.organization,
+            self.project.id,
+            audit_log.get_event_id("PROJECT_ENABLE"),
+            {"state": "browser-extensions"},
+        )
+        # first_instance = AuditLogEntry.objects.first()
+        # print(first_instance)
+        # for field in first_instance._meta.fields:
+        #     field_name = field.name
+        #     field_value = getattr(first_instance, field_name)
+        #     print(f"{field_name}: {field_value}")
+        print(self.project.id)
 
         assert response.data["active"] is True
         assert self.project.get_option("filters:browser-extensions") == "1"
-
-    def test_put_health_check_filter(self):
-        self.project.update_option("filters:filtered-transaction", "0")
-        response = self.get_success_response(
-            self.org.slug, self.project.slug, "filtered-transaction", active=True, status_code=200
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("PROJECT_ENABLE"),
+            data={"state": "browser-extensions"},
         )
 
-        assert response.data == {
-            "id": "filtered-transaction",
-            "active": True,
-            "description": "Filter transactions that match most common naming patterns for health checks.",
-            "name": "Filter out health check transactions",
-        }
-        # option was changed by the request
-        assert self.project.get_option("filters:filtered-transaction") == "1"
-
+        # test disabling
         response = self.get_success_response(
-            self.org.slug, self.project.slug, "filtered-transaction", active=False, status_code=200
+            self.organization.slug,
+            self.project.slug,
+            "browser-extensions",
+            active=False,
+            status_code=200,
         )
 
         assert response.data["active"] is False
-        # option was changed by the request
-        assert self.project.get_option("filters:filtered-transaction") == "0"
+        assert self.project.get_option("filters:browser-extensions") == "0"
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("PROJECT_DISABLE"),
+            data={"state": "browser-extensions"},
+        )
 
-    def test_put_legacy_browsers_off_to_on(self):
-        assert self.project.get_option("filters:legacy-browsers") == []
-
+    def test_health_check_filter(self):
+        # test enabling
+        self.project.update_option("filters:filtered-transaction", "0")
         response = self.get_success_response(
-            self.org.slug,
+            self.organization.slug,
+            self.project.slug,
+            "filtered-transaction",
+            active=True,
+            status_code=200,
+        )
+
+        assert response.data["active"] is True
+        assert self.project.get_option("filters:filtered-transaction") == "1"
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("PROJECT_ENABLE"),
+            data={"state": "filtered-transaction"},
+        )
+
+        # test disabling
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            "filtered-transaction",
+            active=False,
+            status_code=200,
+        )
+
+        assert response.data["active"] is False
+        assert self.project.get_option("filters:filtered-transaction") == "0"
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("PROJECT_DISABLE"),
+            data={"state": "filtered-transaction"},
+        )
+
+    def test_legacy_browsers(self):
+        # test enabling
+        assert self.project.get_option("filters:legacy-browsers") == []
+        response = self.get_success_response(
+            self.organization.slug,
             self.project.slug,
             "legacy-browsers",
             subfilters=self.subfilters,
             status_code=200,
         )
 
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            print(AuditLogEntry.objects.all())
+            entry = AuditLogEntry.objects.first()
+        for field in entry._meta.fields:
+            field_name = field.name
+            field_value = getattr(entry, field_name)
+            print(f"{field_name}: {field_value}")
+
         assert set(response.data["active"]) == set(self.subfilters)
         assert set(self.project.get_option("filters:legacy-browsers")) == set(self.subfilters)
 
-    def test_put_legacy_browsers_on_to_off(self):
-        self.project.update_option("filters:filtered-transaction", self.subfilters)
+        # Fetch the entry manually because we cannot filter by the subfilters list. The order is
+        # randomized because we convert to a set and back.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            entry = AuditLogEntry.objects.filter(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("PROJECT_ENABLE"),
+            ).first()
+        assert set(entry.data["state"]) == set(self.subfilters)
+
+        # test disabling
         response = self.get_success_response(
-            self.org.slug,
+            self.organization.slug,
             self.project.slug,
             "legacy-browsers",
             subfilters=[],
@@ -78,9 +151,18 @@ class ProjectFilterDetailsTest(APITestCase):
         assert response.data["active"] == []
         assert self.project.get_option("filters:legacy-browsers") == []
 
-    def test_put_legacy_browsers_must_be_list(self):
+        # Fetch the entry manually because we cannot filter by the subfilters list. The order is
+        # randomized because we convert to a set and back.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            entry = AuditLogEntry.objects.filter(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("PROJECT_DISABLE"),
+            ).first()
+        assert entry.data["state"] == []
+
+    def test_legacy_browsers_subfilters_must_be_list(self):
         response = self.get_error_response(
-            self.org.slug,
+            self.organization.slug,
             self.project.slug,
             "legacy-browsers",
             subfilters=False,
