@@ -15,8 +15,8 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
   const hasPerfTab = organization.features.includes('session-replay-trace-table');
 
   return {
-    [TabKey.CONSOLE]: t('Console'),
     [TabKey.NETWORK]: t('Network'),
+    [TabKey.CONSOLE]: t('Console'),
     [TabKey.ERRORS]: (
       <Fragment>
         {t('Errors')} <FeatureBadge type="new" />
