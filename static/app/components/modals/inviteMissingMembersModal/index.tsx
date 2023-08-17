@@ -48,20 +48,24 @@ export function InviteMissingMembersModal({
     externalId: member.externalId,
     selected: false,
   }));
-  const [members, setMembers] = useState<MissingMemberInvite[]>(initialMemberInvites);
+  const [memberInvites, setMemberInvites] =
+    useState<MissingMemberInvite[]>(initialMemberInvites);
   const [inviteStatus, setInviteStatus] = useState<InviteStatus>({});
   const [sendingInvites, setSendingInvites] = useState(false);
   const [complete, setComplete] = useState(false);
 
   const api = useApi();
 
-  if (!members || (organization.access && !organization.access.includes('org:write'))) {
+  if (
+    !memberInvites ||
+    (organization.access && !organization.access.includes('org:write'))
+  ) {
     return null;
   }
 
   const setRole = (role: string, index: number) => {
-    setMembers(
-      members.map((member, i) => {
+    setMemberInvites(
+      memberInvites.map((member, i) => {
         if (i === index) {
           member.role = role;
         }
@@ -71,8 +75,8 @@ export function InviteMissingMembersModal({
   };
 
   const setTeams = (teams: string[], index: number) => {
-    setMembers(
-      members.map((member, i) => {
+    setMemberInvites(
+      memberInvites.map((member, i) => {
         if (i === index) {
           member.teams = new Set(teams);
         }
@@ -82,17 +86,17 @@ export function InviteMissingMembersModal({
   };
 
   const selectAll = (checked: boolean) => {
-    const selectedMembers = members.map(m => {
+    const selectedMembers = memberInvites.map(m => {
       m.selected = checked;
       return m;
     });
-    setMembers(selectedMembers);
+    setMemberInvites(selectedMembers);
   };
 
   const checkboxToggle = (checked: boolean, index: number) => {
-    const selectedMembers = [...members];
+    const selectedMembers = [...memberInvites];
     selectedMembers[index].selected = checked;
-    setMembers(selectedMembers);
+    setMemberInvites(selectedMembers);
   };
 
   const renderStatusMessage = () => {
@@ -167,7 +171,7 @@ export function InviteMissingMembersModal({
 
   const sendMemberInvites = async () => {
     setSendingInvites(true);
-    await Promise.all(members.filter(i => i.selected).map(sendMemberInvite));
+    await Promise.all(memberInvites.filter(i => i.selected).map(sendMemberInvite));
     setSendingInvites(false);
     setComplete(true);
 
@@ -180,13 +184,13 @@ export function InviteMissingMembersModal({
     );
   };
 
-  const selectedCount = members.filter(i => i.selected).length;
-  const selectedAll = members.length === selectedCount;
+  const selectedCount = memberInvites.filter(i => i.selected).length;
+  const selectedAll = memberInvites.length === selectedCount;
 
   const inviteButtonLabel = () => {
     return tct('Invite [memberCount] missing member[isPlural]', {
       memberCount:
-        members.length === selectedCount
+        memberInvites.length === selectedCount
           ? `all ${selectedCount}`
           : selectedCount === 0
           ? ''
@@ -218,8 +222,8 @@ export function InviteMissingMembersModal({
           t('Team'),
         ]}
       >
-        {members?.map((member, i) => {
-          const checked = members[i].selected;
+        {memberInvites?.map((member, i) => {
+          const checked = memberInvites[i].selected;
           return (
             <Fragment key={i}>
               <div>
