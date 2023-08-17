@@ -225,6 +225,17 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "hyphens. It cannot be entirely numeric."
         )
 
+    def test_generated_slug_not_entirely_numeric(self):
+        data = {
+            "project": self.project.slug,
+            "name": "1234",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        response = self.get_success_response(self.organization.slug, **data, status_code=201)
+
+        assert response.data["slug"].startswith("1234" + "-")
+
     @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_organization_limit(self):
         for i in range(settings.MAX_MONITORS_PER_ORG):

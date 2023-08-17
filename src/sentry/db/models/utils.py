@@ -77,8 +77,11 @@ def slugify_instance(
 
     setattr(inst, field_name, base_value)
 
-    # We don't need to further mutate if we're unique at this point
-    if not base_qs.filter(**{f"{field_name}__iexact": base_value}).exists():
+    # We don't need to further mutate if the value is unique or not entirely numeric
+    if (
+        not base_qs.filter(**{f"{field_name}__iexact": base_value}).exists()
+        and not base_value.isdigit()
+    ):
         return
 
     # We want to sanely generate the shortest unique slug possible, so

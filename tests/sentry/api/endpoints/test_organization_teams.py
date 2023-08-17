@@ -257,3 +257,8 @@ class OrganizationTeamsCreateTest(APITestCase):
             "Enter a valid slug consisting of lowercase letters, numbers, underscores or "
             "hyphens. It cannot be entirely numeric."
         )
+
+    def test_generated_slug_not_entirely_numeric(self):
+        response = self.get_success_response(self.organization.slug, name="1234", status_code=201)
+        team = Team.objects.get(id=response.data["id"])
+        assert team.slug.startswith("1234" + "-")
