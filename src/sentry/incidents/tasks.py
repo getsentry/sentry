@@ -186,7 +186,6 @@ def handle_trigger_action(
     method: str,
     new_status: int,
     metric_value: Optional[int] = None,
-    notification_uuid: Optional[str] = None,
     **kwargs: Any,
 ) -> None:
     try:
@@ -208,6 +207,13 @@ def handle_trigger_action(
     except Project.DoesNotExist:
         metrics.incr("incidents.alert_rules.action.skipping_missing_project")
         return
+
+    incident_activity = (
+        IncidentActivity.objects.filter(incident=incident, value=new_status).order_by("-id").first()
+    )
+    notification_uuid = str(incident_activity.notification_uuid) if incident_activity else None
+    if notification_uuid is None:
+        metrics.incr("incidents.alert_rules.action.incident_activity_missing")
 
     metrics.incr(
         "incidents.alert_rules.action.{}.{}".format(

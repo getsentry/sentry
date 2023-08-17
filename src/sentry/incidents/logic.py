@@ -159,7 +159,7 @@ def update_incident_status(
         # If the status isn't actually changing just no-op.
         return incident
     with transaction.atomic(router.db_for_write(Incident)):
-        incident_activity = create_incident_activity(
+        create_incident_activity(
             incident,
             IncidentActivityType.STATUS_CHANGE,
             user=user,
@@ -194,7 +194,7 @@ def update_incident_status(
             status_method == IncidentStatusMethod.MANUAL
             or status_method == IncidentStatusMethod.RULE_UPDATED
         ):
-            trigger_incident_triggers(incident, incident_activity.notification_uuid)
+            trigger_incident_triggers(incident)
 
         return incident
 
@@ -988,7 +988,7 @@ def get_triggers_for_alert_rule(alert_rule):
     return AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
 
 
-def trigger_incident_triggers(incident, notification_uuid: Optional[str] = None):
+def trigger_incident_triggers(incident):
     from sentry.incidents.tasks import handle_trigger_action
 
     incident_triggers = IncidentTrigger.objects.filter(incident=incident)
@@ -1008,7 +1008,6 @@ def trigger_incident_triggers(incident, notification_uuid: Optional[str] = None)
                         project_id=project.id,
                         method="resolve",
                         new_status=IncidentStatus.CLOSED.value,
-                        notification_uuid=notification_uuid,
                     ).delay,
                     router.db_for_write(AlertRuleTrigger),
                 )
