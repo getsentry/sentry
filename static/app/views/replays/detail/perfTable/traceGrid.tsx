@@ -69,9 +69,9 @@ export default function TraceGrid({tracesFlattened}: Props) {
       </GrabberContainer>
       <TxnList>
         {tracesFlattened.map(flattened => (
-          <TxnDuration key={flattened.trace.event_id + '_duration'}>
-            {flattened.trace['transaction.duration']}ms
-          </TxnDuration>
+          <TxnCell key={flattened.trace.event_id + '_duration'}>
+            <TxnDuration>{flattened.trace['transaction.duration']}ms</TxnDuration>
+          </TxnCell>
         ))}
       </TxnList>
     </TwoColumns>
