@@ -29,7 +29,7 @@ export function OrgRoleInfo({
     if (!groupOrgRoles) {
       return orgRoleFromMember;
     }
-    const memberOrgRoles = groupOrgRoles.map(r => r.role.id).concat([orgRole]);
+    const memberOrgRoles = groupOrgRoles?.map(r => r.role.id).concat([orgRole]);
     return getEffectiveOrgRole(memberOrgRoles, orgRoleList);
   }, [orgRole, groupOrgRoles, orgRoleList, orgRoleFromMember]);
 
