@@ -214,7 +214,7 @@ function getErrorMessage(
     case ProguardProcessingErrors.PROGUARD_MISSING_LINENO:
       return [
         {
-          title: t('A proguard mapping file does not contain line info.'),
+          title: t('A proguard mapping file does not contain line info'),
           desc: t('TBD'),
           expandTitle: t('Fix Proguard Processing Error'),
           data: errorData,
@@ -223,7 +223,7 @@ function getErrorMessage(
     case ProguardProcessingErrors.PROGUARD_MISSING_MAPPING:
       return [
         {
-          title: t('A proguard mapping file was missing.'),
+          title: t('A proguard mapping file was missing'),
           desc: t('TBD'),
           expandTitle: t('Fix Proguard Processing Error'),
           data: errorData,
@@ -232,7 +232,7 @@ function getErrorMessage(
     case NativeProcessingErrors.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM:
       return [
         {
-          title: t('An optional debug information file was missing.'),
+          title: t('An optional debug information file was missing'),
           desc: t('TBD'),
           expandTitle: t('Fix Native Processing Error'),
           data: errorData,
@@ -242,7 +242,7 @@ function getErrorMessage(
     case NativeProcessingErrors.NATIVE_MISSING_DSYM:
       return [
         {
-          title: t('A required debug information file was missing.'),
+          title: t('A required debug information file was missing'),
           desc: t('TBD'),
           expandTitle: t('Fix Native Processing Error'),
           data: errorData,
@@ -251,7 +251,7 @@ function getErrorMessage(
     case NativeProcessingErrors.NATIVE_BAD_DSYM:
       return [
         {
-          title: t('The debug information file used was broken.'),
+          title: t('The debug information file used was broken'),
           desc: t('TBD'),
           expandTitle: t('Fix Native Processing Error'),
           data: errorData,
@@ -372,12 +372,13 @@ interface ExpandableErrorListProps {
 function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorListProps) {
   const [expanded, setExpanded] = useState(false);
   const firstError = errorList[0];
-  const {title, desc: children, expandTitle, type} = firstError;
+  const {title, desc, expandTitle, type} = firstError;
   const numErrors = errorList.length;
-  const errorData = errorList.map(error => error.data ?? {});
+  const errorDataList = errorList.map(error => error.data ?? {});
 
   const cleanedData = useMemo(() => {
-    const cleaned = errorData.map(data => {
+    const cleaned = errorDataList.map(errorData => {
+      const data = {...errorData};
       // The name is rendered as path in front of the message
       if (typeof data.name === 'string') {
         delete data.name;
@@ -392,7 +393,6 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
         // Separate the image name for readability
         const separator = /^([a-z]:\\|\\\\)/i.test(data.image_path) ? '\\' : '/';
         const path = data.image_path.split(separator);
-
         data.image_name = path.splice(-1, 1)[0];
         data.image_path = path.length ? path.join(separator) + separator : '';
       }
@@ -421,7 +421,7 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
     });
     return cleaned;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [errorDataList]);
 
   return (
     <List symbol="bullet">
@@ -430,7 +430,7 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
           <strong>
             {title} ({numErrors})
           </strong>
-          {children && (
+          {desc && (
             <ToggleButton
               priority="link"
               size="zero"
@@ -445,7 +445,7 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
         </ErrorTitleFlex>
         {expanded && (
           <div>
-            <div>{children}</div>
+            <Description>{desc}</Description>
             {cleanedData.map((data, idx) => {
               return (
                 <div key={idx}>
@@ -550,6 +550,9 @@ export function ActionableItem({event, projectSlug}: ActionableItemsProps) {
   );
 }
 
+const Description = styled('div')`
+  margin-top: ${space(0.5)};
+`;
 const StyledAlert = styled(Alert)`
   margin: 0 30px;
 `;
