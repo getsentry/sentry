@@ -1,6 +1,9 @@
 import {Organization} from 'sentry/types';
 import {AggregationKey} from 'sentry/utils/fields';
-import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
+import {
+  hasOnDemandMetricWidgetFeature,
+  isOnDemandQueryString,
+} from 'sentry/utils/onDemandMetrics';
 import {Widget, WidgetType} from 'sentry/views/dashboards/types';
 
 /**
@@ -51,9 +54,5 @@ export function isOnDemandMetricWidget(widget: Widget): boolean {
 }
 
 export const shouldUseOnDemandMetrics = (organization: Organization, widget: Widget) => {
-  return (
-    isOnDemandMetricWidget(widget) &&
-    organization.features.includes('on-demand-metrics-extraction') &&
-    organization.features.includes('on-demand-metrics-extraction-experimental')
-  );
+  return isOnDemandMetricWidget(widget) && hasOnDemandMetricWidgetFeature(organization);
 };

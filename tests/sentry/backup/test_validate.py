@@ -1,5 +1,6 @@
 from copy import deepcopy
 
+from sentry.backup.comparators import get_default_comparators
 from sentry.backup.findings import ComparatorFindingKind, InstanceID
 from sentry.backup.validate import validate
 from sentry.testutils.factories import get_fixture_path
@@ -42,7 +43,9 @@ def test_good_ignore_differing_pks(tmp_path):
         """
         )
     )
-    out = validate(left, right)
+
+    # Test the explicit ssignment of `get_default_comparators()`
+    out = validate(left, right, get_default_comparators())
     findings = out.findings
     assert not findings
 
@@ -65,7 +68,7 @@ def test_bad_duplicate_entry(tmp_path):
         """
     )
     test_json.append(dupe)
-    out = validate(test_json, test_json)
+    out = validate(test_json, test_json, get_default_comparators())
     findings = out.findings
 
     assert len(findings) == 2

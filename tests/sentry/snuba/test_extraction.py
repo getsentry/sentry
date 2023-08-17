@@ -66,6 +66,7 @@ class TestCreatesOndemandMetricSpec:
             ),
             ("count()", "transaction.duration:[1,2,3]"),
             ("count()", "project:a_1 or project:b-2 or transaction.duration:>0"),
+            ("count()", "foo:bar"),
             ("failure_rate()", "transaction.duration:>100"),
             ("apdex(10)", "transaction.duration:>100"),
         ],
@@ -228,7 +229,7 @@ def test_spec_in_operator():
     }
 
 
-def test_ignore_fields():
+def test_spec_ignore_fields():
     with_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
     without_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1")
 
@@ -293,6 +294,12 @@ def test_spec_apdex(_get_apdex_project_transaction_threshold, default_project):
             "value": "frustrated",
         },
     ]
+
+
+def test_spec_custom_tag():
+    custom_tag_spec = OnDemandMetricSpec("count()", "foo:bar")
+
+    assert custom_tag_spec.condition() == {"name": "event.tags.foo", "op": "eq", "value": "bar"}
 
 
 @pytest.mark.parametrize(

@@ -760,6 +760,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.check_am2_compatibility",
     "sentry.dynamic_sampling.tasks.collect_orgs",
     "sentry.tasks.statistical_detectors",
+    "sentry.debug_files.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -769,21 +770,18 @@ if USE_SILOS:
     control_exchange = Exchange("control", type="direct")
 
 
-CELERY_QUEUES_ALL = [
-    Queue("options", routing_key="options"),
-    Queue("files.copy", routing_key="files.copy"),
-    Queue("files.delete", routing_key="files.delete"),
-]
-
 CELERY_QUEUES_CONTROL = [
     Queue("app_platform.control", routing_key="app_platform.control", exchange=control_exchange),
-    Queue("auth", routing_key="auth", exchange=control_exchange),
-    Queue("integrations", routing_key="integrations", exchange=control_exchange),
+    Queue("auth.control", routing_key="auth.control", exchange=control_exchange),
+    Queue("cleanup.control", routing_key="cleanup.control", exchange=control_exchange),
+    Queue("integrations.control", routing_key="integrations.control", exchange=control_exchange),
+    Queue("files.delete.control", routing_key="files.delete.control", exchange=control_exchange),
     Queue(
         "hybrid_cloud.control_repair",
         routing_key="hybrid_cloud.control_repair",
         exchange=control_exchange,
     ),
+    Queue("options.control", routing_key="options.control", exchange=control_exchange),
 ]
 
 CELERY_ISSUE_STATES_QUEUE = Queue(
@@ -792,6 +790,7 @@ CELERY_ISSUE_STATES_QUEUE = Queue(
 
 CELERY_QUEUES_REGION = [
     Queue("activity.notify", routing_key="activity.notify"),
+    Queue("auth", routing_key="auth"),
     Queue("alerts", routing_key="alerts"),
     Queue("app_platform", routing_key="app_platform"),
     Queue("appstoreconnect", routing_key="sentry.tasks.app_store_connect.#"),
@@ -833,10 +832,13 @@ CELERY_QUEUES_REGION = [
         "events.symbolicate_js_event_low_priority",
         routing_key="events.symbolicate_js_event_low_priority",
     ),
+    Queue("files.copy", routing_key="files.copy"),
+    Queue("files.delete", routing_key="files.delete"),
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
     ),
     Queue("group_owners.process_commit_context", routing_key="group_owners.process_commit_context"),
+    Queue("integrations", routing_key="integrations"),
     Queue(
         "releasemonitor",
         routing_key="releasemonitor",
@@ -849,6 +851,7 @@ CELERY_QUEUES_REGION = [
     Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("incidents", routing_key="incidents"),
     Queue("merge", routing_key="merge"),
+    Queue("options", routing_key="options"),
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
     Queue("post_process_transactions", routing_key="post_process_transactions"),
@@ -1132,23 +1135,28 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.statistical_detectors.run_detection",
         "schedule": crontab(minute=0, hour="*/1"),
     },
+    "backfill-artifact-bundle-index": {
+        "task": "sentry.debug_files.tasks.backfill_artifact_index_updates",
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
 if SILO_MODE == "CONTROL":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-control")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_CONTROL
-    CELERY_QUEUES = CELERY_QUEUES_CONTROL + CELERY_QUEUES_ALL
+    CELERY_QUEUES = CELERY_QUEUES_CONTROL
 
 elif SILO_MODE == "REGION":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-region")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_REGION
-    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_ALL
+    CELERY_QUEUES = CELERY_QUEUES_REGION
 
 else:
     CELERYBEAT_SCHEDULE = {**CELERYBEAT_SCHEDULE_CONTROL, **CELERYBEAT_SCHEDULE_REGION}
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
-    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_CONTROL + CELERY_QUEUES_ALL
+    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_CONTROL
 
 for queue in CELERY_QUEUES:
     queue.durable = False
@@ -1354,7 +1362,7 @@ SENTRY_FEATURES = {
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Allow disabling integrations when broken is detected
-    "organizations:slack-disable-on-broken": False,
+    "organizations:slack-fatal-disable-on-broken": False,
     # Allow disabling sentryapps when broken is detected
     "organizations:disable-sentryapps-on-broken": False,
     # Enable the 'discover' interface.
@@ -1557,6 +1565,8 @@ SENTRY_FEATURES = {
     "organizations:performance-new-trends": False,
     # Enable debug views for trendsv2 to be used internally
     "organizations:performance-trendsv2-dev-only": False,
+    # Enabled creating issues out of trends
+    "organizations:performance-trends-issues": False,
     # Bypass 30 day date range selection when fetching new trends data
     "organizations:performance-trends-new-data-date-range-default": False,
     # Enable consecutive db performance issue type
@@ -1602,10 +1612,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-issue-emails": False,
     "organizations:session-replay-weekly-email": False,
     "organizations:session-replay-trace-table": False,
-    # Enable rage click and dead click columns in replay list.
-    "organizations:replay-rage-click-dead-click-columns": False,
-    # Enable experimental error and rage/dead click cards in replay list.
-    "organizations:replay-error-click-cards": False,
+    # Enable optimized serach feature.
+    "organizations:session-replay-optimized-search": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -1695,12 +1703,18 @@ SENTRY_FEATURES = {
     "organizations:recap-server": False,
     # Enable additional logging for alerts
     "organizations:detailed-alert-logging": False,
+    # Enable the new notification settings system
+    "organizations:notification-settings-v2": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable the new flat file indexing system for sourcemaps.
     "organizations:sourcemaps-bundle-flat-file-indexing": False,
+    # Signals that the organization supports the on demand metrics prefill.
+    "organizations:on-demand-metrics-prefill": False,
+    # Signals that the organization can start prefilling on demand metrics.
+    "organizations:enable-on-demand-metrics-prefill": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -3114,6 +3128,10 @@ KAFKA_EVENTSTREAM_GENERIC = "generic-events"
 KAFKA_GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
 KAFKA_GROUP_ATTRIBUTES = "group-attributes"
 
+# spans
+KAFKA_INGEST_SPANS = "ingest-spans"
+KAFKA_SNUBA_SPANS = "snuba-spans"
+
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
     "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
@@ -3159,6 +3177,8 @@ KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     KAFKA_EVENTSTREAM_GENERIC: {"cluster": "default"},
     KAFKA_GENERIC_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_GROUP_ATTRIBUTES: {"cluster": "default"},
+    KAFKA_INGEST_SPANS: {"cluster": "default"},
+    KAFKA_SNUBA_SPANS: {"cluster": "default"},
 }
 
 

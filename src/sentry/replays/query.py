@@ -23,6 +23,7 @@ from snuba_sdk import (
 from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry import features
 from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import (
@@ -38,6 +39,7 @@ from sentry.replays.lib.query import (
     generate_valid_conditions,
     get_valid_sort_commands,
 )
+from sentry.replays.usecases.query import query_using_aggregated_search
 from sentry.utils.snuba import raw_snql_query
 
 MAX_PAGE_SIZE = 100
@@ -72,6 +74,19 @@ def query_replays_collection(
         conditions.append(Condition(Column("agg_environment"), Op.IN, environment))
 
     paginators = make_pagination_values(limit, offset)
+
+    if features.has("organizations:session-replay-optimized-search", organization, actor=actor):
+        return query_using_aggregated_search(
+            fields,
+            search_filters,
+            environment,
+            sort,
+            paginators,
+            organization,
+            project_ids,
+            start,
+            end,
+        )
 
     # Attempt to eager return with subquery.
 
