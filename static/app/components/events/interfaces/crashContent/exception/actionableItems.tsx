@@ -1,5 +1,7 @@
-import React, {Fragment, useState} from 'react';
+import React, {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import startCase from 'lodash/startCase';
+import moment from 'moment';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -27,7 +29,6 @@ import {
   ActionableItems,
   ActionableItemsResponse,
   ActionableItemTypes,
-  cleanData,
   SourceMapProcessingIssueType,
   useActionableItems,
 } from './useActionableItems';
@@ -35,6 +36,12 @@ import {sourceMapSdkDocsMap} from './utils';
 
 const shortPathPlatforms = ['javascript', 'node', 'react-native'];
 const sentryInit = <code>Sentry.init</code>;
+
+const keyMapping = {
+  image_uuid: 'Debug ID',
+  image_name: 'File Name',
+  image_path: 'File Path',
+};
 
 /**
  *
@@ -80,6 +87,7 @@ function getErrorMessage(
   }
   const defaultDocsLink = `${baseSourceMapDocsLink}#uploading-source-maps`;
   const sourcemapTitle = t('Fix Source Maps');
+  const errorData = error.data ?? {};
 
   switch (error.type) {
     case SourceMapProcessingIssueType.MISSING_RELEASE:
@@ -91,6 +99,7 @@ function getErrorMessage(
           ),
           docsLink: defaultDocsLink,
           expandTitle: sourcemapTitle,
+          data: errorData,
         },
       ];
     case SourceMapProcessingIssueType.PARTIAL_MATCH:
@@ -109,6 +118,7 @@ function getErrorMessage(
             'verify-artifact-names-match-stack-trace-frames'
           ),
           expandTitle: sourcemapTitle,
+          data: errorData,
         },
       ];
     case SourceMapProcessingIssueType.MISSING_SOURCEMAPS:
@@ -120,6 +130,7 @@ function getErrorMessage(
           ),
           docsLink: defaultDocsLink,
           expandTitle: sourcemapTitle,
+          data: errorData,
         },
       ];
     case SourceMapProcessingIssueType.URL_NOT_VALID:
@@ -137,6 +148,7 @@ function getErrorMessage(
             'verify-artifact-names-match-stack-trace-frames'
           ),
           expandTitle: sourcemapTitle,
+          data: errorData,
         },
       ];
     case SourceMapProcessingIssueType.NO_URL_MATCH:
@@ -154,6 +166,7 @@ function getErrorMessage(
             'verify-artifact-names-match-stack-trace-frames'
           ),
           expandTitle: sourcemapTitle,
+          data: errorData,
         },
       ];
     case SourceMapProcessingIssueType.DIST_MISMATCH:
@@ -172,6 +185,7 @@ function getErrorMessage(
             'verify-artifact-distribution-value-matches-value-configured-in-your-sdk'
           ),
           expandTitle: sourcemapTitle,
+          data: errorData,
         },
       ];
     case SourceMapProcessingIssueType.SOURCEMAP_NOT_FOUND:
@@ -183,6 +197,7 @@ function getErrorMessage(
           ),
           docsLink: getTroubleshootingLink(),
           expandTitle: sourcemapTitle,
+          data: errorData,
         },
       ];
     // Need to return something but this does not need to follow the pattern since it uses a different alert
@@ -202,6 +217,7 @@ function getErrorMessage(
           title: t('A proguard mapping file does not contain line info.'),
           desc: t('TBD'),
           expandTitle: t('Fix Proguard Processing Error'),
+          data: errorData,
         },
       ];
     case ProguardProcessingErrors.PROGUARD_MISSING_MAPPING:
@@ -210,6 +226,7 @@ function getErrorMessage(
           title: t('A proguard mapping file was missing.'),
           desc: t('TBD'),
           expandTitle: t('Fix Proguard Processing Error'),
+          data: errorData,
         },
       ];
     case NativeProcessingErrors.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM:
@@ -218,6 +235,7 @@ function getErrorMessage(
           title: t('An optional debug information file was missing.'),
           desc: t('TBD'),
           expandTitle: t('Fix Native Processing Error'),
+          data: errorData,
         },
       ];
 
@@ -227,6 +245,7 @@ function getErrorMessage(
           title: t('A required debug information file was missing.'),
           desc: t('TBD'),
           expandTitle: t('Fix Native Processing Error'),
+          data: errorData,
         },
       ];
     case NativeProcessingErrors.NATIVE_BAD_DSYM:
@@ -235,6 +254,7 @@ function getErrorMessage(
           title: t('The debug information file used was broken.'),
           desc: t('TBD'),
           expandTitle: t('Fix Native Processing Error'),
+          data: errorData,
         },
       ];
     case JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTEXT:
@@ -243,6 +263,7 @@ function getErrorMessage(
           title: t('TBD'),
           desc: t('TBD'),
           expandTitle: t('Fix Processing Error'),
+          data: errorData,
         },
       ];
     case HttpProcessingErrors.FETCH_GENERIC_ERROR:
@@ -251,6 +272,7 @@ function getErrorMessage(
           title: t('Unable to fetch HTTP resource'),
           desc: t('TBD'),
           expandTitle: t('Fix Processing Error'),
+          data: errorData,
         },
       ];
     case HttpProcessingErrors.RESTRICTED_IP:
@@ -259,6 +281,7 @@ function getErrorMessage(
           title: t('Cannot fetch resource due to restricted IP address'),
           desc: t('TBD'),
           expandTitle: t('Fix Processing Error'),
+          data: errorData,
         },
       ];
     case HttpProcessingErrors.SECURITY_VIOLATION:
@@ -267,6 +290,7 @@ function getErrorMessage(
           title: t('Cannot fetch resource due to security violation'),
           desc: t('TBD'),
           expandTitle: t('Fix Processing Error'),
+          data: errorData,
         },
       ];
     case GenericSchemaErrors.FUTURE_TIMESTAMP:
@@ -275,6 +299,7 @@ function getErrorMessage(
           title: t('Invalid timestamp (in future)'),
           desc: t('TBD'),
           expandTitle: t('Fix Processing Error'),
+          data: errorData,
         },
       ];
 
@@ -284,6 +309,7 @@ function getErrorMessage(
           title: t('Clock drift detected in SDK'),
           desc: t('TBD'),
           expandTitle: t('Fix Processing Error'),
+          data: errorData,
         },
       ];
     case GenericSchemaErrors.PAST_TIMESTAMP:
@@ -292,6 +318,7 @@ function getErrorMessage(
           title: t('Invalid timestamp (too old)'),
           desc: t('TBD'),
           expandTitle: t('Fix Processing Error'),
+          data: errorData,
         },
       ];
     case GenericSchemaErrors.VALUE_TOO_LONG:
@@ -300,6 +327,7 @@ function getErrorMessage(
           title: t('Discarded value due to exceeding maximum length'),
           desc: t('TBD'),
           expandTitle: t('Fix Processing Error'),
+          data: errorData,
         },
       ];
 
@@ -309,6 +337,7 @@ function getErrorMessage(
           title: t('Discarded invalid value'),
           desc: t('TBD'),
           expandTitle: t('Fix Processing Error'),
+          data: errorData,
         },
       ];
     case GenericSchemaErrors.INVALID_ENVIRONMENT:
@@ -317,6 +346,7 @@ function getErrorMessage(
           title: t('Environment cannot contain "/" or newlines'),
           desc: t('TBD'),
           expandTitle: t('Fix Processing Error'),
+          data: errorData,
         },
       ];
     case GenericSchemaErrors.INVALID_ATTRIBUTE:
@@ -325,6 +355,7 @@ function getErrorMessage(
           title: t('Discarded unknown attribute'),
           desc: t('TBD'),
           expandTitle: t('Fix Processing Error'),
+          data: errorData,
         },
       ];
 
@@ -343,6 +374,55 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
   const firstError = errorList[0];
   const {title, desc: children, expandTitle, type} = firstError;
   const numErrors = errorList.length;
+  const errorData = errorList.map(error => error.data ?? {});
+
+  const cleanedData = useMemo(() => {
+    const cleaned = errorData.map(data => {
+      // The name is rendered as path in front of the message
+      if (typeof data.name === 'string') {
+        delete data.name;
+      }
+
+      if (data.message === 'None') {
+        // Python ensures a message string, but "None" doesn't make sense here
+        delete data.message;
+      }
+
+      if (typeof data.image_path === 'string') {
+        // Separate the image name for readability
+        const separator = /^([a-z]:\\|\\\\)/i.test(data.image_path) ? '\\' : '/';
+        const path = data.image_path.split(separator);
+
+        data.image_name = path.splice(-1, 1)[0];
+        data.image_path = path.length ? path.join(separator) + separator : '';
+      }
+
+      if (typeof data.server_time === 'string' && typeof data.sdk_time === 'string') {
+        data.message = t(
+          'Adjusted timestamps by %s',
+          moment
+            .duration(moment.utc(data.server_time).diff(moment.utc(data.sdk_time)))
+            .humanize()
+        );
+      }
+
+      return Object.entries(data)
+        .map(([key, value]) => ({
+          key,
+          value,
+          subject: keyMapping[key] || startCase(key),
+        }))
+        .filter(d => {
+          if (!d.value) {
+            return true;
+          }
+          return !!d.value;
+        });
+    });
+    return cleaned;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <List symbol="bullet">
       <StyledListItem>
@@ -366,11 +446,10 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
         {expanded && (
           <div>
             <div>{children}</div>
-            {errorList.map((error, idx) => {
-              const data = error.data ?? {};
+            {cleanedData.map((data, idx) => {
               return (
                 <div key={idx}>
-                  <KeyValueList data={cleanData(data)} isContextData />
+                  <KeyValueList data={data} isContextData />
                   {idx !== numErrors - 1 && <hr />}
                 </div>
               );

@@ -1,6 +1,3 @@
-import startCase from 'lodash/startCase';
-import moment from 'moment';
-
 import {
   GenericSchemaErrors,
   HttpProcessingErrors,
@@ -8,16 +5,9 @@ import {
   NativeProcessingErrors,
   ProguardProcessingErrors,
 } from 'sentry/constants/eventErrors';
-import {t} from 'sentry/locale';
 import type {Organization, SharedViewOrganization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
-
-const keyMapping = {
-  image_uuid: 'Debug ID',
-  image_name: 'File Name',
-  image_path: 'File Path',
-};
 
 export enum SourceMapProcessingIssueType {
   UNKNOWN_ERROR = 'unknown_error',
@@ -40,6 +30,7 @@ export type ActionableItemTypes =
   | NativeProcessingErrors;
 
 interface BaseActionableItem {
+  data: any;
   message: string;
   type: ActionableItemTypes;
 }
@@ -203,46 +194,4 @@ export function actionableItemsEnabled({
     return false;
   }
   return organization.features.includes('actionable-items');
-}
-
-export function cleanData(data) {
-  // The name is rendered as path in front of the message
-  if (typeof data.name === 'string') {
-    delete data.name;
-  }
-
-  if (data.message === 'None') {
-    // Python ensures a message string, but "None" doesn't make sense here
-    delete data.message;
-  }
-
-  if (typeof data.image_path === 'string') {
-    // Separate the image name for readability
-    const separator = /^([a-z]:\\|\\\\)/i.test(data.image_path) ? '\\' : '/';
-    const path = data.image_path.split(separator);
-    data.image_name = path.splice(-1, 1)[0];
-    data.image_path = path.length ? path.join(separator) + separator : '';
-  }
-
-  if (typeof data.server_time === 'string' && typeof data.sdk_time === 'string') {
-    data.message = t(
-      'Adjusted timestamps by %s',
-      moment
-        .duration(moment.utc(data.server_time).diff(moment.utc(data.sdk_time)))
-        .humanize()
-    );
-  }
-
-  return Object.entries(data)
-    .map(([key, value]) => ({
-      key,
-      value,
-      subject: keyMapping[key] || startCase(key),
-    }))
-    .filter(d => {
-      if (!d.value) {
-        return true;
-      }
-      return !!d.value;
-    });
 }
