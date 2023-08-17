@@ -141,12 +141,18 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
             self.get_error_response(name="name", slug="1234", status_code=400)
 
     def test_without_slug(self):
-        data = {"name": "hello world"}
-        response = self.get_success_response(**data)
+        response = self.get_success_response(name="hello world")
 
         organization_id = response.data["id"]
         org = Organization.objects.get(id=organization_id)
         assert org.slug == "hello-world"
+
+    def test_generated_slug_not_entirely_numeric(self):
+        response = self.get_success_response(name="1234")
+
+        organization_id = response.data["id"]
+        org = Organization.objects.get(id=organization_id)
+        assert org.slug.startswith("1234" + "-")
 
     @patch(
         "sentry.api.endpoints.organization_member.requests.join.ratelimiter.is_limited",

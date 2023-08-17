@@ -75,6 +75,16 @@ class TeamProjectsCreateTest(APITestCase):
             "letters, numbers, underscores or hyphens. It cannot be entirely numeric."
         )
 
+    def test_generated_slug_not_entirely_numeric(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="1234",
+            status_code=201,
+        )
+
+        assert response.data["slug"].startswith("1234" + "-")
+
     def test_invalid_platform(self):
         response = self.get_error_response(
             self.organization.slug,
