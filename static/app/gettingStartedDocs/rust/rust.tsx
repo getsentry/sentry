@@ -26,7 +26,11 @@ export const steps = ({
         partialLoading: sourcePackageRegistries?.isLoading,
         code: `
 [dependencies]
-sentry = "${sourcePackageRegistries?.data?.['sentry.rust'] ?? '0.31.5'}"
+sentry = "${
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.rust'] ?? '0.31.5'
+        }"
         `,
       },
     ],

@@ -29,13 +29,17 @@ export const steps = ({
         code: `
 # For Xamarin.Forms
 Install-Package Sentry.Xamarin.Forms -Version ${
-          sourcePackageRegistries?.data?.['sentry.dotnet.xamarin-forms']?.version ??
-          '1.5.2'
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.xamarin-forms']?.version ??
+              '1.5.2'
         }
 
 # If you are not using Xamarin.Forms, but only Xamarin:
 Install-Package Sentry.Xamarin -Version ${
-          sourcePackageRegistries?.data?.['sentry.dotnet.xamarin']?.version ?? '1.5.2'
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.xamarin']?.version ?? '1.5.2'
         }
         `,
       },

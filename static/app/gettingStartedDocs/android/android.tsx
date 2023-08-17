@@ -34,8 +34,10 @@ export const steps = ({
 plugins {
   id "com.android.application" // should be in the same module
   id "io.sentry.android.gradle" version "${
-    sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
-    '3.12.0'
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
+        '3.12.0'
   }"
 }
         `,

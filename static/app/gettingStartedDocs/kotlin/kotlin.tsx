@@ -53,7 +53,9 @@ repositories {
 
 dependencies {
   implementation 'io.sentry:sentry:${
-    sourcePackageRegistries?.data?.['sentry.java']?.version ?? '4.0.0'
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '4.0.0'
   }'
 }
         `,
@@ -74,7 +76,9 @@ dependencies {
   <groupId>io.sentry</groupId>
   <artifactId>sentry</artifactId>
   <version>${
-    sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.25.0'
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.25.0'
   }</version>
 </dependency>
         `,

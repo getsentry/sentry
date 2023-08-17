@@ -43,7 +43,9 @@ export const steps = ({
   <groupId>io.sentry</groupId>
   <artifactId>sentry-logback</artifactId>
   <version>${
-    sourcePackageRegistries?.data?.['sentry.java.logback']?.version ?? '6.27.0'
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java.logback']?.version ?? '6.27.0'
   }</version>
 </dependency>
           `,
@@ -61,7 +63,9 @@ export const steps = ({
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
       <version>${
-        sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.3'
+        sourcePackageRegistries?.isLoading
+          ? t('\u2026loading')
+          : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.3'
       }</version>
       <configuration>
       <!-- for showing output of sentry-cli -->
@@ -106,7 +110,10 @@ export const steps = ({
             language: 'groovy',
             partialLoading: sourcePackageRegistries?.isLoading,
             code: `implementation 'io.sentry:sentry-logback:${
-              sourcePackageRegistries?.data?.['sentry.java.logback']?.version ?? '6.27.0'
+              sourcePackageRegistries?.isLoading
+                ? t('\u2026loading')
+                : sourcePackageRegistries?.data?.['sentry.java.logback']?.version ??
+                  '6.27.0'
             }'`,
           },
           {
@@ -124,8 +131,10 @@ buildscript {
 
 plugins {
   id "io.sentry.jvm.gradle" version "${
-    sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
-    '3.11.1'
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
+        '3.11.1'
   }"
 }
 

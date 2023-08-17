@@ -50,7 +50,9 @@ export const steps = ({
   <groupId>io.sentry</groupId>
   <artifactId>sentry-spring</artifactId>
   <version>${
-    sourcePackageRegistries?.data?.['sentry.java.spring']?.version ?? '6.27.0'
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java.spring']?.version ?? '6.27.0'
   }</version>
 </dependency>
           `,
@@ -64,7 +66,9 @@ export const steps = ({
   <groupId>io.sentry</groupId>
   <artifactId>sentry-spring-jakarta</artifactId>
   <version>${
-    sourcePackageRegistries?.data?.['sentry.java.spring.jakarta']?.version ?? '6.27.0'
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java.spring.jakarta']?.version ?? '6.27.0'
   }</version>
 </dependency>
         `,
@@ -173,7 +177,9 @@ import org.springframework.core.Ordered
     <groupId>io.sentry</groupId>
     <artifactId>sentry-maven-plugin</artifactId>
     <version>${
-      sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.3'
+      sourcePackageRegistries?.isLoading
+        ? t('\u2026loading')
+        : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.3'
     }</version>
     <configuration>
       <!-- for showing output of sentry-cli -->
@@ -218,15 +224,20 @@ import org.springframework.core.Ordered
             language: 'groovy',
             partialLoading: sourcePackageRegistries?.isLoading,
             code: `implementation 'io.sentry:sentry-spring:${
-              sourcePackageRegistries?.data?.['sentry.java.spring']?.version ?? '6.27.0'
+              sourcePackageRegistries?.isLoading
+                ? t('\u2026loading')
+                : sourcePackageRegistries?.data?.['sentry.java.spring']?.version ??
+                  '6.27.0'
             }'`,
           },
           {
             description: <strong>{t('Spring 6')}</strong>,
             language: 'groovy',
             code: `implementation 'io.sentry:sentry-spring-jakarta:${
-              sourcePackageRegistries?.data?.['sentry.java.spring.jakarta']?.version ??
-              '6.27.0'
+              sourcePackageRegistries?.isLoading
+                ? t('\u2026loading')
+                : sourcePackageRegistries?.data?.['sentry.java.spring.jakarta']
+                    ?.version ?? '6.27.0'
             }'`,
           },
         ],
@@ -301,8 +312,10 @@ repositories {
 
 plugins {
 id "io.sentry.jvm.gradle" version "${
-          sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
-          '3.11.1'
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']
+                ?.version ?? '3.11.1'
         }"
 }
 

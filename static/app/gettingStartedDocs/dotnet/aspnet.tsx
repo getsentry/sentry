@@ -32,7 +32,9 @@ export const steps = ({
         partialLoading: sourcePackageRegistries?.isLoading,
         description: t('Package Manager:'),
         code: `Install-Package Sentry.AspNet -Version ${
-          sourcePackageRegistries?.data?.['sentry.dotnet.aspnet']?.version ?? '3.34.0'
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.aspnet']?.version ?? '3.34.0'
         }`,
       },
       {
@@ -40,7 +42,9 @@ export const steps = ({
         partialLoading: sourcePackageRegistries?.isLoading,
         description: t('Using Entity Framework 6?'),
         code: `Install-Package Sentry.EntityFramework -Version ${
-          sourcePackageRegistries?.data?.['sentry.dotnet.ef']?.version ?? '3.34.0'
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.ef']?.version ?? '3.34.0'
         }`,
       },
     ],

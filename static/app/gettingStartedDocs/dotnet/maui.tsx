@@ -27,14 +27,18 @@ export const steps = ({
         language: 'shell',
         partialLoading: sourcePackageRegistries?.isLoading,
         code: `dotnet add package Sentry.Maui -v ${
-          sourcePackageRegistries?.data?.['sentry.dotnet.maui']?.version ?? '3.34.0'
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.maui']?.version ?? '3.34.0'
         }`,
       },
       {
         language: 'powershell',
         partialLoading: sourcePackageRegistries?.isLoading,
         code: `Install-Package Sentry.Maui -Version ${
-          sourcePackageRegistries?.data?.['sentry.dotnet.maui']?.version ?? '3.34.0'
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.maui']?.version ?? '3.34.0'
         }`,
       },
     ],

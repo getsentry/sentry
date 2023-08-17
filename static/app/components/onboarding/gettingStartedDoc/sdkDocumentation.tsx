@@ -99,6 +99,7 @@ export function SdkDocumentation({
   }
 
   const {default: GettingStartedDoc} = module;
+
   return (
     <GettingStartedDoc
       dsn={projectKeys[0].dsn.public}

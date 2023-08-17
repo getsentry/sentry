@@ -29,7 +29,11 @@ export const steps = ({
         partialLoading: sourcePackageRegistries?.isLoading,
         code: `
 dependencies:
-  sentry: ^${sourcePackageRegistries?.data?.['sentry.dart']?.version ?? '7.8.0'}
+  sentry: ^${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.dart']?.version ?? '7.8.0'
+  }
         `,
       },
     ],

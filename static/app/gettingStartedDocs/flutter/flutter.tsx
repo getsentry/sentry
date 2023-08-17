@@ -30,7 +30,9 @@ export const steps = ({
         code: `
 dependencies:
   sentry_flutter: ^${
-    sourcePackageRegistries?.data?.['sentry.dart.flutter']?.version ?? '7.8.0'
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.dart.flutter']?.version ?? '7.8.0'
   }
         `,
       },

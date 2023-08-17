@@ -51,7 +51,9 @@ repositories {
 // Add Sentry's SDK as a dependency.
 dependencies {
     implementation 'io.sentry:sentry:${
-      sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.27.0'
+      sourcePackageRegistries?.isLoading
+        ? t('\u2026loading')
+        : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.27.0'
     }'
 }
           `,
@@ -71,8 +73,10 @@ buildscript {
 
 plugins {
   id "io.sentry.jvm.gradle" version "${
-    sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
-    '3.11.1'
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
+        '3.11.1'
   }"
 }
 
@@ -106,7 +110,9 @@ sentry {
   <groupId>io.sentry</groupId>
   <artifactId>sentry</artifactId>
   <version>${
-    sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.27.0'
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.27.0'
   }</version>
 </dependency>
             `,
@@ -124,7 +130,9 @@ sentry {
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
       <version>${
-        sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.3'
+        sourcePackageRegistries?.isLoading
+          ? t('\u2026loading')
+          : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.3'
       }</version>
       <configuration>
       <!-- for showing output of sentry-cli -->
@@ -170,7 +178,9 @@ sentry {
             language: 'scala',
             partialLoading: sourcePackageRegistries?.isLoading,
             code: `libraryDependencies += "io.sentry" % "sentry" % "${
-              sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.27.0'
+              sourcePackageRegistries?.isLoading
+                ? t('\u2026loading')
+                : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.27.0'
             }"`,
           },
         ],

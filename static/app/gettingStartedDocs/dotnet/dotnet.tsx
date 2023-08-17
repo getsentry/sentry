@@ -42,12 +42,16 @@ export const steps = ({
         code: `
 # Using Package Manager
 Install-Package Sentry -Version ${
-          sourcePackageRegistries?.data?.['sentry.dotnet']?.version ?? '3.34.0'
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet']?.version ?? '3.34.0'
         }
 
 # Or using .NET Core CLI
 dotnet add package Sentry -v ${
-          sourcePackageRegistries?.data?.['sentry.dotnet']?.version ?? '3.34.0'
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet']?.version ?? '3.34.0'
         }
         `,
       },

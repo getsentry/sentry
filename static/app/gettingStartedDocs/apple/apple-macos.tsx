@@ -48,7 +48,9 @@ https://github.com/getsentry/sentry-cocoa.git
         partialLoading: sourcePackageRegistries?.isLoading,
         code: `
 .package(url: "https://github.com/getsentry/sentry-cocoa", from: "${
-          sourcePackageRegistries?.data?.['sentry.cocoa']?.version ?? '8.9.3'
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.cocoa']?.version ?? '8.9.3'
         }"),
         `,
       },

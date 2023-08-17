@@ -30,8 +30,10 @@ export const steps = ({
         partialLoading: sourcePackageRegistries?.isLoading,
         description: t('Package Manager:'),
         code: `Install-Package Sentry.Google.Cloud.Functions -Version ${
-          sourcePackageRegistries?.data?.['sentry.dotnet.google-cloud-function']
-            ?.version ?? '3.34.0'
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.google-cloud-function']
+                ?.version ?? '3.34.0'
         }`,
       },
       {
@@ -39,8 +41,10 @@ export const steps = ({
         partialLoading: sourcePackageRegistries?.isLoading,
         description: t('Or .NET Core CLI:'),
         code: `dotnet add package Sentry.Google.Cloud.Functions -v ${
-          sourcePackageRegistries?.data?.['sentry.dotnet.google-cloud-function']
-            ?.version ?? '3.34.0'
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.google-cloud-function']
+                ?.version ?? '3.34.0'
         }`,
       },
       {
@@ -50,8 +54,10 @@ export const steps = ({
         code: `
 <ItemGroup>
   <PackageReference Include="Sentry.Google.Cloud.Functions" Version="${
-    sourcePackageRegistries?.data?.['sentry.dotnet.google-cloud-function']?.version ??
-    '3.34.0'
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.dotnet.google-cloud-function']?.version ??
+        '3.34.0'
   }"/>
 </ItemGroup>
         `,
