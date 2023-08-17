@@ -121,6 +121,8 @@ def mark_failed(
             level=occurrence_data["level"],
         )
 
+        trace_id = occurrence_context.get("trace_id")
+
         produce_occurrence_to_kafka(
             occurrence,
             {
@@ -140,7 +142,7 @@ def mark_failed(
                     "monitor.id": str(monitor_env.monitor.guid),
                     "monitor.slug": monitor_env.monitor.slug,
                 },
-                "trace_id": str(occurrence_context.get("trace_id")),
+                "trace_id": str(trace_id) if trace_id else None,
                 "timestamp": current_timestamp.isoformat(),
             },
         )
