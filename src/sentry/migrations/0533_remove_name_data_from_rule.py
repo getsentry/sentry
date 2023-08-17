@@ -11,11 +11,11 @@ def remove_name_data(apps, schema_editor):
 
     for rule in RangeQuerySetWrapperWithProgressBar(Rule.objects.all()):
         for action in rule.data.get("actions", []):
-            if action.get("name"):
+            if action.get("name") or action.get("name") in [0, ""]:
                 del action["name"]
 
         for condition in rule.data.get("conditions", []):
-            if condition.get("name"):
+            if condition.get("name") or condition.get("name") in [0, ""]:
                 del condition["name"]
 
         rule.save(update_fields=["data"])
