@@ -486,7 +486,7 @@ class SpansMetricsLayerDatasetConfig(DatasetConfig):
         self.total_span_duration: Optional[float] = None
 
     def resolve_mri(self, value) -> Column:
-        """Given the public faacing column name resolve it to the MRI and return a Column"""
+        """Given the public facing column name resolve it to the MRI and return a Column"""
         # If the query builder has not detected a transaction use the light self time metric to get a performance boost
         if value == "span.self_time" and not self.builder.has_transaction:
             return Column(constants.SELF_TIME_LIGHT)

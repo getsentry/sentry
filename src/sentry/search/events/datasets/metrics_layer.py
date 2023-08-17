@@ -283,7 +283,12 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         fields.NumberRange("percentile", 0, 1),
                     ],
                     is_percentile=True,
-                    snql_metric_layer=self._resolve_percentile,
+                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                        args=args,
+                        alias=alias,
+                        resolve_mri=self.resolve_mri,
+                        fixed_percentile=args["percentile"],
+                    ),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
