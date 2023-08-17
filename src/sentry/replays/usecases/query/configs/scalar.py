@@ -4,16 +4,11 @@ from __future__ import annotations
 from typing import Tuple, Union
 
 from sentry.api.event_search import ParenExpression, SearchFilter
-from sentry.replays.lib.new_query.conditions import (
-    IPv4Scalar,
-    StringArray,
-    StringScalar,
-    UUIDScalar,
-)
-from sentry.replays.lib.new_query.fields import ColumnField, StringColumnField, UUIDColumnField
+from sentry.replays.lib.new_query.conditions import IPv4Scalar, StringArray, StringScalar
+from sentry.replays.lib.new_query.fields import ColumnField, StringColumnField
 from sentry.replays.lib.new_query.parsers import parse_str, parse_uuid
 from sentry.replays.usecases.query.conditions import ErrorIdsArray
-from sentry.replays.usecases.query.fields import ComputedField
+from sentry.replays.usecases.query.fields import ComputedField, TagField
 
 # Static Search Config
 static_search_config: dict[str, ColumnField] = {
@@ -40,9 +35,9 @@ static_search_config: dict[str, ColumnField] = {
 # multiple conditions are strung together.  By isolating these values into a separate config we
 # are codifying a rule which should be enforced elsewhere in code: "only one condition from this
 # config allowed".
-varying_search_config: dict[str, Union[ColumnField, ComputedField]] = {
+varying_search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = {
     "error_ids": ComputedField(parse_uuid, ErrorIdsArray),
-    "trace_ids": UUIDColumnField("trace_ids", parse_uuid, UUIDScalar),
+    "trace_ids": StringColumnField("trace_ids", lambda x: str(parse_uuid(x)), StringArray),
     "urls": StringColumnField("urls", parse_str, StringArray),
     "user.email": StringColumnField("user_email", parse_str, StringScalar),
     "user.id": StringColumnField("user_id", parse_str, StringScalar),
@@ -55,7 +50,7 @@ scalar_search_config = {**static_search_config, **varying_search_config}
 
 
 def can_scalar_search_subquery(
-    search_filters: list[ParenExpression, SearchFilter, str]
+    search_filters: list[Union[ParenExpression, SearchFilter, str]]
 ) -> Tuple[bool, bool]:
     """Return "True" if a scalar event search can be performed."""
     has_seen_varying_field = False
