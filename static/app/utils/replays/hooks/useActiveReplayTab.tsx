@@ -13,8 +13,8 @@ export enum TabKey {
   ERRORS = 'errors',
   MEMORY = 'memory',
   NETWORK = 'network',
-  TRACE = 'trace',
   PERF = 'perf',
+  TRACE = 'trace',
 }
 
 function isReplayTab(tab: string, organization: Organization): tab is TabKey {
@@ -40,7 +40,7 @@ function useDefaultTab() {
     return TabKey.DOM;
   }
 
-  return TabKey.NETWORK;
+  return TabKey.CONSOLE;
 }
 
 function useActiveReplayTab() {
