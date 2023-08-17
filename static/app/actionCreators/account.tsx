@@ -31,12 +31,10 @@ export function updateUser(user: User) {
   // If the user changed their theme preferences, we should also update
   // the config store
   if (
-    previousUser.options &&
-    user.options &&
-    previousUser.options.theme !== user.options.theme &&
-    user.options.theme !== 'system'
+    previousUser.options?.theme !== user.options?.theme &&
+    user.options?.theme !== 'system'
   ) {
-    ConfigStore.set('theme', user.options.theme);
+    ConfigStore.set('theme', user.options?.theme);
   }
 
   // Ideally we'd fire an action but this is gonna get refactored soon anyway

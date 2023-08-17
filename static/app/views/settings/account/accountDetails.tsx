@@ -58,7 +58,7 @@ class AccountDetails extends DeprecatedAsyncView<Props> {
     return [['user', ENDPOINT]];
   }
 
-  handleSubmitSuccess = (user: ChangeAvatarUser) => {
+  handleSubmitSuccess = (user: User | ChangeAvatarUser) => {
     // the updateUser method updates our Config Store
     // No components listen to the ConfigStore, they just access it directly
     updateUser(user as User);
