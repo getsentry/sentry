@@ -7,10 +7,9 @@ import {t, tct} from 'sentry/locale';
 // Configuration Start
 export const steps = ({
   dsn,
-  sourcePackageRegistries,
-}: Partial<
-  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
-> = {}): LayoutProps['steps'] => [
+}: {
+  dsn?: string;
+} = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -45,13 +44,8 @@ https://github.com/getsentry/sentry-cocoa.git
           </p>
         ),
         language: 'swift',
-        partialLoading: sourcePackageRegistries?.isLoading,
         code: `
-.package(url: "https://github.com/getsentry/sentry-cocoa", from: "${
-          sourcePackageRegistries?.isLoading
-            ? t('\u2026loading')
-            : sourcePackageRegistries?.data?.['sentry.cocoa']?.version ?? '8.9.3'
-        }"),
+.package(url: "https://github.com/getsentry/sentry-cocoa", from: "8.9.3"),
         `,
       },
     ],
@@ -189,18 +183,8 @@ export const nextSteps = [
 ];
 // Configuration End
 
-export function GettingStartedWithApple({
-  dsn,
-  sourcePackageRegistries,
-  ...props
-}: ModuleProps) {
-  return (
-    <Layout
-      steps={steps({dsn, sourcePackageRegistries})}
-      nextSteps={nextSteps}
-      {...props}
-    />
-  );
+export function GettingStartedWithApple({dsn, ...props}: ModuleProps) {
+  return <Layout steps={steps({dsn})} nextSteps={nextSteps} {...props} />;
 }
 
 export default GettingStartedWithApple;

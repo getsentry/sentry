@@ -86,11 +86,6 @@ describe('Onboarding', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: 'https://release-registry.services.sentry.io/sdks',
-      body: {},
-    });
-
-    MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${nextJsProject.slug}/docs/javascript-nextjs-with-error-monitoring/`,
       body: null,
     });
@@ -173,11 +168,6 @@ describe('Onboarding', function () {
       router: {
         params: routeParams,
       },
-    });
-
-    MockApiClient.addMockResponse({
-      url: 'https://release-registry.services.sentry.io/sdks',
-      body: {},
     });
 
     MockApiClient.addMockResponse({
@@ -268,11 +258,6 @@ describe('Onboarding', function () {
       router: {
         params: routeParams,
       },
-    });
-
-    MockApiClient.addMockResponse({
-      url: 'https://release-registry.services.sentry.io/sdks',
-      body: {},
     });
 
     MockApiClient.addMockResponse({

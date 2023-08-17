@@ -22,10 +22,9 @@ const introduction = (
 
 export const steps = ({
   dsn,
-  sourcePackageRegistries,
-}: Partial<
-  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
-> = {}): LayoutProps['steps'] => [
+}: {
+  dsn?: string;
+} = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t(
@@ -37,22 +36,16 @@ export const steps = ({
         configurations: [
           {
             language: 'xml',
-            partialLoading: sourcePackageRegistries?.isLoading,
             code: `
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry-logback</artifactId>
-  <version>${
-    sourcePackageRegistries?.isLoading
-      ? t('\u2026loading')
-      : sourcePackageRegistries?.data?.['sentry.java.logback']?.version ?? '6.27.0'
-  }</version>
+  <version>6.27.0</version>
 </dependency>
           `,
           },
           {
             language: 'xml',
-            partialLoading: sourcePackageRegistries?.isLoading,
             description: t(
               'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
             ),
@@ -62,11 +55,7 @@ export const steps = ({
     <plugin>
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
-      <version>${
-        sourcePackageRegistries?.isLoading
-          ? t('\u2026loading')
-          : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.3'
-      }</version>
+      <version>0.0.3</version>
       <configuration>
       <!-- for showing output of sentry-cli -->
       <debugSentryCli>true</debugSentryCli>
@@ -108,20 +97,13 @@ export const steps = ({
         configurations: [
           {
             language: 'groovy',
-            partialLoading: sourcePackageRegistries?.isLoading,
-            code: `implementation 'io.sentry:sentry-logback:${
-              sourcePackageRegistries?.isLoading
-                ? t('\u2026loading')
-                : sourcePackageRegistries?.data?.['sentry.java.logback']?.version ??
-                  '6.27.0'
-            }'`,
+            code: "implementation 'io.sentry:sentry-logback:6.27.0'",
           },
           {
             description: t(
               'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
             ),
             language: 'groovy',
-            partialLoading: sourcePackageRegistries?.isLoading,
             code: `
 buildscript {
   repositories {
@@ -130,12 +112,7 @@ buildscript {
 }
 
 plugins {
-  id "io.sentry.jvm.gradle" version "${
-    sourcePackageRegistries?.isLoading
-      ? t('\u2026loading')
-      : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
-        '3.11.1'
-  }"
+  id "io.sentry.jvm.gradle" version "3.11.1"
 }
 
 sentry {
@@ -297,18 +274,8 @@ try {
 ];
 // Configuration End
 
-export function GettingStartedWithLogBack({
-  dsn,
-  sourcePackageRegistries,
-  ...props
-}: ModuleProps) {
-  return (
-    <Layout
-      steps={steps({dsn, sourcePackageRegistries})}
-      introduction={introduction}
-      {...props}
-    />
-  );
+export function GettingStartedWithLogBack({dsn, ...props}: ModuleProps) {
+  return <Layout steps={steps({dsn})} introduction={introduction} {...props} />;
 }
 
 export default GettingStartedWithLogBack;
