@@ -36,7 +36,7 @@ from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
 from sentry.search.events.builder import UnresolvedQuery
-from sentry.search.events.types import WhereType
+from sentry.search.events.types import QueryBuilderConfig, WhereType
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     STRING_NOT_FOUND,
@@ -417,8 +417,9 @@ def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Cond
                 "project_id": [project.id for project in projects],
                 "organization_id": org_id_from_projects(projects) if projects else None,
             },
+            config=QueryBuilderConfig(use_aggregate_conditions=True),
         )
-        where, _ = query_builder.resolve_conditions(query_string, use_aggregate_conditions=True)
+        where, _ = query_builder.resolve_conditions(query_string)
     except InvalidSearchQuery as e:
         raise InvalidParams(f"Failed to parse query: {e}")
 

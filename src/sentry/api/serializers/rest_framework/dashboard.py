@@ -197,11 +197,12 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
                         "auto_add": not is_table or injected_orderby_equation,
                         "aggregates_only": not is_table,
                     },
+                    use_aggregate_conditions=True,
                 ),
             )
 
             builder.resolve_time_conditions()
-            builder.resolve_conditions(conditions, use_aggregate_conditions=True)
+            builder.resolve_conditions(conditions)
             # We need to resolve params to set time range params here since some
             # field aliases might those params to be resolved (total.count)
             builder.where = builder.resolve_params()
