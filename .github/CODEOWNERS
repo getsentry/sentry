@@ -260,6 +260,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/snuba/api/endpoints/test_organization_events_facets_stats_performance.py     @getsentry/team-starfish
 
 /static/app/views/starfish/                                                         @getsentry/team-starfish
+/static/app/views/performance/database                                              @getsentry/team-starfish
 ## Endof Starfish
 
 
