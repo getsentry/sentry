@@ -194,8 +194,7 @@ def update_incident_status(
             status_method == IncidentStatusMethod.MANUAL
             or status_method == IncidentStatusMethod.RULE_UPDATED
         ):
-            notification_uuid = str(incident_activity.uuid) if incident_activity.uuid else None
-            trigger_incident_triggers(incident, notification_uuid)
+            trigger_incident_triggers(incident, incident_activity.notification_uuid)
 
         return incident
 
