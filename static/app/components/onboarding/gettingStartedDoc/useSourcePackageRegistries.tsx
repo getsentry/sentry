@@ -34,7 +34,10 @@ export function useSourcePackageRegistries() {
 
   useEffect(() => {
     if (releaseRegistrySdk.error) {
-      handleXhrErrorResponse('Failed to fetch sentry release registry', error);
+      handleXhrErrorResponse(
+        'Failed to fetch sentry release registry',
+        releaseRegistrySdk.error
+      );
     }
   }, [releaseRegistrySdk.error]);
 
