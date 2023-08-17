@@ -1,10 +1,18 @@
 from unittest import mock
 
 from sentry.integrations.example.integration import AliasedIntegrationProvider, ExampleIntegration
-from sentry.models import ExternalIssue, Group, GroupLink, GroupStatus, Integration
+from sentry.models import (
+    ExternalIssue,
+    Group,
+    GroupLink,
+    GroupStatus,
+    Integration,
+    OrganizationIntegration,
+)
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -13,20 +21,21 @@ class IssueSyncIntegration(TestCase):
         group = self.group
         assert group.status == GroupStatus.UNRESOLVED
 
-        integration = self.create_integration(
-            organization=group.organization,
-            external_id="123456",
-            oi_params={
-                "config": {
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(provider="example", external_id="123456")
+            integration.add_organization(group.organization, self.user)
+
+            OrganizationIntegration.objects.filter(
+                integration_id=integration.id, organization_id=group.organization.id
+            ).update(
+                config={
                     "sync_comments": True,
                     "sync_status_outbound": True,
                     "sync_status_inbound": True,
                     "sync_assignee_outbound": True,
                     "sync_assignee_inbound": True,
                 }
-            },
-            provider="example",
-        )
+            )
 
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id, integration_id=integration.id, key="APP-123"
@@ -57,20 +66,21 @@ class IssueSyncIntegration(TestCase):
         group.save()
         assert group.status == GroupStatus.RESOLVED
 
-        integration = self.create_integration(
-            organization=group.organization,
-            external_id="123456",
-            oi_params={
-                "config": {
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(provider="example", external_id="123456")
+            integration.add_organization(group.organization, self.user)
+
+            OrganizationIntegration.objects.filter(
+                integration_id=integration.id, organization_id=group.organization.id
+            ).update(
+                config={
                     "sync_comments": True,
                     "sync_status_outbound": True,
                     "sync_status_inbound": True,
                     "sync_assignee_outbound": True,
                     "sync_assignee_inbound": True,
                 }
-            },
-            provider="example",
-        )
+            )
 
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id, integration_id=integration.id, key="APP-123"
