@@ -121,7 +121,7 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               return children({
                 ...traceLiteResults,
                 trace: traceTransactions,
-                orphanErrors,
+                orphanErrors: orphanErrorsLite,
                 currentEvent:
                   orphanError ??
                   traceTransactions.find(e => isCurrentEvent(e, event)) ??
