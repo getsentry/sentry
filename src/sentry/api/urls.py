@@ -93,6 +93,9 @@ from sentry.replays.endpoints.organization_replay_events_meta import (
     OrganizationReplayEventsMetaEndpoint,
 )
 from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
+from sentry.replays.endpoints.organization_replay_selector_index import (
+    OrganizationReplaySelectorIndexEndpoint,
+)
 from sentry.replays.endpoints.project_replay_clicks_index import ProjectReplayClicksIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
 from sentry.replays.endpoints.project_replay_recording_segment_details import (
@@ -235,6 +238,7 @@ from .endpoints.internal import (
     InternalWarningsEndpoint,
 )
 from .endpoints.issue_occurrence import IssueOccurrenceEndpoint
+from .endpoints.notification_defaults import NotificationDefaultsEndpoints
 from .endpoints.notifications import (
     NotificationActionsAvailableEndpoint,
     NotificationActionsDetailsEndpoint,
@@ -546,6 +550,13 @@ from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_notification_fine_tuning import UserNotificationFineTuningEndpoint
 from .endpoints.user_notification_settings_details import UserNotificationSettingsDetailsEndpoint
+from .endpoints.user_notification_settings_options import UserNotificationSettingsOptionsEndpoint
+from .endpoints.user_notification_settings_options_detail import (
+    UserNotificationSettingsOptionsDetailEndpoint,
+)
+from .endpoints.user_notification_settings_providers import (
+    UserNotificationSettingsProvidersEndpoint,
+)
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_password import UserPasswordEndpoint
@@ -816,6 +827,21 @@ USER_URLS = [
         r"^(?P<user_id>[^\/]+)/notifications/(?P<notification_type>[^\/]+)/$",
         UserNotificationFineTuningEndpoint.as_view(),
         name="sentry-api-0-user-notifications-fine-tuning",
+    ),
+    re_path(
+        r"^(?P<user_id>[^\/]+)/notification-options/$",
+        UserNotificationSettingsOptionsEndpoint.as_view(),
+        name="sentry-api-0-user-notification-options",
+    ),
+    re_path(
+        r"^(?P<user_id>[^\/]+)/notification-options/(?P<notification_option_id>[^\/]+)/$",
+        UserNotificationSettingsOptionsDetailEndpoint.as_view(),
+        name="sentry-api-0-user-notification-options-details",
+    ),
+    re_path(
+        r"^(?P<user_id>[^\/]+)/notification-providers/$",
+        UserNotificationSettingsProvidersEndpoint.as_view(),
+        name="sentry-api-0-user-notification-providers",
     ),
     re_path(
         r"^(?P<user_id>[^\/]+)/password/$",
@@ -1711,6 +1737,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/replays/$",
         OrganizationReplayIndexEndpoint.as_view(),
         name="sentry-api-0-organization-replay-index",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/replay-selectors/$",
+        OrganizationReplaySelectorIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-replay-selectors-index",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/replay-count/$",
@@ -2783,6 +2814,11 @@ urlpatterns = [
         r"^issues/(?P<issue_id>[^\/]+)/participants/$",
         GroupParticipantsEndpoint.as_view(),
         name="sentry-api-0-group-stats",
+    ),
+    re_path(
+        r"^notification-defaults/$",
+        NotificationDefaultsEndpoints.as_view(),
+        name="sentry-api-0-notification-defaults",
     ),
     # TODO: include in the /organizations/ route tree + remove old dupe once hybrid cloud launches
     re_path(

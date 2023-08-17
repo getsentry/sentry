@@ -9,7 +9,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';
 import useApi from 'sentry/utils/useApi';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
-import {getReplayListFields} from 'sentry/views/replays/types';
+import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
 function useReplayFromIssue({
   group,
@@ -54,15 +54,18 @@ function useReplayFromIssue({
       id: '',
       name: '',
       version: 2,
-      fields: getReplayListFields(organization),
+      fields: REPLAY_LIST_FIELDS,
       query: `id:[${String(replayIds)}]`,
       range: '14d',
       projects: [],
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     });
-  }, [location.query.sort, replayIds, organization]);
+  }, [location.query.sort, replayIds]);
 
-  useCleanQueryParamsOnRouteLeave({fieldsToClean: ['cursor']});
+  useCleanQueryParamsOnRouteLeave({
+    fieldsToClean: ['cursor'],
+    shouldClean: newLocation => newLocation.pathname.includes(`/issues/${group.id}/`),
+  });
   useEffect(() => {
     fetchReplayIds();
   }, [fetchReplayIds]);

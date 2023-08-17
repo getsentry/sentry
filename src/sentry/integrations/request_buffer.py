@@ -72,14 +72,13 @@ class IntegrationRequestBuffer:
         for day_count in broken_range_days_counts:
             if int(day_count.get("fatal_count", 0)) > 0:
                 days_fatal.append(day_count)
+            elif int(day_count.get("timeout_count", 0)) >= settings.BROKEN_TIMEOUT_THRESHOLD:
+                days_timeout.append(day_count)
             elif (
                 int(day_count.get("error_count", 0)) > 0
                 and int(day_count.get("success_count", 0)) == 0
             ):
                 days_error.append(day_count)
-            elif int(day_count.get("timeout_count", 0)) >= settings.BROKEN_TIMEOUT_THRESHOLD:
-                days_timeout.append(day_count)
-
         if len(days_fatal) > 0:
             return True
 

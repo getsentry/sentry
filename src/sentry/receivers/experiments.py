@@ -5,7 +5,10 @@ from sentry.signals import join_request_created, join_request_link_viewed, user_
 @join_request_created.connect(weak=False)
 def record_join_request_created(member, **kwargs):
     analytics.record(
-        "join_request.created", member_id=member.id, organization_id=member.organization_id
+        "join_request.created",
+        member_id=member.id,
+        organization_id=member.organization_id,
+        referrer=kwargs.get("referrer"),
     )
 
 

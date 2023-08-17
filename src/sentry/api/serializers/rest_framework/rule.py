@@ -148,6 +148,13 @@ class RuleSerializer(RuleSetSerializer):
 
         return environment
 
+    def validate_conditions(self, conditions):
+        for condition in conditions:
+            if condition.get("name"):
+                del condition["name"]
+
+        return conditions
+
     def validate(self, attrs):
         return super().validate(validate_actions(attrs))
 
@@ -181,6 +188,8 @@ def validate_actions(attrs):
     # project_rule(_details) endpoints by setting it on attrs
     actions = attrs.get("actions", tuple())
     for action in actions:
+        if action.get("name"):
+            del action["name"]
         # XXX(colleen): For ticket rules we need to ensure the user has
         # at least done minimal configuration
         if action["id"] in TICKET_ACTIONS:
