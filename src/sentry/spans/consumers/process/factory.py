@@ -45,7 +45,6 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
 
     snuba_span: MutableMapping[str, Any] = {}
     snuba_span["description"] = relay_span.get("description")
-    snuba_span["event_id"] = relay_span.get("event_id", "")
     snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
     snuba_span["is_segment"] = not relay_span.get("parent_span_id")
     snuba_span["organization_id"] = organization.id
@@ -71,7 +70,7 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         snuba_span["group_raw"] = trace_context.get("hash")
 
     sentry_tags: MutableMapping[str, Any] = {}
-    if tags := relay_span.get("tags"):
+    if tags := relay_span.get("data"):
         for relay_tag, snuba_tag in TAG_MAPPING.items():
             if relay_tag in tags:
                 sentry_tags[snuba_tag] = tags.get(relay_tag)
@@ -86,6 +85,7 @@ def _process_message(message: Message[KafkaPayload]) -> KafkaPayload:
     payload = msgpack.unpackb(message.payload.value)
     relay_span = payload["span"]
     relay_span["project_id"] = payload["project_id"]
+    relay_span["event_id"] = payload.get("event_id", "")
     snuba_span = _build_snuba_span(relay_span)
     snuba_payload = json.dumps(snuba_span).encode("utf-8")
     return KafkaPayload(key=None, value=snuba_payload, headers=[])
