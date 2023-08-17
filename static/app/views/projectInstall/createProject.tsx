@@ -7,7 +7,7 @@ import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openCreateTeamModal, openModal} from 'sentry/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -19,7 +19,6 @@ import PlatformPicker, {Platform} from 'sentry/components/platformPicker';
 import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
 import TeamSelector from 'sentry/components/teamSelector';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
@@ -346,6 +345,7 @@ function CreateProject() {
             <FormLabel>{t('Team')}</FormLabel>
             <TeamSelectInput>
               <TeamSelector
+                allowCreate
                 name="select-team"
                 aria-label={t('Select a Team')}
                 menuPlacement="auto"
@@ -355,21 +355,6 @@ function CreateProject() {
                 onChange={choice => setTeam(choice.value)}
                 teamFilter={(tm: Team) => tm.access.includes('team:admin')}
               />
-              {canCreateTeam && (
-                <Button
-                  borderless
-                  data-test-id="create-team"
-                  icon={<IconAdd isCircled />}
-                  onClick={() =>
-                    openCreateTeamModal({
-                      organization,
-                      onClose: ({slug}) => setTeam(slug),
-                    })
-                  }
-                  title={t('Create a team')}
-                  aria-label={t('Create a team')}
-                />
-              )}
             </TeamSelectInput>
           </div>
         )}

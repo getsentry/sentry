@@ -168,59 +168,6 @@ describe('CreateProject', function () {
     expect(screen.getByRole('button', {name: 'Create Project'})).toBeEnabled();
   });
 
-  it('can create a new team before project creation if org owner', async function () {
-    const {organization} = initializeOrg({
-      organization: {
-        access: ['project:admin'],
-      },
-    });
-
-    render(<CreateProject />, {
-      context: TestStubs.routerContext([
-        {
-          organization: {
-            id: '1',
-            slug: 'testOrg',
-            access: ['project:read'],
-          },
-        },
-      ]),
-      organization,
-    });
-
-    renderGlobalModal();
-    await userEvent.click(screen.getByRole('button', {name: 'Create a team'}));
-
-    expect(
-      await screen.findByText(
-        'Members of a team have access to specific areas, such as a new release or a new application feature.'
-      )
-    ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
-  });
-
-  it('should not show create team button to team-admin with no org access', function () {
-    const {organization} = initializeOrg({
-      organization: {
-        access: ['project:read'],
-      },
-    });
-    renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
-
-    OrganizationStore.onUpdate(organization);
-    TeamStore.loadUserTeams([
-      TestStubs.Team({id: 2, slug: 'team-two', access: ['team:admin']}),
-    ]);
-    render(<CreateProject />, {
-      context: TestStubs.routerContext([{organization}]),
-      organization,
-    });
-
-    const createTeamButton = screen.queryByRole('button', {name: 'Create a team'});
-    expect(createTeamButton).not.toBeInTheDocument();
-  });
-
   it('should only allow teams which the user is a team-admin', async function () {
     const organization = TestStubs.Organization();
     renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
