@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from sentry_sdk import Scope, configure_scope
 
 from sentry import analytics
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
@@ -198,6 +199,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     `module`   (optional): The module field value of the relevant stack frame
     `package`  (optional): The package field value of the relevant stack frame
     """
+
+    owner = ApiOwner.ISSUES
 
     def get(self, request: Request, project: Project) -> Response:
         ctx = generate_context(request.GET)

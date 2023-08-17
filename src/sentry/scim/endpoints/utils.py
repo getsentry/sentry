@@ -5,6 +5,7 @@ from rest_framework.exceptions import APIException, ParseError
 from rest_framework.negotiation import BaseContentNegotiation
 from rest_framework.request import Request
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models import Organization
 
@@ -117,6 +118,7 @@ class OrganizationSCIMTeamPermission(OrganizationSCIMPermission):
 
 @extend_schema(tags=["SCIM"])
 class SCIMEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ENTERPRISE
     content_negotiation_class = SCIMClientNegotiation
     cursor_name = "startIndex"
 

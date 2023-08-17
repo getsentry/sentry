@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import EnvironmentMixin, StatsMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -11,6 +12,8 @@ from sentry.tsdb.base import TSDBModel
 
 @region_silo_endpoint
 class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMixin):
+    owner = ApiOwner.ENTERPRISE
+
     def get(self, request: Request, organization) -> Response:
         """
         Retrieve Event Counts for an Organization

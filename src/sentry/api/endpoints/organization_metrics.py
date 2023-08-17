@@ -2,6 +2,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -41,6 +42,8 @@ def get_use_case_id(request: Request) -> UseCaseID:
 class OrganizationMetricsEndpoint(OrganizationEndpoint):
     """Get metric name, available operations and the metric unit"""
 
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
     def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
 
@@ -52,6 +55,8 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
 @region_silo_endpoint
 class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
     """Get metric name, available operations, metric unit and available tags"""
+
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization, metric_name) -> Response:
 
@@ -82,6 +87,8 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 
     """
 
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
     def get(self, request: Request, organization) -> Response:
 
         metrics = request.GET.getlist("metric") or []
@@ -101,6 +108,8 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 @region_silo_endpoint
 class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
     """Get all existing tag values for a metric"""
+
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization, tag_name) -> Response:
 
@@ -133,6 +142,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     Based on `OrganizationSessionsEndpoint`.
     """
 
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     default_per_page = 50
 
     def get(self, request: Request, organization) -> Response:

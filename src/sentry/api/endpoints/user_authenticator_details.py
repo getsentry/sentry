@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import OrganizationUserPermission, UserEndpoint
 from sentry.api.decorators import sudo_required
@@ -16,6 +17,7 @@ from sentry.security import capture_security_activity
 
 @control_silo_endpoint
 class UserAuthenticatorDetailsEndpoint(UserEndpoint):
+    owner = ApiOwner.ENTERPRISE
     permission_classes = (OrganizationUserPermission,)
 
     def _get_device_for_rename(self, authenticator, interface_device_id):

@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
@@ -22,6 +23,8 @@ class OrganizationEventsStarfishEndpoint(OrganizationEventsV2EndpointBase):
     This is a test endpoint that's meant to only be used for starfish testing
     purposes.
     """
+
+    owner = ApiOwner.TEAM_STARFISH
 
     def get(self, request: Request, organization) -> Response:
         if not features.has(FEATURE, organization, actor=request.user):

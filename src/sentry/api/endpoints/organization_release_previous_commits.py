@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -12,6 +13,7 @@ from sentry.ratelimits.config import RateLimitConfig
 
 @region_silo_endpoint
 class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoint):
+    owner = ApiOwner.ISSUES
     rate_limits = RateLimitConfig(group="CLI")
 
     def get(self, request: Request, organization, version) -> Response:
