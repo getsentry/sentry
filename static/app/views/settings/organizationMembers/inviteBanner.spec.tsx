@@ -43,6 +43,7 @@ describe('inviteBanner', function () {
         missingMembers={missingMembers}
         onSendInvite={() => undefined}
         organization={org}
+        invitableRoles={[]}
       />
     );
 
@@ -65,6 +66,7 @@ describe('inviteBanner', function () {
         missingMembers={missingMembers}
         onSendInvite={() => undefined}
         organization={org}
+        invitableRoles={[]}
       />
     );
 
@@ -85,6 +87,7 @@ describe('inviteBanner', function () {
         missingMembers={noMissingMembers}
         onSendInvite={() => undefined}
         organization={org}
+        invitableRoles={[]}
       />
     );
 
@@ -106,6 +109,7 @@ describe('inviteBanner', function () {
         missingMembers={noMissingMembers}
         onSendInvite={() => undefined}
         organization={org}
+        invitableRoles={[]}
       />
     );
 
@@ -138,6 +142,7 @@ describe('inviteBanner', function () {
         missingMembers={missingMembers}
         onSendInvite={() => undefined}
         organization={org}
+        invitableRoles={[]}
       />
     );
 
@@ -170,6 +175,7 @@ describe('inviteBanner', function () {
         missingMembers={missingMembers}
         onSendInvite={() => undefined}
         organization={org}
+        invitableRoles={[]}
       />
     );
 
