@@ -489,12 +489,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :param string detailed: Specify '0' to retrieve details without projects and teams.
         :auth: required
         """
-        is_detailed = request.GET.get("detailed", "1") != "0"
-        serializer = (
-            org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams
-            if is_detailed
-            else org_serializers.DetailedOrganizationSerializer
-        )
+
+        serializer = org_serializers.OrganizationSerializer
+        if request.access.has_scope("org:read"):
+            is_detailed = request.GET.get("detailed", "1") != "0"
+
+            serializer = org_serializers.DetailedOrganizationSerializer
+            if is_detailed:
+                serializer = org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams
+
         context = serialize(organization, request.user, serializer(), access=request.access)
 
         return self.respond(context)
