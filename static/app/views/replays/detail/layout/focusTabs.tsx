@@ -12,7 +12,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
-  const hasPerfTab = organization.features.includes('session-replay-trace-table');
+  const hasPerfTab = true || organization.features.includes('session-replay-trace-table');
 
   return {
     [TabKey.CONSOLE]: t('Console'),

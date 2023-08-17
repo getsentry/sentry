@@ -47,25 +47,34 @@ export default function TraceGrid({tracesFlattened}: Props) {
   const left = toPixels(dividerPosition);
 
   return (
-    <GrabberContainer ref={elementRef}>
-      <TxnGrid style={{gridTemplateColumns: `${left} calc(100% - ${left}`}}>
+    <TwoColumns>
+      <GrabberContainer ref={elementRef}>
+        <TxnGrid style={{gridTemplateColumns: `${left} 1fr`}}>
+          {tracesFlattened.map(flattened => (
+            <TraceRow
+              endTimestampMs={endTimestampMs}
+              indent={flattened.indent}
+              key={flattened.trace.event_id + '_name'}
+              startTimestampMs={startTimestampMs}
+              trace={flattened.trace}
+            />
+          ))}
+        </TxnGrid>
+        <Grabber
+          data-is-held={isHeld}
+          onDoubleClick={onDoubleClick}
+          onMouseDown={onMouseDown}
+          style={{left}}
+        />
+      </GrabberContainer>
+      <TxnList>
         {tracesFlattened.map(flattened => (
-          <TraceRow
-            endTimestampMs={endTimestampMs}
-            indent={flattened.indent}
-            key={flattened.trace.event_id}
-            startTimestampMs={startTimestampMs}
-            trace={flattened.trace}
-          />
+          <TxnDuration key={flattened.trace.event_id + '_duration'}>
+            {flattened.trace['transaction.duration']}ms
+          </TxnDuration>
         ))}
-      </TxnGrid>
-      <Grabber
-        data-is-held={isHeld}
-        onDoubleClick={onDoubleClick}
-        onMouseDown={onMouseDown}
-        style={{left}}
-      />
-    </GrabberContainer>
+      </TxnList>
+    </TwoColumns>
   );
 }
 
@@ -92,10 +101,11 @@ function TraceRow({
       </TxnCell>
       <TxnCell>
         <TxnDurationBar
-          barColor={pickBarColor(trace.transaction['transaction.op'])}
-          style={barCSSPosition(startTimestampMs, endTimestampMs, trace)}
+          style={{
+            ...barCSSPosition(startTimestampMs, endTimestampMs, trace),
+            background: pickBarColor(trace.transaction['transaction.op']),
+          }}
         />
-        <TxnDuration>{trace['transaction.duration']}</TxnDuration>
       </TxnCell>
     </Fragment>
   );
@@ -122,9 +132,13 @@ function barCSSPosition(
   };
 }
 
+const TwoColumns = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+`;
+
 const GrabberContainer = styled('div')`
   position: relative;
-  width: 100%;
 `;
 
 const Grabber = styled('div')`
@@ -163,10 +177,17 @@ const TxnGrid = styled('div')`
 
   font-size: ${p => p.theme.fontSizeRelativeSmall};
 
-  & > :nth-child(4n + 1) {
+  /* 6n === 2 cols * 2 every 2nd row */
+  & > :nth-child(4n + 1),
+  & > :nth-child(4n + 2) {
     background: ${p => p.theme.backgroundTertiary};
   }
-  & > :nth-child(4n + 2) {
+`;
+
+const TxnList = styled('div')`
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
+
+  & > :nth-child(2n + 1) {
     background: ${p => p.theme.backgroundTertiary};
   }
 `;
@@ -190,21 +211,17 @@ const TxnLabel = styled('div')`
 `;
 
 const TxnDuration = styled('div')`
-  position: relative;
   display: flex;
   flex: 1 1 auto;
   align-items: center;
-  z-index: 1;
+  justify-content: flex-end;
 `;
 
-const TxnDurationBar = styled('div')<{barColor: string}>`
-  background: ${p => p.barColor};
+const TxnDurationBar = styled('div')`
   position: absolute;
-  top: 0;
+  top: 50%;
+  transform: translate(0, -50%);
+  height: calc(100% - ${space(1.5)});
   user-select: none;
   min-width: 1px;
-  --padding: ${space(1.5)};
-  height: calc(100% - var(--padding));
-  margin-block: calc(var(--padding) / 2);
-  z-index: 0;
 `;

@@ -18,7 +18,7 @@ export enum TabKey {
 }
 
 function isReplayTab(tab: string, organization: Organization): tab is TabKey {
-  const hasPerfTab = organization.features.includes('session-replay-trace-table');
+  const hasPerfTab = true || organization.features.includes('session-replay-trace-table');
 
   if (tab === TabKey.PERF) {
     return hasPerfTab;
