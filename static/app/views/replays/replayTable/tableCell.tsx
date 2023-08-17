@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import Avatar from 'sentry/components/avatar';
 import {Button} from 'sentry/components/button';
@@ -38,8 +39,17 @@ export type ReferrerTableType = 'main' | 'dead-table' | 'errors-table' | 'rage-t
 
 type EditType = 'set' | 'remove';
 
-function GenerateAction(key: string, value: string, edit: EditType) {
-  const location = useLocation<ReplayListLocationQuery>();
+function generateAction({
+  key,
+  value,
+  edit,
+  location,
+}: {
+  edit: EditType;
+  key: string;
+  location: Location<ReplayListLocationQuery>;
+  value: string;
+}) {
   const search = new MutableSearch(decodeScalar(location.query.query) || '');
 
   const modifiedQuery =
@@ -67,6 +77,7 @@ function OSBrowserDropdownFilter({
   type: string;
   version: string | null;
 }) {
+  const location = useLocation<ReplayListLocationQuery>();
   return (
     <DropdownMenu
       items={[
@@ -82,12 +93,22 @@ function OSBrowserDropdownFilter({
                   {
                     key: 'name_add',
                     label: t('Add to filter'),
-                    onAction: GenerateAction(`${type}.name`, name ?? '', 'set'),
+                    onAction: generateAction({
+                      key: `${type}.name`,
+                      value: name ?? '',
+                      edit: 'set',
+                      location,
+                    }),
                   },
                   {
                     key: 'name_exclude',
                     label: t('Exclude from filter'),
-                    onAction: GenerateAction(`${type}.name`, name ?? '', 'remove'),
+                    onAction: generateAction({
+                      key: `${type}.name`,
+                      value: name ?? '',
+                      edit: 'remove',
+                      location,
+                    }),
                   },
                 ],
               },
@@ -105,12 +126,22 @@ function OSBrowserDropdownFilter({
                   {
                     key: 'version_add',
                     label: t('Add to filter'),
-                    onAction: GenerateAction(`${type}.version`, version ?? '', 'set'),
+                    onAction: generateAction({
+                      key: `${type}.version`,
+                      value: version ?? '',
+                      edit: 'set',
+                      location,
+                    }),
                   },
                   {
                     key: 'version_exclude',
                     label: t('Exclude from filter'),
-                    onAction: GenerateAction(`${type}.version`, version ?? '', 'remove'),
+                    onAction: generateAction({
+                      key: `${type}.version`,
+                      value: version ?? '',
+                      edit: 'remove',
+                      location,
+                    }),
                   },
                 ],
               },
@@ -139,28 +170,49 @@ function OSBrowserDropdownFilter({
 }
 
 function NumericDropdownFilter({type, val}: {type: string; val: number}) {
+  const location = useLocation<ReplayListLocationQuery>();
   return (
     <DropdownMenu
       items={[
         {
           key: 'add',
           label: 'Add to filter',
-          onAction: GenerateAction(type, val.toString(), 'set'),
+          onAction: generateAction({
+            key: type,
+            value: val.toString(),
+            edit: 'set',
+            location,
+          }),
         },
         {
           key: 'greater',
           label: 'Show values greater than',
-          onAction: GenerateAction(type, '>' + val.toString(), 'set'),
+          onAction: generateAction({
+            key: type,
+            value: '>' + val.toString(),
+            edit: 'set',
+            location,
+          }),
         },
         {
           key: 'less',
           label: 'Show values less than',
-          onAction: GenerateAction(type, '<' + val.toString(), 'set'),
+          onAction: generateAction({
+            key: type,
+            value: '<' + val.toString(),
+            edit: 'set',
+            location,
+          }),
         },
         {
           key: 'exclude',
           label: t('Exclude from filter'),
-          onAction: GenerateAction(type, val.toString(), 'remove'),
+          onAction: generateAction({
+            key: type,
+            value: val.toString(),
+            edit: 'remove',
+            location,
+          }),
         },
       ]}
       usePortal
@@ -556,8 +608,6 @@ const SpanOperationBreakdown = styled('div')`
 
 const Container = styled('div')`
   position: relative;
-  width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -581,5 +631,7 @@ const ActionMenuTrigger = styled(Button)`
 `;
 
 const NumericActionMenuTrigger = styled(ActionMenuTrigger)`
-  left: ${space(3)};
+  left: 100%;
+  margin-left: ${space(0.75)};
+  z-index: 1;
 `;
