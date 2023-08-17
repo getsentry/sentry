@@ -11,12 +11,12 @@ from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviderEnum
 
 
-class UserNotificationProvidersBaseTest(APITestCase):
+class UserNotificationSettingsProvidersBaseTest(APITestCase):
     endpoint = "sentry-api-0-user-notification-providers"
 
 
 @control_silo_test(stable=True)
-class UserNotificationProvidersGetTest(UserNotificationProvidersBaseTest):
+class UserNotificationSettingsProvidersGetTest(UserNotificationSettingsProvidersBaseTest):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
@@ -74,6 +74,22 @@ class UserNotificationProvidersGetTest(UserNotificationProvidersBaseTest):
         response = self.get_success_response("me").data
         assert len(response) == 3
 
+        # check for all the provider options
+        alert_slack_item = next(
+            item for item in response if item["provider"] == "slack" and item["type"] == "alerts"
+        )
+        assert alert_slack_item["value"] == "always"
+
+        workflow_email_item = next(
+            item for item in response if item["provider"] == "email" and item["type"] == "workflow"
+        )
+        assert workflow_email_item["value"] == "always"
+
+        alert_slack_item = next(
+            item for item in response if item["provider"] == "email" and item["type"] == "alerts"
+        )
+        assert alert_slack_item["value"] == "always"
+
     def test_invalid_type(self):
         response = self.get_error_response(
             "me",
@@ -84,7 +100,7 @@ class UserNotificationProvidersGetTest(UserNotificationProvidersBaseTest):
 
 
 @control_silo_test(stable=True)
-class UserNotificationProvidersPutTest(UserNotificationProvidersBaseTest):
+class UserNotificationSettingsProvidersPutTest(UserNotificationSettingsProvidersBaseTest):
     method = "PUT"
 
     def setUp(self):
@@ -100,7 +116,7 @@ class UserNotificationProvidersPutTest(UserNotificationProvidersBaseTest):
             type="alerts",
             status_code=status.HTTP_201_CREATED,
             value="always",
-            provider=["slack"],
+            providers=["slack"],
         )
         assert NotificationSettingProvider.objects.filter(
             user_id=self.user.id,
@@ -120,7 +136,7 @@ class UserNotificationProvidersPutTest(UserNotificationProvidersBaseTest):
             scope_identifier=self.project.id,
             type="alerts",
             status_code=status.HTTP_400_BAD_REQUEST,
-            provider=["slack"],
+            providers=["slack"],
         )
         assert response.data["scopeType"] == ["Invalid scope type"]
 
@@ -132,6 +148,6 @@ class UserNotificationProvidersPutTest(UserNotificationProvidersBaseTest):
             scope_identifier=self.organization.id,
             type="alerts",
             status_code=status.HTTP_400_BAD_REQUEST,
-            provider=["github"],
+            providers=["github"],
         )
-        assert response.data["provider"] == ["Invalid provider"]
+        assert response.data["providers"] == ["Invalid provider"]

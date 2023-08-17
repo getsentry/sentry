@@ -10,12 +10,14 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-class UserNotificationOptionsDetailsBaseTest(APITestCase):
+class UserNotificationSettingsOptionsDetailsBaseTest(APITestCase):
     endpoint = "sentry-api-0-user-notification-options-details"
 
 
 @control_silo_test(stable=True)
-class UserNotificationOptionsDetailsDeleteTest(UserNotificationOptionsDetailsBaseTest):
+class UserNotificationSettingsOptionsDetailsDeleteTest(
+    UserNotificationSettingsOptionsDetailsBaseTest
+):
     method = "DELETE"
 
     def setUp(self):
