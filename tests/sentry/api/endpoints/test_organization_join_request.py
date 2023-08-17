@@ -137,7 +137,10 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         assert not join_request.invite_approved
 
         mock_record.assert_called_with(
-            "join_request.created", member_id=join_request.id, organization_id=self.organization.id
+            "join_request.created",
+            member_id=join_request.id,
+            organization_id=self.organization.id,
+            referrer=None,
         )
 
         self.assert_org_member_mapping(org_member=join_request)
