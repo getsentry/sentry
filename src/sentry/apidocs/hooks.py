@@ -77,7 +77,8 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
         if callback.view_class.owner == ApiOwner.UNOWNED:
             if path not in API_OWNERSHIP_ALLOWLIST_DONT_MODIFY:
                 raise SentryApiBuildError(
-                    "Please add owner attribute to your endpoint. If you can't find your team in ApiOwners feel free to add the associated github group. "
+                    f"Endpoint {callback.view_class} is missing the attribute owner: ApiOwner. \n"
+                    + "If you can't find your team in ApiOwners feel free to add the associated github group. ",
                 )
 
         if any(path.startswith(p) for p in EXCLUSION_PATH_PREFIXES):

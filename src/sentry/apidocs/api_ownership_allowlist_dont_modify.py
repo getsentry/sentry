@@ -1,5 +1,5 @@
 """
-    This list is tracking old apis that we couldn't find owners for.
+    This list is tracking old api endpoints that we couldn't find owners for.
     The goal is to eventually find owners for all and shrink this list.
     DO NOT ADD ANY NEW APIS
 """
@@ -163,19 +163,6 @@ API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/api/0/organizations/{organization_slug}/functions/{function_slug}/",
     "/api/0/organizations/{organization_slug}/functions/{function_slug}/",
     "/api/0/organizations/{organization_slug}/request-project-creation/",
-    "/api/0/organizations/{organization_slug}/scim/v2/Users",
-    "/api/0/organizations/{organization_slug}/scim/v2/Users",
-    "/api/0/organizations/{organization_slug}/scim/v2/Users/{member_id}",
-    "/api/0/organizations/{organization_slug}/scim/v2/Users/{member_id}",
-    "/api/0/organizations/{organization_slug}/scim/v2/Users/{member_id}",
-    "/api/0/organizations/{organization_slug}/scim/v2/Users/{member_id}",
-    "/api/0/organizations/{organization_slug}/scim/v2/Groups",
-    "/api/0/organizations/{organization_slug}/scim/v2/Groups",
-    "/api/0/organizations/{organization_slug}/scim/v2/Groups/{team_id}",
-    "/api/0/organizations/{organization_slug}/scim/v2/Groups/{team_id}",
-    "/api/0/organizations/{organization_slug}/scim/v2/Groups/{team_id}",
-    "/api/0/organizations/{organization_slug}/scim/v2/Groups/{team_id}",
-    "/api/0/organizations/{organization_slug}/scim/v2/Schemas",
     "/api/0/projects/",
     "/api/0/projects/{organization_slug}/rule-conditions/",
     "/api/0/projects/{organization_slug}/{project_slug}/",
