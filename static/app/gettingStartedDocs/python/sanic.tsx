@@ -41,7 +41,9 @@ const introduction = (
 
 export const steps = ({
   dsn,
-}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
+}: {
+  dsn?: string;
+} = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: <p>{tct('Install [code:sentry-sdk] from PyPI:', {code: <code />})}</p>,

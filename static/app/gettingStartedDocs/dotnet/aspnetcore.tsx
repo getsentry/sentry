@@ -11,10 +11,9 @@ import {t, tct} from 'sentry/locale';
 // Configuration Start
 export const steps = ({
   dsn,
-  sourcePackageRegistries,
-}: Partial<
-  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
-> = {}): LayoutProps['steps'] => [
+}: {
+  dsn?: string;
+} = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -27,25 +26,13 @@ export const steps = ({
     configurations: [
       {
         language: 'shell',
-        partialLoading: sourcePackageRegistries?.isLoading,
         description: t('Package Manager:'),
-        code: `Install-Package Sentry.AspNetCore -Version ${
-          sourcePackageRegistries?.isLoading
-            ? t('\u2026loading')
-            : sourcePackageRegistries?.data?.['sentry.dotnet.aspnetcore']?.version ??
-              '3.34.0'
-        }`,
+        code: 'Install-Package Sentry.AspNetCore -Version 3.34.0',
       },
       {
         language: 'shell',
-        partialLoading: sourcePackageRegistries?.isLoading,
         description: t('Or .NET Core CLI:'),
-        code: `dotnet add package Sentry.AspNetCore -v ${
-          sourcePackageRegistries?.isLoading
-            ? t('\u2026loading')
-            : sourcePackageRegistries?.data?.['sentry.dotnet.aspnetcore']?.version ??
-              '3.34.0'
-        }`,
+        code: 'dotnet add package Sentry.AspNetCore -v 3.34.0',
       },
     ],
   },
@@ -228,12 +215,8 @@ public class HomeController : Controller
 ];
 // Configuration End
 
-export function GettingStartedWithAspnetcore({
-  dsn,
-  sourcePackageRegistries,
-  ...props
-}: ModuleProps) {
-  return <Layout steps={steps({dsn, sourcePackageRegistries})} {...props} />;
+export function GettingStartedWithAspnetcore({dsn, ...props}: ModuleProps) {
+  return <Layout steps={steps({dsn})} {...props} />;
 }
 
 export default GettingStartedWithAspnetcore;

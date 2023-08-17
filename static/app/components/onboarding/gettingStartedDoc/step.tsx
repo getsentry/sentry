@@ -47,10 +47,6 @@ type ConfigurationType = {
    * A callback to be invoked when the configuration is selected and copied to the clipboard
    */
   onSelectAndCopy?: () => void;
-  /**
-   * Whether or not the configuration or parts of it are currently being loaded
-   */
-  partialLoading?: boolean;
 };
 
 interface BaseStepProps {
@@ -83,7 +79,6 @@ function getConfiguration({
   additionalInfo,
   onCopy,
   onSelectAndCopy,
-  partialLoading,
 }: ConfigurationType) {
   return (
     <Configuration>
@@ -94,8 +89,6 @@ function getConfiguration({
           language={language}
           onCopy={onCopy}
           onSelectAndCopy={onSelectAndCopy}
-          hideCopyButton={partialLoading}
-          disableUserSelection={partialLoading}
         >
           {language === 'javascript'
             ? beautify.js(code, {indent_size: 2, e4x: true})

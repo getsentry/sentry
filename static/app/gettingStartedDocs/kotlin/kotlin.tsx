@@ -26,10 +26,9 @@ const introduction = (
 
 export const steps = ({
   dsn,
-  sourcePackageRegistries,
-}: Partial<
-  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
-> = {}): LayoutProps['steps'] => [
+}: {
+  dsn?: string;
+} = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t('Install the SDK via Gradle or Maven:'),
@@ -44,7 +43,6 @@ export const steps = ({
             })}
           </p>
         ),
-        partialLoading: sourcePackageRegistries?.isLoading,
         code: `
 // Make sure mavenCentral is there.
 repositories {
@@ -52,17 +50,12 @@ repositories {
 }
 
 dependencies {
-  implementation 'io.sentry:sentry:${
-    sourcePackageRegistries?.isLoading
-      ? t('\u2026loading')
-      : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '4.0.0'
-  }'
+  implementation 'io.sentry:sentry:{{@inject packages.version('sentry.java', '4.0.0') }}'
 }
         `,
       },
       {
         language: 'xml',
-        partialLoading: sourcePackageRegistries?.isLoading,
         description: (
           <p>
             {tct('For [strong:Maven], add to your [code:pom.xml] file:', {
@@ -75,11 +68,7 @@ dependencies {
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry</artifactId>
-  <version>${
-    sourcePackageRegistries?.isLoading
-      ? t('\u2026loading')
-      : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.25.0'
-  }</version>
+  <version>6.25.0</version>
 </dependency>
         `,
       },
@@ -186,18 +175,8 @@ throw e
 ];
 // Configuration End
 
-export function GettingStartedWithKotlin({
-  dsn,
-  sourcePackageRegistries,
-  ...props
-}: ModuleProps) {
-  return (
-    <Layout
-      steps={steps({dsn, sourcePackageRegistries})}
-      introduction={introduction}
-      {...props}
-    />
-  );
+export function GettingStartedWithKotlin({dsn, ...props}: ModuleProps) {
+  return <Layout steps={steps({dsn})} introduction={introduction} {...props} />;
 }
 
 export default GettingStartedWithKotlin;

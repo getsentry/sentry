@@ -6,7 +6,9 @@ import {t, tct} from 'sentry/locale';
 // Configuration Start
 export const steps = ({
   dsn,
-}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
+}: {
+  dsn?: string;
+} = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (

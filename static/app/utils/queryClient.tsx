@@ -1,7 +1,7 @@
 import * as reactQuery from '@tanstack/react-query';
 import {QueryClientConfig} from '@tanstack/react-query';
 
-import {ApiResult, Client, ResponseMeta} from 'sentry/api';
+import {ApiResult, ResponseMeta} from 'sentry/api';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
@@ -81,14 +81,7 @@ type UseApiQueryResult<TData, TError> = reactQuery.UseQueryResult<TData, TError>
  */
 function useApiQuery<TResponseData, TError = RequestError>(
   queryKey: ApiQueryKey,
-  options: UseApiQueryOptions<TResponseData, TError>,
-  /**
-   * An existing API client may be provided.
-   *
-   * This is a continent way to re-use clients and still inherit the
-   * persistInFlight configuration.
-   */
-  providedApi?: Client
+  options: UseApiQueryOptions<TResponseData, TError>
 ): UseApiQueryResult<TResponseData, TError> {
   const api = useApi({
     // XXX: We need to set persistInFlight to disable query cancellation on
@@ -105,7 +98,6 @@ function useApiQuery<TResponseData, TError = RequestError>(
     //
     //      [0]: https://tanstack.com/query/v4/docs/guides/query-cancellation#default-behavior
     persistInFlight: true,
-    api: providedApi,
   });
 
   const [path, endpointOptions] = queryKey;
