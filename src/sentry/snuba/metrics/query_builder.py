@@ -440,10 +440,9 @@ class ReleaseHealthQueryBuilder(UnresolvedQuery):
     def resolve_conditions(
         self,
         query: Optional[str],
-        use_aggregate_conditions: bool,
     ) -> Tuple[List[WhereType], List[WhereType]]:
         if not self._contains_wildcard_in_query(query):
-            return super().resolve_conditions(query, use_aggregate_conditions)
+            return super().resolve_conditions(query)
 
         raise InvalidSearchQuery("Release Health Queries don't support wildcards")
 

@@ -16,6 +16,7 @@ from sentry.dynamic_sampling.rules.base import get_guarded_blended_sample_rate
 from sentry.models import Project
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.constants import TRACE_PARENT_SPAN_CONTEXT
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -115,12 +116,14 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             ],
             equations=[],
             orderby=None,
-            auto_fields=True,
-            auto_aggregations=True,
-            use_aggregate_conditions=True,
             limit=20,
             offset=0,
-            equation_config={"auto_add": False},
+            config=QueryBuilderConfig(
+                equation_config={"auto_add": False},
+                auto_fields=True,
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+            ),
         )
         snuba_query = builder.get_snql_query().query
         extra_select = [
