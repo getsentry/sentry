@@ -78,7 +78,7 @@ class Webhook:
                     "external_id": str(external_id),
                 },
             )
-            logger.exception("Integration does not exist.")
+            metrics.incr("github.webhook.integration_does_not_exist")
             return
 
         if "repository" in event:
