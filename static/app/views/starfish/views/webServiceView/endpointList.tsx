@@ -26,7 +26,7 @@ import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventV
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias, RateUnits} from 'sentry/utils/discover/fields';
 import {TableColumn} from 'sentry/views/discover/table/types';
-import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';

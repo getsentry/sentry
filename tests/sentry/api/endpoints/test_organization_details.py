@@ -68,6 +68,16 @@ class OrganizationDetailsTestBase(APITestCase):
         self.login_as(self.user)
 
 
+class MockAccess:
+    def has_scope(self, scope):
+        # For the "test_as_no_org_read_user" we need a set of scopes that allows GET on the
+        # OrganizationDetailsEndpoint to allow high-level access, but without "org:read" scope
+        # to cover that branch with test. The scope "org:write" is a good candidate for this.
+        if scope == "org:write":
+            return True
+        return False
+
+
 @region_silo_test(stable=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase):
     def test_simple(self):
@@ -174,6 +184,15 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
 
         assert "projects" not in response.data
         assert "teams" not in response.data
+
+    def test_as_no_org_read_user(self):
+        with patch("sentry.auth.access.Access.has_scope", MockAccess().has_scope):
+            response = self.get_success_response(self.organization.slug)
+
+            assert "access" in response.data
+            assert "projects" not in response.data
+            assert "teams" not in response.data
+            assert "orgRoleList" not in response.data
 
     def test_as_superuser(self):
         self.user = self.create_user("super@example.org", is_superuser=True)

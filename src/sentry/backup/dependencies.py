@@ -32,6 +32,11 @@ class ForeignFieldKind(Enum):
     # A naked usage of Django's `OneToOneField`.
     DefaultOneToOneField = auto()
 
+    # A ForeignKey-like dependency that is opaque to Django because it uses `BoundedBigIntegerField`
+    # instead of one of the Django's default relational field types like `ForeignKey`,
+    # `OneToOneField`, etc.dd
+    ImplicitForeignKey = auto()
+
 
 class ForeignField(NamedTuple):
     """A field that creates a dependency on another Sentry model."""
@@ -115,6 +120,11 @@ def dependencies() -> dict[str, ModelRelations]:
     from django.apps import apps
 
     from sentry.db.models.base import ModelSiloLimit
+    from sentry.db.models.fields.bounded import (
+        BoundedBigIntegerField,
+        BoundedIntegerField,
+        BoundedPositiveIntegerField,
+    )
     from sentry.db.models.fields.foreignkey import FlexibleForeignKey
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
     from sentry.db.models.fields.onetoone import OneToOneCascadeDeletes
@@ -127,7 +137,10 @@ def dependencies() -> dict[str, ModelRelations]:
         if app_config.label in EXCLUDED_APPS:
             continue
 
-        models_from_names = {model._meta.object_name: model for model in app_config.get_models()}
+        models_from_names = {
+            model._meta.object_name.lower(): model  # type: ignore[union-attr]
+            for model in app_config.get_models()
+        }
         model_iterator = app_config.get_models()
 
         for model in model_iterator:
@@ -154,7 +167,7 @@ def dependencies() -> dict[str, ModelRelations]:
                             kind=ForeignFieldKind.DefaultForeignKey,
                         )
                 elif isinstance(field, HybridCloudForeignKey):
-                    rel_model = models_from_names[field.foreign_model_name[7:]]
+                    rel_model = models_from_names[field.foreign_model_name[7:].lower()]
                     foreign_keys[field.name] = ForeignField(
                         model=rel_model,
                         kind=ForeignFieldKind.HybridCloudForeignKey,
@@ -179,6 +192,28 @@ def dependencies() -> dict[str, ModelRelations]:
                         )
                     else:
                         raise RuntimeError("Unknown one to kind")
+
+            # Use some heuristics to grab numeric-only unlinked dependencies.
+            simple_integer_fields = [
+                field
+                for field in model._meta.get_fields()
+                if isinstance(field, BoundedIntegerField)
+                or isinstance(field, BoundedBigIntegerField)
+                or isinstance(field, BoundedPositiveIntegerField)
+            ]
+            for field in simple_integer_fields:
+                # "actor_id", when used as a simple integer field rather than a `ForeignKey` into an
+                # `Actor`, refers to a unified but loosely specified means by which to index into a
+                # either a `Team` or `User`, before this pattern was formalized by the official
+                # `Actor` model. Because of this, we avoid assuming that it is a dependency into
+                # `Actor` and just ignore it.
+                if field.name.endswith("_id") and field.name != "actor_id":
+                    candidate = field.name[:-3].replace("_", "")
+                    if candidate and candidate in models_from_names:
+                        foreign_keys[field.name] = ForeignField(
+                            model=models_from_names[candidate],
+                            kind=ForeignFieldKind.ImplicitForeignKey,
+                        )
 
             model_dependencies_list[normalize_model_name(model)] = ModelRelations(
                 model=model,

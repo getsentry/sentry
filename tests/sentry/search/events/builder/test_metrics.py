@@ -1966,7 +1966,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
                 internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
                 entity="metrics_counters",
-                tags={"query_hash": spec.query_hash()},
+                tags={"query_hash": spec.query_hash},
                 timestamp=self.start + datetime.timedelta(hours=hour),
             )
 
@@ -2020,7 +2020,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 metric=TransactionMetricKey.DIST_ON_DEMAND.value,
                 internal_metric=TransactionMRI.DIST_ON_DEMAND.value,
                 entity="metrics_distributions",
-                tags={"query_hash": spec.query_hash()},
+                tags={"query_hash": spec.query_hash},
                 timestamp=self.start + datetime.timedelta(hours=hour),
             )
 
@@ -2053,6 +2053,69 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             {
                 "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
                 "count": 400.0,
+            },
+        ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "count", "type": "Float64"},
+            ],
+        )
+
+    def test_run_query_with_on_demand_apdex(self):
+        field = "apdex(10)"
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query)
+
+        for hour in range(0, 5):
+            self.store_transaction_metric(
+                value=1,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                tags={"query_hash": spec.query_hash, "satisfaction": "satisfactory"},
+                timestamp=self.start + datetime.timedelta(hours=hour),
+            )
+
+            self.store_transaction_metric(
+                value=1,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                tags={"query_hash": spec.query_hash, "satisfaction": "tolerable"},
+                timestamp=self.start + datetime.timedelta(hours=hour),
+            )
+
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query,
+            selected_columns=[field],
+            on_demand_metrics_enabled=True,
+        )
+        result = query.run_query("test_query")
+        assert result["data"][:5] == [
+            {
+                "time": self.start.isoformat(),
+                "count": 0.75,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+                "count": 0.75,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+                "count": 0.75,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
+                "count": 0.75,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
+                "count": 0.75,
             },
         ]
         self.assertCountEqual(
@@ -2179,8 +2242,8 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             metric=TransactionMetricKey.DIST_ON_DEMAND.value,
             internal_metric=TransactionMRI.DIST_ON_DEMAND.value,
             entity="metrics_distributions",
-            tags={"query_hash": spec.query_hash()},
-            timestamp=self.start + datetime.timedelta(minutes=15),
+            tags={"query_hash": spec.query_hash},
+            timestamp=self.start,
         )
 
         query = AlertMetricsQueryBuilder(
@@ -2211,8 +2274,8 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
             internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
             entity="metrics_counters",
-            tags={"query_hash": spec.query_hash()},
-            timestamp=self.start + datetime.timedelta(minutes=15),
+            tags={"query_hash": spec.query_hash},
+            timestamp=self.start,
         )
 
         query = AlertMetricsQueryBuilder(
@@ -2233,7 +2296,91 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert len(meta) == 1
         assert meta[0]["name"] == "c:transactions/on_demand@none"
 
-    def test_get_run_query_with_on_demand_count_and_time_range_required_and_not_supplied(self):
+    def test_run_query_with_on_demand_failure_rate(self):
+        field = "failure_rate()"
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query)
+
+        self.store_transaction_metric(
+            value=1,
+            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            entity="metrics_counters",
+            tags={"query_hash": spec.query_hash, "failure": "true"},
+            timestamp=self.start,
+        )
+
+        self.store_transaction_metric(
+            value=1,
+            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            entity="metrics_counters",
+            tags={"query_hash": spec.query_hash},
+            timestamp=self.start,
+        )
+
+        query = AlertMetricsQueryBuilder(
+            self.params,
+            use_metrics_layer=False,
+            granularity=3600,
+            query=query,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[field],
+            on_demand_metrics_enabled=True,
+            skip_time_conditions=False,
+        )
+
+        result = query.run_query("test_query")
+
+        # (1 failure / 2 total) = 0.5
+        assert result["data"] == [{"c:transactions/on_demand@none": 0.5}]
+        meta = result["meta"]
+        assert len(meta) == 1
+        assert meta[0]["name"] == "c:transactions/on_demand@none"
+
+    def test_run_query_with_on_demand_apdex(self):
+        field = "apdex(10)"
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query)
+
+        self.store_transaction_metric(
+            value=1,
+            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            entity="metrics_counters",
+            tags={"query_hash": spec.query_hash, "satisfaction": "satisfactory"},
+            timestamp=self.start,
+        )
+
+        self.store_transaction_metric(
+            value=1,
+            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            entity="metrics_counters",
+            tags={"query_hash": spec.query_hash, "satisfaction": "tolerable"},
+            timestamp=self.start,
+        )
+
+        query = AlertMetricsQueryBuilder(
+            self.params,
+            use_metrics_layer=False,
+            granularity=3600,
+            query=query,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[field],
+            on_demand_metrics_enabled=True,
+            skip_time_conditions=False,
+        )
+
+        result = query.run_query("test_query")
+
+        # (1 satisfactory + (1 tolerable / 2)) / (2 total) = 0.75
+        assert result["data"] == [{"c:transactions/on_demand@none": 0.75}]
+        meta = result["meta"]
+        assert len(meta) == 1
+        assert meta[0]["name"] == "c:transactions/on_demand@none"
+
+    def test_run_query_with_on_demand_count_and_time_range_required_and_not_supplied(self):
         params = {
             "organization_id": self.organization.id,
             "project_id": self.projects,
