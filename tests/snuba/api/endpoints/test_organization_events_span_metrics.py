@@ -574,7 +574,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     def test_http_error_rate_and_count(self):
         super().test_http_error_rate_and_count()
 
-    @pytest.mark.xfail(reason="Cannot group by transform")
+    @pytest.mark.xfail(reason="Cannot group by function 'if'")
     def test_span_module(self):
         super().test_span_module()
 
