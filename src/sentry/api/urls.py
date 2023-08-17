@@ -19,6 +19,12 @@ from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
 from sentry.api.utils import method_dispatch
+from sentry.blueprint.endpoints import (
+    OrganizationAlertProcedureDetailsEndpoint,
+    OrganizationAlertProcedureIndexEndpoint,
+    OrganizationAlertTemplateDetailsEndpoint,
+    OrganizationAlertTemplateIndexEndpoint,
+)
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
@@ -953,6 +959,26 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/combined-rules/$",
         OrganizationCombinedRuleIndexEndpoint.as_view(),
         name="sentry-api-0-organization-combined-rules",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/alert-templates/$",
+        OrganizationAlertTemplateIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-alert-templates",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/alert-templates/(?P<alert_template_id>[^\/]+)/$",
+        OrganizationAlertTemplateDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-alert-templates",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/alert-procedures/$",
+        OrganizationAlertProcedureIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-alert-procedures",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/alert-procedures/(?P<alert_procedure_id>[^\/]+)/$",
+        OrganizationAlertProcedureDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-alert-procedures",
     ),
     # Data Export
     re_path(
