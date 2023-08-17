@@ -1,3 +1,11 @@
+`@misc{dai2019transformerxl,
+      title={Transformer-XL: Attentive Language Models Beyond a Fixed-Length Context}, 
+      author={Zihang Dai and Zhilin Yang and Yiming Yang and Jaime Carbonell and Quoc V. Le and Ruslan Salakhutdinov},
+      year={2019},
+      eprint={1901.02860},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG}
+}`
 {
   "ReleaseFile": {
     "type": "object",
