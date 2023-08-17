@@ -1,6 +1,8 @@
 import {useCallback, useEffect, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
@@ -8,22 +10,29 @@ import Carousel from 'sentry/components/carousel';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import ExternalLink from 'sentry/components/links/externalLink';
+import InviteMissingMembersModal from 'sentry/components/modals/inviteMissingMembersModal';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MissingMember, Organization} from 'sentry/types';
+import {MissingMember, Organization, OrgRole} from 'sentry/types';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
+  invitableRoles: OrgRole[];
   missingMembers: {integration: string; users: MissingMember[]};
   onSendInvite: (email: string) => void;
   organization: Organization;
 };
 
-export function InviteBanner({missingMembers, onSendInvite, organization}: Props) {
+export function InviteBanner({
+  missingMembers,
+  onSendInvite,
+  organization,
+  invitableRoles,
+}: Props) {
   // NOTE: this is currently used for Github only
 
   const hideBanner =
@@ -93,7 +102,7 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
       <MemberCardContent>
         <MemberCardContentRow>
           <IconGithub size="sm" />
-          {/* TODO: create mapping from integration to lambda external link function */}
+          {/* TODO(cathy): create mapping from integration to lambda external link function */}
           <StyledExternalLink href={`http://github.com/${member.externalId}`}>
             {tct('@[externalId]', {externalId: member.externalId})}
           </StyledExternalLink>
@@ -115,7 +124,9 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
     </MemberCard>
   ));
 
-  cards.push(<SeeMoreCard key="see-more" missingUsers={users} />);
+  cards.push(
+    <SeeMoreCard key="see-more" missingUsers={users} organization={organization} />
+  );
 
   return (
     <StyledCard>
@@ -138,7 +149,19 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
           <Button
             priority="primary"
             size="xs"
-            // TODO(cathy): open up invite modal
+            onClick={() =>
+              openModal(
+                deps => (
+                  <InviteMissingMembersModal
+                    {...deps}
+                    organization={organization}
+                    missingMembers={missingMembers.users}
+                    invitableRoles={invitableRoles}
+                  />
+                ),
+                {modalCss}
+              )
+            }
           >
             {t('View All')}
           </Button>
@@ -162,9 +185,10 @@ export default withOrganization(InviteBanner);
 
 type SeeMoreCardProps = {
   missingUsers: MissingMember[];
+  organization: Organization;
 };
 
-function SeeMoreCard({missingUsers}: SeeMoreCardProps) {
+function SeeMoreCard({missingUsers, organization}: SeeMoreCardProps) {
   return (
     <MemberCard data-test-id="see-more-card">
       <MemberCardContent>
@@ -184,13 +208,30 @@ function SeeMoreCard({missingUsers}: SeeMoreCardProps) {
       <Button
         size="sm"
         priority="primary"
-        // TODO(cathy): open up invite modal
+        onClick={() =>
+          openModal(
+            deps => (
+              <InviteMissingMembersModal
+                {...deps}
+                organization={organization}
+                missingMembers={missingUsers}
+                invitableRoles={invitableRoles}
+              />
+            ),
+            {modalCss}
+          )
+        }
       >
         {t('View All')}
       </Button>
     </MemberCard>
   );
 }
+
+const modalCss = css`
+  width: 80%;
+  max-width: 870px;
+`;
 
 const StyledCard = styled(Card)`
   display: flex;
@@ -202,7 +243,6 @@ const StyledCard = styled(Card)`
 const CardTitleContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
 `;
 
 const CardTitleContent = styled('div')`
@@ -217,7 +257,7 @@ const CardTitle = styled('h6')`
   color: ${p => p.theme.gray400};
 `;
 
-const Subtitle = styled('div')`
+export const Subtitle = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
@@ -264,7 +304,7 @@ const MemberCardContentRow = styled('div')`
   }
 `;
 
-const StyledExternalLink = styled(ExternalLink)`
+export const StyledExternalLink = styled(ExternalLink)`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
