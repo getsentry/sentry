@@ -42,6 +42,30 @@ describe('useCleanQueryParamsOnRouteLeave', () => {
     expect(unsubscriber).toHaveBeenCalled();
   });
 
+  it('should not update the history if shouldLeave returns false', () => {
+    MockBrowserHistoryListen.mockImplementation(onRouteLeave => {
+      onRouteLeave(
+        TestStubs.location({
+          pathname: '/next',
+          query: {
+            cursor: '0:1:0',
+            limit: '5',
+          },
+        })
+      );
+      return () => {};
+    });
+
+    reactHooks.renderHook(useCleanQueryParamsOnRouteLeave, {
+      initialProps: {
+        fieldsToClean: ['cursor'],
+        shouldClean: () => false,
+      },
+    });
+
+    expect(MockBrowserHistoryReplace).not.toHaveBeenCalled();
+  });
+
   it('should not update the history if the pathname is unchanged', () => {
     handleRouteLeave({
       fieldsToClean: ['cursor'],
