@@ -1,6 +1,8 @@
 from typing import Sequence
 from unittest.mock import ANY
 
+import pytest
+
 from sentry.incidents.models import AlertRule
 from sentry.models import (
     Dashboard,
@@ -9,6 +11,8 @@ from sentry.models import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
     Project,
+    ProjectTransactionThreshold,
+    TransactionMetric,
 )
 from sentry.relay.config.metric_extraction import get_metric_extraction_config
 from sentry.snuba.dataset import Dataset
@@ -64,6 +68,14 @@ def create_widget(
     )
 
     return widget_query
+
+
+def create_project_threshold(
+    project: Project, threshold: int, metric: int
+) -> ProjectTransactionThreshold:
+    return ProjectTransactionThreshold.objects.create(
+        project=project, organization=project.organization, threshold=threshold, metric=metric
+    )
 
 
 @django_db_all
@@ -338,4 +350,48 @@ def test_get_metric_extraction_config_alerts_and_widgets(default_project):
             "field": "event.duration",
             "mri": "d:transactions/on_demand@none",
             "tags": [{"key": "query_hash", "value": ANY}],
+        }
+
+
+@pytest.mark.django_db
+def test_get_metric_extraction_config_with_apdex(default_project):
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+        create_alert("apdex(10)", "transaction.duration:>=1000", default_project)
+        # The threshold stored in the database will not be considered and rather the one from the parameter will be
+        # preferred.
+        create_project_threshold(default_project, 200, TransactionMetric.DURATION.value)
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 1
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [
+                {
+                    "condition": {"name": "event.duration", "op": "lte", "value": 10},
+                    "key": "satisfaction",
+                    "value": "satisfactory",
+                },
+                {
+                    "condition": {
+                        "inner": [
+                            {"name": "event.duration", "op": "gt", "value": 10},
+                            {"name": "event.duration", "op": "lte", "value": 40},
+                        ],
+                        "op": "and",
+                    },
+                    "key": "satisfaction",
+                    "value": "tolerable",
+                },
+                {
+                    "condition": {"name": "event.duration", "op": "gt", "value": 40},
+                    "key": "satisfaction",
+                    "value": "frustrated",
+                },
+                {"key": "query_hash", "value": ANY},
+            ],
         }

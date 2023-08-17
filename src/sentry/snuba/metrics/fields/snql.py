@@ -749,3 +749,88 @@ def min_timestamp(aggregate_filter, org_id, use_case_id, alias=None):
 
 def max_timestamp(aggregate_filter, org_id, use_case_id, alias=None):
     return timestamp_column_snql("maxIf", aggregate_filter, org_id, use_case_id, alias)
+
+
+def on_demand_failure_rate_snql_factory(aggregate_filter, org_id, use_case_id, alias=None):
+    return Function(
+        "divide",
+        [
+            Function(
+                "countIf",
+                [
+                    Column("value"),
+                    Function(
+                        "and",
+                        [
+                            Function(
+                                "equals",
+                                [
+                                    Column(resolve_tag_key(use_case_id, org_id, "failure")),
+                                    resolve_tag_value(use_case_id, org_id, "true"),
+                                ],
+                            ),
+                            aggregate_filter,
+                        ],
+                    ),
+                ],
+            ),
+            Function("countIf", [Column("value"), aggregate_filter]),
+        ],
+        alias=alias,
+    )
+
+
+def on_demand_apdex_snql_factory(aggregate_filter, org_id, use_case_id, alias=None):
+    # For more information about the formula, check https://docs.sentry.io/product/performance/metrics/#apdex.
+
+    satisfactory = Function(
+        "countIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    Function(
+                        "equals",
+                        [
+                            Column(resolve_tag_key(use_case_id, org_id, "satisfaction")),
+                            resolve_tag_value(use_case_id, org_id, "satisfactory"),
+                        ],
+                    ),
+                    aggregate_filter,
+                ],
+            ),
+        ],
+    )
+    tolerable_divided_by_2 = Function(
+        "divide",
+        [
+            Function(
+                "countIf",
+                [
+                    Column("value"),
+                    Function(
+                        "and",
+                        [
+                            Function(
+                                "equals",
+                                [
+                                    Column(resolve_tag_key(use_case_id, org_id, "satisfaction")),
+                                    resolve_tag_value(use_case_id, org_id, "tolerable"),
+                                ],
+                            ),
+                            aggregate_filter,
+                        ],
+                    ),
+                ],
+            ),
+            2,
+        ],
+    )
+    total = Function("countIf", [Column("value"), aggregate_filter])
+
+    return Function(
+        "divide",
+        [Function("plus", [satisfactory, tolerable_divided_by_2]), total],
+        alias=alias,
+    )
