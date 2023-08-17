@@ -489,6 +489,7 @@ describe('IssueList', function () {
             environment: [],
             project: [],
             referrer: 'issue-list',
+            sort: '',
             query: 'dogs',
             statsPeriod: '14d',
           },
