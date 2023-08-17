@@ -21,6 +21,7 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 
 TAG_MAPPING = {
     "span.action": "action",
+    "span.description": "description",
     "span.domain": "domain",
     "span.group": "group",
     "span.module": "module",
