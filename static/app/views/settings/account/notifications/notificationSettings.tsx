@@ -97,14 +97,16 @@ class NotificationSettings extends DeprecatedAsyncComponent<Props, State> {
     return updatedNotificationSettings;
   };
 
+  checkFeatureFlag(flag: string) {
+    return this.props.organizations.some(org => org.features?.includes(flag));
+  }
+
   get notificationSettingsType() {
     // filter out notification settings if the feature flag isn't set
     return NOTIFICATION_SETTINGS_TYPES.filter(type => {
       const notificationFlag = NOTIFICATION_FEATURE_MAP[type];
       if (notificationFlag) {
-        return this.props.organizations.some(org =>
-          org.features?.includes(notificationFlag)
-        );
+        return this.checkFeatureFlag(notificationFlag);
       }
       return true;
     });
