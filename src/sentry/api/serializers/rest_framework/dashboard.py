@@ -20,6 +20,7 @@ from sentry.models import (
 )
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.fields import is_function
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.dates import parse_stats_period
@@ -191,10 +192,12 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             builder = UnresolvedQuery(
                 dataset=Dataset.Discover,
                 params=params,
-                equation_config={
-                    "auto_add": not is_table or injected_orderby_equation,
-                    "aggregates_only": not is_table,
-                },
+                config=QueryBuilderConfig(
+                    equation_config={
+                        "auto_add": not is_table or injected_orderby_equation,
+                        "aggregates_only": not is_table,
+                    },
+                ),
             )
 
             builder.resolve_time_conditions()
