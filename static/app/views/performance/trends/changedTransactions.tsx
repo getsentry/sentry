@@ -220,7 +220,7 @@ function ChangedTransactions(props: Props) {
 
   const {isLoading: isCardinalityCheckLoading, outcome} = useMetricsCardinalityContext();
 
-  const canUseMetricsTrends = withBreakpoint && !outcome?.forceTransactionsOnly;
+  const canUseMetricsTrends = true;
 
   const trendView = props.trendView.clone();
   const chartTitle = getChartTitle(trendChangeType);

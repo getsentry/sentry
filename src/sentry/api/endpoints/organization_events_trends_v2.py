@@ -1,7 +1,9 @@
+import hashlib
 import logging
 import re
+import uuid
 from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, cast
 
 import sentry_sdk
@@ -17,6 +19,9 @@ from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.producer import produce_occurrence_to_kafka
 from sentry.net.http import connection_from_url
 from sentry.search.events.constants import METRICS_GRANULARITIES
 from sentry.snuba import metrics_performance
@@ -372,7 +377,123 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 else {},
             }
 
+        def fingerprint_regression(trending_event):
+            return hashlib.sha1(
+                (f'p95_transaction_duration-{trending_event["transaction"]}').encode()
+            ).hexdigest()
+
+        def send_occurrence_to_plaform(found_trending_events):
+            # test data
+            events = [
+                {
+                    "absolute_percentage_change": 2.094919791085335,
+                    "aggregate_range_1": 50.83569680365293,
+                    "aggregate_range_2": 106.49670732758604,
+                    "breakpoint": 1691805600,
+                    "change": "regression",
+                    "project": 3,
+                    "transaction": "sentry.tasks.store.process_event",
+                    "trend_difference": 55.66101052393311,
+                    "trend_percentage": 2.094919791085335,
+                    "unweighted_p_value": 0,
+                    "unweighted_t_value": -11.044457641018662,
+                },
+                {
+                    "absolute_percentage_change": 1.2824544573384014,
+                    "aggregate_range_1": 342.913917132867,
+                    "aggregate_range_2": 439.77148151041655,
+                    "breakpoint": 1691532000,
+                    "change": "regression",
+                    "project": 3,
+                    "transaction": "/api/0/projects/{organization_slug}/stats/",
+                    "trend_difference": 96.85756437754952,
+                    "trend_percentage": 1.2824544573384014,
+                    "unweighted_p_value": 0,
+                    "unweighted_t_value": -21.114512168254933,
+                },
+                {
+                    "absolute_percentage_change": 1.134644152203171,
+                    "aggregate_range_1": 2126.130238679245,
+                    "aggregate_range_2": 2412.4012421397374,
+                    "breakpoint": 1691398800,
+                    "change": "regression",
+                    "project": 3,
+                    "transaction": "/api/0/organizations/{organization_slug}/issues/",
+                    "trend_difference": 286.27100346049247,
+                    "trend_percentage": 1.134644152203171,
+                    "unweighted_p_value": 0,
+                    "unweighted_t_value": -10.763685029891265,
+                },
+                {
+                    "absolute_percentage_change": 1.1239448233255223,
+                    "aggregate_range_1": 1007.5358023809521,
+                    "aggregate_range_2": 1132.4146494011975,
+                    "breakpoint": 1691618760,
+                    "change": "regression",
+                    "project": 3,
+                    "transaction": "/api/0/projects/{organization_slug}/issues|groups/",
+                    "trend_difference": 124.87884702024542,
+                    "trend_percentage": 1.1239448233255223,
+                    "unweighted_p_value": 0,
+                    "unweighted_t_value": -10.396684676083325,
+                },
+                {
+                    "absolute_percentage_change": 1.1161892015212427,
+                    "aggregate_range_1": 462.30956666666657,
+                    "aggregate_range_2": 516.0249460732982,
+                    "breakpoint": 1691535600,
+                    "change": "regression",
+                    "project": 3,
+                    "transaction": "/api/0/organizations/{organization_slug}/stats_v2/",
+                    "trend_difference": 53.715379406631655,
+                    "trend_percentage": 1.1161892015212427,
+                    "unweighted_p_value": 0,
+                    "unweighted_t_value": -7.778903161355497,
+                },
+            ]
+            qualifying_trends = []
+            for trend in events:
+                if (
+                    trend.get("change", None) == "regression"
+                    and (trend.get("trend_percentage", None) - 1) >= 1
+                ):
+                    qualifying_trends.append(trend)
+
+            print("HAIIII")
+            print(qualifying_trends)
+
+            for q_trend in qualifying_trends:
+                current_timestamp = datetime.now()
+                occurrence = IssueOccurrence(
+                    id=uuid.uuid4().hex,
+                    resource_id=None,
+                    # todo get project id
+                    project_id=q_trend["project"],
+                    event_id=None,
+                    fingerprint=[fingerprint_regression(q_trend)],
+                    # todo add a new type
+                    type=PerformanceConsecutiveDBQueriesGroupType,
+                    issue_title="P95 Transaction Duration Regression",
+                    subtitle=f'{q_trend["aggregate_range_1"]} -> {q_trend["aggregate_range_2"]}',
+                    culprit=q_trend["transaction"],
+                    evidence_data=q_trend,
+                    evidence_display={},
+                    detection_time=current_timestamp,
+                    level="warning",
+                )
+
+                event_data = {
+                    "event_id": None,
+                    "timestamp": current_timestamp,
+                    "project": q_trend["project"],
+                    "transaction": q_trend["transaction"],
+                }
+
+                produce_occurrence_to_kafka(occurrence, event_data)
+
         with self.handle_query_errors():
+            send_occurrence_to_plaform([])
+
             stats_data = self.get_event_stats_data(
                 request,
                 organization,
@@ -405,6 +526,9 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 trending_events,
                 trends_requests,
             ) = get_trends_data(stats_data, request)
+
+            # TODO add a feature flag
+            send_occurrence_to_plaform(trending_events)
 
             return self.paginate(
                 request=request,

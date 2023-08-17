@@ -1554,7 +1554,7 @@ SENTRY_FEATURES = {
     # Enable metrics-backed transaction summary view
     "organizations:performance-metrics-backed-transaction-summary": False,
     # Enable new trends
-    "organizations:performance-new-trends": False,
+    "organizations:performance-new-trends": True,
     # Enable debug views for trendsv2 to be used internally
     "organizations:performance-trendsv2-dev-only": False,
     # Bypass 30 day date range selection when fetching new trends data

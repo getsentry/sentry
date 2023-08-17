@@ -28,6 +28,8 @@ _occurrence_producer = SingletonProducer(
 def produce_occurrence_to_kafka(
     occurrence: IssueOccurrence, event_data: Optional[Dict[str, Any]] = None
 ) -> None:
+    print("HAIIIIII")
+    print("😮‍💨")
     if event_data and occurrence.event_id != event_data["event_id"]:
         raise ValueError("Event id on occurrence and event_data must be the same")
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
@@ -39,6 +41,7 @@ def produce_occurrence_to_kafka(
         )
 
         if event_data:
+            print("HERE????")
             process_event_and_issue_occurrence(occurrence.to_dict(), event_data)
         else:
             lookup_event_and_process_issue_occurrence(occurrence.to_dict())
