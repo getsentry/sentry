@@ -20,6 +20,7 @@ from sentry import ratelimits
 from sentry.constants import ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models import Project
+from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.models import (
     MAX_SLUG_LENGTH,
     CheckInStatus,
@@ -489,8 +490,10 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                         signal_first_checkin(project, monitor)
 
                 if check_in.status == CheckInStatus.ERROR:
-                    monitor_environment.mark_failed(
-                        start_time, occurrence_context={"trace_id": trace_id}
+                    mark_failed(
+                        monitor_environment,
+                        start_time,
+                        occurrence_context={"trace_id": trace_id},
                     )
                 else:
                     monitor_environment.mark_ok(check_in, start_time)
