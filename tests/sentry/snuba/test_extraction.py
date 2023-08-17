@@ -299,7 +299,7 @@ def test_spec_apdex(_get_apdex_project_transaction_threshold, default_project):
 def test_spec_custom_tag():
     custom_tag_spec = OnDemandMetricSpec("count()", "foo:bar")
 
-    assert custom_tag_spec.condition() == {"name": "event.tags.foo", "op": "eq", "value": "bar"}
+    assert custom_tag_spec.condition == {"name": "event.tags.foo", "op": "eq", "value": "bar"}
 
 
 @pytest.mark.parametrize(
