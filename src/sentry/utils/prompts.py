@@ -1,4 +1,3 @@
-from sentry.api.helpers.actionable_items_helper import priority_ranking
 from sentry.models import PromptsActivity
 from sentry.utils.request_cache import request_cache
 
@@ -15,11 +14,6 @@ DEFAULT_PROMPTS = {
     "code_owners": {"required_fields": ["organization_id", "project_id"]},
     "vitals_alert": {"required_fields": ["organization_id"]},
     "github_missing_members": {"required_fields": ["organization_id"]},
-}
-
-ACTIONABLE_ITEMS_PROMPTS = {
-    action: {"reqiured_fields": ["organization_id", "project_id"]}
-    for action in priority_ranking.keys()
 }
 
 
@@ -53,7 +47,7 @@ class PromptsConfig:
         return self.prompts[name]["required_fields"]
 
 
-prompt_config = PromptsConfig({**DEFAULT_PROMPTS, **ACTIONABLE_ITEMS_PROMPTS})
+prompt_config = PromptsConfig(DEFAULT_PROMPTS)
 
 
 # TODO: remove get_prompt_activities and use get_prompt_activities_for_user instead

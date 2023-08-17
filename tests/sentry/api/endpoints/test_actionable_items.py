@@ -1,5 +1,4 @@
 from django.core.files.base import ContentFile
-from django.utils import timezone
 from rest_framework import status
 
 from sentry.api.helpers.actionable_items_helper import get_file_extension, is_frame_filename_valid
@@ -7,7 +6,6 @@ from sentry.models import (
     Distribution,
     EventError,
     File,
-    PromptsActivity,
     Release,
     ReleaseFile,
     SourceMapProcessingIssue,
@@ -177,15 +175,6 @@ class ActionableItemsEndpointTestCase(APITestCase):
             project_id=self.project.id,
         )
 
-        # Dismiss from 2 weeks ago should be ignored
-        PromptsActivity.objects.create(
-            organization_id=self.organization.id,
-            user_id=self.user.id,
-            feature=SourceMapProcessingIssue.MISSING_RELEASE,
-            project_id=self.project.id,
-            data={"dismissed_ts": timezone.now().timestamp() - 60 * 60 * 24 * 14},
-        )
-
         resp = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -195,33 +184,6 @@ class ActionableItemsEndpointTestCase(APITestCase):
         error = resp.data["errors"][0]
         assert error["type"] == "no_release_on_event"
         assert error["message"] == "The event is missing a release"
-        assert not error["dismissed"]
-
-    @with_feature("organizations:actionable-items")
-    def test_event_has_no_release_dismissed(self):
-        event = self.store_event(
-            data=self.base_data,
-            project_id=self.project.id,
-        )
-
-        PromptsActivity.objects.create(
-            organization_id=self.organization.id,
-            user_id=self.user.id,
-            feature=SourceMapProcessingIssue.MISSING_RELEASE,
-            project_id=self.project.id,
-            data={"dismissed_ts": timezone.now().timestamp() - 60 * 60 * 24 * 5},
-        )
-
-        resp = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            event.event_id,
-        )
-
-        error = resp.data["errors"][0]
-        assert error["type"] == "no_release_on_event"
-        assert error["message"] == "The event is missing a release"
-        assert error["dismissed"]
 
     @with_feature("organizations:actionable-items")
     def test_multiple_source_map_errors(self):
