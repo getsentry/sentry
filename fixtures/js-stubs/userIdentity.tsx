@@ -1,4 +1,6 @@
-export function UserIdentity() {
+import {Identity} from 'sentry/views/settings/account/notifications/types';
+
+export function UserIdentity(): Identity {
   return {
     id: '52',
     identityProvider: {
@@ -7,6 +9,6 @@ export function UserIdentity() {
       externalId: 'TA99AB9CD',
     },
     externalId: 'UA1J9RTE1',
-    status: 1,
+    status: 'active',
   };
 }
