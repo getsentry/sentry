@@ -30,6 +30,7 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
+from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
 from sentry.silo import SiloMode
 from sentry.types.region import Region, RegionMappingNotFound
 from sentry.utils import json, metrics
@@ -587,7 +588,8 @@ class _RemoteSiloCall:
             op="hybrid_cloud.dispatch_rpc",
             description=f"rpc to {self.service_name}.{self.method_name}",
         )
-        with span, timer:
+        record = RpcMetricRecord.measure(self.service_name, self.method_name)
+        with span, timer, record:
             yield
 
     def _raise_from_response_status_error(self, response: requests.Response) -> NoReturn:
