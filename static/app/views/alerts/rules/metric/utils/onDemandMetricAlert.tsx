@@ -11,13 +11,8 @@ export function isValidOnDemandMetricAlert(
     return true;
   }
 
-  const unsupportedAggregates = [
-    AggregationKey.PERCENTILE,
-    AggregationKey.APDEX,
-    AggregationKey.FAILURE_RATE,
-  ];
-
-  return !unsupportedAggregates.some(agg => aggregate.includes(agg));
+  // On demand metric alerts do not support generic percentile aggregations
+  return !aggregate.includes(AggregationKey.PERCENTILE);
 }
 
 /**

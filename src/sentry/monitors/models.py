@@ -392,20 +392,64 @@ class MonitorCheckIn(Model):
     monitor = FlexibleForeignKey("sentry.Monitor")
     monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment", null=True)
     location = FlexibleForeignKey("sentry.MonitorLocation", null=True)
+    """
+    XXX(epurkhiser): Currently unused
+    """
     status = BoundedPositiveIntegerField(
-        default=CheckInStatus.UNKNOWN, choices=CheckInStatus.as_choices(), db_index=True
+        default=CheckInStatus.UNKNOWN,
+        choices=CheckInStatus.as_choices(),
+        db_index=True,
     )
-    config = JSONField(default=dict)
+    """
+    The status of the check-in
+    """
+
     duration = BoundedPositiveIntegerField(null=True)
+    """
+    The total number in milliseconds that the check-in took to execute. This is
+    generally computed from the difference between the opening and closing
+    check-in.
+    """
+
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
+    """
+    Represents the time the checkin was made. This CAN BE back-dated in some
+    cases, and does not necessarily represent the insertion time of the row in
+    the database.
+    """
+
     date_updated = models.DateTimeField(default=timezone.now)
-    attachment_id = BoundedBigIntegerField(null=True)
-    # Holds the time we expected to receive this check-in without factoring in margin
+    """
+    Currently only updated when a in_progress check-in is sent with this
+    check-in's guid. Can be used to extend the lifetime of a check-in so that
+    it does not time out.
+    """
+
     expected_time = models.DateTimeField(null=True)
-    # The time that we mark an in_progress check-in as timeout. date_added + max_runtime
+    """
+    Holds the exact time we expected to receive this check-in
+    """
+
     timeout_at = models.DateTimeField(null=True)
+    """
+    Holds the exact time when a check-in would be considered to have timed out.
+    This is computed as the sume of date_updated and the user configured
+    max_runtime.
+    """
+
     monitor_config = JSONField(null=True)
+    """
+    A snapshot of the monitor configuration at the time of the check-in.
+    """
+
     trace_id = UUIDField(null=True)
+    """
+    Trace ID associated during this check-in. Useful to find associated events
+    that occured during the check-in.
+    """
+
+    attachment_id = BoundedBigIntegerField(null=True)
+    config = JSONField(default=dict)
 
     objects = BaseManager(cache_fields=("guid",))
 
@@ -478,15 +522,35 @@ class MonitorEnvironment(Model):
 
     monitor = FlexibleForeignKey("sentry.Monitor")
     environment = FlexibleForeignKey("sentry.Environment")
-    status = BoundedPositiveIntegerField(
-        default=MonitorStatus.ACTIVE, choices=MonitorStatus.as_choices()
-    )
-    next_checkin = models.DateTimeField(null=True)  # the expected time of the next check-in
-    next_checkin_latest = models.DateTimeField(
-        null=True
-    )  # the latest expected time of the next check-in (includes check-in margin)
-    last_checkin = models.DateTimeField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
+
+    status = BoundedPositiveIntegerField(
+        default=MonitorStatus.ACTIVE,
+        choices=MonitorStatus.as_choices(),
+    )
+    """
+    The MonitorStatus of the monitor. This is denormalized from the check-ins
+    list, since it would be possible to determine this by looking at recent
+    check-ins. It is denormalized for simplicity.
+    """
+
+    next_checkin = models.DateTimeField(null=True)
+    """
+    The expected time that the next-checkin will occur
+    """
+
+    next_checkin_latest = models.DateTimeField(null=True)
+    """
+    The latest expected time that the next-checkin can occur without generating
+    a missed check-in. This is computed using the user-configured margin for
+    the monitor.
+    """
+
+    last_checkin = models.DateTimeField(null=True)
+    """
+    date_added time of the most recent user-check in. This does not include
+    auto-generated missed check-ins.
+    """
 
     objects = MonitorEnvironmentManager()
 
