@@ -65,10 +65,9 @@ interface FlexItemProps {
 }
 
 const FlexItem = styled('div')<FlexItemProps>`
-  /* // TODO: determine sane defaults for these */
-  flex-grow: ${p => p.grow};
-  flex-shrink: ${p => p.shrink};
-  flex-basis: ${p => p.basis};
+  flex-grow: ${p => p.grow ?? 0};
+  flex-shrink: ${p => p.shrink ?? 1};
+  flex-basis: ${p => p.basis ?? 'auto'};
   overflow: hidden;
 `;
 
