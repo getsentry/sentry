@@ -1854,22 +1854,21 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
     # the release which we originally marked this as resolved
     elif GroupResolution.has_resolution(group, release):
         if should_log_extra_info:
-            logger.info(
-                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
-            )
+            logger.info("_handle_regression: group has resolution", extra={**logging_details})
         return None
 
     elif has_pending_commit_resolution(group):
         if should_log_extra_info:
             logger.info(
-                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
+                "_handle_regression: group has pending commit resolution", extra={**logging_details}
             )
         return None
 
     if not plugin_is_regression(group, event):
         if should_log_extra_info:
             logger.info(
-                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
+                "_handle_regression: group plugin_is_regression return True",
+                extra={**logging_details},
             )
         return None
 
@@ -1902,6 +1901,9 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             f"_handle_regression: is_regression evaluated to {is_regression}",
             extra={**logging_details},
         )
+
+    if should_log_extra_info:
+        logger.info("_handle_regression: group is_regression is True", extra={**logging_details})
 
     group.active_at = date
     group.status = GroupStatus.UNRESOLVED
@@ -1988,6 +1990,12 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
                         "version", release.version
                     ),
                 }
+            )
+
+        if should_log_extra_info:
+            logger.info(
+                "_handle_regression: updating group activity and group history",
+                extra={**logging_details},
             )
 
         Activity.objects.create_group_activity(
