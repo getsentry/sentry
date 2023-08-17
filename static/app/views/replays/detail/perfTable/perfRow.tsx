@@ -37,18 +37,14 @@ export default function PerfRow({
   const {color, description, title, type} = getFrameDetails(frame);
   const lcp = lcpFrame ? getFrameDetails(lcpFrame) : null;
 
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
+  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
-  const onClickTimestamp = useCallback(() => handleClick(frame), [handleClick, frame]);
-  const onMouseEnter = useCallback(
-    () => handleMouseEnter(frame),
-    [handleMouseEnter, frame]
+  const handleClickTimestamp = useCallback(
+    () => onClickTimestamp(frame),
+    [onClickTimestamp, frame]
   );
-  const onMouseLeave = useCallback(
-    () => handleMouseLeave(frame),
-    [handleMouseLeave, frame]
-  );
+  const handleMouseEnter = useCallback(() => onMouseEnter(frame), [onMouseEnter, frame]);
+  const handleMouseLeave = useCallback(() => onMouseLeave(frame), [onMouseLeave, frame]);
 
   const hasOccurred = frame ? currentTime >= frame.offsetMs : false;
   const isBeforeHover = frame
@@ -63,8 +59,8 @@ export default function PerfRow({
         beforeHoverTime: currentHoverTime !== undefined && isBeforeHover,
         afterHoverTime: currentHoverTime !== undefined && !isBeforeHover,
       })}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       style={style}
     >
       <Vertical style={{gap: space(1)}}>
@@ -93,7 +89,7 @@ export default function PerfRow({
             ) : null}
           </IconLabel>
           <TimestampButton
-            onClick={onClickTimestamp}
+            onClick={handleClickTimestamp}
             startTimestampMs={startTimestampMs}
             timestampMs={frame.timestampMs}
           />

@@ -1,10 +1,11 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {space} from 'sentry/styles/space';
 import toPixels from 'sentry/utils/css/toPixels';
+import toPercent from 'sentry/utils/number/toPercent';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
@@ -26,7 +27,8 @@ export default function TraceGrid({tracesFlattened}: Props) {
     ...traces.map(trace => trace.start_timestamp * 1000 + trace['transaction.duration'])
   );
 
-  const {elementRef, width: containerWidth} = useDimensions<HTMLDivElement>();
+  const elementRef = useRef<HTMLDivElement>(null);
+  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const [dividerPosition, setDividerPosition] = useState(containerWidth);
   const {isHeld, onDoubleClick, onMouseDown, size} = useResizableDrawer({
     direction: 'left',
