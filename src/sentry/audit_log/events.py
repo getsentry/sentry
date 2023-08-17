@@ -273,4 +273,4 @@ class InternalIntegrationDisabledAuditLogEvent(AuditLogEvent):
 
     def render(self, audit_log_entry: AuditLogEntry):
         integration_name = audit_log_entry.data.get("name") or ""
-        return f"created internal integration {integration_name}"
+        return f"disabled internal integration {integration_name}"

@@ -54,6 +54,7 @@ def check_broken(sentryapp: SentryApp, org_id: str):
                 organization=org,
                 organization_id=org.id,
                 event=audit_log.get_event_id("INTERNAL_INTEGRATION_DISABLED"),
+                name=sentryapp.name,
             )
         extra = {
             "sentryapp_webhook": sentryapp.webhook_url,

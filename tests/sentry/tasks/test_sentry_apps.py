@@ -886,7 +886,6 @@ class TestWebhookRequests(TestCase):
         assert AuditLogEntry.objects.filter(
             event=audit_log.get_event_id("INTERNAL_INTEGRATION_DISABLED"),
             organization_id=self.organization.id,
-            organization=self.organization,
         )
 
     @patch(
