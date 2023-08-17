@@ -41,7 +41,7 @@ export function updateUser(user: User | ChangeAvatarUser) {
 
   const options = {...previousUser.options, ...user.options};
 
-  // Ideally we'd fire an action but this is gonna get refactored soon anyway
+  // We are merging the types because the avatar endpoint ("/users/me/avatar/") doesn't return a full User
   ConfigStore.set('user', {...previousUser, ...user, options});
 }
 

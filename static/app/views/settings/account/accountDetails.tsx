@@ -12,7 +12,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView, {AsyncViewProps} from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
-// The avatar endpoint ("/users/me/avatar/") returns a user type without options and other properties that are present in User
+// The avatar endpoint ("/users/me/avatar/") returns a User-like type without `options` and other properties that are present in User
 export type ChangeAvatarUser = Omit<
   User,
   'canReset2fa' | 'flags' | 'identities' | 'isAuthenticated' | 'options' | 'permissions'
