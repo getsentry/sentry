@@ -35,7 +35,7 @@ export function FlamegraphTreeContextMenu(props: FlamegraphTreeContextMenuProps)
             {...props.contextMenu.getMenuItemProps()}
             onClick={props.onZoomIntoFrameClick}
           >
-            {t('Show on flamechart')}
+            {t('Show on flamegraph')}
           </ProfilingContextMenuItem>
           <ProfilingContextMenuItem
             {...props.contextMenu.getMenuItemProps()}
