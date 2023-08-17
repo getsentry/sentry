@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {space} from 'sentry/styles/space';
-import toPixels from 'sentry/utils/css/toPixels';
 import toPercent from 'sentry/utils/number/toPercent';
+import toPixels from 'sentry/utils/number/toPixels';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
@@ -14,7 +14,6 @@ import type useReplayPerfData from 'sentry/views/replays/detail/perfTable/useRep
 const EMDASH = '\u2013';
 
 interface Props {
-  // containerWidth: number;
   tracesFlattened: ReturnType<
     typeof useReplayPerfData
   >['data'][number]['tracesFlattened'];
