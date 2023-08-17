@@ -23,7 +23,7 @@ from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils.encoding import force_str
 
-from sentry import eventtypes
+from sentry import eventtypes, features
 from sentry.db.models import NodeData
 from sentry.grouping.result import CalculatedHashes
 from sentry.interfaces.base import Interface, get_interfaces
@@ -419,7 +419,11 @@ class BaseEvent(metaclass=abc.ABCMeta):
         """
         from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 
-        normalize_stacktraces_for_grouping(self.data, grouping_config)
+        normalize_stacktraces_for_grouping(
+            self.data,
+            grouping_config,
+            load_stacktrace_from_cache=self.org_can_load_stacktrace_from_cache,
+        )
 
         # We have modified event data, so any cached interfaces have to be reset:
         self.__dict__.pop("interfaces", None)
@@ -486,6 +490,10 @@ class BaseEvent(metaclass=abc.ABCMeta):
     @property
     def organization(self) -> Organization:
         return self.project.organization
+
+    @property
+    def org_can_load_stacktrace_from_cache(self) -> bool:
+        return features.has("organizations:stacktrace-processing-caching", self.organization)
 
     @property
     def version(self) -> str:
