@@ -480,9 +480,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     searchSource="alert_builder"
                     defaultQuery={initialData?.query ?? ''}
                     omitTags={datasetOmittedTags(dataset, organization)}
-                    {...(datasetSupportedTags(dataset, organization)
-                      ? {supportedTags: datasetSupportedTags(dataset, organization)}
-                      : {})}
+                    supportedTags={datasetSupportedTags(dataset, organization)}
                     includeSessionTagsValues={dataset === Dataset.SESSIONS}
                     disabled={disabled}
                     useFormWrapper={false}
@@ -492,7 +490,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     query={initialData.query}
                     // We only need strict validation for Transaction queries, everything else is fine
                     highlightUnsupportedTags={
-                      organization.features.includes('alert-allow-indexed')
+                      organization.features.includes('alert-allow-indexed') ||
+                      hasOnDemandMetricAlertFeature(organization)
                         ? false
                         : [Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
                             dataset
