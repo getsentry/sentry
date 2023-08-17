@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence, Tuple
 
+from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
 from django.db.models.signals import post_save
 from django.utils import timezone
@@ -11,6 +12,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
+    JSONField,
     Model,
     region_silo_only_model,
     sane_repr,
@@ -87,3 +89,32 @@ class PullRequestCommit(Model):
         app_label = "sentry"
         db_table = "sentry_pullrequest_commit"
         unique_together = (("pull_request", "commit"),)
+
+
+class CommentType:
+    MERGED_PR = 0
+    OPEN_PR = 1
+
+    @classmethod
+    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+        return ((cls.MERGED_PR, "merged_pr"), (cls.OPEN_PR, "open_pr"))
+
+
+@region_silo_only_model
+class PullRequestComment(Model):
+    __include_in_export__ = False
+
+    external_id = BoundedBigIntegerField()
+    pull_request = FlexibleForeignKey("sentry.PullRequest")
+    created_at = models.DateTimeField()
+    updated_at = models.DateTimeField()
+    group_ids = DjangoArrayField(BoundedBigIntegerField())
+    reactions = JSONField(null=True)
+    comment_type = BoundedPositiveIntegerField(
+        default=CommentType.MERGED_PR, choices=CommentType.as_choices(), null=False
+    )
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pullrequest_comment"
+        unique_together = ("pull_request", "comment_type")

@@ -8,7 +8,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {updateProjects} from 'sentry/actionCreators/pageFilters';
+import {initializeUrlState, updateProjects} from 'sentry/actionCreators/pageFilters';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -229,8 +229,14 @@ describe('ProjectPageFilter', function () {
       },
     });
 
-    // Manually mark the project filter as desynced
-    act(() => updateProjects([2], desyncRouter, {save: false}));
+    PageFiltersStore.reset();
+    initializeUrlState({
+      memberProjects: [],
+      organization: desyncOrganization,
+      queryParams: {project: '2'},
+      router: desyncRouter,
+      shouldEnforceSingleProject: false,
+    });
 
     render(<ProjectPageFilter />, {
       context: desyncRouterContext,

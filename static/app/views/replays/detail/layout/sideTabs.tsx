@@ -18,7 +18,7 @@ type Props = {
 function SideTabs({className}: Props) {
   const {pathname, query} = useLocation();
   const {getParamValue, setParamValue} = useUrlParams('t_side', 'crumbs');
-  const activeTab = getParamValue();
+  const activeTab = getParamValue().toLowerCase();
 
   return (
     <ScrollableTabs className={className} underlined>

@@ -1,5 +1,7 @@
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {ApiForm, CheckboxField, TextField} from 'sentry/components/forms';
+import ApiForm from 'sentry/components/forms/apiForm';
+import CheckboxField from 'sentry/components/forms/fields/checkboxField';
+import TextField from 'sentry/components/forms/fields/textField';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';

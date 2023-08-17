@@ -112,7 +112,6 @@ function TeamStatsHealth({location, router}: Props) {
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
-                location={location}
               />
             </DescriptionCard>
 

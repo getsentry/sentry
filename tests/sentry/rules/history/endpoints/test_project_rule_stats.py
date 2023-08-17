@@ -4,10 +4,11 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
-from sentry.models import Rule, RuleFireHistory
+from sentry.models import Rule
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import TimeSeriesValue
 from sentry.rules.history.endpoints.project_rule_stats import TimeSeriesValueSerializer
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import control_silo_test, region_silo_test
 
@@ -26,7 +27,7 @@ class TimeSeriesValueSerializerTest(TestCase):
 
 
 @freeze_time()
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectRuleStatsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-stats-index"
 

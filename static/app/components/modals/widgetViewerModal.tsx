@@ -42,6 +42,10 @@ import {
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
+import {
+  createOnDemandFilterWarning,
+  hasOnDemandMetricWidgetFeature,
+} from 'sentry/utils/onDemandMetrics';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -51,11 +55,15 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DashboardFilters,
+  DisplayType,
+  Widget,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {
   dashboardFiltersToString,
   eventViewFromWidget,
-  getDashboardFiltersFromURL,
   getFieldsFromEquations,
   getNumEquations,
   getWidgetDiscoverUrl,
@@ -95,6 +103,7 @@ import {
 export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
+  dashboardFilters?: DashboardFilters;
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
@@ -110,7 +119,6 @@ interface Props extends ModalRenderProps, WidgetViewerModalOptions {
 
 const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
-const GEO_COUNTRY_CODE = 'geo.country_code';
 const HALF_CONTAINER_HEIGHT = 300;
 const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
@@ -175,6 +183,7 @@ function WidgetViewerModal(props: Props) {
     totalIssuesCount,
     pageLinks: defaultPageLinks,
     seriesResultsType,
+    dashboardFilters,
   } = props;
   const location = useLocation();
   const {projects} = useProjects();
@@ -317,14 +326,6 @@ function WidgetViewerModal(props: Props) {
     }]`;
   }
 
-  // World Map view should always have geo.country in the table chart
-  if (
-    widget.displayType === DisplayType.WORLD_MAP &&
-    !columns.includes(GEO_COUNTRY_CODE)
-  ) {
-    fields.unshift(GEO_COUNTRY_CODE);
-    columns.unshift(GEO_COUNTRY_CODE);
-  }
   // Default table columns for visualizations that don't have a column setting
   const shouldReplaceTableColumns =
     [
@@ -379,8 +380,7 @@ function WidgetViewerModal(props: Props) {
   const eventView = eventViewFromWidget(
     tableWidget.title,
     tableWidget.queries[0],
-    modalTableSelection,
-    tableWidget.displayType
+    modalTableSelection
   );
 
   let columnOrder = decodeColumnOrder(
@@ -394,15 +394,25 @@ function WidgetViewerModal(props: Props) {
     width: parseInt(widths[index], 10) || -1,
   }));
 
+  const getOnDemandFilterWarning = createOnDemandFilterWarning(
+    t(
+      'We don’t routinely collect metrics from this property. As such, historical data may be limited.'
+    )
+  );
+
   const queryOptions = sortedQueries.map(({name, conditions}, index) => {
     // Creates the highlighted query elements to be used in the Query Select
-    const dashboardFilters = dashboardFiltersToString(
-      getDashboardFiltersFromURL(location)
-    );
+    const dashboardFiltersString = dashboardFiltersToString(dashboardFilters);
     const parsedQuery =
       !name && !!conditions
         ? parseSearch(
-            conditions + (dashboardFilters === '' ? '' : ` ${dashboardFilters}`)
+            conditions +
+              (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`),
+            {
+              getFilterTokenWarning: hasOnDemandMetricWidgetFeature(organization)
+                ? getOnDemandFilterWarning
+                : undefined,
+            }
           )
         : null;
     const getHighlightedQuery = (
@@ -679,7 +689,7 @@ function WidgetViewerModal(props: Props) {
   };
 
   const onZoom: AugmentedEChartDataZoomHandler = (evt, chart) => {
-    // @ts-ignore getModel() is private but we need this to retrieve datetime values of zoomed in region
+    // @ts-expect-error getModel() is private but we need this to retrieve datetime values of zoomed in region
     const model = chart.getModel();
     const {seriesStart, seriesEnd} = evt;
     let startValue, endValue;
@@ -749,7 +759,7 @@ function WidgetViewerModal(props: Props) {
                 : HALF_TABLE_ITEM_LIMIT
             }
             cursor={cursor}
-            dashboardFilters={getDashboardFiltersFromURL(location) ?? undefined}
+            dashboardFilters={dashboardFilters}
           >
             {renderIssuesTable}
           </IssueWidgetQueries>
@@ -774,7 +784,7 @@ function WidgetViewerModal(props: Props) {
                 : HALF_TABLE_ITEM_LIMIT
             }
             cursor={cursor}
-            dashboardFilters={getDashboardFiltersFromURL(location) ?? undefined}
+            dashboardFilters={dashboardFilters}
           >
             {renderReleaseTable}
           </ReleaseWidgetQueries>
@@ -802,7 +812,7 @@ function WidgetViewerModal(props: Props) {
                 : HALF_TABLE_ITEM_LIMIT
             }
             cursor={cursor}
-            dashboardFilters={getDashboardFiltersFromURL(location) ?? undefined}
+            dashboardFilters={dashboardFilters}
           >
             {({tableResults, loading, pageLinks}) => {
               // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
@@ -868,7 +878,7 @@ function WidgetViewerModal(props: Props) {
                 api={api}
                 organization={organization}
                 selection={modalChartSelection.current}
-                dashboardFilters={getDashboardFiltersFromURL(location) ?? undefined}
+                dashboardFilters={dashboardFilters}
                 // Top N charts rely on the orderby of the table
                 widget={primaryWidget}
                 onZoom={onZoom}

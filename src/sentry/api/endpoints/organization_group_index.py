@@ -1,6 +1,6 @@
 import functools
 from datetime import datetime, timedelta
-from typing import Any, List, Mapping, Optional, Sequence, Type, TypeVar
+from typing import Any, List, Mapping, Optional, Sequence
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -38,12 +38,7 @@ from sentry.models import (
 )
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
-from sentry.search.snuba.executors import (
-    DEFAULT_PRIORITY_WEIGHTS,
-    V2_DEFAULT_PRIORITY_WEIGHTS,
-    PrioritySortWeights,
-    get_search_filter,
-)
+from sentry.search.snuba.executors import get_search_filter
 from sentry.snuba import discover
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
@@ -165,77 +160,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         },
     }
 
-    @staticmethod
-    def build_better_priority_sort_kwargs(request: Request) -> Mapping[str, PrioritySortWeights]:
-        """
-        Temporary function to be used while developing the new priority sort. Parses the query params in the request.
-
-        :param logLevel: the weight (number from 0 to 10) to apply for events
-        :param hasStacktrace: the weight (number from 0 to 3) to apply for error events with stacktraces or not
-        :param eventHalflifeHours: each multiple of eventHalflifeHours halves the contribution score of an event
-        :param v2: boolean to switch between using v1 or v2 priority sort
-        :param norm: boolean to switch between normalizing the individual contribution scores to [0, 1] or not
-        """
-
-        R = TypeVar("R")
-
-        def _coerce(val: Optional[str], func: Type[R], default: R) -> R:
-            if func == bool:
-                func = lambda x: str(x).lower() == "true"
-
-            return func(val) if val is not None else default
-
-        if _coerce(request.GET.get("v2"), bool, False):
-            return {
-                "better_priority": {
-                    "log_level": _coerce(
-                        request.GET.get("logLevel"), int, V2_DEFAULT_PRIORITY_WEIGHTS["log_level"]
-                    ),
-                    "has_stacktrace": _coerce(
-                        request.GET.get("hasStacktrace"),
-                        int,
-                        V2_DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"],
-                    ),
-                    "relative_volume": _coerce(
-                        request.GET.get("relativeVolume"),
-                        int,
-                        V2_DEFAULT_PRIORITY_WEIGHTS["relative_volume"],
-                    ),
-                    "event_halflife_hours": _coerce(
-                        request.GET.get("eventHalflifeHours"),
-                        int,
-                        V2_DEFAULT_PRIORITY_WEIGHTS["event_halflife_hours"],
-                    ),
-                    "issue_halflife_hours": _coerce(
-                        request.GET.get("issueHalflifeHours"),
-                        int,
-                        V2_DEFAULT_PRIORITY_WEIGHTS["issue_halflife_hours"],
-                    ),
-                    "v2": True,
-                    "norm": _coerce(
-                        request.GET.get("norm"), bool, V2_DEFAULT_PRIORITY_WEIGHTS["norm"]
-                    ),
-                }
-            }
-        else:
-            return {
-                "better_priority": {
-                    "log_level": _coerce(
-                        request.GET.get("logLevel"), int, DEFAULT_PRIORITY_WEIGHTS["log_level"]
-                    ),
-                    "has_stacktrace": _coerce(
-                        request.GET.get("hasStacktrace"),
-                        int,
-                        DEFAULT_PRIORITY_WEIGHTS["has_stacktrace"],
-                    ),
-                    "relative_volume": DEFAULT_PRIORITY_WEIGHTS["relative_volume"],
-                    "event_halflife_hours": DEFAULT_PRIORITY_WEIGHTS["event_halflife_hours"],
-                    "issue_halflife_hours": DEFAULT_PRIORITY_WEIGHTS["issue_halflife_hours"],
-                    "v2": False,
-                    "norm": False,
-                }
-            }
-
     def _search(
         self, request: Request, organization, projects, environments, extra_query_kwargs=None
     ):
@@ -246,9 +170,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             if extra_query_kwargs is not None:
                 assert "environment" not in extra_query_kwargs
                 query_kwargs.update(extra_query_kwargs)
-
-            if query_kwargs["sort_by"] == "betterPriority":
-                query_kwargs["aggregate_kwargs"] = self.build_better_priority_sort_kwargs(request)
 
             query_kwargs["environments"] = environments if environments else None
 
@@ -305,14 +226,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :qparam list expand: an optional list of strings to opt in to additional data. Supports `inbox`
         :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`
         """
-
-        if request.GET.get("sort") == "betterPriority" and not features.has(
-            "organizations:issue-list-better-priority-sort", organization, actor=request.user
-        ):
-            return Response(
-                {"detail": "This organization does not have the better priority sort feature."},
-                status=400,
-            )
         stats_period = request.GET.get("groupStatsPeriod")
         try:
             start, end = get_date_range_from_stats_period(request.GET)

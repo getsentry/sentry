@@ -6,7 +6,7 @@ import trimStart from 'lodash/trimStart';
 // If you change this also update the patterns in sentry.api.utils
 const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
   // /organizations/slug/section, but not /organizations/new
-  [/\/?organizations\/(?!new)[^\/]+\/(.*)/, '/$1'],
+  [/\/organizations\/(?!new)[^\/]+\/(.*)/, '/$1'],
   // For /settings/:orgId/ -> /settings/organization/
   [/\/settings\/(?!account)(?!projects)(?!teams)[^\/]+\/?$/, '/settings/organization/'],
   // Move /settings/:orgId/:section -> /settings/:section
@@ -16,6 +16,7 @@ const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
   [/^\/?onboarding\/[^\/]+\/(.*)/, '/onboarding/$1'],
   // Handles /org-slug/project-slug/getting-started/platform/ -> /getting-started/project-slug/platform/
   [/^\/?(?!settings)[^\/]+\/([^\/]+)\/getting-started\/(.*)/, '/getting-started/$1/$2'],
+  [/^\/?accept-terms\/[^\/]*\/?$/, '/accept-terms/'],
 ];
 
 type LocationTarget = ((location: Location) => LocationDescriptor) | LocationDescriptor;

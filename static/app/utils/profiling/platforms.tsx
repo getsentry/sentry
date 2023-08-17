@@ -5,10 +5,10 @@ export const supportedProfilingPlatforms = profiling;
 export const supportedProfilingPlatformSDKs = [
   'android',
   'apple-ios',
+  'go',
   'node',
   'python',
   'php',
-  'rust',
   'php',
   'php-laravel',
   'php-symfony2',
@@ -16,6 +16,9 @@ export const supportedProfilingPlatformSDKs = [
   'javascript-nextjs',
   'javascript-remix',
   'javascript-sveltekit',
+  'javascript',
+  'javascript-react',
+  'react-native',
 ] as const;
 export type SupportedProfilingPlatform = (typeof supportedProfilingPlatforms)[number];
 export type SupportedProfilingPlatformSDK =
@@ -36,6 +39,12 @@ export function getDocsPlatformSDKForPlatform(
   if (platform === 'apple-ios') {
     return 'apple-ios';
   }
+
+  // Go
+  if (platform === 'go') {
+    return 'go';
+  }
+
   // Javascript
   if (platform.startsWith('node')) {
     return 'node';
@@ -49,15 +58,16 @@ export function getDocsPlatformSDKForPlatform(
   if (platform === 'javascript-sveltekit') {
     return 'javascript-sveltekit';
   }
+  if (platform === 'javascript') {
+    return 'javascript';
+  }
+  if (platform === 'javascript-react') {
+    return 'javascript-react';
+  }
 
   // Python
   if (platform.startsWith('python')) {
     return 'python';
-  }
-
-  // Rust
-  if (platform === 'rust') {
-    return 'rust';
   }
 
   // PHP
@@ -74,6 +84,11 @@ export function getDocsPlatformSDKForPlatform(
   // Ruby
   if (platform.startsWith('ruby')) {
     return 'ruby';
+  }
+
+  // React native
+  if (platform === 'react-native') {
+    return 'react-native';
   }
 
   return null;

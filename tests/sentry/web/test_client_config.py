@@ -11,9 +11,11 @@ from django.test import override_settings
 
 from sentry.app import env
 from sentry.middleware.auth import AuthenticationMiddleware
-from sentry.models import AuthIdentity, AuthProvider
+from sentry.middleware.placeholder import placeholder_get_response
+from sentry.models import AuthIdentity, AuthProvider, Organization
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.auth import login
 from sentry.web.client_config import get_client_config
 
@@ -28,14 +30,14 @@ def request_factory(f):
             request, user = result
             if not user.is_anonymous:
                 login(request, user)
-                AuthenticationMiddleware().process_request(request)
+                AuthenticationMiddleware(placeholder_get_response).process_request(request)
             else:
                 request.user = user
                 request.auth = None
             env.request = request
             cache.clear()
         else:
-            env.request = None
+            env.clear()
         return result
 
     return wrapper
@@ -81,7 +83,7 @@ def make_user_request_from_non_existant_org(org=None):
 
 def make_user_request_from_org_with_auth_identities(org=None):
     request, user = make_user_request_from_org(org)
-    org = user.get_orgs()[0]
+    org = Organization.objects.get_for_user_ids({user.id})[0]
     provider = AuthProvider.objects.create(
         organization_id=org.id, provider="google", config={"domain": "olddomain.com"}
     )
@@ -96,9 +98,9 @@ def none_request() -> None:
 
 @pytest.fixture(autouse=True)
 def clear_env_request():
-    env.request = None
+    env.clear()
     yield
-    env.request = None
+    env.clear()
 
 
 @pytest.mark.parametrize(
@@ -112,7 +114,7 @@ def clear_env_request():
         make_user_request_from_org_with_auth_identities,
     ],
 )
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_client_config_in_silo_modes(request_factory: RequestFactory):
     request = request_factory()
     if request is not None:
@@ -127,3 +129,15 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
 
     with override_settings(SILO_MODE=SiloMode.CONTROL):
         assert get_client_config(request) == base_line
+
+
+@django_db_all(transaction=True)
+def test_client_config_deleted_user():
+    request, user = make_user_request_from_org()
+    request.user = user
+
+    user.delete()
+
+    result = get_client_config(request)
+    assert result["isAuthenticated"] is False
+    assert result["user"] is None

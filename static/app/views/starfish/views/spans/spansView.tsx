@@ -1,151 +1,79 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
-import {Location} from 'history';
-import _orderBy from 'lodash/orderBy';
 
-import DatePageFilter from 'sentry/components/datePageFilter';
 import {space} from 'sentry/styles/space';
-import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {HOST} from 'sentry/views/starfish/utils/constants';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
 import {SpanOperationSelector} from 'sentry/views/starfish/views/spans/selectors/spanOperationSelector';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
+import {useModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
+import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 
-import {getSpanListQuery, getSpansTrendsQuery} from './queries';
-import type {SpanDataRow, SpanTrendDataRow} from './spansTable';
 import SpansTable from './spansTable';
+
+const {SPAN_ACTION, SPAN_DOMAIN, SPAN_OP} = SpanMetricsFields;
 
 const LIMIT: number = 25;
 
 type Props = {
   moduleName?: ModuleName;
-};
-
-type State = {
-  orderBy: string;
-};
-
-type Query = {
-  action: string;
-  domain: string;
-  group_id: string;
-  span_operation: string;
+  spanCategory?: string;
 };
 
 export default function SpansView(props: Props) {
-  const location = useLocation<Query>();
-  const appliedFilters = location.query;
-  const pageFilter = usePageFilters();
-  const [state, setState] = useState<State>({orderBy: 'total_exclusive_time'});
+  const moduleName = props.moduleName ?? ModuleName.ALL;
 
-  const {orderBy} = state;
-
-  const queryConditions = buildQueryConditions(
-    props.moduleName || ModuleName.ALL,
-    location
-  );
-  const query = getSpanListQuery(
-    pageFilter.selection.datetime,
-    queryConditions,
-    orderBy,
-    LIMIT
-  );
-
-  const {isLoading: areSpansLoading, data: spansData} = useQuery<SpanDataRow[]>({
-    queryKey: ['spans', query],
-    queryFn: () => fetch(`${HOST}/?query=${query}&format=sql`).then(res => res.json()),
-    retry: false,
-    refetchOnWindowFocus: false,
-    initialData: [],
-  });
-
-  const groupIDs = spansData.map(({group_id}) => group_id);
-
-  const {isLoading: areSpansTrendsLoading, data: spansTrendsData} = useQuery<
-    SpanTrendDataRow[]
-  >({
-    queryKey: ['spansTrends'],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getSpansTrendsQuery(pageFilter.selection.datetime, groupIDs)}`
-      ).then(res => res.json()),
-    retry: false,
-    refetchOnWindowFocus: false,
-    initialData: [],
-    enabled: groupIDs.length > 0,
-  });
+  const moduleFilters = useModuleFilters();
+  const sort = useModuleSort();
 
   return (
     <Fragment>
-      <FilterOptionsContainer>
-        <DatePageFilter alignDropdown="left" />
+      <SpanTimeCharts
+        moduleName={moduleName}
+        appliedFilters={moduleFilters}
+        spanCategory={props.spanCategory}
+      />
 
-        <SpanOperationSelector
-          moduleName={props.moduleName}
-          value={appliedFilters.span_operation || ''}
+      <FilterOptionsContainer>
+        {/* Specific modules like Database and API only show _one_ kind of span
+        op based on how we group them. So, the operation selector is pointless
+        there. */}
+        {[ModuleName.ALL, ModuleName.OTHER].includes(moduleName) && (
+          <SpanOperationSelector
+            moduleName={moduleName}
+            value={moduleFilters[SPAN_OP] || ''}
+            spanCategory={props.spanCategory}
+          />
+        )}
+
+        <ActionSelector
+          moduleName={moduleName}
+          value={moduleFilters[SPAN_ACTION] || ''}
+          spanCategory={props.spanCategory}
         />
 
         <DomainSelector
-          moduleName={props.moduleName}
-          value={appliedFilters.domain || ''}
-        />
-
-        <ActionSelector
-          moduleName={props.moduleName}
-          value={appliedFilters.action || ''}
+          moduleName={moduleName}
+          value={moduleFilters[SPAN_DOMAIN] || ''}
+          spanCategory={props.spanCategory}
         />
       </FilterOptionsContainer>
 
-      <PaddedContainer>
-        <SpanTimeCharts
-          moduleName={props.moduleName || ModuleName.ALL}
-          appliedFilters={appliedFilters}
-        />
-      </PaddedContainer>
-
-      <PaddedContainer>
-        <SpansTable
-          moduleName={props.moduleName || ModuleName.ALL}
-          isLoading={areSpansLoading || areSpansTrendsLoading}
-          spansData={spansData}
-          orderBy={orderBy}
-          onSetOrderBy={newOrderBy => setState({orderBy: newOrderBy})}
-          spansTrendsData={spansTrendsData}
-        />
-      </PaddedContainer>
+      <SpansTable
+        moduleName={moduleName}
+        spanCategory={props.spanCategory}
+        sort={sort}
+        limit={LIMIT}
+      />
     </Fragment>
   );
 }
 
-const PaddedContainer = styled('div')`
-  margin: ${space(2)};
-`;
-
-const FilterOptionsContainer = styled(PaddedContainer)`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1)};
+const FilterOptionsContainer = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
+  max-width: 800px;
 `;
-
-const SPAN_FILTER_KEYS = ['span_operation', 'domain', 'action'];
-
-export const buildQueryConditions = (moduleName: ModuleName, location: Location) => {
-  const {query} = location;
-  const result = Object.keys(query)
-    .filter(key => SPAN_FILTER_KEYS.includes(key))
-    .filter(key => Boolean(query[key]))
-    .map(key => {
-      return `${key} = '${query[key]}'`;
-    });
-
-  if (moduleName !== ModuleName.ALL) {
-    result.push(`module = '${moduleName}'`);
-  }
-
-  return result;
-};

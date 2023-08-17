@@ -1,13 +1,8 @@
 from typing import List
 
 from sentry.dynamic_sampling.rules.biases.base import Bias
-from sentry.dynamic_sampling.rules.utils import (
-    RESERVED_IDS,
-    PolymorphicRule,
-    RuleType,
-    generate_cache_key_rebalance_factor,
-    get_redis_client_for_ds,
-)
+from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, RuleType
+from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import get_adjusted_factor
 from sentry.models import Project
 
 
@@ -24,25 +19,20 @@ class RecalibrationBias(Bias):
     """
 
     def generate_rules(self, project: Project, base_sample_rate: float) -> List[PolymorphicRule]:
-        factor = 1.0
+        adjusted_factor = get_adjusted_factor(project.organization.id)
+        # We don't want to generate any rule in case the factor is 1.0 since we should multiply the factor and 1.0
+        # is the identity of the multiplication.
+        if adjusted_factor == 1.0:
+            return []
 
-        redis_client = get_redis_client_for_ds()
-        adj_factor_cache_key = generate_cache_key_rebalance_factor(project.organization.id)
-        try:
-            factor = float(redis_client.get(adj_factor_cache_key))
-        except (TypeError, ValueError):
-            pass
-
-        if factor != 1.0:
-            return [
-                {
-                    "samplingValue": {"type": "factor", "value": factor},
-                    "type": "trace",
-                    "condition": {
-                        "op": "and",
-                        "inner": [],
-                    },
-                    "id": RESERVED_IDS[RuleType.RECALIBRATION_RULE],
-                }
-            ]
-        return []
+        return [
+            {
+                "samplingValue": {"type": "factor", "value": adjusted_factor},
+                "type": "trace",
+                "condition": {
+                    "op": "and",
+                    "inner": [],
+                },
+                "id": RESERVED_IDS[RuleType.RECALIBRATION_RULE],
+            }
+        ]

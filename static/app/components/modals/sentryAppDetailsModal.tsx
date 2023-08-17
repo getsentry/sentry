@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import Tag from 'sentry/components/tag';
 import {IconFlag} from 'sentry/icons';
@@ -25,14 +25,17 @@ type Props = {
   onInstall: () => Promise<void>;
   organization: Organization;
   sentryApp: SentryApp;
-} & AsyncComponent['props'];
+} & DeprecatedAsyncComponent['props'];
 
 type State = {
   featureData: IntegrationFeature[];
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 // No longer a modal anymore but yea :)
-export default class SentryAppDetailsModal extends AsyncComponent<Props, State> {
+export default class SentryAppDetailsModal extends DeprecatedAsyncComponent<
+  Props,
+  State
+> {
   componentDidUpdate(prevProps: Props) {
     // if the user changes org, count this as a fresh event to track
     if (this.props.organization.id !== prevProps.organization.id) {
@@ -63,7 +66,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     );
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {sentryApp} = this.props;
     return [['featureData', `/sentry-apps/${sentryApp.slug}/features/`]];
   }

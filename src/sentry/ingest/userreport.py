@@ -21,7 +21,7 @@ def save_userreport(project, report, start_time=None):
     report["event_id"] = report["event_id"].lower()
     report["project_id"] = project.id
 
-    event = eventstore.get_event_by_id(project.id, report["event_id"])
+    event = eventstore.backend.get_event_by_id(project.id, report["event_id"])
 
     # TODO(dcramer): we should probably create the user if they dont
     # exist, and ideally we'd also associate that with the event

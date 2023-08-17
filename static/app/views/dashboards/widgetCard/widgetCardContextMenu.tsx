@@ -98,7 +98,7 @@ function WidgetCardContextMenu({
                   isMetricsData === false &&
                   metricSettingContext &&
                   metricSettingContext.metricSettingState !==
-                    MEPState.transactionsOnly && (
+                    MEPState.TRANSACTIONS_ONLY && (
                     <SampledTag
                       tooltipText={t('This widget is only applicable to indexed events.')}
                     >
@@ -238,7 +238,8 @@ function WidgetCardContextMenu({
                   organization.features.includes('mep-rollout-flag')) &&
                 isMetricsData === false &&
                 metricSettingContext &&
-                metricSettingContext.metricSettingState !== MEPState.transactionsOnly && (
+                metricSettingContext.metricSettingState !==
+                  MEPState.TRANSACTIONS_ONLY && (
                   <SampledTag
                     tooltipText={t('This widget is only applicable to indexed events.')}
                   >

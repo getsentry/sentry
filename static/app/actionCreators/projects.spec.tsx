@@ -1,10 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {_debouncedLoadStats} from 'sentry/actionCreators/projects';
-import {Client} from 'sentry/api';
 
 describe('Projects ActionCreators', function () {
-  const api = new Client();
+  const api = new MockApiClient();
   const {organization, project} = initializeOrg();
 
   it('loadStatsForProject', function () {

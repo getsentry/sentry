@@ -4,12 +4,11 @@ import responses
 from django.urls import reverse
 
 from sentry.models import Identity, IdentityProvider, Integration, OrganizationIntegration
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
-class GithubSearchTest(APITestCase):
+class GithubSearchTestBase(APITestCase):
     # There is another test case that inherits from this
     # one to ensure that github:enterprise behaves as expected.
     provider = "github"
@@ -43,7 +42,7 @@ class GithubSearchTest(APITestCase):
 
         self.login_as(self.user)
         self.url = reverse(
-            "sentry-extensions-github-search",
+            "sentry-integration-github-search",
             kwargs={
                 "organization_slug": self.organization.slug,
                 "integration_id": self.installation.model.id,
@@ -194,7 +193,7 @@ class GithubSearchTest(APITestCase):
     # Missing Resources
     def test_missing_integration(self):
         url = reverse(
-            "sentry-extensions-gitlab-search",
+            "sentry-integration-github-search",
             kwargs={"organization_slug": self.organization.slug, "integration_id": "1234567890"},
         )
         resp = self.client.get(
@@ -232,3 +231,8 @@ class GithubSearchTest(APITestCase):
         )
         resp = self.client.get(self.url, data={"field": "repo", "query": "ex"})
         assert resp.status_code == 503
+
+
+@control_silo_test(stable=True)
+class GithubSearchTest(GithubSearchTestBase):
+    pass

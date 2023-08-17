@@ -82,7 +82,7 @@ def dbsafe_encode(
     return PickledObject(value)
 
 
-class PickledObjectField(models.Field):  # type: ignore
+class PickledObjectField(models.Field):
     """
     A field that will accept *any* python object and store it in the
     database. PickledObjectField will optionally compress its values if

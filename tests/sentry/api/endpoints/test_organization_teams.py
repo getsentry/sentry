@@ -2,8 +2,9 @@ from functools import cached_property
 
 from django.urls import reverse
 
-from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectTeam, Team
-from sentry.testutils import APITestCase
+from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
+from sentry.models.projectteam import ProjectTeam
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import get_provider_string
 
@@ -133,6 +134,10 @@ class OrganizationTeamsListTest(APITestCase):
         team2 = self.create_team(organization=self.organization, name="bar")
         self.login_as(user=self.user)
 
+        path = f"/api/0/organizations/{self.organization.slug}/teams/?query=id:undefined"
+        response = self.client.get(path)
+        assert response.status_code == 400, response.content
+
         path = f"/api/0/organizations/{self.organization.slug}/teams/?query=id:{team1.id}"
         response = self.client.get(path)
         assert response.status_code == 200, response.content
@@ -194,7 +199,9 @@ class OrganizationTeamsCreateTest(APITestCase):
         assert not team.idp_provisioned
         assert team.organization == self.organization
 
-        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        member = OrganizationMember.objects.get(
+            user_id=self.user.id, organization=self.organization
+        )
 
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=member, team=team, is_active=True

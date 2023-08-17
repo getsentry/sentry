@@ -61,7 +61,7 @@ export function convertCrumbType(breadcrumb: RawCrumb): RawCrumb {
   return breadcrumb;
 }
 
-function getCrumbDescriptionAndColor(
+export function getCrumbDescriptionAndColor(
   type: BreadcrumbType
 ): Pick<Crumb, 'color' | 'description'> {
   switch (type) {

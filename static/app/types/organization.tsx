@@ -17,6 +17,8 @@ export interface OrganizationSummary {
   codecovAccess: boolean;
   dateCreated: string;
   features: string[];
+  githubOpenPRBot: boolean;
+  githubPRBot: boolean;
   id: string;
   isEarlyAdopter: boolean;
   links: {
@@ -69,6 +71,8 @@ export interface Organization extends OrganizationSummary {
   storeCrashReports: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
+  desiredSampleRate?: number | null;
+  effectiveSampleRate?: number | null;
   orgRole?: string;
 }
 
@@ -122,8 +126,6 @@ export interface Member {
     'sso:invalid': boolean;
     'sso:linked': boolean;
   };
-  // TODO: Move to global store
-  groupOrgRoles: {role: OrgRole; teamSlug: string}[];
   id: string;
   inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
   invite_link: string | null;
@@ -134,7 +136,6 @@ export interface Member {
   orgRoleList: OrgRole[];
   pending: boolean | undefined;
   projects: string[];
-
   /**
    * @deprecated use orgRole
    */
@@ -144,8 +145,9 @@ export interface Member {
    * @deprecated use orgRoleList
    */
   roles: OrgRole[];
+  teamRoleList: TeamRole[];
 
-  teamRoleList: TeamRole[]; // TODO: Move to global store
+  // TODO: Move to global store
   teamRoles: {
     role: string | null;
     teamSlug: string;
@@ -153,11 +155,14 @@ export interface Member {
   /**
    * @deprecated use teamRoles
    */
-  teams: string[]; // # Deprecated, use teamRoles
+  teams: string[];
+  // # Deprecated, use teamRoles
   /**
    * User may be null when the member represents an invited member
    */
   user: User | null;
+  // TODO: Move to global store
+  groupOrgRoles?: {role: OrgRole; teamSlug: string}[];
 }
 
 /**
@@ -166,6 +171,17 @@ export interface Member {
 export interface TeamMember extends Member {
   teamRole?: string | null;
   teamSlug?: string;
+}
+
+/**
+ * Users that exist in CommitAuthors but are not members of the organization.
+ * These users commit to repos installed for the organization.
+ */
+export interface MissingMember {
+  commitCount: number;
+  email: string;
+  // The user's ID in the repository provider (e.g. Github username)
+  externalId: string;
 }
 
 /**
@@ -208,7 +224,6 @@ export type SavedQueryVersions = 1 | 2;
 export interface NewQuery {
   fields: Readonly<string[]>;
   name: string;
-  projects: Readonly<number[]>;
   version: SavedQueryVersions;
   createdBy?: User;
   dataset?: DiscoverDatasets;
@@ -219,6 +234,7 @@ export interface NewQuery {
   id?: string;
   interval?: string;
   orderby?: string;
+  projects?: Readonly<number[]>;
   query?: string;
   range?: string;
   start?: string | Date;
@@ -242,12 +258,12 @@ export type SavedQueryState = {
 };
 
 export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
-export type EventsGeoData = {count: number; 'geo.country_code': string}[];
 
 // API response format for a single series
 export type EventsStats = {
   data: EventsStatsData;
   end?: number;
+  isExtrapolatedData?: boolean;
   isMetricsData?: boolean;
   meta?: {
     fields: Record<string, AggregationOutputType>;

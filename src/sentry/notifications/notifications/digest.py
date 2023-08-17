@@ -106,9 +106,7 @@ class DigestNotification(ProjectNotification):
 
         sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
 
-        snooze_alert = (
-            features.has("organizations:mute-alerts", self.organization) and len(rule_details) > 0
-        )
+        snooze_alert = len(rule_details) > 0
         snooze_alert_urls = {
             rule.id: f"{rule.status_url}{sentry_query_params}&{urlencode({'mute': '1'})}"
             for rule in rule_details
@@ -127,6 +125,8 @@ class DigestNotification(ProjectNotification):
         rule_details: Sequence[NotificationRuleDetails],
         alert_timestamp: int | None = None,
     ) -> MutableMapping[str, Any]:
+        has_session_replay = features.has("organizations:session-replay", organization)
+        show_replay_link = features.has("organizations:session-replay-issue-emails", organization)
         return {
             **get_digest_as_context(digest),
             "has_alert_integration": has_alert_integration(project),
@@ -136,6 +136,7 @@ class DigestNotification(ProjectNotification):
             "link_params_for_rule": get_email_link_extra_params(
                 "digest_email", None, rule_details, alert_timestamp
             ),
+            "show_replay_links": has_session_replay and show_replay_link,
         }
 
     def get_extra_context(

@@ -12,12 +12,14 @@ from snuba_sdk.request import Request as SnubaRequest
 from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.dynamic_sampling.rules.base import get_guarded_blended_sample_rate
 from sentry.models import Project
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.constants import TRACE_PARENT_SPAN_CONTEXT
 from sentry.snuba import discover
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.utils.snuba import Dataset, parse_snuba_datetime, raw_snql_query
+from sentry.utils.snuba import parse_snuba_datetime, raw_snql_query
 
 
 class EmptyTransactionDatasetException(Exception):
@@ -34,13 +36,36 @@ class QueryTimeRange:
     end_time: datetime
 
 
+class DynamicSamplingReadPermission(ProjectPermission):
+    scope_map = {"GET": ["project:read"]}
+
+
 class DynamicSamplingPermission(ProjectPermission):
     scope_map = {"GET": ["project:write"]}
 
 
 @region_silo_endpoint
-class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
+class ProjectDynamicSamplingRateEndpoint(ProjectEndpoint):
+    permission_classes = (DynamicSamplingReadPermission,)
 
+    def get(self, request: Request, project: Project) -> Response:
+        try:
+            sample_rate = get_guarded_blended_sample_rate(project.organization, project)
+            return Response(
+                {
+                    "sampleRate": sample_rate,
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Exception:
+            return Response(
+                {"detail": "Unable to fetch project sample rate"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+@region_silo_endpoint
+class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
     permission_classes = (DynamicSamplingPermission,)
 
     @staticmethod

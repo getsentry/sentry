@@ -5,7 +5,7 @@ from jwt import ExpiredSignatureError
 from sentry.integrations.jira.views import UNABLE_TO_VERIFY_INSTALLATION
 from sentry.integrations.utils import AtlassianConnectValidationError
 from sentry.models import Integration
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.utils.http import absolute_uri
 
 REFRESH_REQUIRED = b"This page has expired, please refresh to configure your Sentry integration"

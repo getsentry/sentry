@@ -2,29 +2,28 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
 
-from django.core.cache import cache
-
 from sentry import features, tagstore
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.message_builder import (
+    build_attachment_replay_link,
     build_attachment_text,
     build_attachment_title,
     build_footer,
     format_actor_options,
+    get_color,
+    get_timestamp,
     get_title_link,
 )
-from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT, SlackBody
+from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
-from sentry.issues.grouptype import GroupCategory
-from sentry.models import ActorTuple, Group, GroupStatus, Project, ReleaseProject, Rule, Team, User
-from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
-from sentry.notifications.notifications.rules import AlertRuleNotification
+from sentry.integrations.slack.utils.escape import escape_slack_text
+from sentry.models import ActorTuple, Group, GroupStatus, Project, Rule, Team, User
+from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.dates import to_timestamp
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 
@@ -114,18 +113,6 @@ def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
     return option_groups
 
 
-def has_releases(project: Project) -> bool:
-    cache_key = f"has_releases:2:{project.id}"
-    has_releases_option: bool | None = cache.get(cache_key)
-    if has_releases_option is None:
-        has_releases_option = ReleaseProject.objects.filter(project_id=project.id).exists()
-        if has_releases_option:
-            cache.set(cache_key, True, 3600)
-        else:
-            cache.set(cache_key, False, 60)
-    return has_releases_option
-
-
 def get_action_text(
     text: str, actions: Sequence[Any], identity: RpcIdentity, has_escalating: bool = False
 ) -> str:
@@ -173,7 +160,7 @@ def build_actions(
 
     status = group.get_status()
 
-    if not has_releases(project):
+    if not project.flags.has_releases:
         resolve_button = MessageAction(
             name="status",
             label="Resolve",
@@ -204,35 +191,6 @@ def build_actions(
     )
 
     return [resolve_button, ignore_button, assign_button], text, color
-
-
-def get_timestamp(group: Group, event: GroupEvent | None) -> float:
-    ts = group.last_seen
-    return to_timestamp(max(ts, event.datetime) if event else ts)
-
-
-def get_color(
-    event_for_tags: GroupEvent | None, notification: BaseNotification | None, group: Group
-) -> str:
-    if notification:
-        if not isinstance(notification, AlertRuleNotification):
-            return "info"
-    if event_for_tags:
-        color: str | None = event_for_tags.get_tag("level")
-        if (
-            hasattr(event_for_tags, "occurrence")
-            and event_for_tags.occurrence is not None
-            and event_for_tags.occurrence.level is not None
-        ):
-            color = event_for_tags.occurrence.level
-        if color and color in LEVEL_TO_COLOR.keys():
-            return color
-    if group.issue_category == GroupCategory.PERFORMANCE:
-        # XXX(CEO): this shouldn't be needed long term, but due to a race condition
-        # the group's latest event is not found and we end up with no event_for_tags here for perf issues
-        return "info"
-
-    return "error"
 
 
 class SlackIssuesMessageBuilder(SlackMessageBuilder):
@@ -270,11 +228,22 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         """
         Returns True if we need to escape the text in the message.
         """
-        return features.has("organizations:slack-escape-messages", self.group.project.organization)
+        return True
 
     def build(self) -> SlackBody:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
+
+        if self.escape_text:
+            text = escape_slack_text(text)
+            # XXX(scefali): Not sure why we actually need to do this just for unfurled messages.
+            # If we figure out why this is required we should note it here because it's quite strange
+            if self.is_unfurl:
+                text = escape_slack_text(text)
+
+        # This link does not contain user input (it's a static label and a url), must not escape it.
+        text += build_attachment_replay_link(self.group, self.event) or ""
+
         project = Project.objects.get_from_cache(id=self.group.project_id)
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
@@ -295,6 +264,11 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
             )
         else:
             payload_actions = []
+
+        rule_id = None
+        if self.rules:
+            rule_id = self.rules[0].id
+
         return self._build(
             actions=payload_actions,
             callback_id=json.dumps({"issue": self.group.id}),
@@ -311,9 +285,9 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
                 self.issue_details,
                 self.notification,
                 ExternalProviders.SLACK,
+                rule_id,
             ),
             ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
-            is_unfurl=self.is_unfurl,
         )
 
 

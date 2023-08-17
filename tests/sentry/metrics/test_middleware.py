@@ -4,8 +4,8 @@ from django.test import override_settings
 from sentry.metrics.middleware import (
     BadMetricTags,
     _filter_tags,
-    _get_current_global_tags,
     add_global_tags,
+    get_current_global_tags,
     global_tags,
 )
 
@@ -29,12 +29,12 @@ def test_filter_tags_prod():
 
 
 def test_global():
-    assert _get_current_global_tags() == {}
+    assert get_current_global_tags() == {}
 
     with global_tags(tag_a=123):
-        assert _get_current_global_tags() == {"tag_a": 123}
+        assert get_current_global_tags() == {"tag_a": 123}
         add_global_tags(tag_b=123)
 
-        assert _get_current_global_tags() == {"tag_a": 123, "tag_b": 123}
+        assert get_current_global_tags() == {"tag_a": 123, "tag_b": 123}
 
-    assert _get_current_global_tags() == {}
+    assert get_current_global_tags() == {}

@@ -68,7 +68,7 @@ class SlackRequestParser(BaseRequestParser):
 
     def handle_action_endpoint(self, regions: List[Region]) -> HttpResponse:
         drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
-        slack_request = self.match.func.view_class.slack_request_class(drf_request)
+        slack_request = self.view_class.slack_request_class(drf_request)
         action_option = SlackActionEndpoint.get_action_option(slack_request=slack_request)
 
         if action_option in ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS:
@@ -88,12 +88,11 @@ class SlackRequestParser(BaseRequestParser):
             return successful_responses[0].response
 
     def get_integration_from_request(self) -> Integration | None:
-        view_class = self.match.func.view_class
-        if view_class in self.webhook_endpoints:
+        if self.view_class in self.webhook_endpoints:
             # We need convert the raw Django request to a Django Rest Framework request
             # since that's the type the SlackRequest expects
             drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
-            slack_request = self.match.func.view_class.slack_request_class(drf_request)
+            slack_request = self.view_class.slack_request_class(drf_request)
             try:
                 slack_request.authorize()
                 slack_request.validate_integration()
@@ -102,10 +101,12 @@ class SlackRequestParser(BaseRequestParser):
                 return None
             return Integration.objects.filter(id=slack_request.integration.id).first()
 
-        elif view_class in self.django_views:
+        elif self.view_class in self.django_views:
             # Parse the signed params to identify the associated integration
             params = unsign(self.match.kwargs.get("signed_params"))
             return Integration.objects.filter(id=params.get("integration_id")).first()
+
+        return None
 
     def get_response_from_first_region(self):
         regions = self.get_regions_from_organizations()
@@ -141,8 +142,7 @@ class SlackRequestParser(BaseRequestParser):
         """
         Slack Webhook Requests all require synchronous responses.
         """
-        view_class = self.match.func.view_class
-        if view_class in self.control_classes:
+        if self.view_class in self.control_classes:
             return self.get_response_from_control_silo()
 
         regions = self.get_regions_from_organizations()
@@ -150,9 +150,9 @@ class SlackRequestParser(BaseRequestParser):
             logger.error("no_regions", extra={"path": self.request.path})
             return self.get_response_from_control_silo()
 
-        if view_class == SlackActionEndpoint:
+        if self.view_class == SlackActionEndpoint:
             drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
-            slack_request = self.match.func.view_class.slack_request_class(drf_request)
+            slack_request = self.view_class.slack_request_class(drf_request)
             action_option = SlackActionEndpoint.get_action_option(slack_request=slack_request)
 
             # All actions other than those below are sent to every region

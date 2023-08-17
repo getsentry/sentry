@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Any, List, Optional
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -18,8 +20,7 @@ from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models import Group
 from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInbox
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
@@ -28,7 +29,7 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
 
 
-class BaseGroupCounts(SnubaTestCase, TestCase):  # type: ignore[misc]
+class BaseGroupCounts(SnubaTestCase, TestCase):
     def _create_events_for_group(
         self,
         project_id: Optional[int] = None,
@@ -44,11 +45,13 @@ class BaseGroupCounts(SnubaTestCase, TestCase):  # type: ignore[misc]
         proj_id = project_id or self.project.id
         # This time becomes a starting point from which to create other datetimes in the past
         datetime_reset_zero = datetime.now().replace(minute=0, second=0, microsecond=0)
-        data = {"message": "some message", "fingerprint": [group]}
+        data: dict[str, Any] = {"message": "some message", "fingerprint": [group]}
 
-        last_event = None
+        assert count >= 1
         for _ in range(count):
-            data["timestamp"] = (datetime_reset_zero - timedelta(hours=hours_ago, minutes=min_ago)).timestamp()  # type: ignore[assignment]
+            data["timestamp"] = (
+                datetime_reset_zero - timedelta(hours=hours_ago, minutes=min_ago)
+            ).timestamp()
             data["event_id"] = uuid4().hex
             # assert_no_errors is necessary because of SDK and server time differences due to freeze gun
             last_event = self.store_event(data=data, project_id=proj_id, assert_no_errors=False)
@@ -57,17 +60,18 @@ class BaseGroupCounts(SnubaTestCase, TestCase):  # type: ignore[misc]
 
 class HistoricGroupCounts(
     BaseGroupCounts,
-    PerformanceIssueTestCase,  # type: ignore[misc]
+    PerformanceIssueTestCase,
     SearchIssueTestMixin,
 ):
     """Test that querying Snuba for the hourly counts for groups works as expected."""
 
     def _create_hourly_bucket(self, count: int, event: Event) -> GroupsCountResponse:
         """It simplifies writing the expected data structures"""
+        assert event.group_id is not None
         return {
             "count()": count,
             "group_id": event.group_id,
-            "hourBucket": to_start_of_hour(event.datetime),
+            "hourBucket": str(to_start_of_hour(event.datetime)),
             "project_id": event.project_id,
         }
 
@@ -88,22 +92,26 @@ class HistoricGroupCounts(
             fingerprints=[f"{ProfileFileIOGroupType.type_id}-group1"],
             insert_time=timezone.now() - timedelta(minutes=1),
         )
+        assert profile_error_event.group is not None
+        assert profile_issue_occurrence is not None
         assert len(Group.objects.all()) == 2
 
         perf_event = self.create_performance_issue()
         error_event = self._create_events_for_group()
+        assert perf_event.group is not None
+        assert error_event.group is not None
 
         # store_search_issue created two groups
         assert len(Group.objects.all()) == 4
         assert profile_error_event.group.issue_category == GroupCategory.ERROR
         assert error_event.group.issue_category == GroupCategory.ERROR
-        assert profile_issue_occurrence.group.issue_category == GroupCategory.PROFILE  # type: ignore[union-attr]
+        assert profile_issue_occurrence.group.issue_category == GroupCategory.PERFORMANCE
         assert perf_event.group.issue_category == GroupCategory.PERFORMANCE
 
         profile_issue_occurrence_bucket = {
             "count()": 1,
-            "group_id": profile_issue_occurrence.group.id,  # type: ignore[union-attr]
-            "hourBucket": to_start_of_hour(profile_issue_occurrence.group.first_seen),  # type: ignore[union-attr]
+            "group_id": profile_issue_occurrence.group.id,
+            "hourBucket": to_start_of_hour(profile_issue_occurrence.group.first_seen),
             "project_id": self.project.id,
         }
 
@@ -204,7 +212,7 @@ def test_datetime_number_of_days() -> None:
 
 
 class DailyGroupCountsEscalating(BaseGroupCounts):
-    def save_mock_escalating_group_forecast(  # type: ignore[no-untyped-def]
+    def save_mock_escalating_group_forecast(
         self, group: Group, forecast_values=List[int], date_added=datetime
     ) -> None:
         """Save mock data for escalating group forecast in nodestore"""
@@ -227,6 +235,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         with self.feature("organizations:escalating-issues"):
             # The group had 6 events in the last hour
             event = self._create_events_for_group(count=6)
+            assert event.group is not None
             archived_group = event.group
             self.archive_until_escalating(archived_group)
 
@@ -251,6 +260,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             self._create_events_for_group(count=4, hours_ago=24)
             # Group 2 had 5 events today
             event = self._create_events_for_group(count=5, group="group-escalating")
+            assert event.group is not None
             group = event.group
             self.archive_until_escalating(group)
 
@@ -271,6 +281,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         """Test the hourly count query only aggregates events from within the current hour"""
         self._create_events_for_group(count=2, hours_ago=1)  # An hour ago -> It will not count
         group = self._create_events_for_group(count=1).group  # This hour -> It will count
+        assert group is not None
 
         # Events are aggregated in the hourly count query by date rather than the last 24hrs
         assert get_group_hourly_count(group) == 1
@@ -285,6 +296,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             "sentry.issues.escalating_group_forecast.logger"
         ) as logger:
             event = self._create_events_for_group(count=2)
+            assert event.group is not None
             archived_group = event.group
             self.archive_until_escalating(archived_group)
 

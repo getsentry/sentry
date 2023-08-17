@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 from collections import defaultdict
 from datetime import timedelta
@@ -41,7 +43,7 @@ GROUP_OWNER_TYPE = {
 
 
 class OwnersSerialized(TypedDict):
-    type: GroupOwnerType
+    type: str
     owner: str
     date_added: models.DateTimeField
 
@@ -74,7 +76,7 @@ class GroupOwner(Model):
         db_table = "sentry_groupowner"
 
     def save(self, *args, **kwargs):
-        keys = list(filter(None, [self.user_id, self.team_id]))
+        keys = [k for k in (self.user_id, self.team_id) if k is not None]
         assert len(keys) != 2, "Must have team or user or neither, not both"
         super().save(*args, **kwargs)
 
@@ -128,8 +130,21 @@ class GroupOwner(Model):
         return issue_owner
 
     @classmethod
-    def invalidate_autoassigned_owner_cache(cls, project_id, autoassignment_types):
-        # Get all the groups for a project that had an event within the READ_CACHE_DURATION window. Any groups without events in that window would have expired their TTL in the cache.
+    def invalidate_autoassigned_owner_cache(cls, project_id, autoassignment_types, group_id=None):
+        """
+        If `group_id` is provided, clear the autoassigned owner cache for that group, else clear
+        the cache of all groups for a project that had an event within the READ_CACHE_DURATION
+        window.
+        """
+        if group_id:
+            cache_key = cls.get_autoassigned_owner_cache_key(
+                group_id, project_id, autoassignment_types
+            )
+            cache.delete(cache_key)
+            return
+
+        # Get all the groups for a project that had an event within the READ_CACHE_DURATION window.
+        # Any groups without events in that window would have expired their TTL in the cache.
         queryset = Group.objects.filter(
             project_id=project_id,
             last_seen__gte=timezone.now() - timedelta(seconds=READ_CACHE_DURATION),
@@ -148,7 +163,16 @@ class GroupOwner(Model):
             cache.delete_many(cache_keys)
 
     @classmethod
-    def invalidate_debounce_issue_owners_evaluation_cache(cls, project_id):
+    def invalidate_debounce_issue_owners_evaluation_cache(cls, project_id, group_id=None):
+        """
+        If `group_id` is provided, clear the debounce issue owners cache for that group, else clear
+        the cache of all groups for a project that had an event within the
+        ISSUE_OWNERS_DEBOUNCE_DURATION window.
+        """
+        if group_id:
+            cache.delete(ISSUE_OWNERS_DEBOUNCE_KEY(group_id))
+            return
+
         # Get all the groups for a project that had an event within the ISSUE_OWNERS_DEBOUNCE_DURATION window.
         # Any groups without events in that window would have expired their TTL in the cache.
         queryset = Group.objects.filter(
@@ -166,7 +190,16 @@ class GroupOwner(Model):
             cache.delete_many(cache_keys)
 
     @classmethod
-    def invalidate_assignee_exists_cache(cls, project_id):
+    def invalidate_assignee_exists_cache(cls, project_id, group_id=None):
+        """
+        If `group_id` is provided, clear the invalidate assignee exists cache for that group, else
+        clear the cache of all groups for a project hat had an event within the
+        ASSIGNEE_EXISTS_DURATION window.
+        """
+        if group_id:
+            cache.delete(ASSIGNEE_EXISTS_KEY(group_id))
+            return
+
         # Get all the groups for a project that had an event within the ASSIGNEE_EXISTS_DURATION window.
         # Any groups without events in that window would have expired their TTL in the cache.
         queryset = Group.objects.filter(
@@ -184,7 +217,7 @@ class GroupOwner(Model):
             cache.delete_many(cache_keys)
 
 
-def get_owner_details(group_list: List[Group], user: Any) -> List[OwnersSerialized]:
+def get_owner_details(group_list: List[Group], user: Any) -> dict[int, List[OwnersSerialized]]:
     group_ids = [g.id for g in group_list]
     group_owners = GroupOwner.objects.filter(group__in=group_ids).exclude(
         user_id__isnull=True, team_id__isnull=True

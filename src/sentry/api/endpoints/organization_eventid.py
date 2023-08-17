@@ -48,7 +48,7 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
                 project_ids=list(project_slugs_by_id.keys()),
                 event_ids=[event_id],
             )
-            event = eventstore.get_events(
+            event = eventstore.backend.get_events(
                 filter=snuba_filter, limit=1, tenant_ids={"organization_id": organization.id}
             )[0]
         except IndexError:

@@ -60,7 +60,7 @@ class HybridCloudForeignKeyCascadeBehavior(IntEnum):
     SET_NULL = 2
 
 
-class HybridCloudForeignKey(models.BigIntegerField):  # type: ignore
+class HybridCloudForeignKey(models.BigIntegerField):
     on_delete: str
     foreign_model_name: str
 

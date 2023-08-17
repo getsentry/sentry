@@ -48,11 +48,11 @@ type TabEvents =
   | 'performance_views.anomalies.anomalies_tab_clicked';
 
 const TAB_ANALYTICS: Partial<Record<Tab, TabEvents>> = {
-  [Tab.WebVitals]: 'performance_views.vitals.vitals_tab_clicked',
-  [Tab.Tags]: 'performance_views.tags.tags_tab_clicked',
-  [Tab.Events]: 'performance_views.events.events_tab_clicked',
-  [Tab.Spans]: 'performance_views.spans.spans_tab_clicked',
-  [Tab.Anomalies]: 'performance_views.anomalies.anomalies_tab_clicked',
+  [Tab.WEB_VITALS]: 'performance_views.vitals.vitals_tab_clicked',
+  [Tab.TAGS]: 'performance_views.tags.tags_tab_clicked',
+  [Tab.EVENTS]: 'performance_views.events.events_tab_clicked',
+  [Tab.SPANS]: 'performance_views.spans.spans_tab_clicked',
+  [Tab.ANOMALIES]: 'performance_views.anomalies.anomalies_tab_clicked',
 };
 
 export type ChildProps = {
@@ -125,27 +125,27 @@ function PageLayout(props: Props) {
       };
 
       switch (newTab) {
-        case Tab.Tags:
+        case Tab.TAGS:
           return tagsRouteWithQuery(routeQuery);
-        case Tab.Events:
+        case Tab.EVENTS:
           return eventsRouteWithQuery(routeQuery);
-        case Tab.Spans:
+        case Tab.SPANS:
           return spansRouteWithQuery(routeQuery);
-        case Tab.Anomalies:
+        case Tab.ANOMALIES:
           return anomaliesRouteWithQuery(routeQuery);
-        case Tab.Replays:
+        case Tab.REPLAYS:
           return replaysRouteWithQuery(routeQuery);
-        case Tab.Profiling: {
+        case Tab.PROFILING: {
           return profilesRouteWithQuery(routeQuery);
         }
-        case Tab.WebVitals:
+        case Tab.WEB_VITALS:
           return vitalsRouteWithQuery({
             orgSlug: organization.slug,
             transaction: transactionName,
             projectID: decodeScalar(location.query.project),
             query: location.query,
           });
-        case Tab.TransactionSummary:
+        case Tab.TRANSACTION_SUMMARY:
         default:
           return transactionSummaryRouteWithQuery(routeQuery);
       }
@@ -274,7 +274,7 @@ function PageLayout(props: Props) {
                   projectId={projectId}
                   transactionName={transactionName}
                   currentTab={tab}
-                  hasWebVitals={tab === Tab.WebVitals ? 'yes' : 'maybe'}
+                  hasWebVitals={tab === Tab.WEB_VITALS ? 'yes' : 'maybe'}
                   onChangeThreshold={(threshold, metric) => {
                     setTransactionThreshold(threshold);
                     setTransactionThresholdMetric(metric);

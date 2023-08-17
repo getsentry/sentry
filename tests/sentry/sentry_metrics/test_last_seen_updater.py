@@ -7,7 +7,6 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.utils import timezone
 
 from sentry.metrics.dummy import DummyMetricsBackend
-from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.last_seen_updater import (
     LastSeenUpdaterMessageFilter,
     LastSeenUpdaterStrategyFactory,
@@ -98,9 +97,8 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
     @staticmethod
     def processing_factory():
         return LastSeenUpdaterStrategyFactory(
-            use_case_id=get_ingest_config(
-                UseCaseKey.RELEASE_HEALTH, IndexerStorage.POSTGRES
-            ).use_case_id,
+            ingest_profile="release-health",
+            indexer_db="postgres",
             max_batch_time=1.0,
             max_batch_size=1,
         )

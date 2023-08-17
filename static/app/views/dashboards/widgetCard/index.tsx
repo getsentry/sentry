@@ -12,7 +12,8 @@ import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelAlert} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -339,6 +340,7 @@ class WidgetCard extends Component<Props, State> {
                   {this.renderContextMenu()}
                 </WidgetHeader>
                 {hasSessionDuration && SESSION_DURATION_ALERT}
+
                 {isWidgetInvalid ? (
                   <Fragment>
                     {renderErrorMessage?.('Widget query condition is invalid.')}
@@ -394,7 +396,7 @@ class WidgetCard extends Component<Props, State> {
                             widget.widgetType === WidgetType.DISCOVER &&
                             metricSettingContext &&
                             metricSettingContext.metricSettingState !==
-                              MEPState.transactionsOnly
+                              MEPState.TRANSACTIONS_ONLY
                           ) {
                             if (!widgetContainsErrorFields) {
                               return (

@@ -62,10 +62,14 @@ class ProjectFeature(Feature):
         return self.project.organization
 
 
-class ProjectPluginFeature(ProjectFeature):
+class ProjectPluginFeature(Feature):
     def __init__(self, name: str, project: Project, plugin: Any) -> None:
-        super().__init__(name, project=project)
+        super().__init__(name)
+        self.project = project
         self.plugin = plugin
+
+    def get_subject(self) -> Organization:
+        return self.project.organization
 
 
 class UserFeature(Feature):

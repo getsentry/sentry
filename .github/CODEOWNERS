@@ -13,16 +13,20 @@
 
 ## Snuba
 /src/sentry/eventstream/                                 @getsentry/owners-snuba
+/src/sentry/consumers/                                   @getsentry/owners-snuba
+/src/sentry/post_process_forwarder/                      @getsentry/owners-snuba
 /src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/discover-n-dashboards
 /src/sentry/utils/snql.py                                @getsentry/owners-snuba
 /src/sentry/utils/arroyo.py                              @getsentry/owners-snuba
 /src/sentry/utils/arroyo_producer.py                     @getsentry/owners-snuba
 /src/sentry/tsdb/snuba.py                                @getsentry/owners-snuba
 /src/sentry/tsdb/redissnuba.py                           @getsentry/owners-snuba
-/src/sentry/search/snuba/                                @getsentry/owners-snuba @getsentry/issues
 /src/sentry/tagstore/snuba/                              @getsentry/owners-snuba
 /src/sentry/sentry_metrics/                              @getsentry/owners-snuba
 /tests/sentry/sentry_metrics/                            @getsentry/owners-snuba
+/src/sentry/snuba/metrics/                               @getsentry/owners-snuba @getsentry/telemetry-experience
+/src/sentry/snuba/metrics/query.py                       @getsentry/owners-snuba @getsentry/telemetry-experience
+/src/sentry/search/events/datasets/metrics_layer.py      @getsentry/owners-snuba
 
 ## Event Ingestion
 /src/sentry/attachments/                                 @getsentry/owners-ingest
@@ -53,6 +57,15 @@
 /src/sentry/api/authentication.py                        @getsentry/security @getsentry/enterprise
 /src/sentry/api/endpoints/auth*                          @getsentry/security @getsentry/enterprise
 /src/sentry/api/endpoints/user_permission*               @getsentry/security @getsentry/enterprise
+/src/sentry/web/frontend/auth_close.py                   @getsentry/security
+/src/sentry/web/frontend/auth_login.py                   @getsentry/security
+/src/sentry/web/frontend/auth_logout.py                  @getsentry/security
+/src/sentry/web/frontend/auth_organization_id_login.py   @getsentry/security
+/src/sentry/web/frontend/auth_organization_login.py      @getsentry/security
+/src/sentry/web/frontend/auth_provider_login.py          @getsentry/security
+/src/sentry/web/frontend/oauth_token.py                  @getsentry/security
+/src/sentry/web/frontend/oauth_authorize.py              @getsentry/security
+/src/sentry/web/frontend/openidtoken.py                  @getsentry/security
 
 ## Dev
 /.github/                                                @getsentry/owners-sentry-dev
@@ -64,21 +77,28 @@ Makefile                                                 @getsentry/owners-sentr
 .pre-commit-config.yaml                                  @getsentry/owners-sentry-dev
 .git-blame-ignore-revs                                   @getsentry/owners-sentry-dev
 
-mypy.ini                                                 @getsentry/python-typing
 /fixtures/stubs-for-mypy                                 @getsentry/python-typing
+/tools/mypy_helpers/                                     @getsentry/python-typing
+/tests/tools/mypy_helpers                                @getsentry/python-typing
 
-# GitHub Routing Automations - notion.so/473791bae5bf43399d46093050b77bf0
+## GitHub Routing Automations - notion.so/473791bae5bf43399d46093050b77bf0
 /.github/labels.yml                                      @getsentry/open-source
 /.github/workflows/react-to-product-owners-yml-changes.yml @getsentry/open-source
 /bin/react-to-product-owners-yml-changes.py              @getsentry/open-source
 /bin/react-to-product-owners-yml-changes.sh              @getsentry/open-source
 /static/app/components/sidebar/index.tsx                 @getsentry/open-source
 
+## Relocation - getsentry/team-ospo#153
+/src/sentry/backup/                                      @getsentry/open-source
+/src/sentry/testutils/helpers/backups.py                 @getsentry/open-source
+/src/sentry/runner/commands/backup.py                    @getsentry/open-source
+/src/sentry/testutils/helpers/backups.py                 @getsentry/open-source
+
 ## Build & Releases
 /.github/workflows/release.yml                           @getsentry/release-approvers
 /scripts/bump-version.sh                                 @getsentry/release-approvers
 /scripts/post-release.sh                                 @getsentry/release-approvers
-/docker                                                  @getsentry/release-approvers
+/self-hosted                                             @getsentry/release-approvers
 setup.py                                                 @getsentry/release-approvers
 setup.cfg                                                @getsentry/release-approvers
 requirements*.txt                                        @getsentry/owners-python-build
@@ -95,54 +115,66 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/fonts/                                           @getsentry/design
 /static/images/                                          @getsentry/design
 
-## Crons
-/static/app/views/monitors                                   @getsentry/crons
-/src/sentry/monitors                                         @getsentry/crons
-/tests/sentry/monitors                                       @getsentry/crons
-/src/sentry/utils/monitors.py                                @getsentry/crons
-/tests/sentry/utils/test_monitors.py                         @getsentry/crons
-
-
 # Owners by product feature
 #
 # The following ownership rules are specific to particular features of the
 # Sentry product. These rules generally map to a signle team, but that may not
 # always be the case.
 
+## Crons
+/static/app/views/monitors                               @getsentry/crons
+/src/sentry/monitors                                     @getsentry/crons
+/tests/sentry/monitors                                   @getsentry/crons
+/src/sentry/utils/monitors.py                            @getsentry/crons
+/tests/sentry/utils/test_monitors.py                     @getsentry/crons
+## End Crons
+
+
+## Hybrid Cloud
+/src/sentry/silo/                                        @getsentry/hybrid-cloud
+/src/sentry/services/hybrid_cloud/                       @getsentry/hybrid-cloud
+/src/sentry/api_gateway/                                 @getsentry/hybrid-cloud
+/src/sentry/middleware/api_gateway.py                    @getsentry/hybrid-cloud
+/src/sentry/middleware/customer_domain.py                @getsentry/hybrid-cloud
+/src/sentry/middleware/subdomain.py                      @getsentry/hybrid-cloud
+/src/sentry/middleware/integration/                      @getsentry/hybrid-cloud
+/src/sentry/api/endpoints/rpc.py                         @getsentry/hybrid-cloud
+## End of Hybrid Cloud
 
 ## Workflow
-/static/app/views/settings/projectAlerts/                 @getsentry/workflow
-/static/app/views/alerts/                                 @getsentry/workflow
-/static/app/views/projects/                               @getsentry/workflow
-/static/app/views/projectDetail/                          @getsentry/workflow
-/static/app/views/releases/                               @getsentry/workflow
-/static/app/views/organizationStats/teamInsights/         @getsentry/workflow
+/static/app/views/settings/projectAlerts/                 @getsentry/issues
+/static/app/views/alerts/                                 @getsentry/issues
+/static/app/views/issueDetails/                           @getsentry/issues
+/static/app/views/projects/                               @getsentry/issues
+/static/app/views/projectDetail/                          @getsentry/issues
+/static/app/views/releases/                               @getsentry/issues
+/static/app/views/organizationStats/teamInsights/         @getsentry/issues
 
-/src/sentry/templates/sentry/emails/incidents/            @getsentry/workflow
-/src/sentry/incidents/                                    @getsentry/workflow
-/tests/sentry/incidents/                                  @getsentry/workflow
-/tests/acceptance/test_incidents.py                       @getsentry/workflow
+/src/sentry/templates/sentry/emails/incidents/            @getsentry/issues
+/src/sentry/incidents/                                    @getsentry/issues
+/tests/sentry/incidents/                                  @getsentry/issues
+/tests/acceptance/test_incidents.py                       @getsentry/issues
 
-/src/sentry/api/endpoints/group_events.py                 @getsentry/workflow
-/src/sentry/api/endpoints/organization_group_index.py     @getsentry/workflow
-/src/sentry/api/endpoints/organization_activity.py        @getsentry/workflow
-/src/sentry/api/endpoints/organization_searches.py        @getsentry/workflow
-/src/sentry/api/helpers/group_index.py                    @getsentry/workflow
-/src/sentry/api/helpers/events.py                         @getsentry/workflow
+/src/sentry/api/endpoints/group_events.py                 @getsentry/issues
+/src/sentry/api/endpoints/organization_group_index.py     @getsentry/issues
+/src/sentry/api/endpoints/organization_activity.py        @getsentry/issues
+/src/sentry/api/endpoints/organization_searches.py        @getsentry/issues
+/src/sentry/api/helpers/group_index.py                    @getsentry/issues
+/src/sentry/api/helpers/events.py                         @getsentry/issues
 
-/src/sentry/snuba/models.py                               @getsentry/workflow
-/src/sentry/snuba/query_subscription_consumer.py          @getsentry/workflow
-/src/sentry/snuba/subscriptions.py                        @getsentry/workflow
-/tests/snuba/incidents/                                   @getsentry/workflow
-/tests/sentry/snuba/test_query_subscription_consumer.py   @getsentry/workflow
-/tests/sentry/snuba/test_subscriptions.py                 @getsentry/workflow
-/tests/sentry/snuba/test_tasks.py                         @getsentry/workflow
-/tests/snuba/snuba/test_query_subscription_consumer.py    @getsentry/workflow
-/src/sentry/api/issue_search.py                           @getsentry/workflow
-/tests/sentry/api/test_issue_search.py                    @getsentry/workflow
+/src/sentry/snuba/models.py                               @getsentry/issues
+/src/sentry/snuba/query_subscription_consumer.py          @getsentry/issues
+/src/sentry/snuba/subscriptions.py                        @getsentry/issues
+/tests/snuba/incidents/                                   @getsentry/issues
+/tests/sentry/snuba/test_query_subscription_consumer.py   @getsentry/issues
+/tests/sentry/snuba/test_subscriptions.py                 @getsentry/issues
+/tests/sentry/snuba/test_tasks.py                         @getsentry/issues
+/tests/snuba/snuba/test_query_subscription_consumer.py    @getsentry/issues
+/src/sentry/api/issue_search.py                           @getsentry/issues
+/tests/sentry/api/test_issue_search.py                    @getsentry/issues
 
-/src/sentry/tasks/auto_remove_inbox.py                    @getsentry/workflow
-/src/sentry/tasks/auto_resolve_issues.py                  @getsentry/workflow
+/src/sentry/tasks/auto_remove_inbox.py                    @getsentry/issues
+/src/sentry/tasks/auto_resolve_issues.py                  @getsentry/issues
 ## Endof Workflow
 
 
@@ -179,6 +211,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_events_spans_histogram.py          @getsentry/performance
 /src/sentry/api/endpoints/organization_events_trace.py                    @getsentry/performance
 /src/sentry/api/endpoints/organization_events_trends.py                   @getsentry/performance
+/src/sentry/api/endpoints/organization_events_trends_v2.py                @getsentry/performance
 /src/sentry/api/endpoints/organization_events_vitals.py                   @getsentry/performance
 /src/sentry/api/endpoints/organization_transaction_anomaly_detection.py   @getsentry/data
 /src/sentry/utils/performance_issues/                                     @getsentry/performance
@@ -261,6 +294,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_integration_repos.py          @getsentry/issues
 /src/sentry/api/endpoints/organization_release_previous_commits.py   @getsentry/issues
 /src/sentry/api/endpoints/sentry_app/                                @getsentry/issues
+/src/sentry/api/endpoints/project_rule*.py                           @getsentry/issues
 
 /static/app/views/organizationIntegrations                           @getsentry/issues
 /static/app/views/settings/project/projectOwnership/                 @getsentry/issues
@@ -315,7 +349,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/models/groupresolution.py         @getsentry/data
 /src/sentry/models/integration.py             @getsentry/data @getsentry/issues
 /src/sentry/models/organization.py            @getsentry/data
-/src/sentry/models/organizationmember.py      @getsentry/data @AniketDas-Tekky
+/src/sentry/models/organizationmember.py      @getsentry/data
 /src/sentry/models/organizationoption.py      @getsentry/data
 /src/sentry/models/project.py                 @getsentry/data
 /src/sentry/models/projectoption.py           @getsentry/data
@@ -327,16 +361,17 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## Enterprise
-/static/app/views/organizationStats                   @getsentry/enterprise
-/src/sentry/api/endpoints/organization_stats*.py      @getsentry/enterprise
-
-/src/sentry/api/endpoints/organization_auditlogs.py   @getsentry/enterprise
-
-/static/app/views/settings/organizationAuth/          @getsentry/enterprise
-/tests/sentry/api/endpoints/test_auth*.py             @getsentry/enterprise
-
-/src/sentry/scim/                                     @getsentry/enterprise
-/tests/sentry/api/test_scim*.py                       @getsentry/enterprise
+/static/app/views/organizationStats                                     @getsentry/enterprise
+/src/sentry/api/endpoints/organization_stats*.py                        @getsentry/enterprise
+/src/sentry/api/endpoints/organization_auditlogs.py                     @getsentry/enterprise
+/static/app/views/settings/organizationAuth/                            @getsentry/enterprise
+/tests/sentry/api/endpoints/test_auth*.py                               @getsentry/enterprise
+/tests/sentry/api/test_data_secrecy.py                                  @getsentry/enterprise
+/src/sentry/scim/                                                       @getsentry/enterprise
+/tests/sentry/api/test_scim*.py                                         @getsentry/enterprise
+/src/sentry/tasks/integrations/github/pr_comment.py                     @getsentry/enterprise
+/src/sentry/api/endpoints/organization_projects_experiment.py           @getsentry/enterprise
+/tests/sentry/api/endpoints/test_organization_projects_experiment.py    @getsentry/enterprise
 ## End of Enterprise
 
 
@@ -374,13 +409,11 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## Telemetry Experience
-/src/sentry/snuba/metrics/                                                       @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_metrics.py                                @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
 /src/sentry/api/endpoints/project_dynamic_sampling.py                            @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_dynamic_sampling_sdk_versions.py          @getsentry/telemetry-experience
 /src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
-/src/sentry/snuba/metrics/query.py                                               @getsentry/telemetry-experience
 /src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric_data.py                     @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric_details.py                  @getsentry/telemetry-experience
@@ -415,22 +448,21 @@ yarn.lock                                                @getsentry/owners-js-de
 
 ## Issues
 /src/sentry/event_manager.py                        @getsentry/issues
+/src/sentry/grouping/                               @getsentry/issues
 /src/sentry/issues/                                 @getsentry/issues
 /src/sentry/tasks/post_process.py                   @getsentry/issues
 /src/sentry/types/issues.py                         @getsentry/issues
 /tests/sentry/event_manager/test_event_manager.py   @getsentry/issues
+/tests/sentry/grouping/                             @getsentry/issues
 /tests/sentry/issues/                               @getsentry/issues
 /tests/sentry/search/                               @getsentry/issues
 /tests/sentry/tasks/test_post_process.py            @getsentry/issues
 /tests/snuba/search/                                @getsentry/issues
-/static/app/components                                       @getsentry/issues
+/src/sentry/search/snuba/                           @getsentry/issues
 /static/app/views/issueList                                  @getsentry/issues
 /static/app/views/organizationGroupDetails                   @getsentry/issues
 /src/sentry/api/endpoints/source_map_debug.py                @getsentry/issues
+/src/sentry/api/helpers/source_map_helper.py                  @getsentry/issues
+/src/sentry/api/endpoints/actionable_items.py                @getsentry/issues
+/src/sentry/api/helpers/actionable_items_helper.py                  @getsentry/issues
 ## End of Issues
-
-
-## Hybrid Cloud
-/src/sentry/silo/                     @getsentry/hybrid-cloud
-/src/sentry/services/hybrid_cloud/    @getsentry/hybrid-cloud
-## End of Hybrid Cloud

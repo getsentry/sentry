@@ -4,9 +4,9 @@ import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {fetchAnyReleaseExistence} from 'sentry/actionCreators/projects';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import DateTime from 'sentry/components/dateTime';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -23,7 +23,7 @@ import {didProjectOrEnvironmentChange} from './utils';
 
 const PLACEHOLDER_AND_EMPTY_HEIGHT = '160px';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   isProjectStabilized: boolean;
   location: Location;
   organization: Organization;
@@ -34,9 +34,9 @@ type Props = AsyncComponent['props'] & {
 type State = {
   releases: Release[] | null;
   hasOlderReleases?: boolean;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class ProjectLatestReleases extends AsyncComponent<Props, State> {
+class ProjectLatestReleases extends DeprecatedAsyncComponent<Props, State> {
   shouldComponentUpdate(nextProps: Props, nextState: State) {
     const {location, isProjectStabilized} = this.props;
     // TODO(project-detail): we temporarily removed refetching based on timeselector
@@ -62,7 +62,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     }
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {location, organization, projectSlug, isProjectStabilized} = this.props;
 
     if (!isProjectStabilized) {

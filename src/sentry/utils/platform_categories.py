@@ -1,7 +1,7 @@
 # Mirrors sentry/static/app/data/platformCategories.tsx
 # When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 POPULAR_PLATFORM_CATEGORIES = [
     "javascript",

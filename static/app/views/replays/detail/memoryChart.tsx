@@ -16,11 +16,11 @@ import {space} from 'sentry/styles/space';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
+import type {MemoryFrame} from 'sentry/utils/replays/types';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import type {MemorySpan} from 'sentry/views/replays/types';
 
 interface Props {
-  memorySpans: undefined | MemorySpan[];
+  memoryFrames: undefined | MemoryFrame[];
   setCurrentHoverTime: (time: undefined | number) => void;
   setCurrentTime: (time: number) => void;
   startTimestampMs: undefined | number;
@@ -31,18 +31,18 @@ interface MemoryChartProps extends Props {
 }
 
 const formatTimestamp = timestamp =>
-  getFormattedDate(timestamp * 1000, 'MMM D, YYYY hh:mm:ss A z', {local: false});
+  getFormattedDate(timestamp, 'MMM D, YYYY hh:mm:ss A z', {local: false});
 
 function MemoryChart({
   forwardedRef,
-  memorySpans,
+  memoryFrames,
   startTimestampMs = 0,
   setCurrentTime,
   setCurrentHoverTime,
 }: MemoryChartProps) {
   const theme = useTheme();
 
-  if (!memorySpans) {
+  if (!memoryFrames) {
     return (
       <MemoryChartWrapper>
         <Placeholder height="100%" />
@@ -50,9 +50,10 @@ function MemoryChart({
     );
   }
 
-  if (memorySpans.length <= 0) {
+  if (!memoryFrames.length) {
     return (
       <EmptyMessage
+        data-test-id="replay-details-memory-tab"
         title={t('No memory metrics found')}
         description={t(
           'Memory metrics are only captured within Chromium based browser sessions.'
@@ -96,9 +97,7 @@ function MemoryChart({
           </div>`,
           `<div class="tooltip-footer" style="border: none;">${'Relative Time'}:
             ${showPlayerTime(
-              moment(values[0].axisValue * 1000)
-                .toDate()
-                .toUTCString(),
+              moment(values[0].axisValue).toDate().toUTCString(),
               startTimestampMs
             )}
           </div>`,
@@ -140,7 +139,7 @@ function MemoryChart({
     // with the "area" under the line.
     onMouseOver: ({data}) => {
       if (data[0]) {
-        setCurrentHoverTime(data[0] * 1000 - startTimestampMs);
+        setCurrentHoverTime(data[0] - startTimestampMs);
       }
     },
     onMouseOut: () => {
@@ -148,7 +147,7 @@ function MemoryChart({
     },
     onClick: ({data}) => {
       if (data.value) {
-        setCurrentTime(data.value * 1000 - startTimestampMs);
+        setCurrentTime(data.value - startTimestampMs);
       }
     },
   };
@@ -156,9 +155,9 @@ function MemoryChart({
   const series: Series[] = [
     {
       seriesName: t('Used Heap Memory'),
-      data: memorySpans.map(span => ({
-        value: span.data.memory.usedJSHeapSize,
-        name: span.endTimestamp,
+      data: memoryFrames.map(frame => ({
+        value: frame.data.memory.usedJSHeapSize,
+        name: frame.endTimestampMs,
       })),
       stack: 'heap-memory',
       lineStyle: {
@@ -168,9 +167,9 @@ function MemoryChart({
     },
     {
       seriesName: t('Free Heap Memory'),
-      data: memorySpans.map(span => ({
-        value: span.data.memory.totalJSHeapSize - span.data.memory.usedJSHeapSize,
-        name: span.endTimestamp,
+      data: memoryFrames.map(frame => ({
+        value: frame.data.memory.totalJSHeapSize - frame.data.memory.usedJSHeapSize,
+        name: frame.endTimestampMs,
       })),
       stack: 'heap-memory',
       lineStyle: {
@@ -224,7 +223,6 @@ function MemoryChart({
 }
 
 const MemoryChartWrapper = styled(FluidHeight)`
-  margin-bottom: ${space(3)};
   border-radius: ${space(0.5)};
   border: 1px solid ${p => p.theme.border};
 `;
@@ -242,15 +240,14 @@ interface MemoryChartContainerProps extends Props {
 
 /**
  * This container is used to update echarts outside of React. `currentTime` is
- * the current time of the player -- if replay is currently playing, this will be
- * updated quite frequently causing the chart to constantly re-render. The
- * re-renders will conflict with mouse interactions (e.g. hovers and
- * tooltips).
+ * the current time of the player -- if replay is currently playing, this will
+ * be updated quite frequently causing the chart to constantly re-render. The
+ * re-renders will conflict with mouse interactions (e.g. hovers and tooltips).
  *
  * We need `MemoryChart` (which wraps an `<AreaChart>`) to re-render as
  * infrequently as possible, so we use React.memo and only pass in props that
  * are not frequently updated.
- * */
+ */
 function MemoryChartContainer({
   currentTime,
   currentHoverTime,

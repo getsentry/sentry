@@ -4,9 +4,5 @@ HIDDEN_PLUGINS = (
     "github",
     "slack",
     "jira",
-    "flowdock",
-    "irc",
-    "campfire",
-    "youtrack",
     "pagerduty",
 )

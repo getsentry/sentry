@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
 
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from sentry.db.models import Model
 from sentry.models import Group, GroupSubscription
@@ -39,9 +39,8 @@ class UserReportNotification(ProjectNotification):
         return result
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
-        # Explicitly typing to satisfy mypy.
         message = f"{self.group.qualified_short_id} - New Feedback from {self.report['name']}"
-        message = force_text(message)
+        message = force_str(message)
         return message
 
     def get_notification_title(

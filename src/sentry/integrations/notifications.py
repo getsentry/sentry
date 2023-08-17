@@ -7,7 +7,7 @@ from sentry.constants import ObjectStatus
 from sentry.models import ExternalActor, Organization, Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.identity import RpcIdentity, RpcIdentityProvider, identity_service
+from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -44,7 +44,7 @@ def _get_channel_and_integration_by_user(
         # recipients.
         return {}
 
-    identity_id_to_idp: Mapping[RpcIdentity.id, RpcIdentityProvider | None] = {
+    identity_id_to_idp = {
         identity.id: identity_service.get_provider(provider_id=identity.idp_id)
         for identity in identities
     }

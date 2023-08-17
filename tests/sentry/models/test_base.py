@@ -5,7 +5,7 @@ from pytest import raises
 
 from sentry.db.models.base import Model, ModelSiloLimit, get_model_if_available
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class AvailableOnTest(TestCase):
@@ -22,10 +22,6 @@ class AvailableOnTest(TestCase):
 
     @ModelSiloLimit(SiloMode.REGION)
     class RegionModel(TestModel):
-        pass
-
-    @ModelSiloLimit(SiloMode.CONTROL, read_only=SiloMode.REGION)
-    class ReadOnlyModel(TestModel):
         pass
 
     class ModelOnMonolith(TestModel):
@@ -63,24 +59,12 @@ class AvailableOnTest(TestCase):
         with raises(ModelSiloLimit.AvailabilityError):
             self.ControlModel.objects.filter(id=1).delete()
 
-    @override_settings(SILO_MODE=SiloMode.REGION)
-    def test_available_for_read_only(self):
-        assert list(self.ReadOnlyModel.objects.all()) == []
-        with raises(self.ReadOnlyModel.DoesNotExist):
-            self.ReadOnlyModel.objects.get(id=1)
-
-        with raises(ModelSiloLimit.AvailabilityError):
-            self.ReadOnlyModel.objects.create()
-        with raises(ModelSiloLimit.AvailabilityError):
-            self.ReadOnlyModel.objects.filter(id=1).delete()
-
     def test_get_model_if_available(self):
         test_models = {
             m.__name__: m
             for m in (
                 self.ControlModel,
                 self.RegionModel,
-                self.ReadOnlyModel,
                 self.ModelOnMonolith,
             )
         }
@@ -90,7 +74,6 @@ class AvailableOnTest(TestCase):
         with override_settings(SILO_MODE=SiloMode.REGION):
             assert get_model_if_available(app_config, "ControlModel") is None
             assert get_model_if_available(app_config, "RegionModel") is self.RegionModel
-            assert get_model_if_available(app_config, "ReadOnlyModel") is None
             assert get_model_if_available(app_config, "ModelOnMonolith") is self.ModelOnMonolith
 
     def test_get_model_with_nonexistent_name(self):

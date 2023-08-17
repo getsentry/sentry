@@ -39,7 +39,7 @@ def delete_group_list(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
     ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
 
-    eventstream_state = eventstream.start_delete_groups(project.id, group_ids)
+    eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
     transaction_id = uuid4().hex
 
     # We do not want to delete split hashes as they are necessary for keeping groups... split.

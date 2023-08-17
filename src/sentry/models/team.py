@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import warnings
 from collections import defaultdict
-from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Literal, Optional, Sequence, Tuple, Union, overload
 
 from django.conf import settings
 from django.db import IntegrityError, connections, models, router, transaction
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
 from sentry.constants import ObjectStatus
@@ -18,10 +20,9 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
 from sentry.models.actor import ACTOR_TYPES, Actor
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
 
@@ -31,18 +32,39 @@ if TYPE_CHECKING:
 
 
 class TeamManager(BaseManager):
+    @overload
     def get_for_user(
         self,
-        organization: "Organization",
-        user: Union["User", "RpcUser"],
+        organization: Organization,
+        user: User | RpcUser,
+        scope: str | None = None,
+    ) -> list[Team]:
+        ...
+
+    @overload
+    def get_for_user(
+        self,
+        organization: Organization,
+        user: User | RpcUser,
+        scope: str | None = None,
+        *,
+        with_projects: Literal[True],
+    ) -> list[tuple[Team, list[Project]]]:
+        ...
+
+    def get_for_user(
+        self,
+        organization: Organization,
+        user: Union[User, RpcUser],
         scope: Optional[str] = None,
         with_projects: bool = False,
-    ) -> Union[Sequence["Team"], Sequence[Tuple["Team", Sequence["Project"]]]]:
+    ) -> Union[Sequence[Team], Sequence[Tuple[Team, Sequence[Project]]]]:
         """
         Returns a list of all teams a user has some level of access to.
         """
         from sentry.auth.superuser import is_active_superuser
-        from sentry.models import OrganizationMember, OrganizationMemberTeam, Project, ProjectTeam
+        from sentry.models import OrganizationMember, OrganizationMemberTeam, Project
+        from sentry.models.projectteam import ProjectTeam
 
         if not user.is_authenticated:
             return []
@@ -85,7 +107,7 @@ class TeamManager(BaseManager):
             ).values_list("project_id", "team_id"):
                 teams_by_project[project_id].add(team_id)
 
-            projects_by_team = {t.id: [] for t in team_list}
+            projects_by_team: dict[int, list[Project]] = {t.id: [] for t in team_list}
             for project in project_list:
                 for team_id in teams_by_project[project.id]:
                     projects_by_team[team_id].append(project)
@@ -118,7 +140,7 @@ class TeamManager(BaseManager):
             except (Organization.DoesNotExist, Project.DoesNotExist):
                 pass
 
-        transaction.on_commit(_spawn_task)
+        transaction.on_commit(_spawn_task, router.db_for_write(Team))
 
 
 # TODO(dcramer): pull in enum library
@@ -195,7 +217,8 @@ class Team(Model, SnowflakeIdMixin):
         return self.organization.member_set.filter(
             organizationmemberteam__team=self,
             organizationmemberteam__is_active=True,
-            user__is_active=True,
+            user_id__isnull=False,
+            user_is_active=True,
         ).distinct()
 
     def has_access(self, user, access=None):
@@ -230,13 +253,13 @@ class Team(Model, SnowflakeIdMixin):
             OrganizationMember,
             OrganizationMemberTeam,
             Project,
-            ProjectTeam,
             ReleaseProject,
             ReleaseProjectEnvironment,
         )
+        from sentry.models.projectteam import ProjectTeam
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Team)):
                 self.update(organization=organization)
         except IntegrityError:
             # likely this means a team already exists, let's try to coerce to
@@ -271,13 +294,13 @@ class Team(Model, SnowflakeIdMixin):
         for member in old_memberships:
             try:
                 new_member = OrganizationMember.objects.get(
-                    user=member.user, organization=organization
+                    user_id=member.user_id, organization=organization
                 )
             except OrganizationMember.DoesNotExist:
                 continue
 
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
                     OrganizationMemberTeam.objects.create(
                         team=new_team, organizationmember=new_member
                     )
@@ -294,7 +317,7 @@ class Team(Model, SnowflakeIdMixin):
             # we use a cursor here to avoid automatic cascading of relations
             # in Django
             try:
-                with transaction.atomic(), in_test_psql_role_override("postgres"):
+                with outbox_context(transaction.atomic(router.db_for_write(Team)), flush=False):
                     cursor.execute("DELETE FROM sentry_team WHERE id = %s", [self.id])
                     self.outbox_for_update().save()
                     cursor.execute("DELETE FROM sentry_actor WHERE team_id = %s", [new_team.id])
@@ -302,7 +325,7 @@ class Team(Model, SnowflakeIdMixin):
                 cursor.close()
 
             # Change whatever new_team's actor is to the one from the old team.
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Team)):
                 Actor.objects.filter(id=self.actor_id).update(team_id=new_team.id)
                 new_team.actor_id = self.actor_id
                 new_team.save()
@@ -319,7 +342,7 @@ class Team(Model, SnowflakeIdMixin):
     def get_projects(self):
         from sentry.models import Project
 
-        return Project.objects.get_for_team_ids({self.id})
+        return Project.objects.get_for_team_ids([self.id])
 
     def outbox_for_update(self) -> RegionOutbox:
         return RegionOutbox(
@@ -333,7 +356,7 @@ class Team(Model, SnowflakeIdMixin):
         from sentry.models import ExternalActor
 
         # There is no foreign key relationship so we have to manually delete the ExternalActors
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic(router.db_for_write(ExternalActor))):
             ExternalActor.objects.filter(actor_id=self.actor_id).delete()
             self.outbox_for_update().save()
 

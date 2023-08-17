@@ -413,6 +413,7 @@ class ReleaseHealthBackend(Service):
         now: Optional[datetime] = None,
     ) -> Sequence[CrashFreeBreakdown]:
         """Get stats about crash free sessions and stats for the last 1, 2, 7, 14 and 30 days"""
+        raise NotImplementedError
 
     def get_changed_project_release_model_adoptions(
         self,

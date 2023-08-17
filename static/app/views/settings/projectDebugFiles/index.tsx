@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Checkbox from 'sentry/components/checkbox';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -13,7 +13,7 @@ import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -26,14 +26,14 @@ type Props = RouteComponentProps<{projectId: string}, {}> & {
   project: Project;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   debugFiles: DebugFile[] | null;
   project: Project;
   showDetails: boolean;
   builtinSymbolSources?: BuiltinSymbolSource[] | null;
 };
 
-class ProjectDebugSymbols extends AsyncView<Props, State> {
+class ProjectDebugSymbols extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
 
@@ -48,12 +48,12 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, params, location} = this.props;
     const {builtinSymbolSources} = this.state || {};
     const {query} = location.query;
 
-    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
         'debugFiles',
         `/projects/${organization.slug}/${params.projectId}/files/dsyms/`,

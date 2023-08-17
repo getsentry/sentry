@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import SimilarSpectrum from 'sentry/components/similarSpectrum';
 import {t} from 'sentry/locale';
 import type {SimilarItem} from 'sentry/stores/groupingStore';
@@ -25,7 +26,6 @@ type Props = {
   orgId: Organization['id'];
   pageLinks: string | null;
   project: Project;
-  v2: boolean;
 } & DefaultProps;
 
 function Empty() {
@@ -48,7 +48,6 @@ function List({
   filteredItems = [],
   pageLinks,
   onMerge,
-  v2,
 }: Props) {
   const [showAllItems, setShowAllItems] = useState(false);
 
@@ -67,14 +66,13 @@ function List({
       </Header>
 
       <Panel>
-        <Toolbar v2={v2} onMerge={onMerge} />
+        <Toolbar onMerge={onMerge} />
 
         <PanelBody>
           {itemsWithFiltered.map(item => (
             <Item
               key={item.issue.id}
               orgId={orgId}
-              v2={v2}
               groupId={groupId}
               project={project}
               {...item}

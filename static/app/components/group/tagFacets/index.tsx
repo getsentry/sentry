@@ -6,9 +6,8 @@ import keyBy from 'lodash/keyBy';
 import {GroupTagResponseItem} from 'sentry/actionCreators/group';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Organization, Project} from 'sentry/types';
@@ -181,14 +180,11 @@ function WrapperWithTitle({children}: {children: ReactNode}) {
     <SidebarSection.Wrap>
       <SidebarSection.Title>
         {t('All Tags')}
-        <TooltipWrapper>
-          <Tooltip
-            title={t('The tags associated with all events in this issue')}
-            disableForVisualTest
-          >
-            <IconQuestion size="sm" color="gray200" />
-          </Tooltip>
-        </TooltipWrapper>
+        <QuestionTooltip
+          size="xs"
+          position="top"
+          title={t('The tags associated with all events in this issue')}
+        />
       </SidebarSection.Title>
       {children}
     </SidebarSection.Wrap>
@@ -278,9 +274,4 @@ export const TagFacetsList = styled('ol')`
   list-style: none;
   padding: 0;
   margin: 0 0 ${space(2)};
-`;
-
-const TooltipWrapper = styled('span')`
-  vertical-align: middle;
-  padding-left: ${space(0.5)};
 `;

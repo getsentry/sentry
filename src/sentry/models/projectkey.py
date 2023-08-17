@@ -1,15 +1,18 @@
+from __future__ import annotations
+
 import re
+import secrets
+from typing import Any
 from urllib.parse import urlparse
-from uuid import uuid4
 
 import petname
 from django.conf import settings
 from django.db import ProgrammingError, models
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from bitfield import BitField
+from bitfield import TypedClassBitField
 from sentry import features, options
 from sentry.db.models import (
     BaseManager,
@@ -22,7 +25,7 @@ from sentry.db.models import (
 )
 from sentry.tasks.relay import schedule_invalidate_project_config
 
-_uuid4_re = re.compile(r"^[a-f0-9]{32}$")
+_token_re = re.compile(r"^[a-f0-9]{32}$")
 
 # TODO(dcramer): pull in enum library
 
@@ -52,15 +55,15 @@ class ProjectKey(Model):
     label = models.CharField(max_length=64, blank=True, null=True)
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
-    roles = BitField(
-        flags=(
-            # access to post events to the store endpoint
-            ("store", "Event API access"),
-            # read/write access to rest API
-            ("api", "Web API access"),
-        ),
-        default=["store"],
-    )
+
+    class roles(TypedClassBitField):
+        # access to post events to the store endpoint
+        store: bool
+        # read/write access to rest API
+        api: bool
+
+        bitfield_default = ["store"]
+
     status = BoundedPositiveIntegerField(
         default=0,
         choices=(
@@ -81,7 +84,7 @@ class ProjectKey(Model):
         cache_ttl=60 * 30,
     )
 
-    data = JSONField()
+    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 
     # support legacy project keys in API
     scopes = (
@@ -105,11 +108,11 @@ class ProjectKey(Model):
 
     @classmethod
     def generate_api_key(cls):
-        return uuid4().hex
+        return secrets.token_hex(nbytes=16)
 
     @classmethod
     def looks_like_api_key(cls, key):
-        return bool(_uuid4_re.match(key))
+        return bool(_token_re.match(key))
 
     @classmethod
     def from_dsn(cls, dsn):
@@ -150,7 +153,7 @@ class ProjectKey(Model):
         if not self.secret_key:
             self.secret_key = ProjectKey.generate_api_key()
         if not self.label:
-            self.label = petname.Generate(2, " ", letters=10).title()
+            self.label = petname.generate(2, " ", letters=10).title()
         super().save(*args, **kwargs)
 
     def get_dsn(self, domain=None, secure=True, public=False):
@@ -159,6 +162,7 @@ class ProjectKey(Model):
         if not public:
             key = f"{self.public_key}:{self.secret_key}"
         else:
+            assert self.public_key is not None
             key = self.public_key
 
         # If we do not have a scheme or domain/hostname, dsn is never valid

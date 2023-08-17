@@ -23,8 +23,6 @@ interface ShareIssueModalProps extends ModalRenderProps {
   onToggle: () => void;
   organization: Organization;
   projectSlug: string;
-  disabled?: boolean;
-  disabledReason?: string;
 }
 
 type UrlRef = React.ElementRef<typeof AutoSelectText>;

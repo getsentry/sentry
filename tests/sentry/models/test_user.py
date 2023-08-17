@@ -1,16 +1,15 @@
-import pytest
-from django.db import ProgrammingError, transaction
-
 from sentry.models import (
     Authenticator,
+    Organization,
     OrganizationMember,
     OrganizationMemberTeam,
+    Project,
     SavedSearch,
     User,
     UserEmail,
 )
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
@@ -22,18 +21,11 @@ class UserTest(TestCase, HybridCloudTestMixin):
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
-        member = OrganizationMember.objects.get(user=user, organization=org)
+        member = OrganizationMember.objects.get(user_id=user.id, organization=org)
         OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
 
-        organizations = user.get_orgs()
+        organizations = Organization.objects.get_for_user_ids({user.id})
         assert {_.id for _ in organizations} == {org.id}
-
-    def test_cannot_delete_with_queryset(self):
-        user = self.create_user()
-        assert User.objects.count() == 1
-        with pytest.raises(ProgrammingError), transaction.atomic():
-            User.objects.filter(id=user.id).delete()
-        assert User.objects.count() == 1
 
     def test_hybrid_cloud_deletion(self):
         user = self.create_user()
@@ -57,11 +49,11 @@ class UserTest(TestCase, HybridCloudTestMixin):
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
-        member = OrganizationMember.objects.get(user=user, organization=org)
+        member = OrganizationMember.objects.get(user_id=user.id, organization=org)
         OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
         project = self.create_project(teams=[team], name="name")
 
-        projects = user.get_projects()
+        projects = Project.objects.get_for_user_ids({user.id})
         assert {_.id for _ in projects} == {project.id}
 
     def test_get_full_name(self):
@@ -136,7 +128,7 @@ class UserMergeToTest(TestCase, HybridCloudTestMixin):
 
         assert OrganizationMember.objects.filter(user_id=from_user.id).exists()
 
-        member = OrganizationMember.objects.get(user=to_user)
+        member = OrganizationMember.objects.get(user_id=to_user.id)
 
         assert member.role == "owner"
         assert list(member.teams.all().order_by("pk")) == [team_1, team_2, team_3]

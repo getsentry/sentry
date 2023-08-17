@@ -7,7 +7,7 @@ import {QuickContextCommitRow} from 'sentry/components/discover/quickContextComm
 import {EventCause, StyledPanel} from 'sentry/components/events/eventCause';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
 import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {IconWrapper} from 'sentry/components/sidebarSection';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';

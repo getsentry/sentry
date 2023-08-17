@@ -1,4 +1,0 @@
-data :
-  github-login.base-domain :
-    "test" : 123
-  github-login.extended-permissions  : ""

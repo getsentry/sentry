@@ -13,7 +13,7 @@ from sentry.services.hybrid_cloud.organization import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:
-    from sentry.models import Team, User
+    from sentry.models import Actor, Team, User
 
 
 class ActorType(str, Enum):
@@ -21,7 +21,7 @@ class ActorType(str, Enum):
     TEAM = "Team"
 
 
-ActorTarget = Union["RpcActor", "User", "RpcUser", "Team", "RpcTeam"]
+ActorTarget = Union["Actor", "RpcActor", "User", "RpcUser", "Team", "RpcTeam"]
 
 
 class RpcActor(RpcModel):
@@ -37,7 +37,6 @@ class RpcActor(RpcModel):
     """Whether this actor is a User or Team"""
 
     slug: Optional[str] = None
-    is_superuser: bool = False
 
     def __post_init__(self) -> None:
         if (self.actor_type == ActorType.TEAM) == (self.slug is None):
@@ -72,10 +71,11 @@ class RpcActor(RpcModel):
                 grouped_by_type[ActorType.TEAM].append(obj.id)
 
         if grouped_by_type[ActorType.TEAM]:
-            actors = Actor.objects.filter(
-                type=ACTOR_TYPES["team"], team__in=grouped_by_type[ActorType.TEAM]
-            )
-            for actor in actors:
+            team_ids = grouped_by_type[ActorType.TEAM]
+            actors = Actor.objects.filter(type=ACTOR_TYPES["team"], team__in=team_ids)
+            actors_by_team_id = {actor.team_id: actor for actor in actors}
+            for team_id in team_ids:
+                actor = actors_by_team_id[team_id]
                 result.append(
                     RpcActor(
                         actor_id=actor.id,
@@ -87,19 +87,16 @@ class RpcActor(RpcModel):
 
         if grouped_by_type[ActorType.USER]:
             user_ids = grouped_by_type[ActorType.USER]
-            missing = set(user_ids)
             actors = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id__in=user_ids)
-            for actor in actors:
-                missing.remove(actor.user_id)
+            actors_by_user_id = {actor.user_id: actor for actor in actors}
+            for user_id in user_ids:
+                if user_id in actors_by_user_id:
+                    actor = actors_by_user_id[user_id]
+                else:
+                    actor = get_actor_for_user(user_id)
                 result.append(
                     RpcActor(actor_id=actor.id, id=actor.user_id, actor_type=ActorType.USER)
                 )
-            if len(missing):
-                for user_id in missing:
-                    actor = get_actor_for_user(user_id)
-                    result.append(
-                        RpcActor(actor_id=actor.id, id=actor.user_id, actor_type=ActorType.USER)
-                    )
         return result
 
     @classmethod
@@ -108,7 +105,7 @@ class RpcActor(RpcModel):
         fetch_actor: whether to make an extra query or call to fetch the actor id
                      Without the actor_id the RpcActor acts as a tuple of id and type.
         """
-        from sentry.models import Team, User
+        from sentry.models import Actor, Team, User
 
         if isinstance(obj, cls):
             return obj
@@ -120,6 +117,8 @@ class RpcActor(RpcModel):
             return cls.from_rpc_user(obj, fetch_actor=fetch_actor)
         if isinstance(obj, RpcTeam):
             return cls.from_rpc_team(obj)
+        if isinstance(obj, Actor):
+            return cls.from_orm_actor(obj)
         raise TypeError(f"Cannot build RpcActor from {type(obj)}")
 
     @classmethod
@@ -131,7 +130,17 @@ class RpcActor(RpcModel):
             id=user.id,
             actor_id=actor_id,
             actor_type=ActorType.USER,
-            is_superuser=user.is_superuser,
+        )
+
+    @classmethod
+    def from_orm_actor(cls, actor: "Actor") -> "RpcActor":
+        actor_type = ActorType.USER if actor.type == ACTOR_TYPES["user"] else ActorType.TEAM
+        model_id = actor.user_id if actor_type == ActorType.USER else actor.team_id
+
+        return cls(
+            id=model_id,
+            actor_id=actor.id,
+            actor_type=actor_type,
         )
 
     @classmethod
@@ -143,7 +152,6 @@ class RpcActor(RpcModel):
             id=user.id,
             actor_id=actor_id,
             actor_type=ActorType.USER,
-            is_superuser=user.is_superuser,
         )
 
     @classmethod

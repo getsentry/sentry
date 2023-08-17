@@ -73,7 +73,7 @@ const createSelectOptions = (
 
     if (
       node.id === REAPPEARED_EVENT_CONDITION &&
-      organization.features.includes('escalating-issues-ui')
+      organization.features.includes('escalating-issues')
     ) {
       const label = t('The issue changes state from archived to escalating');
       return {

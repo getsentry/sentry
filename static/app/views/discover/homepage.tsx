@@ -2,11 +2,10 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {
   getDatetimeFromState,
-  normalizeDateTimeParams,
   normalizeDateTimeString,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {getPageFilterStorage} from 'sentry/components/organizations/pageFilters/persistence';
@@ -28,12 +27,12 @@ type Props = {
   setSavedQuery: (savedQuery: SavedQuery) => void;
 };
 
-type HomepageQueryState = AsyncComponent['state'] & {
+type HomepageQueryState = DeprecatedAsyncComponent['state'] & {
   savedQuery?: SavedQuery | null;
   starfishResult?: null;
 };
 
-class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
+class HomepageQueryAPI extends DeprecatedAsyncComponent<Props, HomepageQueryState> {
   shouldReload = true;
 
   componentDidUpdate(_, prevState) {
@@ -82,26 +81,14 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
     }
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, selection} = this.props;
-    const {projects, environments, datetime} = selection;
-    const commonQuery = {
-      environment: environments,
-      project: projects.map(proj => String(proj)),
-    };
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
+    const {organization} = this.props;
 
-    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
+    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [];
     if (organization.features.includes('discover-query')) {
       endpoints.push([
         'savedQuery',
         `/organizations/${organization.slug}/discover/homepage/`,
-      ]);
-    }
-    if (organization.features.includes('starfish-test-endpoint')) {
-      endpoints.push([
-        'starfishResult',
-        `/organizations/${organization.slug}/events-starfish/`,
-        {query: {...commonQuery, ...normalizeDateTimeParams(datetime)}},
       ]);
     }
     return endpoints;

@@ -19,7 +19,7 @@ from .project_stacktrace_link import get_code_mapping_configs
 MAX_CODE_MAPPINGS_USED = 3
 
 
-class StacktraceLinksSerializer(serializers.Serializer):  # type: ignore
+class StacktraceLinksSerializer(serializers.Serializer):
     file = serializers.ListField(child=serializers.CharField())
 
     # falls back to the default branch
@@ -27,7 +27,7 @@ class StacktraceLinksSerializer(serializers.Serializer):  # type: ignore
 
 
 @region_silo_endpoint
-class ProjectStacktraceLinksEndpoint(ProjectEndpoint):  # type: ignore
+class ProjectStacktraceLinksEndpoint(ProjectEndpoint):
     """
     Returns valid links for source code providers so that
     users can go from files in the stack trace to the
@@ -138,9 +138,7 @@ def get_installation(config: RepositoryProjectPathConfig) -> IntegrationInstalla
     integration = integration_service.get_integration(
         organization_integration_id=config.organization_integration_id
     )
-    return integration_service.get_installation(
-        integration=integration, organization_id=config.project.organization_id
-    )
+    return integration.get_installation(organization_id=config.project.organization_id)
 
 
 def check_file(

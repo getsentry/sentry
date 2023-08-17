@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -26,10 +26,12 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
 from sentry.api.serializers.models.role import (
     OrganizationRoleSerializer,
-    RoleSerializerResponse,
+    OrganizationRoleSerializerResponse,
     TeamRoleSerializer,
+    TeamRoleSerializerResponse,
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
+from sentry.api.serializers.types import OrganizationSerializerResponse
 from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.app import env
 from sentry.auth.access import Access
@@ -40,6 +42,7 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
+    GITHUB_COMMENT_BOT_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
@@ -51,6 +54,8 @@ from sentry.constants import (
     SENSITIVE_FIELDS_DEFAULT,
     ObjectStatus,
 )
+from sentry.dynamic_sampling.tasks.common import get_organization_volume
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
@@ -93,7 +98,7 @@ ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
 }
 
 
-class BaseOrganizationSerializer(serializers.Serializer):  # type: ignore
+class BaseOrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
     slug = serializers.RegexField(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$", max_length=50)
 
@@ -122,7 +127,7 @@ class BaseOrganizationSerializer(serializers.Serializer):  # type: ignore
         return value
 
 
-class TrustedRelaySerializer(serializers.Serializer):  # type: ignore
+class TrustedRelaySerializer(serializers.Serializer):
     internal_external = (
         ("name", "name"),
         ("description", "description"),
@@ -170,31 +175,6 @@ class TrustedRelaySerializer(serializers.Serializer):  # type: ignore
         return {"public_key": public_key, "name": key_name, "description": description}
 
 
-class _Status(TypedDict):
-    id: str
-    name: str
-
-
-class _Links(TypedDict):
-    organizationUrl: str
-    regionUrl: str
-
-
-class OrganizationSerializerResponse(TypedDict):
-    id: str
-    slug: str
-    status: _Status
-    name: str
-    dateCreated: datetime
-    isEarlyAdopter: bool
-    require2FA: bool
-    requireEmailVerification: bool
-    avatar: Any  # TODO replace with Avatar
-    features: Any  # TODO
-    links: _Links
-    hasAuthProvider: bool
-
-
 class ControlSiloOrganizationSerializerResponse(TypedDict):
     # The control silo will not, cannot, should not contain most organization data.
     # Therefore, we need a specialized, limited via of that data.
@@ -203,7 +183,7 @@ class ControlSiloOrganizationSerializerResponse(TypedDict):
     name: str
 
 
-class ControlSiloOrganizationSerializer(Serializer):  # type: ignore
+class ControlSiloOrganizationSerializer(Serializer):
     def serialize(
         self, obj: RpcOrganizationSummary, attrs: Mapping[str, Any], user: User
     ) -> ControlSiloOrganizationSerializerResponse:
@@ -215,7 +195,7 @@ class ControlSiloOrganizationSerializer(Serializer):  # type: ignore
 
 
 @register(Organization)
-class OrganizationSerializer(Serializer):  # type: ignore
+class OrganizationSerializer(Serializer):
     def get_attrs(
         self, item_list: Sequence[Organization], user: User
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
@@ -374,7 +354,7 @@ class OnboardingTasksSerializerResponse(TypedDict):
 
 
 @register(OrganizationOnboardingTask)
-class OnboardingTasksSerializer(Serializer):  # type: ignore
+class OnboardingTasksSerializer(Serializer):
     def get_attrs(
         self, item_list: OrganizationOnboardingTask, user: User, **kwargs: Any
     ) -> MutableMapping[OrganizationOnboardingTask, _OnboardingTasksAttrs]:
@@ -412,8 +392,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     isDefault: bool
     defaultRole: bool
     availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
-    orgRoleList: List[RoleSerializerResponse]
-    teamRoleList: List[RoleSerializerResponse]
+    orgRoleList: List[OrganizationRoleSerializerResponse]
+    teamRoleList: List[TeamRoleSerializerResponse]
     openMembership: bool
     allowSharedIssues: bool
     enhancedPrivacy: bool
@@ -436,6 +416,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     onboardingTasks: OnboardingTasksSerializerResponse
     codecovAccess: bool
     aiSuggestedSolution: bool
+    githubPRBot: bool
+    githubOpenPRBot: bool
     isDynamicallySampled: bool
 
 
@@ -541,6 +523,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "aiSuggestedSolution": bool(
                     obj.get_option("sentry:ai_suggested_solution", AI_SUGGESTED_SOLUTION)
                 ),
+                "githubPRBot": bool(
+                    obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)
+                ),
+                "githubOpenPRBot": bool(
+                    obj.get_option("sentry:github_open_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)
+                ),
             }
         )
 
@@ -556,8 +544,18 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             team__organization=obj
         ).count()
         context["onboardingTasks"] = serialize(tasks_to_serialize, user)
-        sample_rate = quotas.get_blended_sample_rate(organization_id=obj.id)
-        context["isDynamicallySampled"] = sample_rate is not None and sample_rate < 1.0
+        sample_rate = quotas.get_blended_sample_rate(organization_id=obj.id)  # type:ignore
+        context["isDynamicallySampled"] = (
+            features.has("organizations:dynamic-sampling", obj)
+            and sample_rate is not None
+            and sample_rate < 1.0
+        )
+        org_volume = get_organization_volume(obj.id, timedelta(hours=24))
+        if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
+            context["effectiveSampleRate"] = org_volume.indexed / org_volume.total
+        desired_sample_rate: Optional[float] = get_sliding_window_org_sample_rate(obj.id)
+        if desired_sample_rate is not None:
+            context["desiredSampleRate"] = desired_sample_rate
 
         return context
 

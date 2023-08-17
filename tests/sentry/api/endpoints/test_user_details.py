@@ -7,7 +7,7 @@ from sentry.models import (
     UserPermission,
     UserRole,
 )
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
@@ -22,7 +22,7 @@ class UserDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserDetailsGetTest(UserDetailsTest):
     # TODO(dcramer): theres currently no way to look up other users
     def test_look_up_other_user(self):
@@ -34,6 +34,7 @@ class UserDetailsGetTest(UserDetailsTest):
 
         assert resp.data["id"] == str(self.user.id)
         assert resp.data["options"]["theme"] == "light"
+        assert resp.data["options"]["defaultIssueEvent"] == "recommended"
         assert resp.data["options"]["timezone"] == "UTC"
         assert resp.data["options"]["language"] == "en"
         assert resp.data["options"]["stacktraceOrder"] == -1
@@ -67,7 +68,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserDetailsUpdateTest(UserDetailsTest):
     method = "put"
 
@@ -77,6 +78,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
             name="hello world",
             options={
                 "theme": "system",
+                "defaultIssueEvent": "latest",
                 "timezone": "UTC",
                 "stacktraceOrder": "2",
                 "language": "fr",
@@ -93,6 +95,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert user.email == "a@example.com"
         assert user.username == "a@example.com"
         assert UserOption.objects.get_value(user=self.user, key="theme") == "system"
+        assert UserOption.objects.get_value(user=self.user, key="default_issue_event") == "latest"
         assert UserOption.objects.get_value(user=self.user, key="timezone") == "UTC"
         assert UserOption.objects.get_value(user=self.user, key="stacktrace_order") == "2"
         assert UserOption.objects.get_value(user=self.user, key="language") == "fr"
@@ -147,7 +150,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert user.username == "new@example.com"
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserDetailsSuperuserUpdateTest(UserDetailsTest):
     method = "put"
 

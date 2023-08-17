@@ -7,12 +7,14 @@ import FileChange from 'sentry/components/fileChange';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tn} from 'sentry/locale';
 import {CommitFile, Organization, Project, Repository} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {getFilesByRepository, getQuery, getReposToRender} from '../utils';
 
@@ -27,13 +29,13 @@ type Props = RouteComponentProps<{release: string}, {}> & {
   release: string;
   releaseRepos: Repository[];
   activeReleaseRepo?: Repository;
-} & AsyncView['props'];
+} & DeprecatedAsyncView['props'];
 
 type State = {
   fileList: CommitFile[];
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class FilesChanged extends AsyncView<Props, State> {
+class FilesChanged extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     const {params, orgSlug, projectSlug} = this.props;
 
@@ -60,7 +62,7 @@ class FilesChanged extends AsyncView<Props, State> {
     super.componentDidUpdate(prevProps, prevState);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {activeReleaseRepo: activeRepository, location, release, orgSlug} = this.props;
 
     const query = getQuery({location, activeRepository});

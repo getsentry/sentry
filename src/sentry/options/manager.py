@@ -45,6 +45,38 @@ class UpdateChannel(Enum):
         return [(i.name, i.value) for i in cls]
 
 
+class NotWritableReason(Enum):
+    """
+    Represent the reason that prevents us from attempting an update
+    of an option on a specific UpdateChannel.
+    """
+
+    # The option is registered with the FLAG_PRIORITIZE_DISK flag and it is
+    # also stored on disk as part of sentry settings. Nobody can update this.
+    OPTION_ON_DISK = "option_on_disk"
+    # The option definition is read only. It cannot be updated by anybody.
+    READONLY = "readonly"
+    # The option cannot be updated by a specific channel because it is missing
+    # the required flag.
+    CHANNEL_NOT_ALLOWED = "channel_not_allowed"
+    # The option could be updated but it drifted and the channel we are trying
+    # to update with cannot overwrite.
+    DRIFTED = "drifted"
+
+
+# In case there is drift between the value on the external source the
+# Options Automator maintains, the Automator is not allowed to overwrite
+# the drift in several cases. This map contains the forbidden transitions
+# of the last_updated_by column on the storage.
+FORBIDDEN_TRANSITIONS = {
+    UpdateChannel.UNKNOWN: {UpdateChannel.AUTOMATOR},
+    UpdateChannel.APPLICATION: {UpdateChannel.AUTOMATOR},
+    UpdateChannel.CLI: {UpdateChannel.AUTOMATOR},
+    UpdateChannel.KILLSWITCH: {UpdateChannel.AUTOMATOR},
+    UpdateChannel.ADMIN: {UpdateChannel.AUTOMATOR},
+}
+
+
 class UnknownOption(KeyError):
     pass
 
@@ -72,14 +104,41 @@ FLAG_ADMIN_MODIFIABLE = 1 << 8
 FLAG_RATE = 1 << 9
 # Values that are bools
 FLAG_BOOL = 1 << 10
+# Value can be dynamically updated by automator
+FLAG_AUTOMATOR_MODIFIABLE = 1 << 11
 
 FLAG_MODIFIABLE_RATE = FLAG_ADMIN_MODIFIABLE | FLAG_RATE
 FLAG_MODIFIABLE_BOOL = FLAG_ADMIN_MODIFIABLE | FLAG_BOOL
+
+# These flags combinations prevent the `register` method from succeeding.
+INVALID_COMBINATIONS = {
+    FLAG_ADMIN_MODIFIABLE | FLAG_NOSTORE,
+    FLAG_ADMIN_MODIFIABLE | FLAG_IMMUTABLE,
+    FLAG_ADMIN_MODIFIABLE | FLAG_CREDENTIAL,
+    FLAG_AUTOMATOR_MODIFIABLE | FLAG_NOSTORE,
+    FLAG_AUTOMATOR_MODIFIABLE | FLAG_IMMUTABLE,
+    FLAG_AUTOMATOR_MODIFIABLE | FLAG_CREDENTIAL,
+    # An option being required does not strictly mean that it cannot be updated by
+    # the Automator. The issue is on why they exist. Most of them are set by the
+    # application itself during the first initialization.
+    # That flow cannot, like anything else in the application, cannot update the
+    # configMap
+    FLAG_AUTOMATOR_MODIFIABLE | FLAG_REQUIRED,
+}
 
 # How long will a cache key exist in local memory before being evicted
 DEFAULT_KEY_TTL = 10
 # How long will a cache key exist in local memory *after ttl* while the backing store is erroring
 DEFAULT_KEY_GRACE = 60
+
+# Some update channel can only update options that have a specific flag.
+# This dictionary contains the mapping between update channels and required
+# flag.
+# If a channel is not in the dictionary it does not have restrictions.
+WRITE_REQUIRED_FLAGS = {
+    UpdateChannel.ADMIN: FLAG_ADMIN_MODIFIABLE,
+    UpdateChannel.AUTOMATOR: FLAG_AUTOMATOR_MODIFIABLE,
+}
 
 
 def _make_cache_key(key):
@@ -113,20 +172,32 @@ class OptionsManager:
         Set the value for an option. If the cache is unavailable the action will
         still succeed.
 
+        It also checks for drift and fails if the option value has drifted and the
+        `channel` is not authorized to overwrite.
+
         >>> from sentry import options
         >>> options.set('option', 'value')
         """
-        opt = self.lookup_key(key)
+        not_writable_reason = self.can_update(key, value, channel)
 
-        # If an option isn't able to exist in the store, we can't set it at runtime
-        assert not (opt.flags & FLAG_NOSTORE), "%r cannot be changed at runtime" % key
-        # Enforce immutability on key
-        assert not (opt.flags & FLAG_IMMUTABLE), "%r cannot be changed at runtime" % key
+        # If an option isn't able to exist in the store or is immutable, we can't set it at runtime
+        assert not_writable_reason not in [
+            NotWritableReason.READONLY,
+            NotWritableReason.CHANNEL_NOT_ALLOWED,
+        ], (
+            "%r cannot be changed at runtime" % key
+        )
         # Enforce immutability if value is already set on disk
-        assert not (opt.flags & FLAG_PRIORITIZE_DISK and settings.SENTRY_OPTIONS.get(key)), (
+        assert not_writable_reason != NotWritableReason.OPTION_ON_DISK, (
             "%r cannot be changed at runtime because it is configured on disk" % key
         )
+        # Enforce that the option has not been changed by a different UpdateChannel
+        # that we cannot overwrite.
+        assert (
+            not_writable_reason != NotWritableReason.DRIFTED
+        ), f"Option {key} has drifted. Cannot overwrite"
 
+        opt = self.lookup_key(key)
         if coerce:
             value = opt.type(value)
         elif not opt.type.test(value):
@@ -178,7 +249,7 @@ class OptionsManager:
         """
         opt = self.lookup_key(key)
 
-        if not (opt.flags & FLAG_NOSTORE):
+        if not opt.has_any_flag({FLAG_NOSTORE}):
             result = self.store.get(opt, silent=True)
             if result is not None:
                 return True
@@ -201,7 +272,7 @@ class OptionsManager:
         # First check if the option should exist on disk, and if it actually
         # has a value set, let's use that one instead without even attempting
         # to fetch from network storage.
-        if opt.flags & FLAG_PRIORITIZE_DISK:
+        if opt.has_any_flag({FLAG_PRIORITIZE_DISK}):
             try:
                 result = settings.SENTRY_OPTIONS[key]
             except KeyError:
@@ -222,7 +293,7 @@ class OptionsManager:
 
         # Some values we don't want to allow them to be configured through
         # config files and should only exist in the datastore
-        if opt.flags & FLAG_STOREONLY:
+        if opt.has_any_flag({FLAG_STOREONLY}):
             optval = opt.default()
         else:
             try:
@@ -273,6 +344,16 @@ class OptionsManager:
 
         if len(key) > 128:
             raise ValueError("Option key has max length of 128 characters")
+
+        # Validate flags combination
+        for invalid in INVALID_COMBINATIONS:
+            # the flags field has all the flags of the invalid combination
+            # activated.
+            # Cannot simply check whether flags & invalid > 0 as all the flags
+            # of the invalid combination must be active for this to not be
+            # valid.
+            if flags & invalid == invalid:
+                raise ValueError(f"Invalid option flags combination: {invalid}")
 
         # If our default is a callable, execute it to
         # see what value is returns, so we can use that to derive the type
@@ -369,3 +450,50 @@ class OptionsManager:
         # be applied evaluating all the possible drift cases.
         opt = self.lookup_key(key)
         return self.store.get_last_update_channel(opt)
+
+    def can_update(self, key: str, value, channel: UpdateChannel) -> Optional[NotWritableReason]:
+        """
+        Return the reason the provided channel cannot update the option
+        to the provided value or None if there is no reason and the update
+        is allowed.
+        """
+
+        required_flag = WRITE_REQUIRED_FLAGS.get(channel)
+        opt = self.lookup_key(key)
+        if opt.has_any_flag({FLAG_NOSTORE, FLAG_IMMUTABLE}):
+            return NotWritableReason.READONLY
+        if opt.has_any_flag({FLAG_PRIORITIZE_DISK}) and settings.SENTRY_OPTIONS.get(key):
+            # FLAG_PRIORITIZE_DISK does not prevent the option to be updated
+            # in any circumstance. If the option is not on disk (which
+            # means not in settings.SENTRY_OPTION), it can be updated.
+            return NotWritableReason.OPTION_ON_DISK
+
+        if required_flag and not opt.has_any_flag({required_flag}):
+            return NotWritableReason.CHANNEL_NOT_ALLOWED
+
+        if not self.isset(key):
+            # If the option is not readonly and it is not stored in the
+            # option store it means we are relying on default. So we can
+            # update.
+            return None
+
+        stored_value = self.get(key)
+        if stored_value == value:
+            # In theory options could have any type so this equality may
+            # not be correct.
+            # In practice, this code is added to support the move towards
+            # configMap backed options, which will be restricted to types
+            # that allow for this equality: basic types, sets, list, maps.
+            # So even if this equality fails, in the worst case scenario
+            # we would not allow the update if there is a mismatch between
+            # the channels.
+            return None
+
+        last_updater = self.get_last_update_channel(key)
+        if last_updater is None:
+            return None
+        forbidden_states = FORBIDDEN_TRANSITIONS.get(last_updater)
+        if forbidden_states and channel in forbidden_states:
+            return NotWritableReason.DRIFTED
+
+        return None

@@ -5,7 +5,9 @@ import ApiForm from 'sentry/components/forms/apiForm';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import FormField from 'sentry/components/forms/formField';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {API_ACCESS_SCOPES, DEFAULT_API_ACCESS_SCOPES} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -27,9 +29,9 @@ export default class ApiNewToken extends Component {
 
   render() {
     return (
-      <SentryDocumentTitle title={t('Create API Token')}>
+      <SentryDocumentTitle title={t('Create User Auth Token')}>
         <div>
-          <SettingsPageHeader title={t('Create New Token')} />
+          <SettingsPageHeader title={t('Create New User Auth Token')} />
           <TextBlock>
             {t(
               "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
@@ -44,7 +46,7 @@ export default class ApiNewToken extends Component {
             )}
           </TextBlock>
           <Panel>
-            <PanelHeader>{t('Create New Token')}</PanelHeader>
+            <PanelHeader>{t('Create New User Auth Token')}</PanelHeader>
             <ApiForm
               apiMethod="POST"
               apiEndpoint="/api-tokens/"

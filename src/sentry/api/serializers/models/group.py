@@ -4,7 +4,7 @@ import itertools
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import (
     Any,
     Callable,
@@ -21,12 +21,11 @@ from typing import (
     Union,
 )
 
-import pytz
 import sentry_sdk
 from django.conf import settings
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import analytics, tagstore
+from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -55,6 +54,7 @@ from sentry.models import (
 )
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.notifications.helpers import (
     collect_groups_by_project,
     get_groups_for_query,
@@ -66,10 +66,12 @@ from sentry.notifications.types import NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
-from sentry.services.hybrid_cloud.auth import AuthenticatedToken, auth_service
+from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
@@ -77,7 +79,7 @@ from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
-from sentry.utils.snuba import Dataset, aliased_query, raw_query
+from sentry.utils.snuba import aliased_query, raw_query
 
 # TODO(jess): remove when snuba is primary backend
 snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
@@ -170,8 +172,8 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
 
 class SeenStats(TypedDict):
     times_seen: int
-    first_seen: datetime
-    last_seen: datetime
+    first_seen: datetime | None
+    last_seen: datetime | None
     user_count: int
 
 
@@ -237,12 +239,18 @@ class GroupSerializerBase(Serializer, ABC):
 
         release_resolutions, commit_resolutions = self._resolve_resolutions(item_list, user)
 
-        user_ids = {r[-1] for r in release_resolutions.values()}
-        user_ids.update(r.actor_id for r in ignore_items.values())
+        user_ids = {
+            user_id
+            for user_id in itertools.chain(
+                (r[-1] for r in release_resolutions.values()),
+                (r.actor_id for r in ignore_items.values()),
+            )
+            if user_id is not None
+        }
         if user_ids:
             serialized_users = user_service.serialize_many(
                 filter={"user_ids": user_ids, "is_active": True},
-                as_user=user,
+                as_user=serialize_generic_user(user),
             )
             actors = {id: u for id, u in zip(user_ids, serialized_users)}
         else:
@@ -422,18 +430,9 @@ class GroupSerializerBase(Serializer, ABC):
             else:
                 status = GroupStatus.UNRESOLVED
         if status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
+            # When an issue is over the auto-resolve age but the task has not yet run
             status = GroupStatus.RESOLVED
             status_details["autoResolved"] = True
-            analytics.record(
-                "issue.resolved",
-                default_user_id=obj.project.organization.get_default_owner().id,
-                project_id=obj.project.id,
-                organization_id=obj.project.organization_id,
-                group_id=obj.id,
-                resolution_type="automatic",
-                issue_type=obj.issue_type.slug,
-                issue_category=obj.issue_category.name.lower(),
-            )
         if status == GroupStatus.RESOLVED:
             status_label = "resolved"
             if attrs["resolution_type"] == "release":
@@ -472,7 +471,7 @@ class GroupSerializerBase(Serializer, ABC):
             return None
 
         if not item_list:
-            return
+            return None
 
         # partition the item_list by type
         error_issues = [group for group in item_list if GroupCategory.ERROR == group.issue_category]
@@ -553,11 +552,11 @@ class GroupSerializerBase(Serializer, ABC):
                     last_seen = item["last_seen"]
 
         if last_seen is None:
-            return datetime.now(pytz.utc) - timedelta(days=30)
+            return datetime.now(timezone.utc) - timedelta(days=30)
 
         return max(
-            min(last_seen - timedelta(days=1), datetime.now(pytz.utc) - timedelta(days=14)),
-            datetime.now(pytz.utc) - timedelta(days=90),
+            min(last_seen - timedelta(days=1), datetime.now(timezone.utc) - timedelta(days=14)),
+            datetime.now(timezone.utc) - timedelta(days=90),
         )
 
     @staticmethod
@@ -656,18 +655,12 @@ class GroupSerializerBase(Serializer, ABC):
         integrations = integration_service.get_integrations(organization_id=org_id)
         for integration in integrations:
             if not (
-                integration_service.has_feature(
-                    provider=integration.provider, feature=IntegrationFeatures.ISSUE_BASIC
-                )
-                or integration_service.has_feature(
-                    provider=integration.provider, feature=IntegrationFeatures.ISSUE_SYNC
-                )
+                integration.has_feature(feature=IntegrationFeatures.ISSUE_BASIC)
+                or integration.has_feature(feature=IntegrationFeatures.ISSUE_SYNC)
             ):
                 continue
 
-            install = integration_service.get_installation(
-                integration=integration, organization_id=org_id
-            )
+            install = integration.get_installation(organization_id=org_id)
             local_annotations_by_group_id = (
                 safe_execute(
                     install.get_annotations_for_group_list,
@@ -720,10 +713,16 @@ class GroupSerializerBase(Serializer, ABC):
             and is_api_token_auth(request.auth)
         ):
 
-            if auth_service.token_has_org_access(
-                token=AuthenticatedToken.from_token(request.auth), organization_id=organization_id
-            ):
+            if AuthenticatedToken.from_token(request.auth).token_has_org_access(organization_id):
                 return True
+
+        if (
+            request
+            and user.is_anonymous
+            and hasattr(request, "auth")
+            and is_org_auth_token_auth(request.auth)
+        ):
+            return request.auth.organization_id == organization_id
 
         return (
             user.is_authenticated
@@ -761,7 +760,7 @@ class GroupSerializer(GroupSerializerBase):
         ) -> Mapping[int, int]:
             pass
 
-    def __init__(self, environment_func: Callable[[], Environment] = None):
+    def __init__(self, environment_func: Optional[Callable[[], Environment]] = None):
         GroupSerializerBase.__init__(self)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 

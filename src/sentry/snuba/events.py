@@ -9,7 +9,7 @@ class Column:
     event_name: Optional[str]
     transaction_name: Optional[str]
     discover_name: Optional[str]
-    alias: Optional[str]
+    alias: str
     issue_platform_name: Optional[str] = None
 
 
@@ -725,5 +725,33 @@ class Columns(Enum):
         event_name=None,
         transaction_name="profile_id",
         discover_name="profile_id",
+        issue_platform_name="profile_id",
         alias="profile.id",
+    )
+
+    REPLAY_ID = Column(
+        group_name=None,
+        event_name="replay_id",
+        transaction_name=None,
+        discover_name=None,
+        issue_platform_name="replay_id",
+        alias="replayId",
+    )
+
+    TRACE_SAMPLED = Column(
+        group_name=None,
+        event_name="trace_sampled",
+        transaction_name=None,
+        discover_name=None,
+        issue_platform_name=None,
+        alias="trace.sampled",
+    )
+
+    NUM_PROCESSING_ERRORS = Column(
+        group_name=None,
+        event_name="num_processing_errors",
+        transaction_name=None,
+        discover_name=None,
+        issue_platform_name=None,
+        alias="num_processing_errors",
     )

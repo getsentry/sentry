@@ -33,7 +33,7 @@ import {makeDocKeyMap, splitProjectsByProfilingSupport} from './util';
 
 export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
-  const isActive = currentPanel === SidebarPanelKey.ProfilingOnboarding;
+  const isActive = currentPanel === SidebarPanelKey.PROFILING_ONBOARDING;
   const organization = useOrganization();
   const hasProjectAccess = organization.access.includes('project:read');
 

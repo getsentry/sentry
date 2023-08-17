@@ -1,13 +1,16 @@
+from __future__ import annotations
+
+from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import responses
 
 from sentry.integrations.vsts import VstsIntegrationProvider
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils.cases import IntegrationTestCase
 
 
 class VstsIntegrationTestCase(IntegrationTestCase):
-    provider = VstsIntegrationProvider
+    provider = VstsIntegrationProvider()
 
     def setUp(self):
         super().setUp()
@@ -128,22 +131,44 @@ class VstsIntegrationTestCase(IntegrationTestCase):
             },
         )
 
-        responses.add(
-            responses.GET,
-            "https://{}.visualstudio.com/{}/_apis/wit/workitemtypes/{}/states".format(
-                self.vsts_account_name.lower(), self.project_a["name"], "Bug"
-            ),
-            json={
-                "value": [
-                    {"name": "resolve_status"},
-                    {"name": "resolve_when"},
-                    {"name": "regression_status"},
-                    {"name": "sync_comments"},
-                    {"name": "sync_forward_assignment"},
-                    {"name": "sync_reverse_assignment"},
-                ]
-            },
-        )
+        for project in [self.project_a, self.project_b]:
+            responses.add(
+                responses.GET,
+                "https://{}.visualstudio.com/{}/_apis/wit/workitemtypes/{}/states".format(
+                    self.vsts_account_name.lower(), project["id"], "Bug"
+                ),
+                json={
+                    "count": 6,
+                    "value": [
+                        {"name": "resolve_status"},
+                        {"name": "resolve_when"},
+                        {"name": "regression_status"},
+                        {"name": "sync_comments"},
+                        {"name": "sync_forward_assignment"},
+                        {"name": "sync_reverse_assignment"},
+                    ],
+                },
+            )
+            responses.add(
+                responses.GET,
+                "https://{}.visualstudio.com/{}/_apis/wit/workitemtypes/{}/states".format(
+                    self.vsts_account_name.lower(), project["id"], "Issue"
+                ),
+                json={
+                    "count": 0,
+                    "value": [],
+                },
+            )
+            responses.add(
+                responses.GET,
+                "https://{}.visualstudio.com/{}/_apis/wit/workitemtypes/{}/states".format(
+                    self.vsts_account_name.lower(), project["id"], "Task"
+                ),
+                json={
+                    "count": 0,
+                    "value": [],
+                },
+            )
 
     def make_init_request(self, path=None, body=None):
         return self.client.get(path or self.init_path, body or {})
@@ -449,7 +474,7 @@ CREATE_SUBSCRIPTION = {
     "consumerInputs": {"url": "https://myservice/newreceiver"},
 }
 
-WORK_ITEM_UPDATED = {
+WORK_ITEM_UPDATED: dict[str, Any] = {
     "resourceContainers": {
         "project": {
             "id": "c0bf429a-c03c-4a99-9336-d45be74db5a6",
@@ -566,7 +591,7 @@ WORK_ITEM_UPDATED = {
 }
 
 
-WORK_ITEM_UNASSIGNED = {
+WORK_ITEM_UNASSIGNED: dict[str, Any] = {
     "resourceContainers": {
         "project": {
             "id": "c0bf429a-c03c-4a99-9336-d45be74db5a6",
@@ -677,7 +702,7 @@ WORK_ITEM_UNASSIGNED = {
     "publisherId": "tfs",
     "message": None,
 }
-WORK_ITEM_UPDATED_STATUS = {
+WORK_ITEM_UPDATED_STATUS: dict[str, Any] = {
     "resourceContainers": {
         "project": {
             "id": "c0bf429a-c03c-4a99-9336-d45be74db5a6",

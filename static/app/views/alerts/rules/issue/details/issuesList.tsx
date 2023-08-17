@@ -2,13 +2,13 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
 import DateTime from 'sentry/components/dateTime';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
@@ -23,7 +23,7 @@ type GroupHistory = {
   lastTriggered: string;
 };
 
-type Props = AsyncComponent['props'] &
+type Props = DeprecatedAsyncComponent['props'] &
   DateTimeObject & {
     organization: Organization;
     project: Project;
@@ -31,11 +31,11 @@ type Props = AsyncComponent['props'] &
     cursor?: string;
   };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   groupHistory: GroupHistory[] | null;
 };
 
-class AlertRuleIssuesList extends AsyncComponent<Props, State> {
+class AlertRuleIssuesList extends DeprecatedAsyncComponent<Props, State> {
   shouldRenderBadRequests = true;
 
   componentDidUpdate(prevProps: Props) {
@@ -61,7 +61,7 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {project, rule, organization, period, start, end, utc, cursor} = this.props;
     return [
       [

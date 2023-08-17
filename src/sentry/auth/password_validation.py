@@ -2,8 +2,8 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.utils.functional import lazy
 from django.utils.html import format_html
-from django.utils.translation import ugettext as _
-from django.utils.translation import ungettext
+from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
 
 from sentry.utils.imports import import_string
 
@@ -85,7 +85,7 @@ class MinimumLengthValidator:
     def validate(self, password):
         if len(password) < self.min_length:
             raise ValidationError(
-                ungettext(
+                ngettext(
                     "This password is too short. It must contain at least %(min_length)d character.",
                     "This password is too short. It must contain at least %(min_length)d characters.",
                     self.min_length,
@@ -95,7 +95,7 @@ class MinimumLengthValidator:
             )
 
     def get_help_text(self):
-        return ungettext(
+        return ngettext(
             "Your password must contain at least %(min_length)d character.",
             "Your password must contain at least %(min_length)d characters.",
             self.min_length,
@@ -113,7 +113,7 @@ class MaximumLengthValidator:
     def validate(self, password):
         if len(password) > self.max_length:
             raise ValidationError(
-                ungettext(
+                ngettext(
                     "This password is too long. It must contain no more than %(max_length)d character.",
                     "This password is too long. It must contain no more than %(max_length)d characters.",
                     self.max_length,
@@ -123,7 +123,7 @@ class MaximumLengthValidator:
             )
 
     def get_help_text(self):
-        return ungettext(
+        return ngettext(
             "Your password must contain no more than %(max_length)d character.",
             "Your password must contain no more than %(max_length)d characters.",
             self.max_length,

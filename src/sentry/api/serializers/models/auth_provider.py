@@ -6,8 +6,9 @@ from django.db.models import F
 
 from sentry import features
 from sentry.api.serializers import Serializer, register
-from sentry.models import AuthProvider, Organization, OrganizationMember, organization_absolute_url
+from sentry.models import AuthProvider, Organization, OrganizationMember
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.types.organization import OrganizationAbsoluteUrlMixin
 
 if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.auth import RpcAuthProvider
@@ -35,7 +36,7 @@ class AuthProviderSerializer(Serializer):
 
         login_url = Organization.get_url(organization.slug)
 
-        absolute_login_url = organization_absolute_url(
+        absolute_login_url = OrganizationAbsoluteUrlMixin.organization_absolute_url(
             features.has("organizations:customer-domains", organization),
             slug=organization.slug,
             path=login_url,

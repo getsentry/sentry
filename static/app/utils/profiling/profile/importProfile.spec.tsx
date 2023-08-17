@@ -143,7 +143,7 @@ describe('importProfile', () => {
   it('throws on unrecognized profile type', () => {
     expect(() =>
       importProfile(
-        // @ts-ignore
+        // @ts-expect-error
         {name: 'profile', activeProfileIndex: 0, profiles: [{type: 'unrecognized'}]},
         '',
         'flamechart'
@@ -157,7 +157,7 @@ describe('parseDroppedProfile', () => {
     jest.restoreAllMocks();
   });
   it('throws if file has no string contents', async () => {
-    // @ts-ignore we are just setting null on the file, we are not actually reading it because our event is mocked
+    // @ts-expect-error we are just setting null on the file, we are not actually reading it because our event is mocked
     const file = new File([null], 'test.tsx');
 
     const reader = new FileReader();

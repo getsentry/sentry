@@ -77,7 +77,7 @@ function renderAsyncExportButton(canEdit: boolean, props: Props) {
   return (
     <DataExport
       payload={{
-        queryType: ExportQueryType.Discover,
+        queryType: ExportQueryType.DISCOVER,
         queryInfo: eventView.getEventsAPIPayload(location),
       }}
       disabled={disabled}

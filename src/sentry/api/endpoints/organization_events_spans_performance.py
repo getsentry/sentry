@@ -18,14 +18,14 @@ from sentry import eventstore
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.serializers.rest_framework import ListField
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.models import Organization
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.types import ParamsType
 from sentry.snuba import discover
+from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import Dataset, SnubaTSResult, raw_snql_query
+from sentry.utils.snuba import SnubaTSResult, raw_snql_query
 from sentry.utils.time_window import TimeWindow, remove_time_windows, union_time_windows
 from sentry.utils.validators import INVALID_SPAN_ID, is_span_id
 
@@ -81,7 +81,7 @@ SPAN_PERFORMANCE_COLUMNS: Dict[str, SpanPerformanceColumn] = {
 }
 
 
-class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):  # type: ignore
+class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):
     def get_snuba_params(
         self, request: Request, organization: Organization, check_global_views: bool = True
     ) -> Dict[str, Any]:
@@ -111,11 +111,16 @@ class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):  # 
         return direction, orderby
 
 
-class SpansPerformanceSerializer(serializers.Serializer):  # type: ignore
-    field = ListField(child=serializers.CharField(), required=False, allow_null=True)
+class SpansPerformanceSerializer(serializers.Serializer):
+    field = serializers.ListField(child=serializers.CharField(), required=False, allow_null=True)
     query = serializers.CharField(required=False, allow_null=True)
-    spanOp = ListField(child=serializers.CharField(), required=False, allow_null=True, max_length=4)
-    spanGroup = ListField(
+    spanOp = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True, max_length=5
+    )
+    excludeSpanOp = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True, max_length=5
+    )
+    spanGroup = serializers.ListField(
         child=serializers.CharField(), required=False, allow_null=True, max_length=4
     )
     min_exclusive_time = serializers.FloatField(required=False)
@@ -156,6 +161,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
         fields = serialized.get("field", [])
         query = serialized.get("query")
         span_ops = serialized.get("spanOp")
+        exclude_span_ops = serialized.get("excludeSpanOp")
         span_groups = serialized.get("spanGroup")
         min_exclusive_time = serialized.get("min_exclusive_time")
         max_exclusive_time = serialized.get("max_exclusive_time")
@@ -168,6 +174,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
                 fields,
                 query,
                 span_ops,
+                exclude_span_ops,
                 span_groups,
                 direction,
                 orderby_column,
@@ -188,7 +195,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
             )
 
 
-class SpanSerializer(serializers.Serializer):  # type: ignore
+class SpanSerializer(serializers.Serializer):
     query = serializers.CharField(required=False, allow_null=True)
     span = serializers.CharField(required=True, allow_null=False)
     min_exclusive_time = serializers.FloatField(required=False)
@@ -466,6 +473,7 @@ def query_suspect_span_groups(
     fields: List[str],
     query: Optional[str],
     span_ops: Optional[List[str]],
+    exclude_span_ops: Optional[List[str]],
     span_groups: Optional[List[str]],
     direction: str,
     orderby: str,
@@ -515,6 +523,15 @@ def query_suspect_span_groups(
                 builder.resolve_function("array_join(spans_op)"),
                 Op.IN,
                 Function("tuple", span_ops),
+            )
+        )
+
+    if exclude_span_ops:
+        extra_conditions.append(
+            Condition(
+                builder.resolve_function("array_join(spans_op)"),
+                Op.NOT_IN,
+                Function("tuple", exclude_span_ops),
             )
         )
 
@@ -573,7 +590,7 @@ def query_suspect_span_groups(
     ]
 
 
-class SpanQueryBuilder(QueryBuilder):  # type: ignore
+class SpanQueryBuilder(QueryBuilder):
     def resolve_span_function(
         self,
         function: str,
@@ -701,7 +718,7 @@ def get_span_description(
     span_op: str,
     span_group: str,
 ) -> Optional[str]:
-    nodestore_event = eventstore.get_event_by_id(event.project_id, event.event_id)
+    nodestore_event = eventstore.backend.get_event_by_id(event.project_id, event.event_id)
     data = nodestore_event.data
 
     # the transaction itself is a span as well, so make sure to check it
@@ -724,7 +741,7 @@ def get_example_transaction(
     max_exclusive_time: Optional[float] = None,
 ) -> ExampleTransaction:
     span_group_id = int(span_group, 16)
-    nodestore_event = eventstore.get_event_by_id(event.project_id, event.event_id)
+    nodestore_event = eventstore.backend.get_event_by_id(event.project_id, event.event_id)
     data = nodestore_event.data
 
     # the transaction itself is a span as well but we need to reconstruct

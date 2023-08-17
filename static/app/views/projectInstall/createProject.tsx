@@ -6,7 +6,7 @@ import omit from 'lodash/omit';
 import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openCreateTeamModal, openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
@@ -14,10 +14,11 @@ import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {SUPPORTED_LANGUAGES} from 'sentry/components/onboarding/frameworkSuggestionModal';
+import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import PlatformPicker, {Platform} from 'sentry/components/platformPicker';
 import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
 import TeamSelector from 'sentry/components/teamSelector';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -105,19 +106,17 @@ function CreateProject() {
       setInFlight(true);
 
       try {
-        const projectData = await api.requestPromise(
-          team
-            ? `/teams/${slug}/${team}/projects/`
-            : `/organizations/${slug}/experimental/projects/`,
-          {
-            method: 'POST',
-            data: {
-              name: projectName,
-              platform: selectedPlatform.key,
-              default_rules: defaultRules ?? true,
-            },
-          }
-        );
+        const url = team
+          ? `/teams/${slug}/${team}/projects/`
+          : `/organizations/${slug}/experimental/projects/`;
+        const projectData = await api.requestPromise(url, {
+          method: 'POST',
+          data: {
+            name: projectName,
+            platform: selectedPlatform.key,
+            default_rules: defaultRules ?? true,
+          },
+        });
 
         let ruleId: string | undefined;
         if (shouldCreateCustomRule) {
@@ -149,6 +148,21 @@ function CreateProject() {
 
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
 
+        if (team) {
+          addSuccessMessage(
+            tct('Created project [project]', {
+              project: `${projectData.slug}`,
+            })
+          );
+        } else {
+          addSuccessMessage(
+            tct('Created [project] under new team [team]', {
+              project: `${projectData.slug}`,
+              team: `#${projectData.team_slug}`,
+            })
+          );
+        }
+
         browserHistory.push(
           normalizeUrl(
             `/organizations/${organization.slug}/projects/${projectData.slug}/getting-started/`
@@ -157,6 +171,11 @@ function CreateProject() {
       } catch (err) {
         setInFlight(false);
         setErrors(err.responseJSON);
+        addErrorMessage(
+          tct('Failed to create project [project]', {
+            project: `${projectName}`,
+          })
+        );
 
         // Only log this if the error is something other than:
         // * The user not having access to create a project, or,
@@ -182,8 +201,8 @@ function CreateProject() {
 
     if (
       selectedPlatform.type !== 'language' ||
-      !Object.values(SUPPORTED_LANGUAGES).includes(
-        selectedPlatform.language as SUPPORTED_LANGUAGES
+      !Object.values(SupportedLanguages).includes(
+        selectedPlatform.language as SupportedLanguages
       )
     ) {
       createProject();
@@ -242,12 +261,27 @@ function CreateProject() {
   const canCreateTeam = organization.access.includes('project:admin');
   const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
 
-  const canSubmitForm =
-    !inFlight &&
-    (team || isOrgMemberWithNoAccess) &&
-    canCreateProject &&
-    projectName !== '' &&
-    (!shouldCreateCustomRule || conditions?.every?.(condition => condition.value));
+  const isMissingTeam = !isOrgMemberWithNoAccess && !team;
+  const isMissingProjectName = projectName === '';
+  const isMissingAlertThreshold =
+    shouldCreateCustomRule && !conditions?.every?.(condition => condition.value);
+
+  const formErrorCount = [
+    isMissingTeam,
+    isMissingProjectName,
+    isMissingAlertThreshold,
+  ].filter(value => value).length;
+
+  const canSubmitForm = !inFlight && canCreateProject && formErrorCount === 0;
+
+  let submitTooltipText: string = t('Please select a team');
+  if (formErrorCount > 1) {
+    submitTooltipText = t('Please fill out all the required fields');
+  } else if (isMissingProjectName) {
+    submitTooltipText = t('Please provide a project name');
+  } else if (isMissingAlertThreshold) {
+    submitTooltipText = t('Please provide an alert threshold');
+  }
 
   const alertFrequencyDefaultValues = useMemo(() => {
     if (!autoFill) {
@@ -340,14 +374,16 @@ function CreateProject() {
           </div>
         )}
         <div>
-          <Button
-            type="submit"
-            data-test-id="create-project"
-            priority="primary"
-            disabled={!canSubmitForm}
-          >
-            {t('Create Project')}
-          </Button>
+          <Tooltip title={submitTooltipText} disabled={formErrorCount === 0}>
+            <Button
+              type="submit"
+              data-test-id="create-project"
+              priority="primary"
+              disabled={!canSubmitForm}
+            >
+              {t('Create Project')}
+            </Button>
+          </Tooltip>
         </div>
       </CreateProjectForm>
     </Fragment>

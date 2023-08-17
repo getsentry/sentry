@@ -1,4 +1,6 @@
 ---
+created: '2023-07-04T12:45:26.399540Z'
+creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 config:
@@ -81,9 +83,20 @@ config:
     errorMessages:
       patterns:
       - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
+    ignoreTransactions:
+      isEnabled: true
+      patterns:
+      - '*healthcheck*'
+      - '*healthy*'
+      - '*live*'
+      - '*ready*'
+      - '*heartbeat*'
+      - '*/health'
+      - '*/healthz'
+      - '*/ping'
   groupingConfig:
-    enhancements: eJybzDRxY3J-bm5-npWRgaGlroGxrpHxBABcYgcZ
-    id: newstyle:2019-10-29
+    enhancements: eJybzDRxc15qeXFJZU6qlZGBkbGugaGuoeEEAHJMCAM
+    id: newstyle:2023-01-11
   measurements:
     builtinMeasurements:
     - name: app_start_cold

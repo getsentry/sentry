@@ -36,7 +36,7 @@ from sentry.models import (
 )
 from sentry.search.events.filter import parse_semver
 from sentry.signals import receivers_raise_on_send
-from sentry.testutils import SetRefsTestCase, TestCase, TransactionTestCase
+from sentry.testutils.cases import SetRefsTestCase, TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import region_silo_test
@@ -359,6 +359,7 @@ class SetCommitsTestCase(TestCase):
             name="foo bar baz", email="foo@example.com", organization_id=org.id
         )
 
+        author.preload_users()
         Commit.objects.create(
             repository_id=repo.id,
             organization_id=org.id,
@@ -431,6 +432,7 @@ class SetCommitsTestCase(TestCase):
         author = CommitAuthor.objects.create(
             organization_id=org.id, name="Foo Bar", email=self.user.email
         )
+        author.preload_users()
         commit = Commit.objects.create(
             organization_id=org.id,
             repository_id=repo.id,
@@ -1275,6 +1277,8 @@ class ClearCommitsTestCase(TestCase):
             name="foo bar boo", email="baroo@example.com", organization_id=org.id
         )
 
+        author.preload_users()
+        author2.preload_users()
         commit = Commit.objects.create(
             organization_id=org.id,
             repository_id=repo.id,

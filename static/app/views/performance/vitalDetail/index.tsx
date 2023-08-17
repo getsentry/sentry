@@ -110,10 +110,9 @@ class VitalDetail extends Component<Props, State> {
     }
 
     const vitalNameQuery = decodeScalar(location.query.vitalName);
-    const vitalName =
-      Object.values(WebVital).indexOf(vitalNameQuery as WebVital) === -1
-        ? undefined
-        : (vitalNameQuery as WebVital);
+    const vitalName = !Object.values(WebVital).includes(vitalNameQuery as WebVital)
+      ? undefined
+      : (vitalNameQuery as WebVital);
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>

@@ -3,7 +3,7 @@ import {WithRouterProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {t} from 'sentry/locale';
 import {
   ExternalActorMapping,
@@ -21,19 +21,19 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import IntegrationExternalMappingForm from './integrationExternalMappingForm';
 import IntegrationExternalMappings from './integrationExternalMappings';
 
-type Props = AsyncComponent['props'] &
+type Props = DeprecatedAsyncComponent['props'] &
   WithRouterProps & {
     integration: Integration;
     organization: Organization;
   };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   initialResults: Member[];
   members: (Member & {externalUsers: ExternalUser[]})[];
 };
 
-class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class IntegrationExternalUserMappings extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     return [
       // We paginate on this query, since we're filtering by hasExternalUsers:true
@@ -74,7 +74,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
   get mappings() {
     const {integration} = this.props;
     const {members} = this.state;
-    const externalUserMappings = members.reduce((acc, member) => {
+    const externalUserMappings = members.reduce<ExternalActorMapping[]>((acc, member) => {
       const {externalUsers, user} = member;
 
       acc.push(
@@ -83,7 +83,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
           .map(externalUser => ({...externalUser, sentryName: user?.name ?? member.name}))
       );
       return acc;
-    }, [] as ExternalActorMapping[]);
+    }, []);
     return externalUserMappings.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
   }
 

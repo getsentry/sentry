@@ -13,11 +13,12 @@ from django.db.models import Case, F, Func, Q, Subquery, Sum, Value, When
 from django.db.models.signals import pre_save
 from django.utils import timezone
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
-from sentry_relay import RelayError, parse_release
+from django.utils.translation import gettext_lazy as _
+from sentry_relay.exceptions import RelayError
+from sentry_relay.processing import parse_release
 
-from sentry import features, options
-from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
+from sentry import features
+from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER, ObjectStatus
 from sentry.db.models import (
     ArrayField,
     BaseQuerySet,
@@ -30,18 +31,20 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager import BaseManager
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
 from sentry.models import (
     Activity,
     ArtifactBundle,
-    BaseManager,
-    CommitFileChange,
     GroupInbox,
     GroupInboxRemoveAction,
     remove_group_from_inbox,
 )
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import issue_resolved
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
@@ -81,7 +84,6 @@ class ReleaseProjectModelManager(BaseManager):
         # in the project.
         if (
             features.has("organizations:dynamic-sampling", project.organization)
-            and options.get("dynamic-sampling:enabled-biases")
             and project_boosted_releases.has_boosted_releases
         ):
             schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
@@ -260,8 +262,8 @@ class ReleaseQuerySet(BaseQuerySet):
         organization_id: int,
         operator: str,
         value,
-        project_ids: Sequence[int] = None,
-        environments: List[str] = None,
+        project_ids: Optional[Sequence[int]] = None,
+        environments: Optional[List[str]] = None,
     ) -> models.QuerySet:
         from sentry.models import ReleaseProjectEnvironment, ReleaseStages
         from sentry.search.events.filter import to_list
@@ -276,8 +278,7 @@ class ReleaseQuerySet(BaseQuerySet):
         }
         value = to_list(value)
         operator_conversions = {"=": "IN", "!=": "NOT IN"}
-        if operator in operator_conversions.keys():
-            operator = operator_conversions.get(operator)
+        operator = operator_conversions.get(operator, operator)
 
         for stage in value:
             if stage not in filters:
@@ -405,7 +406,7 @@ class ReleaseModelManager(BaseManager):
         organization_id: int,
         operator: str,
         value,
-        project_ids: Sequence[int] = None,
+        project_ids: Optional[Sequence[int]] = None,
         environments: Optional[List[str]] = None,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_stage(
@@ -551,12 +552,17 @@ class Release(Model):
 
     SEMVER_COLS = ["major", "minor", "patch", "revision", "prerelease_case", "prerelease"]
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Make sure that specialized releases are only comparable to the same
         other specialized release.  This for instance lets us treat them
         separately for serialization purposes.
         """
-        return Model.__eq__(self, other) and self._for_project_id == other._for_project_id
+        return (
+            # don't treat `NotImplemented` as truthy
+            Model.__eq__(self, other) is True
+            and isinstance(other, Release)
+            and self._for_project_id == other._for_project_id
+        )
 
     def __hash__(self):
         # https://code.djangoproject.com/ticket/30333
@@ -934,7 +940,7 @@ class Release(Model):
                     router.db_for_write(CommitAuthor),
                     router.db_for_write(Commit),
                 )
-            ):
+            ), in_test_hide_transaction_boundary():
                 # TODO(dcramer): would be good to optimize the logic to avoid these
                 # deletes but not overly important
                 ReleaseCommit.objects.filter(release=self).delete()
@@ -942,14 +948,28 @@ class Release(Model):
                 authors = {}
                 repos = {}
                 commit_author_by_commit = {}
-                head_commit_by_repo = {}
+                head_commit_by_repo: dict[int, int] = {}
                 latest_commit = None
                 for idx, data in enumerate(commit_list):
                     repo_name = data.get("repository") or f"organization-{self.organization_id}"
                     if repo_name not in repos:
-                        repos[repo_name] = repo = Repository.objects.get_or_create(
-                            organization_id=self.organization_id, name=repo_name
-                        )[0]
+                        repo = (
+                            Repository.objects.filter(
+                                organization_id=self.organization_id,
+                                name=repo_name,
+                                status=ObjectStatus.ACTIVE,
+                            )
+                            .order_by("-pk")
+                            .first()
+                        )
+
+                        if repo is None:
+                            repo = Repository.objects.create(
+                                organization_id=self.organization_id,
+                                name=repo_name,
+                            )
+
+                        repos[repo_name] = repo
                     else:
                         repo = repos[repo_name]
 
@@ -1110,7 +1130,7 @@ class Release(Model):
             (prr[0], pr_authors_dict.get(prr[1])) for prr in pull_request_resolutions
         ]
 
-        user_by_author = {None: None}
+        user_by_author: dict[str | None, RpcUser | None] = {None: None}
 
         commits_and_prs = list(itertools.chain(commit_group_authors, pull_request_group_authors))
 
@@ -1121,7 +1141,7 @@ class Release(Model):
         )
 
         for group_id, author in commits_and_prs:
-            if author not in user_by_author:
+            if author is not None and author not in user_by_author:
                 try:
                     user_by_author[author] = author.find_users()[0]
                 except IndexError:
@@ -1143,7 +1163,7 @@ class Release(Model):
                         "release": self,
                         "type": GroupResolution.Type.in_release,
                         "status": GroupResolution.Status.resolved,
-                        "actor_id": actor.id if actor else None,
+                        "actor_id": actor.id if actor is not None else None,
                     },
                 )
                 group = Group.objects.get(id=group_id)
@@ -1184,7 +1204,9 @@ class Release(Model):
         # We would need to be able to delete this data from snuba which we
         # can't do yet.
         project_ids = list(self.projects.values_list("id").all())
-        if release_health.check_has_health_data([(p[0], self.version) for p in project_ids]):
+        if release_health.backend.check_has_health_data(
+            [(p[0], self.version) for p in project_ids]
+        ):
             raise UnsafeReleaseDeletion(ERR_RELEASE_HEALTH_DATA)
 
         # TODO(dcramer): this needs to happen in the queue as it could be a long

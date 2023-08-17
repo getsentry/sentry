@@ -1,15 +1,13 @@
 import time
-from datetime import datetime, timedelta
-from datetime import timezone as dt_timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
-import pytz
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry.release_health.base import OverviewStat
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.sessions import _make_stats
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
@@ -27,7 +25,7 @@ def parametrize_backend(cls):
     assert not hasattr(cls, "backend")
     cls.backend = SessionsReleaseHealthBackend()
 
-    class MetricsLayerTest(BaseMetricsTestCase, cls):
+    class MetricsLayerTest(BaseMetricsTestCase, cls):  # type: ignore[valid-type]
         __doc__ = f"Repeat tests from {cls} with metrics layer"
         backend = MetricsReleaseHealthBackend()
         adjust_interval = True  # HACK interval adjustment for new MetricsLayer implementation
@@ -46,7 +44,7 @@ def format_timestamp(dt):
 
 
 def make_24h_stats(ts, adjust_start=False):
-    ret_val = _make_stats(datetime.utcfromtimestamp(ts).replace(tzinfo=pytz.utc), 3600, 24)
+    ret_val = _make_stats(datetime.utcfromtimestamp(ts).replace(tzinfo=timezone.utc), 3600, 24)
 
     if adjust_start:
         # HACK this adds another interval at the beginning in accordance with the new way of calculating intervals
@@ -495,7 +493,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         }
 
     def test_get_crash_free_breakdown(self):
-        start = timezone.now() - timedelta(days=4)
+        start = django_timezone.now() - timedelta(days=4)
 
         # it should work with and without environments
         for environments in [None, ["prod"]]:
@@ -508,7 +506,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
 
             # Last returned date is generated within function, should be close to now:
             last_date = data[-1].pop("date")
-            assert timezone.now() - last_date < timedelta(seconds=1)
+            assert django_timezone.now() - last_date < timedelta(seconds=1)
 
             assert data == [
                 {
@@ -654,7 +652,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
     def _test_get_project_release_stats(
         self, stat: OverviewStat, release: str, expected_series, expected_totals
     ):
-        end = timezone.now()
+        end = django_timezone.now()
         start = end - timedelta(days=4)
         stats, totals = self.backend.get_project_release_stats(
             self.project.id,
@@ -1080,7 +1078,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             )
 
     def test_get_current_and_previous_crash_free_rates(self):
-        now = timezone.now().replace(minute=15, second=23)
+        now = django_timezone.now().replace(minute=15, second=23)
         last_24h_start = now - 24 * timedelta(hours=1)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
 
@@ -1104,7 +1102,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         }
 
     def test_get_current_and_previous_crash_free_rates_with_zero_sessions(self):
-        now = timezone.now().replace(minute=15, second=23)
+        now = django_timezone.now().replace(minute=15, second=23)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
         last_72h_start = now - 3 * 24 * timedelta(hours=1)
         last_96h_start = now - 4 * 24 * timedelta(hours=1)
@@ -1159,7 +1157,7 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
                 tags={},
                 type="set",
                 value=value,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
+                use_case_id=UseCaseID.SESSIONS,
             )
 
         assert (
@@ -1274,7 +1272,7 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
 
         # now_dt should be set to 17:40 of some day not in the future and (system time - now_dt)
         # must be less than 90 days for the metrics DB TTL
-        ONE_DAY_AGO = datetime.now(tz=dt_timezone.utc) - timedelta(days=1)
+        ONE_DAY_AGO = datetime.now(tz=timezone.utc) - timedelta(days=1)
         self.now_dt = ONE_DAY_AGO.replace(hour=17, minute=40, second=0)
         self._5_min_ago_dt = self.now_dt - timedelta(minutes=5)
         self._30_min_ago_dt = self.now_dt - timedelta(minutes=30)
@@ -1628,7 +1626,7 @@ class InitWithoutUserTestCase(TestCase, SnubaTestCase):
         assert inner["total_project_users_24h"] == 3
 
     def test_get_crash_free_breakdown(self):
-        start = timezone.now() - timedelta(days=4)
+        start = django_timezone.now() - timedelta(days=4)
         data = self.backend.get_crash_free_breakdown(
             project_id=self.project.id,
             release=self.session_release,
@@ -1639,7 +1637,7 @@ class InitWithoutUserTestCase(TestCase, SnubaTestCase):
         # Last returned date is generated within function, should be close to now:
         last_date = data[-1].pop("date")
 
-        assert timezone.now() - last_date < timedelta(seconds=1)
+        assert django_timezone.now() - last_date < timedelta(seconds=1)
 
         assert data == [
             {
@@ -1665,7 +1663,7 @@ class InitWithoutUserTestCase(TestCase, SnubaTestCase):
         ]
 
     def test_get_project_release_stats_users(self):
-        end = timezone.now()
+        end = django_timezone.now()
         start = end - timedelta(days=4)
         stats, totals = self.backend.get_project_release_stats(
             self.project.id,

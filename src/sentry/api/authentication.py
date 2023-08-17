@@ -1,17 +1,27 @@
+from __future__ import annotations
+
+from typing import Any, ClassVar, List, Optional, Tuple
+
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
-from django.utils.encoding import force_text
-from rest_framework.authentication import BasicAuthentication, get_authorization_header
+from django.utils.encoding import force_str
+from rest_framework.authentication import (
+    BasicAuthentication,
+    SessionAuthentication,
+    get_authorization_header,
+)
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
-from sentry_relay import UnpackError
+from sentry_relay.exceptions import UnpackError
 
 from sentry import options
 from sentry.auth.system import SystemToken, is_internal_ip
-from sentry.models import ApiApplication, ApiKey, ApiToken, ProjectKey, Relay
+from sentry.models import ApiApplication, ApiKey, ApiToken, OrgAuthToken, ProjectKey, Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
+from sentry.services.hybrid_cloud.rpc import compare_signature
 from sentry.utils.sdk import configure_scope
+from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
 
 
 def is_internal_relay(request, public_key):
@@ -39,7 +49,7 @@ def is_static_relay(request):
     return relay_info is not None
 
 
-def relay_from_id(request, relay_id):
+def relay_from_id(request, relay_id) -> Tuple[Optional[Relay], bool]:
     """
     Tries to find a Relay for a given id
     If the id is statically registered than no DB access will be done.
@@ -71,17 +81,23 @@ def relay_from_id(request, relay_id):
 
 
 class QuietBasicAuthentication(BasicAuthentication):
-    def authenticate_header(self, request: Request):
+    def authenticate_header(self, request: Request) -> str:
         return 'xBasic realm="%s"' % self.www_authenticate_realm
 
 
 class StandardAuthentication(QuietBasicAuthentication):
-    token_name = None
+    token_name: ClassVar[bytes]
+
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        return bool(auth) and auth[0].lower() == self.token_name
+
+    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+        raise NotImplementedError
 
     def authenticate(self, request: Request):
         auth = get_authorization_header(request).split()
 
-        if not auth or auth[0].lower() != self.token_name:
+        if not self.accepts_auth(auth):
             return None
 
         if len(auth) == 1:
@@ -91,7 +107,7 @@ class StandardAuthentication(QuietBasicAuthentication):
             msg = "Invalid token header. Token string should not contain spaces."
             raise AuthenticationFailed(msg)
 
-        return self.authenticate_credentials(request, force_text(auth[1]))
+        return self.authenticate_token(request, force_str(auth[1]))
 
 
 class RelayAuthentication(BasicAuthentication):
@@ -128,6 +144,9 @@ class RelayAuthentication(BasicAuthentication):
 class ApiKeyAuthentication(QuietBasicAuthentication):
     token_name = b"basic"
 
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        return bool(auth) and auth[0].lower() == self.token_name
+
     def authenticate_credentials(self, userid, password, request=None):
         # We don't use request, but it needs to be passed through to DRF 3.7+.
         if password:
@@ -145,6 +164,14 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
             scope.set_tag("api_key", key.id)
 
         return (AnonymousUser(), key)
+
+
+class SessionNoAuthTokenAuthentication(SessionAuthentication):
+    def authenticate(self, request: Request):
+        auth = get_authorization_header(request)
+        if auth:
+            return None
+        return super().authenticate(request)
 
 
 class ClientIdSecretAuthentication(QuietBasicAuthentication):
@@ -186,7 +213,19 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
 class TokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
 
-    def authenticate_credentials(self, request: Request, token_str):
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        if not super().accepts_auth(auth):
+            return False
+
+        # Technically, this will not match if auth length is not 2
+        # However, we want to run into `authenticate()` in this case, as this throws a more helpful error message
+        if len(auth) != 2:
+            return True
+
+        token_str = force_str(auth[1])
+        return not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
+
+    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         token = SystemToken.from_request(request, token_str)
         try:
             token = (
@@ -215,10 +254,39 @@ class TokenAuthentication(StandardAuthentication):
         return (token.user, token)
 
 
+class OrgAuthTokenAuthentication(StandardAuthentication):
+    token_name = b"bearer"
+
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        if not super().accepts_auth(auth) or len(auth) != 2:
+            return False
+
+        token_str = force_str(auth[1])
+        return token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
+
+    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+        token = None
+        token_hashed = hash_token(token_str)
+
+        try:
+            token = OrgAuthToken.objects.filter(
+                token_hashed=token_hashed, date_deactivated__isnull=True
+            ).get()
+        except OrgAuthToken.DoesNotExist:
+            raise AuthenticationFailed("Invalid org token")
+
+        with configure_scope() as scope:
+            scope.set_tag("api_token_type", self.token_name)
+            scope.set_tag("api_token", token.id)
+            scope.set_tag("api_token_is_org_token", True)
+
+        return (AnonymousUser(), token)
+
+
 class DSNAuthentication(StandardAuthentication):
     token_name = b"dsn"
 
-    def authenticate_credentials(self, request: Request, token):
+    def authenticate_token(self, request: Request, token: str) -> tuple[Any, Any]:
         try:
             key = ProjectKey.from_dsn(token)
         except ProjectKey.DoesNotExist:
@@ -232,3 +300,26 @@ class DSNAuthentication(StandardAuthentication):
             scope.set_tag("api_project_key", key.id)
 
         return (AnonymousUser(), key)
+
+
+class RpcSignatureAuthentication(StandardAuthentication):
+    """
+    Authentication for cross-region RPC requests.
+    Requests are sent with an HMAC signed by a shared private key.
+    """
+
+    token_name = b"rpcsignature"
+
+    def accepts_auth(self, auth: List[bytes]) -> bool:
+        if not auth or len(auth) < 2:
+            return False
+        return auth[0].lower() == self.token_name
+
+    def authenticate_token(self, request: Request, token: str) -> tuple[Any, Any]:
+        if not compare_signature(request.path_info, request.body, token):
+            raise AuthenticationFailed("Invalid signature")
+
+        with configure_scope() as scope:
+            scope.set_tag("rpc_auth", True)
+
+        return (AnonymousUser(), token)

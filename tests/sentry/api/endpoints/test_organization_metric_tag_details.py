@@ -19,8 +19,8 @@ from tests.sentry.api.endpoints.test_organization_metrics import (
 pytestmark = pytest.mark.sentry_metrics
 
 
-def _indexer_record(org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=string)
+def _indexer_record(org_id: int, string: str) -> None:
+    indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=string)
 
 
 @region_silo_test(stable=True)

@@ -1,16 +1,16 @@
 from unittest.mock import MagicMock, Mock, patch
 
 from sentry.models import Activity
-from sentry.notifications.notifications.activity import UnassignedActivityNotification
+from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.testutils.cases import MSTeamsActivityNotificationTest
 from sentry.types.activity import ActivityType
 
 
 @patch(
-    "sentry.integrations.msteams.MsTeamsAbstractClient.get_user_conversation_id",
+    "sentry.integrations.msteams.MsTeamsClientMixin.get_user_conversation_id",
     Mock(return_value="some_conversation_id"),
 )
-@patch("sentry.integrations.msteams.MsTeamsAbstractClient.send_card")
+@patch("sentry.integrations.msteams.MsTeamsClientMixin.send_card")
 class MSTeamsUnassignedNotificationTest(MSTeamsActivityNotificationTest):
     def test_unassigned(self, mock_send_card: MagicMock):
         """

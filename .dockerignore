@@ -1,7 +1,7 @@
 # Ignore everything
 *
 
-!/docker
+!/self-hosted
 !/package.json
 !/yarn.lock
 !/dist/requirements-frozen.txt

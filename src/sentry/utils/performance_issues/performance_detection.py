@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import random
-from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import sentry_sdk
 
@@ -22,6 +22,7 @@ from .detectors import (
     ConsecutiveHTTPSpanDetector,
     DBMainThreadDetector,
     FileIOMainThreadDetector,
+    HTTPOverheadDetector,
     LargeHTTPPayloadDetector,
     MNPlusOneDBSpanDetector,
     NPlusOneAPICallsDetector,
@@ -107,7 +108,7 @@ class EventPerformanceProblem:
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
-def detect_performance_problems(data: Event, project: Project) -> List[PerformanceProblem]:
+def detect_performance_problems(data: dict[str, Any], project: Project) -> List[PerformanceProblem]:
     try:
         rate = options.get("performance.issues.all.problem-detection")
         if rate and rate > random.random():
@@ -124,14 +125,15 @@ def detect_performance_problems(data: Event, project: Project) -> List[Performan
     return []
 
 
-# Gets the thresholds to perform performance detection.
-# Duration thresholds are in milliseconds.
-# Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
-def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorType, Any]:
+# Merges system defaults, with default project settings and saved project settings.
+def get_merged_settings(project_id: Optional[int] = None) -> Dict[str | Any, Any]:
     system_settings = {
         "n_plus_one_db_count": options.get("performance.issues.n_plus_one_db.count_threshold"),
         "n_plus_one_db_duration_threshold": options.get(
             "performance.issues.n_plus_one_db.duration_threshold"
+        ),
+        "slow_db_query_duration_threshold": options.get(
+            "performance.issues.slow_db_query.duration_threshold"
         ),
         "render_blocking_fcp_min": options.get(
             "performance.issues.render_blocking_assets.fcp_minimum_threshold"
@@ -154,8 +156,32 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         "consecutive_http_spans_span_duration_threshold": options.get(
             "performance.issues.consecutive_http.span_duration_threshold"
         ),
+        "consecutive_http_spans_min_time_saved_threshold": options.get(
+            "performance.issues.consecutive_http.min_time_saved_threshold"
+        ),
         "large_http_payload_size_threshold": options.get(
             "performance.issues.large_http_payload.size_threshold"
+        ),
+        "db_on_main_thread_duration_threshold": options.get(
+            "performance.issues.db_on_main_thread.total_spans_duration_threshold"
+        ),
+        "file_io_on_main_thread_duration_threshold": options.get(
+            "performance.issues.file_io_on_main_thread.total_spans_duration_threshold"
+        ),
+        "uncompressed_asset_duration_threshold": options.get(
+            "performance.issues.uncompressed_asset.duration_threshold"
+        ),
+        "uncompressed_asset_size_threshold": options.get(
+            "performance.issues.uncompressed_asset.size_threshold"
+        ),
+        "consecutive_db_min_time_saved_threshold": options.get(
+            "performance.issues.consecutive_db.min_time_saved_threshold"
+        ),
+        "http_request_delay_threshold": options.get(
+            "performance.issues.http_overhead.http_request_delay_threshold"
+        ),
+        "n_plus_one_api_calls_total_duration_threshold": options.get(
+            "performance.issues.n_plus_one_api_calls.total_duration"
         ),
     }
 
@@ -181,13 +207,21 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         **project_option_settings,
     }  # Merge saved project settings into default so updating the default to add new settings works in the future.
 
-    settings = {**system_settings, **project_settings}
+    return {**system_settings, **project_settings}
+
+
+# Gets the thresholds to perform performance detection.
+# Duration thresholds are in milliseconds.
+# Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
+def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorType, Any]:
+    settings = get_merged_settings(project_id)
 
     return {
         DetectorType.SLOW_DB_QUERY: [
             {
-                "duration_threshold": 1000.0,  # ms
+                "duration_threshold": settings["slow_db_query_duration_threshold"],  # ms
                 "allowed_span_ops": ["db"],
+                "detection_enabled": settings["slow_db_queries_detection_enabled"],
             },
         ],
         DetectorType.RENDER_BLOCKING_ASSET_SPAN: {
@@ -195,11 +229,12 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "fcp_maximum_threshold": settings["render_blocking_fcp_max"],  # ms
             "fcp_ratio_threshold": settings["render_blocking_fcp_ratio"],  # in the range [0, 1]
             "minimum_size_bytes": settings["render_blocking_bytes_min"],  # in bytes
+            "detection_enabled": settings["large_render_blocking_asset_detection_enabled"],
         },
         DetectorType.N_PLUS_ONE_DB_QUERIES: {
             "count": settings["n_plus_one_db_count"],
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
-            "detection_rate": settings["n_plus_one_db_detection_rate"],
+            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
         DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: {
             "count": settings["n_plus_one_db_count"],
@@ -207,42 +242,44 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         },
         DetectorType.CONSECUTIVE_DB_OP: {
             # time saved by running all queries in parallel
-            "min_time_saved": 100,  # ms
+            "min_time_saved": settings["consecutive_db_min_time_saved_threshold"],  # ms
             # ratio between time saved and total db span durations
             "min_time_saved_ratio": 0.1,
             # The minimum duration of a single independent span in ms, used to prevent scenarios with a ton of small spans
             "span_duration_threshold": 30,  # ms
             "consecutive_count_threshold": 2,
-            "detection_rate": settings["consecutive_db_queries_detection_rate"],
+            "detection_enabled": settings["consecutive_db_queries_detection_enabled"],
         },
         DetectorType.FILE_IO_MAIN_THREAD: [
             {
                 # 16ms is when frame drops will start being evident
-                "duration_threshold": 16,
+                "duration_threshold": settings["file_io_on_main_thread_duration_threshold"],
+                "detection_enabled": settings["file_io_on_main_thread_detection_enabled"],
             }
         ],
         DetectorType.DB_MAIN_THREAD: [
             {
                 # Basically the same as file io, but db instead, so continue using 16ms
-                "duration_threshold": 16,
+                "duration_threshold": settings["db_on_main_thread_duration_threshold"],
+                "detection_enabled": settings["db_on_main_thread_detection_enabled"],
             }
         ],
         DetectorType.N_PLUS_ONE_API_CALLS: {
-            "detection_rate": settings["n_plus_one_api_calls_detection_rate"],
-            "duration_threshold": 50,  # ms
+            "total_duration": settings["n_plus_one_api_calls_total_duration_threshold"],  # ms
             "concurrency_threshold": 5,  # ms
             "count": 10,
             "allowed_span_ops": ["http.client"],
+            "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
         },
         DetectorType.M_N_PLUS_ONE_DB: {
             "total_duration_threshold": 100.0,  # ms
             "minimum_occurrences_of_pattern": 3,
             "max_sequence_length": 5,
-            "detection_rate": settings["n_plus_one_db_detection_rate"],
+            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
         DetectorType.UNCOMPRESSED_ASSETS: {
-            "size_threshold_bytes": 500 * 1024,
-            "duration_threshold": 500,  # ms
+            "size_threshold_bytes": settings["uncompressed_asset_size_threshold"],
+            "duration_threshold": settings["uncompressed_asset_duration_threshold"],  # ms
             "allowed_span_ops": ["resource.css", "resource.script"],
             "detection_enabled": settings["uncompressed_assets_detection_enabled"],
         },
@@ -250,6 +287,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "span_duration_threshold": settings[
                 "consecutive_http_spans_span_duration_threshold"
             ],  # ms
+            "min_time_saved": settings["consecutive_http_spans_min_time_saved_threshold"],  # ms
             "consecutive_count_threshold": settings["consecutive_http_spans_count_threshold"],
             "max_duration_between_spans": settings[
                 "consecutive_http_spans_max_duration_between_spans"
@@ -257,18 +295,22 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
         },
         DetectorType.LARGE_HTTP_PAYLOAD: {
-            "payload_size_threshold": settings["large_http_payload_size_threshold"]
+            "payload_size_threshold": settings["large_http_payload_size_threshold"],
+            "detection_enabled": settings["large_http_payload_detection_enabled"],
+        },
+        DetectorType.HTTP_OVERHEAD: {
+            "http_request_delay_threshold": settings["http_request_delay_threshold"],
+            "detection_enabled": settings["http_overhead_detection_enabled"],
         },
     }
 
 
 def _detect_performance_problems(
-    data: Event, sdk_span: Any, project: Project
+    data: dict[str, Any], sdk_span: Any, project: Project
 ) -> List[PerformanceProblem]:
     event_id = data.get("event_id", None)
-    project_id = cast(int, project.id)
 
-    detection_settings = get_detection_settings(project_id)
+    detection_settings = get_detection_settings(project.id)
     detectors: List[PerformanceDetector] = [
         ConsecutiveDBSpanDetector(detection_settings, data),
         ConsecutiveHTTPSpanDetector(detection_settings, data),
@@ -282,6 +324,7 @@ def _detect_performance_problems(
         MNPlusOneDBSpanDetector(detection_settings, data),
         UncompressedAssetSpanDetector(detection_settings, data),
         LargeHTTPPayloadDetector(detection_settings, data),
+        HTTPOverheadDetector(detection_settings, data),
     ]
 
     for detector in detectors:
@@ -290,7 +333,7 @@ def _detect_performance_problems(
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span, project.organization)
 
-    organization = cast(Organization, project.organization)
+    organization = project.organization
     if project is None or organization is None:
         return []
 
@@ -393,6 +436,7 @@ def report_metrics_for_detectors(
         "sdk_name": sdk_name,
         "is_early_adopter": organization.flags.early_adopter.is_set,
     }
+
     event_integrations = event.get("sdk", {}).get("integrations", []) or []
 
     for integration_name in INTEGRATIONS_OF_INTEREST:

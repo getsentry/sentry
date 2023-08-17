@@ -1,7 +1,8 @@
 from django.utils import timezone
 
 from sentry.models import FeatureAdoption, GroupAssignee, GroupTombstone, Rule
-from sentry.plugins.bases import IssueTrackingPlugin2, NotificationPlugin
+from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
+from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.receivers.rules import DEFAULT_RULE_DATA
 from sentry.signals import (
     advanced_search,
@@ -19,7 +20,7 @@ from sentry.signals import (
     sso_enabled,
     user_feedback_received,
 )
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 
 
 class FeatureAdoptionTest(TestCase, SnubaTestCase):
@@ -451,7 +452,10 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
             organization=self.organization, teams=[self.team], user=self.create_user()
         )
         member_joined.send(
-            member=member, organization_id=self.organization.id, sender=type(self.project)
+            organization_member_id=member.id,
+            organization_id=self.organization.id,
+            user_id=member.user_id,
+            sender=type(self.project),
         )
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="invite_team"
@@ -564,8 +568,8 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
 
     def test_sso(self):
         sso_enabled.send(
-            organization=self.organization,
-            user=self.user,
+            organization_id=self.organization.id,
+            user_id=self.user.id,
             provider="google",
             sender=type(self.organization),
         )

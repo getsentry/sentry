@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
@@ -12,7 +12,6 @@ import {
 } from 'sentry/components/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import EventReplay from 'sentry/components/events/eventReplay';
 import {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -21,7 +20,6 @@ import {Organization} from 'sentry/types';
 import {BreadcrumbLevelType, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EntryType, Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 import SearchBarAction from '../searchBarAction';
@@ -39,29 +37,27 @@ type Props = {
   };
   event: Event;
   organization: Organization;
-  projectSlug: string;
-  isShare?: boolean;
 };
 
 enum BreadcrumbSort {
-  Newest = 'newest',
-  Oldest = 'oldest',
+  NEWEST = 'newest',
+  OLDEST = 'oldest',
 }
 
 const EVENT_BREADCRUMB_SORT_LOCALSTORAGE_KEY = 'event-breadcrumb-sort';
 
 const sortOptions = [
-  {label: t('Newest'), value: BreadcrumbSort.Newest},
-  {label: t('Oldest'), value: BreadcrumbSort.Oldest},
+  {label: t('Newest'), value: BreadcrumbSort.NEWEST},
+  {label: t('Oldest'), value: BreadcrumbSort.OLDEST},
 ];
 
-function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}: Props) {
+function BreadcrumbsContainer({data, event, organization}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSelections, setFilterSelections] = useState<SelectOption<string>[]>([]);
   const [displayRelativeTime, setDisplayRelativeTime] = useState(false);
   const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
     EVENT_BREADCRUMB_SORT_LOCALSTORAGE_KEY,
-    BreadcrumbSort.Newest
+    BreadcrumbSort.NEWEST
   );
 
   const entryIndex = event.entries.findIndex(
@@ -249,7 +245,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
     // Breadcrumbs come back from API sorted oldest -> newest.
     // Need to `reverse()` instead of sort by timestamp because crumbs with
     // exact same timestamp will appear out of order.
-    return sort === BreadcrumbSort.Newest
+    return sort === BreadcrumbSort.NEWEST
       ? [...filteredBreadcrumbs].reverse()
       : filteredBreadcrumbs;
   }, [
@@ -288,11 +284,8 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
     };
   }
 
-  const replayId = getReplayIdFromEvent(event);
-  const showReplay = !isShare && organization.features.includes('session-replay');
-
   const actions = (
-    <SearchAndSortWrapper isFullWidth={showReplay}>
+    <SearchAndSortWrapper>
       <SearchBarAction
         placeholder={t('Search breadcrumbs')}
         onChange={setSearchTerm}
@@ -319,19 +312,8 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
     <EventDataSection
       type={EntryType.BREADCRUMBS}
       title={t('Breadcrumbs')}
-      actions={!showReplay ? actions : null}
+      actions={actions}
     >
-      {showReplay ? (
-        <Fragment>
-          <EventReplay
-            organization={organization}
-            replayId={replayId}
-            projectSlug={projectSlug}
-            event={event}
-          />
-          {actions}
-        </Fragment>
-      ) : null}
       <ErrorBoundary>
         <GuideAnchor target="breadcrumbs" position="bottom">
           <Breadcrumbs
@@ -352,7 +334,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
 
 export {BreadcrumbsContainer as Breadcrumbs};
 
-const SearchAndSortWrapper = styled('div')<{isFullWidth?: boolean}>`
+const SearchAndSortWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   gap: ${space(1)};
@@ -360,8 +342,6 @@ const SearchAndSortWrapper = styled('div')<{isFullWidth?: boolean}>`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr;
   }
-
-  margin-bottom: ${p => (p.isFullWidth ? space(1) : 0)};
 `;
 
 const LevelWrap = styled('span')`

@@ -7,11 +7,11 @@ import rest_framework
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.merge import handle_merge
 from sentry.models import Activity, Group, GroupInboxReason, GroupStatus, add_group_to_inbox
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 
 
-class HandleIssueMergeTest(TestCase):  # type: ignore
+class HandleIssueMergeTest(TestCase):
     def setUp(self) -> None:
         self.groups = []
         self.project_lookup = {self.project.id: self.project}

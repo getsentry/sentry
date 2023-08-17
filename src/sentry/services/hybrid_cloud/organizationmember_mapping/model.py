@@ -25,14 +25,6 @@ class RpcOrganizationMemberMapping(RpcModel):
 
 
 class RpcOrganizationMemberMappingUpdate(RpcModel):
-    """
-    A set of values to be updated on an OrganizationMemberMapping.
-
-    An omitted key indicates that the attribute should not be updated. (Compare to a
-    `"user_id": None` entry, which indicates that `user_id` should be
-    overwritten with a null value.)
-    """
-
     role: str
     user_id: Optional[int]
     email: Optional[str]

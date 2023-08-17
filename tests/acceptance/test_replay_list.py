@@ -2,11 +2,13 @@ from datetime import datetime, timedelta
 
 from sentry.models import Project
 from sentry.replays.testutils import mock_replay
-from sentry.testutils import ReplaysAcceptanceTestCase
+from sentry.testutils.cases import ReplaysAcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 FEATURE_NAME = ["organizations:session-replay"]
 
 
+@no_silo_test(stable=True)
 class ReplayListTest(ReplaysAcceptanceTestCase):
     def setUp(self):
         super().setUp()

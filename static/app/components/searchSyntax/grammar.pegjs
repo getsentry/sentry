@@ -2,7 +2,7 @@
   const {TokenConverter, TermOperator, FilterType, config} = options;
   const tc = new TokenConverter({text, location, config});
 
-  const opDefault = TermOperator.Default;
+  const opDefault = TermOperator.DEFAULT;
 }
 
 search
@@ -64,137 +64,137 @@ filter
 // filter for dates
 date_filter
   = key:search_key sep op:operator value:iso_8601_date_format &{
-      return tc.predicateFilter(FilterType.Date, key, value, op)
+      return tc.predicateFilter(FilterType.DATE, key, value, op)
     } {
-      return tc.tokenFilter(FilterType.Date, key, value, op, false);
+      return tc.tokenFilter(FilterType.DATE, key, value, op, false);
     }
 
 // filter for exact dates
 specific_date_filter
   = key:search_key sep value:iso_8601_date_format &{
-      return tc.predicateFilter(FilterType.SpecificDate, key)
+      return tc.predicateFilter(FilterType.SPECIFIC_DATE, key)
     } {
-      return tc.tokenFilter(FilterType.SpecificDate, key, value, opDefault, false);
+      return tc.tokenFilter(FilterType.SPECIFIC_DATE, key, value, opDefault, false);
     }
 
 // filter for relative dates
 rel_date_filter
   = key:search_key sep value:rel_date_format &{
-      return tc.predicateFilter(FilterType.RelativeDate, key)
+      return tc.predicateFilter(FilterType.RELATIVE_DATE, key)
     } {
-      return tc.tokenFilter(FilterType.RelativeDate, key, value, opDefault, false);
+      return tc.tokenFilter(FilterType.RELATIVE_DATE, key, value, opDefault, false);
     }
 
 // filter for durations
 duration_filter
   = negation:negation? key:search_key sep op:operator? value:duration_format &{
-      return tc.predicateFilter(FilterType.Duration, key)
+      return tc.predicateFilter(FilterType.DURATION, key)
     } {
-      return tc.tokenFilter(FilterType.Duration, key, value, op, !!negation);
+      return tc.tokenFilter(FilterType.DURATION, key, value, op, !!negation);
     }
 
 // filter for file size
 size_filter
   = negation:negation? key:search_key sep op:operator? value:size_format &{
-      return tc.predicateFilter(FilterType.Size, key)
+      return tc.predicateFilter(FilterType.SIZE, key)
     } {
-      return tc.tokenFilter(FilterType.Size, key, value, op, !!negation);
+      return tc.tokenFilter(FilterType.SIZE, key, value, op, !!negation);
     }
 
 // boolean comparison filter
 boolean_filter
   = negation:negation? key:search_key sep value:boolean_value &{
-      return tc.predicateFilter(FilterType.Boolean, key)
+      return tc.predicateFilter(FilterType.BOOLEAN, key)
     } {
-      return tc.tokenFilter(FilterType.Boolean, key, value, opDefault, !!negation);
+      return tc.tokenFilter(FilterType.BOOLEAN, key, value, opDefault, !!negation);
     }
 
 // numeric in filter
 numeric_in_filter
   = negation:negation? key:search_key sep value:numeric_in_list &{
-      return tc.predicateFilter(FilterType.NumericIn, key)
+      return tc.predicateFilter(FilterType.NUMERIC_IN, key)
     } {
-      return tc.tokenFilter(FilterType.NumericIn, key, value, opDefault, !!negation);
+      return tc.tokenFilter(FilterType.NUMERIC_IN, key, value, opDefault, !!negation);
     }
 
 // numeric comparison filter
 numeric_filter
   = negation:negation? key:search_key sep op:operator? value:numeric_value &{
-      return tc.predicateFilter(FilterType.Numeric, key)
+      return tc.predicateFilter(FilterType.NUMERIC, key)
     } {
-      return tc.tokenFilter(FilterType.Numeric, key, value, op, !!negation);
+      return tc.tokenFilter(FilterType.NUMERIC, key, value, op, !!negation);
     }
 
 // aggregate duration filter
 aggregate_duration_filter
   = negation:negation? key:aggregate_key sep op:operator? value:duration_format &{
-      return tc.predicateFilter(FilterType.AggregateDuration, key)
+      return tc.predicateFilter(FilterType.AGGREGATE_DURATION, key)
   } {
-      return tc.tokenFilter(FilterType.AggregateDuration, key, value, op, !!negation);
+      return tc.tokenFilter(FilterType.AGGREGATE_DURATION, key, value, op, !!negation);
     }
 
 // aggregate file size filter
 aggregate_size_filter
   = negation:negation? key:aggregate_key sep op:operator? value:size_format &{
-      return tc.predicateFilter(FilterType.AggregateSize, key)
+      return tc.predicateFilter(FilterType.AGGREGATE_SIZE, key)
   } {
-      return tc.tokenFilter(FilterType.AggregateSize, key, value, op, !!negation);
+      return tc.tokenFilter(FilterType.AGGREGATE_SIZE, key, value, op, !!negation);
     }
 
 // aggregate percentage filter
 aggregate_percentage_filter
   = negation:negation? key:aggregate_key sep op:operator? value:percentage_format &{
-      return tc.predicateFilter(FilterType.AggregatePercentage, key)
+      return tc.predicateFilter(FilterType.AGGREGATE_PERCENTAGE, key)
     } {
-      return tc.tokenFilter(FilterType.AggregatePercentage, key, value, op, !!negation);
+      return tc.tokenFilter(FilterType.AGGREGATE_PERCENTAGE, key, value, op, !!negation);
     }
 
 // aggregate numeric filter
 aggregate_numeric_filter
   = negation:negation? key:aggregate_key sep op:operator? value:numeric_value &{
-      return tc.predicateFilter(FilterType.AggregateNumeric, key)
+      return tc.predicateFilter(FilterType.AGGREGATE_NUMERIC, key)
     } {
-      return tc.tokenFilter(FilterType.AggregateNumeric, key, value, op, !!negation);
+      return tc.tokenFilter(FilterType.AGGREGATE_NUMERIC, key, value, op, !!negation);
     }
 
 // aggregate date filter
 aggregate_date_filter
   = negation:negation? key:aggregate_key sep op:operator? value:iso_8601_date_format &{
-      return tc.predicateFilter(FilterType.AggregateDate, key)
+      return tc.predicateFilter(FilterType.AGGREGATE_DATE, key)
     } {
-      return tc.tokenFilter(FilterType.AggregateDate, key, value, op, !!negation);
+      return tc.tokenFilter(FilterType.AGGREGATE_DATE, key, value, op, !!negation);
     }
 
 // filter for relative dates
 aggregate_rel_date_filter
   = negation:negation? key:aggregate_key sep op:operator? value:rel_date_format &{
-      return tc.predicateFilter(FilterType.AggregateRelativeDate, key)
+      return tc.predicateFilter(FilterType.AGGREGATE_RELATIVE_DATE, key)
     } {
-      return tc.tokenFilter(FilterType.AggregateRelativeDate, key, value, op, !!negation);
+      return tc.tokenFilter(FilterType.AGGREGATE_RELATIVE_DATE, key, value, op, !!negation);
     }
 
 // has filter for not null type checks
 has_filter
   = negation:negation? &"has:" key:search_key sep value:(search_key / search_value) &{
-      return tc.predicateFilter(FilterType.Has, key)
+      return tc.predicateFilter(FilterType.HAS, key)
     } {
-      return tc.tokenFilter(FilterType.Has, key, value, opDefault, !!negation);
+      return tc.tokenFilter(FilterType.HAS, key, value, opDefault, !!negation);
     }
 
 // is filter. Specific to issue search
 is_filter
   = negation:negation? &"is:" key:search_key sep value:search_value &{
-      return tc.predicateFilter(FilterType.Is, key)
+      return tc.predicateFilter(FilterType.IS, key)
     } {
-      return tc.tokenFilter(FilterType.Is, key, value, opDefault, !!negation);
+      return tc.tokenFilter(FilterType.IS, key, value, opDefault, !!negation);
     }
 
 // in filter key:[val1, val2]
 text_in_filter
   = negation:negation? key:text_key sep value:text_in_list &{
-      return tc.predicateFilter(FilterType.TextIn, key)
+      return tc.predicateFilter(FilterType.TEXT_IN, key)
     } {
-      return tc.tokenFilter(FilterType.TextIn, key, value, opDefault, !!negation);
+      return tc.tokenFilter(FilterType.TEXT_IN, key, value, opDefault, !!negation);
     }
 
 // standard key:val filter
@@ -208,9 +208,9 @@ text_filter
     sep
     op:(operator &{ return tc.predicateTextOperator(key); })?
     value:search_value &{
-      return tc.predicateFilter(FilterType.Text, key)
+      return tc.predicateFilter(FilterType.TEXT, key)
     } {
-      return tc.tokenFilter(FilterType.Text, key, value, op ? op[0] : opDefault, !!negation);
+      return tc.tokenFilter(FilterType.TEXT, key, value, op ? op[0] : opDefault, !!negation);
     }
 
 // Filter keys

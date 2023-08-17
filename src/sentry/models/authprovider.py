@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import logging
+from typing import List
 
 from django.db import models
 from django.utils import timezone
 
-from bitfield import BitField
+from bitfield import TypedClassBitField
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -13,7 +16,8 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.models import ControlOutbox, OutboxCategory, OutboxScope
+from sentry.types.region import find_regions_for_orgs
 
 logger = logging.getLogger("sentry.authprovider")
 
@@ -35,7 +39,7 @@ class AuthProviderDefaultTeams(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_authprovider_default_teams"
-        unique_together = tuple()
+        unique_together = ()
 
 
 @control_silo_only_model
@@ -53,13 +57,13 @@ class AuthProvider(Model):
     default_role = BoundedPositiveIntegerField(default=50)
     default_global_access = models.BooleanField(default=True)
 
-    flags = BitField(
-        flags=(
-            ("allow_unlinked", "Grant access to members who have not linked SSO accounts."),
-            ("scim_enabled", "Enable SCIM for member and team provisioning and syncing"),
-        ),
-        default=0,
-    )
+    class flags(TypedClassBitField):
+        # Grant access to members who have not linked SSO accounts.
+        allow_unlinked: bool
+        # Enable SCIM for member and team provisioning and syncing.
+        scim_enabled: bool
+
+        bitfield_default = 0
 
     class Meta:
         app_label = "sentry"
@@ -80,18 +84,7 @@ class AuthProvider(Model):
         return self.get_provider().name
 
     def get_scim_token(self):
-        from sentry.models import SentryAppInstallationToken
-
-        if self.flags.scim_enabled:
-            return SentryAppInstallationToken.objects.get_token(
-                self.organization_id, f"{self.provider}_scim"
-            )
-        else:
-            logger.warning(
-                "SCIM disabled but tried to access token",
-                extra={"organization_id": self.organization_id},
-            )
-            return None
+        return get_scim_token(self.flags.scim_enabled, self.organization_id, self.provider)
 
     def enable_scim(self, user):
         from sentry.models import SentryAppInstallation, SentryAppInstallationForProvider
@@ -141,7 +134,19 @@ class AuthProvider(Model):
         )
         self.flags.scim_enabled = True
 
-    def disable_scim(self, user):
+    def outboxes_for_reset_idp_flags(self) -> List[ControlOutbox]:
+        return [
+            ControlOutbox(
+                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                shard_identifier=self.organization_id,
+                category=OutboxCategory.RESET_IDP_FLAGS,
+                object_identifier=self.organization_id,
+                region_name=region_name,
+            )
+            for region_name in find_regions_for_orgs([self.organization_id])
+        ]
+
+    def disable_scim(self):
         from sentry import deletions
         from sentry.models import SentryAppInstallationForProvider
 
@@ -152,7 +157,8 @@ class AuthProvider(Model):
             # Only one SCIM installation allowed per organization. So we can reset the idp flags for the orgs
             # We run this update before the app is uninstalled to avoid ending up in a situation where there are
             # members locked out because we failed to drop the IDP flag
-            organization_service.reset_idp_flags(organization_id=self.organization_id)
+            for outbox in self.outboxes_for_reset_idp_flags():
+                outbox.save()
             sentry_app = install.sentry_app_installation.sentry_app
             assert (
                 sentry_app.is_internal
@@ -162,3 +168,30 @@ class AuthProvider(Model):
 
     def get_audit_log_data(self):
         return {"provider": self.provider, "config": self.config}
+
+    def outboxes_for_mark_invalid_sso(self, user_id: int) -> List[ControlOutbox]:
+        return [
+            ControlOutbox(
+                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                shard_identifier=self.organization_id,
+                category=OutboxCategory.MARK_INVALID_SSO,
+                object_identifier=user_id,
+                region_name=region_name,
+            )
+            for region_name in find_regions_for_orgs([self.organization_id])
+        ]
+
+
+def get_scim_token(scim_enabled: bool, organization_id: int, provider: str) -> str | None:
+    from sentry.services.hybrid_cloud.app import app_service
+
+    if scim_enabled:
+        return app_service.get_installation_token(
+            organization_id=organization_id, provider=f"{provider}_scim"
+        )
+    else:
+        logger.warning(
+            "SCIM disabled but tried to access token",
+            extra={"organization_id": organization_id},
+        )
+        return None

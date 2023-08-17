@@ -1,14 +1,16 @@
-from django.conf.urls import url
+from django.urls import re_path
 
-from .webhooks import GithubIntegrationsWebhookEndpoint, GithubWebhookEndpoint
+from .webhooks import GithubPluginIntegrationsWebhookEndpoint, GithubPluginWebhookEndpoint
 
 urlpatterns = [
-    url(
+    re_path(
         r"^organizations/(?P<organization_id>[^\/]+)/webhook/$",
-        GithubWebhookEndpoint.as_view(),
+        GithubPluginWebhookEndpoint.as_view(),
+        name="sentry-plugins-github-webhook",
     ),
-    url(
+    re_path(
         r"^installations/webhook/$",
-        GithubIntegrationsWebhookEndpoint.as_view(),
+        GithubPluginIntegrationsWebhookEndpoint.as_view(),
+        name="sentry-plugins-github-installation-webhook",
     ),
 ]

@@ -17,7 +17,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PlatformType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {STACK_TYPE} from 'sentry/types/stacktrace';
+import {StackType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
@@ -60,7 +60,7 @@ type Props = {
   projectSlug: Project['slug'];
   recentFirst: boolean;
   stackTraceNotFound: boolean;
-  stackType: STACK_TYPE;
+  stackType: StackType;
   title: React.ReactElement<any, any>;
   type: string;
   wrapTitle?: boolean;
@@ -340,7 +340,7 @@ export function TraceEventDataSection({
   }
 
   const nativePlatform = isNativePlatform(platform);
-  const minified = stackType === STACK_TYPE.MINIFIED;
+  const minified = stackType === StackType.MINIFIED;
 
   // Apple crash report endpoint
   const appleCrashEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}`;

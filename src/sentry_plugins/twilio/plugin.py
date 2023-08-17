@@ -5,7 +5,7 @@ from typing import Any
 
 import phonenumbers
 from django import forms
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 import sentry
 from sentry.integrations import FeatureDescription, IntegrationFeatures
@@ -101,7 +101,7 @@ class TwilioConfigurationForm(forms.Form):
 class TwilioPlugin(CorePluginMixin, NotificationPlugin):
     version = sentry.VERSION
     description = DESCRIPTION
-    resource_links = (
+    resource_links = [
         (
             "Documentation",
             "https://github.com/getsentry/sentry/blob/master/src/sentry_plugins/twilio/Twilio_Instructions.md",
@@ -112,7 +112,7 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
             "https://github.com/getsentry/sentry/tree/master/src/sentry_plugins/twilio",
         ),
         ("Twilio", "https://www.twilio.com/"),
-    )
+    ]
 
     slug = "twilio"
     title = _("Twilio (SMS)")
@@ -187,7 +187,7 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
                 errors.append(e)
 
         if errors:
-            raise self.raise_error(errors[0])
+            self.raise_error(errors[0])
 
     def get_client(self, project):
         account_sid = self.get_option("account_sid", project)

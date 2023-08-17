@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import heapq
 import logging
 from datetime import timedelta
 from functools import partial, reduce
-from typing import MutableMapping, Tuple
+from typing import Tuple
 
 import sentry_sdk
-from django.db.models import Count
+from django.db.models import Count, F
 from django.utils import dateformat, timezone
 from sentry_sdk import set_tag
 from snuba_sdk import Request
@@ -17,25 +19,26 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Limit, Query
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
-from sentry.db.models.fields import PickledObjectField
 from sentry.models import (
     Activity,
     Group,
     GroupHistory,
     GroupHistoryStatus,
     GroupStatus,
-    GroupSubStatus,
     Organization,
     OrganizationMember,
     OrganizationStatus,
-    User,
 )
+from sentry.notifications.utils import generate_notification_uuid
+from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
@@ -58,7 +61,7 @@ class OrganizationReportContext:
         self.end = to_datetime(timestamp)
 
         self.organization: Organization = organization
-        self.projects: MutableMapping[str, ProjectContext] = {}  # { project_id: ProjectContext }
+        self.projects: dict[int, ProjectContext] = {}  # { project_id: ProjectContext }
 
         self.project_ownership = {}  # { user_id: set<project_id> }
         for project in organization.project_set.all():
@@ -73,14 +76,15 @@ class ProjectContext:
     dropped_error_count = 0
     accepted_transaction_count = 0
     dropped_transaction_count = 0
+    accepted_replay_count = 0
+    dropped_replay_count = 0
 
     # Removed after organizations:escalating-issues GA
     all_issue_count = 0
     existing_issue_count = 0
     reopened_issue_count = 0
     new_issue_count = 0
-    # we merged organizations:issue-states flag to organizations:escalating-issues, so delete when
-    # organizations:escalating-issues GA
+    # delete when organizations:escalating-issues GA
     new_substatus_count = 0
     ongoing_substatus_count = 0
     escalating_substatus_count = 0
@@ -97,13 +101,24 @@ class ProjectContext:
         # Array of (Group, count)
         self.key_performance_issues = []
 
+        self.key_replay_events = []
+
         # Dictionary of { timestamp: count }
         self.error_count_by_day = {}
         # Dictionary of { timestamp: count }
         self.transaction_count_by_day = {}
+        # Dictionary of { timestamp: count }
+        self.replay_count_by_day = {}
 
     def __repr__(self):
-        return f"{self.key_errors}, Errors: [Accepted {self.accepted_error_count}, Dropped {self.dropped_error_count}]\nTransactions: [Accepted {self.accepted_transaction_count} Dropped {self.dropped_transaction_count}]"
+        return "\n".join(
+            [
+                f"{self.key_errors}, ",
+                f"Errors: [Accepted {self.accepted_error_count}, Dropped {self.dropped_error_count}]",
+                f"Transactions: [Accepted {self.accepted_transaction_count} Dropped {self.dropped_transaction_count}]",
+                f"Replays: [Accepted {self.accepted_replay_count} Dropped {self.dropped_replay_count}]",
+            ]
+        )
 
 
 def check_if_project_is_empty(project_ctx):
@@ -118,6 +133,8 @@ def check_if_project_is_empty(project_ctx):
         and not project_ctx.dropped_error_count
         and not project_ctx.accepted_transaction_count
         and not project_ctx.dropped_transaction_count
+        and not project_ctx.accepted_replay_count
+        and not project_ctx.dropped_replay_count
     )
 
 
@@ -134,6 +151,7 @@ def check_if_ctx_is_empty(ctx):
     queue="reports.prepare",
     max_retries=5,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry
 def schedule_organizations(dry_run=False, timestamp=None, duration=None):
@@ -159,6 +177,7 @@ def schedule_organizations(dry_run=False, timestamp=None, duration=None):
     queue="reports.prepare",
     max_retries=5,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry
 def prepare_organization_report(
@@ -246,7 +265,7 @@ def project_event_counts_for_organization(ctx):
             Condition(
                 Column("category"),
                 Op.IN,
-                [*DataCategory.error_categories(), DataCategory.TRANSACTION],
+                [*DataCategory.error_categories(), DataCategory.TRANSACTION, DataCategory.REPLAY],
             ),
         ],
         groupby=[Column("outcome"), Column("category"), Column("project_id"), Column("time")],
@@ -268,6 +287,13 @@ def project_event_counts_for_organization(ctx):
             else:
                 project_ctx.accepted_transaction_count += total
                 project_ctx.transaction_count_by_day[timestamp] = total
+        elif dat["category"] == DataCategory.REPLAY:
+            # Replay outcome
+            if dat["outcome"] == Outcome.RATE_LIMITED or dat["outcome"] == Outcome.FILTERED:
+                project_ctx.dropped_replay_count += total
+            else:
+                project_ctx.accepted_replay_count += total
+                project_ctx.replay_count_by_day[timestamp] = total
         else:
             # Error outcome
             if dat["outcome"] == Outcome.RATE_LIMITED or dat["outcome"] == Outcome.FILTERED:
@@ -349,8 +375,8 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
     substatus_counts = (
         Group.objects.filter(
             project__organization_id=ctx.organization.id,
-            first_seen__gte=ctx.start,
-            first_seen__lt=ctx.end,
+            last_seen__gte=ctx.start,
+            last_seen__lt=ctx.end,
             status=GroupStatus.UNRESOLVED,
         )
         .values("project_id", "substatus")
@@ -615,22 +641,26 @@ def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
     else:
         # We save the subscription status of the user in a field in UserOptions.
         # Here we do a raw query and LEFT JOIN on a subset of UserOption table where sentry_useroption.key = 'reports:disabled-organizations'
-        user_set = User.objects.raw(
-            """SELECT auth_user.*, sentry_useroption.value as options FROM auth_user
-                                       INNER JOIN sentry_organizationmember on sentry_organizationmember.user_id=auth_user.id
-                                       LEFT JOIN sentry_useroption on sentry_useroption.user_id = auth_user.id and sentry_useroption.key = 'reports:disabled-organizations'
-                                       WHERE auth_user.is_active = true
-                                         AND "sentry_organizationmember"."flags" & %s = 0
-                                         AND "sentry_organizationmember"."organization_id"= %s """,
-            [OrganizationMember.flags["member-limit:restricted"], ctx.organization.id],
+        user_set = list(
+            OrganizationMember.objects.filter(
+                user_is_active=True,
+                organization_id=ctx.organization.id,
+            )
+            .filter(flags=F("flags").bitand(~OrganizationMember.flags["member-limit:restricted"]))
+            .values_list("user_id", flat=True)
         )
+        options_by_user_id = {
+            option.user_id: option.value
+            for option in user_option_service.get_many(
+                filter=dict(user_ids=user_set, keys=["reports:disabled-organizations"])
+            )
+        }
 
-        for user in user_set:
-            # We manually pick out user.options and use PickledObjectField to deserialize it. We get a list of organizations the user has unsubscribed from user reports
-            option = PickledObjectField().to_python(user.options) or []
+        for user_id in user_set:
+            option = list(options_by_user_id.get(user_id, []))
             user_subscribed_to_organization_reports = ctx.organization.id not in option
             if user_subscribed_to_organization_reports:
-                send_email(ctx, user, dry_run=dry_run)
+                send_email(ctx, user_id, dry_run=dry_run)
 
 
 project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
@@ -663,9 +693,10 @@ group_status_to_color = {
     GroupHistoryStatus.DELETED_AND_DISCARDED: "#DBD6E1",
     GroupHistoryStatus.REVIEWED: "#FAD473",
     GroupHistoryStatus.NEW: "#FAD473",
-    GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING: "",
+    GroupHistoryStatus.ESCALATING: "#FAD473",
+    GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING: "#FAD473",
     GroupHistoryStatus.ARCHIVED_FOREVER: "#FAD473",
-    GroupHistoryStatus.ARCHIVED_FOREVER: "#FAD473",
+    GroupHistoryStatus.ARCHIVED_UNTIL_CONDITION_MET: "#FAD473",
 }
 
 
@@ -674,6 +705,8 @@ def get_group_status_badge(group: Group) -> Tuple[str, str, str]:
     Returns a tuple of (text, background_color, border_color)
     Should be similar to GroupStatusBadge.tsx in the frontend
     """
+    if group.status == GroupStatus.RESOLVED:
+        return ("Resolved", "rgba(108, 95, 199, 0.08)", "rgba(108, 95, 199, 0.5)")
     if group.status == GroupStatus.UNRESOLVED:
         if group.substatus == GroupSubStatus.NEW:
             return ("New", "rgba(245, 176, 0, 0.08)", "rgba(245, 176, 0, 0.55)")
@@ -684,14 +717,14 @@ def get_group_status_badge(group: Group) -> Tuple[str, str, str]:
     return ("Ongoing", "rgba(219, 214, 225, 1)", "rgba(219, 214, 225, 1)")
 
 
-def render_template_context(ctx, user):
+def render_template_context(ctx, user_id):
     # Serialize ctx for template, and calculate view parameters (like graph bar heights)
     # Fetch the list of projects associated with the user.
     # Projects owned by teams that the user has membership of.
-    if user and user.id in ctx.project_ownership:
+    if user_id and user_id in ctx.project_ownership:
         user_projects = list(
             filter(
-                lambda project_ctx: project_ctx.project.id in ctx.project_ownership[user.id],
+                lambda project_ctx: project_ctx.project.id in ctx.project_ownership[user_id],
                 ctx.projects.values(),
             )
         )
@@ -702,6 +735,12 @@ def render_template_context(ctx, user):
         user_projects = ctx.projects.values()
 
     has_issue_states = features.has("organizations:escalating-issues", ctx.organization)
+    has_replay_graph = features.has("organizations:session-replay", ctx.organization)
+    has_replay_section = features.has(
+        "organizations:session-replay", ctx.organization
+    ) and features.has("organizations:session-replay-weekly-email", ctx.organization)
+
+    notification_uuid = generate_notification_uuid()
 
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.
@@ -709,17 +748,26 @@ def render_template_context(ctx, user):
         # Given an iterator of event counts, sum up their accepted/dropped errors/transaction counts.
         def sum_event_counts(project_ctxs):
             return reduce(
-                lambda a, b: (a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3]),
+                lambda a, b: (
+                    a[0] + b[0],
+                    a[1] + b[1],
+                    a[2] + b[2],
+                    a[3] + b[3],
+                    a[4] + b[4],
+                    a[5] + b[5],
+                ),
                 [
                     (
                         project_ctx.accepted_error_count,
                         project_ctx.dropped_error_count,
                         project_ctx.accepted_transaction_count,
                         project_ctx.dropped_transaction_count,
+                        project_ctx.accepted_replay_count,
+                        project_ctx.dropped_replay_count,
                     )
                     for project_ctx in project_ctxs
                 ],
-                (0, 0, 0, 0),
+                (0, 0, 0, 0, 0, 0),
             )
 
         # Highest volume projects go first
@@ -734,7 +782,10 @@ def render_template_context(ctx, user):
             total_dropped_error,
             total_transaction,
             total_dropped_transaction,
+            total_replays,
+            total_dropped_replays,
         ) = sum_event_counts(projects_associated_with_user)
+
         # The number of reports to keep is the same as the number of colors
         # available to use in the legend.
         projects_taken = projects_associated_with_user[: len(project_breakdown_colors)]
@@ -745,12 +796,16 @@ def render_template_context(ctx, user):
         legend = [
             {
                 "slug": project_ctx.project.slug,
-                "url": project_ctx.project.get_absolute_url(),
+                "url": project_ctx.project.get_absolute_url(
+                    params={"referrer": "weekly_report", "notification_uuid": notification_uuid}
+                ),
                 "color": project_breakdown_colors[i],
                 "dropped_error_count": project_ctx.dropped_error_count,
                 "accepted_error_count": project_ctx.accepted_error_count,
                 "dropped_transaction_count": project_ctx.dropped_transaction_count,
                 "accepted_transaction_count": project_ctx.accepted_transaction_count,
+                "dropped_replay_count": project_ctx.dropped_replay_count,
+                "accepted_replay_count": project_ctx.accepted_replay_count,
             }
             for i, project_ctx in enumerate(projects_taken)
         ]
@@ -761,6 +816,8 @@ def render_template_context(ctx, user):
                 others_dropped_error,
                 others_transaction,
                 others_dropped_transaction,
+                others_replays,
+                others_dropped_replays,
             ) = sum_event_counts(projects_not_taken)
             legend.append(
                 {
@@ -770,6 +827,8 @@ def render_template_context(ctx, user):
                     "accepted_error_count": others_error,
                     "dropped_transaction_count": others_dropped_transaction,
                     "accepted_transaction_count": others_transaction,
+                    "dropped_replay_count": others_dropped_replays,
+                    "accepted_replay_count": others_replays,
                 }
             )
         if len(projects_taken) > 1:
@@ -781,6 +840,8 @@ def render_template_context(ctx, user):
                     "accepted_error_count": total_error,
                     "dropped_transaction_count": total_dropped_transaction,
                     "accepted_transaction_count": total_transaction,
+                    "dropped_replay_count": total_dropped_replays,
+                    "accepted_replay_count": total_replays,
                 }
             )
 
@@ -793,6 +854,7 @@ def render_template_context(ctx, user):
                     "color": project_breakdown_colors[i],
                     "error_count": project_ctx.error_count_by_day.get(t, 0),
                     "transaction_count": project_ctx.transaction_count_by_day.get(t, 0),
+                    "replay_count": project_ctx.replay_count_by_day.get(t, 0),
                 }
                 for i, project_ctx in enumerate(projects_taken)
             ]
@@ -812,6 +874,12 @@ def render_template_context(ctx, user):
                                 projects_not_taken,
                             )
                         ),
+                        "replay_count": sum(
+                            map(
+                                lambda project_ctx: project_ctx.replay_count_by_day.get(t, 0),
+                                projects_not_taken,
+                            )
+                        ),
                     }
                 )
             series.append((to_datetime(t), project_series))
@@ -820,11 +888,15 @@ def render_template_context(ctx, user):
             "series": series,
             "total_error_count": total_error,
             "total_transaction_count": total_transaction,
+            "total_replay_count": total_replays,
             "error_maximum": max(  # The max error count on any single day
                 sum(value["error_count"] for value in values) for timestamp, values in series
             ),
             "transaction_maximum": max(  # The max transaction count on any single day
                 sum(value["transaction_count"] for value in values) for timestamp, values in series
+            ),
+            "replay_maximum": max(  # The max replay count on any single day
+                sum(value["replay_count"] for value in values) for timestamp, values in series
             )
             if len(projects_taken) > 0
             else 0,
@@ -837,7 +909,7 @@ def render_template_context(ctx, user):
                 logger.info(
                     "render_template_context.all_key_errors.num_projects",
                     extra={
-                        "user_id": user.id if user else "",
+                        "user_id": user_id if user_id else "",
                         "num_user_projects": len(user_projects),
                     },
                 )
@@ -846,7 +918,7 @@ def render_template_context(ctx, user):
                     logger.info(
                         "render_template_context.all_key_errors.project",
                         extra={
-                            "user_id": user.id,
+                            "user_id": user_id,
                             "project_id": project_ctx.project.id,
                         },
                     )
@@ -856,7 +928,7 @@ def render_template_context(ctx, user):
                             "render_template_context.all_key_errors.found_error",
                             extra={
                                 "group_id": group.id,
-                                "user_id": user.id,
+                                "user_id": user_id,
                                 "project_id": project_ctx.project.id,
                             },
                         )
@@ -918,6 +990,9 @@ def render_template_context(ctx, user):
 
         return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
 
+    def key_replays():
+        return []
+
     def issue_summary():
         all_issue_count = 0
         existing_issue_count = 0
@@ -951,6 +1026,7 @@ def render_template_context(ctx, user):
         }
 
     return {
+        "has_replay_graph": has_replay_graph,
         "organization": ctx.organization,
         "start": date_format(ctx.start),
         "end": date_format(ctx.end),
@@ -958,15 +1034,18 @@ def render_template_context(ctx, user):
         "key_errors": key_errors(),
         "key_transactions": key_transactions(),
         "key_performance_issues": key_performance_issues(),
+        "key_replays": key_replays() if has_replay_section else [],
         "issue_summary": issue_summary(),
+        "user_project_count": len(user_projects),
+        "notification_uuid": notification_uuid,
     }
 
 
-def send_email(ctx, user, dry_run=False, email_override=None):
-    template_ctx = render_template_context(ctx, user)
+def send_email(ctx, user_id, dry_run=False, email_override=None):
+    template_ctx = render_template_context(ctx, user_id)
     if not template_ctx:
         logger.debug(
-            f"Skipping report for {ctx.organization.id} to {user}, no qualifying reports to deliver."
+            f"Skipping report for {ctx.organization.id} to <User: {user_id}>, no qualifying reports to deliver."
         )
         return
 
@@ -980,8 +1059,16 @@ def send_email(ctx, user, dry_run=False, email_override=None):
     )
     if dry_run:
         return
+    else:
+        analytics.record(
+            "weekly_report.sent",
+            user_id=user_id,
+            organization_id=ctx.organization.id,
+            notification_uuid=template_ctx["notification_uuid"],
+            user_project_count=template_ctx["user_project_count"],
+        )
     if email_override:
         message.send(to=(email_override,))
     else:
-        message.add_users((user.id,))
+        message.add_users((user_id,))
         message.send_async()

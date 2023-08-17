@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
 import {Flex} from 'sentry/components/profiling/flex';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -10,10 +10,17 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
+import {Frame} from 'sentry/utils/profiling/frame';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
 export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
+  const [hideSystemFrames, setHideSystemFrames] = useLocalStorageState(
+    'profiling-flamegraph-collapsed-frames',
+    true
+  );
+
   const {data, isLoading} = useAggregateFlamegraphQuery({transaction});
 
   const isEmpty = data?.shared.frames.length === 0;
@@ -38,7 +45,12 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
           }
         />
       </Flex>
-      <ProfileGroupProvider type="flamegraph" input={data ?? null} traceID="">
+      <ProfileGroupProvider
+        type="flamegraph"
+        input={data ?? null}
+        traceID=""
+        frameFilter={hideSystemFrames ? applicationFrameOnly : undefined}
+      >
         <FlamegraphStateProvider
           initialState={{
             preferences: {
@@ -57,7 +69,10 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
                     <p>{t(`A flamegraph isn't available for your query`)}</p>
                   </EmptyStateWarning>
                 ) : (
-                  <AggregateFlamegraph />
+                  <AggregateFlamegraph
+                    hideSystemFrames={hideSystemFrames}
+                    setHideSystemFrames={setHideSystemFrames}
+                  />
                 )}
               </Flex>
             </Panel>
@@ -66,6 +81,10 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
       </ProfileGroupProvider>
     </Flex>
   );
+}
+
+function applicationFrameOnly(frame: Frame): boolean {
+  return frame.is_application;
 }
 
 export const HeaderTitle = styled('span')`

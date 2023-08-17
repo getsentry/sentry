@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from sentry.exceptions import DeleteAborted
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.tasks.deletion.scheduled import MAX_RETRIES, logger
 
@@ -11,6 +12,7 @@ from sentry.tasks.deletion.scheduled import MAX_RETRIES, logger
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry(exclude=(DeleteAborted,))
 @track_group_async_operation
@@ -47,4 +49,4 @@ def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwa
     else:
         # all groups have been deleted
         if eventstream_state:
-            eventstream.end_delete_groups(eventstream_state)
+            eventstream.backend.end_delete_groups(eventstream_state)

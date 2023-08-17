@@ -17,10 +17,9 @@ from sentry.models import (
     Release,
     ReleaseCommit,
     Repository,
-    RuleSnooze,
-    ScheduledDeletion,
     ServiceHook,
 )
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -29,14 +28,15 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.tasks.deletion.scheduled import run_deletion
-from sentry.testutils import APITestCase, TransactionTestCase
+from sentry.tasks.deletion.scheduled import run_scheduled_deletions
+from sentry.testutils.cases import APITestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
-class DeleteProjectTest(APITestCase, TransactionTestCase):
+@region_silo_test(stable=True)
+class DeleteProjectTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         project = self.create_project(name="test")
         event = self.store_event(data={}, project_id=project.id)
@@ -114,13 +114,12 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
             alert_rule=metric_alert_rule,
             title="Something bad happened",
         )
-        rule_snooze = RuleSnooze.objects.create(user_id=self.user.id, alert_rule=metric_alert_rule)
 
-        deletion = ScheduledDeletion.schedule(project, days=0)
-        deletion.update(in_progress=True)
+        rule_snooze = self.snooze_rule(user_id=self.user.id, alert_rule=metric_alert_rule)
+        self.ScheduledDeletion.schedule(instance=project, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not Project.objects.filter(id=project.id).exists()
         assert not EnvironmentProject.objects.filter(
@@ -156,21 +155,21 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
             },
             project_id=project.id,
         )
+        assert event.group is not None
         group = event.group
         group_seen = GroupSeen.objects.create(group=group, project=project, user_id=self.user.id)
 
-        deletion = ScheduledDeletion.schedule(project, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=project, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not Project.objects.filter(id=project.id).exists()
         assert not GroupSeen.objects.filter(id=group_seen.id).exists()
         assert not Group.objects.filter(id=group.id).exists()
 
         conditions = eventstore.Filter(project_ids=[project.id, keeper.id], group_ids=[group.id])
-        events = eventstore.get_events(
+        events = eventstore.backend.get_events(
             conditions, tenant_ids={"organization_id": 123, "referrer": "r"}
         )
         assert len(events) == 0

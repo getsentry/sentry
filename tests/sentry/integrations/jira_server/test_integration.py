@@ -7,8 +7,9 @@ import pytest
 import responses
 from django.urls import reverse
 
-from fixtures.integrations import StubService
-from fixtures.integrations.jira import StubJiraApiClient
+from fixtures.integrations.jira.stub_client import StubJiraApiClient
+from fixtures.integrations.stub_service import StubService
+from sentry.integrations.jira_server.integration import JiraServerIntegration
 from sentry.models import (
     ExternalIssue,
     GroupLink,
@@ -20,7 +21,7 @@ from sentry.models import (
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
@@ -42,7 +43,9 @@ class JiraServerIntegrationTest(APITestCase):
         super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.integration = get_integration(self.organization, self.user)
-        self.installation = self.integration.get_installation(self.organization.id)
+        installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, JiraServerIntegration)
+        self.installation = installation
         self.login_as(self.user)
 
     def test_get_create_issue_config(self):
@@ -56,6 +59,7 @@ class JiraServerIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         search_url = reverse(
             "sentry-extensions-jiraserver-search",
             args=[self.organization.slug, self.integration.id],
@@ -313,6 +317,7 @@ class JiraServerIntegrationTest(APITestCase):
                 "versions",
             ]
             # After ignoring "customfield_10200", it no longer shows up
+            assert self.installation.org_integration is not None
             self.installation.org_integration = integration_service.update_organization_integration(
                 org_integration_id=self.installation.org_integration.id,
                 config={"issues_ignored_fields": ["customfield_10200"]},
@@ -349,7 +354,9 @@ class JiraServerIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
 
+        assert self.installation.org_integration is not None
         self.installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
@@ -381,6 +388,8 @@ class JiraServerIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
+        assert self.installation.org_integration is not None
         self.installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
@@ -411,6 +420,8 @@ class JiraServerIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
+        assert self.installation.org_integration is not None
         self.installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(group.project_id): {"project": "10004"}}},
@@ -453,8 +464,10 @@ class JiraServerIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         label_default = "hi"
 
+        assert self.installation.org_integration is not None
         self.installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(group.project_id): {"labels": label_default}}},
@@ -942,7 +955,9 @@ class JiraMigrationIntegrationTest(APITestCase):
         self.plugin.set_option("default_project", "SEN", self.project)
         self.plugin.set_option("instance_url", "https://example.atlassian.net", self.project)
         self.plugin.set_option("ignored_fields", "hellboy, meow", self.project)
-        self.installation = self.integration.get_installation(self.organization.id)
+        installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, JiraServerIntegration)
+        self.installation = installation
         self.login_as(self.user)
 
     def test_migrate_plugin(self):

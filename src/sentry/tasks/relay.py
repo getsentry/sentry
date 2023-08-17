@@ -2,10 +2,11 @@ import logging
 import time
 
 import sentry_sdk
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project
@@ -13,6 +14,7 @@ from sentry.utils.sdk import set_current_event_project
 logger = logging.getLogger(__name__)
 
 
+# TODO(hybrid-cloud): Add silo_mode for region once testing is adjusted
 # The time_limit here should match the `debounce_ttl` of the projectconfig_debounce_cache
 # service.
 @instrumented_task(
@@ -44,16 +46,16 @@ def build_project_config(public_key=None, **kwargs):
             # In this particular case, where a project key got deleted and
             # triggered an update, we know that key doesn't exist and we want to
             # avoid creating more tasks for it.
-            projectconfig_cache.set_many({public_key: {"disabled": True}})
+            projectconfig_cache.backend.set_many({public_key: {"disabled": True}})
         else:
             config = compute_projectkey_config(key)
-            projectconfig_cache.set_many({public_key: config})
+            projectconfig_cache.backend.set_many({public_key: config})
 
     finally:
         # Delete the key in this `finally` block to make sure the debouncing key
         # is always deleted. Deleting the key at the end of the task also makes
         # debouncing more effective.
-        projectconfig_debounce_cache.mark_task_done(
+        projectconfig_debounce_cache.backend.mark_task_done(
             organization_id=None, project_id=None, public_key=public_key
         )
 
@@ -64,7 +66,7 @@ def schedule_build_project_config(public_key):
     See documentation of `build_project_config` for documentation of parameters.
     """
     tmp_scheduled = time.time()
-    if projectconfig_debounce_cache.is_debounced(
+    if projectconfig_debounce_cache.backend.is_debounced(
         public_key=public_key, project_id=None, organization_id=None
     ):
         metrics.incr(
@@ -85,7 +87,7 @@ def schedule_build_project_config(public_key):
     # and dies before scheduling it, the cache will be stale for the whole TTL.
     # To avoid that, make sure we first schedule the task, and only then mark
     # the project as debounced.
-    projectconfig_debounce_cache.debounce(
+    projectconfig_debounce_cache.backend.debounce(
         public_key=public_key, project_id=None, organization_id=None
     )
 
@@ -129,7 +131,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
                     # If we find the config in the cache it means it was active.  As such we want to
                     # recalculate it.  If the config was not there at all, we leave it and avoid the
                     # cost of re-computation.
-                    if projectconfig_cache.get(key.public_key) is not None:
+                    if projectconfig_cache.backend.get(key.public_key) is not None:
                         configs[key.public_key] = compute_projectkey_config(key)
                         action = "recompute"
                     else:
@@ -145,7 +147,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
                 # If we find the config in the cache it means it was active.  As such we want to
                 # recalculate it.  If the config was not there at all, we leave it and avoid the
                 # cost of re-computation.
-                if projectconfig_cache.get(key.public_key) is not None:
+                if projectconfig_cache.backend.get(key.public_key) is not None:
                     configs[key.public_key] = compute_projectkey_config(key)
                     action = "recompute"
                 else:
@@ -195,6 +197,7 @@ def compute_projectkey_config(key):
     queue="relay_config_bulk",
     soft_time_limit=25 * 60,  # 25mins
     time_limit=25 * 60 + 5,
+    silo_mode=SiloMode.REGION,
 )
 def invalidate_project_config(
     organization_id=None, project_id=None, public_key=None, trigger="invalidated", **kwargs
@@ -238,7 +241,7 @@ def invalidate_project_config(
     updated_configs = compute_configs(
         organization_id=organization_id, project_id=project_id, public_key=public_key
     )
-    projectconfig_cache.set_many(updated_configs)
+    projectconfig_cache.backend.set_many(updated_configs)
 
 
 def schedule_invalidate_project_config(
@@ -270,6 +273,8 @@ def schedule_invalidate_project_config(
         slight delay to increase the likelihood of deduplicating invalidations but you can
         tweak this, like e.g. the :func:`invalidate_all` task does.
     """
+    from sentry.models import Project
+
     with sentry_sdk.start_span(
         op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
     ):
@@ -283,7 +288,8 @@ def schedule_invalidate_project_config(
                 project_id=project_id,
                 public_key=public_key,
                 countdown=countdown,
-            )
+            ),
+            router.db_for_write(Project),
         )
 
 

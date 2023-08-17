@@ -15,9 +15,9 @@ from sentry.models import (
     UserOption,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.testutils import TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.silo import SiloMode
+from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
@@ -249,19 +249,19 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         for default_value, project_value, is_subscribed, has_details in combinations:
             UserOption.objects.clear_local_cache()
 
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.CONTROL):
                 for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
                     NotificationSetting.objects.update_settings(
                         provider,
                         NotificationSettingTypes.WORKFLOW,
                         default_value,
-                        user=user,
+                        user_id=user.id,
                     )
                     NotificationSetting.objects.update_settings(
                         provider,
                         NotificationSettingTypes.WORKFLOW,
                         project_value,
-                        user=user,
+                        user_id=user.id,
                         project=group.project,
                     )
 
@@ -283,19 +283,19 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
             user_id=user.id, group=group, project=group.project, is_active=True
         )
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSetting.objects.update_settings(
                 ExternalProviders.EMAIL,
                 NotificationSettingTypes.WORKFLOW,
                 NotificationSettingOptionValues.NEVER,
-                user=user,
+                user_id=user.id,
             )
 
             NotificationSetting.objects.update_settings(
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.WORKFLOW,
                 NotificationSettingOptionValues.NEVER,
-                user=user,
+                user_id=user.id,
             )
 
         result = serialize(group, user)
@@ -310,12 +310,12 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
             user_id=user.id, group=group, project=group.project, is_active=True
         )
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSetting.objects.update_settings(
                 ExternalProviders.EMAIL,
                 NotificationSettingTypes.WORKFLOW,
                 NotificationSettingOptionValues.NEVER,
-                user=user,
+                user_id=user.id,
                 project=group.project,
             )
 
@@ -323,7 +323,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.WORKFLOW,
                 NotificationSettingOptionValues.NEVER,
-                user=user,
+                user_id=user.id,
                 project=group.project,
             )
 

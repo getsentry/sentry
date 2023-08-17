@@ -3,8 +3,10 @@ from urllib.parse import urlencode
 
 from selenium.webdriver.common.by import By
 
-from sentry.testutils import AcceptanceTestCase
+from sentry.receivers import create_default_projects
+from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.silo import no_silo_test
 
 EMAILS = (
     ("/debug/mail/assigned/", "assigned"),
@@ -57,9 +59,11 @@ def redact_ids(text: str) -> str:
     return text
 
 
+@no_silo_test(stable=True)
 class EmailTestCase(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
+        create_default_projects()
         # This email address is required to match FIXTURES.
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)

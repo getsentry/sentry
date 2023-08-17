@@ -1,27 +1,26 @@
 import math
-from base64 import b64encode
-from datetime import timedelta
+import uuid
+from datetime import timedelta, timezone
 from unittest import mock
 
 import pytest
 from django.test import override_settings
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from freezegun import freeze_time
-from pytz import utc
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold, ReleaseStages
+from sentry.models import ProjectTransactionThreshold, ReleaseStages
+from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
 from sentry.search.events import constants
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -88,7 +87,7 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
         return load_data(platform, timestamp=timestamp, start_timestamp=start_timestamp, **kwargs)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, PerformanceIssueTestCase):
     def test_no_projects(self):
         response = self.do_request({})
@@ -111,9 +110,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
-        api_key = ApiKey.objects.create(
-            organization_id=self.organization.id, scope_list=["org:read"]
-        )
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
         query = {"field": ["project.name", "environment"], "project": [self.project.id]}
 
         url = self.reverse_url()
@@ -121,7 +118,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             url,
             query,
             format="json",
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
         )
 
         assert response.status_code == 200, response.content
@@ -1298,13 +1295,13 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         replaced_release = self.create_release(
             version="replaced_release",
             environments=[self.environment],
-            adopted=timezone.now(),
-            unadopted=timezone.now(),
+            adopted=django_timezone.now(),
+            unadopted=django_timezone.now(),
         )
         adopted_release = self.create_release(
             version="adopted_release",
             environments=[self.environment],
-            adopted=timezone.now(),
+            adopted=django_timezone.now(),
         )
         self.create_release(version="not_adopted_release", environments=[self.environment])
 
@@ -2520,6 +2517,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["epm()"] == 0.5
         assert data[1]["transaction"] == event2.transaction
         assert data[1]["epm()"] == 0.5
+        meta = response.data["meta"]
+        assert meta["fields"]["epm()"] == "rate"
+        assert meta["units"]["epm()"] == "1/minute"
 
     def test_nonexistent_fields(self):
         self.store_event(
@@ -4131,7 +4131,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
         self.create_project()
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=utc)
+        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
 
         # Don't quantize short time periods
         query = {"statsPeriod": "1h", "query": "", "field": ["id", "timestamp"]}
@@ -4196,9 +4196,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         mock.return_value = {}
         # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
-        api_key = ApiKey.objects.create(
-            organization_id=self.organization.id, scope_list=["org:read"]
-        )
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
 
         query = {
             "field": ["project.name", "environment"],
@@ -4214,7 +4212,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 url,
                 query,
                 format="json",
-                HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
+                HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
             )
 
         _, kwargs = mock.call_args
@@ -5878,7 +5876,6 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
                         "project": "python",
                         "release": "backend@1",
                         "platform.name": "python",
-                        "retention_days": 90,
                         "package": "lib_foo",
                         "environment": "development",
                         "p50()": 34695708.0,
@@ -5922,10 +5919,6 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
                     {
                         "name": "platform.name",
                         "type": "String",
-                    },
-                    {
-                        "name": "retention_days",
-                        "type": "UInt16",
                     },
                     {
                         "name": "package",
@@ -5980,7 +5973,6 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
             "platform.name",
             "environment",
             "release",
-            "retention_days",
             "count()",
             "examples()",
             "p50()",
@@ -6015,7 +6007,6 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
             "platform.name": None,
             "environment": None,
             "release": None,
-            "retention_days": None,
             "count()": None,
             "examples()": None,
             "p50()": "nanosecond",
@@ -6067,6 +6058,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             before_now(hours=1).replace(tzinfo=timezone.utc),
             user=user_data,
         )
+        assert group_info is not None
 
         query = {
             "field": ["title", "release", "environment", "user.display", "timestamp"],
@@ -6140,6 +6132,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             before_now(hours=1).replace(tzinfo=timezone.utc),
             user=user_data,
         )
+        assert group_info is not None
 
         features = {
             "organizations:discover-basic": True,
@@ -6158,3 +6151,70 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
         assert len(data) == 1
         result = {r["user.display"] for r in data}
         assert result == {user_data["email"]}
+
+    def test_all_events_fields(self):
+        user_data = {
+            "id": self.user.id,
+            "username": "user",
+            "email": "hellboy@bar.com",
+            "ip_address": "127.0.0.1",
+        }
+        replay_id = str(uuid.uuid4())
+        profile_id = str(uuid.uuid4())
+        event = self.create_performance_issue(
+            contexts={
+                "trace": {
+                    "trace_id": str(uuid.uuid4().hex),
+                    "span_id": "933e5c9a8e464da9",
+                    "type": "trace",
+                },
+                "replay": {"replay_id": replay_id},
+                "profile": {"profile_id": profile_id},
+            },
+            user_data=user_data,
+        )
+
+        query = {
+            "field": [
+                "id",
+                "transaction",
+                "title",
+                "release",
+                "environment",
+                "user.display",
+                "device",
+                "os",
+                "url",
+                "runtime",
+                "replayId",
+                "profile.id",
+                "transaction.duration",
+                "timestamp",
+            ],
+            "statsPeriod": "1h",
+            "query": f"project:{event.group.project.slug} issue:{event.group.qualified_short_id}",
+            "dataset": "issuePlatform",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"][0]
+
+        assert data == {
+            "id": event.event_id,
+            "transaction": event.transaction,
+            "project.name": event.project.name.lower(),
+            "title": event.group.title,
+            "release": event.release,
+            "environment": event.get_environment().name,
+            "user.display": user_data["email"],
+            "device": "Mac",
+            "os": "",
+            "url": event.interfaces.data["request"].full_url,
+            "runtime": dict(event.get_raw_data()["tags"])["runtime"],
+            "replayId": replay_id.replace("-", ""),
+            "profile.id": profile_id.replace("-", ""),
+            "transaction.duration": 3000,
+            "timestamp": event.datetime.replace(microsecond=0).isoformat(),
+        }

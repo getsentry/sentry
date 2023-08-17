@@ -3,7 +3,7 @@ import {useState} from 'react';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
-import {Form} from 'sentry/components/forms';
+import Form from 'sentry/components/forms/form';
 import {OnSubmitCallback} from 'sentry/components/forms/types';
 import {SavedSearchModalContent} from 'sentry/components/modals/savedSearchModal/savedSearchModalContent';
 import {t} from 'sentry/locale';
@@ -18,16 +18,15 @@ interface CreateSavedSearchModalProps extends ModalRenderProps {
   sort?: string;
 }
 
-const DEFAULT_SORT_OPTIONS = [
-  IssueSortOptions.DATE,
-  IssueSortOptions.NEW,
-  IssueSortOptions.FREQ,
-  IssueSortOptions.PRIORITY,
-  IssueSortOptions.USER,
-];
-
 function validateSortOption({sort}: {sort?: string}) {
-  if (DEFAULT_SORT_OPTIONS.find(option => option === sort)) {
+  const sortOptions = [
+    IssueSortOptions.DATE,
+    IssueSortOptions.NEW,
+    IssueSortOptions.PRIORITY,
+    IssueSortOptions.FREQ,
+    IssueSortOptions.USER,
+  ];
+  if (sortOptions.find(option => option === sort)) {
     return sort as string;
   }
 
@@ -50,7 +49,7 @@ export function CreateSavedSearchModal({
     name: '',
     query,
     sort: validateSortOption({sort}),
-    visibility: SavedSearchVisibility.Owner,
+    visibility: SavedSearchVisibility.OWNER,
   };
 
   const handleSubmit: OnSubmitCallback = async (

@@ -31,7 +31,7 @@ from typing import Optional
 
 from sentry.snuba.metrics.utils import OP_REGEX
 
-NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom)"
+NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom|spans)"
 ENTITY_TYPE_REGEX = r"(c|s|d|g|e)"
 # This regex allows for a string of words composed of small letters alphabet characters with
 # allowed the underscore character, optionally separated by a single dot
@@ -124,10 +124,18 @@ class TransactionMRI(Enum):
     ALL_USER = "e:transactions/user.all@none"
     USER_MISERY = "e:transactions/user_misery@ratio"
     TEAM_KEY_TRANSACTION = "e:transactions/team_key_transaction@none"
+    HTTP_ERROR_COUNT = "e:transactions/http_error_count@none"
+    HTTP_ERROR_RATE = "e:transactions/http_error_rate@ratio"
 
     # Spans (might be moved to their own namespace soon)
-    SPAN_USER = "s:transactions/span.user@none"
-    SPAN_DURATION = "d:transactions/span.duration@millisecond"
+    SPAN_USER = "s:spans/user@none"
+    SPAN_DURATION = "d:spans/duration@millisecond"
+    SPAN_SELF_TIME = "d:spans/exclusive_time@millisecond"
+    SPAN_SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
+
+    COUNT_ON_DEMAND = "c:transactions/on_demand@none"
+    DIST_ON_DEMAND = "d:transactions/on_demand@none"
+    SET_ON_DEMAND = "s:transactions/on_demand@none"
 
 
 @dataclass

@@ -7,21 +7,15 @@ import pytest
 from django.utils import timezone
 
 from sentry.integrations.github.integration import GitHubIntegration
-from sentry.models import (
-    Commit,
-    CommitAuthor,
-    CommitFileChange,
-    GroupRelease,
-    Release,
-    ReleaseCommit,
-    Repository,
-)
+from sentry.models import Commit, CommitAuthor, GroupRelease, Release, ReleaseCommit, Repository
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.integrations.integration import Integration
-from sentry.testutils import TestCase
+from sentry.silo import SiloMode
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.committers import (
     _get_commit_file_changes,
     _match_commits_path,
@@ -155,7 +149,7 @@ class GetCommitFileChangesTestCase(CommitTestCase):
         self.path_name_set = {file_change.filename for file_change in self.file_changes}
 
     def test_no_paths(self):
-        assert [] == _get_commit_file_changes(self.commits, {})
+        assert [] == _get_commit_file_changes(self.commits, set())
 
     def test_no_valid_paths(self):
         assert [] == _get_commit_file_changes(self.commits, {"/"})
@@ -250,7 +244,7 @@ class GetPreviousReleasesTestCase(TestCase):
         assert releases[1] == release1
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GetEventFileCommitters(CommitTestCase):
     def setUp(self):
         super().setUp()
@@ -309,6 +303,7 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -484,6 +479,7 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -545,6 +541,7 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -615,6 +612,7 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -669,6 +667,7 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -723,6 +722,7 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -736,10 +736,11 @@ class GetEventFileCommitters(CommitTestCase):
 
     @with_feature("organizations:commit-context")
     def test_no_author(self):
-        model = Integration.objects.create(
-            provider="github", external_id="github_external_id", name="getsentry"
-        )
-        model.add_organization(self.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            model = Integration.objects.create(
+                provider="github", external_id="github_external_id", name="getsentry"
+            )
+            model.add_organization(self.organization, self.user)
         GitHubIntegration(model, self.organization.id)
         event = self.store_event(
             data={
@@ -774,6 +775,7 @@ class GetEventFileCommitters(CommitTestCase):
         ReleaseCommit.objects.create(
             organization_id=self.organization.id, release=self.release, commit=commit, order=1
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -821,6 +823,7 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -873,6 +876,7 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -909,6 +913,7 @@ class GetEventFileCommitters(CommitTestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -918,7 +923,8 @@ class GetEventFileCommitters(CommitTestCase):
 
     @with_feature("organizations:commit-context")
     def test_commit_context_fallback(self):
-        Integration.objects.all().delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            Integration.objects.all().delete()
         event = self.store_event(
             data={
                 "message": "Kaboom!",
@@ -960,6 +966,7 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )

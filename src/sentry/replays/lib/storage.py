@@ -42,7 +42,7 @@ class Blob(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get(self, segment: RecordingSegmentStorageMeta) -> bytes:
+    def get(self, segment: RecordingSegmentStorageMeta) -> Optional[bytes]:
         """Return blob from remote storage."""
         raise NotImplementedError
 
@@ -158,6 +158,8 @@ class StorageBlob(Blob):
         backend = options.get("replay.storage.backend")
         if backend:
             return {"backend": backend, "options": options.get("replay.storage.options")}
+        else:
+            return None
 
 
 def make_filename(segment: RecordingSegmentStorageMeta) -> str:

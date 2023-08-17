@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, Mock, patch
 
-from sentry.models import ProjectOwnership, Rule
+from sentry.models import Rule
+from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import ActionTargetType
 from sentry.plugins.base import Notification
@@ -9,10 +10,10 @@ from sentry.testutils.silo import region_silo_test
 
 
 @patch(
-    "sentry.integrations.msteams.MsTeamsAbstractClient.get_user_conversation_id",
+    "sentry.integrations.msteams.MsTeamsClientMixin.get_user_conversation_id",
     Mock(return_value="some_conversation_id"),
 )
-@patch("sentry.integrations.msteams.MsTeamsAbstractClient.send_card")
+@patch("sentry.integrations.msteams.MsTeamsClientMixin.send_card")
 @region_silo_test
 class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
     def test_issue_alert_user(self, mock_send_card: MagicMock):

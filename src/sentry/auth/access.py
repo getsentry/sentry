@@ -15,7 +15,7 @@ __all__ = [
 import abc
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Collection, FrozenSet, Iterable, Mapping, Set, cast
+from typing import Any, Collection, FrozenSet, Iterable, Mapping, Optional, Set
 
 import sentry_sdk
 from django.conf import settings
@@ -64,7 +64,7 @@ def get_permissions_for_user(user_id: int) -> FrozenSet[str]:
 
 def has_role_in_organization(role: str, organization: Organization, user_id: int) -> bool:
     query = OrganizationMember.objects.filter(
-        user__is_active=True,
+        user_is_active=True,
         user_id=user_id,
         organization_id=organization.id,
     )
@@ -87,6 +87,11 @@ class Access(abc.ABC):
     @property
     @abc.abstractmethod
     def requires_sso(self) -> bool:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def has_open_membership(self) -> bool:
         pass
 
     @property
@@ -135,6 +140,10 @@ class Access(abc.ABC):
     def accessible_project_ids(self) -> FrozenSet[int]:
         pass
 
+    @property
+    def is_org_auth_token(self) -> bool:
+        return False
+
     def has_permission(self, permission: str) -> bool:
         """
         Return bool representing if the user has the given permission.
@@ -152,12 +161,12 @@ class Access(abc.ABC):
     # TODO(cathy): remove this
     def get_organization_role(self) -> OrganizationRole | None:
         if self.role is not None:
-            return cast(OrganizationRole, organization_roles.get(self.role))
+            return organization_roles.get(self.role)
         return None
 
     def get_organization_roles(self) -> Iterable[OrganizationRole]:
         if self.roles is not None:
-            return [cast(OrganizationRole, organization_roles.get(r)) for r in self.roles]
+            return [organization_roles.get(r) for r in self.roles]
         return []
 
     @abc.abstractmethod
@@ -228,6 +237,7 @@ class DbAccess(Access):
 
     sso_is_valid: bool = False
     requires_sso: bool = False
+    has_open_membership: bool = False
 
     # if has_global_access is True, then any project
     # matching organization_id is valid. This is used for
@@ -443,8 +453,12 @@ class RpcBackedAccess(Access):
         return self.auth_state.sso_state.is_required
 
     @property
+    def has_open_membership(self) -> bool:
+        return self.rpc_user_organization_context.organization.flags.allow_joinleave
+
+    @property
     def has_global_access(self) -> bool:
-        if self.rpc_user_organization_context.organization.flags.allow_joinleave:
+        if self.has_open_membership:
             return True
 
         if (
@@ -479,7 +493,8 @@ class RpcBackedAccess(Access):
         if self.rpc_user_organization_context.member is None:
             return None
         return organization_service.get_all_org_roles(
-            organization_member=self.rpc_user_organization_context.member
+            member_id=self.rpc_user_organization_context.member.id,
+            organization_id=self.rpc_user_organization_context.organization.id,
         )
 
     def has_role_in_organization(
@@ -680,7 +695,6 @@ class OrganizationGlobalAccess(DbAccess):
         self._organization_id = (
             organization.id if isinstance(organization, Organization) else organization
         )
-
         super().__init__(has_global_access=True, scopes=frozenset(scopes), **kwargs)
 
     def has_team_access(self, team: Team) -> bool:
@@ -786,6 +800,10 @@ class ApiOrganizationGlobalMembership(ApiBackedOrganizationGlobalAccess):
     """Access to all an organization's teams and projects with simulated membership."""
 
     @property
+    def is_org_auth_token(self) -> bool:
+        return True
+
+    @property
     def team_ids_with_membership(self) -> FrozenSet[int]:
         return self.accessible_team_ids
 
@@ -821,6 +839,10 @@ class OrganizationlessAccess(Access):
     @property
     def requires_sso(self) -> bool:
         return self.auth_state.sso_state.is_required
+
+    @property
+    def has_open_membership(self) -> bool:
+        return False
 
     @property
     def has_global_access(self) -> bool:
@@ -884,6 +906,7 @@ class SystemAccess(OrganizationlessAccess):
             ),
         )
 
+    @property
     def has_global_access(self) -> bool:
         return True
 
@@ -928,6 +951,7 @@ def from_request_org_and_scopes(
     scopes: Iterable[str] | None = None,
 ) -> Access:
     is_superuser = is_active_superuser(request)
+
     if not rpc_user_org_context:
         return from_user_and_rpc_user_org_context(
             user=request.user,
@@ -1008,7 +1032,7 @@ from_user_and_api_user_org_context = from_user_and_rpc_user_org_context
 
 
 def from_request(
-    request: Any, organization: Organization = None, scopes: Iterable[str] | None = None
+    request: Any, organization: Optional[Organization] = None, scopes: Iterable[str] | None = None
 ) -> Access:
     is_superuser = is_active_superuser(request)
 

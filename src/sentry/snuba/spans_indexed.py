@@ -11,7 +11,8 @@ from sentry.search.events.builder import (
     TopEventsSpanIndexedQueryBuilder,
 )
 from sentry.snuba import discover
-from sentry.utils.snuba import Dataset, SnubaTSResult, bulk_snql_query
+from sentry.snuba.dataset import Dataset
+from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,7 @@ def query(
     use_metrics_layer=False,
     skip_tag_resolution=False,
     extra_columns=None,
+    on_demand_metrics_enabled=False,
 ):
     builder = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
@@ -77,6 +79,7 @@ def timeseries_query(
     functions_acl: Optional[List[str]] = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.

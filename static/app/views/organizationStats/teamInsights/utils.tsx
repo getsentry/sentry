@@ -34,11 +34,8 @@ export function groupByTrend<T extends {trend: number}>(data: T[]): T[] {
   return [...worseItems, ...betterItems, ...zeroItems];
 }
 
-export const barAxisLabel = (
-  dataEntries: number
-): React.ComponentProps<typeof BaseChart>['xAxis'] => {
+export const barAxisLabel = (): React.ComponentProps<typeof BaseChart>['xAxis'] => {
   return {
-    splitNumber: Math.max(Math.round(dataEntries / 7), 4),
     type: 'category',
     axisTick: {
       alignWithLabel: true,

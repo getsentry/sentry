@@ -2,7 +2,7 @@ import responses
 from django.urls import reverse
 
 from sentry.models import Integration
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -22,9 +22,9 @@ class BitbucketSearchEndpointTest(APITestCase):
                 "subject": self.subject,
             },
         )
+        self.integration.add_organization(self.organization, self.user)
 
         self.login_as(self.user)
-        self.integration.add_organization(self.organization, self.user)
         self.path = reverse(
             "sentry-extensions-bitbucket-search", args=[self.organization.slug, self.integration.id]
         )

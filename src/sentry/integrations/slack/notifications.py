@@ -24,7 +24,7 @@ logger = logging.getLogger("sentry.notifications")
 SLACK_TIMEOUT = 5
 
 
-class SlackNotifyBasicMixin(NotifyBasicMixin):  # type: ignore
+class SlackNotifyBasicMixin(NotifyBasicMixin):
     def send_message(self, channel_id: str, message: str) -> None:
         payload = {"channel": channel_id, "text": message}
         try:

@@ -7,19 +7,26 @@ import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
 import SearchBar from 'sentry/components/events/searchBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTag';
+import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {getDisplayName} from 'sentry/utils/environment';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {
+  createOnDemandFilterWarning,
+  hasOnDemandMetricAlertFeature,
+} from 'sentry/utils/onDemandMetrics';
+import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
 import {
@@ -32,6 +39,8 @@ import {
   datasetOmittedTags,
   datasetSupportedTags,
 } from 'sentry/views/alerts/wizard/options';
+
+import {getProjectOptions} from '../utils';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
@@ -67,6 +76,7 @@ type Props = {
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
   disableProjectSelector?: boolean;
+  isExtrapolatedChartData?: boolean;
   loadingProjects?: boolean;
 };
 
@@ -235,18 +245,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     );
   }
 
-  renderIdBadge(project: Project) {
-    return (
-      <IdBadge
-        project={project}
-        avatarProps={{consistentWidth: true}}
-        avatarSize={18}
-        disableLink
-        hideName
-      />
-    );
-  }
-
   renderProjectSelector() {
     const {
       project: _selectedProject,
@@ -255,37 +253,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       organization,
       disableProjectSelector,
     } = this.props;
-    const hasOpenMembership = organization.features.includes('open-membership');
-    const myProjects = projects.filter(project => project.hasAccess && project.isMember);
-    const allProjects = projects.filter(
-      project => project.hasAccess && !project.isMember
-    );
-
-    const myProjectOptions = myProjects.map(myProject => ({
-      value: myProject.id,
-      label: myProject.slug,
-      leadingItems: this.renderIdBadge(myProject),
-    }));
-
-    const openMembershipProjects = [
-      {
-        label: t('My Projects'),
-        options: myProjectOptions,
-      },
-      {
-        label: t('All Projects'),
-        options: allProjects.map(allProject => ({
-          value: allProject.id,
-          label: allProject.slug,
-          leadingItems: this.renderIdBadge(allProject),
-        })),
-      },
-    ];
-
-    const projectOptions =
-      hasOpenMembership || isActiveSuperuser()
-        ? openMembershipProjects
-        : myProjectOptions;
+    const projectOptions = getProjectOptions({
+      organization,
+      projects,
+      isFormDisabled: disabled,
+    });
 
     return (
       <FormField
@@ -399,8 +371,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, disabled, onFilterSearch, allowChangeEventTypes, dataset} =
-      this.props;
+    const {
+      organization,
+      disabled,
+      onFilterSearch,
+      allowChangeEventTypes,
+      dataset,
+      isExtrapolatedChartData,
+    } = this.props;
     const {environments} = this.state;
 
     const environmentOptions: SelectValue<string | null>[] = [
@@ -412,9 +390,26 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         []),
     ];
 
+    const getOnDemandFilterWarning = createOnDemandFilterWarning(
+      tct(
+        'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this alert has been saved.]',
+        {
+          strong: <strong />,
+        }
+      )
+    );
+
     return (
       <Fragment>
         <ChartPanel>
+          {isExtrapolatedChartData && (
+            <OnDemandMetricInfoAlert>
+              <OnDemandMetricInfoIcon size="sm" />
+              {t(
+                'The chart data is an estimate based on the stored transactions that match the filters specified.'
+              )}
+            </OnDemandMetricInfoAlert>
+          )}
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
         {this.renderInterval()}
@@ -477,6 +472,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         />
                       );
                     }}
+                    getFilterWarning={
+                      hasOnDemandMetricAlertFeature(organization)
+                        ? getOnDemandFilterWarning
+                        : undefined
+                    }
                     searchSource="alert_builder"
                     defaultQuery={initialData?.query ?? ''}
                     omitTags={datasetOmittedTags(dataset, organization)}
@@ -554,10 +554,35 @@ const SearchContainer = styled('div')`
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
+
+  ${p =>
+    p.disabled &&
+    `
+    background: ${p.theme.backgroundSecondary};
+    color: ${p.theme.disabled};
+    cursor: not-allowed;
+  `}
+`;
+
+const OnDemandMetricInfoAlert = styled(Alert)`
+  border-radius: ${space(0.5)} ${space(0.5)} 0 0;
+  border: none;
+  border-bottom: 1px solid ${p => p.theme.blue400};
+  margin-bottom: 0;
+
+  & > span {
+    display: flex;
+    align-items: center;
+  }
+`;
+
+const OnDemandMetricInfoIcon = styled(IconInfo)`
+  color: ${p => p.theme.blue400};
+  margin-right: ${space(1.5)};
 `;
 
 const StyledListItem = styled(ListItem)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   line-height: 1.3;
 `;
@@ -576,4 +601,4 @@ const FormRow = styled('div')<{columns?: number; noMargin?: boolean}>`
     `}
 `;
 
-export default withProjects(RuleConditionsForm);
+export default withApi(withProjects(RuleConditionsForm));

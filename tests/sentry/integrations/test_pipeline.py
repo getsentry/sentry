@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+from django.db import router
+
 from sentry.api.utils import generate_organization_url
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
@@ -10,10 +12,14 @@ from sentry.models import (
     OrganizationIntegration,
     Repository,
 )
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
-from sentry.testutils import IntegrationTestCase
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.signals import receivers_raise_on_send
+from sentry.silo import SiloMode, unguarded_write
+from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 class ExamplePlugin(IssuePlugin2):
@@ -27,11 +33,11 @@ def naive_build_integration(data):
     return data
 
 
+@control_silo_test(stable=True)
 @patch(
     "sentry.integrations.example.ExampleIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
 )
-@control_silo_test(stable=True)
 class FinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
 
@@ -39,9 +45,27 @@ class FinishPipelineTestCase(IntegrationTestCase):
         super().setUp()
         self.external_id = "dummy_id-123"
         self.provider.needs_default_identity = False
+        self.provider.is_region_restricted = False
 
     def tearDown(self):
         super().tearDown()
+
+    def _setup_region_restriction(self):
+        self.provider.is_region_restricted = True
+        na_orgs = [
+            self.create_organization(name="na_org"),
+            self.create_organization(name="na_org_2"),
+        ]
+        integration = Integration.objects.create(
+            name="test", external_id=self.external_id, provider=self.provider.key
+        )
+        with receivers_raise_on_send(), outbox_runner(), unguarded_write(
+            using=router.db_for_write(OrganizationMapping)
+        ):
+            for org in na_orgs:
+                integration.add_organization(org)
+                mapping = OrganizationMapping.objects.get(organization_id=org.id)
+                mapping.update(region_name="na")
 
     def test_with_data(self, *args):
         data = {
@@ -88,6 +112,65 @@ class FinishPipelineTestCase(IntegrationTestCase):
             assert OrganizationIntegration.objects.filter(
                 organization_id=self.organization.id, integration_id=integration.id
             ).exists()
+
+    @patch("sentry.signals.integration_added.send_robust")
+    def test_provider_should_check_region_violation(self, *args):
+        """Ensures we validate regions if `provider.is_region_restricted` is set to True"""
+        self.provider.is_region_restricted = True
+        self.pipeline.state.data = {"external_id": self.external_id}
+        with patch(
+            "sentry.integrations.pipeline.is_violating_region_restriction"
+        ) as mock_check_violation:
+            self.pipeline.finish_pipeline()
+            assert mock_check_violation.called
+
+    @patch("sentry.signals.integration_added.send_robust")
+    def test_provider_should_not_check_region_violation(self, *args):
+        """Ensures we don't reject regions if `provider.is_region_restricted` is set to False"""
+        self.pipeline.state.data = {"external_id": self.external_id}
+        with patch(
+            "sentry.integrations.pipeline.is_violating_region_restriction"
+        ) as mock_check_violation:
+            self.pipeline.finish_pipeline()
+            assert not mock_check_violation.called
+
+    @patch("sentry.signals.integration_added.send_robust")
+    def test_is_violating_region_restriction_success(self, *args):
+        """Ensures pipeline can complete if all integration organizations reside in one region."""
+        self._setup_region_restriction()
+
+        # Installing organization is from the same region
+        mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
+            mapping.update(region_name="na")
+
+        self.pipeline.state.data = {"external_id": self.external_id}
+        with patch("sentry.integrations.pipeline.IntegrationPipeline._dialog_response") as resp:
+            self.pipeline.finish_pipeline()
+            _data, success = resp.call_args[0]
+            assert success
+
+    @patch("sentry.signals.integration_added.send_robust")
+    def test_is_violating_region_restriction_failure(self, *args):
+        """Ensures pipeline can produces an error if all integration organizations do not reside in one region."""
+        self._setup_region_restriction()
+
+        # Installing organization is from a different region
+        mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
+            mapping.update(region_name="eu")
+
+        self.pipeline.state.data = {"external_id": self.external_id}
+        with patch("sentry.integrations.pipeline.IntegrationPipeline._dialog_response") as resp:
+            self.pipeline.finish_pipeline()
+            data, success = resp.call_args[0]
+            if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+                assert success
+            if SiloMode.get_current_mode() == SiloMode.CONTROL:
+                assert not success
+                assert "resides in a different region" in str(data)
 
     def test_aliased_integration_key(self, *args):
         self.provider = AliasedIntegrationProvider
@@ -333,7 +416,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
     @patch("sentry.mediators.plugins.Migrator.call")
     def test_disabled_plugin_when_fully_migrated(self, call, *args):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             Repository.objects.create(
                 organization_id=self.organization.id,
                 name="user/repo",
@@ -353,11 +436,11 @@ class FinishPipelineTestCase(IntegrationTestCase):
         assert call.called
 
 
+@control_silo_test(stable=True)
 @patch(
     "sentry.integrations.gitlab.GitlabIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
 )
-@control_silo_test(stable=True)
 class GitlabFinishPipelineTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
 

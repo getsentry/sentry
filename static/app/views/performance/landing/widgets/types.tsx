@@ -17,12 +17,12 @@ export enum VisualizationDataState {
 }
 
 export enum GenericPerformanceWidgetDataType {
-  histogram = 'histogram',
-  area = 'area',
-  vitals = 'vitals',
-  line_list = 'line_list',
-  trends = 'trends',
-  stacked_area = 'stacked_area',
+  HISTOGRAM = 'histogram',
+  AREA = 'area',
+  VITALS = 'vitals',
+  LINE_LIST = 'line_list',
+  TRENDS = 'trends',
+  STACKED_AREA = 'stacked_area',
 }
 
 export type PerformanceWidgetProps = {

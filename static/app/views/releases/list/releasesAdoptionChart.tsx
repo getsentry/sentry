@@ -30,7 +30,9 @@ import {
   parseStatsPeriod,
   StatsPeriodType,
 } from 'sentry/components/organizations/pageFilters/parse';
-import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelFooter from 'sentry/components/panels/panelFooter';
 import Placeholder from 'sentry/components/placeholder';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct, tn} from 'sentry/locale';
@@ -209,7 +211,6 @@ class ReleasesAdoptionChart extends Component<Props> {
                           type: 'value',
                           interval: 10,
                           splitNumber: 10,
-                          data: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
                           axisLabel: {
                             formatter: '{value}%',
                           },
@@ -219,7 +220,6 @@ class ReleasesAdoptionChart extends Component<Props> {
                           min: xAxisData[0],
                           max: xAxisData[numDataPoints - 1],
                           type: 'time',
-                          data: xAxisData,
                         }}
                         tooltip={{
                           formatter: seriesParams => {

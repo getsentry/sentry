@@ -6,7 +6,8 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import OrganizationMemberWithProjectsSerializer
-from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectTeam
+from sentry.models import OrganizationMember, OrganizationMemberTeam
+from sentry.models.projectteam import ProjectTeam
 
 
 @region_silo_endpoint
@@ -26,19 +27,16 @@ class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
         projects = self.get_projects(request, organization)
 
         with sentry_sdk.start_span(op="OrganizationUsersEndpoint.get_members") as span:
-            qs = (
-                OrganizationMember.objects.filter(
-                    user__is_active=True,
-                    organization=organization,
-                    id__in=OrganizationMemberTeam.objects.filter(
-                        team_id__in=ProjectTeam.objects.filter(project_id__in=projects)
-                        .values_list("team_id", flat=True)
-                        .distinct(),
-                    ).values_list("organizationmember_id", flat=True),
-                )
-                .select_related("user")
-                .order_by("user__email")
-            )
+            qs = OrganizationMember.objects.filter(
+                user_id__isnull=False,
+                user_is_active=True,
+                organization=organization,
+                id__in=OrganizationMemberTeam.objects.filter(
+                    team_id__in=ProjectTeam.objects.filter(project_id__in=projects)
+                    .values_list("team_id", flat=True)
+                    .distinct(),
+                ).values_list("organizationmember_id", flat=True),
+            ).order_by("user_email")
 
             organization_members = list(qs)
 

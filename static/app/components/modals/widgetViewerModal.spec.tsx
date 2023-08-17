@@ -13,6 +13,7 @@ import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
+  DashboardFilters,
   DisplayType,
   Widget,
   WidgetQuery,
@@ -42,9 +43,11 @@ async function renderModal({
   tableData,
   pageLinks,
   seriesResultsType,
+  dashboardFilters,
 }: {
   initialData: any;
   widget: any;
+  dashboardFilters?: DashboardFilters;
   pageLinks?: string;
   seriesData?: Series[];
   seriesResultsType?: Record<string, AggregationOutputType>;
@@ -65,6 +68,7 @@ async function renderModal({
         tableData={tableData}
         pageLinks={pageLinks}
         seriesResultsType={seriesResultsType}
+        dashboardFilters={dashboardFilters}
       />
     </div>,
     {
@@ -217,6 +221,27 @@ describe('Modals -> WidgetViewerModal', function () {
           '/organizations/org-slug/events/',
           expect.objectContaining({
             query: expect.objectContaining({sort: ['-count()']}),
+          })
+        );
+      });
+
+      it('applies the dashboard filters to the widget query when provided', async function () {
+        const eventsMock = mockEvents();
+        await renderModal({
+          initialData,
+          widget: mockWidget,
+          dashboardFilters: {release: ['project-release@1.2.0']},
+        });
+        expect(screen.getByText('title')).toBeInTheDocument();
+        expect(screen.getByText('/organizations/:orgId/dashboards/')).toBeInTheDocument();
+        expect(eventsMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/events/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query:
+                // The release was injected into the discover query
+                'title:/organizations/:orgId/performance/summary/ release:project-release@1.2.0 ',
+            }),
           })
         );
       });
@@ -896,100 +921,6 @@ describe('Modals -> WidgetViewerModal', function () {
             {}
           );
         });
-      });
-    });
-
-    describe('World Map Chart Widget', function () {
-      let mockQuery, mockWidget;
-
-      const eventsMockData = [
-        {
-          'geo.country_code': 'ES',
-          p75_measurements_lcp: 2000,
-        },
-        {
-          'geo.country_code': 'SK',
-          p75_measurements_lcp: 3000,
-        },
-        {
-          'geo.country_code': 'CO',
-          p75_measurements_lcp: 4000,
-        },
-      ];
-
-      function mockEventsGeo() {
-        return MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-geo/',
-          body: {
-            data: eventsMockData,
-            meta: {
-              'geo.country_code': 'string',
-              p75_measurements_lcp: 'duration',
-            },
-          },
-        });
-      }
-      function mockEvents() {
-        return MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events/',
-          body: {
-            data: eventsMockData,
-            meta: {
-              fields: {
-                'geo.country_code': 'string',
-                p75_measurements_lcp: 'duration',
-              },
-            },
-          },
-        });
-      }
-
-      beforeEach(function () {
-        mockQuery = {
-          conditions: 'title:/organizations/:orgId/performance/summary/',
-          fields: ['p75(measurements.lcp)'],
-          aggregates: ['p75(measurements.lcp)'],
-          columns: [],
-          id: '1',
-          name: 'Query Name',
-          orderby: '',
-        };
-        mockWidget = {
-          title: 'Test Widget',
-          displayType: DisplayType.WORLD_MAP,
-          interval: '5m',
-          queries: [mockQuery],
-          widgetType: WidgetType.DISCOVER,
-        };
-      });
-
-      it('renders Discover topn chart widget viewer', async function () {
-        mockEvents();
-        mockEventsGeo();
-        const {container} = await renderModal({initialData, widget: mockWidget});
-        expect(container).toSnapshot();
-      });
-
-      it('uses provided tableData and does not make an events requests', async function () {
-        const eventsGeoMock = mockEventsGeo();
-        mockEvents();
-        await renderModal({initialData, widget: mockWidget, tableData: []});
-        expect(eventsGeoMock).not.toHaveBeenCalled();
-      });
-
-      it('always queries geo.country_code in the table chart', async function () {
-        const eventsMock = mockEvents();
-        mockEventsGeo();
-        await renderModal({initialData: initialDataWithFlag, widget: mockWidget});
-        expect(eventsMock).toHaveBeenCalledWith(
-          '/organizations/org-slug/events/',
-          expect.objectContaining({
-            query: expect.objectContaining({
-              field: ['geo.country_code', 'p75(measurements.lcp)'],
-            }),
-          })
-        );
-        expect(await screen.findByText('geo.country_code')).toBeInTheDocument();
       });
     });
 

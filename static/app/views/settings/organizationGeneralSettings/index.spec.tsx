@@ -38,6 +38,11 @@ describe('OrganizationGeneralSettings', function () {
       url: `/organizations/${organization.slug}/auth-provider/`,
       method: 'GET',
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/?provider_key=github`,
+      method: 'GET',
+      body: [TestStubs.GitHubIntegration()],
+    });
   });
 
   it('can enable "early adopter"', async function () {

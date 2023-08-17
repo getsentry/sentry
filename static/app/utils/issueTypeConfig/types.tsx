@@ -33,10 +33,6 @@ export type IssueTypeConfig = {
     helpText?: string;
   } | null;
   /**
-   * Is the Grouping tab shown for this issue
-   */
-  grouping: DisabledWithReasonConfig;
-  /**
    * Is the Merged Issues tab shown for this issue
    */
   mergedIssues: DisabledWithReasonConfig;

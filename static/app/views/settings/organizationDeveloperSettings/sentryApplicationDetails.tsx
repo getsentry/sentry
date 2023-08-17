@@ -20,7 +20,10 @@ import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel, {FieldValue} from 'sentry/components/forms/model';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
@@ -35,7 +38,7 @@ import {InternalAppApiToken, Organization, Scope, SentryApp} from 'sentry/types'
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
@@ -139,12 +142,12 @@ type Props = RouteComponentProps<{appSlug?: string}, {}> & {
   organization: Organization;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   app: SentryApp | null;
   tokens: InternalAppApiToken[];
 };
 
-class SentryApplicationDetails extends AsyncView<Props, State> {
+class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
   form = new SentryAppFormModel({mapFormErrors});
 
   getDefaultState(): State {
@@ -155,7 +158,7 @@ class SentryApplicationDetails extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {appSlug} = this.props.params;
     if (appSlug) {
       return [

@@ -10,10 +10,12 @@ from sentry.grouping.strategies.base import (
     produces_variants,
     strategy,
 )
-from sentry.grouping.strategies.similarity_encoders import text_shingle_encoder
 from sentry.interfaces.message import Message
+from sentry.utils import metrics
 
-_irrelevant_re = re.compile(
+_parameterization_regex = re.compile(
+    # The `(?x)` tells the regex compiler to ingore comments and unescaped whitespace,
+    # so we can use newlines and indentation for better legibility.
     r"""(?x)
     (?P<email>
         [a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*
@@ -81,7 +83,8 @@ _irrelevant_re = re.compile(
             (2[0-3]|[0-1][\d]):([0-5][\d])
             (?::(60|[0-5][\d]))?\s+
             ([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))
-        )
+        ) |
+        (datetime.datetime\(.*?\))
     ) |
     (?P<hex>
         \b0[xX][0-9a-fA-F]+\b
@@ -93,23 +96,55 @@ _irrelevant_re = re.compile(
     (?P<int>
         -\d+\b |
         \b\d+\b
+    ) |
+    (?P<quoted_str>
+        # The `=` here guarantees we'll only match the value half of key-value pairs,
+        # rather than all quoted strings
+        ='([^']+)' |
+        ="([^"]+)"
+    ) |
+    (?P<bool>
+        # The `=` here guarantees we'll only match the value half of key-value pairs,
+        # rather than all instances of the words 'true' and 'false'.
+        =True |
+        =true |
+        =False |
+        =false
     )
 """
 )
 
 
-def trim_message_for_grouping(string: str) -> str:
-    s = "\n".join(islice((x for x in string.splitlines() if x.strip()), 2)).strip()
-    if s != string:
-        s += "..."
+def normalize_message_for_grouping(message: str) -> str:
+    """Replace values from a group's message with placeholders (to hide P.I.I. and
+    improve grouping when no stacktrace is available) and trim to at most 2 lines.
+    """
+    trimmed = "\n".join(
+        # If there are multiple lines, grab the first two non-empty ones.
+        islice(
+            (x for x in message.splitlines() if x.strip()),
+            2,
+        )
+    )
+    if trimmed != message:
+        trimmed += "..."
 
     def _handle_match(match: Match[str]) -> str:
+        # Find the first (should be only) non-None match entry, and sub in the placeholder. For
+        # example, given the groupdict item `('hex', '0x40000015')`, this returns '<hex>' as a
+        # replacement for the original value in the string.
         for key, value in match.groupdict().items():
             if value is not None:
-                return "<%s>" % key
+                # `key` can only be one of the keys from `_parameterization_regex`, thus, not a large
+                # cardinality. Tracking the key helps distinguish what kinds of replacements are happening.
+                metrics.incr("grouping.value_trimmed_from_message", tags={"key": key})
+                # For `quoted_str` and `bool` we want to preserve the `=` symbol, which we include in
+                # the match in order not to replace random quoted strings and the words 'true' and 'false'
+                # in contexts other than key-value pairs
+                return f"=<{key}>" if key in ["quoted_str", "bool"] else f"<{key}>"
         return ""
 
-    return _irrelevant_re.sub(_handle_match, s)
+    return _parameterization_regex.sub(_handle_match, trimmed)
 
 
 @strategy(ids=["message:v1"], interface=Message, score=0)
@@ -117,16 +152,15 @@ def trim_message_for_grouping(string: str) -> str:
 def message_v1(
     interface: Message, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    if context["trim_message"]:
-        message_in = interface.message or interface.formatted or ""
-        message_trimmed = trim_message_for_grouping(message_in)
-        hint = "stripped common values" if message_in != message_trimmed else None
+    if context["normalize_message"]:
+        raw = interface.message or interface.formatted or ""
+        normalized = normalize_message_for_grouping(raw)
+        hint = "stripped event-specific values" if raw != normalized else None
         return {
             context["variant"]: GroupingComponent(
                 id="message",
-                values=[message_trimmed],
+                values=[normalized],
                 hint=hint,
-                similarity_encoder=text_shingle_encoder(5),
             )
         }
     else:
@@ -134,6 +168,5 @@ def message_v1(
             context["variant"]: GroupingComponent(
                 id="message",
                 values=[interface.message or interface.formatted or ""],
-                similarity_encoder=text_shingle_encoder(5),
             )
         }

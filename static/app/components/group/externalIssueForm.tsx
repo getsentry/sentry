@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import AbstractExternalIssueForm, {
   ExternalIssueAction,
 } from 'sentry/components/externalIssues/abstractExternalIssueForm';
@@ -41,7 +41,7 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
     this.loadTransaction = this.startTransaction('load');
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const query: {action?: ExternalIssueAction} = {};
     if (this.state?.hasOwnProperty('action')) {
       query.action = this.state.action;

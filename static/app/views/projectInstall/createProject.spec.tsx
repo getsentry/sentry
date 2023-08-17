@@ -7,11 +7,15 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {tct} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {Organization} from 'sentry/types';
 import * as useExperiment from 'sentry/utils/useExperiment';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
+
+jest.mock('sentry/actionCreators/indicator');
 
 function renderFrameworkModalMockRequests({
   organization,
@@ -43,9 +47,16 @@ function renderFrameworkModalMockRequests({
   const projectCreationMockRequest = MockApiClient.addMockResponse({
     url: `/teams/${organization.slug}/${teamSlug}/projects/`,
     method: 'POST',
+    body: {slug: 'testProj'},
   });
 
-  return {projectCreationMockRequest};
+  const experimentalprojectCreationMockRequest = MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/experimental/projects/`,
+    method: 'POST',
+    body: {slug: 'testProj', team_slug: 'testTeam'},
+  });
+
+  return {projectCreationMockRequest, experimentalprojectCreationMockRequest};
 }
 
 describe('CreateProject', function () {
@@ -267,6 +278,116 @@ describe('CreateProject', function () {
     expect(container).toSnapshot();
   });
 
+  it('should display success message on proj creation', async function () {
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+      },
+    });
+
+    const frameWorkModalMockRequests = renderFrameworkModalMockRequests({
+      organization,
+      teamSlug: teamWithAccess.slug,
+    });
+    TeamStore.loadUserTeams([teamWithAccess]);
+
+    render(<CreateProject />, {
+      organization,
+    });
+
+    renderGlobalModal();
+    await userEvent.click(screen.getByTestId('platform-apple-ios'));
+    await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+
+    expect(frameWorkModalMockRequests.projectCreationMockRequest).toHaveBeenCalledTimes(
+      1
+    );
+    expect(addSuccessMessage).toHaveBeenCalledWith(
+      tct('Created project [project]', {
+        project: 'testProj',
+      })
+    );
+  });
+
+  it('should display error message on proj creation failure', async function () {
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+      },
+    });
+
+    const frameWorkModalMockRequests = renderFrameworkModalMockRequests({
+      organization,
+      teamSlug: teamWithAccess.slug,
+    });
+    frameWorkModalMockRequests.projectCreationMockRequest = MockApiClient.addMockResponse(
+      {
+        url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+        method: 'POST',
+        body: {slug: 'testProj'},
+        statusCode: 404,
+      }
+    );
+    TeamStore.loadUserTeams([teamWithAccess]);
+
+    render(<CreateProject />, {
+      organization,
+    });
+
+    renderGlobalModal();
+    await userEvent.click(screen.getByTestId('platform-apple-ios'));
+    await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+
+    expect(frameWorkModalMockRequests.projectCreationMockRequest).toHaveBeenCalledTimes(
+      1
+    );
+    expect(addErrorMessage).toHaveBeenCalledWith(
+      tct('Failed to create project [project]', {
+        project: 'apple-ios',
+      })
+    );
+  });
+
+  it('should display success message when using experimental endpoint', async function () {
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+        features: ['team-project-creation-all'],
+      },
+    });
+
+    const frameWorkModalMockRequests = renderFrameworkModalMockRequests({
+      organization,
+      teamSlug: teamNoAccess.slug,
+    });
+    render(<CreateProject />, {
+      context: TestStubs.routerContext([
+        {
+          organization: {
+            id: '1',
+            slug: 'testOrg',
+            access: ['project:read'],
+          },
+        },
+      ]),
+      organization,
+    });
+
+    renderGlobalModal();
+    await userEvent.click(screen.getByTestId('platform-apple-ios'));
+    await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+
+    expect(
+      frameWorkModalMockRequests.experimentalprojectCreationMockRequest
+    ).toHaveBeenCalledTimes(1);
+    expect(addSuccessMessage).toHaveBeenCalledWith(
+      tct('Created [project] under new team [team]', {
+        project: 'testProj',
+        team: '#testTeam',
+      })
+    );
+  });
+
   it('does not render framework selection modal if vanilla js is NOT selected', async function () {
     const {organization} = initializeOrg({
       organization: {
@@ -358,7 +479,6 @@ describe('CreateProject', function () {
 
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/rule-conditions/`,
-        // @ts-ignore TODO: fix this type
         body: TestStubs.MOCK_RESP_VERBOSE,
       });
     });
@@ -370,29 +490,30 @@ describe('CreateProject', function () {
     it('should enabled the submit button if and only if all the required information has been filled', async function () {
       render(<CreateProject />);
 
-      const createProjectButton = screen.getByRole('button', {name: 'Create Project'});
+      // We need to query for the submit button every time we want to access it
+      // as re-renders can create new DOM nodes
+      const getSubmitButton = () => screen.getByRole('button', {name: 'Create Project'});
+
+      expect(getSubmitButton()).toBeDisabled();
+
+      // Selecting the platform pre-fills the project name
+      await userEvent.click(screen.getByTestId('platform-apple-ios'));
+      expect(getSubmitButton()).toBeEnabled();
 
       await userEvent.click(screen.getByText(/When there are more than/));
-      expect(createProjectButton).toBeDisabled();
-
-      await userEvent.type(screen.getByTestId('range-input'), '2');
-      expect(screen.getByTestId('range-input')).toHaveValue(2);
-      expect(createProjectButton).toBeDisabled();
-
-      await userEvent.click(screen.getByTestId('platform-apple-ios'));
-      expect(createProjectButton).toBeEnabled();
+      expect(getSubmitButton()).toBeEnabled();
 
       await userEvent.clear(screen.getByTestId('range-input'));
-      expect(createProjectButton).toBeDisabled();
+      expect(getSubmitButton()).toBeDisabled();
 
       await userEvent.type(screen.getByTestId('range-input'), '2712');
-      expect(createProjectButton).toBeEnabled();
+      expect(getSubmitButton()).toBeEnabled();
 
       await userEvent.clear(screen.getByTestId('range-input'));
-      expect(createProjectButton).toBeDisabled();
+      expect(getSubmitButton()).toBeDisabled();
 
       await userEvent.click(screen.getByText("I'll create my own alerts later"));
-      expect(createProjectButton).toBeEnabled();
+      expect(getSubmitButton()).toBeEnabled();
     });
   });
 });

@@ -189,11 +189,11 @@ class ResultGrid extends Component<Props, State> {
 
   state: State = this.defaultState;
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.fetchData();
   }
 
-  componentWillReceiveProps() {
+  UNSAFE_componentWillReceiveProps() {
     const queryParams = this.query;
     this.setState(
       {

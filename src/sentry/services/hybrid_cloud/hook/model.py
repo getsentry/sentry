@@ -12,8 +12,8 @@ from sentry.services.hybrid_cloud import RpcModel
 
 class RpcServiceHook(RpcModel):
     id: int = -1
-    guid: str = ""
-    application_id: int = -1
+    guid: Optional[str] = ""
+    application_id: Optional[int] = None
     installation_id: Optional[int] = None
     project_id: Optional[int] = None
     organization_id: Optional[int] = None

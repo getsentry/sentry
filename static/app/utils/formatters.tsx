@@ -3,6 +3,7 @@ import round from 'lodash/round';
 
 import {t, tn} from 'sentry/locale';
 import {CommitAuthor, User} from 'sentry/types';
+import {RATE_UNIT_LABELS, RateUnits} from 'sentry/utils/discover/fields';
 
 export function userDisplayName(user: User | CommitAuthor, includeEmail = true): string {
   let displayName = String(user?.name ?? t('Unknown author')).trim();
@@ -18,6 +19,15 @@ export function userDisplayName(user: User | CommitAuthor, includeEmail = true):
   }
   return displayName;
 }
+
+export const isSemverRelease = (rawVersion: string): boolean => {
+  try {
+    const parsedVersion = new Release(rawVersion);
+    return !!parsedVersion.versionParsed;
+  } catch {
+    return false;
+  }
+};
 
 export const formatVersion = (rawVersion: string, withPackage = false) => {
   try {
@@ -276,7 +286,16 @@ const numberFormats = [
   [1000, 'k'],
 ] as const;
 
-export function formatAbbreviatedNumber(number: number | string) {
+/**
+ * Formats a number to a string with a suffix
+ *
+ * @param number the number to format
+ * @param precision the number of significant digits to include
+ */
+export function formatAbbreviatedNumber(
+  number: number | string,
+  precision?: number
+): string {
   number = Number(number);
 
   let lookup: (typeof numberFormats)[number];
@@ -291,10 +310,25 @@ export function formatAbbreviatedNumber(number: number | string) {
       continue;
     }
 
-    return shortValue / 10 > 1 || !fitsBound
-      ? `${shortValue}${suffix}`
-      : `${formatFloat(number / suffixNum, 1)}${suffix}`;
+    const formattedNumber =
+      shortValue / 10 > 1 || !fitsBound
+        ? precision === undefined
+          ? shortValue
+          : parseFloat(shortValue.toPrecision(precision)).toString()
+        : formatFloat(number / suffixNum, precision || 1).toLocaleString(undefined, {
+            maximumSignificantDigits: precision,
+          });
+
+    return `${formattedNumber}${suffix}`;
   }
 
-  return number.toLocaleString();
+  return number.toLocaleString(undefined, {maximumSignificantDigits: precision});
+}
+
+export function formatRate(
+  value: number,
+  unit: RateUnits = RateUnits.PER_SECOND,
+  significantDigits?: number
+) {
+  return `${formatAbbreviatedNumber(value, significantDigits)}${RATE_UNIT_LABELS[unit]}`;
 }

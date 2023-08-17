@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from datetime import timedelta
 from typing import Mapping, Sequence
@@ -7,6 +9,7 @@ from django.utils import timezone
 from sentry import features
 from sentry.models import Group, GroupRelease, GroupStatus, Release, ReleaseProject
 from sentry.signals import release_created
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils.suspect_resolutions_releases import ALGO_VERSION, analytics
 
@@ -25,7 +28,9 @@ def record_suspect_resolutions_releases(release, **kwargs) -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.get_suspect_resolutions_releases", queue="get_suspect_resolutions_releases"
+    name="sentry.tasks.get_suspect_resolutions_releases",
+    queue="get_suspect_resolutions_releases",
+    silo_mode=SiloMode.REGION,
 )
 def get_suspect_resolutions_releases(release: Release) -> Sequence[int]:
     suspect_resolution_issue_ids = []
@@ -39,7 +44,7 @@ def get_suspect_resolutions_releases(release: Release) -> Sequence[int]:
             .exclude(release=release)
             .order_by("-release__date_added")
         )
-        releases_by_project: Mapping[int, Sequence[Release]] = defaultdict(list)
+        releases_by_project: Mapping[int, list[Release]] = defaultdict(list)
         for rp in prev_release_projects:
             releases_by_project[rp.project.id].append(rp.release)
 
@@ -81,3 +86,5 @@ def get_suspect_resolutions_releases(release: Release) -> Sequence[int]:
             )
 
         return suspect_resolution_issue_ids
+    else:
+        return []

@@ -3,6 +3,7 @@ all: develop
 
 PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
+POSTGRES_CONTAINER := sentry_postgres
 
 freeze-requirements:
 	@python3 -S -m tools.freeze_requirements
@@ -97,7 +98,7 @@ run-acceptance:
 	pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml"
 	@echo ""
 
-test-cli:
+test-cli: create-db
 	@echo "--> Testing CLI"
 	rm -rf test_cli
 	mkdir test_cli
@@ -124,7 +125,7 @@ test-js-ci: node-version-check
 	@yarn run test-ci
 	@echo ""
 
-test-python-ci:
+test-python-ci: create-db
 	@echo "--> Running CI Python tests"
 	pytest tests/integration tests/sentry \
 		--ignore tests/sentry/eventstream/kafka \
@@ -136,13 +137,14 @@ test-python-ci:
 		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
 	@echo ""
 
-test-snuba:
+test-snuba: create-db
 	@echo "--> Running snuba tests"
 	pytest tests/snuba \
 		tests/sentry/eventstream/kafka \
 		tests/sentry/post_process_forwarder \
 		tests/sentry/snuba \
 		tests/sentry/search/events \
+		tests/sentry/event_manager \
 		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
 	@echo ""
 
@@ -153,12 +155,12 @@ test-tools:
 
 backend-typing:
 	@echo "--> Running Python typing checks"
-	mypy --strict --warn-unreachable --config-file mypy.ini
+	mypy
 	@echo ""
 
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
 # Running Locally: Run `sentry devservices up kafka zookeeper` before starting these tests
-test-symbolicator:
+test-symbolicator: create-db
 	@echo "--> Running symbolicator tests"
 	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml"
 	pytest tests/relay_integration/lang/javascript/ -vv -m symbolicator

@@ -6,12 +6,14 @@ import {CommitRow} from 'sentry/components/commitRow';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {Commit, Organization, Project, Repository} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {getCommitsByRepository, getQuery, getReposToRender} from '../utils';
 
@@ -26,13 +28,13 @@ type Props = RouteComponentProps<{release: string}, {}> & {
   release: string;
   releaseRepos: Repository[];
   activeReleaseRepo?: Repository;
-} & AsyncView['props'];
+} & DeprecatedAsyncView['props'];
 
 type State = {
   commits: Commit[];
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class Commits extends AsyncView<Props, State> {
+class Commits extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     const {params, orgSlug, projectSlug} = this.props;
 
@@ -59,7 +61,7 @@ class Commits extends AsyncView<Props, State> {
     super.componentDidUpdate(prevProps, prevState);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {
       projectSlug,
       activeReleaseRepo: activeRepository,

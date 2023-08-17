@@ -1,14 +1,16 @@
 import {captureMessage} from '@sentry/react';
+import * as Sentry from '@sentry/react';
 import {LegendComponentOption} from 'echarts';
 
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import {defined, formatBytesBase2} from 'sentry/utils';
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {AggregationOutputType, RateUnits} from 'sentry/utils/discover/fields';
 import {
   DAY,
   formatAbbreviatedNumber,
   formatPercentage,
+  formatRate,
   getDuration,
   HOUR,
   MINUTE,
@@ -63,13 +65,15 @@ export function axisLabelFormatter(
   value: number,
   outputType: AggregationOutputType,
   abbreviation: boolean = false,
-  durationUnit?: number
+  durationUnit?: number,
+  rateUnit?: RateUnits
 ): string {
   return axisLabelFormatterUsingAggregateOutputType(
     value,
     outputType,
     abbreviation,
-    durationUnit
+    durationUnit,
+    rateUnit
   );
 }
 
@@ -80,7 +84,8 @@ export function axisLabelFormatterUsingAggregateOutputType(
   value: number,
   type: string,
   abbreviation: boolean = false,
-  durationUnit?: number
+  durationUnit?: number,
+  rateUnit?: RateUnits
 ): string {
   switch (type) {
     case 'integer':
@@ -92,6 +97,8 @@ export function axisLabelFormatterUsingAggregateOutputType(
       return axisDuration(value, durationUnit);
     case 'size':
       return formatBytesBase2(value, 0);
+    case 'rate':
+      return formatRate(value, rateUnit);
     default:
       return value.toString();
   }
@@ -166,7 +173,12 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
         range.min = min;
       }
       if (min < 0) {
-        captureMessage('Found negative min value in multiseries');
+        Sentry.withScope(scope => {
+          scope.setTag('seriesName', seriesName);
+          scope.setExtra('min', min);
+          scope.setExtra('max', min);
+          captureMessage('Found negative min value in multiseries');
+        });
       }
     }
   }

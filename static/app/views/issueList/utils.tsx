@@ -4,15 +4,17 @@ import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 
 export enum Query {
-  FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
+  FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
   NEW = 'is:new',
   ARCHIVED = 'is:archived',
   ESCALATING = 'is:escalating',
-  ONGOING = 'is:ongoing',
+  REGRESSED = 'is:regressed',
   REPROCESSING = 'is:reprocessing',
 }
+
+export const CUSTOM_TAB_VALUE = '__custom__';
 
 type OverviewTab = {
   /**
@@ -28,6 +30,7 @@ type OverviewTab = {
    */
   enabled: boolean;
   name: string;
+  hidden?: boolean;
   /**
    * Tooltip text to be hoverable when text has links
    */
@@ -42,7 +45,7 @@ type OverviewTab = {
  * Get a list of currently active tabs
  */
 export function getTabs(organization: Organization) {
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
   const tabs: Array<[string, OverviewTab]> = [
     [
       Query.UNRESOLVED,
@@ -70,10 +73,10 @@ export function getTabs(organization: Organization) {
       },
     ],
     [
-      Query.NEW,
+      Query.REGRESSED,
       {
-        name: t('New'),
-        analyticsName: 'new',
+        name: t('Regressed'),
+        analyticsName: 'regressed',
         count: true,
         enabled: hasEscalatingIssuesUi,
       },
@@ -83,15 +86,6 @@ export function getTabs(organization: Organization) {
       {
         name: t('Escalating'),
         analyticsName: 'escalating',
-        count: true,
-        enabled: hasEscalatingIssuesUi,
-      },
-    ],
-    [
-      Query.ONGOING,
-      {
-        name: t('Ongoing'),
-        analyticsName: 'ongoing',
         count: true,
         enabled: hasEscalatingIssuesUi,
       },
@@ -135,6 +129,19 @@ export function getTabs(organization: Organization) {
         tooltipHoverable: true,
       },
     ],
+    [
+      // Hidden tab to account for custom queries that don't match any of the queries
+      // above. It's necessary because if Tabs's value doesn't match that of any tab item
+      // then Tabs will fall back to a default value, causing unexpected behaviors.
+      CUSTOM_TAB_VALUE,
+      {
+        name: t('Custom'),
+        analyticsName: 'custom',
+        hidden: true,
+        count: false,
+        enabled: true,
+      },
+    ],
   ];
 
   return tabs.filter(([_query, tab]) => tab.enabled);
@@ -166,7 +173,6 @@ export enum IssueSortOptions {
   DATE = 'date',
   NEW = 'new',
   PRIORITY = 'priority',
-  BETTER_PRIORITY = 'betterPriority',
   FREQ = 'freq',
   USER = 'user',
   INBOX = 'inbox',
@@ -184,8 +190,6 @@ export function getSortLabel(key: string) {
       return t('First Seen');
     case IssueSortOptions.PRIORITY:
       return t('Priority');
-    case IssueSortOptions.BETTER_PRIORITY:
-      return t('Better Priority');
     case IssueSortOptions.FREQ:
       return t('Events');
     case IssueSortOptions.USER:
@@ -212,6 +216,8 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   'is',
   '__text',
 ];
+
+export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];
 
 export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
   'issue-stream-saved-searches-sidebar-open';

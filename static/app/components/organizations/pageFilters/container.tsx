@@ -29,7 +29,7 @@ type InitializeUrlStateProps = Omit<
   'memberProjects' | 'queryParams' | 'router' | 'shouldEnforceSingleProject'
 >;
 
-type Props = InitializeUrlStateProps & {
+interface Props extends InitializeUrlStateProps {
   children?: React.ReactNode;
   /**
    * Custom alert message for the desynced filter state.
@@ -49,13 +49,22 @@ type Props = InitializeUrlStateProps & {
    * Slugs of projects to display in project selector
    */
   specificProjectSlugs?: string[];
-};
+  /**
+   * If provided, will store page filters separately from the rest of Sentry
+   */
+  storageNamespace?: string;
+}
 
 /**
  * The page filters container handles initialization of page filters for the
  * wrapped content. Children will not be rendered until the filters are ready.
  */
-function Container({skipLoadLastUsed, children, ...props}: Props) {
+function Container({
+  skipLoadLastUsed,
+  skipLoadLastUsedEnvironment,
+  children,
+  ...props
+}: Props) {
   const {
     forceProject,
     organization,
@@ -67,6 +76,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     disablePersistence,
     desyncedAlertMessage,
     hideDesyncRevertButton,
+    storageNamespace,
   } = props;
   const router = useRouter();
   const location = useLocation();
@@ -86,12 +96,13 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     ? specifiedProjects
     : specifiedProjects.filter(project => project.isMember);
 
-  const doInitialization = () =>
+  const doInitialization = () => {
     initializeUrlState({
       organization,
       queryParams: location.query,
       router,
       skipLoadLastUsed,
+      skipLoadLastUsedEnvironment,
       memberProjects,
       defaultSelection,
       forceProject,
@@ -100,7 +111,9 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
       shouldPersist: !disablePersistence,
       showAbsolute,
       skipInitializeUrlParams,
+      storageNamespace,
     });
+  };
 
   // Initializes GlobalSelectionHeader
   //

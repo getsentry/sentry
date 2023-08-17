@@ -2,7 +2,8 @@ from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_relay import UnpackErrorSignatureExpired, validate_register_response
+from sentry_relay.auth import validate_register_response
+from sentry_relay.exceptions import UnpackErrorSignatureExpired
 
 from sentry import options
 from sentry.api.authentication import is_internal_relay, relay_from_id
@@ -98,4 +99,5 @@ class RelayRegisterResponseEndpoint(Endpoint):
                 relay_usage.public_key = public_key
                 relay_usage.save()
 
+        assert relay is not None
         return Response(serialize({"relay_id": relay.relay_id}))

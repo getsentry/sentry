@@ -1,12 +1,19 @@
+from __future__ import annotations
+
+from abc import abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from threading import Semaphore
+from typing import Any, ClassVar
 from uuid import uuid4
 
 from django.db import IntegrityError, models, router
 from django.utils import timezone
+from typing_extensions import Self
 
+from sentry.celery import SentryTask
 from sentry.db.models import BoundedPositiveIntegerField, Model
 from sentry.locks import locks
+from sentry.models.files.abstractfileblobowner import AbstractFileBlobOwner
 from sentry.models.files.utils import (
     UPLOAD_RETRY_TIME,
     _get_size_and_checksum,
@@ -32,8 +39,14 @@ class AbstractFileBlob(Model):
     class Meta:
         abstract = True
 
-    FILE_BLOB_OWNER_MODEL = None
-    DELETE_FILE_TASK = None
+    # abstract
+    FILE_BLOB_OWNER_MODEL: ClassVar[type[AbstractFileBlobOwner]]
+    DELETE_FILE_TASK: ClassVar[SentryTask]
+
+    @classmethod
+    @abstractmethod
+    def _storage_config(cls) -> dict[str, Any] | None:
+        raise NotImplementedError(cls)
 
     @classmethod
     def from_files(cls, files, organization=None, logger=nooplogger):
@@ -66,7 +79,7 @@ class AbstractFileBlob(Model):
             )
             blob = cls(size=size, checksum=checksum)
             blob.path = cls.generate_unique_path()
-            storage = get_storage()
+            storage = get_storage(cls._storage_config())
             storage.save(blob.path, fileobj)
             blobs_to_save.append((blob, lock))
             metrics.timing("filestore.blob-size", size, tags={"function": "from_files"})
@@ -158,7 +171,7 @@ class AbstractFileBlob(Model):
             logger.debug("FileBlob.from_files.end")
 
     @classmethod
-    def from_file(cls, fileobj, logger=nooplogger):
+    def from_file(cls, fileobj, logger=nooplogger) -> Self:
         """
         Retrieve a single FileBlob instances for the given file.
         """
@@ -174,7 +187,7 @@ class AbstractFileBlob(Model):
 
             blob = cls(size=size, checksum=checksum)
             blob.path = cls.generate_unique_path()
-            storage = get_storage()
+            storage = get_storage(cls._storage_config())
             storage.save(blob.path, fileobj)
             blob.save()
 
@@ -229,5 +242,5 @@ class AbstractFileBlob(Model):
         """
         assert self.path
 
-        storage = get_storage()
+        storage = get_storage(self._storage_config())
         return storage.open(self.path)

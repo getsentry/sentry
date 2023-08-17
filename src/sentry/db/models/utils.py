@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import operator
-from typing import Any, Sequence
+from typing import Any, Container
 from uuid import uuid4
 
 from django.db.models import F, Field, Model
 from django.db.models.expressions import BaseExpression, CombinedExpression, Value
-from django.template.defaultfilters import slugify
 from django.utils.crypto import get_random_string
+from django.utils.text import slugify
 
 from sentry.db.exceptions import CannotResolveExpression
 
@@ -21,7 +23,7 @@ COMBINED_EXPRESSION_CALLBACKS = {
 
 
 def resolve_combined_expression(instance: Model, node: BaseExpression) -> BaseExpression:
-    def _resolve(instance: Model, node: BaseExpression) -> BaseExpression:
+    def _resolve(instance: Model, node: BaseExpression | F) -> BaseExpression:
         if isinstance(node, Value):
             return node.value
         if isinstance(node, F):
@@ -50,7 +52,7 @@ def resolve_combined_expression(instance: Model, node: BaseExpression) -> BaseEx
 def slugify_instance(
     inst: Model,
     label: str,
-    reserved: Sequence[str] = (),
+    reserved: Container[str] = (),
     max_length: int = 30,
     field_name: str = "slug",
     *args: Any,

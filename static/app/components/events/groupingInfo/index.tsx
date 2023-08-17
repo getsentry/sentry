@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -11,12 +11,17 @@ import {space} from 'sentry/styles/space';
 import {EventGroupInfo, Group, IssueCategory, Organization} from 'sentry/types';
 import {Event, EventOccurrence} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
-import {groupingFeedbackTypes} from 'sentry/views/issueDetails/grouping/grouping';
 
 import GroupingConfigSelect from './groupingConfigSelect';
 import GroupVariant from './groupingVariant';
 
-type Props = AsyncComponent['props'] & {
+const groupingFeedbackTypes = [
+  t('Too eager grouping'),
+  t('Too specific grouping'),
+  t('Other grouping issue'),
+];
+
+type Props = DeprecatedAsyncComponent['props'] & {
   event: Event;
   organization: Organization;
   projectSlug: string;
@@ -24,14 +29,14 @@ type Props = AsyncComponent['props'] & {
   group?: Group;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   configOverride: string | null;
   groupInfo: EventGroupInfo;
   isOpen: boolean;
 };
 
-class GroupingInfo extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class GroupingInfo extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, event, projectSlug, group} = this.props;
 
     if (

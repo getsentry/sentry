@@ -53,7 +53,11 @@ class ProjectIndexEndpoint(Endpoint):
                 if isinstance(queryset, EmptyQuerySet):
                     raise AuthenticationFailed("Token not found")
             else:
-                queryset = queryset.filter(teams__organizationmember__user=request.user)
+                queryset = queryset.filter(teams__organizationmember__user_id=request.user.id)
+
+            org_id_filter = request.GET.get("organizationId", None)
+            if org_id_filter:
+                queryset = queryset.filter(organization_id=org_id_filter)
 
         query = request.GET.get("query")
         if query:

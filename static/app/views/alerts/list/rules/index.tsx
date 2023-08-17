@@ -5,12 +5,12 @@ import isEmpty from 'lodash/isEmpty';
 import uniq from 'lodash/uniq';
 
 import {addErrorMessage, addMessage} from 'sentry/actionCreators/indicator';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -39,8 +39,11 @@ type State = {
   teamFilterSearch?: string;
 };
 
-class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class AlertRulesList extends DeprecatedAsyncComponent<
+  Props,
+  State & DeprecatedAsyncComponent['state']
+> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
     const {query} = location;
 
@@ -92,8 +95,10 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     ownerValue: string
   ) => {
     const {organization} = this.props;
-    const alertPath = rule.type === 'alert_rule' ? 'alert-rules' : 'rules';
-    const endpoint = `/projects/${organization.slug}/${projectId}/${alertPath}/${rule.id}/`;
+    const endpoint =
+      rule.type === 'alert_rule'
+        ? `/organizations/${organization.slug}/alert-rules/${rule.id}`
+        : `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`;
     const updatedRule = {...rule, owner: ownerValue};
 
     this.api.request(endpoint, {
@@ -110,11 +115,11 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
   handleDeleteRule = async (projectId: string, rule: CombinedMetricIssueAlerts) => {
     const {organization} = this.props;
-    const alertPath = isIssueAlert(rule) ? 'rules' : 'alert-rules';
-
     try {
       await this.api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/${alertPath}/${rule.id}/`,
+        isIssueAlert(rule)
+          ? `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`
+          : `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
         {
           method: 'DELETE',
         }

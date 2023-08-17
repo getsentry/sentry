@@ -8,7 +8,6 @@ from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.types import Message, Value
-from django.conf import settings
 
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.utils import kafka_config, metrics
@@ -25,7 +24,7 @@ DEFAULT_QUEUED_MIN_MESSAGES = 100000
 def get_config(
     topic: str, group_id: str, auto_offset_reset: str, strict_offset_reset: bool
 ) -> MutableMapping[Any, Any]:
-    cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
+    cluster_name: str = kafka_config.get_topic_definition(topic)["cluster"]
     consumer_config: MutableMapping[str, Any] = build_kafka_consumer_configuration(
         kafka_config.get_kafka_consumer_cluster_options(
             cluster_name,

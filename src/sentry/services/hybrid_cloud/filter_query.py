@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Any, Callable, Generic, List, Optional, TypeVar
+from enum import Enum
+from typing import TYPE_CHECKING, Any, Callable, Generic, List, Optional, TypeVar, Union
 
-from django.db.models import QuerySet
+from django.db.models import Model, QuerySet
+
+from sentry.services.hybrid_cloud import RpcModel
+from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.api.serializers import Serializer
@@ -12,9 +16,9 @@ if TYPE_CHECKING:
 
 
 FILTER_ARGS = TypeVar("FILTER_ARGS")  # A typedict
-RPC_RESPONSE = TypeVar("RPC_RESPONSE")
-SERIALIZER_ENUM = TypeVar("SERIALIZER_ENUM")
-BASE_MODEL = TypeVar("BASE_MODEL")
+RPC_RESPONSE = TypeVar("RPC_RESPONSE", bound=RpcModel)
+SERIALIZER_ENUM = TypeVar("SERIALIZER_ENUM", bound=Union[Enum, None])
+BASE_MODEL = TypeVar("BASE_MODEL", bound=Model)
 
 # In the future, this ought to be a pass through type that does not get double serializer, and which cannot be
 # inspected by code.
@@ -45,7 +49,7 @@ class FilterQueryDatabaseImpl(
     # Required Overrides
 
     @abc.abstractmethod
-    def base_query(self) -> QuerySet:
+    def base_query(self, ids_only: bool = False) -> QuerySet[BASE_MODEL]:
         # This should return a QuerySet for the model in question along with any other required data
         # that is not a filter
         pass
@@ -63,7 +67,9 @@ class FilterQueryDatabaseImpl(
         pass
 
     @abc.abstractmethod
-    def apply_filters(self, query: QuerySet, filters: FILTER_ARGS) -> QuerySet:
+    def apply_filters(
+        self, query: QuerySet[BASE_MODEL], filters: FILTER_ARGS
+    ) -> QuerySet[BASE_MODEL]:
         pass
 
     @abc.abstractmethod
@@ -75,7 +81,7 @@ class FilterQueryDatabaseImpl(
     def _filter_has_any_key_validator(self, *keys: str) -> Callable[[FILTER_ARGS], Optional[str]]:
         def validator(d: FILTER_ARGS) -> Optional[str]:
             for k in keys:
-                if k in d:  # type: ignore # We assume FILTER_ARGS is a dict
+                if k in d:  # type: ignore[operator]  # We assume FILTER_ARGS is a dict
                     return None
 
             return f"Filter must contain at least one of: {keys}"
@@ -84,14 +90,14 @@ class FilterQueryDatabaseImpl(
 
     # Helpers
 
-    def _query_many(self, filter: FILTER_ARGS) -> QuerySet:
+    def _query_many(self, filter: FILTER_ARGS, ids_only: bool = False) -> QuerySet:
         validation_error = self.filter_arg_validator()(filter)
         if validation_error is not None:
             raise TypeError(
                 f"Failed to validate filter arguments passed to {self.__class__.__name__}: {validation_error}"
             )
 
-        query = self.base_query()
+        query = self.base_query(ids_only=ids_only)
         return self.apply_filters(query, filter)
 
     # Public Interface
@@ -104,15 +110,25 @@ class FilterQueryDatabaseImpl(
         serializer: Optional[SERIALIZER_ENUM] = None,
     ) -> List[OpaqueSerializedResponse]:
         from sentry.api.serializers import serialize
+        from sentry.services.hybrid_cloud.user import RpcUser
+
+        if as_user is not None and SiloMode.get_current_mode() != SiloMode.MONOLITH:
+            if not isinstance(as_user, RpcUser):
+                # Frequent cause of bugs that type-checking doesn't always catch
+                raise TypeError("`as_user` must be serialized first")
 
         if as_user is None and auth_context:
             as_user = auth_context.user
 
-        return serialize(  # type: ignore
-            self._query_many(filter=filter),
+        result = self._query_many(filter=filter)
+        return serialize(
+            list(result),
             user=as_user,
             serializer=self.serialize_api(serializer),
         )
 
     def get_many(self, filter: FILTER_ARGS) -> List[RPC_RESPONSE]:
         return [self.serialize_rpc(o) for o in self._query_many(filter=filter)]
+
+    def get_many_ids(self, filter: FILTER_ARGS) -> List[int]:
+        return [o.id for o in self._query_many(filter=filter, ids_only=True)]

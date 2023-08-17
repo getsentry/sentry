@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/button';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
@@ -22,6 +22,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {Associations} from 'sentry/views/settings/projectSourceMaps/associations';
 import {DebugIdBundlesTags} from 'sentry/views/settings/projectSourceMaps/debugIdBundlesTags';
 
 enum DebugIdBundleArtifactType {
@@ -180,13 +181,17 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
         subtitle={
           <VersionAndDetails>
             {params.bundleId}
-            {tabDebugIdBundlesActive && (
-              <DebugIdBundlesTags
-                dist={debugIdBundlesArtifactsData?.dist}
-                release={debugIdBundlesArtifactsData?.release}
-                loading={debugIdBundlesArtifactsLoading}
-              />
-            )}
+            {tabDebugIdBundlesActive &&
+              // TODO(Pri): Move the loading to the component once fully transitioned to associations.
+              !debugIdBundlesArtifactsLoading &&
+              (debugIdBundlesArtifactsData?.associations ? (
+                <Associations associations={debugIdBundlesArtifactsData?.associations} />
+              ) : (
+                <DebugIdBundlesTags
+                  dist={debugIdBundlesArtifactsData?.dist}
+                  release={debugIdBundlesArtifactsData?.release}
+                />
+              ))}
           </VersionAndDetails>
         }
       />

@@ -16,7 +16,8 @@ from sentry.tasks.deletion.hybrid_cloud import (
     set_watermark,
 )
 from sentry.testutils.factories import Factories
-from sentry.testutils.silo import exempt_from_silo_limits, no_silo_test, region_silo_test
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.silo import assume_test_silo_mode, no_silo_test, region_silo_test
 from sentry.types.region import find_regions_for_user
 
 
@@ -56,7 +57,7 @@ def saved_search_owner_id_field():
     return SavedSearch._meta.get_field("owner_id")
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_no_work_is_no_op(task_runner, saved_search_owner_id_field):
     reset_watermarks()
 
@@ -71,7 +72,7 @@ def test_no_work_is_no_op(task_runner, saved_search_owner_id_field):
     assert get_watermark("tombstone", saved_search_owner_id_field) == (0, tid)
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_watermark_and_transaction_id(task_runner, saved_search_owner_id_field):
     _, tid1 = get_watermark("tombstone", saved_search_owner_id_field)
     # TODO: Add another test to validate the tid is unique per field
@@ -91,7 +92,7 @@ def test_watermark_and_transaction_id(task_runner, saved_search_owner_id_field):
     assert get_watermark("tombstone", saved_search_owner_id_field) == (wm, new_tid1)
 
 
-@exempt_from_silo_limits()
+@assume_test_silo_mode(SiloMode.MONOLITH)
 def setup_deletable_objects(
     count=1, send_tombstones=True, u_id=None
 ) -> Tuple[QuerySet, ControlOutbox]:
@@ -104,7 +105,9 @@ def setup_deletable_objects(
         Factories.create_saved_search(f"s-{i}", owner_id=u_id)
 
     for region_name in find_regions_for_user(u_id):
-        shard = ControlOutbox.for_shard(OutboxScope.USER_SCOPE, u_id, region_name)
+        shard = ControlOutbox(
+            shard_scope=OutboxScope.USER_SCOPE, shard_identifier=u_id, region_name=region_name
+        )
         if send_tombstones:
             shard.drain_shard()
 
@@ -112,7 +115,7 @@ def setup_deletable_objects(
     assert False, "find_regions_for_user could not determine a region for production."
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 @region_silo_test(stable=True)
 def test_region_processing(task_runner):
     reset_watermarks()
@@ -133,7 +136,7 @@ def test_region_processing(task_runner):
     assert results2.exists()
 
     # Processing after the tombstones arrives, still converges later.
-    with exempt_from_silo_limits():
+    with assume_test_silo_mode(SiloMode.MONOLITH):
         shard2.drain_shard()
     with task_runner():
         schedule_hybrid_cloud_foreign_key_jobs()
@@ -148,7 +151,7 @@ def test_region_processing(task_runner):
 
 
 # No need to run both saas and control tests for this logic, the silo testing is baked in directly.
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 @no_silo_test(stable=True)
 def test_control_processing(task_runner):
     reset_watermarks()

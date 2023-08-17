@@ -1,6 +1,5 @@
+from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.models import Organization, Release, Repository
 from sentry.tasks.commits import generate_fetch_commits_error_email
@@ -9,7 +8,7 @@ from .mail import MailPreview
 
 
 class DebugUnableToFetchCommitsEmailView(View):
-    def get(self, request: Request) -> Response:
+    def get(self, request: HttpRequest) -> HttpResponse:
         org = Organization(slug="myorg")
         release = Release(version="abcdef", organization=org)
         repo = Repository(name="repo_name")

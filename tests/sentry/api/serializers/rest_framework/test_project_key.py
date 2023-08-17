@@ -1,6 +1,6 @@
 from sentry.api.serializers.rest_framework import DynamicSdkLoaderOptionSerializer
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class ProjectKeySerializerTest(TestCase):

@@ -11,6 +11,7 @@ import {
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
+import {ON_DEMAND_METRICS_SUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {
   Dataset,
   EventTypes,
@@ -204,6 +205,10 @@ const TRANSACTION_SUPPORTED_TAGS = [
   FieldKey.TRANSACTION_OP,
   FieldKey.TRANSACTION_STATUS,
   FieldKey.HTTP_METHOD,
+  FieldKey.HTTP_STATUS_CODE,
+  FieldKey.BROWSER_NAME,
+  FieldKey.GEO_COUNTRY_CODE,
+  FieldKey.OS_NAME,
 ];
 const SESSION_SUPPORTED_TAGS = [FieldKey.RELEASE];
 
@@ -240,17 +245,24 @@ export function datasetSupportedTags(
       [Dataset.ERRORS]: undefined,
       [Dataset.TRANSACTIONS]: org.features.includes('alert-allow-indexed')
         ? undefined
-        : TRANSACTION_SUPPORTED_TAGS,
+        : transactionSupportedTags(org),
       [Dataset.METRICS]: SESSION_SUPPORTED_TAGS,
       [Dataset.GENERIC_METRICS]: org.features.includes('alert-allow-indexed')
         ? undefined
-        : TRANSACTION_SUPPORTED_TAGS,
+        : transactionSupportedTags(org),
       [Dataset.SESSIONS]: SESSION_SUPPORTED_TAGS,
     },
     value => {
       return value ? makeTagCollection(value) : undefined;
     }
   )[dataset];
+}
+
+function transactionSupportedTags(org: Organization) {
+  if (org.features.includes('on-demand-metrics-extraction')) {
+    return [...ON_DEMAND_METRICS_SUPPORTED_TAGS];
+  }
+  return TRANSACTION_SUPPORTED_TAGS;
 }
 
 // Some data sets support all tags except some. For these cases, define the

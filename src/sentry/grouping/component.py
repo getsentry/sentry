@@ -40,11 +40,8 @@ class GroupingComponent:
         id,
         hint=None,
         contributes=None,
-        contributes_to_similarity=None,
         values=None,
         variant_provider=False,
-        similarity_encoder=None,
-        similarity_self_encoder=None,
         tree_label=None,
         is_prefix_frame=None,
         is_sentinel_frame=None,
@@ -54,7 +51,6 @@ class GroupingComponent:
         # Default values
         self.hint = DEFAULT_HINTS.get(id)
         self.contributes = None
-        self.contributes_to_similarity = None
         self.variant_provider = variant_provider
         self.values = []
         self.tree_label = None
@@ -64,15 +60,11 @@ class GroupingComponent:
         self.update(
             hint=hint,
             contributes=contributes,
-            contributes_to_similarity=contributes_to_similarity,
             values=values,
             tree_label=tree_label,
             is_prefix_frame=is_prefix_frame,
             is_sentinel_frame=is_sentinel_frame,
         )
-
-        self.similarity_encoder = similarity_encoder
-        self.similarity_self_encoder = similarity_self_encoder
 
     @property
     def name(self):
@@ -119,7 +111,6 @@ class GroupingComponent:
         self,
         hint=None,
         contributes=None,
-        contributes_to_similarity=None,
         values=None,
         tree_label=None,
         is_prefix_frame=None,
@@ -135,11 +126,7 @@ class GroupingComponent:
                 tree_label = calculate_tree_label(values)
             self.values = values
         if contributes is not None:
-            if contributes_to_similarity is None:
-                contributes_to_similarity = contributes
             self.contributes = contributes
-        if contributes_to_similarity is not None:
-            self.contributes_to_similarity = contributes_to_similarity
         if tree_label is not None:
             self.tree_label = tree_label
         if is_prefix_frame is not None:
@@ -170,32 +157,12 @@ class GroupingComponent:
         if self.contributes:
             return hash_from_values(self.iter_values())
 
-    def encode_for_similarity(self):
-        if not self.contributes_to_similarity:
-            return
-
-        id = self.id
-
-        if self.similarity_self_encoder is not None:
-            yield from self.similarity_self_encoder(id, self)
-
-            return
-
-        encoder = self.similarity_encoder
-
-        for i, value in enumerate(self.values):
-            if encoder is not None:
-                yield from encoder(id, value)
-            elif isinstance(value, GroupingComponent):
-                yield from value.encode_for_similarity()
-
     def as_dict(self):
         """Converts the component tree into a dictionary."""
         rv = {
             "id": self.id,
             "name": self.name,
             "contributes": self.contributes,
-            "contributes_to_similarity": self.contributes_to_similarity,
             "hint": self.hint,
             "values": [],
         }

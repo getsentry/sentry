@@ -1,16 +1,16 @@
 from unittest.mock import MagicMock, Mock, patch
 
 from sentry.models import Activity
-from sentry.notifications.notifications.activity import EscalatingActivityNotification
+from sentry.notifications.notifications.activity.escalating import EscalatingActivityNotification
 from sentry.testutils.cases import MSTeamsActivityNotificationTest
 from sentry.types.activity import ActivityType
 
 
 @patch(
-    "sentry.integrations.msteams.MsTeamsAbstractClient.get_user_conversation_id",
+    "sentry.integrations.msteams.MsTeamsClientMixin.get_user_conversation_id",
     Mock(return_value="some_conversation_id"),
 )
-@patch("sentry.integrations.msteams.MsTeamsAbstractClient.send_card")
+@patch("sentry.integrations.msteams.MsTeamsClientMixin.send_card")
 class MSTeamsEscalatingNotificationTest(MSTeamsActivityNotificationTest):
     def test_note(self, mock_send_card: MagicMock):
         """
@@ -44,7 +44,7 @@ class MSTeamsEscalatingNotificationTest(MSTeamsActivityNotificationTest):
         )
         assert (
             body[2]["text"]
-            == "Sentry flagged this issue as escalating because over 100 events happened in an hour"
+            == "Sentry flagged this issue as escalating because over 100 events happened in an hour."
         )
         assert (
             body[3]["columns"][1]["items"][0]["text"]

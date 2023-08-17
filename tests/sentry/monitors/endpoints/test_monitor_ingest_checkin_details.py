@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.models import Environment
+from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -13,7 +14,7 @@ from sentry.monitors.models import (
     MonitorStatus,
     MonitorType,
 )
-from sentry.testutils import MonitorIngestTestCase
+from sentry.testutils.cases import MonitorIngestTestCase
 from sentry.testutils.silo import region_silo_test
 
 
@@ -21,11 +22,6 @@ from sentry.testutils.silo import region_silo_test
 class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
     endpoint = "sentry-api-0-monitor-ingest-check-in-details"
     endpoint_with_org = "sentry-api-0-organization-monitor-check-in-details"
-
-    def setUp(self):
-        super().setUp()
-        self.latest = lambda: None
-        self.latest.guid = "latest"
 
     def _get_path_functions(self):
         # Monitor paths are supported both with an org slug and without.  We test both as long as we support both.
@@ -80,6 +76,10 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             checkin = MonitorCheckIn.objects.get(id=checkin.id)
             assert checkin.status == CheckInStatus.IN_PROGRESS
             assert checkin.date_updated > checkin.date_added
+            timeout_at = checkin.date_updated.replace(second=0, microsecond=0) + timedelta(
+                minutes=TIMEOUT
+            )
+            assert checkin.timeout_at == timeout_at
 
     def test_passing(self):
         monitor = self._create_monitor()
@@ -107,9 +107,11 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             assert (
                 checkin.monitor_environment.environment.name == monitor_environment.environment.name
             )
+            assert checkin.timeout_at is None
 
             monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
             assert monitor_environment.next_checkin > checkin.date_added
+            assert monitor_environment.next_checkin_latest > checkin.date_added
             assert monitor_environment.status == MonitorStatus.OK
             assert monitor_environment.last_checkin > checkin.date_added
 
@@ -144,6 +146,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
 
             monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
             assert monitor_environment.next_checkin > checkin.date_added
+            assert monitor_environment.next_checkin_latest > checkin.date_added
             assert monitor_environment.status == MonitorStatus.OK
             assert monitor_environment.last_checkin > checkin.date_added
 
@@ -186,6 +189,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
 
             monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
             assert monitor_environment.next_checkin > checkin.date_added
+            assert monitor_environment.next_checkin_latest > checkin.date_added
             assert monitor_environment.status == MonitorStatus.ERROR
             assert monitor_environment.last_checkin > checkin.date_added
 
@@ -209,6 +213,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
     def test_invalid_duration(self):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor, name="dev")
+        # test explicit invalid durations
         for path_func in self._get_path_functions():
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
@@ -236,6 +241,19 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
                 == f"Ensure this value is less than or equal to {BoundedPositiveIntegerField.MAX_VALUE}."
             )
 
+        # test implicit invalid durations
+        for path_func in self._get_path_functions():
+            checkin = MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                date_added=monitor.date_added - timedelta(weeks=52),
+            )
+
+            path = path_func(monitor.guid, checkin.guid)
+            resp = self.client.put(path, data={"status": "ok"}, **self.token_auth_headers)
+            assert resp.data["duration"][0] == "Check-in has is too old to update"
+
     def test_latest_returns_last_unfinished(self):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor)
@@ -262,7 +280,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
                 status=CheckInStatus.OK,
             )
 
-            path = path_func(monitor.guid, self.latest.guid)
+            path = path_func(monitor.guid, "latest")
             # include monitor_config to test check-in validation no error thrown, no-op on server side
             resp = self.client.put(
                 path,
@@ -285,6 +303,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
 
             monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
             assert monitor_environment.next_checkin > checkin2.date_added
+            assert monitor_environment.next_checkin_latest > checkin2.date_added
             assert monitor_environment.status == MonitorStatus.OK
             assert monitor_environment.last_checkin > checkin2.date_added
 
@@ -300,7 +319,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
                 status=CheckInStatus.OK,
             )
 
-            path = path_func(monitor.guid, self.latest.guid)
+            path = path_func(monitor.guid, "latest")
             resp = self.client.put(path, data={"status": "ok"}, **self.token_auth_headers)
             assert resp.status_code == 404, resp.content
 
@@ -316,6 +335,6 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
                 status=CheckInStatus.OK,
             )
 
-            path = path_func("invalid-guid", self.latest.guid)
+            path = path_func("invalid-guid", "latest")
             resp = self.client.put(path, data={"status": "ok"}, **self.token_auth_headers)
             assert resp.status_code == 400, resp.content

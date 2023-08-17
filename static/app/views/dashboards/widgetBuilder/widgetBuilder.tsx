@@ -10,9 +10,9 @@ import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import {TextareaField} from 'sentry/components/forms';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import InputField from 'sentry/components/forms/fields/inputField';
+import TextareaField from 'sentry/components/forms/fields/textareaField';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -572,6 +572,7 @@ function WidgetBuilder({
       return {...newState, errors: undefined};
     });
   }
+
   function getHandleColumnFieldChange(isMetricsData?: boolean) {
     function handleColumnFieldChange(newFields: QueryFieldValue[]) {
       const fieldStrings = newFields.map(generateFieldAsString);
@@ -916,11 +917,9 @@ function WidgetBuilder({
     [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(state.displayType) &&
     state.queries.length < 3;
 
-  const hideLegendAlias = [
-    DisplayType.TABLE,
-    DisplayType.WORLD_MAP,
-    DisplayType.BIG_NUMBER,
-  ].includes(state.displayType);
+  const hideLegendAlias = [DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(
+    state.displayType
+  );
 
   // Tabular visualizations will always have only one query and that query cannot be deleted,
   // so we will always have the first query available to get data from.

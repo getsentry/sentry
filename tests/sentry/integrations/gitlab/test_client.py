@@ -24,8 +24,8 @@ class GitlabRefreshAuthTest(GitLabTestCase):
 
     def setUp(self):
         super().setUp()
-        self.client = self.installation.get_client()
-        self.client.base_url = "https://example.gitlab.com/"
+        self.gitlab_client = self.installation.get_client()
+        self.gitlab_client.base_url = "https://example.gitlab.com/"
         self.request_data = {"id": "user_id"}
         self.request_url = "https://example.gitlab.com/api/v4/user"
         self.refresh_url = "https://example.gitlab.com/oauth/token"
@@ -37,14 +37,14 @@ class GitlabRefreshAuthTest(GitLabTestCase):
             "scope": "api",
         }
         self.repo = self.create_repo(name="Test-Org/foo", external_id=123)
-        self.original_identity_data = dict(self.client.identity.data)
+        self.original_identity_data = dict(self.gitlab_client.identity.data)
         self.gitlab_id = 123
 
     def tearDown(self):
         responses.reset()
 
     def make_users_request(self):
-        return self.client.get_user()
+        return self.gitlab_client.get_user()
 
     def add_refresh_auth(self, success=True):
         responses.add(
@@ -89,17 +89,17 @@ class GitlabRefreshAuthTest(GitLabTestCase):
         assert json.loads(responses_calls[2].response.text) == self.request_data
 
     def assert_identity_was_refreshed(self):
-        data = self.client.identity.data
+        data = self.gitlab_client.identity.data
         self.assert_data(data, self.refresh_response)
 
-        data = Identity.objects.get(id=self.client.identity.id).data
+        data = Identity.objects.get(id=self.gitlab_client.identity.id).data
         self.assert_data(data, self.refresh_response)
 
     def assert_identity_was_not_refreshed(self):
-        data = self.client.identity.data
+        data = self.gitlab_client.identity.data
         self.assert_data(data, self.original_identity_data)
 
-        data = Identity.objects.get(id=self.client.identity.id).data
+        data = Identity.objects.get(id=self.gitlab_client.identity.id).data
         self.assert_data(data, self.original_identity_data)
 
     @responses.activate
@@ -147,7 +147,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
             json={"text": 200},
         )
 
-        resp = self.client.check_file(self.repo, path, ref)
+        resp = self.gitlab_client.check_file(self.repo, path, ref)
         assert responses.calls[0].response.status_code == 200
         assert resp.status_code == 200
 
@@ -161,7 +161,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
             status=404,
         )
         with pytest.raises(ApiError):
-            self.client.check_file(self.repo, path, ref)
+            self.gitlab_client.check_file(self.repo, path, ref)
         assert responses.calls[0].response.status_code == 404
 
     @responses.activate
@@ -210,5 +210,5 @@ class GitlabRefreshAuthTest(GitLabTestCase):
             json=json.loads(GET_COMMIT_RESPONSE),
         )
 
-        resp = self.client.get_commit(self.gitlab_id, commit)
+        resp = self.gitlab_client.get_commit(self.gitlab_id, commit)
         assert resp == json.loads(GET_COMMIT_RESPONSE)

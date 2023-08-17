@@ -13,6 +13,7 @@ from snuba_sdk.function import Function
 from typing_extensions import TypedDict
 
 from sentry.discover.arithmetic import categorize_columns
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Group
 from sentry.search.events.builder import (
     HistogramQueryBuilder,
@@ -22,17 +23,16 @@ from sentry.search.events.builder import (
 )
 from sentry.search.events.fields import (
     FIELD_ALIASES,
-    InvalidSearchQuery,
     get_function_alias,
     get_json_meta_type,
     is_function,
 )
 from sentry.search.events.types import HistogramParams, ParamsType
+from sentry.snuba.dataset import Dataset
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.dates import to_timestamp
 from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
-    Dataset,
     SnubaTSResult,
     bulk_snql_query,
     get_array_column_alias,
@@ -61,7 +61,7 @@ __all__ = (
 
 logger = logging.getLogger(__name__)
 
-PreparedQuery = namedtuple("query", ["filter", "columns", "fields"])
+PreparedQuery = namedtuple("PreparedQuery", ["filter", "columns", "fields"])
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
@@ -185,6 +185,7 @@ def query(
     use_metrics_layer=False,
     skip_tag_resolution=False,
     extra_columns=None,
+    on_demand_metrics_enabled=False,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -253,7 +254,7 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, str],
+    params: Dict[str, Any],
     rollup: int,
     referrer: Optional[str] = None,
     zerofill_results: bool = True,
@@ -262,6 +263,7 @@ def timeseries_query(
     allow_metric_aggregates=False,
     has_metrics=False,
     use_metrics_layer=False,
+    on_demand_metrics_enabled=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -549,7 +551,8 @@ def get_facets(
     query: str,
     params: ParamsType,
     referrer: str,
-    limit: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
+    per_page: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
+    cursor: Optional[int] = 0,
 ):
     """
     High-level API for getting 'facet map' results.
@@ -561,11 +564,13 @@ def get_facets(
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
     referrer (str) A referrer string to help locate the origin of this query.
-    limit (int) The number of records to fetch.
+    per_page (int) The number of records to fetch.
+    cursor (int) The number of records to skip.
 
     Returns Sequence[FacetResult]
     """
     sample = len(params["project_id"]) > 2
+    fetch_projects = len(params.get("project_id", [])) > 1
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         key_name_builder = QueryBuilder(
@@ -574,7 +579,11 @@ def get_facets(
             query=query,
             selected_columns=["tags_key", "count()"],
             orderby=["-count()", "tags_key"],
-            limit=limit,
+            limit=per_page,
+            # Remove one from the cursor because if we fetch_projects then
+            # a result is popped off and replaced with projects, offsetting
+            # the pagination on subsequent pages
+            offset=cursor - 1 if fetch_projects and cursor > 0 else cursor,
             turbo=sample,
         )
         key_names = key_name_builder.run_query(referrer)
@@ -592,14 +601,13 @@ def get_facets(
     # Rescale the results if we're sampling
     multiplier = 1 / sample_rate if sample_rate is not None else 1
 
-    fetch_projects = False
-    if len(params.get("project_id", [])) > 1:
-        if len(top_tags) == limit:
-            top_tags.pop()
-        fetch_projects = True
+    if fetch_projects and len(top_tags) == per_page and cursor == 0:
+        top_tags.pop()
 
-    results = []
-    if fetch_projects:
+    top_tag_results = []
+    project_results = []
+    # Inject project data on the first page if multiple projects are selected
+    if fetch_projects and cursor == 0:
         with sentry_sdk.start_span(op="discover.discover", description="facets.projects"):
             project_value_builder = QueryBuilder(
                 Dataset.Discover,
@@ -612,7 +620,7 @@ def get_facets(
                 sample_rate=sample_rate,
             )
             project_values = project_value_builder.run_query(referrer=referrer)
-            results.extend(
+            project_results.extend(
                 [
                     FacetResult("project", r["project_id"], int(r["count"]) * multiplier)
                     for r in project_values["data"]
@@ -628,7 +636,7 @@ def get_facets(
         if tag == "environment":
             # Add here tags that you want to be individual
             individual_tags.append(tag)
-        elif i >= len(top_tags) - TOP_KEYS_DEFAULT_LIMIT:
+        elif i >= len(top_tags) - per_page:
             aggregate_tags.append(tag)
         else:
             individual_tags.append(tag)
@@ -651,7 +659,7 @@ def get_facets(
                 sample_rate=sample_rate,
             )
             tag_values = tag_value_builder.run_query(referrer)
-            results.extend(
+            top_tag_results.extend(
                 [
                     FacetResult(tag_name, r[tag], int(r["count"]) * multiplier)
                     for r in tag_values["data"]
@@ -668,12 +676,14 @@ def get_facets(
                 selected_columns=["count()", "tags_key", "tags_value"],
                 orderby=["tags_key", "-count()"],
                 limitby=("tags_key", TOP_VALUES_DEFAULT_LIMIT),
+                # Increase the limit to ensure we get results for each tag
+                limit=len(aggregate_tags) * TOP_VALUES_DEFAULT_LIMIT,
                 # Ensures Snuba will not apply FINAL
                 turbo=sample_rate is not None,
                 sample_rate=sample_rate,
             )
             aggregate_values = aggregate_value_builder.run_query(referrer)
-            results.extend(
+            top_tag_results.extend(
                 [
                     FacetResult(r["tags_key"], r["tags_value"], int(r["count"]) * multiplier)
                     for r in aggregate_values["data"]
@@ -682,7 +692,13 @@ def get_facets(
 
     # Need to cast tuple values to str since the value might be None
     # Reverse sort the count so the highest values show up first
-    return sorted(results, key=lambda result: (str(result.key), -result.count, str(result.value)))
+    top_tag_results = sorted(
+        top_tag_results, key=lambda result: (str(result.key), -result.count, str(result.value))
+    )
+
+    # Ensure projects are at the beginning of the results so they are not
+    # truncated by the paginator
+    return [*project_results, *top_tag_results]
 
 
 def spans_histogram_query(
@@ -701,6 +717,7 @@ def spans_histogram_query(
     extra_condition=None,
     normalize_results=True,
     use_metrics_layer=False,
+    on_demand_metrics_enabled=False,
 ):
     """
     API for generating histograms for span exclusive time.
@@ -788,6 +805,7 @@ def histogram_query(
     extra_conditions=None,
     normalize_results=True,
     use_metrics_layer=False,
+    on_demand_metrics_enabled=False,
 ):
     """
     API for generating histograms for numeric columns.

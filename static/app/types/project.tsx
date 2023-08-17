@@ -4,7 +4,7 @@ import type {Scope, TimeseriesValue} from './core';
 import type {SDKUpdatesSuggestion} from './event';
 import type {Plugin} from './integrations';
 import type {Organization, Team} from './organization';
-import type {Deploy, Release} from './release';
+import type {Deploy} from './release';
 import type {DynamicSamplingBias, DynamicSamplingRule} from './sampling';
 
 // Minimal project representation for use with avatars.
@@ -25,7 +25,7 @@ export type Project = {
     symbolicationDegraded: boolean;
   };
   features: string[];
-  firstEvent: 'string' | null;
+  firstEvent: string | null;
   firstTransactionEvent: boolean;
   groupingAutoUpdate: boolean;
   groupingConfig: string;
@@ -52,7 +52,7 @@ export type Project = {
   dynamicSamplingRules?: DynamicSamplingRule[] | null;
   hasUserReports?: boolean;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
-  latestRelease?: Release;
+  latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
   sessionStats?: {
     currentCrashFreeRate: number | null;

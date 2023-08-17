@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import secrets
 from datetime import timedelta
-from uuid import uuid4
 
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.utils import timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
+from sentry.constants import SentryAppStatus
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -24,7 +25,7 @@ def default_expiration():
 
 
 def generate_token():
-    return uuid4().hex + uuid4().hex
+    return secrets.token_hex(nbytes=32)
 
 
 @control_silo_only_model
@@ -48,11 +49,11 @@ class ApiToken(Model, HasApiScopes):
     __repr__ = sane_repr("user_id", "token", "application_id")
 
     def __str__(self):
-        return force_text(self.token)
+        return force_str(self.token)
 
     @classmethod
     def from_grant(cls, grant):
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(cls)):
             return cls.objects.create(
                 application=grant.application, user=grant.user, scope_list=grant.get_scopes()
             )
@@ -76,6 +77,27 @@ class ApiToken(Model, HasApiScopes):
             expires_at = timezone.now() + DEFAULT_EXPIRATION
 
         self.update(token=generate_token(), refresh_token=generate_token(), expires_at=expires_at)
+
+    @property
+    def organization_id(self) -> int | None:
+        from sentry.models import SentryAppInstallation, SentryAppInstallationToken
+
+        try:
+            installation = SentryAppInstallation.objects.get_by_api_token(self.id).get()
+        except SentryAppInstallation.DoesNotExist:
+            return None
+
+        # TODO(nisanthan): Right now, Internal Integrations can have multiple ApiToken, so we use the join table `SentryAppInstallationToken` to map the one to many relationship. However, for Public Integrations, we can only have 1 ApiToken per installation. So we currently don't use the join table for Public Integrations. We should update to make records in the join table for Public Integrations so that we can have a common abstraction for finding an installation by ApiToken.
+        if installation.sentry_app.status == SentryAppStatus.INTERNAL:
+            try:
+                install_token = SentryAppInstallationToken.objects.select_related(
+                    "sentry_app_installation"
+                ).get(api_token_id=self.id)
+            except SentryAppInstallationToken.DoesNotExist:
+                return None
+            return install_token.sentry_app_installation.organization_id
+
+        return installation.organization_id
 
 
 def is_api_token_auth(auth: object) -> bool:

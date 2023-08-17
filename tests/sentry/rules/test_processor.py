@@ -7,20 +7,15 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
-from sentry.models import (
-    GroupRuleStatus,
-    GroupStatus,
-    ProjectOwnership,
-    Rule,
-    RuleFireHistory,
-    RuleSnooze,
-)
+from sentry.models import GroupRuleStatus, GroupStatus, Rule
+from sentry.models.projectownership import ProjectOwnership
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry
 from sentry.rules.conditions import EventCondition
 from sentry.rules.filters.base import EventFilter
 from sentry.rules.processor import RuleProcessor
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import region_silo_test
 
@@ -44,8 +39,8 @@ class MockConditionTrue(EventCondition):
 @region_silo_test(stable=True)
 class RuleProcessorTest(TestCase):
     def setUp(self):
-        self.group_event = self.store_event(data={}, project_id=self.project.id)
-        self.group_event = next(self.group_event.build_group_events())
+        event = self.store_event(data={}, project_id=self.project.id)
+        self.group_event = next(event.build_group_events())
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -136,11 +131,9 @@ class RuleProcessorTest(TestCase):
         slack_rule = self.create_project_rule(self.project, action_data)
         action_data[0].update({"channel": "#my-other-channel"})
         muted_slack_rule = self.create_project_rule(self.project, action_data)
-        RuleSnooze.objects.create(
-            user_id=None,
+        self.snooze_rule(
             owner_id=self.user.id,
             rule=muted_slack_rule,
-            until=None,
         )
         rp = RuleProcessor(
             self.group_event,
@@ -203,11 +196,9 @@ class RuleProcessorTest(TestCase):
         msteams_rule = self.create_project_rule(self.project, action_data, [])
         action_data[0].update({"channel": "#secreter-secrets"})
         muted_msteams_rule = self.create_project_rule(self.project, action_data, [])
-        RuleSnooze.objects.create(
-            user_id=None,
+        self.snooze_rule(
             owner_id=self.user.id,
             rule=muted_msteams_rule,
-            until=None,
         )
         rp = RuleProcessor(
             self.group_event,
@@ -374,8 +365,8 @@ class RuleProcessorTestFilters(TestCase):
     )
 
     def setUp(self):
-        self.group_event = self.store_event(data={}, project_id=self.project.id)
-        self.group_event = next(self.group_event.build_group_events())
+        event = self.store_event(data={}, project_id=self.project.id)
+        self.group_event = next(event.build_group_events())
 
     @patch("sentry.constants._SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
     def test_filter_passes(self):
@@ -482,14 +473,89 @@ class RuleProcessorTestFilters(TestCase):
         assert futures[0].rule == self.rule
         assert futures[0].kwargs == {}
 
+    def test_environment_mismatch(self):
+        Rule.objects.filter(project=self.group_event.project).delete()
+        env = self.create_environment(project=self.project)
+        self.store_event(
+            data={"release": "2021-02.newRelease", "environment": env.name},
+            project_id=self.project.id,
+        )
+        self.rule = Rule.objects.create(
+            project=self.group_event.project,
+            environment_id=env.id,
+            data={"actions": [EMAIL_ACTION_DATA], "action_match": "any"},
+        )
+
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+        results = list(rp.apply())
+        assert len(results) == 0
+
+    def test_last_active_too_recent(self):
+        Rule.objects.filter(project=self.group_event.project).delete()
+        self.rule = Rule.objects.create(
+            project=self.group_event.project,
+            data={"actions": [EMAIL_ACTION_DATA], "action_match": "any"},
+        )
+
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+        grs = GroupRuleStatus.objects.create(
+            rule=self.rule,
+            group=self.group,
+            project=self.rule.project,
+            last_active=timezone.now() - timedelta(minutes=10),
+        )
+
+        with mock.patch(
+            "sentry.rules.processor.RuleProcessor.bulk_get_rule_status",
+            return_value={self.rule.id: grs},
+        ):
+            results = list(rp.apply())
+            assert len(results) == 0
+
+    @mock.patch("sentry.rules.processor.RuleProcessor.logger")
+    def test_invalid_predicate(self, mock_logger):
+        filter_data = {"id": "tests.sentry.rules.test_processor.MockFilterTrue"}
+
+        Rule.objects.filter(project=self.group_event.project).delete()
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+        self.rule = Rule.objects.create(
+            project=self.group_event.project,
+            data={
+                "conditions": [EVERY_EVENT_COND_DATA, filter_data],
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+
+        with patch("sentry.rules.processor.get_match_function", return_value=None):
+            rp = RuleProcessor(
+                self.group_event,
+                is_new=True,
+                is_regression=True,
+                is_new_group_environment=True,
+                has_reappeared=True,
+            )
+            results = list(rp.apply())
+            assert len(results) == 0
+            mock_logger.error.assert_called_once()
+
     def test_latest_release(self):
         # setup an alert rule with 1 conditions and no filters that passes
         self.create_release(project=self.project, version="2021-02.newRelease")
 
-        self.group_event = self.store_event(
-            data={"release": "2021-02.newRelease"}, project_id=self.project.id
-        )
-        self.group_event = next(self.group_event.build_group_events())
+        event = self.store_event(data={"release": "2021-02.newRelease"}, project_id=self.project.id)
+        self.group_event = next(event.build_group_events())
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -530,14 +596,14 @@ class RuleProcessorTestFilters(TestCase):
             environments=[self.environment],
         )
 
-        self.group_event = self.store_event(
+        event = self.store_event(
             data={
                 "release": release.version,
                 "tags": [["environment", self.environment.name]],
             },
             project_id=self.project.id,
         )
-        self.group_event = next(self.group_event.build_group_events())
+        self.group_event = next(event.build_group_events())
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)

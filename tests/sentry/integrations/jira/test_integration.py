@@ -8,8 +8,8 @@ import responses
 from django.test.utils import override_settings
 from django.urls import reverse
 
-from fixtures.integrations import StubService
-from fixtures.integrations.jira import StubJiraApiClient
+from fixtures.integrations.jira.stub_client import StubJiraApiClient
+from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira.integration import JiraIntegrationProvider
 from sentry.models import (
     ExternalIssue,
@@ -22,7 +22,7 @@ from sentry.models import (
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import APITestCase, IntegrationTestCase
+from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
@@ -66,6 +66,7 @@ class JiraIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         installation = self.integration.get_installation(self.organization.id)
         search_url = reverse(
             "sentry-extensions-jira-search",
@@ -302,6 +303,7 @@ class JiraIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         installation = self.integration.get_installation(self.organization.id)
         installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=installation.org_integration.id,
@@ -334,6 +336,7 @@ class JiraIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         installation = self.integration.get_installation(self.organization.id)
         installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=installation.org_integration.id,
@@ -367,6 +370,7 @@ class JiraIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         installation = self.integration.get_installation(self.organization.id)
         installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=installation.org_integration.id,
@@ -410,6 +414,7 @@ class JiraIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         label_default = "hi"
 
         installation = self.integration.get_installation(self.organization.id)

@@ -66,13 +66,12 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
-from sentry.models import ActorTuple, Integration, PagerDutyService
+from sentry.models import ActorTuple, Integration, OrganizationIntegration
 from sentry.models.actor import get_actor_id_for_user
-from sentry.shared_integrations.exceptions import ApiRateLimitedError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
-from sentry.testutils.cases import BaseMetricsTestCase
+from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.utils import json
 
 pytestmark = [pytest.mark.sentry_metrics]
@@ -639,6 +638,23 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
         assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
+    @patch("sentry.incidents.logic.schedule_update_project_config")
+    def test_on_demand_metric_alert(self, mocked_schedule_update_project_config):
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "custom metric alert",
+            "transaction.duration:>=1000",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Metrics,
+        )
+
+        mocked_schedule_update_project_config.assert_called_once_with(alert_rule, [self.project])
+
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @cached_property
@@ -945,6 +961,29 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
         assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
+    @patch("sentry.incidents.logic.schedule_update_project_config")
+    def test_on_demand_metric_alert(self, mocked_schedule_update_project_config):
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "custom metric alert",
+            "",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Metrics,
+        )
+
+        mocked_schedule_update_project_config.assert_called_with(alert_rule, [self.project])
+
+        alert_rule = update_alert_rule(
+            alert_rule, name="updated alert", query="transaction.duration:>=100"
+        )
+
+        mocked_schedule_update_project_config.assert_called_with(alert_rule, None)
+
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
     @cached_property
@@ -970,6 +1009,15 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert not AlertRule.objects.filter(id=alert_rule_id).exists()
         incident = Incident.objects.get(id=incident.id)
         assert Incident.objects.filter(id=incident.id, alert_rule=self.alert_rule).exists()
+
+    @patch("sentry.incidents.logic.schedule_update_project_config")
+    def test_on_demand_metric_alert(self, mocked_schedule_update_project_config):
+        alert_rule = self.create_alert_rule(query="transaction.duration:>=100")
+
+        with self.tasks():
+            delete_alert_rule(alert_rule)
+
+        mocked_schedule_update_project_config.assert_called_with(alert_rule, [self.project])
 
 
 class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -1187,13 +1235,20 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         channel_name = "#some_channel"
         channel_id = "s_c"
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
             body=json.dumps(
-                {"ok": "true", "channels": [{"name": channel_name[1:], "id": channel_id}]}
+                {"ok": "true", "channel": channel_id, "scheduled_message_id": "Q1298393284"}
             ),
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.deleteScheduledMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": True}),
         )
 
         action = create_alert_rule_trigger_action(
@@ -1220,7 +1275,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         type = AlertRuleTriggerAction.Type.SLACK
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel_that_doesnt_exist"
-        with pytest.raises(InvalidTriggerActionError):
+        with pytest.raises(ApiError):
             create_alert_rule_trigger_action(
                 self.trigger,
                 type,
@@ -1246,11 +1301,19 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         channel_name = "#some_channel"
 
         responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": False, "error": "channel_not_found"}),
+        )
+
+        responses.add(
             method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            url="https://slack.com/api/users.list",
             status=429,
             content_type="application/json",
-            body=json.dumps({"ok": "false", "error": "ratelimited"}),
+            body=json.dumps({"ok": False, "error": "ratelimited"}),
         )
         with pytest.raises(ApiRateLimitedError):
             create_alert_rule_trigger_action(
@@ -1321,14 +1384,13 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             metadata={"services": services},
         )
         integration.add_organization(self.organization, self.user)
-        service = PagerDutyService.objects.create(
+        service = integration.organizationintegration_set.first().add_pagerduty_service(
             service_name=services[0]["service_name"],
             integration_key=services[0]["integration_key"],
-            organization_integration_id=integration.organizationintegration_set.first().id,
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        target_identifier = service.id
+        target_identifier = service["id"]
         action = create_alert_rule_trigger_action(
             self.trigger,
             type,
@@ -1401,13 +1463,20 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         channel_name = "#some_channel"
         channel_id = "s_c"
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
             body=json.dumps(
-                {"ok": "true", "channels": [{"name": channel_name[1:], "id": channel_id}]}
+                {"ok": "true", "channel": channel_id, "scheduled_message_id": "Q1298393284"}
             ),
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.deleteScheduledMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": True}),
         )
 
         action = update_alert_rule_trigger_action(
@@ -1434,7 +1503,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         type = AlertRuleTriggerAction.Type.SLACK
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel_that_doesnt_exist"
-        with pytest.raises(InvalidTriggerActionError):
+        with pytest.raises(ApiError):
             update_alert_rule_trigger_action(
                 self.action,
                 type,
@@ -1460,11 +1529,19 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         channel_name = "#some_channel"
 
         responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": False, "error": "channel_not_found"}),
+        )
+
+        responses.add(
             method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            url="https://slack.com/api/users.list",
             status=429,
             content_type="application/json",
-            body=json.dumps({"ok": "false", "error": "ratelimited"}),
+            body=json.dumps({"ok": False, "error": "ratelimited"}),
         )
         with pytest.raises(ApiRateLimitedError):
             update_alert_rule_trigger_action(
@@ -1535,14 +1612,13 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             metadata={"services": services},
         )
         integration.add_organization(self.organization, self.user)
-        service = PagerDutyService.objects.create(
+        service = integration.organizationintegration_set.first().add_pagerduty_service(
             service_name=services[0]["service_name"],
             integration_key=services[0]["integration_key"],
-            organization_integration_id=integration.organizationintegration_set.first().id,
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        target_identifier = service.id
+        target_identifier = service["id"]
         action = update_alert_rule_trigger_action(
             self.action,
             type,
@@ -1568,6 +1644,75 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         target_identifier = 1
+
+        with pytest.raises(InvalidTriggerActionError):
+            update_alert_rule_trigger_action(
+                self.action,
+                type,
+                target_type,
+                target_identifier=target_identifier,
+                integration_id=integration.id,
+            )
+
+    @responses.activate
+    def test_opsgenie(self):
+        metadata = {
+            "api_key": "1234-ABCD",
+            "base_url": "https://api.opsgenie.com/",
+            "domain_name": "test-app.app.opsgenie.com",
+        }
+        team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
+        integration = Integration.objects.create(
+            provider="opsgenie", name="test-app", external_id="test-app", metadata=metadata
+        )
+        integration.add_organization(self.organization, self.user)
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+        org_integration.config = {"team_table": [team]}
+        org_integration.save()
+
+        resp_data = {
+            "result": "Integration [sentry] is valid",
+            "took": 1,
+            "requestId": "hello-world",
+        }
+        responses.add(
+            responses.POST,
+            url="https://api.opsgenie.com/v2/integrations/authenticate",
+            json=resp_data,
+        )
+
+        type = AlertRuleTriggerAction.Type.OPSGENIE
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        action = update_alert_rule_trigger_action(
+            self.action,
+            type,
+            target_type,
+            target_identifier=team["id"],
+            integration_id=integration.id,
+        )
+
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == team["id"]
+        assert action.target_display == "cool-team"
+        assert action.integration_id == integration.id
+
+    def test_opsgenie_not_existing(self):
+        metadata = {
+            "api_key": "1234-ABCD",
+            "base_url": "https://api.opsgenie.com/",
+            "domain_name": "test-app.app.opsgenie.com",
+        }
+        integration = Integration.objects.create(
+            provider="opsgenie", name="test-app", external_id="test-app", metadata=metadata
+        )
+
+        type = AlertRuleTriggerAction.Type.OPSGENIE
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        target_identifier = "fake-team-id-123"
 
         with pytest.raises(InvalidTriggerActionError):
             update_alert_rule_trigger_action(
@@ -1766,206 +1911,151 @@ class TestDeduplicateTriggerActions(TestCase):
             },
         )
 
-    @cached_property
-    def critical(self):
-        return AlertRuleTrigger(label=CRITICAL_TRIGGER_LABEL)
-
-    @cached_property
-    def warning(self):
-        return AlertRuleTrigger(label=WARNING_TRIGGER_LABEL)
-
     def run_test(self, input, output):
         key = lambda action: action.id
         assert sorted(deduplicate_trigger_actions(input), key=key) == sorted(output, key=key)
 
-    def create_it_and_action(
+    def create_alert_rule_trigger_and_action(
         self,
         id,
         target_identifier,
         trigger_type=AlertRuleTriggerAction.Type.EMAIL.value,
         target_type=AlertRuleTriggerAction.TargetType.USER.value,
         warning=False,
-        status=TriggerStatus.ACTIVE.value,
+        incident_trigger_status=TriggerStatus.ACTIVE.value,
     ):
         rule = self.create_alert_rule()
-        rule_trigger = self.create_alert_rule_trigger(
+        alert_rule_trigger = self.create_alert_rule_trigger(
             alert_rule=rule,
             label=WARNING_TRIGGER_LABEL if warning else CRITICAL_TRIGGER_LABEL,
             alert_threshold=100,
         )
         action = AlertRuleTriggerAction.objects.create(
             id=id,
-            alert_rule_trigger=rule_trigger,
+            alert_rule_trigger=alert_rule_trigger,
             type=trigger_type,
             integration_id=self.integration.id,
             target_type=target_type,
             target_identifier=target_identifier,
         )
-        it = IncidentTrigger.objects.create(
-            incident=self.incident, alert_rule_trigger=rule_trigger, status=status
+        IncidentTrigger.objects.create(
+            incident=self.incident,
+            alert_rule_trigger=alert_rule_trigger,
+            status=incident_trigger_status,
         )
-        return it, action
+        return alert_rule_trigger, action
 
-    @patch("sentry.incidents.logic.prioritize_actions")
-    def test_critical_only(self, prioritize_actions_patched):
-        patched_incident_triggers_input = []
-
-        action = AlertRuleTriggerAction(
-            id=1,
-            alert_rule_trigger=self.critical,
-            type=AlertRuleTriggerAction.Type.EMAIL.value,
-            target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier="1",
+    def test_critical_only(self):
+        trigger_c, action_c = self.create_alert_rule_trigger_and_action(
+            id=1, target_identifier="asdf", warning=False
         )
-
-        prioritize_actions_patched.return_value = [action]
-        self.run_test(patched_incident_triggers_input, [action])
-
-        prioritize_actions_patched.return_value = [action, action]
-        self.run_test(patched_incident_triggers_input, [action])
-
-        other_action = AlertRuleTriggerAction(
+        AlertRuleTriggerAction.objects.create(
             id=2,
-            alert_rule_trigger=self.critical,
+            alert_rule_trigger=trigger_c,
             type=AlertRuleTriggerAction.Type.EMAIL.value,
-            target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier="2",
+            integration_id=self.integration.id,
+            target_type=AlertRuleTriggerAction.TargetType.USER.value,
+            target_identifier="asdf",
         )
-
-        prioritize_actions_patched.return_value = [action, action, other_action]
-        self.run_test(patched_incident_triggers_input, [action, other_action])
-
-        integration_action = AlertRuleTriggerAction(
+        self.run_test([trigger_c], [action_c])
+        other_action_c = AlertRuleTriggerAction.objects.create(
             id=3,
-            alert_rule_trigger=self.critical,
-            type=AlertRuleTriggerAction.Type.SLACK.value,
-            integration_id=1,
-            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
-            target_identifier="D12345",
+            alert_rule_trigger=trigger_c,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            integration_id=self.integration.id,
+            target_type=AlertRuleTriggerAction.TargetType.USER.value,
+            target_identifier="not_asdf",
         )
-        app_action = AlertRuleTriggerAction(
+        self.run_test([trigger_c], [action_c, other_action_c])
+
+    def test_warning_only(self):
+        trigger_w, action_w = self.create_alert_rule_trigger_and_action(
+            id=1, target_identifier="asdf", warning=True
+        )
+        AlertRuleTriggerAction.objects.create(
+            id=2,
+            alert_rule_trigger=trigger_w,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            integration_id=self.integration.id,
+            target_type=AlertRuleTriggerAction.TargetType.USER.value,
+            target_identifier="asdf",
+        )
+        self.run_test([trigger_w], [action_w])
+        other_action_w = AlertRuleTriggerAction.objects.create(
+            id=3,
+            alert_rule_trigger=trigger_w,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            integration_id=self.integration.id,
+            target_type=AlertRuleTriggerAction.TargetType.USER.value,
+            target_identifier="not_asdf",
+        )
+        self.run_test([trigger_w], [action_w, other_action_w])
+
+    def test_critical_and_warning(self):
+        trigger_w, action_w = self.create_alert_rule_trigger_and_action(
+            id=2, target_identifier="asdf", warning=True
+        )
+        trigger_c, action_c = self.create_alert_rule_trigger_and_action(
+            id=1, target_identifier="asdf", warning=False
+        )
+        # warning action should win over critical action
+        self.run_test([trigger_w, trigger_c], [action_w])
+
+        other_action_c = AlertRuleTriggerAction.objects.create(
+            id=3,
+            alert_rule_trigger=trigger_c,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            integration_id=self.integration.id,
+            target_type=AlertRuleTriggerAction.TargetType.USER.value,
+            target_identifier="not_asdf",
+        )
+        # this new critical should be preserved
+        self.run_test([trigger_w, trigger_c], [action_w, other_action_c])
+
+        other_action_w = AlertRuleTriggerAction.objects.create(
             id=4,
-            alert_rule_trigger=self.critical,
-            type=AlertRuleTriggerAction.Type.MSTEAMS.value,
-            integration_id=1,
-            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
-            target_identifier="D12345",
+            alert_rule_trigger=trigger_w,
+            type=AlertRuleTriggerAction.Type.EMAIL.value,
+            integration_id=self.integration.id,
+            target_type=AlertRuleTriggerAction.TargetType.USER.value,
+            target_identifier="not_asdf",
+        )
+        # now this should win over the new critical
+        self.run_test([trigger_w, trigger_c], [action_w, other_action_w])
+
+
+class TestCustomMetricAlertRule(TestCase):
+    @patch("sentry.incidents.logic.features.has", return_value=True)
+    @patch("sentry.incidents.logic.schedule_invalidate_project_config")
+    def test_create_alert_rule(self, mocked_schedule_invalidate_project_config, mocked_feature_has):
+        self.create_alert_rule()
+
+        mocked_schedule_invalidate_project_config.assert_not_called()
+
+    @patch("sentry.incidents.logic.features.has", return_value=True)
+    @patch("sentry.incidents.logic.schedule_invalidate_project_config")
+    def test_create_custom_metric_alert_rule(
+        self, mocked_schedule_invalidate_project_config, mocked_feature_has
+    ):
+        self.create_alert_rule(
+            projects=[self.project],
+            dataset=Dataset.PerformanceMetrics,
+            query="transaction.duration:>=100",
         )
 
-        input_action_arr = [action, action, other_action, integration_action, app_action]
-        prioritize_actions_patched.return_value = input_action_arr
-        self.run_test(
-            patched_incident_triggers_input,
-            [action, other_action, integration_action, app_action],
+        mocked_schedule_invalidate_project_config.assert_called_once_with(
+            trigger="alerts:create-on-demand-metric", project_id=self.project.id
         )
 
-        input_action_arr = [
-            action,
-            action,
-            other_action,
-            other_action,
-            integration_action,
-            integration_action,
-            app_action,
-            app_action,
-        ]
-        prioritize_actions_patched.return_value = input_action_arr
-        self.run_test(
-            patched_incident_triggers_input,
-            [action, other_action, integration_action, app_action],
+    @patch("sentry.incidents.logic.features.has", return_value=False)
+    @patch("sentry.incidents.logic.schedule_invalidate_project_config")
+    def test_create_custom_metric_turned_off(
+        self, mocked_schedule_invalidate_project_config, mocked_feature_has
+    ):
+        self.create_alert_rule(
+            projects=[self.project],
+            dataset=Dataset.PerformanceMetrics,
+            query="transaction.duration:>=100",
         )
 
-    def test_critical_warning(self):
-        it_w, _ = self.create_it_and_action(id=2, target_identifier="1", warning=True)
-        it_c, action_c = self.create_it_and_action(id=1, target_identifier="1", warning=False)
-        self.run_test([it_w, it_c, it_c], [action_c])
-
-        other_it_w, other_action_w = self.create_it_and_action(
-            id=3, target_identifier="2", warning=True
-        )
-        self.run_test([it_w, it_c, it_c, other_it_w], [action_c, other_action_w])
-
-        integration_it_w, integration_action_w = self.create_it_and_action(
-            id=4,
-            trigger_type=AlertRuleTriggerAction.Type.SLACK.value,
-            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value,
-            target_identifier="D12345",
-            warning=True,
-        )
-        app_it_w, app_action_w = self.create_it_and_action(
-            id=5,
-            trigger_type=AlertRuleTriggerAction.Type.MSTEAMS.value,
-            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value,
-            target_identifier="D12345",
-            warning=True,
-        )
-        self.run_test(
-            [it_w, it_c, it_c, other_it_w, integration_it_w, app_it_w],
-            [action_c, other_action_w, integration_action_w, app_action_w],
-        )
-
-        integration_it_c, integration_action_c = self.create_it_and_action(
-            id=6,
-            trigger_type=AlertRuleTriggerAction.Type.SLACK.value,
-            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value,
-            target_identifier="D12345",
-            warning=False,
-        )
-        app_it_c, app_action_c = self.create_it_and_action(
-            id=7,
-            trigger_type=AlertRuleTriggerAction.Type.MSTEAMS.value,
-            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value,
-            target_identifier="D12345",
-            warning=False,
-        )
-        self.run_test(
-            [
-                it_w,
-                it_c,
-                it_c,
-                other_it_w,
-                integration_it_w,
-                app_it_w,
-                integration_it_c,
-                app_it_c,
-            ],
-            [action_c, other_action_w, integration_action_c, app_action_c],
-        )
-
-    def test_critical_and_warning_prioritization(self):
-        """
-        Test that ensures that the array of actions returned matches the following
-        priority ordering regardless of the ordering of the incident triggers
-        1- Critical & Active
-        2- Warning & Active
-        3- Critical & Resolved
-        4- Warning & Resolved
-        """
-        it_w, action_w = self.create_it_and_action(id=2, target_identifier="1", warning=True)
-        it_c, action_c = self.create_it_and_action(
-            id=1, target_identifier="1", warning=False, status=TriggerStatus.RESOLVED.value
-        )
-        self.run_test([it_w, it_c, it_c], [action_w])
-
-        other_it_c, other_action_c = self.create_it_and_action(
-            id=3, target_identifier="2", warning=False
-        )
-        other_it_w, other_action_w = self.create_it_and_action(
-            id=4, target_identifier="3", warning=True, status=TriggerStatus.RESOLVED.value
-        )
-        other_it_c_resolved, other_action_c_resolved = self.create_it_and_action(
-            id=5, target_identifier="4", warning=False, status=TriggerStatus.RESOLVED.value
-        )
-
-        self.run_test(
-            [it_w, it_c, other_it_c, other_it_c_resolved, other_it_w],
-            [other_action_c, action_w, other_action_c_resolved, other_action_w],
-        )
-        self.run_test(
-            [it_c, it_w, other_it_c_resolved, other_it_c, other_it_w],
-            [other_action_c, action_w, other_action_c_resolved, other_action_w],
-        )
-        self.run_test(
-            [other_it_c, it_w, other_it_c_resolved, other_it_w, it_c],
-            [other_action_c, action_w, other_action_c_resolved, other_action_w],
-        )
+        mocked_schedule_invalidate_project_config.assert_not_called()

@@ -1,7 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import {space} from 'sentry/styles/space';
 
 type Props = {
@@ -14,10 +15,12 @@ export default function ChartPanel({title, children, button}: Props) {
   return (
     <Panel>
       <PanelBody withPadding>
-        <Header>
-          {title && <ChartLabel>{title}</ChartLabel>}
-          {button}
-        </Header>
+        {title && (
+          <Header>
+            {title && <ChartLabel>{title}</ChartLabel>}
+            {button}
+          </Header>
+        )}
         {children}
       </PanelBody>
     </Panel>

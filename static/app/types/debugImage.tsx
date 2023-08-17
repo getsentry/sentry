@@ -18,10 +18,10 @@ export enum SymbolType {
 }
 
 export enum ImageFeature {
-  has_sources = 'has_sources',
-  has_debug_info = 'has_debug_info',
-  has_unwind_info = 'has_unwind_info',
-  has_symbols = 'has_symbols',
+  HAS_SOURCES = 'has_sources',
+  HAS_DEBUG_INFO = 'has_debug_info',
+  HAS_UNWIND_INFO = 'has_unwind_info',
+  HAS_SYMBOLS = 'has_symbols',
 }
 
 type CandidateProcessingInfoOkStatus = {
@@ -49,10 +49,10 @@ export enum CandidateDownloadStatus {
 }
 
 type ImageFeatures = {
-  [ImageFeature.has_sources]: boolean;
-  [ImageFeature.has_debug_info]: boolean;
-  [ImageFeature.has_unwind_info]: boolean;
-  [ImageFeature.has_symbols]: boolean;
+  [ImageFeature.HAS_SOURCES]: boolean;
+  [ImageFeature.HAS_DEBUG_INFO]: boolean;
+  [ImageFeature.HAS_UNWIND_INFO]: boolean;
+  [ImageFeature.HAS_SYMBOLS]: boolean;
 };
 
 type CandidateFeatures = ImageFeatures;

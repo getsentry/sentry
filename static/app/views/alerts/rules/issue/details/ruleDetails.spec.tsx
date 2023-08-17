@@ -9,9 +9,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import AlertRuleDetails from './ruleDetails';
 
 describe('AlertRuleDetails', () => {
-  const context = initializeOrg({
-    organization: {features: ['issue-alert-incompatible-rules', 'mute-alerts']},
-  });
+  const context = initializeOrg();
   const organization = context.organization;
   const project = TestStubs.Project();
   const rule = TestStubs.ProjectAlertRule({
@@ -218,7 +216,6 @@ describe('AlertRuleDetails', () => {
       method: 'POST',
     });
     const contextWithQueryParam = initializeOrg({
-      organization: {features: ['issue-alert-incompatible-rules', 'mute-alerts']},
       router: {
         location: {query: {mute: '1'}},
       },
@@ -237,7 +234,6 @@ describe('AlertRuleDetails', () => {
 
   it('mute button is disabled if no alerts:write permission', async () => {
     const orgWithoutAccess = {
-      features: ['issue-alert-incompatible-rules', 'mute-alerts'],
       access: [],
     };
 

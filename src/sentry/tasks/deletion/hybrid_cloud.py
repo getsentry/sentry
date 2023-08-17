@@ -17,7 +17,8 @@ from uuid import uuid4
 import sentry_sdk
 from django.apps import apps
 from django.db import connections, router
-from django.db.models import Manager, Max
+from django.db.models import Max
+from django.db.models.manager import BaseManager
 from django.utils import timezone
 
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -57,7 +58,10 @@ def get_watermark(prefix: str, field: HybridCloudForeignKey) -> Tuple[int, str]:
             result = (0, uuid4().hex)
             client.set(key, json.dumps(result))
             return result
-        return tuple(json.loads(v))
+        lower, transaction_id = json.loads(v)
+        if not (isinstance(lower, int) and isinstance(transaction_id, str)):
+            raise TypeError("Expected watermarks data to be a tuple of (int, str)")
+        return lower, transaction_id
 
 
 def set_watermark(
@@ -78,8 +82,8 @@ def set_watermark(
     )
 
 
-def chunk_watermark_batch(
-    prefix: str, field: HybridCloudForeignKey, manager: Manager, *, batch_size: int
+def _chunk_watermark_batch(
+    prefix: str, field: HybridCloudForeignKey, manager: BaseManager, *, batch_size: int
 ) -> WatermarkBatch:
     lower, transaction_id = get_watermark(prefix, field)
     upper = manager.aggregate(Max("id"))["id__max"] or 0
@@ -186,14 +190,14 @@ def _process_tombstone_reconciliation(
     from sentry import deletions
 
     prefix = "tombstone"
-    watermark_manager: Manager = tombstone_cls.objects
+    watermark_manager: BaseManager = tombstone_cls.objects
     watermark_target = "t"
     if row_after_tombstone:
         prefix = "row"
-        watermark_manager: Manager = field.model.objects
+        watermark_manager = field.model.objects
         watermark_target = "r"
 
-    watermark_batch = chunk_watermark_batch(
+    watermark_batch = _chunk_watermark_batch(
         prefix, field, watermark_manager, batch_size=get_batch_size()
     )
     has_more = watermark_batch.has_more

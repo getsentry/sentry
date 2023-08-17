@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 from urllib.parse import urlencode
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import ValidationError
 
 from sentry import options
@@ -15,6 +18,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.models import (
+    Integration,
     Organization,
     Project,
     ProjectKey,
@@ -25,6 +29,7 @@ from sentry.models import (
 )
 from sentry.pipeline import NestedPipelineView
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -304,7 +309,13 @@ class VercelIntegration(IntegrationInstallation):
 
     def uninstall(self):
         client = self.get_client()
-        client.uninstall(self.get_configuration_id())
+        try:
+            client.uninstall(self.get_configuration_id())
+        except ApiError as error:
+            if error.code == 403:
+                pass
+            else:
+                raise error
 
 
 class VercelIntegrationProvider(IntegrationProvider):
@@ -359,7 +370,12 @@ class VercelIntegrationProvider(IntegrationProvider):
 
         return integration
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
         # check if we have an Vercel internal installation already
         if SentryAppInstallationForProvider.objects.filter(
             organization_id=organization.id, provider="vercel"

@@ -2,14 +2,12 @@ import hmac
 import logging
 from hashlib import sha256
 
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from email_reply_parser import EmailReplyParser
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import options
 from sentry.tasks.email import process_inbound_email
@@ -33,7 +31,7 @@ class MailgunInboundWebhookView(View):
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
-    def post(self, request: Request) -> Response:
+    def post(self, request: HttpRequest) -> HttpResponse:
         token = request.POST["token"]
         signature = request.POST["signature"]
         timestamp = request.POST["timestamp"]

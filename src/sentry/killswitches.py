@@ -130,6 +130,12 @@ ALL_KILLSWITCH_OPTIONS = {
             "platform": "The event platform as defined in the event payload's platform field, or 'none'",
         },
     ),
+    "store.save-event-highcpu-platforms": KillswitchInfo(
+        description="Send highcpu platform events to save_event highcpu queue",
+        fields={
+            "platform": "The event platform as defined in the event payload's platform field, or 'none'",
+        },
+    ),
     "store.symbolicate-event-lpq-never": KillswitchInfo(
         description="""
         Never allow a project's symbolication events to be demoted to symbolicator's low priority queue.
@@ -206,6 +212,16 @@ ALL_KILLSWITCH_OPTIONS = {
         projects. This works by adding collapse argument to the serializer.
         """,
         fields={"organization_id": "An organization ID to disable last deploys for."},
+    ),
+    "crons.organization.disable-check-in": KillswitchInfo(
+        description="""
+        Do not consumer monitor check-ins for a specific organization.
+
+        This is valuable in scenarios where a organization is slamming in
+        progress check-ins without actually marking the check-in as complete
+        for whatever reason. This can cuase extranious strain on the system.
+        """,
+        fields={"organization_id": "An organization ID to disable check-ins for."},
     ),
 }
 

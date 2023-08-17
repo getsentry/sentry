@@ -1,65 +1,84 @@
-import keyBy from 'lodash/keyBy';
+import {Location} from 'history';
 
-import {useQuery} from 'sentry/utils/queryClient';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import type {Span} from 'sentry/views/starfish/queries/types';
-import {HOST} from 'sentry/views/starfish/utils/constants';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
-import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
+import EventView from 'sentry/utils/discover/eventView';
+import {Sort} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const INTERVAL = 12;
+const {SPAN_SELF_TIME, SPAN_GROUP} = SpanMetricsFields;
 
 export type SpanTransactionMetrics = {
-  p50: number;
-  p95: number;
-  spm: number;
+  'avg(span.self_time)': number;
+  'http_error_count()': number;
+  'spm()': number;
   'sum(span.self_time)': number;
-  total_time: number;
+  'time_spent_percentage(local)': number;
   transaction: string;
+  'transaction.method': string;
+  'transaction.op': string;
 };
 
 export const useSpanTransactionMetrics = (
-  span?: Pick<Span, 'group_id'>,
-  transactions?: string[],
-  referrer = 'span-transaction-metrics'
+  group: string,
+  options: {sorts?: Sort[]; transactions?: string[]},
+  _referrer = 'api.starfish.span-transaction-metrics'
 ) => {
-  const pageFilters = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilters);
-  const dateFilters = getDateQueryFilter(startTime, endTime);
+  const location = useLocation();
 
-  const query =
-    span && transactions && transactions.length > 0
-      ? `
-    SELECT
-      transaction,
-      quantile(0.5)(exclusive_time) as p50,
-      quantile(0.5)(exclusive_time) as p95,
-      sum(exclusive_time) as "sum(span.self_time)",
-      sum(exclusive_time) as total_time,
-      divide(count(), multiply(${INTERVAL}, 60)) as spm
-    FROM spans_experimental_starfish
-    WHERE group_id = '${span.group_id}'
-    ${dateFilters}
-    AND transaction IN ('${transactions.join("','")}')
-    GROUP BY transaction
- `
-      : '';
+  const {transactions, sorts} = options;
 
-  const {isLoading, error, data} = useQuery<SpanTransactionMetrics[]>({
-    queryKey: [
-      'span-transactions-metrics',
-      span?.group_id,
-      transactions?.join(',') || '',
-      dateFilters,
-    ],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${query}&referrer=${referrer}`).then(res => res.json()),
-    retry: false,
+  const eventView = getEventView(group, location, transactions ?? [], sorts);
+
+  return useWrappedDiscoverQuery<SpanTransactionMetrics[]>({
+    eventView,
     initialData: [],
-    enabled: Boolean(query),
+    enabled: Boolean(group),
+    limit: 25,
+    referrer: _referrer,
   });
-
-  const parsedData = keyBy(data, 'transaction');
-
-  return {isLoading, error, data: parsedData};
 };
+
+function getEventView(
+  group: string,
+  location: Location,
+  transactions: string[],
+  sorts?: Sort[]
+) {
+  const search = new MutableSearch('');
+  search.addFilterValues(SPAN_GROUP, [group]);
+  search.addFilterValues('transaction.op', ['http.server']);
+
+  if (transactions.length > 0) {
+    search.addFilterValues('transaction', transactions);
+  }
+
+  const eventView = EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      query: search.formatString(),
+      fields: [
+        'transaction',
+        'transaction.method',
+        'spm()',
+        `sum(${SPAN_SELF_TIME})`,
+        `avg(${SPAN_SELF_TIME})`,
+        'time_spent_percentage(local)',
+        'transaction.op',
+        'http_error_count()',
+      ],
+      orderby: '-time_spent_percentage_local',
+      dataset: DiscoverDatasets.SPANS_METRICS,
+      version: 2,
+    },
+    location
+  );
+
+  if (sorts) {
+    eventView.sorts = sorts;
+  }
+
+  return eventView;
+}

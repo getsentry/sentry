@@ -40,9 +40,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
             integration = integration_service.get_integration(integration_id=ei.integration_id)
             if integration is None:
                 continue
-            installation = integration_service.get_installation(
-                integration=integration, organization_id=self.group.organization.id
-            )
+            installation = integration.get_installation(organization_id=self.group.organization.id)
             if hasattr(installation, "get_issue_url") and hasattr(
                 installation, "get_issue_display_name"
             ):
@@ -50,10 +48,10 @@ class IntegrationIssueSerializer(IntegrationSerializer):
                     {
                         "id": str(ei.id),
                         "key": ei.key,
-                        "url": installation.get_issue_url(ei.key),  # type: ignore
+                        "url": installation.get_issue_url(ei.key),
                         "title": ei.title,
                         "description": ei.description,
-                        "displayName": installation.get_issue_display_name(ei),  # type: ignore
+                        "displayName": installation.get_issue_display_name(ei),
                     }
                 )
 

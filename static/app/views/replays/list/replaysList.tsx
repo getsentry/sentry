@@ -18,9 +18,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
-import {ReplaySearchAlert} from 'sentry/views/replays/list/replaySearchAlert';
 import ReplayTable from 'sentry/views/replays/replayTable';
-import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
+import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
@@ -84,7 +83,7 @@ function ReplaysListTable({
   const {needsUpdate: allSelectedProjectsNeedUpdates} = useProjectSdkNeedsUpdate({
     minVersion: MIN_REPLAY_CLICK_SDK,
     organization,
-    projectId: projects.map(p => String(p)),
+    projectId: projects.map(String),
   });
 
   const conditions = useMemo(() => {
@@ -93,27 +92,25 @@ function ReplaysListTable({
 
   const hasReplayClick = conditions.getFilterKeys().some(k => k.startsWith('click.'));
 
-  const hasReplayClickSearchBannerRollout = organization.features.includes(
-    'session-replay-click-search-banner-rollout'
-  );
+  const visibleCols = [
+    ReplayColumn.REPLAY,
+    ReplayColumn.OS,
+    ReplayColumn.BROWSER,
+    ReplayColumn.DURATION,
+    ReplayColumn.COUNT_DEAD_CLICKS,
+    ReplayColumn.COUNT_RAGE_CLICKS,
+    ReplayColumn.COUNT_ERRORS,
+    ReplayColumn.ACTIVITY,
+  ];
+
   return (
     <Fragment>
-      {hasReplayClickSearchBannerRollout && (
-        <ReplaySearchAlert needSdkUpdates={Boolean(allSelectedProjectsNeedUpdates)} />
-      )}
       <ReplayTable
         fetchError={fetchError}
         isFetching={isFetching}
         replays={replays}
         sort={eventView.sorts[0]}
-        visibleColumns={[
-          ReplayColumns.replay,
-          ReplayColumns.os,
-          ReplayColumns.browser,
-          ReplayColumns.duration,
-          ReplayColumns.countErrors,
-          ReplayColumns.activity,
-        ]}
+        visibleColumns={visibleCols}
         emptyMessage={
           allSelectedProjectsNeedUpdates && hasReplayClick ? (
             <Fragment>
@@ -128,7 +125,7 @@ function ReplaysListTable({
           ) : undefined
         }
       />
-      <Pagination
+      <ReplayPagination
         pageLinks={pageLinks}
         onCursor={(cursor, path, searchQuery) => {
           trackAnalytics('replay.list-paginated', {
@@ -148,6 +145,10 @@ function ReplaysListTable({
 const EmptyStateSubheading = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const ReplayPagination = styled(Pagination)`
+  margin-top: 0;
 `;
 
 export default ReplaysList;

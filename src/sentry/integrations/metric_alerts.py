@@ -4,13 +4,14 @@ from urllib import parse
 
 from django.db.models import Max
 from django.urls import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models import (
     INCIDENT_STATUS,
     AlertRule,
+    AlertRuleThresholdType,
     Incident,
     IncidentStatus,
     IncidentTrigger,
@@ -25,6 +26,16 @@ QUERY_AGGREGATION_DISPLAY = {
     "percentage(users_crashed, users)": "% users crash free rate",
 }
 LOGO_URL = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
+# These should be the same as the options in the frontend
+# COMPARISON_DELTA_OPTIONS
+TEXT_COMPARISON_DELTA = {
+    5: ("same time 5 minutes ago"),  # 5 minutes
+    15: ("same time 15 minutes ago"),  # 15 minutes
+    60: ("same time one hour ago"),  # one hour
+    1440: ("same time one day ago"),  # one day
+    10080: ("same time one week ago"),  # one week
+    43200: ("same time one month ago"),  # 30 days
+}
 
 
 def get_metric_count_from_incident(incident: Incident) -> str:
@@ -67,16 +78,29 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
 
     time_window = alert_rule.snuba_query.time_window // 60
     interval = "minute" if time_window == 1 else "minutes"
-    text = _("%(metric_and_agg_text)s in the last %(time_window)d %(interval)s") % {
+    # % change alerts have a comparison delta
+    if alert_rule.comparison_delta:
+        metric_and_agg_text = f"{agg_text.capitalize()} {int(metric_value)}%"
+        higher_or_lower = (
+            "higher" if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value else "lower"
+        )
+        comparison_delta_minutes = alert_rule.comparison_delta // 60
+        comparison_string = TEXT_COMPARISON_DELTA.get(
+            comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago"
+        )
+        return _(
+            f"{metric_and_agg_text} {higher_or_lower} in the last {time_window} {interval} "
+            f"compared to the {comparison_string}"
+        )
+
+    return _("%(metric_and_agg_text)s in the last %(time_window)d %(interval)s") % {
         "metric_and_agg_text": metric_and_agg_text,
         "time_window": time_window,
         "interval": interval,
     }
 
-    return text
 
-
-def incident_attachment_info(incident, new_status: IncidentStatus, metric_value=None):
+def incident_attachment_info(incident: Incident, new_status: IncidentStatus, metric_value=None):
     alert_rule = incident.alert_rule
 
     status = INCIDENT_STATUS[new_status]

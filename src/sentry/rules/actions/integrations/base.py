@@ -7,7 +7,11 @@ from django import forms
 
 from sentry.models import OrganizationStatus
 from sentry.rules.actions import EventAction
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import (
+    RpcIntegration,
+    RpcOrganizationIntegration,
+    integration_service,
+)
 
 INTEGRATION_KEY = "integration"
 
@@ -71,6 +75,11 @@ class IntegrationEventAction(EventAction, abc.ABC):
             if integration.id == self.get_integration_id():
                 return integration
         return None
+
+    def get_organization_integration(self) -> RpcOrganizationIntegration | None:
+        return integration_service.get_organization_integration(
+            integration_id=self.get_integration_id(), organization_id=self.project.organization_id
+        )
 
     def get_form_instance(self) -> forms.Form:
         return self.form_cls(self.data, integrations=self.get_integrations())

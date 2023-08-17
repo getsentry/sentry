@@ -1,7 +1,7 @@
 import logging
 
 import sentry_sdk
-from django.db import transaction
+from django.db import router, transaction
 from requests import RequestException
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,6 +13,8 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.constants import SentryAppStatus
 from sentry.mediators import InstallationNotifier
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import json
@@ -99,7 +101,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             if not sentry_app.is_internal:
                 for install in sentry_app.installations.all():
                     try:
-                        with transaction.atomic():
+                        with transaction.atomic(using=router.db_for_write(SentryAppInstallation)):
                             InstallationNotifier.run(
                                 install=install, user=request.user, action="deleted"
                             )
@@ -107,7 +109,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                     except RequestException as exc:
                         sentry_sdk.capture_exception(exc)
 
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(SentryApp)):
                 deletions.exec_sync(sentry_app)
                 create_audit_entry(
                     request=request,

@@ -1,5 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {ProjectSourceMapsArtifacts} from 'sentry/views/settings/projectSourceMaps/projectSourceMapsArtifacts';
@@ -56,7 +57,7 @@ function renderDebugIdBundlesMockRequests({
 describe('ProjectSourceMapsArtifacts', function () {
   describe('Release Bundles', function () {
     it('renders default state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, routerContext, project, routerProps} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -77,12 +78,8 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       render(
         <ProjectSourceMapsArtifacts
-          location={routerContext.context.location}
+          {...routerProps}
           project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
           params={{
             orgId: organization.slug,
             projectId: project.slug,
@@ -117,7 +114,7 @@ describe('ProjectSourceMapsArtifacts', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, routerProps, project, routerContext} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -134,12 +131,8 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       render(
         <ProjectSourceMapsArtifacts
-          location={routerContext.context.location}
+          {...routerProps}
           project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
           params={{
             orgId: organization.slug,
             projectId: project.slug,
@@ -157,7 +150,7 @@ describe('ProjectSourceMapsArtifacts', function () {
 
   describe('Artifact Bundles', function () {
     it('renders default state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, project, routerProps, routerContext} = initializeOrg({
         router: {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
@@ -181,12 +174,8 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       render(
         <ProjectSourceMapsArtifacts
-          location={routerContext.context.location}
+          {...routerProps}
           project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
           params={{
             orgId: organization.slug,
             projectId: project.slug,
@@ -202,14 +191,14 @@ describe('ProjectSourceMapsArtifacts', function () {
       expect(
         screen.getByText('7227e105-744e-4066-8c69-3e5e344723fc')
       ).toBeInTheDocument();
-      // Chips
-      await userEvent.hover(await screen.findByText('2.0'));
+
+      // Release information
       expect(
-        await screen.findByText('Associated with release "2.0"')
+        await screen.findByText(textWithMarkupMatcher('2 Releases associated'))
       ).toBeInTheDocument();
-      await userEvent.hover(await screen.findByText('android'));
+      await userEvent.hover(screen.getByText('2 Releases'));
       expect(
-        await screen.findByText('Associated with distribution "android"')
+        await screen.findByText('frontend@2e318148eac9298ec04a662ae32b4b093b027f0a')
       ).toBeInTheDocument();
 
       // Search bar
@@ -231,7 +220,7 @@ describe('ProjectSourceMapsArtifacts', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, project, routerProps, routerContext} = initializeOrg({
         router: {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
@@ -251,12 +240,8 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       render(
         <ProjectSourceMapsArtifacts
-          location={routerContext.context.location}
+          {...routerProps}
           project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
           params={{
             orgId: organization.slug,
             projectId: project.slug,
@@ -269,6 +254,11 @@ describe('ProjectSourceMapsArtifacts', function () {
       expect(
         await screen.findByText('There are no artifacts in this bundle.')
       ).toBeInTheDocument();
+
+      // TODO(Pri): Uncomment once fully transitioned to associations.
+      // expect(
+      //   screen.getByText('No releases associated with this bundle')
+      // ).toBeInTheDocument();
     });
   });
 });

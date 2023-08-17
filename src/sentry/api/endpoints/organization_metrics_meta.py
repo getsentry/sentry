@@ -1,5 +1,6 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import set_tag
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -90,9 +91,13 @@ class OrganizationMetricsCompatibilitySums(OrganizationEventsEndpointBase):
                 use_aggregate_conditions=True,
             )
             if len(sum_metrics["data"]) > 0:
+                metrics_count = sum_metrics["data"][0].get("count")
+                if metrics_count == 0:
+                    set_tag("empty_metrics", True)
+
                 data["sum"].update(
                     {
-                        "metrics": sum_metrics["data"][0].get("count"),
+                        "metrics": metrics_count,
                         "metrics_null": sum_metrics["data"][0].get(get_function_alias(COUNT_NULL)),
                         "metrics_unparam": sum_metrics["data"][0].get(
                             get_function_alias(COUNT_UNPARAM)

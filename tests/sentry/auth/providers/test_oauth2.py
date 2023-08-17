@@ -6,7 +6,7 @@ import pytest
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.oauth2 import OAuth2Provider
 from sentry.models import AuthIdentity, AuthProvider
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -14,10 +14,10 @@ class DummyOAuth2Provider(OAuth2Provider):
     name = "dummy"
 
     def get_refresh_token_url(self) -> str:
-        pass
+        raise NotImplementedError
 
     def build_identity(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
-        pass
+        raise NotImplementedError
 
     def build_config(self, state):
         pass

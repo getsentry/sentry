@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 import datetime
 import uuid
+from typing import Any
 
 import pytest
 from django.urls import reverse
 
 from sentry.replays.testutils import mock_replay
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.cases import ReplaysSnubaTestCase
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
@@ -166,7 +168,10 @@ class OrganizationReplayCountEndpointTest(APITestCase, SnubaTestCase, ReplaysSnu
             project_id=self.project.id,
         )
 
-        query = {"query": f"issue.id:[{event_a.group.id}, {event_c.group.id}]", "returnIds": True}
+        query: dict[str, Any] = {
+            "query": f"issue.id:[{event_a.group.id}, {event_c.group.id}]",
+            "returnIds": True,
+        }
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
 

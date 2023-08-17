@@ -1,5 +1,7 @@
 """Recording segment part cache manager."""
-from typing import Any, Dict, Generator
+from __future__ import annotations
+
+from typing import Any, Generator
 
 from django.conf import settings
 
@@ -20,6 +22,8 @@ class RecordingSegmentCache:
         result = replay_cache.get(self.__key(index), raw=True)
         if result is None:
             raise ValueError(f"Missing data for chunk with id {self.__key(index)}.")
+        elif isinstance(result, str):
+            return result.encode()
         else:
             return result
 
@@ -45,7 +49,7 @@ class RecordingSegmentParts:
         """Iterate over each recording segment part."""
         part = RecordingSegmentCache(self.prefix)
         for i in range(self.num_parts):
-            yield part[i].encode("utf-8") if type(part[i]) is str else part[i]
+            yield part[i]
 
     def drop(self):
         """Delete all the parts associated with the recording segment."""
@@ -54,7 +58,7 @@ class RecordingSegmentParts:
             del part[i]
 
 
-def default(**options: Dict[str, Any]) -> BaseCache:
+def default(**options: Any) -> BaseCache:
     """The default path for non-configured instances."""
     return default_cache
 

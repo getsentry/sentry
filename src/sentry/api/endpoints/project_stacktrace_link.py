@@ -29,9 +29,7 @@ def get_link(
     integration = integration_service.get_integration(
         organization_integration_id=config.organization_integration_id
     )
-    install = integration_service.get_installation(
-        integration=integration, organization_id=config.project.organization_id
-    )
+    install = integration.get_installation(organization_id=config.project.organization_id)
 
     formatted_path = filepath.replace(config.stack_root, config.source_root, 1)
 
@@ -186,7 +184,7 @@ def get_code_mapping_configs(project: Project) -> List[RepositoryProjectPathConf
 
 
 @region_silo_endpoint
-class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
+class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     """
     Returns valid links for source code providers so that
     users can go from the file in the stack trace to the

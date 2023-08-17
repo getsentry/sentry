@@ -1,6 +1,7 @@
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import {getUtcDateString} from 'sentry/utils/dates';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -10,7 +11,7 @@ import {Monitor, MonitorEnvironment} from '../types';
 type Props = {
   monitor: Monitor;
   monitorEnvs: MonitorEnvironment[];
-  orgId: string;
+  orgSlug: string;
 };
 
 function MonitorIssuesEmptyMessage() {
@@ -25,7 +26,7 @@ function MonitorIssuesEmptyMessage() {
   );
 }
 
-function MonitorIssues({orgId, monitor, monitorEnvs}: Props) {
+function MonitorIssues({orgSlug, monitor, monitorEnvs}: Props) {
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
   const timeProps =
@@ -42,8 +43,8 @@ function MonitorIssues({orgId, monitor, monitorEnvs}: Props) {
 
   return (
     <GroupList
-      orgId={orgId}
-      endpointPath={`/organizations/${orgId}/issues/`}
+      orgSlug={orgSlug}
+      endpointPath={`/organizations/${orgSlug}/issues/`}
       queryParams={{
         query: `monitor.slug:"${monitor.slug}" environment:[${monitorEnvs
           .map(e => e.name)

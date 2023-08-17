@@ -43,7 +43,7 @@ def get_integration_from_token(token):
 
 
 @control_silo_endpoint
-class JiraIssueUpdatedWebhook(Endpoint):
+class JiraServerIssueUpdatedWebhook(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 

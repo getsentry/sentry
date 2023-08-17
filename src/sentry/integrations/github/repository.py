@@ -6,13 +6,14 @@ from sentry.integrations import IntegrationInstallation
 from sentry.models import Organization, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.json import JSONData
 
 WEBHOOK_EVENTS = ["push", "pull_request"]
 
 
-class GitHubRepositoryProvider(IntegrationRepositoryProvider):  # type: ignore
+class GitHubRepositoryProvider(IntegrationRepositoryProvider):
     name = "GitHub"
     repo_provider = "github"
 
@@ -48,7 +49,7 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):  # type: ignore
         return config
 
     def build_repository_config(
-        self, organization: Organization, data: Mapping[str, Any]
+        self, organization: RpcOrganization, data: Mapping[str, Any]
     ) -> Mapping[str, Any]:
         return {
             "name": data["identifier"],
@@ -75,16 +76,13 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):  # type: ignore
         if integration_id is None:
             raise NotImplementedError("GitHub apps requires an integration id to fetch commits")
         integration = integration_service.get_integration(integration_id=integration_id)
-        installation = integration_service.get_installation(
-            integration=integration, organization_id=repo.organization_id
-        )
+        installation = integration.get_installation(organization_id=repo.organization_id)
         client = installation.get_client()
 
         try:
             return eval_commits(client)
         except Exception as e:
             installation.raise_error(e)
-            # Explicitly typing to satisfy mypy.
             return []
 
     def _format_commits(
@@ -142,6 +140,4 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):  # type: ignore
         return f"{repo.url}/pull/{pull_request.key}"
 
     def repository_external_slug(self, repo: Repository) -> str:
-        # Explicitly typing to satisfy mypy.
-        slug: str = repo.name
-        return slug
+        return repo.name

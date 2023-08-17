@@ -16,7 +16,10 @@ export class EventedProfile extends Profile {
   static FromProfile(
     eventedProfile: Profiling.EventedProfile,
     frameIndex: ReturnType<typeof createFrameIndex>,
-    options: {type: 'flamechart' | 'flamegraph'}
+    options: {
+      type: 'flamechart' | 'flamegraph';
+      frameFilter?: (frame: Frame) => boolean;
+    }
   ): EventedProfile {
     const profile = new EventedProfile({
       duration: eventedProfile.endValue - eventedProfile.startValue,
@@ -42,6 +45,10 @@ export class EventedProfile extends Profile {
 
       if (!frame) {
         throw new Error(`Cannot retrieve event: ${event.frame} from frame index`);
+      }
+
+      if (options.frameFilter && !options.frameFilter(frame)) {
+        continue;
       }
 
       switch (event.type) {

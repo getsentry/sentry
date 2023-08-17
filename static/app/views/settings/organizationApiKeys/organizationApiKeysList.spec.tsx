@@ -28,7 +28,7 @@ describe('OrganizationApiKeysList', function () {
         organization={organization}
         params={{}}
         routes={routes}
-        keys={[TestStubs.ApiKey()]}
+        keys={[TestStubs.DeprecatedApiKey()]}
         router={router}
         routeParams={{}}
         route={route}

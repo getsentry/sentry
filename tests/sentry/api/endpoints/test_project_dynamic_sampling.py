@@ -15,7 +15,7 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.constants import TRACE_PARENT_SPAN_CONTEXT
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
@@ -53,18 +53,20 @@ def random_transactions_snuba_query(
     query_builder.add_conditions([Condition(lhs=Column("modulo_num"), op=Op.EQ, rhs=0)])
     snuba_query = query_builder.get_snql_query().query
 
+    assert snuba_query.select is not None
     snuba_query = snuba_query.set_select(
-        snuba_query.select
-        + [
+        [
+            *snuba_query.select,
             Function(
                 "not",
                 [Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT])],
                 alias="is_root",
-            )
+            ),
         ]
     )
+    assert snuba_query.groupby is not None
     snuba_query = snuba_query.set_groupby(
-        snuba_query.groupby + [Column("modulo_num"), Column("contexts.key")]
+        [*snuba_query.groupby, Column("modulo_num"), Column("contexts.key")]
     )
     return snuba_query
 
@@ -98,24 +100,65 @@ def project_stats_snuba_query(query, updated_start_time, updated_end_time, proje
         equation_config={"auto_add": False},
     )
     snuba_query = builder.get_snql_query().query
-    extra_select = [
-        Function(
-            "countIf",
-            [
-                Function(
-                    "not",
-                    [Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT])],
-                )
-            ],
-            alias="root_count",
-        )
-    ]
-    snuba_query = snuba_query.set_select(snuba_query.select + extra_select)
+    assert snuba_query.select is not None
+    snuba_query = snuba_query.set_select(
+        [
+            *snuba_query.select,
+            Function(
+                "countIf",
+                [
+                    Function(
+                        "not",
+                        [Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT])],
+                    )
+                ],
+                alias="root_count",
+            ),
+        ]
+    )
 
     return snuba_query
 
 
-@region_silo_test
+@region_silo_test(stable=True)
+class ProjectDynamicSamplingTest(APITestCase):
+    @property
+    def endpoint(self):
+        return reverse(
+            "sentry-api-0-project-dynamic-sampling-rate",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+    def test_permission(self):
+        user = self.create_user("foo@example.com")
+        self.login_as(user)
+
+        response = self.client.get(self.endpoint)
+        assert response.status_code == 403
+
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.get_guarded_blended_sample_rate")
+    def test_get_project_sample_rate_success(self, mock_get_sample_rate):
+        mock_get_sample_rate.return_value = 1.0
+
+        self.login_as(self.user)
+
+        response = self.client.get(f"{self.endpoint}")
+
+        assert mock_get_sample_rate.call_count == 1
+        assert response.status_code == 200
+        assert response.data["sampleRate"] == 1.0
+
+    def test_get_project_sample_rate_fail(self):
+        self.login_as(self.user)
+
+        response = self.client.get(f"{self.endpoint}")
+        assert response.status_code == 400
+
+
+@region_silo_test(stable=True)
 class ProjectDynamicSamplingDistributionTest(APITestCase):
     @property
     def endpoint(self):
@@ -185,7 +228,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
             }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
     def generate_fetch_transactions_count_query(
         self,
@@ -256,9 +299,9 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
     @staticmethod
     def snuba_sort_key(elem):
         if isinstance(elem, Condition):
-            try:
+            if isinstance(elem.lhs, Column):
                 return elem.lhs.name
-            except AttributeError:
+            else:
                 return elem.lhs.function
         elif isinstance(elem, Column):
             return elem.name

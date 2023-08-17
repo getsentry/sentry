@@ -1,13 +1,14 @@
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework import serializers
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import ListField
 
-from sentry.api.base import Endpoint, SessionAuthentication, control_silo_endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import ListField
 from sentry.models import ApiApplication, ApiApplicationStatus, ScheduledDeletion
 
 
@@ -83,7 +84,7 @@ class ApiApplicationDetailsEndpoint(Endpoint):
         except ApiApplication.DoesNotExist:
             raise ResourceDoesNotExist
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(ApiApplication)):
             updated = ApiApplication.objects.filter(id=instance.id).update(
                 status=ApiApplicationStatus.pending_deletion
             )

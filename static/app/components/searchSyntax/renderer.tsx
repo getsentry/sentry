@@ -38,32 +38,32 @@ function renderResult(result: ParseResult, cursor: number) {
 
 function renderToken(token: TokenResult<Token>, cursor: number) {
   switch (token.type) {
-    case Token.Spaces:
+    case Token.SPACES:
       return token.value;
 
-    case Token.Filter:
+    case Token.FILTER:
       return <FilterToken filter={token} cursor={cursor} />;
 
-    case Token.ValueTextList:
-    case Token.ValueNumberList:
+    case Token.VALUE_TEXT_LIST:
+    case Token.VALUE_NUMBER_LIST:
       return <ListToken token={token} cursor={cursor} />;
 
-    case Token.ValueNumber:
+    case Token.VALUE_NUMBER:
       return <NumberToken token={token} />;
 
-    case Token.ValueBoolean:
+    case Token.VALUE_BOOLEAN:
       return <Boolean>{token.text}</Boolean>;
 
-    case Token.ValueIso8601Date:
+    case Token.VALUE_ISO_8601_DATE:
       return <DateTime>{token.text}</DateTime>;
 
-    case Token.LogicGroup:
+    case Token.LOGIC_GROUP:
       return <LogicGroup>{renderResult(token.inner, cursor)}</LogicGroup>;
 
-    case Token.LogicBoolean:
+    case Token.LOGIC_BOOLEAN:
       return <LogicBoolean>{token.value}</LogicBoolean>;
 
-    case Token.FreeText:
+    case Token.FREE_TEXT:
       return <FreeTextToken token={token} cursor={cursor} />;
 
     default:
@@ -86,7 +86,7 @@ function FilterToken({
   cursor,
 }: {
   cursor: number;
-  filter: TokenResult<Token.Filter>;
+  filter: TokenResult<Token.FILTER>;
 }) {
   const isActive = isWithinToken(filter, cursor);
 
@@ -107,7 +107,8 @@ function FilterToken({
   }, [hasLeft, isActive]);
 
   const showInvalid = hasLeft && !!filter.invalid;
-  const showTooltip = showInvalid && isActive;
+  const showWarning = hasLeft && !!filter.warning;
+  const showTooltip = (showInvalid || showWarning) && isActive;
 
   const reduceMotion = useReducedMotion();
 
@@ -132,7 +133,7 @@ function FilterToken({
   return (
     <Tooltip
       disabled={!showTooltip}
-      title={filter.invalid?.reason}
+      title={filter.invalid?.reason ?? filter.warning}
       overlayStyle={{maxWidth: '350px'}}
       forceVisible
       skipWrapper
@@ -141,6 +142,7 @@ function FilterToken({
         ref={filterElementRef}
         active={isActive}
         invalid={showInvalid}
+        warning={showWarning}
         data-test-id={showInvalid ? 'filter-token-invalid' : 'filter-token'}
       >
         {filter.negated && <Negation>!</Negation>}
@@ -157,7 +159,7 @@ function FreeTextToken({
   cursor,
 }: {
   cursor: number;
-  token: TokenResult<Token.FreeText>;
+  token: TokenResult<Token.FREE_TEXT>;
 }) {
   const isActive = isWithinToken(token, cursor);
 
@@ -219,12 +221,12 @@ function KeyToken({
   token,
   negated,
 }: {
-  token: TokenResult<Token.KeySimple | Token.KeyAggregate | Token.KeyExplicitTag>;
+  token: TokenResult<Token.KEY_SIMPLE | Token.KEY_AGGREGATE | Token.KEY_EXPLICIT_TAG>;
   negated?: boolean;
 }) {
   let value: React.ReactNode = token.text;
 
-  if (token.type === Token.KeyExplicitTag) {
+  if (token.type === Token.KEY_EXPLICIT_TAG) {
     value = (
       <ExplicitKey prefix={token.prefix}>
         {token.key.quoted ? `"${token.key.value}"` : token.key.value}
@@ -240,7 +242,7 @@ function ListToken({
   cursor,
 }: {
   cursor: number;
-  token: TokenResult<Token.ValueNumberList | Token.ValueTextList>;
+  token: TokenResult<Token.VALUE_NUMBER_LIST | Token.VALUE_TEXT_LIST>;
 }) {
   return (
     <InList>
@@ -252,7 +254,7 @@ function ListToken({
   );
 }
 
-function NumberToken({token}: {token: TokenResult<Token.ValueNumber>}) {
+function NumberToken({token}: {token: TokenResult<Token.VALUE_NUMBER>}) {
   return (
     <Fragment>
       {token.value}
@@ -264,15 +266,19 @@ function NumberToken({token}: {token: TokenResult<Token.ValueNumber>}) {
 type TokenGroupProps = {
   active: boolean;
   invalid: boolean;
+  warning?: boolean;
 };
 
 const colorType = (p: TokenGroupProps) =>
-  `${p.invalid ? 'invalid' : 'valid'}${p.active ? 'Active' : ''}` as const;
+  `${p.invalid ? 'invalid' : p.warning ? 'warning' : 'valid'}${
+    p.active ? 'Active' : ''
+  }` as const;
 
 const TokenGroup = styled('span')<TokenGroupProps>`
   --token-bg: ${p => p.theme.searchTokenBackground[colorType(p)]};
   --token-border: ${p => p.theme.searchTokenBorder[colorType(p)]};
-  --token-value-color: ${p => (p.invalid ? p.theme.red400 : p.theme.blue400)};
+  --token-value-color: ${p =>
+    p.invalid ? p.theme.red400 : p.warning ? p.theme.gray400 : p.theme.blue400};
 
   position: relative;
   animation-name: ${shakeAnimation};

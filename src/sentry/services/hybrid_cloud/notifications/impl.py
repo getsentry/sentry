@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from typing import List, Mapping, Optional, Sequence
+from typing import Callable, List, Mapping, Optional, Sequence
 
-from django.db import transaction
-from django.db.models import Q
+from django.db import router, transaction
+from django.db.models import Q, QuerySet
 
+from sentry.api.serializers.base import Serializer
+from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.models import NotificationSetting, User
 from sentry.notifications.helpers import get_scope_type
 from sentry.notifications.types import (
@@ -13,7 +15,13 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.auth.model import AuthenticationContext
+from sentry.services.hybrid_cloud.filter_query import (
+    FilterQueryDatabaseImpl,
+    OpaqueSerializedResponse,
+)
 from sentry.services.hybrid_cloud.notifications import NotificationsService, RpcNotificationSetting
+from sentry.services.hybrid_cloud.notifications.model import NotificationSettingFilterArgs
 from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
@@ -45,9 +53,9 @@ class DatabaseBackedNotificationsService(NotificationsService):
             provider=external_provider,
             type=notification_type,
             value=setting_option,
-            actor=actor,
             project=project_id,
             organization=organization_id,
+            actor=actor,
         )
 
     def bulk_update_settings(
@@ -57,13 +65,13 @@ class DatabaseBackedNotificationsService(NotificationsService):
             NotificationSettingTypes, NotificationSettingOptionValues
         ],
         external_provider: ExternalProviders,
-        actor: RpcActor,
+        user_id: int,
     ) -> None:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(NotificationSetting)):
             for notification_type, setting_option in notification_type_to_value_map.items():
                 self.update_settings(
                     external_provider=external_provider,
-                    actor=actor,
+                    actor=RpcActor(id=user_id, actor_type=ActorType.USER),
                     notification_type=notification_type,
                     setting_option=setting_option,
                 )
@@ -160,5 +168,59 @@ class DatabaseBackedNotificationsService(NotificationsService):
     ) -> None:
         self.remove_notification_settings(team_id=None, user_id=user_id, provider=provider)
 
-    def close(self) -> None:
-        pass
+    def get_many(self, *, filter: NotificationSettingFilterArgs) -> List[RpcNotificationSetting]:
+        return self._FQ.get_many(filter)
+
+    def remove_notification_settings_for_organization(self, *, organization_id: int) -> None:
+        assert organization_id, "organization_id must be a positive integer"
+        NotificationSetting.objects.remove_for_organization(organization_id=organization_id)
+
+    def remove_notification_settings_for_project(self, *, project_id: int) -> None:
+        NotificationSetting.objects.remove_for_project(project_id=project_id)
+
+    def serialize_many(
+        self,
+        *,
+        filter: NotificationSettingFilterArgs,
+        as_user: Optional[RpcUser] = None,
+        auth_context: Optional[AuthenticationContext] = None,
+    ) -> List[OpaqueSerializedResponse]:
+        return self._FQ.serialize_many(filter, as_user, auth_context)
+
+    class _NotificationSettingsQuery(
+        FilterQueryDatabaseImpl[
+            NotificationSetting, NotificationSettingFilterArgs, RpcNotificationSetting, None
+        ],
+    ):
+        def apply_filters(
+            self, query: QuerySet[NotificationSetting], filters: NotificationSettingFilterArgs
+        ) -> QuerySet[NotificationSetting]:
+            if "provider" in filters and filters["provider"] is not None:
+                query = query.filter(provider=filters["provider"])
+            if "type" in filters and filters["type"] is not None:
+                query = query.filter(type=filters["type"].value)
+            if "scope_type" in filters and filters["scope_type"] is not None:
+                query = query.filter(scope_type=filters["scope_type"])
+            if "scope_identifier" in filters and filters["scope_identifier"] is not None:
+                query = query.filter(scope_identifier=filters["scope_identifier"])
+            if "user_ids" in filters and len(filters["user_ids"]) > 0:
+                query = query.filter(user_id__in=filters["user_ids"])
+            if "team_ids" in filters and len(filters["team_ids"]) > 0:
+                query = query.filter(team_id__in=filters["team_ids"])
+            return query.all()
+
+        def base_query(self, ids_only: bool = False) -> QuerySet[NotificationSetting]:
+            return NotificationSetting.objects
+
+        def filter_arg_validator(self) -> Callable[[NotificationSettingFilterArgs], Optional[str]]:
+            return self._filter_has_any_key_validator("user_ids", "team_ids")
+
+        def serialize_api(self, serializer_type: Optional[None]) -> Serializer:
+            return NotificationSettingsSerializer()
+
+        def serialize_rpc(
+            self, notification_setting: NotificationSetting
+        ) -> RpcNotificationSetting:
+            return serialize_notification_setting(notification_setting)
+
+    _FQ = _NotificationSettingsQuery()

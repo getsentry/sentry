@@ -47,19 +47,19 @@ def __get_explicit_endpoints() -> List[Tuple[str, str, str, Any]]:
 
     return [
         (
-            "/api/0/organization/{organization_slug}/monitors/{monitor_slug}/checkins/",
+            "/api/0/organizations/{organization_slug}/monitors/{monitor_slug}/checkins/",
             r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
             "GET",
             OrganizationMonitorCheckInIndexEndpoint.as_view(),
         ),
         (
-            "/api/0/organization/{organization_slug}/monitors/{monitor_slug}/checkins/",
+            "/api/0/organizations/{organization_slug}/monitors/{monitor_slug}/checkins/",
             r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
             "POST",
             MonitorIngestCheckInIndexEndpoint.as_view(),
         ),
         (
-            "/api/0/organization/{organization_slug}/monitors/{monitor_slug}/checkins/{checkin_id}/",
+            "/api/0/organizations/{organization_slug}/monitors/{monitor_slug}/checkins/{checkin_id}/",
             r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
             "PUT",
             MonitorIngestCheckInDetailsEndpoint.as_view(),
@@ -101,6 +101,12 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
                 raise SentryApiBuildError(
                     "Please add a description to your endpoint method via a docstring"
                 )
+            # ensure path parameters have a description
+            for param in method_info.get("parameters", []):
+                if param["in"] == "path" and param.get("description") is None:
+                    raise SentryApiBuildError(
+                        f"Please add a description to your path parameter '{param['name']}'"
+                    )
 
     return result
 

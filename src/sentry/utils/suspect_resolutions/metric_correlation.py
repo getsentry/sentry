@@ -4,6 +4,7 @@ from typing import List, Optional, Sequence
 
 from sentry import tsdb
 from sentry.models import Group
+from sentry.tsdb.base import TSDBModel
 
 
 @dataclass
@@ -39,7 +40,7 @@ def is_issue_error_rate_correlated(
     end_time = resolution_time + timedelta(hours=1)
 
     data = tsdb.get_range(
-        model=tsdb.models.group,
+        model=TSDBModel.group,
         keys=[resolved_issue.id] + [csr.id for csr in candidate_suspect_resolutions],
         rollup=600,
         start=start_time,

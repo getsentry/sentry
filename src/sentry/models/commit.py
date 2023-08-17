@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from django.db import models
+from django.db.models.query import QuerySet
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -11,7 +12,6 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    QuerySet,
     region_silo_only_model,
     sane_repr,
 )
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 class CommitManager(BaseManager):
-    def get_for_release(self, release: Release) -> QuerySet[Commit]:  # pyright: ignore
+    def get_for_release(self, release: Release) -> QuerySet[Commit]:
         return (
             self.filter(releasecommit__release=release)
             .order_by("-releasecommit__order")

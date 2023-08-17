@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import datetime
-from typing import Any
-from typing import Counter as CounterType
-from typing import Iterable, Mapping, Sequence
+from typing import Any, Iterable, Mapping, Sequence
 
 from django.db.models import Q
 
 from sentry.digests import Digest, Record
 from sentry.eventstore.models import Event
-from sentry.models import Group, Project, ProjectOwnership, Rule, RuleSnooze
+from sentry.models import Group, Project, Rule
+from sentry.models.projectownership import ProjectOwnership
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.participants import get_send_to
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -19,7 +19,7 @@ from sentry.types.integrations import ExternalProviders
 
 def get_digest_metadata(
     digest: Digest,
-) -> tuple[datetime | None, datetime | None, CounterType[str]]:
+) -> tuple[datetime | None, datetime | None, Counter[Group]]:
     """
     Inspect a digest down to its events and return three pieces of data:
      - the timestamp of the FIRST event chronologically
@@ -29,7 +29,7 @@ def get_digest_metadata(
     start: datetime | None = None
     end: datetime | None = None
 
-    counts: CounterType[str] = Counter()
+    counts: Counter[Group] = Counter()
     for rule, groups in digest.items():
         counts.update(groups.keys())
 
@@ -157,9 +157,7 @@ def sort_records(records: Sequence[Record]) -> Sequence[Record]:
     """Sorts records ordered from newest to oldest."""
 
     def sort_func(record: Record) -> datetime:
-        # Explicitly typing to satisfy mypy.
-        key: datetime = record.value.event.datetime
-        return key
+        return record.value.event.datetime
 
     return sorted(records, key=sort_func, reverse=True)
 

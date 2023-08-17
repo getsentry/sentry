@@ -11,10 +11,10 @@ from sentry.models import (
     Rule,
     RuleActivity,
     RuleActivityType,
-    RuleFireHistory,
     actor_type_to_string,
 )
 from sentry.models.actor import Actor
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.services.hybrid_cloud.user.service import user_service
 
 
@@ -80,9 +80,13 @@ class RuleSerializer(Serializer):
         owners_by_type = defaultdict(list)
 
         sentry_app_uuids = [
-            action.get("sentryAppInstallationUuid")
-            for rule in rules.values()
-            for action in rule.data.get("actions", [])
+            sentry_app_uuid
+            for sentry_app_uuid in (
+                action.get("sentryAppInstallationUuid")
+                for rule in rules.values()
+                for action in rule.data.get("actions", [])
+            )
+            if sentry_app_uuid is not None
         ]
 
         sentry_app_ids: List[int] = [
@@ -114,7 +118,7 @@ class RuleSerializer(Serializer):
 
             for action in rule.data.get("actions", []):
                 install = sentry_app_installations_by_uuid.get(
-                    action.get("sentryAppInstallationUuid")
+                    str(action.get("sentryAppInstallationUuid"))
                 )
                 if install:
                     action["_sentry_app_component"] = install.get("sentry_app_component")

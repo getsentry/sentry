@@ -97,7 +97,7 @@ def global_tags(_all_threads: bool = False, **tags: TagValue) -> Generator[None,
         del stack[old_len:]
 
 
-def _get_current_global_tags() -> MutableTags:
+def get_current_global_tags() -> MutableTags:
     rv: MutableTags = {}
 
     for tags in _GLOBAL_TAGS:
@@ -125,7 +125,7 @@ class MiddlewareWrapper(MetricsBackend):
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
     ) -> None:
-        current_tags = _get_current_global_tags()
+        current_tags = get_current_global_tags()
         if tags is not None:
             current_tags.update(tags)
         current_tags = _filter_tags(key, current_tags)
@@ -140,7 +140,7 @@ class MiddlewareWrapper(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
     ) -> None:
-        current_tags = _get_current_global_tags()
+        current_tags = get_current_global_tags()
         if tags is not None:
             current_tags.update(tags)
         current_tags = _filter_tags(key, current_tags)
@@ -155,7 +155,7 @@ class MiddlewareWrapper(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
     ) -> None:
-        current_tags = _get_current_global_tags()
+        current_tags = get_current_global_tags()
         if tags is not None:
             current_tags.update(tags)
         current_tags = _filter_tags(key, current_tags)

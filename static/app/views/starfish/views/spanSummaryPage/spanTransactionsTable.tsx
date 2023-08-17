@@ -1,219 +1,217 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
+import {Button} from 'sentry/components/button';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import Pagination from 'sentry/components/pagination';
 import Truncate from 'sentry/components/truncate';
-import {Series} from 'sentry/types/echarts';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {t} from 'sentry/locale';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {Sort} from 'sentry/utils/discover/fields';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
-import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import Sparkline, {
-  generateHorizontalLine,
-} from 'sentry/views/starfish/components/sparkline';
-import type {Span} from 'sentry/views/starfish/queries/types';
+import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 import {
-  ApplicationMetrics,
-  useApplicationMetrics,
-} from 'sentry/views/starfish/queries/useApplicationMetrics';
+  renderHeadCell,
+  SORTABLE_FIELDS,
+} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {
   SpanTransactionMetrics,
   useSpanTransactionMetrics,
 } from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
-import {useSpanTransactionMetricSeries} from 'sentry/views/starfish/queries/useSpanTransactionMetricSeries';
-import {useSpanTransactions} from 'sentry/views/starfish/queries/useSpanTransactions';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {
-  DurationTrendCell,
-  TimeSpentCell,
-} from 'sentry/views/starfish/views/spanSummaryPage/spanBaselineTable';
+  SpanIndexedFields,
+  SpanIndexedFieldTypes,
+  SpanMetricsFields,
+  SpanMetricsFieldTypes,
+} from 'sentry/views/starfish/types';
+import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
+import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 type Row = {
-  count: number;
-  metricSeries: Record<string, Series>;
-  metrics: SpanTransactionMetrics;
+  'avg(span.self_time)': number;
+  'spm()': number;
+  'time_spent_percentage(local)': number;
   transaction: string;
-};
+  transactionMethod: string;
+} & SpanTransactionMetrics;
 
 type Props = {
-  span: Span;
-  onClickTransaction?: (row: Row) => void;
-  openSidebar?: boolean;
+  sort: ValidSort;
+  span: Pick<
+    SpanMetricsFieldTypes,
+    SpanMetricsFields.SPAN_GROUP | SpanMetricsFields.SPAN_OP
+  >;
+  endpoint?: string;
+  endpointMethod?: string;
 };
 
-export type Keys = 'transaction' | 'epm()' | 'p95(transaction.duration)' | 'timeSpent';
-export type TableColumnHeader = GridColumnHeader<Keys>;
+type ValidSort = Sort & {
+  field: keyof Row;
+};
 
-export function SpanTransactionsTable({span, openSidebar, onClickTransaction}: Props) {
+export type TableColumnHeader = GridColumnHeader<keyof Row>;
+
+export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Props) {
   const location = useLocation();
-  const {data: applicationMetrics} = useApplicationMetrics();
+  const routingContext = useRoutingContext();
+  const organization = useOrganization();
+  const router = useRouter();
 
-  const {data: spanTransactions, isLoading} = useSpanTransactions(span);
-  const {data: spanTransactionMetrics} = useSpanTransactionMetrics(
-    span,
-    spanTransactions.map(row => row.transaction)
-  );
-  const {data: spanTransactionMetricsSeries} = useSpanTransactionMetricSeries(
-    span,
-    spanTransactions.map(row => row.transaction)
-  );
+  const {
+    data: spanTransactionMetrics = [],
+    meta,
+    isLoading,
+    pageLinks,
+  } = useSpanTransactionMetrics(span[SpanMetricsFields.SPAN_GROUP], {
+    transactions: endpoint ? [endpoint] : undefined,
+    sorts: [sort],
+  });
 
-  const spanTransactionsWithMetrics = spanTransactions.map(row => {
+  const spanTransactionsWithMetrics = spanTransactionMetrics.map(row => {
     return {
       ...row,
-      timeSpent: formatPercentage(
-        spanTransactionMetrics[row.transaction]?.['sum(span.self_time)'] /
-          applicationMetrics['sum(span.duration)']
-      ),
-      metrics: spanTransactionMetrics[row.transaction],
-      metricSeries: spanTransactionMetricsSeries[row.transaction],
+      transactionMethod: row['transaction.method'],
     };
   });
 
-  const renderHeadCell = (column: TableColumnHeader) => {
-    return <span>{column.name}</span>;
-  };
-
   const renderBodyCell = (column: TableColumnHeader, row: Row) => {
-    return (
-      <BodyCell
-        span={span}
-        column={column}
-        row={row}
-        openSidebar={openSidebar}
-        onClickTransactionName={onClickTransaction}
-        applicationMetrics={applicationMetrics}
-      />
-    );
+    if (column.key === 'transaction') {
+      const label =
+        row.transactionMethod && !row.transaction.startsWith(row.transactionMethod)
+          ? `${row.transactionMethod} ${row.transaction}`
+          : row.transaction;
+
+      const pathname = `${routingContext.baseURL}/${
+        extractRoute(location) ?? 'spans'
+      }/span/${encodeURIComponent(span[SpanMetricsFields.SPAN_GROUP])}`;
+      const query = {
+        ...location.query,
+        endpoint,
+        endpointMethod,
+        transaction: row.transaction,
+        transactionMethod: row.transactionMethod,
+      };
+
+      return (
+        <Link
+          to={`${pathname}?${qs.stringify(query)}`}
+          onClick={() => {
+            router.replace({
+              pathname,
+              query,
+            });
+          }}
+        >
+          <Truncate value={label} maxLength={75} />
+        </Link>
+      );
+    }
+
+    if (!meta || !meta?.fields) {
+      return row[column.key];
+    }
+
+    const renderer = getFieldRenderer(column.key, meta.fields, false);
+    const rendered = renderer(row, {
+      location,
+      organization,
+      unit: meta.units?.[column.key],
+    });
+
+    return rendered;
   };
 
   return (
-    <GridEditable
-      isLoading={isLoading}
-      data={spanTransactionsWithMetrics}
-      columnOrder={COLUMN_ORDER}
-      columnSortBy={[]}
-      grid={{
-        renderHeadCell,
-        renderBodyCell,
-      }}
-      location={location}
-    />
-  );
-}
-
-type CellProps = {
-  column: TableColumnHeader;
-  row: Row;
-  span: Span;
-  onClickTransactionName?: (row: Row) => void;
-  openSidebar?: boolean;
-};
-
-function BodyCell({
-  span,
-  column,
-  row,
-  openSidebar,
-  applicationMetrics,
-  onClickTransactionName,
-}: CellProps & {applicationMetrics: ApplicationMetrics}) {
-  if (column.key === 'transaction') {
-    return (
-      <TransactionCell
-        span={span}
-        row={row}
-        column={column}
-        openSidebar={openSidebar}
-        onClickTransactionName={onClickTransactionName}
-      />
-    );
-  }
-
-  if (column.key === 'p95(transaction.duration)') {
-    return (
-      <DurationTrendCell
-        duration={row.metrics?.p50}
-        color={P95_COLOR}
-        durationSeries={row.metricSeries?.p50}
-      />
-    );
-  }
-
-  if (column.key === 'epm()') {
-    return <EPMCell span={span} row={row} column={column} />;
-  }
-
-  if (column.key === 'timeSpent') {
-    return (
-      <TimeSpentCell
-        formattedTimeSpent={row[column.key]}
-        totalAppTime={applicationMetrics['sum(span.duration)']}
-        totalSpanTime={row.metrics?.total_time}
-      />
-    );
-  }
-
-  return <span>{row[column.key]}</span>;
-}
-
-function TransactionCell({span, column, row}: CellProps) {
-  return (
     <Fragment>
-      <Link
-        to={`/starfish/span/${encodeURIComponent(span.group_id)}?${qs.stringify({
-          transaction: row.transaction,
-        })}`}
+      <VisuallyCompleteWithData
+        id="SpanSummary.SpanTransactionsTable"
+        hasData={spanTransactionMetrics.length > 0}
       >
-        <Truncate value={row[column.key]} maxLength={75} />
-      </Link>
-    </Fragment>
-  );
-}
-
-function EPMCell({row}: CellProps) {
-  const theme = useTheme();
-  const epm = row.metrics?.spm;
-  const epmSeries = row.metricSeries?.spm;
-
-  return (
-    <Fragment>
-      {epmSeries ? (
-        <Sparkline
-          color={THROUGHPUT_COLOR}
-          series={epmSeries}
-          markLine={
-            epm ? generateHorizontalLine(`${epm.toFixed(2)}`, epm, theme) : undefined
-          }
+        <GridEditable
+          isLoading={isLoading}
+          data={spanTransactionsWithMetrics}
+          columnOrder={getColumnOrder(span)}
+          columnSortBy={[]}
+          grid={{
+            renderHeadCell: col => renderHeadCell({column: col, sort, location}),
+            renderBodyCell,
+          }}
+          location={location}
         />
-      ) : null}
+      </VisuallyCompleteWithData>
+      <Footer>
+        {endpoint && (
+          <Button
+            to={{
+              pathname: location.pathname,
+              query: omit(location.query, 'endpoint'),
+            }}
+          >
+            {t('View More Endpoints')}
+          </Button>
+        )}
+        <StyledPagination pageLinks={pageLinks} />
+      </Footer>
     </Fragment>
   );
 }
 
-const COLUMN_ORDER: TableColumnHeader[] = [
+const getColumnOrder = (
+  span: Pick<
+    SpanIndexedFieldTypes,
+    SpanIndexedFields.SPAN_GROUP | SpanIndexedFields.SPAN_OP
+  >
+): TableColumnHeader[] => [
   {
     key: 'transaction',
-    name: 'In Endpoint',
-    width: 500,
-  },
-  {
-    key: 'epm()',
-    name: 'Throughput (TPM)',
+    name: 'Found In Endpoints',
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p95(transaction.duration)',
-    name: DataTitles.p95,
+    key: 'spm()',
+    name: getThroughputTitle(span[SpanIndexedFields.SPAN_OP]),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'timeSpent',
+    key: `avg(${SpanMetricsFields.SPAN_SELF_TIME})`,
+    name: DataTitles.avg,
+    width: COL_WIDTH_UNDEFINED,
+  },
+  ...(span?.['span.op']?.startsWith('http')
+    ? ([
+        {
+          key: `http_error_count()`,
+          name: DataTitles.errorCount,
+          width: COL_WIDTH_UNDEFINED,
+        },
+      ] as TableColumnHeader[])
+    : []),
+  {
+    key: 'time_spent_percentage(local)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
 ];
+
+const Footer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin-top: 0;
+  margin-left: auto;
+`;
+
+export function isAValidSort(sort: Sort): sort is ValidSort {
+  return SORTABLE_FIELDS.has(sort.field);
+}

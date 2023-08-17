@@ -92,7 +92,7 @@ function MetricsSwitchHandler({
   const {query} = location;
   const mepSearchState = decodeScalar(query[METRIC_SEARCH_SETTING_PARAM], '');
   const hasQuery = decodeScalar(query.query, '');
-  const queryIsTransactionsBased = mepSearchState === MEPState.transactionsOnly;
+  const queryIsTransactionsBased = mepSearchState === MEPState.TRANSACTIONS_ONLY;
 
   const shouldAdjustQuery =
     hasQuery && queryIsTransactionsBased && !outcome.forceTransactionsOnly;

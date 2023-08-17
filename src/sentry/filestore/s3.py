@@ -50,7 +50,7 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
 from django.core.files.base import File
 from django.core.files.storage import Storage
-from django.utils.encoding import filepath_to_uri, force_bytes, force_text, smart_str
+from django.utils.encoding import filepath_to_uri, force_bytes, force_str, smart_str
 from django.utils.timezone import localtime
 
 from sentry.utils import metrics
@@ -83,9 +83,9 @@ def safe_join(base, *paths):
     Paths outside the base path indicate a possible security
     sensitive operation.
     """
-    base_path = force_text(base)
+    base_path = force_str(base)
     base_path = base_path.rstrip("/")
-    paths = [force_text(p) for p in paths]
+    paths = [force_str(p) for p in paths]
 
     final_path = base_path
     for path in paths:
@@ -463,7 +463,7 @@ class S3Boto3Storage(Storage):
         return smart_str(name, encoding=self.file_name_charset)
 
     def _decode_name(self, name):
-        return force_text(name, encoding=self.file_name_charset)
+        return force_str(name, encoding=self.file_name_charset)
 
     def _compress_content(self, content):
         """Gzip a given string content."""

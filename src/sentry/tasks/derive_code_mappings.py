@@ -66,7 +66,7 @@ def process_error(error: ApiError, extra: Dict[str, str]) -> None:
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.derive_code_mappings.derive_code_mappings",
     queue="derive_code_mappings",
     default_retry_delay=60 * 10,
@@ -187,9 +187,7 @@ def get_installation(
     if not organization_integration:
         return None, None
 
-    installation = integration_service.get_installation(
-        integration=integration, organization_id=organization.id
-    )
+    installation = integration.get_installation(organization_id=organization.id)
 
     return installation, organization_integration
 

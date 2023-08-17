@@ -1,9 +1,8 @@
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
@@ -11,30 +10,27 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventMessage from 'sentry/components/events/eventMessage';
-import FeatureBadge from 'sentry/components/featureBadge';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
-import ShortId from 'sentry/components/shortId';
 import {TabList} from 'sentry/components/tabs';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, IssueType, Organization, Project} from 'sentry/types';
-import {trackAnalytics} from 'sentry/utils/analytics';
+import {Event, Group, Organization, Project} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import GroupActions from './actions';
+import {ShortIdBreadrcumb} from './shortIdBreadcrumb';
 import {Tab} from './types';
 import {TagAndMessageWrapper} from './unhandledTag';
 import {ReprocessingStatus} from './utils';
@@ -69,25 +65,12 @@ function GroupHeaderTabs({
   const projectFeatures = new Set(project ? project.features : []);
   const organizationFeatures = new Set(organization ? organization.features : []);
 
-  const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
   const hasSimilarView = projectFeatures.has('similarity-view');
   const hasEventAttachments = organizationFeatures.has('event-attachments');
-  const hasReplaySupport = organizationFeatures.has('session-replay');
+  const hasReplaySupport =
+    organizationFeatures.has('session-replay') && projectCanLinkToReplay(project);
 
   const issueTypeConfig = getConfigForIssueType(group);
-
-  useEffect(() => {
-    if (!hasReplaySupport || typeof replaysCount === 'undefined') {
-      return;
-    }
-
-    trackAnalytics('replay.render-issues-detail-count', {
-      platform: project.platform!,
-      project_id: project.id,
-      count: replaysCount,
-      organization,
-    });
-  }, [hasReplaySupport, replaysCount, project, organization]);
 
   useRouteAnalyticsParams({
     group_has_replay: (replaysCount ?? 0) > 0,
@@ -154,14 +137,6 @@ function GroupHeaderTabs({
         {t('Merged Issues')}
       </TabList.Item>
       <TabList.Item
-        key={Tab.GROUPING}
-        hidden={!hasGroupingTreeUI || !issueTypeConfig.grouping.enabled}
-        disabled={disabledTabs.includes(Tab.GROUPING)}
-        to={`${baseUrl}grouping/${location.search}`}
-      >
-        {t('Grouping')}
-      </TabList.Item>
-      <TabList.Item
         key={Tab.SIMILAR_ISSUES}
         hidden={!hasSimilarView || !issueTypeConfig.similarIssues.enabled}
         disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}
@@ -191,7 +166,7 @@ function GroupHeader({
   project,
 }: Props) {
   const location = useLocation();
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   const disabledTabs = useMemo(() => {
     const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
@@ -207,7 +182,6 @@ function GroupHeader({
         Tab.ATTACHMENTS,
         Tab.EVENTS,
         Tab.MERGED,
-        Tab.GROUPING,
         Tab.SIMILAR_ISSUES,
         Tab.TAGS,
       ];
@@ -219,7 +193,6 @@ function GroupHeader({
         Tab.ATTACHMENTS,
         Tab.EVENTS,
         Tab.MERGED,
-        Tab.GROUPING,
         Tab.SIMILAR_ISSUES,
         Tab.TAGS,
         Tab.USER_FEEDBACK,
@@ -253,58 +226,8 @@ function GroupHeader({
 
   const disableActions = !!disabledTabs.length;
 
-  const shortIdBreadCrumb = group.shortId && (
-    <GuideAnchor target="issue_number" position="bottom">
-      <ShortIdBreadrcumb>
-        <ProjectBadge
-          project={project}
-          avatarSize={16}
-          hideName
-          avatarProps={{hasTooltip: true, tooltip: project.slug}}
-        />
-        <Tooltip
-          className="help-link"
-          title={t(
-            'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
-          )}
-          position="bottom"
-        >
-          <StyledShortId shortId={group.shortId} />
-        </Tooltip>
-        {group.issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES && (
-          <FeatureBadge
-            type="alpha"
-            title={t(
-              'Consecutive HTTP Performance Issues are in active development and may change'
-            )}
-          />
-        )}
-        {group.issueType === IssueType.PERFORMANCE_SLOW_DB_QUERY && (
-          <FeatureBadge
-            type="alpha"
-            title={t(
-              'Slow DB Query Performance Issues are in active development and may change'
-            )}
-          />
-        )}
-        {group.issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES && (
-          <FeatureBadge
-            type="beta"
-            title={t(
-              'Consecutive DB Query Performance Issues are in active development and may change'
-            )}
-          />
-        )}
-        {group.issueType === IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET && (
-          <FeatureBadge
-            type="alpha"
-            title={t(
-              'Large Render Blocking Asset Performance Issues are in active development and may change'
-            )}
-          />
-        )}
-      </ShortIdBreadrcumb>
-    </GuideAnchor>
+  const shortIdBreadcrumb = (
+    <ShortIdBreadrcumb organization={organization} project={project} group={group} />
   );
 
   return (
@@ -317,7 +240,7 @@ function GroupHeader({
                 label: 'Issues',
                 to: `/organizations/${organization.slug}/issues/${location.search}`,
               },
-              {label: shortIdBreadCrumb},
+              {label: shortIdBreadcrumb},
             ]}
           />
           <GroupActions
@@ -391,18 +314,6 @@ const BreadcrumbActionWrapper = styled('div')`
   justify-content: space-between;
   gap: ${space(1)};
   align-items: center;
-`;
-
-const ShortIdBreadrcumb = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const StyledShortId = styled(ShortId)`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1;
 `;
 
 const HeaderRow = styled('div')`

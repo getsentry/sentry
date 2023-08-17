@@ -256,7 +256,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     });
 
     act(() => {
-      SidebarPanelStore.activatePanel(SidebarPanelKey.PerformanceOnboarding);
+      SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
     });
 
     expect(

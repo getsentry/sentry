@@ -22,6 +22,7 @@ from sentry.models import Environment, Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
 from sentry.snuba.dataset import Dataset
+from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
@@ -159,7 +160,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         else:
             org_id = groups[0].project.organization_id if groups else None
             stats = tsdb.get_range(
-                model=tsdb.models.group,
+                model=TSDBModel.group,
                 keys=[g.id for g in groups],
                 environment_ids=environment and [environment.id],
                 **query_params,
@@ -370,14 +371,12 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if error_issue_ids:
             results.update(
-                get_range(
-                    model=snuba_tsdb.models.group, keys=error_issue_ids, conditions=error_conditions
-                )
+                get_range(model=TSDBModel.group, keys=error_issue_ids, conditions=error_conditions)
             )
         if generic_issue_ids:
             results.update(
                 get_range(
-                    model=snuba_tsdb.models.group_generic,
+                    model=TSDBModel.group_generic,
                     keys=generic_issue_ids,
                     conditions=issue_conditions,
                 )

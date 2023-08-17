@@ -149,3 +149,5 @@ export type OnboardingRecentCreatedProject = Project & {
   olderThanOneHour: boolean;
   firstIssue?: Group;
 };
+
+export type OnboardingPlatformDoc = {html: string; link: string};

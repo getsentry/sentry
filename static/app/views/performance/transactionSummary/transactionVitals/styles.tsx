@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {space} from 'sentry/styles/space';
 
 export const Card = styled(PanelItem)`

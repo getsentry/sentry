@@ -1,23 +1,30 @@
 from __future__ import annotations
 
-from django.db import transaction
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from django.db import router, transaction
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
 
 from sentry import audit_log, features, ratelimits, roles
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
+from sentry.api.serializers.models.organization_member.expand.teams import (
+    OrganizationMemberWithTeamsSerializer,
+)
 from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
-    RESPONSE_NOTFOUND,
+    RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GLOBAL_PARAMS
+from sentry.apidocs.examples.organization_examples import OrganizationExamples
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     AuthProvider,
@@ -26,13 +33,12 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    UserOption,
 )
 from sentry.roles import organization_roles, team_roles
+from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.utils import metrics
 
 from . import InvalidTeam, get_allowed_org_roles, save_team_assignments
-from .index import OrganizationMemberSerializer
 
 ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
@@ -41,14 +47,6 @@ ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization
 ERR_UNINVITABLE = "You cannot send an invitation to a user who is already a full member."
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
-
-MEMBER_ID_PARAM = OpenApiParameter(
-    name="member_id",
-    description="The member ID.",
-    required=True,
-    type=str,
-    location="path",
-)
 
 
 class RelaxedMemberPermission(OrganizationPermission):
@@ -70,8 +68,8 @@ class RelaxedMemberPermission(OrganizationPermission):
 @extend_schema(tags=["Organizations"])
 @region_silo_endpoint
 class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
+    public = {"GET", "PUT", "DELETE"}
     permission_classes = [RelaxedMemberPermission]
-    public = {"GET", "DELETE"}
 
     def _get_member(
         self,
@@ -90,14 +88,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Retrieve an Organization Member",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            MEMBER_ID_PARAM,
+            GlobalParams.ORG_SLUG,
+            OrganizationParams.MEMBER_ID,
         ],
         responses={
             200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def get(
@@ -120,26 +118,32 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             )
         )
 
-    # TODO:
-    # @extend_schema(
-    #     operation_id="Update a Organization Member's details",
-    #     parameters=[
-    #         GLOBAL_PARAMS.ORG_SLUG,
-    #         MEMBER_ID_PARAM,
-    #     ],
-    #     responses={
-    #         200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
-    #         401: RESPONSE_UNAUTHORIZED,
-    #         403: RESPONSE_FORBIDDEN,
-    #         404: RESPONSE_NOTFOUND,
-    #     },
-    # )
+    @extend_schema(
+        operation_id="Update an Organization Member's Roles",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            OrganizationParams.MEMBER_ID,
+            OrganizationParams.ORG_ROLE,
+            OrganizationParams.TEAM_ROLES,
+        ],
+        request=OrganizationMemberWithTeamsSerializer,
+        responses={
+            200: OrganizationMemberWithRolesSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=OrganizationExamples.UPDATE_ORG_MEMBER,
+    )
     def put(
         self,
         request: Request,
         organization: Organization,
         member: OrganizationMember,
     ) -> Response:
+        """
+        Update a member's organization and team-level roles.
+        """
         allowed_roles = get_allowed_org_roles(request, organization)
         serializer = OrganizationMemberSerializer(
             data=request.data,
@@ -151,7 +155,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         )
 
         if not serializer.is_valid():
-            return Response(status=400)
+            raise ValidationError(serializer.errors)
 
         try:
             auth_provider = AuthProvider.objects.get(organization_id=organization.id)
@@ -181,13 +185,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
                 if result.get("regenerate"):
                     if request.access.has_scope("member:admin"):
-                        region_outbox = None
-                        with transaction.atomic():
+                        with transaction.atomic(router.db_for_write(OrganizationMember)):
                             member.regenerate_token()
                             member.save()
-                            region_outbox = member.save_outbox_for_update()
-                        if region_outbox:
-                            region_outbox.drain_shard(max_updates_to_drain=10)
                     else:
                         return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
                 if member.token_expired:
@@ -220,13 +220,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         is_update_org_role = assigned_org_role and assigned_org_role != member.role
 
         if is_update_org_role:
-            if getattr(member.flags, "idp:role-restricted"):
-                return Response(
-                    {
-                        "role": "This user's org-role is managed through your organization's identity provider."
-                    },
-                    status=403,
-                )
+            # TODO(adas): Reenable idp lockout once all scim role bugs are resolved.
 
             allowed_role_ids = {r.id for r in allowed_roles}
 
@@ -243,7 +237,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     status=403,
                 )
 
-            if member.user == request.user and (assigned_org_role != member.role):
+            if member.user_id == request.user.id and (assigned_org_role != member.role):
                 return Response({"detail": "You cannot make changes to your own role."}, status=400)
 
             if (
@@ -284,8 +278,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             r.id for r in team_roles.get_all() if r.priority <= new_minimum_team_role.priority
         ]
 
-        region_outbox = None
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
             # If the member has any existing team roles that are less than or equal
             # to their new minimum role, overwrite the redundant team roles with
             # null. We do this because such a team role would be effectively
@@ -296,8 +289,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             ).update(role=None)
 
             member.role = role
-            region_outbox = member.save()
-            region_outbox.drain_shard(max_updates_to_drain=10)
+            member.save()
         if omt_update_count > 0:
             metrics.incr(
                 "team_roles.update_to_minimum",
@@ -307,14 +299,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Delete an Organization Member",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            MEMBER_ID_PARAM,
+            GlobalParams.ORG_SLUG,
+            OrganizationParams.MEMBER_ID,
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def delete(
@@ -364,19 +356,25 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         audit_data = member.get_audit_log_data()
 
-        with transaction.atomic():
+        proj_list = list(
+            Project.objects.filter(organization=organization).values_list("id", flat=True)
+        )
+        uos = [
+            uo
+            for uo in user_option_service.get_many(
+                filter=dict(user_ids=[member.user_id], project_ids=proj_list, key="mail:email")
+            )
+        ]
+
+        with transaction.atomic(router.db_for_write(Project)):
             # Delete instances of `UserOption` that are scoped to the projects within the
             # organization when corresponding member is removed from org
-            proj_list = Project.objects.filter(organization=organization).values_list(
-                "id", flat=True
-            )
-            uo_list = UserOption.objects.filter(
-                user=member.user, project_id__in=proj_list, key="mail:email"
-            )
-            for uo in uo_list:
-                uo.delete()
 
             member.delete()
+            transaction.on_commit(
+                lambda: user_option_service.delete_options(option_ids=[uo.id for uo in uos]),
+                using=router.db_for_write(Project),
+            )
 
         self.create_audit_entry(
             request=request,

@@ -5,7 +5,7 @@ from sentry.db.models import CharField, FlexibleForeignKey, Model, region_silo_o
 
 
 @region_silo_only_model
-class RuleFireHistory(Model):  # type: ignore
+class RuleFireHistory(Model):
     __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)

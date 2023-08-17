@@ -1,10 +1,13 @@
+import time
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest import mock
 
 import pytest
-import pytz
-from django.utils import timezone
+import urllib3
+from django.utils import timezone as django_timezone
+from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
 
 from sentry import options
 from sentry.api.issue_search import convert_query_values, issue_search_config, parse_search_query
@@ -34,12 +37,16 @@ from sentry.models.groupowner import GroupOwner
 from sentry.search.snuba.backend import (
     CdcEventsDatasetSnubaSearchBackend,
     EventsDatasetSnubaSearchBackend,
+    SnubaSearchBackendBase,
 )
 from sentry.search.snuba.executors import InvalidQueryForExecutor, PrioritySortWeights
-from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
-from sentry.testutils.helpers import Feature
+from sentry.snuba.dataset import Dataset
+from sentry.testutils.cases import SnubaTestCase, TestCase, TransactionTestCase
+from sentry.testutils.helpers import Feature, apply_feature_flag_on_cls
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import xfail_if_not_postgres
 from sentry.types.group import GroupSubStatus
+from sentry.utils import json
 from sentry.utils.snuba import SENTRY_SNUBA_MAP, SnubaError
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -48,7 +55,11 @@ def date_to_query_format(date):
     return date.strftime("%Y-%m-%dT%H:%M:%S")
 
 
-class SharedSnubaTest(TestCase, SnubaTestCase):
+class SharedSnubaMixin(SnubaTestCase):
+    @property
+    def backend(self) -> SnubaSearchBackendBase:
+        raise NotImplementedError(self)
+
     def build_search_filter(self, query, projects=None, user=None, environments=None):
         user = user if user is not None else self.user
         projects = projects if projects is not None else [self.project]
@@ -58,6 +69,7 @@ class SharedSnubaTest(TestCase, SnubaTestCase):
         self,
         projects=None,
         search_filter_query=None,
+        user=None,
         environments=None,
         sort_by="date",
         limit=None,
@@ -71,14 +83,14 @@ class SharedSnubaTest(TestCase, SnubaTestCase):
         projects = projects if projects is not None else [self.project]
         if search_filter_query is not None:
             search_filters = self.build_search_filter(
-                search_filter_query, projects, environments=environments
+                search_filter_query, projects, user=user, environments=environments
             )
 
         kwargs = {}
         if limit is not None:
             kwargs["limit"] = limit
         if aggregate_kwargs:
-            kwargs["aggregate_kwargs"] = {"better_priority": {**aggregate_kwargs}}
+            kwargs["aggregate_kwargs"] = {"priority": {**aggregate_kwargs}}
 
         return self.backend.query(
             projects,
@@ -104,14 +116,14 @@ class SharedSnubaTest(TestCase, SnubaTestCase):
         return event
 
 
-class EventsSnubaSearchTest(SharedSnubaTest):
+class EventsDatasetTestSetup(SharedSnubaMixin):
     @property
     def backend(self):
         return EventsDatasetSnubaSearchBackend()
 
     def setUp(self):
         super().setUp()
-        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=timezone.utc)
 
         event1_timestamp = iso_format(self.base_datetime - timedelta(days=21))
         self.event1 = self.store_event(
@@ -263,17 +275,22 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         return event.group
 
-    def run_test_query_in_syntax(
-        self, query, expected_groups, expected_negative_groups=None, environments=None
+    def run_test_query(
+        self, query, expected_groups, expected_negative_groups=None, environments=None, user=None
     ):
-        results = self.make_query(search_filter_query=query, environments=environments)
-        sort_key = lambda result: result.id
+        results = self.make_query(search_filter_query=query, environments=environments, user=user)
+
+        def sort_key(result):
+            return result.id
+
         assert sorted(results, key=sort_key) == sorted(expected_groups, key=sort_key)
 
         if expected_negative_groups is not None:
-            results = self.make_query(search_filter_query=f"!{query}")
+            results = self.make_query(search_filter_query=f"!{query}", user=user)
             assert sorted(results, key=sort_key) == sorted(expected_negative_groups, key=sort_key)
 
+
+class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
     def test_query(self):
         results = self.make_query(search_filter_query="foo")
         assert set(results) == {self.group1}
@@ -355,26 +372,25 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert list(results) == [self.group1, self.group2]
 
         results = self.make_query(sort_by="priority")
-        assert list(results) == [self.group1, self.group2]
+        assert list(results) == [self.group2, self.group1]
 
         results = self.make_query(sort_by="user")
         assert list(results) == [self.group1, self.group2]
 
-    def test_better_priority_sort(self):
-        with self.feature("organizations:issue-list-better-priority-sort"):
-            weights: PrioritySortWeights = {
-                "log_level": 5,
-                "has_stacktrace": 5,
-                "relative_volume": 1,
-                "event_halflife_hours": 4,
-                "issue_halflife_hours": 24 * 7,
-                "v2": False,
-                "norm": False,
-            }
-            results = self.make_query(
-                sort_by="betterPriority",
-                aggregate_kwargs=weights,
-            )
+    def test_priority_sort(self):
+        weights: PrioritySortWeights = {
+            "log_level": 5,
+            "has_stacktrace": 5,
+            "relative_volume": 1,
+            "event_halflife_hours": 4,
+            "issue_halflife_hours": 24 * 7,
+            "v2": False,
+            "norm": False,
+        }
+        results = self.make_query(
+            sort_by="priority",
+            aggregate_kwargs=weights,
+        )
         assert list(results) == [self.group2, self.group1]
 
     def test_sort_with_environment(self):
@@ -430,12 +446,8 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         group_3.substatus = None
         group_3.save()
 
-        self.run_test_query_in_syntax(
-            "status:[unresolved, resolved]", [self.group1, self.group2], [group_3]
-        )
-        self.run_test_query_in_syntax(
-            "status:[resolved, muted]", [self.group2, group_3], [self.group1]
-        )
+        self.run_test_query("status:[unresolved, resolved]", [self.group1, self.group2], [group_3])
+        self.run_test_query("status:[resolved, muted]", [self.group2, group_3], [self.group1])
 
     def test_substatus(self):
         with Feature("organizations:escalating-issues"):
@@ -598,14 +610,12 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert set(results) == {self.group2}
 
     def test_bookmarked_by_in_syntax(self):
-        self.run_test_query_in_syntax(
-            f"bookmarks:[{self.user.username}]", [self.group2], [self.group1]
-        )
+        self.run_test_query(f"bookmarks:[{self.user.username}]", [self.group2], [self.group1])
         user_2 = self.create_user()
         GroupBookmark.objects.create(
             user_id=user_2.id, group=self.group1, project=self.group2.project
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"bookmarks:[{self.user.username}, {user_2.username}]", [self.group2, self.group1], []
         )
 
@@ -663,7 +673,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         )
         results = self.make_query(search_filter_query="priority:%s" % priority, sort_by="priority")
-        assert list(results) == [self.group1, self.group2]
+        assert list(results) == [self.group2, self.group1]
 
     def test_search_tag_overlapping_with_internal_fields(self):
         # Using a tag of email overlaps with the promoted user.email column in events.
@@ -815,6 +825,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         group1_first_seen = GroupEnvironment.objects.get(
             environment=self.environments["production"], group=self.group1
         ).first_seen
+        assert group1_first_seen is not None
 
         results = self.make_query(
             environments=[self.environments["production"]],
@@ -1078,7 +1089,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert GroupAssignee.objects.get(id=ga.id).user_id is None
 
         results = self.make_query(search_filter_query="assigned:%s" % self.user.username)
-        assert set(results) == {self.group2}
+        assert set(results) == set()
 
         # test when there should be no results
         other_user = self.create_user()
@@ -1094,6 +1105,88 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         results = self.make_query(search_filter_query="assigned:%s" % owner.username)
         assert set(results) == set()
 
+    def test_assigned_to_me_my_teams(self):
+        my_team_group = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group-my-teams"],
+                "event_id": "f" * 32,
+                "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
+                "message": "baz",
+                "environment": "staging",
+                "tags": {
+                    "server": "example.com",
+                    "url": "http://example.com",
+                    "sentry:user": "event2@example.com",
+                },
+                "level": "error",
+            },
+            project_id=self.project.id,
+        ).group
+
+        # assign the issue to my team instead of me
+        GroupAssignee.objects.create(
+            user_id=None, team_id=self.team.id, group=my_team_group, project=my_team_group.project
+        )
+
+        self.run_test_query(
+            "assigned:me",
+            [self.group2],
+            user=self.user,
+        )
+        assert not GroupAssignee.objects.filter(user_id=self.user.id, group=my_team_group).exists()
+
+        self.run_test_query(
+            "assigned:my_teams",
+            [my_team_group],
+            user=self.user,
+        )
+
+    def test_assigned_to_me_my_teams_in_syntax(self):
+        my_team_group = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group-my-teams"],
+                "event_id": "f" * 32,
+                "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
+                "message": "baz",
+                "environment": "staging",
+                "tags": {
+                    "server": "example.com",
+                    "url": "http://example.com",
+                    "sentry:user": "event2@example.com",
+                },
+                "level": "error",
+            },
+            project_id=self.project.id,
+        ).group
+
+        # assign the issue to my team instead of me
+        GroupAssignee.objects.create(
+            user_id=None, team_id=self.team.id, group=my_team_group, project=my_team_group.project
+        )
+
+        self.run_test_query(
+            "assigned:[me]",
+            [self.group2],
+            user=self.user,
+        )
+        assert not GroupAssignee.objects.filter(user_id=self.user.id, group=my_team_group).exists()
+
+        self.run_test_query(
+            "assigned:[me]",
+            [self.group2],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned:[my_teams]",
+            [my_team_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned:[me, my_teams]",
+            [self.group2, my_team_group],
+            user=self.user,
+        )
+
     def test_assigned_to_in_syntax(self):
         group_3 = self.store_event(
             data={
@@ -1107,20 +1200,20 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         group_3.substatus = None
         group_3.save()
         other_user = self.create_user()
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned:[{self.user.username}, {other_user.username}]",
             [self.group2],
             [self.group1, group_3],
         )
 
         GroupAssignee.objects.create(project=self.project, group=group_3, user_id=other_user.id)
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned:[{self.user.username}, {other_user.username}]",
             [self.group2, group_3],
             [self.group1],
         )
 
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned:[#{self.team.slug}, {other_user.username}]",
             [group_3],
             [self.group1, self.group2],
@@ -1130,21 +1223,21 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             user_id=self.user.id, group=self.group2, project=self.group2.project
         )
         ga_2.update(team=self.team, user_id=None)
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned:[{self.user.username}, {other_user.username}]",
-            [self.group2, group_3],
-            [self.group1],
+            [group_3],
+            [self.group1, self.group2],
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned:[#{self.team.slug}, {other_user.username}]",
             [self.group2, group_3],
             [self.group1],
         )
 
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned:[me, none, {other_user.username}]",
-            [self.group1, self.group2, group_3],
-            [],
+            [self.group1, group_3],
+            [self.group2],
         )
 
     def test_assigned_or_suggested_in_syntax(self):
@@ -1187,7 +1280,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         ).group
 
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             "assigned_or_suggested:[me]",
             [],
             [group, group1, group2, assigned_group, assigned_to_other_group],
@@ -1209,7 +1302,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             team_id=None,
             user_id=self.user.id,
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             "assigned_or_suggested:[me]",
             [group, assigned_to_other_group],
             [group1, group2, assigned_group],
@@ -1222,13 +1315,13 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project=self.project,
             user_id=other_user.id,
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             "assigned_or_suggested:[me]",
             [group],
             [group1, group2, assigned_group, assigned_to_other_group],
         )
 
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned_or_suggested:[{other_user.email}]",
             [assigned_to_other_group],
             [group, group1, group2, assigned_group],
@@ -1237,7 +1330,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         GroupAssignee.objects.create(
             group=assigned_group, project=self.project, user_id=self.user.id
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned_or_suggested:[{self.user.email}]",
             [assigned_group, group],
         )
@@ -1250,12 +1343,12 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             team_id=self.team.id,
             user_id=None,
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned_or_suggested:[#{self.team.slug}]",
             [group],
         )
 
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             "assigned_or_suggested:[me, none]",
             [group, group1, group2, assigned_group],
             [assigned_to_other_group],
@@ -1270,21 +1363,433 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             team_id=None,
             user_id=not_me.id,
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             "assigned_or_suggested:[me, none]",
             [group, group1, assigned_group],
             [assigned_to_other_group, group2],
         )
         GroupOwner.objects.filter(group=group, user_id=self.user.id).delete()
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned_or_suggested:[me, none, #{self.team.slug}]",
             [group, group1, assigned_group],
             [assigned_to_other_group, group2],
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"assigned_or_suggested:[me, none, #{self.team.slug}, {not_me.email}]",
             [group, group1, assigned_group, group2],
             [assigned_to_other_group],
+        )
+
+    def test_assigned_or_suggested_my_teams(self):
+        Group.objects.all().delete()
+        group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=180)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        ).group
+        group1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=185)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        ).group
+        group2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=190)),
+                "fingerprint": ["group-3"],
+            },
+            project_id=self.project.id,
+        ).group
+        assigned_group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=195)),
+                "fingerprint": ["group-4"],
+            },
+            project_id=self.project.id,
+        ).group
+        assigned_to_other_group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=195)),
+                "fingerprint": ["group-5"],
+            },
+            project_id=self.project.id,
+        ).group
+        my_team_group = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group-my-teams"],
+                "event_id": "f" * 32,
+                "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
+                "message": "baz",
+                "environment": "staging",
+                "tags": {
+                    "server": "example.com",
+                    "url": "http://example.com",
+                    "sentry:user": "event2@example.com",
+                },
+                "level": "error",
+            },
+            project_id=self.project.id,
+        ).group
+
+        self.run_test_query(
+            "assigned_or_suggested:me",
+            [],
+            [group, group1, group2, assigned_group, assigned_to_other_group, my_team_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:my_teams",
+            [],
+            [group, group1, group2, assigned_group, assigned_to_other_group, my_team_group],
+            user=self.user,
+        )
+
+        GroupOwner.objects.create(
+            group=assigned_to_other_group,
+            project=self.project,
+            organization=self.organization,
+            type=0,
+            team_id=None,
+            user_id=self.user.id,
+        )
+        GroupOwner.objects.create(
+            group=group,
+            project=self.project,
+            organization=self.organization,
+            type=0,
+            team_id=None,
+            user_id=self.user.id,
+        )
+        GroupAssignee.objects.create(
+            user_id=None, team_id=self.team.id, group=my_team_group, project=my_team_group.project
+        )
+
+        self.run_test_query(
+            "assigned_or_suggested:me",
+            [group, assigned_to_other_group],
+            [group1, group2, assigned_group, my_team_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:my_teams",
+            [my_team_group],
+            [group, group1, group2, assigned_group, assigned_to_other_group],
+            user=self.user,
+        )
+
+        # Because assigned_to_other_event is assigned to self.other_user, it should not show up in assigned_or_suggested search for anyone but self.other_user. (aka. they are now the only owner)
+        other_user = self.create_user("other@user.com", is_superuser=False)
+        GroupAssignee.objects.create(
+            group=assigned_to_other_group,
+            project=self.project,
+            user_id=other_user.id,
+        )
+
+        self.run_test_query(
+            "assigned_or_suggested:me",
+            [group],
+            [group1, group2, assigned_group, my_team_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:my_teams",
+            [my_team_group],
+            [group, group1, group2, assigned_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            f"assigned_or_suggested:{other_user.email}",
+            [assigned_to_other_group],
+            [group, group1, group2, assigned_group, my_team_group],
+            user=self.user,
+        )
+
+        GroupAssignee.objects.create(
+            group=assigned_group, project=self.project, user_id=self.user.id
+        )
+
+        self.run_test_query(
+            f"assigned_or_suggested:{self.user.email}",
+            [assigned_group, group],
+            [group1, group2, my_team_group, assigned_to_other_group],
+            user=self.user,
+        )
+
+        GroupOwner.objects.create(
+            group=group,
+            project=self.project,
+            organization=self.organization,
+            type=0,
+            team_id=self.team.id,
+            user_id=None,
+        )
+
+        self.run_test_query(
+            f"assigned_or_suggested:#{self.team.slug}",
+            [group, my_team_group],
+            [group1, group2, assigned_group, assigned_to_other_group],
+            user=self.user,
+        )
+
+    def test_assigned_or_suggested_my_teams_in_syntax(self):
+        Group.objects.all().delete()
+        group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=180)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        ).group
+        group1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=185)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        ).group
+        group2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=190)),
+                "fingerprint": ["group-3"],
+            },
+            project_id=self.project.id,
+        ).group
+        assigned_group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=195)),
+                "fingerprint": ["group-4"],
+            },
+            project_id=self.project.id,
+        ).group
+        assigned_to_other_group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=195)),
+                "fingerprint": ["group-5"],
+            },
+            project_id=self.project.id,
+        ).group
+        my_team_group = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group-my-teams"],
+                "event_id": "f" * 32,
+                "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
+                "message": "baz",
+                "environment": "staging",
+                "tags": {
+                    "server": "example.com",
+                    "url": "http://example.com",
+                    "sentry:user": "event2@example.com",
+                },
+                "level": "error",
+            },
+            project_id=self.project.id,
+        ).group
+
+        self.run_test_query(
+            "assigned_or_suggested:[me]",
+            [],
+            [group, group1, group2, assigned_group, assigned_to_other_group, my_team_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[my_teams]",
+            [],
+            [group, group1, group2, assigned_group, assigned_to_other_group, my_team_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[me, my_teams]",
+            [],
+            [group, group1, group2, assigned_group, assigned_to_other_group, my_team_group],
+            user=self.user,
+        )
+
+        GroupOwner.objects.create(
+            group=assigned_to_other_group,
+            project=self.project,
+            organization=self.organization,
+            type=0,
+            team_id=None,
+            user_id=self.user.id,
+        )
+        GroupOwner.objects.create(
+            group=group,
+            project=self.project,
+            organization=self.organization,
+            type=0,
+            team_id=None,
+            user_id=self.user.id,
+        )
+        GroupAssignee.objects.create(
+            user_id=None, team_id=self.team.id, group=my_team_group, project=my_team_group.project
+        )
+
+        self.run_test_query(
+            "assigned_or_suggested:[me]",
+            [group, assigned_to_other_group],
+            [group1, group2, assigned_group, my_team_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[my_teams]",
+            [my_team_group],
+            [group, group1, group2, assigned_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[me, my_teams]",
+            [group, assigned_to_other_group, my_team_group],
+            [group1, group2, assigned_group],
+            user=self.user,
+        )
+
+        # Because assigned_to_other_event is assigned to self.other_user, it should not show up in assigned_or_suggested search for anyone but self.other_user. (aka. they are now the only owner)
+        other_user = self.create_user("other@user.com", is_superuser=False)
+        GroupAssignee.objects.create(
+            group=assigned_to_other_group,
+            project=self.project,
+            user_id=other_user.id,
+        )
+
+        self.run_test_query(
+            "assigned_or_suggested:[me]",
+            [group],
+            [group1, group2, assigned_group, my_team_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[my_teams]",
+            [my_team_group],
+            [group, group1, group2, assigned_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[me, my_teams]",
+            [group, my_team_group],
+            [group1, group2, assigned_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            f"assigned_or_suggested:[{other_user.email}]",
+            [assigned_to_other_group],
+            [group, group1, group2, assigned_group, my_team_group],
+            user=self.user,
+        )
+
+        GroupAssignee.objects.create(
+            group=assigned_group, project=self.project, user_id=self.user.id
+        )
+
+        self.run_test_query(
+            f"assigned_or_suggested:[{self.user.email}]",
+            [assigned_group, group],
+            [group1, group2, my_team_group, assigned_to_other_group],
+            user=self.user,
+        )
+
+        GroupOwner.objects.create(
+            group=group,
+            project=self.project,
+            organization=self.organization,
+            type=0,
+            team_id=self.team.id,
+            user_id=None,
+        )
+
+        self.run_test_query(
+            f"assigned_or_suggested:[#{self.team.slug}]",
+            [group, my_team_group],
+            [group1, group2, assigned_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[me, none]",
+            [group, group1, group2, assigned_group],
+            [my_team_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[my_teams, none]",
+            [group, group1, group2, my_team_group],
+            [assigned_to_other_group, assigned_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[me, my_teams, none]",
+            [group, group1, group2, my_team_group, assigned_group],
+            [assigned_to_other_group],
+            user=self.user,
+        )
+
+        not_me = self.create_user(email="notme@sentry.io")
+        GroupOwner.objects.create(
+            group=group2,
+            project=self.project,
+            organization=self.organization,
+            type=0,
+            team_id=None,
+            user_id=not_me.id,
+        )
+
+        self.run_test_query(
+            "assigned_or_suggested:[me, none]",
+            [group, group1, assigned_group],
+            [group2, my_team_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[my_teams, none]",
+            [group, group1, my_team_group],
+            [group2, assigned_group, assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            "assigned_or_suggested:[me, my_teams, none]",
+            [group, group1, my_team_group, assigned_group],
+            [group2, assigned_to_other_group],
+            user=self.user,
+        )
+
+        GroupOwner.objects.filter(group=group, user_id=self.user.id).delete()
+
+        self.run_test_query(
+            f"assigned_or_suggested:[me, none, #{self.team.slug}]",
+            [group, group1, assigned_group, my_team_group],
+            [assigned_to_other_group, group2],
+            user=self.user,
+        )
+        self.run_test_query(
+            f"assigned_or_suggested:[my_teams, none, #{self.team.slug}]",
+            [group, group1, my_team_group],
+            [assigned_to_other_group, group2, assigned_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            f"assigned_or_suggested:[me, my_teams, none, #{self.team.slug}]",
+            [group, group1, my_team_group, assigned_group],
+            [assigned_to_other_group, group2],
+            user=self.user,
+        )
+        self.run_test_query(
+            f"assigned_or_suggested:[me, none, #{self.team.slug}, {not_me.email}]",
+            [group, group1, group2, assigned_group, my_team_group],
+            [assigned_to_other_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            f"assigned_or_suggested:[my_teams, none, #{self.team.slug}, {not_me.email}]",
+            [group, group1, group2, my_team_group],
+            [assigned_to_other_group, assigned_group],
+            user=self.user,
+        )
+        self.run_test_query(
+            f"assigned_or_suggested:[me, my_teams, none, #{self.team.slug}, {not_me.email}]",
+            [group, group1, group2, my_team_group, assigned_group],
+            [assigned_to_other_group],
+            user=self.user,
         )
 
     def test_assigned_to_with_environment(self):
@@ -1307,14 +1812,12 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert set(results) == {self.group1}
 
     def test_subscribed_by_in_syntax(self):
-        self.run_test_query_in_syntax(
-            f"subscribed:[{self.user.username}]", [self.group1], [self.group2]
-        )
+        self.run_test_query(f"subscribed:[{self.user.username}]", [self.group1], [self.group2])
         user_2 = self.create_user()
         GroupSubscription.objects.create(
             user_id=user_2.id, group=self.group2, project=self.project, is_active=True
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"subscribed:[{self.user.username}, {user_2.username}]", [self.group1, self.group2], []
         )
 
@@ -1340,7 +1843,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         assert (
             self.make_query(
-                search_filter_query="last_seen:>%s" % date_to_query_format(timezone.now()),
+                search_filter_query="last_seen:>%s" % date_to_query_format(django_timezone.now()),
                 sort_by="date",
             ).results
             == []
@@ -1356,7 +1859,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         assert (
             self.make_query(
-                search_filter_query="last_seen:>%s" % date_to_query_format(timezone.now()),
+                search_filter_query="last_seen:>%s" % date_to_query_format(django_timezone.now()),
                 sort_by="date",
             ).results
             == []
@@ -1372,7 +1875,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         assert (
             self.make_query(
-                search_filter_query="last_seen:>%s" % date_to_query_format(timezone.now()),
+                search_filter_query="last_seen:>%s" % date_to_query_format(django_timezone.now()),
                 sort_by="date",
             ).results
             == []
@@ -1413,7 +1916,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             options.set("snuba.search.pre-snuba-candidates-optimizer", prev_optimizer_enabled)
 
     def test_search_out_of_range(self):
-        the_date = datetime(2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc)
+        the_date = datetime(2000, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         results = self.make_query(
             search_filter_query=f"event.timestamp:>{the_date} event.timestamp:<{the_date}",
             date_from=the_date,
@@ -1499,16 +2002,14 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
     def test_first_release_in_syntax(self):
         # expect no groups within the results since there are no releases
-        self.run_test_query_in_syntax("first_release:[fake, fake2]", [])
+        self.run_test_query("first_release:[fake, fake2]", [])
 
         # expect no groups even though there is a release; since no group
         # is attached to a release
         release_1 = self.create_release(self.project)
         release_2 = self.create_release(self.project)
 
-        self.run_test_query_in_syntax(
-            f"first_release:[{release_1.version}, {release_2.version}]", []
-        )
+        self.run_test_query(f"first_release:[{release_1.version}, {release_2.version}]", [])
 
         # Create a new event so that we get a group in this release
         group = self.store_event(
@@ -1524,7 +2025,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         ).group
 
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"first_release:[{release_1.version}, {release_2.version}]",
             [group],
             [self.group1, self.group2],
@@ -1544,7 +2045,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         ).group
 
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"first_release:[{release_1.version}, {release_2.version}]",
             [group, group_2],
         )
@@ -1577,7 +2078,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert set(results) == {self.group1}
 
     def test_first_release_environments_in_syntax(self):
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             "first_release:[fake, fake2]",
             [],
             [self.group1, self.group2],
@@ -1590,7 +2091,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         group_1_env.update(first_release=release)
 
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"first_release:[{release.version}, fake2]",
             [self.group1],
             [self.group2],
@@ -1601,7 +2102,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             group_id=self.group2.id, environment_id=self.environments["staging"].id
         )
         group_2_env.update(first_release=release)
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"first_release:[{release.version}, fake2]",
             [self.group1, self.group2],
             [],
@@ -1614,7 +2115,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             environment_id=self.environments["staging"].id,
             first_release=release,
         )
-        self.run_test_query_in_syntax(
+        self.run_test_query(
             f"first_release:[{release.version}, fake2]",
             [self.group1, self.group2],
             [],
@@ -1757,7 +2258,11 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert list(results) == [self.group1, self.group_p2, self.group2]
 
         results = self.make_query([self.project, self.project2], sort_by="priority")
-        assert list(results) == [self.group1, self.group2, self.group_p2]
+        assert list(results) == [
+            self.group_p2,
+            self.group2,
+            self.group1,
+        ]
 
         results = self.make_query([self.project, self.project2], sort_by="user")
         assert list(results) == [self.group1, self.group2, self.group_p2]
@@ -1907,7 +2412,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             try:
                 self.make_query(search_filter_query=query)
             except SnubaError as e:
-                self.fail(f"Query {query} errored. Error info: {e}")
+                self.fail(f"Query {query} errored. Error info: {e}")  # type:ignore[attr-defined]
 
         for key in SENTRY_SNUBA_MAP:
             if key in ["project.id", "issue.id", "performance.issue_ids"]:
@@ -1915,7 +2420,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             test_query("has:%s" % key)
             test_query("!has:%s" % key)
             if key == "error.handled":
-                val = 1
+                val: Any = 1
             elif key in issue_search_config.numeric_keys:
                 val = "123"
             elif key in issue_search_config.date_keys:
@@ -2068,15 +2573,69 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert len(results) == 0
 
 
-class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
+class EventsSnubaSearchTest(TestCase, EventsSnubaSearchTestCases):
+    pass
+
+
+@apply_feature_flag_on_cls("organizations:issue-search-group-attributes-side-query")
+class EventsJoinedGroupAttributesSnubaSearchTest(TransactionTestCase, EventsSnubaSearchTestCases):
+    def setUp(self):
+        def post_insert(snapshot: GroupAttributesSnapshot):
+            from sentry.utils import snuba
+
+            try:
+                resp = snuba._snuba_pool.urlopen(
+                    "POST",
+                    "/tests/entities/group_attributes/insert",
+                    body=json.dumps([snapshot]),
+                    headers={},
+                )
+                if resp.status != 200:
+                    raise snuba.SnubaError(
+                        f"HTTP {resp.status} response from Snuba! {json.loads(resp.data)}"
+                    )
+                return None
+            except urllib3.exceptions.HTTPError as err:
+                raise snuba.SnubaError(err)
+
+        with self.options({"issues.group_attributes.send_kafka": True}), mock.patch(
+            "sentry.issues.attributes.produce_snapshot_to_kafka", post_insert
+        ):
+            super().setUp()
+
+    @mock.patch("sentry.utils.metrics.timer")
+    @mock.patch("sentry.utils.metrics.incr")
+    def test_is_unresolved_query_logs_metric(self, metrics_incr, metrics_timer):
+        results = self.make_query(search_filter_query="is:unresolved")
+        assert set(results) == {self.group1}
+
+        # introduce a slight delay so the async future has time to run and log the metric
+        time.sleep(0.10)
+
+        metrics_incr_called = False
+        for call in metrics_incr.call_args_list:
+            args, kwargs = call
+            if "snuba.search.group_attributes_joined.events_compared" in set(args):
+                metrics_incr_called = True
+        assert metrics_incr_called
+
+        metrics_timer_called = False
+        for call in metrics_timer.call_args_list:
+            args, kwargs = call
+            if "snuba.search.group_attributes_joined.duration" in set(args):
+                metrics_timer_called = True
+        assert metrics_timer_called
+
+
+class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
     @property
     def backend(self):
         return EventsDatasetSnubaSearchBackend()
 
-    def test_better_priority_sort_old_and_new_events(self):
+    def test_priority_sort_old_and_new_events(self):
         """Test that an issue with only one old event is ranked lower than an issue with only one new event"""
         new_project = self.create_project(organization=self.project.organization)
-        base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+        base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=timezone.utc)
 
         recent_event = self.store_event(
             data={
@@ -2102,31 +2661,31 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
             },
             project_id=new_project.id,
         )
-        old_event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+        # datetime(2017, 9, 6, 0, 0)
+        old_event.data["timestamp"] = 1504656000.0
 
-        with self.feature("organizations:issue-list-better-priority-sort"):
-            weights: PrioritySortWeights = {
-                "log_level": 0,
-                "has_stacktrace": 0,
-                "relative_volume": 1,
-                "event_halflife_hours": 4,
-                "issue_halflife_hours": 24 * 7,
-                "v2": False,
-                "norm": False,
-            }
-            results = self.make_query(
-                sort_by="betterPriority",
-                projects=[new_project],
-                aggregate_kwargs=weights,
-            )
+        weights: PrioritySortWeights = {
+            "log_level": 0,
+            "has_stacktrace": 0,
+            "relative_volume": 1,
+            "event_halflife_hours": 4,
+            "issue_halflife_hours": 24 * 7,
+            "v2": False,
+            "norm": False,
+        }
+        results = self.make_query(
+            sort_by="priority",
+            projects=[new_project],
+            aggregate_kwargs=weights,
+        )
         recent_group = Group.objects.get(id=recent_event.group.id)
         old_group = Group.objects.get(id=old_event.group.id)
         assert list(results) == [recent_group, old_group]
 
-    def test_better_priority_sort_v2(self):
+    def test_priority_sort_v2(self):
         """Test that the v2 formula works."""
         new_project = self.create_project(organization=self.project.organization)
-        base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+        base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=timezone.utc)
 
         recent_event = self.store_event(
             data={
@@ -2152,30 +2711,30 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
             },
             project_id=new_project.id,
         )
-        old_event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+        # datetime(2017, 9, 6, 0, 0)
+        old_event.data["timestamp"] = 1504656000.0
 
-        with self.feature("organizations:issue-list-better-priority-sort"):
-            weights: PrioritySortWeights = {
-                "log_level": 0,
-                "has_stacktrace": 0,
-                "relative_volume": 1,
-                "event_halflife_hours": 4,
-                "issue_halflife_hours": 24 * 7,
-                "v2": True,
-                "norm": False,
-            }
-            results = self.make_query(
-                sort_by="betterPriority",
-                projects=[new_project],
-                aggregate_kwargs=weights,
-            )
+        weights: PrioritySortWeights = {
+            "log_level": 0,
+            "has_stacktrace": 0,
+            "relative_volume": 1,
+            "event_halflife_hours": 4,
+            "issue_halflife_hours": 24 * 7,
+            "v2": True,
+            "norm": False,
+        }
+        results = self.make_query(
+            sort_by="priority",
+            projects=[new_project],
+            aggregate_kwargs=weights,
+        )
         recent_group = Group.objects.get(id=recent_event.group.id)
         old_group = Group.objects.get(id=old_event.group.id)
         assert list(results) == [recent_group, old_group]
 
-    def test_better_priority_log_level_results(self):
+    def test_priority_log_level_results(self):
         """Test that the scoring results change when we pass in different log level weights"""
-        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=pytz.utc)
+        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=timezone.utc)
         event1 = self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
@@ -2204,7 +2763,7 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
         group2 = Group.objects.get(id=event2.group.id)
 
         agg_kwargs = {
-            "better_priority": {
+            "priority": {
                 "log_level": 0,
                 "has_stacktrace": 0,
                 "relative_volume": 1,
@@ -2220,7 +2779,7 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
             end=None,
             project_ids=[self.project.id],
             environment_ids=[],
-            sort_field="better_priority",
+            sort_field="priority",
             organization=self.organization,
             group_ids=[group1.id, group2.id],
             limit=150,
@@ -2231,14 +2790,14 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
         # initially group 2's score is higher since it has a more recent event
         assert group2_score_before > group1_score_before
 
-        agg_kwargs["better_priority"].update({"log_level": 5})
+        agg_kwargs["priority"].update({"log_level": 5})
 
         results2 = query_executor.snuba_search(
             start=None,
             end=None,
             project_ids=[self.project.id],
             environment_ids=[],
-            sort_field="better_priority",
+            sort_field="priority",
             organization=self.organization,
             group_ids=[group1.id, group2.id],
             limit=150,
@@ -2249,11 +2808,11 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
         # ensure fatal has a higher score than error
         assert group1_score_after > group2_score_after
 
-    def test_better_priority_has_stacktrace_results(self):
+    def test_priority_has_stacktrace_results(self):
         """Test that the scoring results change when we pass in different has_stacktrace weights"""
-        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=pytz.utc)
+        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=timezone.utc)
         agg_kwargs = {
-            "better_priority": {
+            "priority": {
                 "log_level": 0,
                 "has_stacktrace": 0,
                 "relative_volume": 1,
@@ -2304,7 +2863,7 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
             end=None,
             project_ids=[self.project.id],
             environment_ids=[],
-            sort_field="better_priority",
+            sort_field="priority",
             organization=self.organization,
             group_ids=[group1.id, group2.id],
             limit=150,
@@ -2314,13 +2873,13 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
         group2_score = results[1][1]
         assert group1_score == group2_score
 
-        agg_kwargs["better_priority"].update({"has_stacktrace": 3})
+        agg_kwargs["priority"].update({"has_stacktrace": 3})
         results = query_executor.snuba_search(
             start=None,
             end=None,
             project_ids=[self.project.id],
             environment_ids=[],
-            sort_field="better_priority",
+            sort_field="priority",
             organization=self.organization,
             group_ids=[group1.id, group2.id],
             limit=150,
@@ -2331,9 +2890,9 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
         # check that a group with an event with a stacktrace has a higher weight than one without
         assert group1_score < group2_score
 
-    def test_better_priority_event_halflife_results(self):
+    def test_priority_event_halflife_results(self):
         """Test that the scoring results change when we pass in different event halflife weights"""
-        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=pytz.utc)
+        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=timezone.utc)
         event1 = self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
@@ -2362,7 +2921,7 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
         group2 = Group.objects.get(id=event2.group.id)
 
         agg_kwargs = {
-            "better_priority": {
+            "priority": {
                 "log_level": 0,
                 "has_stacktrace": 0,
                 "relative_volume": 1,
@@ -2378,7 +2937,7 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
             end=None,
             project_ids=[self.project.id],
             environment_ids=[],
-            sort_field="better_priority",
+            sort_field="priority",
             organization=self.organization,
             group_ids=[group1.id, group2.id],
             limit=150,
@@ -2389,13 +2948,13 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
         # initially group 2's score is higher since it has a more recent event
         assert group2_score_before > group1_score_before
 
-        agg_kwargs["better_priority"].update({"event_halflife_hours": 2})
+        agg_kwargs["priority"].update({"event_halflife_hours": 2})
         results = query_executor.snuba_search(
             start=None,
             end=None,
             project_ids=[self.project.id],
             environment_ids=[],
-            sort_field="better_priority",
+            sort_field="priority",
             organization=self.organization,
             group_ids=[group1.id, group2.id],
             limit=150,
@@ -2405,8 +2964,8 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
         group2_score_after = results[1][1]
         assert group1_score_after < group2_score_after
 
-    def test_better_priority_mixed_group_types(self):
-        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=pytz.utc)
+    def test_priority_mixed_group_types(self):
+        base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=timezone.utc)
 
         error_event = self.store_event(
             data={
@@ -2435,10 +2994,11 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
                 "received": before_now(minutes=1).isoformat(),
             },
         )
+        assert group_info is not None
         profile_group_1 = group_info.group
 
         agg_kwargs = {
-            "better_priority": {
+            "priority": {
                 "log_level": 0,
                 "has_stacktrace": 0,
                 "relative_volume": 1,
@@ -2453,7 +3013,6 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
             [
                 "organizations:issue-platform",
                 ProfileFileIOGroupType.build_visible_feature_name(),
-                "organizations:issue-list-better-priority-sort",
             ]
         ):
             results = query_executor.snuba_search(
@@ -2461,7 +3020,7 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
                 end=None,
                 project_ids=[self.project.id],
                 environment_ids=[],
-                sort_field="better_priority",
+                sort_field="priority",
                 organization=self.organization,
                 group_ids=[profile_group_1.id, error_group.id],
                 limit=150,
@@ -2470,17 +3029,17 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
         error_group_score = results[0][1]
         profile_group_score = results[1][1]
         assert error_group_score > 0
-        assert profile_group_score == 0
+        assert profile_group_score > 0
 
 
-class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
+class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
     @property
     def backend(self):
         return EventsDatasetSnubaSearchBackend()
 
     def setUp(self):
         super().setUp()
-        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=timezone.utc)
 
         transaction_event_data = {
             "level": "info",
@@ -2725,7 +3284,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             ]
         ):
             result = snuba.raw_query(
-                dataset=snuba.Dataset.IssuePlatform,
+                dataset=Dataset.IssuePlatform,
                 start=self.base_datetime - timedelta(hours=1),
                 end=self.base_datetime + timedelta(hours=1),
                 selected_columns=[
@@ -2844,18 +3403,18 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         assert set(error_and_perf_issues) > set(error_issues_only)
 
 
-class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
+class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
     @property
     def backend(self):
         return EventsDatasetSnubaSearchBackend()
 
     def setUp(self):
         super().setUp()
-        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=timezone.utc)
 
         event_id_1 = uuid.uuid4().hex
         _, group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(event_id=event_id_1),
+            self.build_occurrence_data(event_id=event_id_1, issue_title="File I/O on Main Thread"),
             {
                 "event_id": event_id_1,
                 "project_id": self.project.id,
@@ -2866,11 +3425,16 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
                 "received": before_now(minutes=1).isoformat(),
             },
         )
+        assert group_info is not None
         self.profile_group_1 = group_info.group
 
         event_id_2 = uuid.uuid4().hex
         _, group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(event_id=event_id_2, fingerprint=["put-me-in-group-2"]),
+            self.build_occurrence_data(
+                event_id=event_id_2,
+                fingerprint=["put-me-in-group-2"],
+                issue_title="File I/O on Main Thread",
+            ),
             {
                 "event_id": event_id_2,
                 "project_id": self.project.id,
@@ -2881,6 +3445,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
                 "received": before_now(minutes=2).isoformat(),
             },
         )
+        assert group_info is not None
         self.profile_group_2 = group_info.group
 
         event_id_3 = uuid.uuid4().hex
@@ -2932,18 +3497,25 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         self.error_group_2 = error_event_2.group
 
     def test_no_feature(self):
-        results = self.make_query(search_filter_query="issue.category:profile my_tag:1")
+        results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
         assert list(results) == []
 
     def test_generic_query(self):
         with self.feature(
             ["organizations:issue-platform", ProfileFileIOGroupType.build_visible_feature_name()]
         ):
-            results = self.make_query(search_filter_query="issue.category:profile my_tag:1")
+            results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
             assert list(results) == [self.profile_group_1, self.profile_group_2]
             results = self.make_query(
                 search_filter_query="issue.type:profile_file_io_main_thread my_tag:1"
             )
+            assert list(results) == [self.profile_group_1, self.profile_group_2]
+
+    def test_generic_query_message(self):
+        with self.feature(
+            ["organizations:issue-platform", ProfileFileIOGroupType.build_visible_feature_name()]
+        ):
+            results = self.make_query(search_filter_query="File I/O")
             assert list(results) == [self.profile_group_1, self.profile_group_2]
 
     def test_generic_query_perf(self):
@@ -2968,6 +3540,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
                         "received": before_now(minutes=1).isoformat(),
                     },
                 )
+                assert group_info is not None
 
             results = self.make_query(search_filter_query="issue.category:performance my_tag:2")
             assert list(results) == []
@@ -2993,7 +3566,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
                 self.error_group_1,
             ]
             results = self.make_query(
-                search_filter_query="issue.category:[profile, error] my_tag:1"
+                search_filter_query="issue.category:[performance, error] my_tag:1"
             )
             assert list(results) == [
                 self.profile_group_1,
@@ -3018,7 +3591,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         ):
             results = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:profile my_tag:1",
+                search_filter_query="issue.category:performance my_tag:1",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
@@ -3029,7 +3602,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
             results = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:profile my_tag:1",
+                search_filter_query="issue.category:performance my_tag:1",
                 sort_by="date",
                 limit=1,
                 cursor=results.next,
@@ -3040,7 +3613,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
             results = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:profile my_tag:1",
+                search_filter_query="issue.category:performance my_tag:1",
                 sort_by="date",
                 limit=1,
                 cursor=results.next,
@@ -3059,7 +3632,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         ):
             results = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:profile error.unhandled:0",
+                search_filter_query="issue.category:performance error.unhandled:0",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
@@ -3067,7 +3640,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
             results2 = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:profile error.unhandled:1",
+                search_filter_query="issue.category:performance error.unhandled:1",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
@@ -3075,7 +3648,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
             result3 = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:profile error.handled:0",
+                search_filter_query="issue.category:performance error.handled:0",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
@@ -3083,7 +3656,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
             results4 = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:profile error.handled:1",
+                search_filter_query="issue.category:performance error.handled:1",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
@@ -3091,7 +3664,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
             results5 = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:profile error.main_thread:0",
+                search_filter_query="issue.category:performance error.main_thread:0",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
@@ -3099,7 +3672,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
             results6 = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:profile error.main_thread:1",
+                search_filter_query="issue.category:performance error.main_thread:1",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
@@ -3116,14 +3689,14 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
             )
 
 
-class CdcEventsSnubaSearchTest(SharedSnubaTest):
+class CdcEventsSnubaSearchTest(TestCase, SharedSnubaMixin):
     @property
     def backend(self):
         return CdcEventsDatasetSnubaSearchBackend()
 
     def setUp(self):
         super().setUp()
-        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=timezone.utc)
 
         self.event1 = self.store_event(
             data={

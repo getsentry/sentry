@@ -42,7 +42,12 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {FieldDefinition, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {
+  FieldDefinition,
+  FieldKind,
+  FieldValueType,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 import getDynamicComponent from 'sentry/utils/getDynamicComponent';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -66,6 +71,7 @@ import {
 import {
   addSpace,
   createSearchGroups,
+  escapeTagValue,
   filterKeysFromQuery,
   generateOperatorEntryMap,
   getAutoCompleteGroupForInvalidWildcard,
@@ -101,13 +107,6 @@ const generateOpAutocompleteGroup = (
     tagName: '',
     type: ItemType.TAG_OPERATOR,
   };
-};
-
-const escapeValue = (value: string): string => {
-  // Wrap in quotes if there is a space
-  return value.includes(' ') || value.includes('"')
-    ? `"${value.replace(/"/g, '\\"')}"`
-    : value;
 };
 
 export type ActionProps = {
@@ -197,6 +196,10 @@ type Props = WithRouterProps &
      */
     customPerformanceMetrics?: CustomMeasurementCollection;
     /**
+     * The default search group to show when there is no query
+     */
+    defaultSearchGroup?: SearchGroup;
+    /**
      * Disabled control (e.g. read-only)
      */
     disabled?: boolean;
@@ -211,6 +214,11 @@ type Props = WithRouterProps &
      * as the stream view where it is a top level concept
      */
     excludedTags?: string[];
+    /**
+     * A function that returns a warning message for a given filter key
+     * will only show a render a warning if the value is truthy
+     */
+    getFilterWarning?: (key) => React.ReactNode;
     /**
      * List user's recent searches
      */
@@ -357,6 +365,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     showDropdown: false,
     parsedQuery: parseSearch(this.initialQuery, {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
+      getFilterTokenWarning: this.props.getFilterWarning,
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
       disallowWildcard: this.props.disallowWildcard,
@@ -419,6 +428,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   makeQueryState(query: string) {
     const additionalConfig: Partial<SearchConfig> = {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
+      getFilterTokenWarning: this.props.getFilterWarning,
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
       disallowWildcard: this.props.disallowWildcard,
@@ -531,7 +541,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     }
   }
 
-  moveToNextToken = (filterTokens: TokenResult<Token.Filter>[]) => {
+  moveToNextToken = (filterTokens: TokenResult<Token.FILTER>[]) => {
     const token = this.cursorToken;
 
     if (this.searchInput.current && filterTokens.length > 0) {
@@ -592,7 +602,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const token = this.cursorToken ?? undefined;
     const hasExecCommand = typeof document.execCommand === 'function';
 
-    if (token && token.type === Token.Filter) {
+    if (token && token.type === Token.FILTER) {
       if (token.negated) {
         if (this.searchInput.current) {
           this.searchInput.current.focus();
@@ -678,19 +688,19 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
     if (canRunShortcut(token, this.filterTokens.length)) {
       switch (shortcutType) {
-        case ShortcutType.Delete: {
+        case ShortcutType.DELETE: {
           this.deleteToken();
           break;
         }
-        case ShortcutType.Negate: {
+        case ShortcutType.NEGATE: {
           this.negateToken();
           break;
         }
-        case ShortcutType.Next: {
+        case ShortcutType.NEXT: {
           this.moveToNextToken(filterTokens);
           break;
         }
-        case ShortcutType.Previous: {
+        case ShortcutType.PREVIOUS: {
           this.moveToNextToken(filterTokens.reverse());
           break;
         }
@@ -853,7 +863,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const cursorToken = this.cursorToken;
     if (
       key === '[' &&
-      cursorToken?.type === Token.Filter &&
+      cursorToken?.type === Token.FILTER &&
       cursorToken.value.text.length === 0 &&
       isWithinToken(cursorToken.value, this.cursorPosition)
     ) {
@@ -932,7 +942,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       tree: parsedQuery,
       noResultValue: true,
       visitorTest: ({token, returnResult, skipToken}) => {
-        return token.type !== Token.Filter && token.type !== Token.FreeText
+        return token.type !== Token.FILTER && token.type !== Token.FREE_TEXT
           ? null
           : token.invalid
           ? returnResult(false)
@@ -945,7 +955,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * Get the active filter or free text actively focused.
    */
   get cursorToken() {
-    const matchedTokens = [Token.Filter, Token.FreeText] as const;
+    const matchedTokens = [Token.FILTER, Token.FREE_TEXT] as const;
     return this.findTokensAtCursor(matchedTokens);
   }
 
@@ -953,7 +963,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * Get the active parsed text value
    */
   get cursorValue() {
-    const matchedTokens = [Token.ValueText] as const;
+    const matchedTokens = [Token.VALUE_TEXT] as const;
     return this.findTokensAtCursor(matchedTokens);
   }
 
@@ -961,22 +971,22 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * Get the active filter
    */
   get cursorFilter() {
-    const matchedTokens = [Token.Filter] as const;
+    const matchedTokens = [Token.FILTER] as const;
     return this.findTokensAtCursor(matchedTokens);
   }
 
-  get cursorValueIsoDate(): TokenResult<Token.ValueIso8601Date> | null {
-    const matchedTokens = [Token.ValueIso8601Date] as const;
+  get cursorValueIsoDate(): TokenResult<Token.VALUE_ISO_8601_DATE> | null {
+    const matchedTokens = [Token.VALUE_ISO_8601_DATE] as const;
     return this.findTokensAtCursor(matchedTokens);
   }
 
   get cursorValueRelativeDate() {
-    const matchedTokens = [Token.ValueRelativeDate] as const;
+    const matchedTokens = [Token.VALUE_RELATIVE_DATE] as const;
     return this.findTokensAtCursor(matchedTokens);
   }
 
   get currentFieldDefinition() {
-    if (!this.cursorToken || this.cursorToken.type !== Token.Filter) {
+    if (!this.cursorToken || this.cursorToken.type !== Token.FILTER) {
       return null;
     }
 
@@ -997,7 +1007,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       this.currentFieldDefinition?.valueType !== FieldValueType.DATE ||
       this.cursorValueRelativeDate ||
       !(
-        this.cursorToken.type === Token.Filter &&
+        this.cursorToken.type === Token.FILTER &&
         isWithinToken(this.cursorToken.value, this.cursorPosition)
       )
     ) {
@@ -1076,9 +1086,9 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     };
   }
 
-  get filterTokens(): TokenResult<Token.Filter>[] {
-    return (this.state.parsedQuery?.filter(tok => tok.type === Token.Filter) ??
-      []) as TokenResult<Token.Filter>[];
+  get filterTokens(): TokenResult<Token.FILTER>[] {
+    return (this.state.parsedQuery?.filter(tok => tok.type === Token.FILTER) ??
+      []) as TokenResult<Token.FILTER>[];
   }
 
   /**
@@ -1190,7 +1200,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       this.setState({noValueQuery});
 
       return values.map(value => {
-        const escapedValue = escapeValue(value);
+        const escapedValue = escapeTagValue(value);
         return {
           value: escapedValue,
           desc: escapedValue,
@@ -1206,11 +1216,27 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with results
    */
-  getPredefinedTagValues = (tag: Tag, query: string): SearchItem[] =>
-    (tag.values ?? [])
-      .filter(value => value.indexOf(query) > -1)
+  getPredefinedTagValues = (
+    tag: Tag,
+    query: string
+  ): AutocompleteGroup['searchItems'] => {
+    const groupOrValue = tag.values ?? [];
+
+    // Is an array of SearchGroup
+    if (groupOrValue.some(item => typeof item === 'object')) {
+      return (groupOrValue as SearchGroup[]).map(group => {
+        return {
+          ...group,
+          children: group.children?.filter(child => child.value?.includes(query)),
+        };
+      });
+    }
+
+    // Is an array of strings
+    return (groupOrValue as string[])
+      .filter(value => value.includes(query))
       .map((value, i) => {
-        const escapedValue = escapeValue(value);
+        const escapedValue = escapeTagValue(value);
         return {
           value: escapedValue,
           desc: escapedValue,
@@ -1220,6 +1246,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             : false,
         };
       });
+  };
 
   /**
    * Get recent searches
@@ -1352,7 +1379,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const filteredSearchGroups = !preparedQuery
       ? this.state.searchGroups
       : this.state.searchGroups.filter(
-          item => item.value && item.value.indexOf(preparedQuery) !== -1
+          item => item.value && item.value.includes(preparedQuery)
         );
 
     this.setState({
@@ -1451,7 +1478,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       return;
     }
 
-    if (cursorToken.type === Token.Filter) {
+    if (cursorToken.type === Token.FILTER) {
       const tagName = getKeyName(cursorToken.key, {aggregateWithArgs: true});
       // check if we are on the tag, value, or operator
       if (isWithinToken(cursorToken.value, cursor)) {
@@ -1525,7 +1552,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
     const cursorSearchTerm = this.cursorSearchTerm;
 
-    if (cursorToken.type === Token.FreeText && cursorSearchTerm) {
+    if (cursorToken.type === Token.FREE_TEXT && cursorSearchTerm) {
       const groups: AutocompleteGroup[] | null =
         cursorToken.invalid?.type === InvalidReason.WILDCARD_NOT_ALLOWED
           ? getAutoCompleteGroupForInvalidWildcard(cursorSearchTerm.searchTerm)
@@ -1553,15 +1580,22 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * @param recentSearchItems List of recent search items, same format as searchItem
    * @param tagName The current tag name in scope
    * @param type Defines the type/state of the dropdown menu items
+   * @param skipDefaultGroup Force hide the default group even without a query
    */
   updateAutoCompleteState(
     searchItems: SearchItem[],
     recentSearchItems: SearchItem[],
     tagName: string,
-    type: ItemType
+    type: ItemType,
+    skipDefaultGroup = false
   ) {
-    const {fieldDefinitionGetter, hasRecentSearches, maxSearchItems, maxQueryLength} =
-      this.props;
+    const {
+      fieldDefinitionGetter,
+      hasRecentSearches,
+      maxSearchItems,
+      maxQueryLength,
+      defaultSearchGroup,
+    } = this.props;
     const {query} = this.state;
 
     const queryCharsLeft =
@@ -1575,6 +1609,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       maxSearchItems,
       queryCharsLeft,
       true,
+      skipDefaultGroup ? undefined : defaultSearchGroup,
       fieldDefinitionGetter
     );
 
@@ -1587,8 +1622,13 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * @param groups Groups that will be used to populate the autocomplete dropdown
    */
   updateAutoCompleteStateMultiHeader = (groups: AutocompleteGroup[]) => {
-    const {fieldDefinitionGetter, hasRecentSearches, maxSearchItems, maxQueryLength} =
-      this.props;
+    const {
+      fieldDefinitionGetter,
+      hasRecentSearches,
+      maxSearchItems,
+      maxQueryLength,
+      defaultSearchGroup,
+    } = this.props;
     const {query} = this.state;
     const queryCharsLeft =
       maxQueryLength && query ? maxQueryLength - query.length : undefined;
@@ -1603,18 +1643,19 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
           maxSearchItems,
           queryCharsLeft,
           false,
+          defaultSearchGroup,
           fieldDefinitionGetter
         )
       )
-      .reduce(
+      .reduce<ReturnType<typeof createSearchGroups>>(
         (acc, item) => ({
           searchGroups: [...acc.searchGroups, ...item.searchGroups],
           flatSearchItems: [...acc.flatSearchItems, ...item.flatSearchItems],
           activeSearchItem: -1,
         }),
         {
-          searchGroups: [] as SearchGroup[],
-          flatSearchItems: [] as SearchItem[],
+          searchGroups: [],
+          flatSearchItems: [],
           activeSearchItem: -1,
         }
       );
@@ -1653,7 +1694,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     let clauseEnd: null | number = null;
     // the new text that will exist between clauseStart and clauseEnd
     let replaceToken = replaceText;
-    if (cursorToken.type === Token.Filter) {
+    if (cursorToken.type === Token.FILTER) {
       if (item.type === ItemType.TAG_OPERATOR) {
         trackAnalytics('search.operator_autocompleted', {
           organization: this.props.organization,
@@ -1673,7 +1714,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         const valueToken = this.cursorValue ?? cursorToken.value;
         const location = valueToken.location;
 
-        if (cursorToken.filter === FilterType.TextIn) {
+        if (cursorToken.filter === FilterType.TEXT_IN) {
           // Current value can be null when adding a 2nd value
           //             ▼ cursor
           // key:[value1, ]
@@ -1710,7 +1751,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     }
 
     const cursorSearchTerm = this.cursorSearchTerm;
-    if (cursorToken.type === Token.FreeText && cursorSearchTerm) {
+    if (cursorToken.type === Token.FREE_TEXT && cursorSearchTerm) {
       clauseStart = cursorSearchTerm.start;
       clauseEnd = cursorSearchTerm.end;
     }
@@ -1748,6 +1789,34 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       return;
     }
 
+    if (
+      item.kind === FieldKind.FIELD ||
+      item.kind === FieldKind.TAG ||
+      item.type === ItemType.RECOMMENDED
+    ) {
+      trackAnalytics('search.key_autocompleted', {
+        organization: this.props.organization,
+        search_operator: replaceText,
+        search_source: this.props.searchSource,
+        item_name: item.title ?? item.value?.split(':')[0],
+        item_kind: item.kind,
+        item_type: item.type,
+        search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
+      });
+    }
+
+    if (item.applyFilter) {
+      const [tagKeys, tagType] = this.getTagKeys('');
+      this.updateAutoCompleteState(
+        tagKeys.filter(item.applyFilter),
+        [],
+        '',
+        tagType,
+        true
+      );
+      return;
+    }
+
     this.onAutoCompleteFromAst(replaceText, item);
   };
 
@@ -1755,11 +1824,11 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const dateItem = {type: ItemType.TAG_VALUE_ISO_DATE};
 
     if (
-      this.cursorFilter?.filter === FilterType.Date ||
-      this.cursorFilter?.filter === FilterType.SpecificDate
+      this.cursorFilter?.filter === FilterType.DATE ||
+      this.cursorFilter?.filter === FilterType.SPECIFIC_DATE
     ) {
       this.onAutoCompleteFromAst(`${this.cursorFilter.operator}${isoDate}`, dateItem);
-    } else if (this.cursorFilter?.filter === FilterType.Text) {
+    } else if (this.cursorFilter?.filter === FilterType.TEXT) {
       const valueText = this.cursorFilter.value.text;
 
       if (valueText && isOperator(valueText)) {
@@ -1891,7 +1960,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         </InputWrapper>
 
         <ActionsBar gap={0.5}>
-          {query !== '' && (
+          {query !== '' && !disabled && (
             <ActionButton
               onClick={this.clearSearch}
               icon={<IconClose size="xs" />}
@@ -1906,6 +1975,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
               trigger={props => (
                 <ActionButton
                   {...props}
+                  size="sm"
                   aria-label={t('Show more')}
                   icon={<VerticalEllipsisIcon size="xs" />}
                 />

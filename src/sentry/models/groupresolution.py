@@ -1,8 +1,9 @@
 from django.db import models
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
-from sentry_relay import RelayError, parse_release
+from django.utils.translation import gettext_lazy as _
+from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import compare_version as compare_version_relay
+from sentry_relay.processing import parse_release
 
 from sentry.db.models import (
     BoundedPositiveIntegerField,

@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {urlEncode} from '@sentry/utils';
 
 import {logout} from 'sentry/actionCreators/account';
 import {Alert} from 'sentry/components/alert';
@@ -12,7 +11,7 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type InviteDetails = {
@@ -28,13 +27,13 @@ type InviteDetails = {
 
 type Props = RouteComponentProps<{memberId: string; token: string; orgId?: string}, {}>;
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   acceptError: boolean | undefined;
   accepting: boolean | undefined;
   inviteDetails: InviteDetails;
 };
 
-class AcceptOrganizationInvite extends AsyncView<Props, State> {
+class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
   disableErrorReport = false;
 
   get orgSlug(): string | null {
@@ -49,7 +48,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
     return null;
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {memberId, token} = this.props.params;
     if (this.orgSlug) {
       return [['inviteDetails', `/accept-invite/${this.orgSlug}/${memberId}/${token}/`]];
@@ -61,14 +60,10 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
     return t('Accept Organization Invite');
   }
 
-  makeNextUrl(path: string) {
-    return `${path}?${urlEncode({next: window.location.pathname})}`;
-  }
-
   handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
     await logout(this.api);
-    window.location.replace(this.makeNextUrl('/auth/login/'));
+    window.location.replace('/auth/login/');
   };
 
   handleAcceptInvite = async () => {
@@ -161,7 +156,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
               <Button
                 data-test-id="sso-login"
                 priority="primary"
-                href={this.makeNextUrl(`/auth/login/${inviteDetails.orgSlug}/`)}
+                href={`/auth/login/${inviteDetails.orgSlug}/`}
               >
                 {t('Join with %s', inviteDetails.ssoProvider)}
               </Button>
@@ -170,7 +165,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
               <Button
                 data-test-id="create-account"
                 priority="primary"
-                href={this.makeNextUrl('/auth/register/')}
+                href="/auth/register/"
               >
                 {t('Create a new account')}
               </Button>
@@ -178,7 +173,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
           </ActionsLeft>
           {!inviteDetails.requireSso && (
             <ExternalLink
-              href={this.makeNextUrl('/auth/login/')}
+              href="/auth/login/"
               openInNewTab={false}
               data-test-id="link-with-existing"
             >
@@ -254,7 +249,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
               <Button
                 data-test-id="sso-login"
                 priority="primary"
-                href={this.makeNextUrl(`/auth/login/${inviteDetails.orgSlug}/`)}
+                href={`/auth/login/${inviteDetails.orgSlug}/`}
               >
                 {t('Join with %s', inviteDetails.ssoProvider)}
               </Button>

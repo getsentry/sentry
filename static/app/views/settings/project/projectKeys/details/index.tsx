@@ -3,7 +3,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import {KeySettings} from 'sentry/views/settings/project/projectKeys/details/keySettings';
@@ -23,14 +23,14 @@ type Props = {
 
 type State = {
   data: ProjectKey;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-export default class ProjectKeyDetails extends AsyncView<Props, State> {
+export default class ProjectKeyDetails extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     return t('Key Details');
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {keyId, projectId} = this.props.params;
     return [['data', `/projects/${organization.slug}/${projectId}/keys/${keyId}/`]];

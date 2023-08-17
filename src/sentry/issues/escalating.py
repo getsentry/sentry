@@ -29,17 +29,17 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models import (
     INBOX_REASON_DETAILS,
     Activity,
-    ActivityType,
     Group,
     GroupHistoryStatus,
     GroupInboxReason,
     GroupStatus,
-    GroupSubStatus,
     add_group_to_inbox,
     record_group_history,
 )
 from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import raw_snql_query
 
@@ -267,7 +267,7 @@ def is_escalating(group: Group) -> Tuple[bool, Optional[int]]:
     group_hourly_count = get_group_hourly_count(group)
     forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group.project.id, group.id)
     # Check if current event occurance is greater than forecast for today's date
-    if group_hourly_count > forecast_today:
+    if forecast_today and group_hourly_count > forecast_today:
         return True, forecast_today
     return False, None
 
@@ -354,13 +354,10 @@ def manage_issue_states(
 
                 data.update({"expired_snooze": snooze_details})
 
-            Activity.objects.create(
-                project=group.project,
-                group=group,
-                type=ActivityType.SET_ESCALATING.value,
-                user_id=None,
-                data=data,
+            Activity.objects.create_group_activity(
+                group=group, type=ActivityType.SET_ESCALATING, data=data
             )
+
     elif group_inbox_reason == GroupInboxReason.ONGOING:
         updated = Group.objects.filter(
             id=group.id, status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED]
@@ -376,13 +373,11 @@ def manage_issue_states(
             )
             add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
             record_group_history(group, GroupHistoryStatus.ONGOING)
-            Activity.objects.create(
-                project=group.project,
-                group=group,
-                type=ActivityType.SET_UNRESOLVED.value,
-                user_id=None,
-                data=data,
+
+            Activity.objects.create_group_activity(
+                group=group, type=ActivityType.SET_UNRESOLVED, data=data, send_notification=False
             )
+
     elif group_inbox_reason == GroupInboxReason.UNIGNORED:
         updated = Group.objects.filter(
             id=group.id, status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED]
@@ -398,13 +393,10 @@ def manage_issue_states(
             )
             add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
             record_group_history(group, GroupHistoryStatus.UNIGNORED)
-            Activity.objects.create(
-                project=group.project,
-                group=group,
-                type=ActivityType.SET_UNRESOLVED.value,
-                user_id=None,
-                data=data,
+            Activity.objects.create_group_activity(
+                group=group, type=ActivityType.SET_UNRESOLVED, data=data, send_notification=False
             )
+
     else:
         raise NotImplementedError(
             f"We don't support a change of state for {group_inbox_reason.name}"

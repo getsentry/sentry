@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping, Optional
 
 from django.conf import settings
 from django.db import IntegrityError, models
@@ -22,6 +22,7 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
+    from sentry.identity.base import Provider
     from sentry.models import User
     from sentry.services.hybrid_cloud.identity import RpcIdentityProvider
 
@@ -80,7 +81,7 @@ class IdentityManager(BaseManager):
         idp: IdentityProvider | RpcIdentityProvider,
         external_id: str,
         should_reattach: bool = True,
-        defaults: Mapping[str, Any | None] = None,
+        defaults: Optional[Mapping[str, Any | None]] = None,
     ) -> Identity:
         """
         Link the user with the identity. If `should_reattach` is passed, handle
@@ -207,7 +208,7 @@ class Identity(Model):
         db_table = "sentry_identity"
         unique_together = (("idp", "external_id"), ("idp", "user"))
 
-    def get_provider(self):
+    def get_provider(self) -> Provider:
         from sentry.identity import get
 
         return get(self.idp.type)

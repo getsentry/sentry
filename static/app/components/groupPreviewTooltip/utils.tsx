@@ -8,6 +8,7 @@ import useTimeout from 'sentry/utils/useTimeout';
 import {
   getGroupDetailsQueryData,
   getGroupEventDetailsQueryData,
+  useDefaultIssueEvent,
 } from 'sentry/views/issueDetails/utils';
 
 const HOVERCARD_CONTENT_DELAY = 400;
@@ -39,26 +40,33 @@ export function useDelayedLoadingState() {
 
 export function usePreviewEvent<T = Event>({
   groupId,
-  projectSlug,
-  eventId,
+  query,
 }: {
   groupId: string;
-  eventId?: string;
-  projectSlug?: string;
+  query?: string;
 }) {
   const organization = useOrganization();
-  const hasPrefetchIssueFeature = organization.features.includes(
-    'issue-list-prefetch-issue-on-hover'
+  const hasMostHelpfulEventFeature = organization.features.includes(
+    'issue-details-most-helpful-event'
   );
+  const defaultIssueEvent = useDefaultIssueEvent();
+
+  const eventType = hasMostHelpfulEventFeature
+    ? defaultIssueEvent === 'recommended'
+      ? 'helpful'
+      : defaultIssueEvent
+    : 'latest';
 
   // This query should match the one on group details so that the event will
   // be fully loaded already if you preview then click.
   const eventQuery = useApiQuery<T>(
     [
-      eventId && projectSlug
-        ? `/projects/${organization.slug}/${projectSlug}/events/${eventId}/`
-        : `/issues/${groupId}/events/latest/`,
-      {query: getGroupEventDetailsQueryData({stacktraceOnly: !hasPrefetchIssueFeature})},
+      `/issues/${groupId}/events/${eventType}/`,
+      {
+        query: getGroupEventDetailsQueryData({
+          query: hasMostHelpfulEventFeature ? query : undefined,
+        }),
+      },
     ],
     {staleTime: 30000, cacheTime: 30000}
   );
@@ -67,7 +75,7 @@ export function usePreviewEvent<T = Event>({
   useApiQuery([`/issues/${groupId}/`, {query: getGroupDetailsQueryData()}], {
     staleTime: 30000,
     cacheTime: 30000,
-    enabled: defined(groupId) && hasPrefetchIssueFeature,
+    enabled: defined(groupId),
   });
 
   return eventQuery;

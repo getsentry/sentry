@@ -18,6 +18,7 @@ from sentry.integrations.utils.code_mapping import (
 from sentry.models import Integration, Repository
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -178,52 +179,56 @@ class GitHubClientMixin(GithubProxyClient):
         see https://docs.github.com/en/rest/commits/commits#list-commits-on-a-repository
         using end_sha as parameter.
         """
-        # Explicitly typing to satisfy mypy.
-        commits: Sequence[JSONData] = self.get_cached(
-            f"/repos/{repo}/commits", params={"sha": end_sha}
-        )
-        return commits
+        return self.get_cached(f"/repos/{repo}/commits", params={"sha": end_sha})
 
     def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> JSONData:
         """
         See https://docs.github.com/en/rest/commits/commits#compare-two-commits
         where start sha is oldest and end is most recent.
         """
-        # Explicitly typing to satisfy mypy.
-        diff: JSONData = self.get_cached(f"/repos/{repo}/compare/{start_sha}...{end_sha}")
-        return diff
+        return self.get_cached(f"/repos/{repo}/compare/{start_sha}...{end_sha}")
 
     def repo_hooks(self, repo: str) -> Sequence[JSONData]:
         """
         https://docs.github.com/en/rest/webhooks/repos#list-repository-webhooks
         """
-        # Explicitly typing to satisfy mypy.
-        hooks: Sequence[JSONData] = self.get(f"/repos/{repo}/hooks")
-        return hooks
+        return self.get(f"/repos/{repo}/hooks")
 
     def get_commits(self, repo: str) -> Sequence[JSONData]:
         """
         https://docs.github.com/en/rest/commits/commits#list-commits
         """
-        # Explicitly typing to satisfy mypy.
-        commits: Sequence[JSONData] = self.get(f"/repos/{repo}/commits")
-        return commits
+        return self.get(f"/repos/{repo}/commits")
 
     def get_commit(self, repo: str, sha: str) -> JSONData:
         """
         https://docs.github.com/en/rest/commits/commits#get-a-commit
         """
-        # Explicitly typing to satisfy mypy.
-        commit: JSONData = self.get_cached(f"/repos/{repo}/commits/{sha}")
-        return commit
+        return self.get_cached(f"/repos/{repo}/commits/{sha}")
+
+    def get_pullrequest_from_commit(self, repo: str, sha: str) -> JSONData:
+        """
+        https://docs.github.com/en/rest/commits/commits#list-pull-requests-associated-with-a-commit
+
+        Returns the merged pull request that introduced the commit to the repository. If the commit is not present in the default branch, will only return open pull requests associated with the commit.
+        """
+        pullrequest: JSONData = self.get(f"/repos/{repo}/commits/{sha}/pulls")
+        return pullrequest
+
+    def get_pullrequest(self, repo: str, pull_number: int) -> JSONData:
+        """
+        https://docs.github.com/en/free-pro-team@latest/rest/pulls/pulls?apiVersion=2022-11-28#get-a-pull-request
+
+        Returns the pull request details
+        """
+        pullrequest: JSONData = self.get(f"/repos/{repo}/pulls/{pull_number}")
+        return pullrequest
 
     def get_repo(self, repo: str) -> JSONData:
         """
         https://docs.github.com/en/rest/repos/repos#get-a-repository
         """
-        # Explicitly typing to satisfy mypy.
-        repository: JSONData = self.get(f"/repos/{repo}")
-        return repository
+        return self.get(f"/repos/{repo}")
 
     # https://docs.github.com/en/rest/rate-limit?apiVersion=2022-11-28
     def get_rate_limit(self, specific_resource: str = "core") -> GithubRateLimitInfo:
@@ -457,8 +462,7 @@ class GitHubClientMixin(GithubProxyClient):
         """
         # XXX: In order to speed up this function we will need to parallelize this
         # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
-        # Explicitly typing to satisfy mypy.
-        repos: JSONData = self.get_with_pagination(
+        repos = self.get_with_pagination(
             "/installation/repositories",
             response_key="repositories",
             page_number_limit=self.page_number_limit if fetch_max_pages else 1,
@@ -473,19 +477,13 @@ class GitHubClientMixin(GithubProxyClient):
 
         https://docs.github.com/en/rest/search#search-repositories
         """
-        # Explicitly typing to satisfy mypy.
-        repositories: Mapping[str, Sequence[JSONData]] = self.get(
-            "/search/repositories", params={"q": query}
-        )
-        return repositories
+        return self.get("/search/repositories", params={"q": query})
 
     def get_assignees(self, repo: str) -> Sequence[JSONData]:
         """
         https://docs.github.com/en/rest/issues/assignees#list-assignees
         """
-        # Explicitly typing to satisfy mypy.
-        assignees: Sequence[JSONData] = self.get_with_pagination(f"/repos/{repo}/assignees")
-        return assignees
+        return self.get_with_pagination(f"/repos/{repo}/assignees")
 
     def get_with_pagination(
         self, path: str, response_key: str | None = None, page_number_limit: int | None = None
@@ -547,11 +545,7 @@ class GitHubClientMixin(GithubProxyClient):
         """
         https://docs.github.com/en/rest/search?#search-issues-and-pull-requests
         """
-        # Explicitly typing to satisfy mypy.
-        issues: Mapping[str, Sequence[Mapping[str, Any]]] = self.get(
-            "/search/issues", params={"q": query}
-        )
-        return issues
+        return self.get("/search/issues", params={"q": query})
 
     def get_issue(self, repo: str, number: str) -> JSONData:
         """
@@ -574,8 +568,15 @@ class GitHubClientMixin(GithubProxyClient):
         return self.post(endpoint, data=data)
 
     def update_comment(self, repo: str, comment_id: str, data: Mapping[str, Any]) -> JSONData:
-        endpoint = f"/repos/{repo}/issues/comments/{comment_id}/"
+        endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
         return self.patch(endpoint, data=data)
+
+    def get_comment_reactions(self, repo: str, comment_id: str) -> JSONData:
+        endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
+        response = self.get(endpoint)
+        reactions = response["reactions"]
+        del reactions["url"]
+        return reactions
 
     def get_user(self, gh_username: str) -> JSONData:
         """
@@ -583,11 +584,8 @@ class GitHubClientMixin(GithubProxyClient):
         """
         return self.get(f"/users/{gh_username}")
 
-    def check_file(self, repo: Repository, path: str, version: str) -> str | None:
-        file: str = self.head_cached(
-            path=f"/repos/{repo.name}/contents/{path}", params={"ref": version}
-        )
-        return file
+    def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
+        return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
     def get_file(self, repo: Repository, path: str, ref: str) -> str:
         """Get the contents of a file
@@ -631,34 +629,27 @@ class GitHubClientMixin(GithubProxyClient):
             }}
         }}"""
 
-        contents = self.post(
-            path="/graphql",
-            data={"query": query},
-        )
-
         try:
-            results: Sequence[Mapping[str, Any]] = (
-                contents.get("data", {})
-                .get("repository", {})
-                .get("ref", {})
-                .get("target", {})
-                .get("blame", {})
-                .get("ranges", [])
+            contents = self.post(
+                path="/graphql",
+                data={"query": query},
+                allow_text=False,
             )
-            return results
-        except AttributeError as e:
-            if contents.get("errors"):
-                err_message = ", ".join(
-                    [error.get("message", "") for error in contents.get("errors", [])]
-                )
-                raise ApiError(err_message)
-
-            if contents.get("data", {}).get("repository", {}).get("ref", {}) is None:
-                raise ApiError("Branch does not exist in GitHub.")
-
+        except ValueError as e:
             sentry_sdk.capture_exception(e)
-
             return []
+
+        if contents.get("errors"):
+            err_message = ", ".join(
+                [error.get("message", "") for error in contents.get("errors", [])]
+            )
+            raise ApiError(err_message)
+
+        ref = contents.get("data", {}).get("repository", {}).get("ref")
+        if ref is None:
+            raise ApiError("Branch does not exist in GitHub.")
+
+        return ref.get("target", {}).get("blame", {}).get("ranges", [])
 
 
 class GitHubAppsClient(GitHubClientMixin):

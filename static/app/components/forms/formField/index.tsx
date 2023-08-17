@@ -9,7 +9,7 @@ import {
 } from 'react';
 import {Observer} from 'mobx-react';
 
-import {Alert} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
@@ -130,7 +130,7 @@ interface BaseProps {
   /**
    * The alert type to use when saveOnBlur is false
    */
-  saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
+  saveMessageAlertType?: AlertProps['type'];
   /**
    * When the field is blurred should it automatically persist its value into
    * the model. Will show a confirm button 'save' otherwise.

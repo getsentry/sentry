@@ -1,267 +1,166 @@
-import {Theme, useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
-import moment from 'moment';
+import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
+import {Location} from 'history';
 
-import Duration from 'sentry/components/duration';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
-import {Series} from 'sentry/types/echarts';
-import {formatPercentage} from 'sentry/utils/formatters';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import {TableColumnSort} from 'sentry/views/discover/table/types';
-import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import Sparkline, {
-  generateHorizontalLine,
-} from 'sentry/views/starfish/components/sparkline';
-import {
-  ApplicationMetrics,
-  useApplicationMetrics,
-} from 'sentry/views/starfish/queries/useApplicationMetrics';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {
-  DurationTrendCell,
-  TimeSpentCell,
-} from 'sentry/views/starfish/views/spanSummaryPage/spanBaselineTable';
+import useOrganization from 'sentry/utils/useOrganization';
+import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
+import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
+import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
+import type {ValidSort} from 'sentry/views/starfish/views/spans/useModuleSort';
+
+type Row = {
+  'avg(span.self_time)': number;
+  'http_error_count()': number;
+  'span.description': string;
+  'span.domain': string;
+  'span.group': string;
+  'span.op': string;
+  'spm()': number;
+  'time_spent_percentage()': number;
+  'time_spent_percentage(local)': number;
+};
+
+type Column = GridColumnHeader<keyof Row>;
 
 type Props = {
-  isLoading: boolean;
   moduleName: ModuleName;
-  onSetOrderBy: (orderBy: string) => void;
-  orderBy: string;
-  spansData: SpanDataRow[];
-  spansTrendsData: SpanTrendDataRow[];
-  columnOrder?: TableColumnHeader[];
+  sort: ValidSort;
+  columnOrder?: Column[];
+  endpoint?: string;
+  limit?: number;
+  method?: string;
+  spanCategory?: string;
 };
 
-export type SpanDataRow = {
-  count: number;
-  description: string;
-  domain: string;
-  epm: number;
-  formatted_desc: string;
-  group_id: string;
-  p50: number;
-  p95: number;
-  span_operation: string;
-  total_exclusive_time: number;
-};
-
-export type SpanTrendDataRow = {
-  group_id: string;
-  interval: string;
-  percentile_value: string;
-  span_operation: string;
-};
-
-export type Keys =
-  | 'description'
-  | 'p50_trend'
-  | 'p95_trend'
-  | 'throughput_trend'
-  | 'span_operation'
-  | 'domain'
-  | 'epm()'
-  | 'p95(span.self_time)'
-  | 'timeSpent'
-  | 'total_exclusive_time';
-export type TableColumnHeader = GridColumnHeader<Keys>;
+const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
+  SpanMetricsFields;
 
 export default function SpansTable({
   moduleName,
-  spansData,
-  orderBy,
-  onSetOrderBy,
-  spansTrendsData,
-  isLoading,
+  sort,
   columnOrder,
+  spanCategory,
+  endpoint,
+  method,
+  limit = 25,
 }: Props) {
   const location = useLocation();
-  const theme = useTheme();
-  const {data: applicationMetrics} = useApplicationMetrics();
+  const organization = useOrganization();
 
-  const spansTrendsGrouped = {p50_trend: {}, p95_trend: {}, throughput: {}};
+  const spansCursor = decodeScalar(location.query?.[QueryParameterNames.CURSOR]);
 
-  spansTrendsData?.forEach(({group_id, span_operation, interval, ...rest}) => {
-    ['p50_trend', 'p95_trend', 'throughput'].forEach(trend => {
-      if (span_operation in spansTrendsGrouped[trend]) {
-        if (group_id in spansTrendsGrouped[trend][span_operation]) {
-          return spansTrendsGrouped[trend][span_operation][group_id].push({
-            name: interval,
-            value: rest[trend],
-          });
-        }
-        return (spansTrendsGrouped[trend][span_operation][group_id] = [
-          {name: interval, value: rest[trend]},
-        ]);
-      }
-      return (spansTrendsGrouped[trend][span_operation] = {
-        [group_id]: [{name: interval, value: rest[trend]}],
-      });
+  const {isLoading, data, meta, pageLinks} = useSpanList(
+    moduleName ?? ModuleName.ALL,
+    endpoint,
+    method,
+    spanCategory,
+    [sort],
+    limit,
+    'api.starfish.use-span-list',
+    spansCursor
+  );
+
+  const handleCursor: CursorHandler = (cursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [QueryParameterNames.CURSOR]: cursor},
     });
-  });
+  };
 
-  const combinedSpansData = spansData?.map(spanData => {
-    const {group_id, span_operation} = spanData;
-    if (spansTrendsGrouped.p50_trend?.[span_operation] === undefined) {
-      return spanData;
-    }
-    const p50_trend: Series = {
-      seriesName: 'p50_trend',
-      data: spansTrendsGrouped.p50_trend[span_operation][group_id],
-    };
-    const p95_trend: Series = {
-      seriesName: 'p95_trend',
-      data: spansTrendsGrouped.p95_trend[span_operation][group_id],
-    };
-    const throughput_trend: Series = {
-      seriesName: 'throughput_trend',
-      data: spansTrendsGrouped.throughput[span_operation][group_id],
-    };
-
-    const zeroFilledP50 = zeroFillSeries(p50_trend, moment.duration(1, 'day'));
-    const zeroFilledP95 = zeroFillSeries(p95_trend, moment.duration(1, 'day'));
-    const zeroFilledThroughput = zeroFillSeries(
-      throughput_trend,
-      moment.duration(1, 'day')
-    );
-    return {
-      ...spanData,
-      timeSpent: formatPercentage(
-        spanData.total_exclusive_time / applicationMetrics['sum(span.duration)']
-      ),
-      p50_trend: zeroFilledP50,
-      p95_trend: zeroFilledP95,
-      throughput_trend: zeroFilledThroughput,
-    };
-  });
+  const shouldTrackVCD = Boolean(endpoint);
 
   return (
-    <GridEditable
-      isLoading={isLoading}
-      data={combinedSpansData}
-      columnOrder={columnOrder ?? getColumns(moduleName)}
-      columnSortBy={
-        orderBy ? [] : [{key: orderBy, order: 'desc'} as TableColumnSort<Keys>]
-      }
-      grid={{
-        renderHeadCell: getRenderHeadCell(orderBy, onSetOrderBy),
-        renderBodyCell: (column, row) =>
-          renderBodyCell(column, row, theme, applicationMetrics),
-      }}
-      location={location}
-    />
+    <Fragment>
+      <VisuallyCompleteWithData
+        id="SpansTable"
+        hasData={(data?.length ?? 0) > 0}
+        isLoading={isLoading}
+        disabled={shouldTrackVCD}
+      >
+        <GridEditable
+          isLoading={isLoading}
+          data={data as Row[]}
+          columnOrder={columnOrder ?? getColumns(moduleName, spanCategory, endpoint)}
+          columnSortBy={[
+            {
+              key: sort.field,
+              order: sort.kind,
+            },
+          ]}
+          grid={{
+            renderHeadCell: column => renderHeadCell({column, sort, location}),
+            renderBodyCell: (column, row) =>
+              renderBodyCell(
+                column,
+                row,
+                moduleName,
+                meta,
+                location,
+                organization,
+                endpoint,
+                method
+              ),
+          }}
+          location={location}
+        />
+        <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      </VisuallyCompleteWithData>
+    </Fragment>
   );
 }
 
-function getRenderHeadCell(orderBy: string, onSetOrderBy: (orderBy: string) => void) {
-  function renderHeadCell(column: TableColumnHeader): React.ReactNode {
-    return (
-      <SortLink
-        align="left"
-        canSort
-        direction={orderBy === column.key ? 'desc' : undefined}
-        onClick={() => {
-          onSetOrderBy(`${column.key}`);
-        }}
-        title={column.name}
-        generateSortLink={() => {
-          return {
-            ...location,
-          };
-        }}
-      />
-    );
-  }
-
-  return renderHeadCell;
-}
-
 function renderBodyCell(
-  column: TableColumnHeader,
-  row: SpanDataRow,
-  theme: Theme,
-  applicationMetrics: ApplicationMetrics
-): React.ReactNode {
-  if (column.key === 'throughput_trend' && row[column.key]) {
-    const horizontalLine = generateHorizontalLine(
-      `${row.epm.toFixed(2)}`,
-      row.epm,
-      theme
-    );
+  column: Column,
+  row: Row,
+  moduleName: ModuleName,
+  meta: EventsMetaType | undefined,
+  location: Location,
+  organization: Organization,
+  endpoint?: string,
+  endpointMethod?: string
+) {
+  if (column.key === SPAN_DESCRIPTION) {
     return (
-      <Sparkline
-        color={THROUGHPUT_COLOR}
-        series={row[column.key]}
-        width={column.width ? column.width - column.width / 5 : undefined}
-        markLine={horizontalLine}
+      <SpanDescriptionCell
+        moduleName={moduleName}
+        description={row[SPAN_DESCRIPTION]}
+        group={row[SPAN_GROUP]}
+        projectId={row[PROJECT_ID]}
+        endpoint={endpoint}
+        endpointMethod={endpointMethod}
       />
     );
   }
 
-  if (column.key === 'p95_trend' && row[column.key]) {
-    return (
-      <DurationTrendCell
-        color={P95_COLOR}
-        duration={row.p95}
-        durationSeries={row[column.key]}
-      />
-    );
+  if (!meta || !meta?.fields) {
+    return row[column.key];
   }
 
-  if (column.key === 'description') {
-    const description = row.description;
-    return (
-      <OverflowEllipsisTextContainer>
-        <Link to={`/starfish/span/${row.group_id}`}>{description || '<null>'}</Link>
-      </OverflowEllipsisTextContainer>
-    );
-  }
+  const renderer = getFieldRenderer(column.key, meta.fields, false);
 
-  if (column.key.toString().match(/^p\d\d/) || column.key === 'total_exclusive_time') {
-    return <Duration seconds={row[column.key] / 1000} fixedDigits={2} abbreviation />;
-  }
+  const rendered = renderer(row, {
+    location,
+    organization,
+    unit: meta.units?.[column.key],
+  });
 
-  if (column.key === 'timeSpent') {
-    return (
-      <TimeSpentCell
-        formattedTimeSpent={row[column.key]}
-        totalAppTime={applicationMetrics['sum(span.duration)']}
-        totalSpanTime={row.total_exclusive_time}
-      />
-    );
-  }
-
-  return row[column.key];
+  return rendered;
 }
-
-// We use different named column keys for the same columns in db and api module
-// So we need to map them to the appropriate keys for the module details drawer
-// Not ideal, but this is a temporary fix until we match the column keys.
-// Also the type for this is not very consistent. We should fix that too.
-export const mapRowKeys = (row: SpanDataRow, spanOperation: string) => {
-  switch (spanOperation) {
-    case 'http.client':
-      return {
-        ...row,
-        'p50(span.self_time)': row.p50,
-        'p95(span.self_time)': row.p95,
-      };
-    case 'db':
-      return {
-        ...row,
-        total_time: row.total_exclusive_time,
-      };
-
-    default:
-      return row;
-  }
-};
 
 function getDomainHeader(moduleName: ModuleName) {
   if (moduleName === ModuleName.HTTP) {
@@ -272,63 +171,98 @@ function getDomainHeader(moduleName: ModuleName) {
   }
   return 'Domain';
 }
-function getDescriptionHeader(moduleName: ModuleName) {
+function getDescriptionHeader(moduleName: ModuleName, spanCategory?: string) {
   if (moduleName === ModuleName.HTTP) {
-    return 'URL';
+    return 'URL Request';
   }
   if (moduleName === ModuleName.DB) {
-    return 'Query';
+    return 'Query Description';
+  }
+  if (spanCategory === 'cache') {
+    return 'Cache Query';
+  }
+  if (spanCategory === 'serialize') {
+    return 'Serializer';
+  }
+  if (spanCategory === 'middleware') {
+    return 'Middleware';
+  }
+  if (spanCategory === 'app') {
+    return 'Application Task';
+  }
+  if (moduleName === 'other') {
+    return 'Requests';
   }
   return 'Description';
 }
 
-function getColumns(moduleName: ModuleName): TableColumnHeader[] {
-  const description = getDescriptionHeader(moduleName);
+function getColumns(
+  moduleName: ModuleName,
+  spanCategory?: string,
+  transaction?: string
+): Column[] {
+  const description = getDescriptionHeader(moduleName, spanCategory);
 
   const domain = getDomainHeader(moduleName);
 
-  const order: TableColumnHeader[] = [
+  const order = [
+    // We don't show the operation selector in specific modules, so there's no
+    // point having that column
+    [ModuleName.ALL, ModuleName.OTHER].includes(moduleName)
+      ? {
+          key: SPAN_OP,
+          name: 'Operation',
+          width: 120,
+        }
+      : undefined,
     {
-      key: 'span_operation',
-      name: 'Operation',
-      width: 120,
-    },
-    {
-      key: 'description',
+      key: SPAN_DESCRIPTION,
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
-    ...(moduleName !== ModuleName.ALL
+    ...(moduleName !== ModuleName.ALL && moduleName !== ModuleName.DB
       ? [
           {
-            key: 'domain',
+            key: SPAN_DOMAIN,
             name: domain,
             width: COL_WIDTH_UNDEFINED,
-          } as TableColumnHeader,
+          } as Column,
         ]
       : []),
     {
-      key: 'throughput_trend',
-      name: 'Throughput',
-      width: 175,
-    },
-    {
-      key: 'p95_trend',
-      name: DataTitles.p95,
-      width: 175,
-    },
-    {
-      key: 'timeSpent',
-      name: DataTitles.timeSpent,
+      key: 'spm()',
+      name: getThroughputTitle(moduleName),
       width: COL_WIDTH_UNDEFINED,
     },
+    {
+      key: `avg(${SPAN_SELF_TIME})`,
+      name: DataTitles.avg,
+      width: COL_WIDTH_UNDEFINED,
+    },
+    ...(moduleName === ModuleName.HTTP
+      ? [
+          {
+            key: 'http_error_count()',
+            name: DataTitles.errorCount,
+            width: COL_WIDTH_UNDEFINED,
+          } as Column,
+        ]
+      : []),
   ];
 
-  return order;
-}
+  if (defined(transaction)) {
+    order.push({
+      key: 'time_spent_percentage(local)',
+      name: DataTitles.timeSpent,
+      width: COL_WIDTH_UNDEFINED,
+    });
+  } else {
+    order.push({
+      key: 'time_spent_percentage()',
+      name: DataTitles.timeSpent,
+      width: COL_WIDTH_UNDEFINED,
+    });
+  }
 
-export const OverflowEllipsisTextContainer = styled('span')`
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-`;
+  return order.filter((item): item is NonNullable<Column> => Boolean(item));
+}

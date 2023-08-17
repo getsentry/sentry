@@ -1,4 +1,4 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EventError} from 'sentry/types';
 import {EntryType, Event, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
@@ -22,40 +22,6 @@ beforeEach(() => {
 });
 
 describe('StackTracePreview', () => {
-  it('fetches from projects when eventId and projectSlug are provided', async () => {
-    const mockGet = MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project_slug/events/456/`,
-      body: makeEvent({id: '456', entries: []}),
-    });
-
-    render(
-      <StackTracePreview groupId="123" eventId="456" projectSlug="project_slug">
-        Preview Trigger
-      </StackTracePreview>
-    );
-
-    await userEvent.hover(screen.getByText(/Preview Trigger/));
-
-    await waitFor(() => {
-      expect(mockGet).toHaveBeenCalled();
-    });
-  });
-
-  it('fetches from issues when eventId and projectSlug are not provided', async () => {
-    const mockGet = MockApiClient.addMockResponse({
-      url: `/issues/123/events/latest/`,
-      body: makeEvent({id: '456', entries: []}),
-    });
-
-    render(<StackTracePreview groupId="123">Preview Trigger</StackTracePreview>);
-
-    await userEvent.hover(screen.getByText(/Preview Trigger/));
-
-    await waitFor(() => {
-      expect(mockGet).toHaveBeenCalled();
-    });
-  });
-
   it('renders error message', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/123/events/latest/`,

@@ -7,10 +7,9 @@ from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
 
 from sentry.models import Option
-from sentry.options import OptionsManager
-from sentry.options.manager import UpdateChannel
+from sentry.options.manager import OptionsManager, UpdateChannel
 from sentry.options.store import OptionsStore
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
 
 

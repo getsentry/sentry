@@ -8,7 +8,7 @@ import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {Body, Main} from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Repository} from 'sentry/types';

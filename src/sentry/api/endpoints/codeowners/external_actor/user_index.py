@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 @control_silo_endpoint
-class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):  # type: ignore
+class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
     def post(self, request: Request, organization: Organization) -> Response:
         """
         Create an External User

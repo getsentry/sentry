@@ -13,14 +13,13 @@ from unittest import mock
 from urllib.parse import urlencode
 
 import pytz
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import eventstore
 from sentry.constants import LOG_LEVELS
@@ -36,7 +35,6 @@ from sentry.models import (
     Activity,
     Group,
     GroupStatus,
-    GroupSubStatus,
     Organization,
     OrganizationMember,
     Project,
@@ -49,9 +47,18 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.notifications.rules import get_group_substatus_text
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
-from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.notifications import SAMPLE_TO_OCCURRENCE_MAP, TEST_ISSUE_OCCURRENCE
+from sentry.notifications.utils import (
+    get_group_settings_link,
+    get_interface_list,
+    get_issue_replay_link,
+    get_rules,
+)
+from sentry.testutils.helpers.datetime import before_now  # NOQA:S007
+from sentry.testutils.helpers.notifications import (  # NOQA:S007
+    SAMPLE_TO_OCCURRENCE_MAP,
+    TEST_ISSUE_OCCURRENCE,
+)
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder, inline_css
@@ -158,7 +165,7 @@ def make_group_generator(random, project):
             status=random.choice((GroupStatus.UNRESOLVED, GroupStatus.RESOLVED)),
             data={"type": "default", "metadata": {"title": message}},
         )
-
+        group.has_replays = lambda: random.choice((True, False))  # type: ignore[method-assign]
         if random.random() < 0.8:
             group.data = make_group_metadata(random, group)
 
@@ -278,7 +285,7 @@ class MailPreview:
             traceback.print_exc()
             raise
 
-    def render(self, request: Request):
+    def render(self, request: HttpRequest):
         return render_to_response(
             "sentry/debug/mail/preview.html",
             context={"preview": self, "format": request.GET.get("format")},
@@ -369,10 +376,10 @@ class ActivityMailPreview:
 
 
 class ActivityMailDebugView(View):
-    def get_activity(self, request: Request, event):
+    def get_activity(self, request: HttpRequest, event):
         raise NotImplementedError
 
-    def get(self, request: Request) -> Response:
+    def get(self, request: HttpRequest) -> HttpResponse:
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")
 
@@ -387,7 +394,7 @@ class ActivityMailDebugView(View):
         data = event_manager.get_data()
         event_type = get_event_type(data)
 
-        event = eventstore.create_event(
+        event = eventstore.backend.create_event(
             event_id="a" * 32, group_id=group.id, project_id=project.id, data=data.data
         )
 
@@ -406,6 +413,7 @@ class ActivityMailDebugView(View):
 
 
 has_issue_states = True
+replay_id = "9188182919744ea987d8e4e58f4a6dec"
 
 
 @login_required
@@ -446,6 +454,8 @@ def alert(request):
             "subtitle": random.choice(["subtitles are cool", None]),
             "issue_type": group.issue_type.description,
             "has_issue_states": has_issue_states,
+            "replay_id": replay_id,
+            "issue_replays_url": get_issue_replay_link(group, "?referrer=alert_email"),
         },
     ).render(request)
 
@@ -460,7 +470,7 @@ def digest(request):
     rules = {
         i: Rule(id=i, project=project, label=f"Rule #{i}") for i in range(1, random.randint(2, 4))
     }
-    state = {
+    state: dict[str, Any] = {
         "project": project,
         "groups": {},
         "rules": rules,
@@ -490,7 +500,7 @@ def digest(request):
                 to_timestamp(group.first_seen), to_timestamp(group.last_seen)
             )
 
-            event = eventstore.create_event(
+            event = eventstore.backend.create_event(
                 event_id=uuid.uuid4().hex, group_id=group.id, project_id=project.id, data=data.data
             )
             records.append(
@@ -562,6 +572,7 @@ def digest(request):
     rule_details = get_rules(list(rules.values()), org, project)
     context = DigestNotification.build_context(digest, project, org, rule_details, 1337)
 
+    context["show_replay_links"] = True
     context["snooze_alert"] = True
     context["snooze_alert_urls"] = {
         rule.id: f"{rule.status_url}?{urlencode({'mute': '1'})}" for rule in rule_details

@@ -1,9 +1,9 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import TeamUnresolvedIssues from 'sentry/views/organizationStats/teamInsights/teamUnresolvedIssues';
+import {TeamUnresolvedIssues} from './teamUnresolvedIssues';
 
 describe('TeamUnresolvedIssues', () => {
-  it('should render graph with table with % change', () => {
+  it('should render graph with table with % change', async () => {
     const team = TestStubs.Team();
     const project = TestStubs.Project();
     const organization = TestStubs.Organization({projects: [project]});
@@ -38,8 +38,8 @@ describe('TeamUnresolvedIssues', () => {
     );
 
     // Project
-    expect(screen.getByText('project-slug')).toBeInTheDocument();
-    expect(screen.getByText('14%')).toBeInTheDocument();
+    expect(await screen.findByText('project-slug')).toBeInTheDocument();
+    expect(screen.getByText('-14%')).toBeInTheDocument();
     expect(issuesApi).toHaveBeenCalledTimes(1);
   });
 });

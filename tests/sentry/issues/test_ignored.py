@@ -1,9 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from sentry.issues.escalating_group_forecast import (
-    DEFAULT_MINIMUM_CEILING_FORECAST,
-    EscalatingGroupForecast,
-)
+from sentry.issues.escalating_group_forecast import ONE_EVENT_FORECAST, EscalatingGroupForecast
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.models import (
     Group,
@@ -11,15 +8,15 @@ from sentry.models import (
     GroupInboxReason,
     GroupSnooze,
     GroupStatus,
-    GroupSubStatus,
     add_group_to_inbox,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
 
 
-class HandleIgnoredTest(TestCase):  # type: ignore
+class HandleIgnoredTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group()
@@ -64,10 +61,13 @@ class HandleIgnoredTest(TestCase):  # type: ignore
 
 
 @apply_feature_flag_on_cls("organizations:escalating-issues")
-class HandleArchiveUntilEscalating(TestCase):  # type: ignore
+class HandleArchiveUntilEscalating(TestCase):
     @patch("sentry.issues.forecasts.query_groups_past_counts", return_value={})
+    @patch("sentry.issues.forecasts.generate_and_save_missing_forecasts.delay")
     def test_archive_until_escalating_no_counts(
-        self, mock_query_groups_past_counts: MagicMock
+        self,
+        mock_generate_and_save_missing_forecasts: MagicMock,
+        mock_query_groups_past_counts: MagicMock,
     ) -> None:
         self.group = self.create_group()
         add_group_to_inbox(self.group, GroupInboxReason.NEW)
@@ -84,10 +84,8 @@ class HandleArchiveUntilEscalating(TestCase):  # type: ignore
         assert status_details == {"ignoreUntilEscalating": True}
 
         fetched_forecast = EscalatingGroupForecast.fetch(self.group.project.id, self.group.id)
-        assert fetched_forecast is not None
-        assert fetched_forecast.project_id == self.group.project.id
-        assert fetched_forecast.group_id == self.group.id
-        assert fetched_forecast.forecast == DEFAULT_MINIMUM_CEILING_FORECAST
+        assert fetched_forecast and fetched_forecast.forecast == ONE_EVENT_FORECAST
+        assert mock_generate_and_save_missing_forecasts.call_count == 1
 
     @patch("sentry.issues.forecasts.query_groups_past_counts")
     def test_archive_until_escalating_with_counts(
@@ -116,7 +114,7 @@ class HandleArchiveUntilEscalating(TestCase):  # type: ignore
         assert fetched_forecast is not None
         assert fetched_forecast.project_id == self.group.project.id
         assert fetched_forecast.group_id == self.group.id
-        assert fetched_forecast.forecast == DEFAULT_MINIMUM_CEILING_FORECAST
+        assert fetched_forecast.forecast == [100] * 14
 
     @patch("sentry.issues.forecasts.query_groups_past_counts", return_value={})
     @patch("sentry.signals.issue_archived.send_robust")

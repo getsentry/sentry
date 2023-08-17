@@ -1,30 +1,34 @@
 import styled from '@emotion/styled';
 
-import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
-import type {Span} from 'sentry/views/starfish/queries/types';
-import {highlightSql} from 'sentry/views/starfish/utils/highlightSql';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {SpanMetricsFields, SpanMetricsFieldTypes} from 'sentry/views/starfish/types';
+import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
-export function SpanDescription({span}: {span: Span}) {
-  if (span.span_operation.startsWith('db')) {
+type Props = {
+  span: Pick<
+    SpanMetricsFieldTypes,
+    SpanMetricsFields.SPAN_OP | SpanMetricsFields.SPAN_DESCRIPTION
+  >;
+};
+
+export function SpanDescription({span}: Props) {
+  if (span[SpanMetricsFields.SPAN_OP].startsWith('db')) {
     return <DatabaseSpanDescription span={span} />;
   }
 
-  return <div>{span.description}</div>;
+  return <WordBreak>{span[SpanMetricsFields.SPAN_DESCRIPTION]}</WordBreak>;
 }
 
-function DatabaseSpanDescription({span}: {span: Span}) {
+function DatabaseSpanDescription({span}: Props) {
+  const formatter = new SQLishFormatter();
+
   return (
-    <CodeWrapper>
-      <FormattedCode>
-        {highlightSql(span.formatted_desc || span.description || '', {
-          action: span.action || '',
-          domain: span.domain || '',
-        })}
-      </FormattedCode>
-    </CodeWrapper>
+    <CodeSnippet language="sql">
+      {formatter.toString(span[SpanMetricsFields.SPAN_DESCRIPTION])}
+    </CodeSnippet>
   );
 }
 
-const CodeWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+const WordBreak = styled('div')`
+  word-break: break-word;
 `;

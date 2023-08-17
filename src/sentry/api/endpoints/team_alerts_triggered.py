@@ -23,7 +23,7 @@ from sentry.models import Project
 
 
 @region_silo_endpoint
-class TeamAlertsTriggeredTotalsEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
+class TeamAlertsTriggeredTotalsEndpoint(TeamEndpoint, EnvironmentMixin):
     def get(self, request: Request, team) -> Response:
         """
         Return a time-bucketed (by day) count of triggered alerts owned by a given team.
@@ -116,7 +116,7 @@ class TriggeredAlertRuleSerializer(AlertRuleSerializer):
 
 
 @region_silo_endpoint
-class TeamAlertsTriggeredIndexEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
+class TeamAlertsTriggeredIndexEndpoint(TeamEndpoint, EnvironmentMixin):
     def get(self, request, team) -> Response:
         """
         Returns alert rules ordered by highest number of alerts fired this week.

@@ -5,7 +5,6 @@
 
 import datetime
 import hmac
-from dataclasses import dataclass
 from hashlib import sha256
 from typing import Any, List, Mapping, Optional, Protocol
 
@@ -13,7 +12,7 @@ from pydantic.fields import Field
 from typing_extensions import TypedDict
 
 from sentry.constants import SentryAppInstallationStatus
-from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud import RpcModel, RpcModelProtocolMeta
 
 
 class RpcApiApplication(RpcModel):
@@ -37,7 +36,7 @@ class RpcSentryApp(RpcModel):
     id: int = -1
     scope_list: List[str] = Field(default_factory=list)
     application_id: int = -1
-    application: RpcApiApplication = Field(default_factory=RpcApiApplication)
+    application: Optional[RpcApiApplication] = None
     proxy_user_id: Optional[int] = None  # can be null on deletion.
     owner_id: int = -1  # relation to an organization
     name: str = ""
@@ -56,6 +55,8 @@ class RpcSentryApp(RpcModel):
         return set(self.scope_list).issubset(encoded_scopes)
 
     def build_signature(self, body: str) -> str:
+        assert self.application, "Cannot build_signature without an application"
+
         secret = self.application.client_secret
         return hmac.new(
             key=secret.encode("utf-8"), msg=body.encode("utf-8"), digestmod=sha256
@@ -98,19 +99,23 @@ class SentryAppEventDataInterface(Protocol):
     the minimum required properties.
     """
 
-    id: str
-    label: str
+    @property
+    def id(self) -> str:
+        ...
+
+    @property
+    def label(self) -> str:
+        ...
 
     @property
     def actionType(self) -> str:
-        pass
+        ...
 
     def is_enabled(self) -> bool:
-        pass
+        ...
 
 
-@dataclass  # TODO: Make compatible with RpcModel
-class RpcSentryAppEventData(SentryAppEventDataInterface):
+class RpcSentryAppEventData(RpcModel, metaclass=RpcModelProtocolMeta):
     id: str = ""
     label: str = ""
     action_type: str = ""

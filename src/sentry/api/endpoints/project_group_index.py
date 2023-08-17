@@ -32,9 +32,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(3, 1),
-            RateLimitCategory.USER: RateLimit(3, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(3, 1),
+            RateLimitCategory.IP: RateLimit(5, 1),
+            RateLimitCategory.USER: RateLimit(5, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
         }
     }
 
@@ -102,7 +102,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 except Group.DoesNotExist:
                     pass
                 else:
-                    matching_event = eventstore.get_event_by_id(project.id, event_id)
+                    matching_event = eventstore.backend.get_event_by_id(project.id, event_id)
             elif matching_group is None:
                 matching_group = get_by_short_id(
                     project.organization_id, request.GET.get("shortIdLookup"), query

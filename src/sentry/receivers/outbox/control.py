@@ -17,15 +17,18 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
     OutboxCategory,
+    OutboxScope,
     SentryAppInstallation,
     User,
     process_control_outbox,
 )
 from sentry.receivers.outbox import maybe_process_tombstone
-from sentry.services.hybrid_cloud.organization import RpcRegionUser, organization_service
+from sentry.services.hybrid_cloud.organization import (
+    RpcOrganizationSignal,
+    RpcRegionUser,
+    organization_service,
+)
 from sentry.silo.base import SiloMode
-
-logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +38,12 @@ def process_user_updates(object_identifier: int, region_name: str, **kwds: Any):
     if (user := maybe_process_tombstone(User, object_identifier)) is None:
         return
     organization_service.update_region_user(
-        user=RpcRegionUser(id=user.id, is_active=user.is_active), region_name=region_name
+        user=RpcRegionUser(
+            id=user.id,
+            is_active=user.is_active,
+            email=user.email,
+        ),
+        region_name=region_name,
     )
 
 
@@ -100,3 +108,36 @@ def process_async_webhooks(payload: Mapping[str, Any], region_name: str, **kwds:
                 "request_method": webhook_payload.method,
             },
         )
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.SEND_SIGNAL)
+def process_send_signal(
+    payload: Mapping[str, Any], shard_identifier: int, shard_scope: OutboxScope, **kwds: Any
+):
+    if shard_scope == OutboxScope.ORGANIZATION_SCOPE:
+        organization_service.send_signal(
+            organization_id=shard_identifier,
+            args=payload["args"],
+            signal=RpcOrganizationSignal(payload["signal"]),
+        )
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.RESET_IDP_FLAGS)
+def process_reset_idp_flags(shard_identifier: int, **kwds: Any):
+    organization_service.reset_idp_flags(organization_id=shard_identifier)
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.MARK_INVALID_SSO)
+def process_mark_invalid_sso(object_identifier: int, shard_identifier: int, **kwds: Any):
+    # since we've identified an identity which is no longer valid
+    # lets preemptively mark it as such
+    other_member = organization_service.check_membership_by_id(
+        user_id=object_identifier,
+        organization_id=shard_identifier,
+    )
+    if other_member is None:
+        return
+
+    other_member.flags.sso__invalid = True
+    other_member.flags.sso__linked = False
+    organization_service.update_membership_flags(organization_member=other_member)

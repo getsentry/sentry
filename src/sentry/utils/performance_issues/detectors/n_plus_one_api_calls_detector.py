@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import os
-import random
 from collections import defaultdict
 from datetime import timedelta
 from typing import List, Mapping, Optional, Sequence
@@ -14,6 +13,7 @@ from sentry import features
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
+from sentry.utils.performance_issues.detectors.utils import get_total_span_duration
 
 from ..base import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
@@ -21,7 +21,6 @@ from ..base import (
     PerformanceDetector,
     fingerprint_http_spans,
     get_notification_attachment_body,
-    get_span_duration,
     get_span_evidence_value,
     get_url_from_span,
     parameterize_url,
@@ -43,10 +42,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
     """
 
     __slots__ = ["stored_problems"]
-    type: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
-    settings_key: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
+    type = DetectorType.N_PLUS_ONE_API_CALLS
+    settings_key = DetectorType.N_PLUS_ONE_API_CALLS
 
-    HOST_DENYLIST = []
+    HOST_DENYLIST: list[str] = []
 
     def init(self):
         # TODO: Only store the span IDs and timestamps instead of entire span objects
@@ -60,12 +59,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
         op = span.get("op", None)
         if op not in self.settings.get("allowed_span_ops", []):
-            return
-
-        duration_threshold = timedelta(milliseconds=self.settings.get("duration_threshold"))
-        span_duration = get_span_duration(span)
-
-        if span_duration < duration_threshold:
             return
 
         self.span_hashes[span["span_id"]] = get_span_hash(span)
@@ -88,7 +81,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return self.settings["detection_rate"] > random.random()
+        return self.settings["detection_enabled"]
 
     @classmethod
     def is_event_eligible(cls, event, project=None):
@@ -162,6 +155,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return
 
         if len(self.spans) < self.settings["count"]:
+            return
+
+        total_duration = get_total_span_duration(self.spans)
+        if total_duration < self.settings["total_duration"]:
             return
 
         last_span = self.spans[-1]

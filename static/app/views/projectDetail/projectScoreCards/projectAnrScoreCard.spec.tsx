@@ -9,7 +9,6 @@ describe('ProjectDetail > ProjectAnr', function () {
 
   const {organization, router, routerContext} = initializeOrg({
     router: {
-      ...initializeOrg().router,
       location: {
         query: {project: '1', statsPeriod: '7d'},
       },

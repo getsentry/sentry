@@ -31,7 +31,7 @@ def serialize_provider(provider: IntegrationProvider) -> Mapping[str, Any]:
 
 
 @register(Integration)
-class IntegrationSerializer(Serializer):  # type: ignore
+class IntegrationSerializer(Serializer):
     def serialize(
         self, obj: RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> MutableMapping[str, JSONData]:
@@ -74,9 +74,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
             return data
 
         try:
-            install = integration_service.get_installation(
-                integration=obj, organization_id=self.organization_id
-            )
+            install = obj.get_installation(organization_id=self.organization_id)
         except NotImplementedError:
             # The integration may not implement a Installed Integration object
             # representation.
@@ -95,7 +93,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
 
 @register(OrganizationIntegration)
-class OrganizationIntegrationSerializer(Serializer):  # type: ignore
+class OrganizationIntegrationSerializer(Serializer):
     def __init__(self, params: Optional[Mapping[str, Any]] = None) -> None:
         self.params = params
 
@@ -136,9 +134,7 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
         config_data = None
 
         try:
-            installation = integration_service.get_installation(
-                integration=integration, organization_id=obj.organization_id
-            )
+            installation = integration.get_installation(organization_id=obj.organization_id)
         except NotImplementedError:
             # slack doesn't have an installation implementation
             config_data = obj.config if include_config else None
@@ -178,7 +174,7 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
         return serialized_integration
 
 
-class IntegrationProviderSerializer(Serializer):  # type: ignore
+class IntegrationProviderSerializer(Serializer):
     def serialize(
         self, obj: IntegrationProvider, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> MutableMapping[str, JSONData]:

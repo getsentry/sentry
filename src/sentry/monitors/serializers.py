@@ -1,12 +1,13 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, List
 
 from django.db.models import prefetch_related_objects
 from typing_extensions import TypedDict
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
 from sentry.models import Project
+from sentry.monitors.utils import fetch_associated_groups
 
 from .models import Monitor, MonitorCheckIn, MonitorEnvironment, MonitorStatus
 
@@ -128,13 +129,43 @@ class MonitorSerializerResponse(TypedDict):
 
 @register(MonitorCheckIn)
 class MonitorCheckInSerializer(Serializer):
+    def __init__(self, start=None, end=None, expand=None, organization_id=None, project_id=None):
+        self.start = start  # timestamp of the beginning of the specified date range
+        self.end = end  # timestamp of the end of the specified date range
+        self.expand = expand
+        self.organization_id = organization_id
+        self.project_id = project_id
+
     def get_attrs(self, item_list, user, **kwargs):
         # prefetch monitor environment data
         prefetch_related_objects(item_list, "monitor_environment__environment")
-        return {}
+
+        attrs = {}
+        if self._expand("groups") and self.start and self.end:
+            # aggregate all the trace_ids in the given set of check-ins
+            trace_ids = []
+            trace_groups: Dict[str, List[Dict[str, int]]] = defaultdict(list)
+
+            for item in item_list:
+                if item.trace_id:
+                    trace_ids.append(item.trace_id.hex)
+
+            if trace_ids:
+                trace_groups = fetch_associated_groups(
+                    trace_ids, self.organization_id, self.project_id, self.start, self.end
+                )
+
+            attrs = {
+                item: {
+                    "groups": trace_groups.get(item.trace_id.hex, []) if item.trace_id else [],
+                }
+                for item in item_list
+            }
+
+        return attrs
 
     def serialize(self, obj, attrs, user):
-        return {
+        result = {
             "id": str(obj.guid),
             "environment": obj.monitor_environment.environment.name
             if obj.monitor_environment
@@ -147,6 +178,17 @@ class MonitorCheckInSerializer(Serializer):
             "monitorConfig": obj.monitor_config or {},
         }
 
+        if self._expand("groups"):
+            result["groups"] = attrs.get("groups", [])
+
+        return result
+
+    def _expand(self, key) -> bool:
+        if self.expand is None:
+            return False
+
+        return key in self.expand
+
 
 class MonitorCheckInSerializerResponse(TypedDict):
     id: str
@@ -157,3 +199,4 @@ class MonitorCheckInSerializerResponse(TypedDict):
     attachmentId: str
     expectedTime: datetime
     monitorConfig: Any
+    group_ids: List[str]

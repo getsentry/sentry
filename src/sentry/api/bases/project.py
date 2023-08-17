@@ -51,9 +51,9 @@ class StrictProjectPermission(ProjectPermission):
 
 class ProjectReleasePermission(ProjectPermission):
     scope_map = {
-        "GET": ["project:read", "project:write", "project:admin", "project:releases"],
-        "POST": ["project:write", "project:admin", "project:releases"],
-        "PUT": ["project:write", "project:admin", "project:releases"],
+        "GET": ["project:read", "project:write", "project:admin", "project:releases", "org:ci"],
+        "POST": ["project:write", "project:admin", "project:releases", "org:ci"],
+        "PUT": ["project:write", "project:admin", "project:releases", "org:ci"],
         "DELETE": ["project:admin", "project:releases"],
     }
 
@@ -78,7 +78,7 @@ class ProjectSettingPermission(ProjectPermission):
 
 class ProjectAlertRulePermission(ProjectPermission):
     scope_map = {
-        "GET": ["project:read", "project:write", "project:admin", "alerts:read"],
+        "GET": ["project:read", "project:write", "project:admin", "alerts:read", "alerts:write"],
         "POST": ["project:write", "project:admin", "alerts:write"],
         "PUT": ["project:write", "project:admin", "alerts:write"],
         "DELETE": ["project:write", "project:admin", "alerts:write"],

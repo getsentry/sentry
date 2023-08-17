@@ -18,7 +18,7 @@ const ORG_DISABLED_REASON = t(
 // Check if a field has been set AND IS TRUTHY at the organization level.
 const hasOrgOverride = ({organization, name}) => organization[name];
 
-export default [
+const formGroups: JsonFormObject[] = [
   {
     title: t('Security & Privacy'),
     fields: [
@@ -49,10 +49,26 @@ export default [
           return formatStoreCrashReports(value);
         },
         choices: ({organization}) =>
-          getStoreCrashReportsValues(SettingScope.Project).map(value => [
+          getStoreCrashReportsValues(SettingScope.PROJECT).map(value => [
             value,
             formatStoreCrashReports(value, organization.storeCrashReports),
           ]),
+      },
+      {
+        name: 'recapServerUrl',
+        type: 'string',
+        placeholder: t('URL'),
+        label: t('Recap Server URL'),
+        help: t('URL to the Recap Server events should be polled from'),
+        visible: ({features}) => features.has('recap-server'),
+      },
+      {
+        name: 'recapServerToken',
+        type: 'string',
+        placeholder: t('Token'),
+        label: t('Recap Server Token'),
+        help: t('Auth Token to the configured Recap Server'),
+        visible: ({features}) => features.has('recap-server'),
       },
     ],
   },
@@ -148,4 +164,6 @@ export default [
       },
     ],
   },
-] as JsonFormObject[];
+];
+
+export default formGroups;

@@ -1,15 +1,20 @@
+from typing import Any
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.models import Integration, Organization
+from sentry.models import Integration
 from sentry.services.hybrid_cloud import coerce_id_from
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 
 @control_silo_endpoint
-class VstsSearchEndpoint(IntegrationEndpoint):  # type: ignore
-    def get(self, request: Request, organization: Organization, integration_id: int) -> Response:
+class VstsSearchEndpoint(IntegrationEndpoint):
+    def get(
+        self, request: Request, organization: RpcOrganization, integration_id: int, **kwds: Any
+    ) -> Response:
         try:
             integration = Integration.objects.get(
                 organizationintegration__organization_id=coerce_id_from(organization),

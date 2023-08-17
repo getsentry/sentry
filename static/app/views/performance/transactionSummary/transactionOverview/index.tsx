@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -10,6 +11,7 @@ import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {Column, isAggregateField, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
   getIsMetricsDataFromResults,
   useMEPDataContext,
@@ -76,13 +78,23 @@ function TransactionOverview(props: Props) {
         location={location}
         organization={organization}
         projects={projects}
-        tab={Tab.TransactionSummary}
+        tab={Tab.TRANSACTION_SUMMARY}
         getDocumentTitle={getDocumentTitle}
         generateEventView={generateEventView}
-        childComponent={OverviewContentWrapper}
+        childComponent={CardinalityLoadingWrapper}
       />
     </MEPSettingProvider>
   );
+}
+
+function CardinalityLoadingWrapper(props: ChildProps) {
+  const mepCardinalityContext = useMetricsCardinalityContext();
+
+  if (mepCardinalityContext.isLoading) {
+    return <LoadingContainer isLoading />;
+  }
+
+  return <OverviewContentWrapper {...props} />;
 }
 
 function OverviewContentWrapper(props: ChildProps) {
@@ -96,9 +108,14 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThresholdMetric,
   } = props;
 
-  const mepSetting = useMEPSettingContext();
   const mepContext = useMEPDataContext();
-  const queryExtras = getTransactionMEPParamsIfApplicable(mepSetting, organization);
+  const mepSetting = useMEPSettingContext();
+  const mepCardinalityContext = useMetricsCardinalityContext();
+  const queryExtras = getTransactionMEPParamsIfApplicable(
+    mepSetting,
+    mepCardinalityContext,
+    organization
+  );
 
   const queryData = useDiscoverQuery({
     eventView: getTotalsEventView(organization, eventView),
@@ -165,7 +182,7 @@ function OverviewContentWrapper(props: ChildProps) {
       ...filterToLocationQuery(newFilter),
     };
 
-    if (newFilter === SpanOperationBreakdownFilter.None) {
+    if (newFilter === SpanOperationBreakdownFilter.NONE) {
       delete nextQuery.breakdown;
     }
 

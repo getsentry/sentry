@@ -37,7 +37,6 @@ export const makeTestingBoilerplate = () => {
 
 // Since it's easy to make mistakes or accidentally assign parents to the wrong nodes, this utility fn
 // will format the stack samples as a tree string so it's more human friendly.
-// @ts-ignore this is a helper fn
 export const _logExpectedStack = (samples: Profile['samples']): string => {
   const head = `
 Samples follow a top-down chronological order\n\n`;
@@ -224,43 +223,5 @@ describe('Profile', () => {
 
     expect(openSpy).toHaveBeenCalledTimes(2);
     expect(closeSpy).toHaveBeenCalledTimes(2);
-  });
-
-  it('filter - removes system frames', () => {
-    const profile = new Profile({
-      duration: 1000,
-      startedAt: 0,
-      endedAt: 1000,
-      name: 'profile',
-      unit: 'ms',
-      threadId: 0,
-      type: 'flamechart',
-    });
-
-    // Frames
-    const f0 = f('f0', 0, false);
-    const f1 = f('f1', 1, true);
-    const f2 = f('f2', 1, false);
-
-    // Call tree nodes
-    const s0 = c(f0);
-    const s1 = c(f1);
-    const s2 = c(f2);
-
-    s1.parent = s0;
-    s2.parent = s1;
-
-    profile.samples = [s0, s1, s2];
-
-    const {open, close, openSpy, closeSpy, timings} = makeTestingBoilerplate();
-    profile.forEach(open, close, n => n.frame.is_application);
-
-    expect(timings).toEqual([
-      ['f1', 'open'],
-      ['f1', 'close'],
-    ]);
-
-    expect(openSpy).toHaveBeenCalledTimes(1);
-    expect(closeSpy).toHaveBeenCalledTimes(1);
   });
 });

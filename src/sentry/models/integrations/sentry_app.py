@@ -5,8 +5,8 @@ from hashlib import sha256
 
 from django.db import models
 from django.db.models import QuerySet
-from django.template.defaultfilters import slugify
 from django.utils import timezone
+from django.utils.text import slugify
 from rest_framework.request import Request
 
 from sentry.constants import (
@@ -215,3 +215,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
 
         SentryAppAvatar.objects.filter(sentry_app=self).delete()
         return super().delete()
+
+    def _disable(self):
+        self.events = []
+        self.save(update_fields=["events"])

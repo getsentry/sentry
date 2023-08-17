@@ -2,11 +2,10 @@ from fnmatch import fnmatch
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.middleware.csrf import get_token as get_csrf_token
 from django.urls import resolve
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import features, options
 from sentry.api.utils import customer_domain_path, generate_organization_url
@@ -41,7 +40,7 @@ class ReactMixin:
     def meta_tags(self, request: Request, **kwargs):
         return {}
 
-    def handle_react(self, request: Request, **kwargs) -> Response:
+    def handle_react(self, request: Request, **kwargs) -> HttpResponse:
         context = {
             "CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME,
             "meta_tags": [
@@ -99,7 +98,7 @@ class ReactMixin:
 # TODO(dcramer): once we implement basic auth hooks in React we can make this
 # generic
 class ReactPageView(ControlSiloOrganizationView, ReactMixin):
-    def handle_auth_required(self, request: Request, *args, **kwargs) -> Response:
+    def handle_auth_required(self, request: Request, *args, **kwargs) -> HttpResponse:
         # If user is a superuser (but not active, because otherwise this method would never be called)
         # Then allow client to handle the route and respond to any API request errors
         if request.user.is_superuser:
@@ -108,7 +107,7 @@ class ReactPageView(ControlSiloOrganizationView, ReactMixin):
         # For normal users, let parent class handle (e.g. redirect to login page)
         return super().handle_auth_required(request, *args, **kwargs)
 
-    def handle(self, request: Request, organization, **kwargs) -> Response:
+    def handle(self, request: Request, organization, **kwargs) -> HttpResponse:
         if "project_id" in kwargs and request.GET.get("onboarding"):
             project = Project.objects.filter(
                 organization=organization, slug=kwargs["project_id"]
@@ -119,5 +118,5 @@ class ReactPageView(ControlSiloOrganizationView, ReactMixin):
 
 
 class GenericReactPageView(BaseView, ReactMixin):
-    def handle(self, request: Request, **kwargs) -> Response:
+    def handle(self, request: Request, **kwargs) -> HttpResponse:
         return self.handle_react(request, **kwargs)

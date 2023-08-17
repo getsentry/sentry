@@ -42,7 +42,7 @@ def write_hashes(filename):
 
     with open(new_filename, "w") as out_file:
         results.write_to_event(data)
-        out_file.write(json.dumps(data, indent=4))
+        out_file.write(json.dumps(data))
 
     click.echo("Done")
     click.echo("\n")

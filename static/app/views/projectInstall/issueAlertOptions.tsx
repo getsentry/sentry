@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
@@ -46,10 +46,8 @@ const METRIC_CONDITION_MAP = {
   [MetricValues.USERS]: UNIQUE_USER_FREQUENCY_CONDITION,
 } as const;
 
-const DEFAULT_PLACEHOLDER_VALUE = '10';
-
 type StateUpdater = (updatedData: RequestDataFragment) => void;
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   onChange: StateUpdater;
   organization: Organization;
   alertSetting?: string;
@@ -58,7 +56,7 @@ type Props = AsyncComponent['props'] & {
   threshold?: string;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   alertSetting: string;
   // TODO(ts): When we have alert conditional types, convert this
   conditions: any;
@@ -116,7 +114,7 @@ function unpackConditions(conditions: any[]) {
   return {intervalChoices, interval: intervalChoices?.[0]?.[0]};
 }
 
-class IssueAlertOptions extends AsyncComponent<Props, State> {
+class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -125,7 +123,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       alertSetting: this.props.alertSetting ?? RuleAction.ALERT_ON_EVERY_ISSUE.toString(),
       metric: this.props.metric ?? MetricValues.ERRORS,
       interval: this.props.interval ?? '',
-      threshold: this.props.threshold ?? '',
+      threshold: this.props.threshold ?? '10',
     };
   }
 
@@ -161,7 +159,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
           type="number"
           min="0"
           name=""
-          placeholder={DEFAULT_PLACEHOLDER_VALUE}
+          placeholder="10"
           value={this.state.threshold}
           onChange={threshold =>
             this.setStateAndUpdateParents({threshold: threshold.target.value})
@@ -259,7 +257,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     });
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [['conditions', `/projects/${this.props.organization.slug}/rule-conditions/`]];
   }
 

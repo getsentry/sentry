@@ -4,7 +4,7 @@ import random
 import openai
 from django.conf import settings
 from django.dispatch import Signal
-from django.http import HttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 
 from sentry import eventstore, features
 from sentry.api.base import region_silo_endpoint
@@ -169,7 +169,8 @@ def trim_frames(frames, frame_allowance=MAX_STACKTRACE_FRAMES):
     return [x for x in frames if not x.get("delete")]
 
 
-def describe_event_for_ai(event):
+def describe_event_for_ai(event, model):
+    detailed = model.startswith("gpt-4")
     data = {}
 
     msg = event.get("message")
@@ -217,7 +218,7 @@ def describe_event_for_ai(event):
                     stack_frame["crash"] = "here"
                     first_in_app = False
                 line = frame.get("context_line") or ""
-                if crashed_here and idx == 0:
+                if (crashed_here and idx == 0) or detailed:
                     pre_context = frame.get("pre_context")
                     if pre_context:
                         stack_frame["code_before"] = pre_context
@@ -242,13 +243,13 @@ def describe_event_for_ai(event):
     return data
 
 
-def suggest_fix(event_data):
+def suggest_fix(event_data, model="gpt-3.5-turbo", stream=False):
     """Runs an OpenAI request to suggest a fix."""
     prompt = PROMPT.replace("___FUN_PROMPT___", random.choice(FUN_PROMPT_CHOICES))
-    event_info = describe_event_for_ai(event_data)
+    event_info = describe_event_for_ai(event_data, model=model)
 
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+        model=model,
         temperature=0.7,
         messages=[
             {"role": "system", "content": prompt},
@@ -257,8 +258,18 @@ def suggest_fix(event_data):
                 "content": json.dumps(event_info),
             },
         ],
+        stream=stream,
     )
+    if stream:
+        return reduce_stream(response)
     return response["choices"][0]["message"]["content"]
+
+
+def reduce_stream(response):
+    for chunk in response:
+        delta = chunk["choices"][0]["delta"]
+        if "content" in delta:
+            yield delta["content"]
 
 
 @region_silo_endpoint
@@ -288,13 +299,14 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
         ):
             raise ResourceDoesNotExist
 
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             raise ResourceDoesNotExist
 
         # Check the OpenAI access policy
         policy = get_openai_policy(request.organization)
         policy_failure = None
+        stream = request.GET.get("stream") == "yes"
         if policy == "subprocessor":
             policy_failure = "subprocessor"
         elif policy == "individual_consent":
@@ -318,15 +330,37 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
         suggestion = cache.get(cache_key)
         if suggestion is None:
             try:
-                suggestion = suggest_fix(event.data)
+                suggestion = suggest_fix(event.data, stream=stream)
             except openai.error.RateLimitError as err:
                 return HttpResponse(
                     json.dumps({"error": err.json_body["error"]}),
-                    content_type="application/json",
+                    content_type="text/plain; charset=utf-8",
                     status=429,
                 )
 
+            if stream:
+
+                def stream_response():
+                    buffer = []
+                    for item in suggestion:
+                        buffer.append(item)
+                        yield item.encode("utf-8")
+                    cache.set(cache_key, "".join(buffer), 300)
+
+                resp = StreamingHttpResponse(stream_response(), content_type="text/event-stream")
+                # make nginx happy
+                resp["x-accel-buffering"] = "no"
+                # make webpack devserver happy
+                resp["cache-control"] = "no-transform"
+                return resp
+
             cache.set(cache_key, suggestion, 300)
+
+        if stream:
+            return HttpResponse(
+                suggestion,
+                content_type="text/plain; charset=utf-8",
+            )
 
         return HttpResponse(
             json.dumps({"suggestion": suggestion}),

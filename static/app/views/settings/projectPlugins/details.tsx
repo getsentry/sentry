@@ -16,7 +16,7 @@ import {Organization, Plugin, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withPlugins from 'sentry/utils/withPlugins';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type Props = {
@@ -29,7 +29,7 @@ type Props = {
 
 type State = {
   pluginDetails?: Plugin;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
 /**
  * There are currently two sources of truths for plugin details:
@@ -40,7 +40,7 @@ type State = {
  *    The more correct way would be to pass `config` to PluginConfig and use plugin from
  *    PluginsStore
  */
-class ProjectPluginDetails extends AsyncView<Props, State> {
+class ProjectPluginDetails extends DeprecatedAsyncView<Props, State> {
   componentDidUpdate(prevProps: Props, prevState: State) {
     super.componentDidUpdate(prevProps, prevState);
     if (prevProps.params.pluginId !== this.props.params.pluginId) {
@@ -71,7 +71,7 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
     return 'Sentry';
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {projectId, pluginId} = this.props.params;
     return [

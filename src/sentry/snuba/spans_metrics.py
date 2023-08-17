@@ -10,7 +10,8 @@ from sentry.search.events.builder import (
 )
 from sentry.search.events.builder.spans_metrics import TopSpansMetricsQueryBuilder
 from sentry.snuba import discover
-from sentry.utils.snuba import Dataset, SnubaTSResult
+from sentry.snuba.dataset import Dataset
+from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,7 @@ def query(
     use_metrics_layer=False,
     skip_tag_resolution=False,
     extra_columns=None,
+    on_demand_metrics_enabled=False,
 ):
     builder = SpansMetricsQueryBuilder(
         dataset=Dataset.PerformanceMetrics,
@@ -56,6 +58,7 @@ def query(
         equation_config={"auto_add": include_equation_fields},
         sample_rate=sample,
         has_metrics=has_metrics,
+        use_metrics_layer=use_metrics_layer,
         transform_alias_to_input_format=transform_alias_to_input_format,
         skip_tag_resolution=skip_tag_resolution,
     )
@@ -76,6 +79,7 @@ def timeseries_query(
     functions_acl: Optional[List[str]] = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
     groupby: Optional[Column] = None,
 ) -> SnubaTSResult:
     """

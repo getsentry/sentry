@@ -36,6 +36,7 @@
   },
   // Exclude Specific Files from Auto-Imports
   "typescript.preferences.autoImportFileExcludePatterns": [
+    "**/config/chartcuterie/*",
     "**/node_modules/@testing-library/*",
     "**/node_modules/@tanstack/react-query"
   ],
@@ -60,7 +61,8 @@
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       "source.organizeImports": true
-    }
+    },
+    "editor.defaultFormatter": "ms-python.black-formatter"
   },
 
   "[html]": {
@@ -81,6 +83,6 @@
   "python.linting.pycodestylePath": "${workspaceFolder}/.venv/bin/pep8",
   "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
   "python.formatting.blackPath": "${workspaceFolder}/.venv/bin/black",
-  "python.formatting.provider": "black",
+  "python.formatting.provider": "none",
   "python.testing.pytestArgs": ["tests"]
 }

@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
 import {space} from 'sentry/styles/space';
@@ -36,10 +36,10 @@ class MemberTeamFields extends Component<Props> {
       ...ruleData,
       [attribute]: newValue,
     };
-    /**
-     * TargetIdentifiers between the targetTypes are not unique, and may wrongly map to something that has not been
-     * selected. E.g. A member and project can both have the `targetIdentifier`, `'2'`. Hence we clear the identifier.
-     **/
+    // TargetIdentifiers between the targetTypes are not unique, and may
+    // wrongly map to something that has not been selected. E.g. A member and
+    // project can both have the `targetIdentifier`, `'2'`. Hence we clear the
+    // identifier.
     if (attribute === 'targetType') {
       newData.targetIdentifier = '';
     }

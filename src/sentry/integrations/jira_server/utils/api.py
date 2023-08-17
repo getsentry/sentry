@@ -4,28 +4,11 @@ import logging
 from typing import TYPE_CHECKING, Any, Mapping
 
 from sentry.integrations.utils import sync_group_assignee_inbound
-from sentry.shared_integrations.exceptions import IntegrationError
-
-from ..client import JiraServerClient
 
 if TYPE_CHECKING:
-    from sentry.models import Identity, Integration, OrganizationIntegration
+    from sentry.models import Integration
 
 logger = logging.getLogger(__name__)
-
-
-def _get_client(integration: Integration) -> JiraServerClient:
-    oi = OrganizationIntegration.objects.get(integration_id=integration.id)
-    try:
-        default_identity = Identity.objects.get(id=oi.default_auth_id)
-    except Identity.DoesNotExist:
-        raise IntegrationError("Identity not found.")
-
-    return JiraServerClient(
-        integration.metadata["base_url"],
-        default_identity.data,
-        verify_ssl=True,
-    )
 
 
 def get_assignee_email(

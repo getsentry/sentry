@@ -12,6 +12,8 @@ type Props = {
   disabled?: boolean;
   // Takes string in 24 hour format
   end?: string;
+  hasEndErrors?: boolean;
+  hasStartErrors?: boolean;
   // Takes string in 24 hour format
   start?: string;
 };
@@ -47,7 +49,17 @@ const TimePicker = styled(
     };
 
     render() {
-      const {className, start, end, disabled, onChangeStart, onChangeEnd} = this.props;
+      const {
+        className,
+        start,
+        end,
+        disabled,
+        onChangeStart,
+        onChangeEnd,
+        hasStartErrors,
+        hasEndErrors,
+      } = this.props;
+
       return (
         <div className={classNames(className, 'rdrDateDisplay')}>
           <div>
@@ -57,6 +69,7 @@ const TimePicker = styled(
               defaultValue={start}
               className="rdrDateDisplayItem"
               data-test-id="startTime"
+              aria-invalid={hasStartErrors}
               disabled={disabled}
               onFocus={this.handleFocus}
               onBlur={this.handleBlur}
@@ -72,6 +85,7 @@ const TimePicker = styled(
               className="rdrDateDisplayItem"
               data-test-id="endTime"
               disabled={disabled}
+              aria-invalid={hasEndErrors}
               onFocus={this.handleFocus}
               onBlur={this.handleBlur}
               onChange={onChangeEnd}
@@ -95,6 +109,10 @@ const TimePicker = styled(
 `;
 
 const Input = styled('input')`
+  &::-webkit-calendar-picker-indicator {
+    display: none;
+  }
+
   &.rdrDateDisplayItem {
     width: 100%;
     background: ${p => p.theme.backgroundSecondary};
@@ -103,6 +121,18 @@ const Input = styled('input')`
     padding: ${space(0.25)} ${space(0.5)};
     box-shadow: none;
     font-variant-numeric: tabular-nums;
+
+    &&.focus-visible {
+      outline: none;
+      border-color: ${p => p.theme.focusBorder};
+      box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
+    }
+
+    &&[aria-invalid='true'] {
+      outline: none;
+      border-color: ${p => p.theme.error};
+      box-shadow: 0 0 0 1px ${p => p.theme.error};
+    }
   }
 `;
 

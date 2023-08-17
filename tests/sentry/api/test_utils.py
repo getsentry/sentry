@@ -64,6 +64,8 @@ class GetDateRangeFromParamsTest(unittest.TestCase):
         assert start == timezone.now() - MAX_STATS_PERIOD
         assert end == timezone.now()
 
+    @freeze_time("2018-12-11 03:21:34")
+    def test_no_params_optional(self):
         start, end = get_date_range_from_params({}, optional=True)
         assert start is None
         assert end is None

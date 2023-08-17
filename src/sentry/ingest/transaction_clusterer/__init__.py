@@ -24,7 +24,7 @@ class NamespaceOption:
 class ClustererNamespace(Enum):
     TRANSACTIONS = NamespaceOption(
         name="transactions",
-        data="txnames",
+        data="txnames2",
         rules="txrules",
         persistent_storage="sentry:transaction_name_cluster_rules",
         tracker="txcluster.rules_per_project",
@@ -32,7 +32,7 @@ class ClustererNamespace(Enum):
     )
     SPANS = NamespaceOption(
         name="spans",
-        data="span.descs.data",
+        data="span.descs.data2",
         rules="span.descs.rules",
         persistent_storage="sentry:span_description_cluster_rules",
         tracker="span.descs.rules_per_project",

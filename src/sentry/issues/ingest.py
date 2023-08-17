@@ -7,7 +7,7 @@ from typing import Any, Mapping, Optional, Tuple, TypedDict, cast
 
 import sentry_sdk
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry import eventstream
 from sentry.constants import LOG_LEVELS_MAP
@@ -20,7 +20,7 @@ from sentry.event_manager import (
     _save_grouphash_and_group,
     get_event_type,
 )
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
 from sentry.issues.grouptype import should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models import GroupHash, Release
@@ -125,6 +125,8 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_type = get_event_type(event.data)
     event_metadata = dict(event_type.get_metadata(event.data))
     event_metadata = dict(event_metadata)
+    # Don't clobber existing metadata
+    event_metadata.update(event.get_event_metadata())
     event_metadata["title"] = occurrence.issue_title
     event_metadata["value"] = occurrence.subtitle
 
@@ -144,6 +146,9 @@ def save_issue_from_occurrence(
 ) -> Optional[GroupInfo]:
     project = event.project
     issue_kwargs = _create_issue_kwargs(occurrence, event, release)
+    # We need to augment the message with occurrence data here since we can't build a `GroupEvent`
+    # until after we have created a `Group`.
+    issue_kwargs["message"] = augment_message_with_occurrence(issue_kwargs["message"], occurrence)
 
     # TODO: For now we will assume a single fingerprint. We can expand later if necessary.
     # Note that additional fingerprints won't be used to generated additional issues, they'll be
@@ -177,7 +182,9 @@ def save_issue_from_occurrence(
             "issues.save_issue_from_occurrence.transaction",
             tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
             sample_rate=1.0,
-        ) as metric_tags, transaction.atomic():
+        ) as metric_tags, transaction.atomic(
+            router.db_for_write(GroupHash)
+        ):
             group, is_new = _save_grouphash_and_group(
                 project, event, new_grouphash, **cast(Mapping[str, Any], issue_kwargs)
             )
@@ -190,6 +197,18 @@ def save_issue_from_occurrence(
                 tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
             )
             group_info = GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
+
+            # This only applies to events with stacktraces
+            frame_mix = event.get_event_metadata().get("in_app_frame_mix")
+            if is_new and frame_mix:
+                metrics.incr(
+                    "grouping.in_app_frame_mix",
+                    sample_rate=1.0,
+                    tags={
+                        "platform": event.platform or "unknown",
+                        "frame_mix": frame_mix,
+                    },
+                )
     else:
         group = existing_grouphash.group
         if group.issue_category.value != occurrence.type.category:
@@ -203,13 +222,10 @@ def save_issue_from_occurrence(
             )
             return None
 
-        is_new = False
-        is_regression = False
-
-        # Note: This updates the message of the issue based on the event. Not sure what we want to
-        # store there yet, so we may need to revisit that.
-        is_regression = _process_existing_aggregate(group, event, issue_kwargs, release)
-        group_info = GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
+        group_event = GroupEvent.from_event(event, group)
+        group_event.occurrence = occurrence
+        is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
+        group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
 
     return group_info
 

@@ -1,9 +1,9 @@
-from rest_framework.request import Request
-from rest_framework.response import Response
+from django.http import HttpRequest
+from django.http.response import HttpResponseBase
 
 from sentry.web.frontend.base import BaseView
 
 
 class HomeView(BaseView):
-    def get(self, request: Request) -> Response:
+    def get(self, request: HttpRequest) -> HttpResponseBase:
         return self.redirect_to_org(request)

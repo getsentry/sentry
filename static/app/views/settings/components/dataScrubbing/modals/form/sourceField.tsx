@@ -95,8 +95,8 @@ class SourceField extends Component<Props, State> {
       }
     }
 
-    const filteredSuggestions = valuesToBeFiltered.filter(
-      s => s.value.toLowerCase().indexOf(value.toLowerCase()) > -1
+    const filteredSuggestions = valuesToBeFiltered.filter(s =>
+      s.value.toLowerCase().includes(value.toLowerCase())
     );
 
     return filteredSuggestions;

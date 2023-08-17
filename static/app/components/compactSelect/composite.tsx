@@ -10,6 +10,7 @@ import {Control, ControlProps} from './control';
 import {List, MultipleListProps, SingleListProps} from './list';
 import {EmptyMessage} from './styles';
 import {SelectOption} from './types';
+import {getItemsWithKeys} from './utils';
 
 interface BaseCompositeSelectRegion<Value extends React.Key> {
   options: SelectOption<Value>[];
@@ -162,16 +163,13 @@ function Region<Value extends React.Key>({
     };
   }, [multiple, value, defaultValue, onChange, closeOnSelect]);
 
-  const optionsWithKey = useMemo<SelectOption<Value>[]>(
-    () => options.map(item => ({...item, key: item.value})),
-    [options]
-  );
+  const itemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
 
   return (
     <List
       {...props}
       {...listProps}
-      items={optionsWithKey}
+      items={itemsWithKey}
       disallowEmptySelection={disallowEmptySelection}
       isOptionDisabled={isOptionDisabled}
       shouldFocusWrap={false}

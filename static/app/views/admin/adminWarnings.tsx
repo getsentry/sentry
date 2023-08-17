@@ -1,17 +1,17 @@
 import {Fragment} from 'react';
 
 import {t} from 'sentry/locale';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 type Data = {
   groups: [groupName: string, grouppedWarnings: string[]][];
   warnings: string[];
 };
 
-type State = AsyncView['state'] & {data: Data | null};
+type State = DeprecatedAsyncView['state'] & {data: Data | null};
 
-class AdminWarnings extends AsyncView<{}, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class AdminWarnings extends DeprecatedAsyncView<{}, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['data', '/internal/warnings/']];
   }
 

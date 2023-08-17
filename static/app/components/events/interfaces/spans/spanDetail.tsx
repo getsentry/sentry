@@ -43,6 +43,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import {getPerformanceDuration} from 'sentry/views/performance/utils';
+
+import {OpsDot} from '../../opsBreakdown';
 
 import * as SpanEntryContext from './context';
 import {GapSpanDetails} from './gapSpanDetails';
@@ -52,10 +55,13 @@ import {ParsedTraceType, ProcessedSpanType, rawSpanKeys, RawSpanType} from './ty
 import {
   getCumulativeAlertLevelFromErrors,
   getFormattedTimeRangeWithLeadingAndTrailingZero,
+  getSpanSubTimings,
   getTraceDateTimeRange,
   isGapSpan,
+  isHiddenDataKey,
   isOrphanSpan,
   scrollToSpan,
+  SubTimingInfo,
 } from './utils';
 
 const DEFAULT_ERRORS_VISIBLE = 5;
@@ -99,7 +105,7 @@ function SpanDetail(props: Props) {
     // Run on mount.
 
     const {span, organization, event} = props;
-    if ('type' in span) {
+    if (!('op' in span)) {
       return;
     }
 
@@ -390,7 +396,7 @@ function SpanDetail(props: Props) {
     const durationString = `${Number(duration.toFixed(3)).toLocaleString()}ms`;
 
     const unknownKeys = Object.keys(span).filter(key => {
-      return !rawSpanKeys.has(key as any);
+      return !isHiddenDataKey(key) && !rawSpanKeys.has(key as any);
     });
 
     const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
@@ -398,6 +404,8 @@ function SpanDetail(props: Props) {
     const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
       value => value === 0
     );
+
+    const timingKeys = getSpanSubTimings(span) ?? [];
 
     return (
       <Fragment>
@@ -487,6 +495,9 @@ function SpanDetail(props: Props) {
               </Row>
               <Row title="Duration">{durationString}</Row>
               <Row title="Operation">{span.op || ''}</Row>
+              <Row title="Origin">
+                {span.origin !== undefined ? String(span.origin) : null}
+              </Row>
               <Row title="Same Process as Parent">
                 {span.same_process_as_parent !== undefined
                   ? String(span.same_process_as_parent)
@@ -500,6 +511,15 @@ function SpanDetail(props: Props) {
                   ? `${Number(span.exclusive_time.toFixed(3)).toLocaleString()}ms`
                   : null}
               </Row>
+              {timingKeys.map(timing => (
+                <Row
+                  title={timing.name}
+                  key={timing.name}
+                  prefix={<RowTimingPrefix timing={timing} />}
+                >
+                  {getPerformanceDuration(Number(timing.duration) * 1000)}
+                </Row>
+              ))}
               <Tags span={span} />
               {allZeroSizes && (
                 <TextTr>
@@ -519,11 +539,13 @@ function SpanDetail(props: Props) {
                   </Fragment>
                 </Row>
               ))}
-              {map(nonSizeKeys, (value, key) => (
-                <Row title={key} key={key}>
-                  {maybeStringify(value)}
-                </Row>
-              ))}
+              {map(nonSizeKeys, (value, key) =>
+                !isHiddenDataKey(key) ? (
+                  <Row title={key} key={key}>
+                    {maybeStringify(value)}
+                  </Row>
+                ) : null
+              )}
               {unknownKeys.map(key => (
                 <Row title={key} key={key}>
                   {maybeStringify(span[key])}
@@ -547,6 +569,10 @@ function SpanDetail(props: Props) {
       {renderSpanDetails()}
     </SpanDetailContainer>
   );
+}
+
+function RowTimingPrefix({timing}: {timing: SubTimingInfo}) {
+  return <OpsDot style={{backgroundColor: timing.color}} />;
 }
 
 function maybeStringify(value: unknown): string {
@@ -620,12 +646,14 @@ export function Row({
   title,
   keep,
   children,
+  prefix,
   extra = null,
 }: {
   children: React.ReactNode;
   title: JSX.Element | string | null;
   extra?: React.ReactNode;
   keep?: boolean;
+  prefix?: JSX.Element;
 }) {
   if (!keep && !children) {
     return null;
@@ -633,7 +661,12 @@ export function Row({
 
   return (
     <tr>
-      <td className="key">{title}</td>
+      <td className="key">
+        <Flex>
+          {prefix}
+          {title}
+        </Flex>
+      </td>
       <ValueTd className="value">
         <ValueRow>
           <StyledPre>
@@ -680,6 +713,10 @@ function generateSlug(result: TransactionResult): string {
   });
 }
 
+const Flex = styled('div')`
+  display: flex;
+  align-items: center;
+`;
 const ButtonGroup = styled('div')`
   display: flex;
   flex-direction: column;

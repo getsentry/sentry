@@ -3,13 +3,22 @@ from unittest.mock import patch
 from django.core import mail
 
 from sentry import roles
+from sentry.api.endpoints.accept_organization_invite import get_invite_state
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
-from sentry.models import Authenticator, InviteStatus, OrganizationMember, OrganizationMemberTeam
-from sentry.testutils import APITestCase, TestCase
+from sentry.api.invite_helper import ApiInviteHelper
+from sentry.models import (
+    Authenticator,
+    InviteStatus,
+    OrganizationMember,
+    OrganizationMemberTeam,
+    UserEmail,
+)
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -53,12 +62,32 @@ class OrganizationMemberSerializerTest(TestCase):
         assert serializer.validated_data["teams"][0] == self.team
 
     def test_invalid_email(self):
-        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
-        data = {"email": self.user.email, "orgRole": "member", "teamRoles": []}
+        org = self.create_organization()
+        user = self.create_user()
+        member = self.create_member(organization=org, email=user.email)
+
+        context = {"organization": org, "allowed_roles": [roles.get("member")]}
+        data = {"email": user.email, "orgRole": "member", "teamRoles": []}
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
         assert not serializer.is_valid()
-        assert serializer.errors == {"email": [f"The user {self.user.email} is already a member"]}
+        assert serializer.errors == {"email": [f"The user {user.email} is already a member"]}
+
+        request = self.make_request(user=user)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            UserEmail.objects.filter(user=user, email=user.email).update(is_verified=False)
+
+            invite_state = get_invite_state(member.id, org.slug, user.id)
+            assert invite_state, "Expected invite state, logic bug?"
+            invite_helper = ApiInviteHelper(
+                request=request, invite_context=invite_state, token=None
+            )
+            invite_helper.accept_invite(user)
+
+        serializer = OrganizationMemberSerializer(context=context, data=data)
+        assert not serializer.is_valid()
+        assert serializer.errors == {"email": [f"The user {user.email} is already a member"]}
 
     def test_invalid_team_invites(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
@@ -101,8 +130,7 @@ class OrganizationMemberSerializerTest(TestCase):
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
 
-        assert not serializer.is_valid()
-        assert serializer.errors == {"orgRole": ["This org-level role has been deprecated"]}
+        assert serializer.is_valid()
 
     def test_invalid_team_role(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
@@ -168,7 +196,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
 
     def test_user_id_query(self):
         user = self.create_user("zoo@localhost", username="zoo")
-        OrganizationMember.objects.create(user=user, organization=self.organization)
+        OrganizationMember.objects.create(user_id=user.id, organization=self.organization)
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": f"user.id:{user.id}"}
         )
@@ -298,9 +326,9 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         )
 
         # Two authenticators to ensure the user list is distinct
-        with exempt_from_silo_limits():
-            Authenticator.objects.create(user=member_2fa.user, type=1)
-            Authenticator.objects.create(user=member_2fa.user, type=2)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            Authenticator.objects.create(user_id=member_2fa.user_id, type=1)
+            Authenticator.objects.create(user_id=member_2fa.user_id, type=2)
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "has2fa:true"}
@@ -372,7 +400,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
             organization=self.organization, email="foo@example.com"
         )
 
-        assert member.user is None
+        assert member.user_id is None
         assert member.role == "manager"
         self.assert_org_member_mapping(org_member=member)
 
@@ -388,7 +416,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
     def test_existing_user_for_invite(self):
         user = self.create_user("foobar@example.com")
         member = OrganizationMember.objects.create(
-            organization=self.organization, user=user, role="member"
+            organization=self.organization, user_id=user.id, role="member"
         )
 
         data = {"email": user.email, "role": "member", "teams": [self.team.slug]}

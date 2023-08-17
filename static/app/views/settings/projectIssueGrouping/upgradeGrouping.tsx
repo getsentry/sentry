@@ -7,7 +7,9 @@ import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventGroupingConfig, Organization, Project} from 'sentry/types';
@@ -89,7 +91,7 @@ function UpgradeGrouping({
       ProjectsStore.onUpdateSuccess(response);
       onUpgrade();
     } catch (err) {
-      handleXhrErrorResponse(t('Unable to upgrade config'), err);
+      handleXhrErrorResponse('Unable to upgrade config', err);
     }
   }
 

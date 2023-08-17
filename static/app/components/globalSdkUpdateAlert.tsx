@@ -43,7 +43,7 @@ function InnerGlobalSdkUpdateAlert(
   }, [api, organization]);
 
   const handleReviewUpdatesClick = useCallback(() => {
-    SidebarPanelStore.activatePanel(SidebarPanelKey.Broadcasts);
+    SidebarPanelStore.activatePanel(SidebarPanelKey.BROADCASTS);
     trackAnalytics('sdk_updates.clicked', {organization});
   }, [organization]);
 

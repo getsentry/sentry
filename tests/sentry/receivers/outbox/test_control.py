@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 import responses
-from django.test import RequestFactory, override_settings
+from django.test import RequestFactory
 from pytest import raises
 from rest_framework import status
 
@@ -21,21 +21,21 @@ from sentry.receivers.outbox.control import (
 )
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo.base import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
+_TEST_REGION = Region("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
 
-@control_silo_test(stable=True)
+
+@control_silo_test(stable=True, regions=[_TEST_REGION])
 class ProcessControlOutboxTest(TestCase):
     identifier = 1
-    region = Region("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
-    region_config = (region,)
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
     def test_process_user_updates(self, mock_maybe_process):
         mock_maybe_process.return_value = User(id=1, is_active=True)
-        process_user_updates(object_identifier=self.identifier, region_name="us")
+        process_user_updates(object_identifier=self.identifier, region_name=_TEST_REGION.name)
         mock_maybe_process.assert_called_with(User, self.identifier)
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
@@ -59,7 +59,6 @@ class ProcessControlOutboxTest(TestCase):
         mock_maybe_process.assert_called_with(OrganizationIntegration, self.identifier)
 
     @responses.activate
-    @override_settings(SENTRY_REGION_CONFIG=region_config)
     def test_process_async_webhooks_success(self):
         request = RequestFactory().post(
             "/extensions/github/webhook/",
@@ -69,7 +68,7 @@ class ProcessControlOutboxTest(TestCase):
         )
         [outbox] = ControlOutbox.for_webhook_update(
             webhook_identifier=WebhookProviderIdentifier.GITHUB,
-            region_names=[self.region.name],
+            region_names=[_TEST_REGION.name],
             request=request,
         )
         outbox.save()
@@ -77,10 +76,10 @@ class ProcessControlOutboxTest(TestCase):
 
         mock_response = responses.add(
             request.method,
-            f"{self.region.address}{request.path}",
+            f"{_TEST_REGION.address}{request.path}",
             status=status.HTTP_200_OK,
         )
-        process_async_webhooks(payload=outbox.payload, region_name=self.region.name)
+        process_async_webhooks(payload=outbox.payload, region_name=_TEST_REGION.name)
         request_claim = (
             mock_response.call_count == 1
             if SiloMode.get_current_mode() == SiloMode.CONTROL
@@ -89,7 +88,6 @@ class ProcessControlOutboxTest(TestCase):
         assert request_claim
 
     @responses.activate
-    @override_settings(SENTRY_REGION_CONFIG=region_config)
     def test_process_async_webhooks_failure(self):
         request = RequestFactory().post(
             "/extensions/github/webhook/",
@@ -99,7 +97,7 @@ class ProcessControlOutboxTest(TestCase):
         )
         [outbox] = ControlOutbox.for_webhook_update(
             webhook_identifier=WebhookProviderIdentifier.GITHUB,
-            region_names=[self.region.name],
+            region_names=[_TEST_REGION.name],
             request=request,
         )
         outbox.save()
@@ -107,13 +105,13 @@ class ProcessControlOutboxTest(TestCase):
 
         mock_response = responses.add(
             request.method,
-            f"{self.region.address}{request.path}",
+            f"{_TEST_REGION.address}{request.path}",
             status=status.HTTP_504_GATEWAY_TIMEOUT,
         )
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             with raises(ApiError):
-                process_async_webhooks(payload=outbox.payload, region_name=self.region.name)
+                process_async_webhooks(payload=outbox.payload, region_name=_TEST_REGION.name)
             assert mock_response.call_count == 1
         else:
-            process_async_webhooks(payload=outbox.payload, region_name=self.region.name)
+            process_async_webhooks(payload=outbox.payload, region_name=_TEST_REGION.name)
             assert mock_response.call_count == 0

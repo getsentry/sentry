@@ -37,11 +37,7 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
 }
 
 describe('Performance > TransactionSummary', function () {
-  beforeAll(function () {
-    // @ts-ignore no-console
-    // eslint-disable-next-line no-console
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
-
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -145,6 +141,11 @@ describe('Performance > TransactionSummary', function () {
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
+  });
+
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
+    ProjectsStore.reset();
   });
 
   it('renders basic UI elements', async function () {

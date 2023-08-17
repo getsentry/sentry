@@ -93,7 +93,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
 
   const handleMoreTours = () => {
     closeModal?.();
-    SidebarPanelStore.togglePanel(SidebarPanelKey.OnboardingWizard);
+    SidebarPanelStore.togglePanel(SidebarPanelKey.ONBOARDING_WIZARD);
     trackAnalytics('growth.end_modal_more_tours', {
       organization: null,
     });

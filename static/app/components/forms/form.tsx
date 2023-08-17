@@ -273,7 +273,7 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
     `
   ${Panel} & {
     margin-top: 0;
-    padding-right: 36px;
+    padding-right: ${space(2)}
   }
 
   /* Better padding with form inside of a modal */

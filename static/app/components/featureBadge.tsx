@@ -6,7 +6,7 @@ import type {SeverityLevel} from '@sentry/types';
 
 import Badge from 'sentry/components/badge';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import {InternalTooltipProps, Tooltip} from 'sentry/components/tooltip';
+import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 
@@ -14,7 +14,7 @@ type BadgeProps = {
   type: 'alpha' | 'beta' | 'new' | 'experimental';
   expiresAt?: Date;
   title?: string;
-  tooltipProps?: Partial<InternalTooltipProps>;
+  tooltipProps?: Partial<TooltipProps>;
   variant?: 'indicator' | 'badge';
 };
 

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import newFeatureImage from 'sentry-images/spot/alerts-new-feature-banner.svg';
 
 import {Button} from 'sentry/components/button';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {IconBroadcast, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

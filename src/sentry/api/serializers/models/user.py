@@ -39,7 +39,8 @@ from sentry.models import (
     UserPermission,
     UserRoleUser,
 )
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
 
@@ -84,6 +85,7 @@ class _UserOptions(TypedDict):
     theme: str  # TODO: enum/literal for theme options
     language: str
     stacktraceOrder: int  # TODO enum/literal
+    defaultIssueEvent: str
     timezone: str
     clock24Hours: bool
 
@@ -91,6 +93,8 @@ class _UserOptions(TypedDict):
 class UserSerializerResponseOptional(TypedDict, total=False):
     identities: List[_Identity]
     avatar: SerializedAvatarFields
+    authenticators: List[Any]  # TODO: find out what type this is
+    canReset2fa: bool
 
 
 class UserSerializerResponse(UserSerializerResponseOptional):
@@ -118,7 +122,7 @@ class UserSerializerResponseSelf(UserSerializerResponse):
 
 
 @register(User)
-class UserSerializer(Serializer):  # type: ignore
+class UserSerializer(Serializer):
     def _user_is_requester(self, obj: User, requester: User | AnonymousUser | RpcUser) -> bool:
         if isinstance(requester, User):
             return bool(requester == obj)
@@ -200,6 +204,7 @@ class UserSerializer(Serializer):  # type: ignore
                 "theme": options.get("theme") or "light",
                 "language": options.get("language") or settings.SENTRY_DEFAULT_LANGUAGE,
                 "stacktraceOrder": stacktrace_order,
+                "defaultIssueEvent": options.get("default_issue_event") or "recommended",
                 "timezone": options.get("timezone") or settings.SENTRY_DEFAULT_TIME_ZONE,
                 "clock24Hours": options.get("clock_24_hours") or False,
             }
@@ -209,7 +214,7 @@ class UserSerializer(Serializer):  # type: ignore
         if attrs.get("avatar"):
             avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
-                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
+                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].get_file_id() else None,
             }
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
@@ -218,11 +223,8 @@ class UserSerializer(Serializer):  # type: ignore
         # TODO(dcramer): move this to DetailedUserSerializer
         if attrs["identities"] is not None:
             organization_ids = {i.auth_provider.organization_id for i in attrs["identities"]}
-            auth_identity_organizations = organization_service.get_organizations(
-                user_id=None,
-                scope=None,
-                only_visible=False,
-                organization_ids=list(organization_ids),
+            auth_identity_organizations = organization_mapping_service.get_many(
+                organization_ids=list(organization_ids)
             )
             orgs_by_id: Mapping[int, RpcOrganizationSummary] = {
                 o.id: o for o in auth_identity_organizations
@@ -271,7 +273,8 @@ class DetailedUserSerializer(UserSerializer):
 
         memberships = manytoone_to_dict(
             OrganizationMember.objects.filter(
-                user__in=item_list, organization__status=OrganizationStatus.ACTIVE
+                user_id__in={u.id for u in item_list},
+                organization__status=OrganizationStatus.ACTIVE,
             ),
             "user_id",
         )

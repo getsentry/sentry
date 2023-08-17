@@ -22,7 +22,6 @@ variants:
   app:
     component:
       contributes: false
-      contributes_to_similarity: false
       hint: exception of system takes precedence
     type: salted-component
     values:
@@ -31,7 +30,6 @@ variants:
   system:
     component:
       contributes: true
-      contributes_to_similarity: true
       hint: null
     type: salted-component
     values:

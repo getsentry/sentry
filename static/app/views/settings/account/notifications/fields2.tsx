@@ -112,12 +112,12 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   selfAssignOnResolve: {
     name: 'selfAssignOnResolve',
     type: 'select',
-    label: t('Claim Unassigned Issues I’ve Resolved'),
+    label: t('Resolve and Auto-Assign'),
     choices: [
       [true as any, t('On')],
       [false as any, t('Off')],
     ],
-    help: t('You’ll receive notifications about any changes that happen afterwards.'),
+    help: t("When you resolve an unassigned issue, we'll auto-assign it to you."),
   },
 };
 

@@ -1,6 +1,6 @@
 from sentry.api.serializers.rest_framework.mentions import extract_user_ids_from_mentions
 from sentry.models import ActorTuple, Team, User
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -21,8 +21,12 @@ class ExtractUserIdsFromMentionsTest(TestCase):
 
     def test_teams(self):
         member_user = self.create_user()
+        not_team_member = self.create_user()
         self.create_member(
             user=member_user, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.create_member(
+            user=not_team_member, organization=self.organization, role="member", teams=[]
         )
         actor = ActorTuple(self.team.id, Team)
         result = extract_user_ids_from_mentions(self.organization.id, [actor])

@@ -1,8 +1,6 @@
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.grouptype import GroupCategory
 from sentry.rules.filters.issue_category import IssueCategoryFilter
-from sentry.testutils import RuleTestCase, SnubaTestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 
 
@@ -38,8 +36,9 @@ class IssueCategoryFilterErrorTest(RuleTestCase):
             self.assertDoesNotPass(rule, event)
 
     def test_group_event(self):
-        event: Event = self.get_event()
-        group_event: GroupEvent = event.for_group(event.group)
+        event = self.get_event()
+        assert event.group is not None
+        group_event = event.for_group(event.group)
 
         self.assertPasses(self.get_rule(data={"value": GroupCategory.ERROR.value}), event)
         self.assertPasses(self.get_rule(data={"value": GroupCategory.ERROR.value}), group_event)

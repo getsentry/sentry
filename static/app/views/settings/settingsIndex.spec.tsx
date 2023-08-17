@@ -55,17 +55,18 @@ describe('SettingsIndex', function () {
       id: '44',
       name: 'Org Index',
       slug: 'org-index',
-    } as Organization;
+      features: [],
+    } as unknown as Organization;
 
     const spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
-    const api = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/`,
-    });
+    let orgApi: jest.Mock;
 
     beforeEach(function () {
       ConfigStore.set('isSelfHosted', false);
-      spy.mockClear();
-      api.mockClear();
+      MockApiClient.clearMockResponses();
+      orgApi = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/`,
+      });
     });
 
     it('fetches org details for SidebarDropdown', function () {
@@ -86,7 +87,7 @@ describe('SettingsIndex', function () {
         setActive: true,
         loadProjects: true,
       });
-      expect(api).toHaveBeenCalledTimes(1);
+      expect(orgApi).toHaveBeenCalledTimes(1);
     });
 
     it('does not fetch org details for SidebarDropdown', function () {
@@ -104,7 +105,7 @@ describe('SettingsIndex', function () {
       );
 
       expect(spy).not.toHaveBeenCalledWith();
-      expect(api).not.toHaveBeenCalled();
+      expect(orgApi).not.toHaveBeenCalled();
     });
   });
 });

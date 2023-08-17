@@ -3,7 +3,6 @@ from freezegun import freeze_time
 
 from sentry.incidents.action_handlers import SentryAppActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
-from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
@@ -12,7 +11,7 @@ from . import FireTest
 
 @region_silo_test(stable=True)
 @freeze_time()
-class SentryAppActionHandlerTest(FireTest, TestCase):
+class SentryAppActionHandlerTest(FireTest):
     def setUp(self):
         self.sentry_app = self.create_sentry_app(
             name="foo",
@@ -24,16 +23,16 @@ class SentryAppActionHandlerTest(FireTest, TestCase):
             slug=self.sentry_app.slug, organization=self.organization, user=self.user
         )
 
-    @responses.activate
-    def run_test(self, incident, method):
-        from sentry.rules.actions.notify_event_service import build_incident_attachment
-
-        action = self.create_alert_rule_trigger_action(
+        self.action = self.create_alert_rule_trigger_action(
             target_identifier=self.sentry_app.id,
             type=AlertRuleTriggerAction.Type.SENTRY_APP,
             target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
             sentry_app=self.sentry_app,
         )
+
+    @responses.activate
+    def run_test(self, incident, method):
+        from sentry.rules.actions.notify_event_service import build_incident_attachment
 
         responses.add(
             method=responses.POST,
@@ -43,7 +42,7 @@ class SentryAppActionHandlerTest(FireTest, TestCase):
             body=json.dumps({"ok": "true"}),
         )
 
-        handler = SentryAppActionHandler(action, incident, self.project)
+        handler = SentryAppActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
             getattr(handler, method)(metric_value, IncidentStatus(incident.status))
@@ -55,6 +54,27 @@ class SentryAppActionHandlerTest(FireTest, TestCase):
             in data
         )
 
+    @responses.activate
+    def test_rule_snoozed(self):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
+        self.snooze_rule(alert_rule=alert_rule)
+
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/webhook",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true"}),
+        )
+
+        handler = SentryAppActionHandler(self.action, incident, self.project)
+        metric_value = 1000
+        with self.tasks():
+            handler.fire(metric_value, IncidentStatus(incident.status))
+
+        assert len(responses.calls) == 0
+
     def test_fire_metric_alert(self):
         self.run_fire_test()
 
@@ -64,7 +84,7 @@ class SentryAppActionHandlerTest(FireTest, TestCase):
 
 @region_silo_test(stable=True)
 @freeze_time()
-class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest, TestCase):
+class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
     def setUp(self):
         self.sentry_app = self.create_sentry_app(
             name="foo",

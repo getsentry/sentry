@@ -1,33 +1,169 @@
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Avatar from 'sentry/components/avatar';
+import {Button} from 'sentry/components/button';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
-import ErrorCount from 'sentry/components/replays/header/errorCount';
 import {formatTime} from 'sentry/components/replays/utils';
-import {StringWalker} from 'sentry/components/replays/walker/urlWalker';
+import StringWalker from 'sentry/components/replays/walker/stringWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconCalendar, IconDelete} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconCalendar, IconDelete, IconEllipsis, IconFire} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
 };
+
+export type ReferrerTableType = 'main' | 'dead-table' | 'errors-table' | 'rage-table';
+
+function DropdownFilter({
+  type,
+  name,
+  version,
+}: {
+  name: string | null;
+  type: string;
+  version: string | null;
+}) {
+  const location = useLocation<ReplayListLocationQuery>();
+  return (
+    <DropdownMenu
+      items={[
+        {
+          key: 'name',
+          label: tct('[type] name: [name]', {
+            type: <b>{type}</b>,
+            name: <b>{name}</b>,
+          }),
+          children: [
+            {
+              key: 'name_add',
+              label: t('Add to filter'),
+              onAction: () => {
+                const search = new MutableSearch(
+                  decodeScalar(location.query.query) || ''
+                );
+                browserHistory.push({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    query: search
+                      .setFilterValues(`${type}.name`, [name ?? ''])
+                      .formatString(),
+                  },
+                });
+              },
+            },
+            {
+              key: 'name_exclude',
+              label: t('Exclude from filter'),
+              onAction: () => {
+                const search = new MutableSearch(
+                  decodeScalar(location.query.query) || ''
+                );
+                browserHistory.push({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    query: search
+                      .removeFilterValue(`${type}.name`, name ?? '')
+                      .formatString(),
+                  },
+                });
+              },
+            },
+          ],
+        },
+        ...(version
+          ? [
+              {
+                key: 'version',
+                label: tct('[type] version: [version]', {
+                  type: <b>{type}</b>,
+                  version: <b>{version}</b>,
+                }),
+                children: [
+                  {
+                    key: 'version_add',
+                    label: t('Add to filter'),
+                    onAction: () => {
+                      const search = new MutableSearch(
+                        decodeScalar(location.query.query) || ''
+                      );
+                      browserHistory.push({
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          query: search
+                            .setFilterValues(`${type}.version`, [version ?? ''])
+                            .formatString(),
+                        },
+                      });
+                    },
+                  },
+                  {
+                    key: 'version_exclude',
+                    label: t('Exclude from filter'),
+                    onAction: () => {
+                      const search = new MutableSearch(
+                        decodeScalar(location.query.query) || ''
+                      );
+                      browserHistory.push({
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          query: search
+                            .removeFilterValue(`${type}.version`, version ?? '')
+                            .formatString(),
+                        },
+                      });
+                    },
+                  },
+                ],
+              },
+            ]
+          : []),
+      ]}
+      usePortal
+      size="xs"
+      offset={4}
+      position="bottom"
+      preventOverflowOptions={{padding: 4}}
+      flipOptions={{
+        fallbackPlacements: ['top', 'right-start', 'right-end', 'left-start', 'left-end'],
+      }}
+      trigger={triggerProps => (
+        <ActionMenuTrigger
+          {...triggerProps}
+          translucentBorder
+          aria-label={t('Actions')}
+          icon={<IconEllipsis size="xs" />}
+          size="zero"
+        />
+      )}
+    />
+  );
+}
 
 function getUserBadgeUser(replay: Props['replay']) {
   return replay.is_archived
@@ -52,16 +188,56 @@ export function ReplayCell({
   organization,
   referrer,
   replay,
-}: Props & {eventView: EventView; organization: Organization; referrer: string}) {
+  showUrl,
+  referrer_table,
+}: Props & {
+  eventView: EventView;
+  organization: Organization;
+  referrer: string;
+  referrer_table: ReferrerTableType;
+  showUrl: boolean;
+}) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
 
   const replayDetails = {
-    pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
+    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
     },
+  };
+
+  const replayDetailsErrorTab = {
+    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
+    query: {
+      referrer,
+      ...eventView.generateQueryStringObject(),
+      t_main: 'errors',
+    },
+  };
+
+  const replayDetailsDOMEventsTab = {
+    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
+    query: {
+      referrer,
+      ...eventView.generateQueryStringObject(),
+      t_main: 'dom',
+      f_d_type: 'ui.slowClickDetected',
+    },
+  };
+
+  const detailsTab = () => {
+    switch (referrer_table) {
+      case 'errors-table':
+        return replayDetailsErrorTab;
+      case 'dead-table':
+        return replayDetailsDOMEventsTab;
+      case 'rage-table':
+        return replayDetailsDOMEventsTab;
+      default:
+        return replayDetails;
+    }
   };
 
   const trackNavigationEvent = () =>
@@ -70,6 +246,7 @@ export function ReplayCell({
       platform: project?.platform,
       organization,
       referrer,
+      referrer_table,
     });
 
   if (replay.is_archived) {
@@ -91,11 +268,13 @@ export function ReplayCell({
 
   const subText = (
     <Cols>
-      <StringWalker urls={replay.urls} />
+      {showUrl ? <StringWalker urls={replay.urls} /> : undefined}
       <Row gap={1}>
         <Row gap={0.5}>
+          {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
           {project ? <Avatar size={12} project={project} /> : null}
-          <Link to={replayDetails} onClick={trackNavigationEvent}>
+          {project ? project.slug : null}
+          <Link to={detailsTab} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}
           </Link>
         </Row>
@@ -115,7 +294,7 @@ export function ReplayCell({
           replay.is_archived ? (
             replay.user.display_name || t('Unknown User')
           ) : (
-            <MainLink to={replayDetails} onClick={trackNavigationEvent}>
+            <MainLink to={detailsTab} onClick={trackNavigationEvent}>
               {replay.user.display_name || t('Unknown User')}
             </MainLink>
           )
@@ -188,10 +367,15 @@ export function OSCell({replay}: Props) {
   }
   return (
     <Item>
-      <ContextIcon
-        name={name ?? ''}
-        version={version && hasRoomForColumns ? version : undefined}
-      />
+      <Container>
+        <ContextIcon
+          name={name ?? ''}
+          version={version && hasRoomForColumns ? version : undefined}
+          showVersion={false}
+          showTooltip={false}
+        />
+        <DropdownFilter type="os" name={name} version={version} />
+      </Container>
     </Item>
   );
 }
@@ -206,10 +390,15 @@ export function BrowserCell({replay}: Props) {
   }
   return (
     <Item>
-      <ContextIcon
-        name={name ?? ''}
-        version={version && hasRoomForColumns ? version : undefined}
-      />
+      <Container>
+        <ContextIcon
+          name={name ?? ''}
+          version={version && hasRoomForColumns ? version : undefined}
+          showVersion={false}
+          showTooltip={false}
+        />
+        <DropdownFilter type="browser" name={name} version={version} />
+      </Container>
     </Item>
   );
 }
@@ -225,13 +414,50 @@ export function DurationCell({replay}: Props) {
   );
 }
 
+export function RageClickCountCell({replay}: Props) {
+  if (replay.is_archived) {
+    return <Item isArchived />;
+  }
+  return (
+    <Item data-test-id="replay-table-count-rage-clicks">
+      {replay.count_rage_clicks ? (
+        <DeadRageCount>{replay.count_rage_clicks}</DeadRageCount>
+      ) : (
+        <Count>0</Count>
+      )}
+    </Item>
+  );
+}
+
+export function DeadClickCountCell({replay}: Props) {
+  if (replay.is_archived) {
+    return <Item isArchived />;
+  }
+  return (
+    <Item data-test-id="replay-table-count-dead-clicks">
+      {replay.count_dead_clicks ? (
+        <DeadRageCount>{replay.count_dead_clicks}</DeadRageCount>
+      ) : (
+        <Count>0</Count>
+      )}
+    </Item>
+  );
+}
+
 export function ErrorCountCell({replay}: Props) {
   if (replay.is_archived) {
     return <Item isArchived />;
   }
   return (
     <Item data-test-id="replay-table-count-errors">
-      <ErrorCount countErrors={replay.count_errors} />
+      {replay.count_errors ? (
+        <ErrorCount>
+          <IconFire />
+          {replay.count_errors}
+        </ErrorCount>
+      ) : (
+        <Count>0</Count>
+      )}
     </Item>
   );
 }
@@ -261,6 +487,22 @@ const Item = styled('div')<{isArchived?: boolean}>`
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
 `;
 
+const Count = styled('span')`
+  font-variant-numeric: tabular-nums;
+`;
+
+const DeadRageCount = styled(Count)`
+  display: flex;
+  width: 40px;
+`;
+
+const ErrorCount = styled(Count)`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  color: ${p => p.theme.red400};
+`;
+
 const Time = styled('span')`
   font-variant-numeric: tabular-nums;
 `;
@@ -273,4 +515,30 @@ const SpanOperationBreakdown = styled('div')`
   color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: right;
+`;
+
+const Container = styled('div')`
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+`;
+
+const ActionMenuTrigger = styled(Button)`
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: ${space(0.75)};
+  left: -${space(0.75)};
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.1s;
+  &.focus-visible,
+  &[aria-expanded='true'],
+  ${Container}:hover & {
+    opacity: 1;
+  }
 `;

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import TeamRoleSelect from 'sentry/components/teamRoleSelect';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -128,10 +128,14 @@ const RoleSelectWrapper = styled('div')`
   }
 `;
 
-const TeamRolesPanelItem = styled(PanelItem)`
+export const GRID_TEMPLATE = `
   display: grid;
-  grid-template-columns: minmax(120px, 4fr) minmax(120px, 2fr) minmax(100px, 1fr);
-  gap: ${space(2)};
+  grid-template-columns: minmax(100px, 1fr) 200px 95px;
+  gap: ${space(1)};
+`;
+
+const TeamRolesPanelItem = styled(PanelItem)`
+  ${GRID_TEMPLATE};
   align-items: center;
 
   > div:last-child {

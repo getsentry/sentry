@@ -1,9 +1,9 @@
 from django import forms
 from django.db import IntegrityError, router
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
@@ -63,12 +63,8 @@ class UserReportForm(forms.ModelForm):
         fields = ("name", "email", "comments")
 
 
-from rest_framework.request import Request
-from rest_framework.response import Response
-
-
 class ErrorPageEmbedView(View):
-    def _get_project_key(self, request: Request):
+    def _get_project_key(self, request: HttpRequest):
         try:
             dsn = request.GET["dsn"]
         except KeyError:
@@ -81,10 +77,10 @@ class ErrorPageEmbedView(View):
 
         return key
 
-    def _get_origin(self, request: Request):
+    def _get_origin(self, request: HttpRequest):
         return origin_from_request(request)
 
-    def _smart_response(self, request: Request, context=None, status=200):
+    def _smart_response(self, request: HttpRequest, context=None, status=200):
         json_context = json.dumps(context or {})
         accept = request.META.get("HTTP_ACCEPT") or ""
         if "text/javascript" in accept:
@@ -104,7 +100,7 @@ class ErrorPageEmbedView(View):
         return response
 
     @csrf_exempt
-    def dispatch(self, request: Request) -> Response:
+    def dispatch(self, request: HttpRequest) -> HttpResponse:
         try:
             event_id = request.GET["eventId"]
         except KeyError:
@@ -150,7 +146,7 @@ class ErrorPageEmbedView(View):
             report.project_id = key.project_id
             report.event_id = event_id
 
-            event = eventstore.get_event_by_id(report.project_id, report.event_id)
+            event = eventstore.backend.get_event_by_id(report.project_id, report.event_id)
 
             if event is not None:
                 report.environment_id = event.get_environment().id
@@ -227,6 +223,11 @@ class ErrorPageEmbedView(View):
             ),
         }
 
-        return render_to_response(
+        errorPageEmbedResponse = render_to_response(
             "sentry/error-page-embed.js", context, request, content_type="text/javascript"
         )
+
+        # User feedback dialog should be available regardless of cross-origin policy
+        errorPageEmbedResponse["Access-Control-Allow-Origin"] = "*"
+
+        return errorPageEmbedResponse

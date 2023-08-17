@@ -80,6 +80,7 @@ function NotificationActionManager({
       [NotificationActionService.PAGERDUTY]: [],
       [NotificationActionService.MSTEAMS]: [],
       [NotificationActionService.SENTRY_APP]: [],
+      [NotificationActionService.OPSGENIE]: [],
     };
     availableActions.forEach(a => {
       availableServicesMap[a.action.serviceType as NotificationActionService].push(a);
@@ -103,6 +104,7 @@ function NotificationActionManager({
       [NotificationActionService.PAGERDUTY]: [],
       [NotificationActionService.MSTEAMS]: [],
       [NotificationActionService.SENTRY_APP]: [],
+      [NotificationActionService.OPSGENIE]: [],
     };
     notificationActions.forEach((action, index) => {
       if (action.serviceType) {
@@ -195,9 +197,10 @@ function NotificationActionManager({
     >
       <DropdownMenu
         items={getMenuItems()}
-        trigger={triggerProps => (
+        trigger={(triggerProps, isOpen) => (
           <DropdownButton
             {...triggerProps}
+            isOpen={isOpen}
             aria-label={t('Add Action')}
             size="xs"
             icon={<IconAdd isCircled color="gray300" />}

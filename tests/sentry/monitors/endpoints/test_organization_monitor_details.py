@@ -1,9 +1,9 @@
 import pytest
 
 from sentry.constants import ObjectStatus
-from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, ScheduledDeletion
+from sentry.models import Environment, RegionScheduledDeletion, Rule, RuleActivity, RuleActivityType
 from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
-from sentry.testutils import MonitorTestCase
+from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
 
@@ -55,7 +55,9 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
 
         self._create_alert_rule(monitor)
         resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
-        assert resp.data["alertRule"] is not None
+        alert_rule = resp.data["alertRule"]
+        assert alert_rule is not None
+        assert alert_rule["environment"] is not None
 
 
 @region_silo_test(stable=True)
@@ -196,13 +198,15 @@ class UpdateMonitorTest(MonitorTestCase):
     def test_existing_alert_rule(self):
         monitor = self._create_monitor()
         rule = self._create_alert_rule(monitor)
+        new_environment = self.create_environment(name="jungle")
         resp = self.get_success_response(
             self.organization.slug,
             monitor.slug,
             method="PUT",
             **{
                 "alert_rule": {
-                    "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}]
+                    "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}],
+                    "environment": new_environment.name,
                 }
             },
         )
@@ -212,6 +216,8 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor_rule = monitor.get_alert_rule()
         assert monitor_rule.id == rule.id
         assert monitor_rule.data["actions"] != rule.data["actions"]
+        rule_environment = Environment.objects.get(id=monitor_rule.environment_id)
+        assert rule_environment.name == new_environment.name
 
     def test_without_existing_alert_rule(self):
         monitor = self._create_monitor()
@@ -425,8 +431,9 @@ class DeleteMonitorTest(MonitorTestCase):
         assert monitor.status == ObjectStatus.PENDING_DELETION
         # Slug should update on deletion
         assert monitor.slug != old_slug
-        # ScheduledDeletion only available in control silo
-        assert ScheduledDeletion.objects.filter(object_id=monitor.id, model_name="Monitor").exists()
+        assert RegionScheduledDeletion.objects.filter(
+            object_id=monitor.id, model_name="Monitor"
+        ).exists()
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
@@ -449,8 +456,7 @@ class DeleteMonitorTest(MonitorTestCase):
 
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == ObjectStatus.PENDING_DELETION
-        # ScheduledDeletion only available in control silo
-        assert ScheduledDeletion.objects.filter(
+        assert RegionScheduledDeletion.objects.filter(
             object_id=monitor_environment.id, model_name="MonitorEnvironment"
         ).exists()
 
@@ -472,15 +478,13 @@ class DeleteMonitorTest(MonitorTestCase):
 
         monitor_environment_a = MonitorEnvironment.objects.get(id=monitor_environment_a.id)
         assert monitor_environment_a.status == ObjectStatus.PENDING_DELETION
-        # ScheduledDeletion only available in control silo
-        assert ScheduledDeletion.objects.filter(
+        assert RegionScheduledDeletion.objects.filter(
             object_id=monitor_environment_a.id, model_name="MonitorEnvironment"
         ).exists()
 
         monitor_environment_b = MonitorEnvironment.objects.get(id=monitor_environment_b.id)
         assert monitor_environment_b.status == ObjectStatus.PENDING_DELETION
-        # ScheduledDeletion only available in control silo
-        assert ScheduledDeletion.objects.filter(
+        assert RegionScheduledDeletion.objects.filter(
             object_id=monitor_environment_b.id, model_name="MonitorEnvironment"
         ).exists()
 
@@ -504,7 +508,7 @@ class DeleteMonitorTest(MonitorTestCase):
         )
 
         rule = Rule.objects.get(project_id=monitor.project_id, id=monitor.config["alert_rule_id"])
-        assert rule.status == RuleStatus.PENDING_DELETION
+        assert rule.status == ObjectStatus.PENDING_DELETION
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.DELETED.value).exists()
 
     def test_simple_with_alert_rule_deleted(self):

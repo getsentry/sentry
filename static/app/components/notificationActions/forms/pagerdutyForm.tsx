@@ -86,9 +86,10 @@ function PagerdutyForm({
         <div>{t('Send a notification to the')}</div>
         <DropdownMenu
           items={accountOptions}
-          trigger={triggerProps => (
+          trigger={(triggerProps, isOpen) => (
             <DropdownButton
               {...triggerProps}
+              isOpen={isOpen}
               aria-label={t('Select Account')}
               size="xs"
               data-test-id="pagerduty-account-dropdown"

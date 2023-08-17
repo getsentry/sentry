@@ -1,19 +1,22 @@
+from django.db import router
+
 from sentry import analytics
 from sentry.constants import SentryAppInstallationStatus
-from sentry.mediators import Mediator, Param
-from sentry.mediators.param import if_param
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
 
 
 class Updater(Mediator):
-    sentry_app_installation = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
-    status = Param((str,), required=False)
+    sentry_app_installation = Param(RpcSentryAppInstallation)
+    status = Param(str, required=False)
+    using = router.db_for_write(SentryAppInstallation)
 
     def call(self):
         self._update_status()
         return self.sentry_app_installation
 
-    @if_param("status")
     def _update_status(self):
         # convert from string to integer
         if self.status == SentryAppInstallationStatus.INSTALLED_STR:

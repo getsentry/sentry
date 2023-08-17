@@ -5,13 +5,13 @@ import responses
 from django.core import mail
 
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember, OrganizationOption
-from sentry.testutils import APITestCase
-from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_attachment_no_text
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 
@@ -27,7 +27,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
 
     @cached_property
     def owner(self):
-        return OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        return OrganizationMember.objects.get(user_id=self.user.id, organization=self.organization)
 
     def test_invalid_org_slug(self):
         self.get_error_response("invalid-slug", email=self.email, status_code=404)
@@ -61,7 +61,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
 
     @patch("sentry.api.endpoints.organization_member.requests.join.logger")
     def test_org_sso_enabled(self, mock_log):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             AuthProvider.objects.create(organization_id=self.organization.id, provider="google")
 
         self.get_error_response(self.organization.slug, email=self.email, status_code=403)
@@ -72,6 +72,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
 
     @patch("sentry.api.endpoints.organization_member.requests.join.logger")
     def test_user_already_exists(self, mock_log):
+        assert OrganizationMember.objects.filter(organization=self.organization).count() == 1
         self.get_success_response(self.organization.slug, email=self.user.email, status_code=204)
 
         member = OrganizationMember.objects.get(organization=self.organization)
@@ -131,7 +132,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
 
         members = OrganizationMember.objects.filter(organization=self.organization)
         join_request = members.get(email=self.email)
-        assert join_request.user is None
+        assert join_request.user_id is None
         assert join_request.role == "member"
         assert not join_request.invite_approved
 
@@ -156,9 +157,10 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         with self.tasks():
             self.get_success_response(self.organization.slug, email=self.email, status_code=204)
 
-        members = OrganizationMember.objects.filter(organization=self.organization)
+        with outbox_runner():
+            members = OrganizationMember.objects.filter(organization=self.organization)
         join_request = members.get(email=self.email)
-        assert join_request.user is None
+        assert join_request.user_id is None
         assert join_request.role == "member"
         assert not join_request.invite_approved
 
@@ -199,7 +201,8 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
             },
         ]
 
-        member = OrganizationMember.objects.get(email=self.email)
+        with outbox_runner():
+            member = OrganizationMember.objects.get(email=self.email)
         assert json.loads(attachment["callback_id"]) == {
             "member_id": member.id,
             "member_email": self.email,

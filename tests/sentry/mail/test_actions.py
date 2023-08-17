@@ -1,12 +1,13 @@
 from django.core import mail
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
-from sentry.mail.actions import NotifyEmailAction, NotifyEmailForm
-from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectOwnership, Rule
+from sentry.mail.actions import NotifyEmailAction
+from sentry.mail.forms.notify_email import NotifyEmailForm
+from sentry.models import OrganizationMember, OrganizationMemberTeam, Rule
+from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.tasks.post_process import post_process_group
-from sentry.testutils import TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
@@ -30,13 +31,13 @@ class NotifyEmailFormTest(TestCase):
         self.project = self.create_project(name="Test", teams=[self.team])
         OrganizationMemberTeam.objects.create(
             organizationmember=OrganizationMember.objects.get(
-                user=self.user, organization=organization
+                user_id=self.user.id, organization=organization
             ),
             team=self.team,
         )
-        self.create_member(user=self.user2, organization=organization, teams=[self.team])
+        self.create_member(user_id=self.user2.id, organization=organization, teams=[self.team])
         self.create_member(
-            user=self.inactive_user,
+            user_id=self.inactive_user.id,
             organization=organization,
             teams=[self.team, self.team_not_in_project],
         )

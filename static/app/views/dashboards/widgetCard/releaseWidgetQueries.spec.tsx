@@ -1,7 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import {
   DashboardFilterKeys,
   DisplayType,
@@ -65,7 +64,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     },
   };
 
-  const api = new Client();
+  const api = new MockApiClient();
 
   afterEach(function () {
     MockApiClient.clearMockResponses();

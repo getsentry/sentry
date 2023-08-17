@@ -3,7 +3,7 @@ from __future__ import annotations
 from html import escape
 from typing import Any, Mapping
 
-from sentry_relay import parse_release
+from sentry_relay.processing import parse_release
 
 from sentry.models import Activity
 from sentry.types.integrations import ExternalProviders
@@ -39,5 +39,8 @@ class RegressionActivityNotification(GroupActivityNotification):
     ) -> str:
         text = "Issue marked as regression"
         if self.version:
-            text += f" in release {self.version_parsed}"
+            version_url = self.organization.absolute_url(
+                f"/organizations/{self.organization.slug}/releases/{self.version}/"
+            )
+            text += f" in release {self.format_url(text=self.version_parsed, url=version_url, provider=provider)}"
         return text
