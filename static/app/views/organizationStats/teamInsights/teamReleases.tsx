@@ -31,7 +31,7 @@ interface TeamReleasesProps extends DateTimeObject {
   theme: Theme;
 }
 
-type ProjectReleaseCount = {
+export type ProjectReleaseCount = {
   last_week_totals: Record<string, number>;
   project_avgs: Record<string, number>;
   release_counts: Record<string, number>;
