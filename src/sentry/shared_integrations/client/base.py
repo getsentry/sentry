@@ -383,7 +383,7 @@ class BaseApiClient(TrackResponseMixin):
                     ) = integration_service.get_organization_contexts(
                         integration_id=self.integration_id
                     )
-                    if rpc_integration.provider in ("github", "gitlab"):
+                    if rpc_integration.provider in ("github", "gitlab", "slack"):
                         extra = {
                             "integration_id": self.integration_id,
                             "buffer_record": buffer._get_all_from_buffer(),
@@ -481,9 +481,9 @@ class BaseApiClient(TrackResponseMixin):
         )
 
         if (
-            features.has("organizations:slack-disable-on-broken", org)
+            features.has("organizations:slack-fatal-disable-on-broken", org)
             and rpc_integration.provider == "slack"
-        ):
+        ) and buffer.is_integration_fatal_broken():
             integration_service.update_integration(
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )

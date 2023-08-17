@@ -39,7 +39,6 @@ import {
   getDurationDisplay,
   getHumanDuration,
   lightenBarColor,
-  toPercent,
 } from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
@@ -50,6 +49,7 @@ import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import toPercent from 'sentry/utils/number/toPercent';
 import {
   QuickTraceContext,
   QuickTraceContextChildrenProps,

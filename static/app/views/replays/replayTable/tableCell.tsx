@@ -1,7 +1,10 @@
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Avatar from 'sentry/components/avatar';
+import {Button} from 'sentry/components/button';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
@@ -10,26 +13,157 @@ import StringWalker from 'sentry/components/replays/walker/stringWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconCalendar, IconDelete, IconFire} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconCalendar, IconDelete, IconEllipsis, IconFire} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
 };
 
 export type ReferrerTableType = 'main' | 'dead-table' | 'errors-table' | 'rage-table';
+
+function DropdownFilter({
+  type,
+  name,
+  version,
+}: {
+  name: string | null;
+  type: string;
+  version: string | null;
+}) {
+  const location = useLocation<ReplayListLocationQuery>();
+  return (
+    <DropdownMenu
+      items={[
+        {
+          key: 'name',
+          label: tct('[type] name: [name]', {
+            type: <b>{type}</b>,
+            name: <b>{name}</b>,
+          }),
+          children: [
+            {
+              key: 'name_add',
+              label: t('Add to filter'),
+              onAction: () => {
+                const search = new MutableSearch(
+                  decodeScalar(location.query.query) || ''
+                );
+                browserHistory.push({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    query: search
+                      .setFilterValues(`${type}.name`, [name ?? ''])
+                      .formatString(),
+                  },
+                });
+              },
+            },
+            {
+              key: 'name_exclude',
+              label: t('Exclude from filter'),
+              onAction: () => {
+                const search = new MutableSearch(
+                  decodeScalar(location.query.query) || ''
+                );
+                browserHistory.push({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    query: search
+                      .removeFilterValue(`${type}.name`, name ?? '')
+                      .formatString(),
+                  },
+                });
+              },
+            },
+          ],
+        },
+        ...(version
+          ? [
+              {
+                key: 'version',
+                label: tct('[type] version: [version]', {
+                  type: <b>{type}</b>,
+                  version: <b>{version}</b>,
+                }),
+                children: [
+                  {
+                    key: 'version_add',
+                    label: t('Add to filter'),
+                    onAction: () => {
+                      const search = new MutableSearch(
+                        decodeScalar(location.query.query) || ''
+                      );
+                      browserHistory.push({
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          query: search
+                            .setFilterValues(`${type}.version`, [version ?? ''])
+                            .formatString(),
+                        },
+                      });
+                    },
+                  },
+                  {
+                    key: 'version_exclude',
+                    label: t('Exclude from filter'),
+                    onAction: () => {
+                      const search = new MutableSearch(
+                        decodeScalar(location.query.query) || ''
+                      );
+                      browserHistory.push({
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          query: search
+                            .removeFilterValue(`${type}.version`, version ?? '')
+                            .formatString(),
+                        },
+                      });
+                    },
+                  },
+                ],
+              },
+            ]
+          : []),
+      ]}
+      usePortal
+      size="xs"
+      offset={4}
+      position="bottom"
+      preventOverflowOptions={{padding: 4}}
+      flipOptions={{
+        fallbackPlacements: ['top', 'right-start', 'right-end', 'left-start', 'left-end'],
+      }}
+      trigger={triggerProps => (
+        <ActionMenuTrigger
+          {...triggerProps}
+          translucentBorder
+          aria-label={t('Actions')}
+          icon={<IconEllipsis size="xs" />}
+          size="zero"
+        />
+      )}
+    />
+  );
+}
 
 function getUserBadgeUser(replay: Props['replay']) {
   return replay.is_archived
@@ -137,7 +271,9 @@ export function ReplayCell({
       {showUrl ? <StringWalker urls={replay.urls} /> : undefined}
       <Row gap={1}>
         <Row gap={0.5}>
+          {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
           {project ? <Avatar size={12} project={project} /> : null}
+          {project ? project.slug : null}
           <Link to={detailsTab} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}
           </Link>
@@ -231,11 +367,15 @@ export function OSCell({replay}: Props) {
   }
   return (
     <Item>
-      <ContextIcon
-        name={name ?? ''}
-        version={version && hasRoomForColumns ? version : undefined}
-        showVersion={false}
-      />
+      <Container>
+        <ContextIcon
+          name={name ?? ''}
+          version={version && hasRoomForColumns ? version : undefined}
+          showVersion={false}
+          showTooltip={false}
+        />
+        <DropdownFilter type="os" name={name} version={version} />
+      </Container>
     </Item>
   );
 }
@@ -250,11 +390,15 @@ export function BrowserCell({replay}: Props) {
   }
   return (
     <Item>
-      <ContextIcon
-        name={name ?? ''}
-        version={version && hasRoomForColumns ? version : undefined}
-        showVersion={false}
-      />
+      <Container>
+        <ContextIcon
+          name={name ?? ''}
+          version={version && hasRoomForColumns ? version : undefined}
+          showVersion={false}
+          showTooltip={false}
+        />
+        <DropdownFilter type="browser" name={name} version={version} />
+      </Container>
     </Item>
   );
 }
@@ -371,4 +515,30 @@ const SpanOperationBreakdown = styled('div')`
   color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: right;
+`;
+
+const Container = styled('div')`
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+`;
+
+const ActionMenuTrigger = styled(Button)`
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: ${space(0.75)};
+  left: -${space(0.75)};
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.1s;
+  &.focus-visible,
+  &[aria-expanded='true'],
+  ${Container}:hover & {
+    opacity: 1;
+  }
 `;

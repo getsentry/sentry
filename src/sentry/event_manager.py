@@ -1641,6 +1641,18 @@ def _save_aggregate(
                     tags={"platform": event.platform or "unknown"},
                 )
 
+                # This only applies to events with stacktraces
+                frame_mix = event.get_event_metadata().get("in_app_frame_mix")
+                if frame_mix:
+                    metrics.incr(
+                        "grouping.in_app_frame_mix",
+                        sample_rate=1.0,
+                        tags={
+                            "platform": event.platform or "unknown",
+                            "frame_mix": frame_mix,
+                        },
+                    )
+
                 return GroupInfo(group, is_new, is_regression)
 
     group = Group.objects.get(id=existing_grouphash.group_id)
@@ -1821,18 +1833,44 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
 
 
 def _handle_regression(group: Group, event: Event, release: Optional[Release]) -> Optional[bool]:
+    should_log_extra_info = features.has(
+        "organizations:detailed-alert-logging", group.project.organization
+    )
+    logging_details = {
+        "group_id": group.id,
+        "event_id": event.event_id,
+    }
+    if should_log_extra_info:
+        logger.info("_handle_regression", extra={**logging_details})
+
     if not group.is_resolved():
+        if should_log_extra_info:
+            logger.info(
+                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
+            )
         return None
 
     # we only mark it as a regression if the event's release is newer than
     # the release which we originally marked this as resolved
     elif GroupResolution.has_resolution(group, release):
+        if should_log_extra_info:
+            logger.info(
+                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
+            )
         return None
 
     elif has_pending_commit_resolution(group):
+        if should_log_extra_info:
+            logger.info(
+                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
+            )
         return None
 
     if not plugin_is_regression(group, event):
+        if should_log_extra_info:
+            logger.info(
+                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
+            )
         return None
 
     # we now think its a regression, rely on the database to validate that
@@ -1859,6 +1897,12 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             substatus=GroupSubStatus.REGRESSED,
         )
     )
+    if should_log_extra_info:
+        logger.info(
+            f"_handle_regression: is_regression evaluated to {is_regression}",
+            extra={**logging_details},
+        )
+
     group.active_at = date
     group.status = GroupStatus.UNRESOLVED
     group.substatus = GroupSubStatus.REGRESSED

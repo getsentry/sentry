@@ -1,5 +1,6 @@
 from copy import deepcopy
 
+from sentry.backup.comparators import get_default_comparators
 from sentry.backup.findings import ComparatorFindingKind, InstanceID
 from sentry.backup.validate import validate
 from sentry.testutils.factories import get_fixture_path
@@ -42,7 +43,9 @@ def test_good_ignore_differing_pks(tmp_path):
         """
         )
     )
-    out = validate(left, right)
+
+    # Test the explicit ssignment of `get_default_comparators()`
+    out = validate(left, right, get_default_comparators())
     findings = out.findings
     assert not findings
 
@@ -65,7 +68,7 @@ def test_bad_duplicate_entry(tmp_path):
         """
     )
     test_json.append(dupe)
-    out = validate(test_json, test_json)
+    out = validate(test_json, test_json, get_default_comparators())
     findings = out.findings
 
     assert len(findings) == 2
@@ -419,6 +422,79 @@ def test_auto_assign_date_updated_comparator(tmp_path):
                     "date_updated": "2023-06-22T23:00:00.456Z",
                     "name": "Admin",
                     "permissions": "['users.admin']"
+                }
+            }
+        """
+    )
+    left.append(userrole_left)
+    right.append(userrole_right)
+    out = validate(left, right)
+    findings = out.findings
+    assert not findings
+
+
+def test_auto_assign_foreign_key_comparator(tmp_path):
+    left = [
+        json.loads(
+            """
+            {
+                "model": "sentry.user",
+                "pk": 12,
+                "fields": {
+                    "password": "abc123",
+                    "last_login": null,
+                    "username": "testing@example.com",
+                    "name": "",
+                    "email": "testing@example.com"
+                }
+            }
+        """
+        )
+    ]
+    right = [
+        json.loads(
+            """
+            {
+                "model": "sentry.user",
+                "pk": 34,
+                "fields": {
+                    "password": "abc123",
+                    "last_login": null,
+                    "username": "testing@example.com",
+                    "name": "",
+                    "email": "testing@example.com"
+                }
+            }
+        """
+        )
+    ]
+
+    userrole_left = json.loads(
+        """
+            {
+                "model": "sentry.useremail",
+                "pk": 56,
+                "fields": {
+                    "user": 12,
+                    "email": "testing@example.com",
+                    "validation_hash": "ABC123",
+                    "date_hash_added": "2023-06-23T00:00:00.000Z",
+                    "is_verified": true
+                }
+            }
+        """
+    )
+    userrole_right = json.loads(
+        """
+            {
+                "model": "sentry.useremail",
+                "pk": 78,
+                "fields": {
+                    "user": 34,
+                    "email": "testing@example.com",
+                    "validation_hash": "ABC123",
+                    "date_hash_added": "2023-06-23T00:00:00.000Z",
+                    "is_verified": true
                 }
             }
         """

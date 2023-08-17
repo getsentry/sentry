@@ -7,9 +7,10 @@ import {t, tct} from 'sentry/locale';
 // Configuration Start
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+}: Partial<
+  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
+> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -28,10 +29,16 @@ export const steps = ({
     configurations: [
       {
         language: 'groovy',
+        partialLoading: sourcePackageRegistries?.isLoading,
         code: `
 plugins {
   id "com.android.application" // should be in the same module
-  id "io.sentry.android.gradle" version "3.12.0"
+  id "io.sentry.android.gradle" version "${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
+        '3.12.0'
+  }"
 }
         `,
       },
@@ -139,8 +146,18 @@ export const nextSteps = [
 ];
 // Configuration End
 
-export function GettingStartedWithAndroid({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} nextSteps={nextSteps} {...props} />;
+export function GettingStartedWithAndroid({
+  dsn,
+  sourcePackageRegistries,
+  ...props
+}: ModuleProps) {
+  return (
+    <Layout
+      steps={steps({dsn, sourcePackageRegistries})}
+      nextSteps={nextSteps}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithAndroid;

@@ -5,18 +5,19 @@ from sentry.models import (
     ReleaseCommit,
     ReleaseEnvironment,
     ReleaseFile,
-    ScheduledDeletion,
 )
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.tasks.deletion.scheduled import run_deletion
+from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers import TaskRunner
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-class DeleteReleaseTest(TransactionTestCase):
+@region_silo_test(stable=True)
+class DeleteReleaseTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -24,11 +25,10 @@ class DeleteReleaseTest(TransactionTestCase):
         release = self.create_release(project=project, environments=[env])
         file = self.create_release_file(release_id=release.id)
 
-        deletion = ScheduledDeletion.schedule(release, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=release, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not Release.objects.filter(id=release.id).exists()
         assert not ReleaseCommit.objects.filter(release=release).exists()

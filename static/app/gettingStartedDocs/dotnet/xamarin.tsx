@@ -9,9 +9,10 @@ import {t, tct} from 'sentry/locale';
 // Configuration Start
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+}: Partial<
+  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
+> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -24,12 +25,22 @@ export const steps = ({
     configurations: [
       {
         language: 'shell',
+        partialLoading: sourcePackageRegistries?.isLoading,
         code: `
 # For Xamarin.Forms
-Install-Package Sentry.Xamarin.Forms -Version 1.5.2
+Install-Package Sentry.Xamarin.Forms -Version ${
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.xamarin-forms']?.version ??
+              '1.5.2'
+        }
 
 # If you are not using Xamarin.Forms, but only Xamarin:
-Install-Package Sentry.Xamarin -Version 1.5.2
+Install-Package Sentry.Xamarin -Version ${
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.xamarin']?.version ?? '1.5.2'
+        }
         `,
       },
     ],
@@ -239,8 +250,12 @@ transaction.Finish(); // Mark the transaction as finished and send it to Sentry
 ];
 // Configuration End
 
-export function GettingStartedWithXamarin({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
+export function GettingStartedWithXamarin({
+  dsn,
+  sourcePackageRegistries,
+  ...props
+}: ModuleProps) {
+  return <Layout steps={steps({dsn, sourcePackageRegistries})} {...props} />;
 }
 
 export default GettingStartedWithXamarin;

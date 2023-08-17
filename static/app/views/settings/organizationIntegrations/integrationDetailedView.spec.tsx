@@ -1,8 +1,9 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
 
 describe('IntegrationDetailedView', function () {
+  const ENDPOINT = '/organizations/org-slug/';
   const org = TestStubs.Organization({
     access: ['org:integrations', 'org:write'],
   });
@@ -201,6 +202,7 @@ describe('IntegrationDetailedView', function () {
   });
 
   it('cannot enable PR bot without GitHub integration', async function () {
+    org.features.push('integrations-open-pr-comment');
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
@@ -224,7 +226,67 @@ describe('IntegrationDetailedView', function () {
     await userEvent.click(screen.getByText('features'));
 
     expect(
-      screen.getByRole('checkbox', {name: /Enable Pull Request Bot/})
+      screen.getByRole('checkbox', {name: /Enable Comments on Suspect Pull Requests/})
     ).toBeDisabled();
+
+    expect(
+      screen.getByRole('checkbox', {name: /Enable Comments on Open Pull Requests/})
+    ).toBeDisabled();
+  });
+
+  it('can enable github comment bots', async function () {
+    org.features.push('integrations-open-pr-comment');
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
+      body: {
+        providers: [TestStubs.GitHubIntegrationProvider()],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/integrations/?provider_key=github&includeConfig=0`,
+      body: [TestStubs.GitHubIntegration()],
+    });
+    render(
+      <IntegrationDetailedView
+        {...TestStubs.routeComponentProps()}
+        params={{integrationSlug: 'github'}}
+        organization={org}
+        location={TestStubs.location({query: {}})}
+      />
+    );
+    await userEvent.click(screen.getByText('features'));
+
+    const mock = MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      method: 'PUT',
+    });
+
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: /Enable Comments on Suspect Pull Requests/})
+    );
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        ENDPOINT,
+        expect.objectContaining({
+          data: {githubPRBot: true},
+        })
+      );
+    });
+
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: /Enable Comments on Open Pull Requests/})
+    );
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        ENDPOINT,
+        expect.objectContaining({
+          data: {githubOpenPRBot: true},
+        })
+      );
+    });
   });
 });

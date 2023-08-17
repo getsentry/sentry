@@ -133,7 +133,13 @@ ORG_OPTIONS = (
         "githubPRBot",
         "sentry:github_pr_bot",
         bool,
-        org_serializers.GITHUB_PR_BOT_DEFAULT,
+        org_serializers.GITHUB_COMMENT_BOT_DEFAULT,
+    ),
+    (
+        "githubOpenPRBot",
+        "sentry:github_open_pr_bot",
+        bool,
+        org_serializers.GITHUB_COMMENT_BOT_DEFAULT,
     ),
 )
 
@@ -178,6 +184,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     aiSuggestedSolution = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
+    githubOpenPRBot = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
@@ -482,12 +489,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :param string detailed: Specify '0' to retrieve details without projects and teams.
         :auth: required
         """
-        is_detailed = request.GET.get("detailed", "1") != "0"
-        serializer = (
-            org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams
-            if is_detailed
-            else org_serializers.DetailedOrganizationSerializer
-        )
+
+        serializer = org_serializers.OrganizationSerializer
+        if request.access.has_scope("org:read"):
+            is_detailed = request.GET.get("detailed", "1") != "0"
+
+            serializer = org_serializers.DetailedOrganizationSerializer
+            if is_detailed:
+                serializer = org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams
+
         context = serialize(organization, request.user, serializer(), access=request.access)
 
         return self.respond(context)
