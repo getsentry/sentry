@@ -24,12 +24,12 @@ export type ValidSort = Sort & {
  * Parses a `Sort` object from the URL. In case of multiple specified sorts
  * picks the first one, since span module UIs only support one sort at a time.
  */
-export function useModuleSort() {
+export function useModuleSort(fallback: Sort = DEFAULT_SORT) {
   const location = useLocation<Query>();
 
   return (
     fromSorts(location.query[QueryParameterNames.SORT]).filter(isAValidSort)[0] ??
-    DEFAULT_SORT
+    fallback
   );
 }
 
