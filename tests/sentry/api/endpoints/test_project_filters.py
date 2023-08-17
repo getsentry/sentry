@@ -9,6 +9,8 @@ class ProjectFiltersTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
+        self.team = self.create_team(organization=self.organization, name="foo", slug="foo")
+        self.project = self.create_project(name="Bar", slug="bar", teams=[self.team])
 
     def get_filter_spec(self, response_data, spec_id):
         """
@@ -20,12 +22,8 @@ class ProjectFiltersTest(APITestCase):
         return None
 
     def test_get(self):
-        org = self.create_organization(name="baz", slug="1", owner=self.user)
-        team = self.create_team(organization=org, name="foo", slug="foo")
-        project = self.create_project(name="Bar", slug="bar", teams=[team])
-
-        project.update_option("filters:browser-extension", "0")
-        response = self.get_success_response(org.slug, project.slug)
+        self.project.update_option("filters:browser-extension", "0")
+        response = self.get_success_response(self.organization.slug, self.project.slug)
 
         filter_responses = {
             "browser-extensions": False,
@@ -35,24 +33,21 @@ class ProjectFiltersTest(APITestCase):
             "web-crawlers": False,
         }
         for filter in response.data:
+            assert filter.keys() == {"id", "active", "description", "name", "hello"}
             assert filter["active"] == filter_responses[filter["id"]]
 
     def test_health_check_filter(self):
         """
         Tests setting health check filters ( aka filtered-transactions)
         """
-        org = self.create_organization(name="baz", slug="1", owner=self.user)
-        team = self.create_team(organization=org, name="foo", slug="foo")
-        project = self.create_project(name="Bar", slug="bar", teams=[team])
-
-        project.update_option("filters:filtered-transaction", "0")
-        response = self.get_success_response(org.slug, project.slug)
+        self.project.update_option("filters:filtered-transaction", "0")
+        response = self.get_success_response(self.organization.slug, self.project.slug)
         health_check = self.get_filter_spec(response.data, "filtered-transaction")
         assert health_check is not None
         assert health_check["active"] is False
 
-        project.update_option("filters:filtered-transaction", "1")
-        response = self.get_success_response(org.slug, project.slug)
+        self.project.update_option("filters:filtered-transaction", "1")
+        response = self.get_success_response(self.organization.slug, self.project.slug)
         health_check = self.get_filter_spec(response.data, "filtered-transaction")
         assert health_check is not None
         assert health_check["active"] is True
