@@ -20,7 +20,7 @@ interface Props extends Omit<TooltipProps, 'title'> {
 
 export function JobTickTooltip({jobTick, timeWindowConfig, children, ...props}: Props) {
   const {startTs, endTs, envMapping} = jobTick;
-  const {tooltipDateTimeProps} = timeWindowConfig;
+  const {dateLabelFormat} = timeWindowConfig;
   const capturedEnvs = Object.keys(envMapping);
   const representsSingleJob =
     capturedEnvs.length === 1 &&
@@ -30,11 +30,11 @@ export function JobTickTooltip({jobTick, timeWindowConfig, children, ...props}: 
   const tooltipTitle = (
     <Fragment>
       <TooltipTimeLabel>
-        <DateTime date={startTs * 1000} {...tooltipDateTimeProps} />
+        <DateTime date={startTs * 1000} format={dateLabelFormat} />
         {!representsSingleJob && (
           <Fragment>
             <Text>{'\u2014'}</Text>
-            <DateTime date={endTs * 1000} {...tooltipDateTimeProps} />
+            <DateTime date={endTs * 1000} format={dateLabelFormat} />
           </Fragment>
         )}
       </TooltipTimeLabel>

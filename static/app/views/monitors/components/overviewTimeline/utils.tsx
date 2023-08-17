@@ -30,15 +30,15 @@ export function getConfigFromTimeRange(
   const minuteRanges = [1, 10, 30, 60, 4 * 60, 8 * 60, 12 * 60];
   const startEndMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
   const timeLabelMinutes = startEndMinutes * (TIMELABEL_WIDTH / timelineWidth);
+  const subMinutePxBuckets = startEndMinutes < timelineWidth;
 
   for (const minutes of minuteRanges) {
     if (minutes > timeLabelMinutes) {
       return {
-        cursorLabelFormat: getFormat({timeOnly: true}),
+        dateLabelFormat: getFormat({timeOnly: true, seconds: subMinutePxBuckets}),
         elapsedMinutes: startEndMinutes,
         timeMarkerInterval: minutes,
         dateTimeProps: {timeOnly: true},
-        tooltipDateTimeProps: {timeOnly: true},
       };
     }
   }
@@ -46,10 +46,9 @@ export function getConfigFromTimeRange(
   // Calculate days between each time label interval for larger time ranges
   const timeLabelIntervalDays = Math.ceil(timeLabelMinutes / (60 * 24));
   return {
-    cursorLabelFormat: getFormat(),
+    dateLabelFormat: getFormat(),
     elapsedMinutes: startEndMinutes,
     timeMarkerInterval: timeLabelIntervalDays * 60 * 24,
     dateTimeProps: {dateOnly: true},
-    tooltipDateTimeProps: {},
   };
 }

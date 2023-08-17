@@ -89,15 +89,15 @@ export function GridLineOverlay({
   stickyCursor,
   className,
 }: Props) {
-  const {cursorLabelFormat} = timeWindowConfig;
+  const {dateLabelFormat} = timeWindowConfig;
 
   const makeCursorText = useCallback(
     (percentPosition: number) => {
       const timeOffset = (end.getTime() - start.getTime()) * percentPosition;
 
-      return moment(start.getTime() + timeOffset).format(cursorLabelFormat);
+      return moment(start.getTime() + timeOffset).format(dateLabelFormat);
     },
-    [cursorLabelFormat, end, start]
+    [dateLabelFormat, end, start]
   );
 
   const {cursorContainerRef, timelineCursor} = useTimelineCursor<HTMLDivElement>({

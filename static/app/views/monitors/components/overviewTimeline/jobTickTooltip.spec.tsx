@@ -14,11 +14,10 @@ export function generateEnvMapping(name: string, counts: StatusCounts) {
 }
 
 const tickConfig: TimeWindowOptions = {
-  cursorLabelFormat: getFormat({timeOnly: true, seconds: true}),
+  dateLabelFormat: getFormat({timeOnly: true, seconds: true}),
   elapsedMinutes: 60,
   timeMarkerInterval: 10,
   dateTimeProps: {timeOnly: true},
-  tooltipDateTimeProps: {timeOnly: true},
 };
 
 describe('JobTickTooltip', function () {
