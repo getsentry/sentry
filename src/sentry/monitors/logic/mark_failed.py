@@ -140,7 +140,7 @@ def mark_failed(
                     "monitor.id": str(monitor_env.monitor.guid),
                     "monitor.slug": monitor_env.monitor.slug,
                 },
-                "trace_id": occurrence_context.get("trace_id"),
+                "trace_id": str(occurrence_context.get("trace_id")),
                 "timestamp": current_timestamp.isoformat(),
             },
         )
