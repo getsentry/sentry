@@ -1,3 +1,4 @@
+from ..blueprint.models import AlertProcedure, AlertTemplate  # NOQA
 from .activity import *  # NOQA
 from .actor import *  # NOQA
 from .apiapplication import *  # NOQA
