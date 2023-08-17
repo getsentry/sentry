@@ -662,5 +662,6 @@ const NumericActionMenuTrigger = styled(ActionMenuTrigger)`
 `;
 
 const OverlayActionMenuTrigger = styled(NumericActionMenuTrigger)`
-  left: 65%;
+  right: 0%;
+  left: unset;
 `;
