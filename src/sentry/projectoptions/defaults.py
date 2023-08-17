@@ -65,7 +65,7 @@ register(
 )
 
 # Default legacy-browsers filter
-register(key="filters:legacy-browsers", epoch_defaults={1: "0"})
+register(key="filters:legacy-browsers", epoch_defaults={1: []})
 
 # Default web crawlers filter
 register(key="filters:web-crawlers", epoch_defaults={1: "1", 6: "0"})

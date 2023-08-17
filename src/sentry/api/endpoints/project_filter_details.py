@@ -80,20 +80,11 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
 
         returned_state = None
         if filter_id == "legacy-browsers":
-            if isinstance(current_state, bool) or isinstance(new_state, bool):
-                returned_state = new_state
-                if not new_state:
-                    audit_log_state = audit_log.get_event_id("PROJECT_DISABLE")
+            returned_state = new_state
 
-            elif current_state - new_state:
-                returned_state = current_state - new_state
+            # Check if disabling filter
+            if not new_state:
                 audit_log_state = audit_log.get_event_id("PROJECT_DISABLE")
-
-            elif new_state - current_state:
-                returned_state = new_state - current_state
-
-            elif new_state == current_state:
-                returned_state = new_state
 
         if filter_id in (
             FilterStatKeys.BROWSER_EXTENSION,
@@ -117,4 +108,13 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             data={"state": returned_state},
         )
 
-        return Response(status=204)
+        data = {
+            "id": current_filter.id,
+            # 'active' will be a list for the legacy browser filter.
+            # All other filters will be boolean
+            "active": list(new_state) if isinstance(new_state, Iterable) else new_state,
+            "description": flt.description,
+            "name": flt.name,
+        }
+
+        return Response(data, status=200)

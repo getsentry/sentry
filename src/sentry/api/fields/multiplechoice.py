@@ -14,11 +14,12 @@ class MultipleChoiceField(serializers.Field):
         return value
 
     def to_internal_value(self, data):
-        if isinstance(data, list):
-            for item in data:
-                if item not in self.choices:
-                    raise serializers.ValidationError(
-                        ERROR_MESSAGES["invalid_choice"].format(value=item)
-                    )
-            return data
-        raise serializers.ValidationError("Please provide a valid list.")
+        if not isinstance(data, list):
+            raise serializers.ValidationError("Please provide a valid list.")
+
+        for item in data:
+            if item not in self.choices:
+                raise serializers.ValidationError(
+                    ERROR_MESSAGES["invalid_choice"].format(value=item)
+                )
+        return data

@@ -84,7 +84,9 @@ def set_filter_state(filter_id, project, state):
         if "active" in state:
             if state["active"]:
                 option_val = "1"
-        elif "subfilters" in state and len(state["subfilters"]) > 0:
+        # Set state to subfilters list if present. If the list is empty, we set it anyways because
+        # we want to represent all filters disabled as an empty list
+        elif "subfilters" in state:
             option_val = set(state["subfilters"])
 
         ProjectOption.objects.set_value(
@@ -119,6 +121,7 @@ def get_filter_state(filter_id, project):
     :param filter_id: the filter Id
     :param project: the project for which we want the filter state
     :return: True if the filter is enabled False otherwise
+             If legacy browser filter, [list of enabled subfilters] if enabled [] otherwise
     :raises: ValueError if filter id not registered
     """
     flt = _filter_from_filter_id(filter_id)
@@ -137,10 +140,10 @@ def get_filter_state(filter_id, project):
 
     if flt == _legacy_browsers_filter:
         # special handling for legacy browser state
-        if filter_state == "1":
-            return True
+        # The default filter_state is now [], but we leave this check for backwards compatibility
         if filter_state == "0":
-            return False
+            return []
+        # filter_state is guaranteed to be an array
         return filter_state
     else:
         return filter_state == "1"
