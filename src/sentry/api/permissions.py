@@ -32,13 +32,10 @@ class RelayPermission(permissions.BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         return getattr(request, "relay", None) is not None
 
-    def hello_there(self) -> str:
-        return "henlo"
-
 
 class SystemPermission(permissions.BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
-        return False
+        return is_system_auth(request.auth)
 
 
 class NoPermission(permissions.BasePermission):
@@ -83,7 +80,7 @@ class SuperuserPermission(permissions.BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         if is_active_superuser(request):
             return True
-        elif request.user.is_authenticated and request.user.is_superuser:
+        if request.user.is_authenticated and request.user.is_superuser:
             raise SuperuserRequired
         return False
 
