@@ -19,4 +19,5 @@ class ApiOwner(Enum):
     GROWTH = "growth"
     OWNERS_INGEST = "owners-ingest"
     OWNERS_NATIVE = "owners-native"
+    REPLAY = "replay-backend"
     UNOWNED = "unowned"
