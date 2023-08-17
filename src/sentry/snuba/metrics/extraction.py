@@ -25,6 +25,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import fields
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricOperationType
+from sentry.snuba.models import SnubaQuery
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
 
 logger = logging.getLogger(__name__)
@@ -234,6 +235,13 @@ class SupportedBy:
             standard_metrics=all(s.standard_metrics for s in supported_by),
             on_demand_metrics=all(s.on_demand_metrics for s in supported_by),
         )
+
+
+def is_on_demand_snuba_query(snuba_query: SnubaQuery) -> bool:
+    """Returns ``True`` if the snuba query can't be supported by standard metrics."""
+    return should_use_on_demand_metrics(
+        snuba_query.dataset, snuba_query.aggregate, snuba_query.query
+    )
 
 
 def should_use_on_demand_metrics(
