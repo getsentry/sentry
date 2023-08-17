@@ -34,18 +34,6 @@ type Return = {
   setSearchTerm: (searchTerm: string) => void;
 };
 
-const TYPE_TO_LABEL: Record<string, string> = {
-  'ui.slowClickDetected': 'Rage & Dead Click',
-  'ui.click': 'User Click',
-  'ui.keyDown': 'KeyDown',
-  'ui.input': 'Input',
-  // TODO: fill out this list, navigation, etc.
-};
-
-function typeToLabel(val: string): string {
-  return TYPE_TO_LABEL[val] ?? 'Unknown';
-}
-
 const FILTERS = {
   type: (item: ReplayTraceRow, type: string[]) =>
     type.length === 0 || type.includes(getFrameOpOrCategory(item.replayFrame)),
@@ -76,7 +64,7 @@ function usePerfFilters({traceRows}: Options): Return {
         traceRows.map(traceRow => getFrameOpOrCategory(traceRow.replayFrame)).concat(type)
       )
         .sort()
-        .map(value => ({value, label: typeToLabel(value)})),
+        .map(value => ({value, label: value})),
     [traceRows, type]
   );
 

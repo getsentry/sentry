@@ -1,16 +1,12 @@
-import {CSSProperties, Fragment, useCallback, useEffect} from 'react';
+import {CSSProperties, Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
-// import {useDimensions} from 'sentry/utils/useDimensions';
-// import {useLocation} from 'sentry/utils/useLocation';
-// import useOrganization from 'sentry/utils/useOrganization';
 import {IconClock, IconRefresh} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type EventView from 'sentry/utils/discover/eventView';
-// import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
@@ -37,18 +33,9 @@ export default function PerfRow({
   style,
   traceRow,
 }: Props) {
-  // const location = useLocation();
-  // const organization = useOrganization();
-
   const {lcpFrame, replayFrame: frame, paintFrames, tracesFlattened} = traceRow;
   const {color, description, title, type} = getFrameDetails(frame);
   const lcp = lcpFrame ? getFrameDetails(lcpFrame) : null;
-
-  useEffect(() => {
-    if (traceRow.traces.length) {
-      console.log({traceRow});
-    }
-  }, [traceRow]);
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
