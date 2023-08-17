@@ -24,11 +24,13 @@ ON_DEMAND_METRICS_PREFILL = "organizations:on-demand-metrics-prefill"
 ON_DEMAND_METRIC_PREFILL_ENABLE = "organizations:enable-on-demand-metrics-prefill"
 
 
-def create_alert(aggregate: str, query: str, project: Project) -> AlertRule:
+def create_alert(
+    aggregate: str, query: str, project: Project, dataset: Dataset = Dataset.PerformanceMetrics
+) -> AlertRule:
     snuba_query = SnubaQuery.objects.create(
         aggregate=aggregate,
         query=query,
-        dataset=Dataset.PerformanceMetrics.value,
+        dataset=dataset.value,
         time_window=300,
         resolution=60,
         environment=None,
@@ -359,7 +361,7 @@ def test_get_metric_extraction_config_alerts_and_widgets(default_project):
         ([], 0),  # Nothing.
     ],
 )
-def test_get_metrics_extraction_features_combinations(
+def test_get_metrics_extraction_config_features_combinations(
     enabled_features, number_of_metrics, default_project
 ):
     create_alert("count()", "transaction.duration:>=10", default_project)
@@ -373,3 +375,48 @@ def test_get_metrics_extraction_features_combinations(
         else:
             assert config is not None
             assert len(config["metrics"]) == number_of_metrics
+
+
+@django_db_all
+def test_get_metric_extraction_config_with_transactions_dataset(default_project):
+    create_alert(
+        "count()", "transaction.duration:>=10", default_project, dataset=Dataset.PerformanceMetrics
+    )
+    create_alert(
+        "count()", "transaction.duration:>=20", default_project, dataset=Dataset.Transactions
+    )
+
+    # We test with prefilling, and we expect that both alerts are fetched since we support both datasets.
+    with Feature({ON_DEMAND_METRICS_PREFILL: True, ON_DEMAND_METRIC_PREFILL_ENABLE: True}):
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 2
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 10.0},
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+        assert config["metrics"][1] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 20.0},
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+
+    # We test without prefilling, and we expect that only alerts for performance metrics are fetched.
+    with Feature({ON_DEMAND_METRICS: True}):
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 1
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 10.0},
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
