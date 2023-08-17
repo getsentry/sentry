@@ -1303,7 +1303,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
 class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
     github_blame_return_value = {
         "commitId": "asdfwreqr",
-        "committedDate": (datetime.now(timezone.utc) - timedelta(days=2)),
+        "committedDate": "",
         "commitMessage": "placeholder commit message",
         "commitAuthorName": "",
         "commitAuthorEmail": "admin@localhost",
