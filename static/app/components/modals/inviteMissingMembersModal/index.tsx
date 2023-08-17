@@ -23,7 +23,6 @@ import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MissingMember, Organization, OrgRole} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {uniqueId} from 'sentry/utils/guid';
 import useApi from 'sentry/utils/useApi';
 import {
   StyledExternalLink,
@@ -41,7 +40,7 @@ export function InviteMissingMembersModal({
   organization,
   invitableRoles,
 }: InviteMissingMembersModalProps) {
-  const start = missingMembers?.map(member => ({
+  const initialMemberInvites = missingMembers?.map(member => ({
     email: member.email,
     commitCount: member.commitCount,
     role: organization.defaultRole,
@@ -49,13 +48,12 @@ export function InviteMissingMembersModal({
     externalId: member.externalId,
     selected: false,
   }));
-  const [members, setMembers] = useState<MissingMemberInvite[]>(start);
+  const [members, setMembers] = useState<MissingMemberInvite[]>(initialMemberInvites);
   const [inviteStatus, setInviteStatus] = useState<InviteStatus>({});
   const [sendingInvites, setSendingInvites] = useState(false);
   const [complete, setComplete] = useState(false);
 
   const api = useApi();
-  const sessionId = uniqueId();
 
   if (!members || (organization.access && !organization.access.includes('org:write'))) {
     return null;
@@ -173,10 +171,13 @@ export function InviteMissingMembersModal({
     setSendingInvites(false);
     setComplete(true);
 
-    trackAnalytics('missing_members_invite_modal.requests_sent', {
-      organization,
-      modal_session: sessionId,
-    });
+    trackAnalytics(
+      'missing_members_invite_modal.requests_sent',
+      {
+        organization,
+      },
+      {startSession: true}
+    );
   };
 
   const selectedCount = members.filter(i => i.selected).length;
