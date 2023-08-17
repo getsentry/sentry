@@ -91,7 +91,6 @@ def _on_demand_metrics_feature_flags(organization: Organization) -> Set[str]:
         return set()
 
     all_features = feature_values.get(f"organization:{organization.id}", {})
-
     return cast(Set[str], {name for name, value in all_features.items() if value})
 
 
