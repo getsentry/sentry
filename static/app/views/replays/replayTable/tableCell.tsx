@@ -169,7 +169,15 @@ function OSBrowserDropdownFilter({
   );
 }
 
-function NumericDropdownFilter({type, val}: {type: string; val: number}) {
+function NumericDropdownFilter({
+  type,
+  val,
+  triggerOverlay,
+}: {
+  type: string;
+  val: number;
+  triggerOverlay?: boolean;
+}) {
   const location = useLocation<ReplayListLocationQuery>();
   return (
     <DropdownMenu
@@ -223,15 +231,25 @@ function NumericDropdownFilter({type, val}: {type: string; val: number}) {
       flipOptions={{
         fallbackPlacements: ['top', 'right-start', 'right-end', 'left-start', 'left-end'],
       }}
-      trigger={triggerProps => (
-        <NumericActionMenuTrigger
-          {...triggerProps}
-          translucentBorder
-          aria-label={t('Actions')}
-          icon={<IconEllipsis size="xs" />}
-          size="zero"
-        />
-      )}
+      trigger={triggerProps =>
+        triggerOverlay ? (
+          <OverlayActionMenuTrigger
+            {...triggerProps}
+            translucentBorder
+            aria-label={t('Actions')}
+            icon={<IconEllipsis size="xs" />}
+            size="zero"
+          />
+        ) : (
+          <NumericActionMenuTrigger
+            {...triggerProps}
+            translucentBorder
+            aria-label={t('Actions')}
+            icon={<IconEllipsis size="xs" />}
+            size="zero"
+          />
+        )
+      }
     />
   );
 }
@@ -558,12 +576,19 @@ export function ActivityCell({replay}: Props) {
   const scoreBarPalette = new Array(10).fill([CHART_PALETTE[0][0]]);
   return (
     <Item>
-      <ScoreBar
-        size={20}
-        score={replay?.activity ?? 1}
-        palette={scoreBarPalette}
-        radius={0}
-      />
+      <Container>
+        <ScoreBar
+          size={20}
+          score={replay?.activity ?? 1}
+          palette={scoreBarPalette}
+          radius={0}
+        />
+        <NumericDropdownFilter
+          type="activity"
+          val={replay?.activity ?? 0}
+          triggerOverlay
+        />
+      </Container>
     </Item>
   );
 }
@@ -634,4 +659,8 @@ const NumericActionMenuTrigger = styled(ActionMenuTrigger)`
   left: 100%;
   margin-left: ${space(0.75)};
   z-index: 1;
+`;
+
+const OverlayActionMenuTrigger = styled(NumericActionMenuTrigger)`
+  left: 65%;
 `;
