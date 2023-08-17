@@ -153,7 +153,7 @@ class ArtifactBundleFlatFileIndex(Model):
         app_label = "sentry"
         db_table = "sentry_artifactbundleflatfileindex"
 
-        index_together = (("project_id", "release_name", "dist_name"),)
+        unique_together = (("project_id", "release_name", "dist_name"),)
 
     def _indexstore_id(self) -> str:
         return f"bundle_index:{self.project_id}:{self.id}"
@@ -186,6 +186,8 @@ class FlatFileIndexState(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_flatfileindexstate"
+
+        unique_together = (("flat_file_index", "artifact_bundle"),)
 
     @staticmethod
     def mark_as_indexed(
