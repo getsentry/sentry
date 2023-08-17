@@ -12,9 +12,13 @@ from sentry.debug_files.artifact_bundle_indexing import (
     BundleManifest,
     BundleMeta,
     FlatFileIndex,
+    backfill_artifact_index_updates,
+    get_all_deletions_key,
+    get_deletion_key,
     mark_bundle_for_flat_file_indexing,
     update_artifact_bundle_index,
 )
+from sentry.debug_files.artifact_bundles import get_redis_cluster_for_artifact_bundles
 from sentry.models import File
 from sentry.models.artifactbundle import (
     ArtifactBundle,
@@ -275,6 +279,50 @@ class FlatFileIndexingTest(FlatFileTestCase):
         json_index = json.loads(index.load_flat_file_index() or b"")
         assert len(json_index["bundles"]) == 0
         assert json_index["files_by_url"] == {}
+
+    def test_index_backfilling(self):
+        release = "1.0"
+        dist = "android"
+        artifact_bundle1 = self.mock_simple_artifact_bundle()
+        artifact_bundle2 = self.mock_simple_artifact_bundle()
+
+        identifiers1 = mark_bundle_for_flat_file_indexing(
+            artifact_bundle1, [self.project.id], release, dist
+        )
+        identifiers2 = mark_bundle_for_flat_file_indexing(
+            artifact_bundle2, [self.project.id], release, dist
+        )
+        assert identifiers1 == identifiers2
+        identifier = identifiers1[0]
+
+        index = ArtifactBundleFlatFileIndex.objects.get(
+            project_id=identifier.project_id,
+            release_name=identifier.release,
+            dist_name=identifier.dist,
+        )
+
+        assert index.load_flat_file_index() is None
+
+        # bundle 2 is both scheduled for addition *and* removal.
+        # this could in theory happen if it is being created and deleted in quick succession,
+        # and there is a race between querying its indexing state, and its removal.
+        redis_client = get_redis_cluster_for_artifact_bundles()
+        redis_client.sadd(get_deletion_key(index.id), artifact_bundle2.id)
+
+        backfill_artifact_index_updates()
+
+        json_index = json.loads(index.load_flat_file_index() or b"")
+        assert len(json_index["bundles"]) == 1
+        assert json_index["bundles"][0]["bundle_id"] == f"artifact_bundle/{artifact_bundle1.id}"
+        assert json_index["files_by_url"]["~/app.js"] == [0]
+
+        redis_client.sadd(get_all_deletions_key(), index.id)
+        redis_client.sadd(get_deletion_key(index.id), artifact_bundle1.id)
+
+        backfill_artifact_index_updates()
+
+        json_index = json.loads(index.load_flat_file_index() or b"")
+        assert len(json_index["bundles"]) == 0
 
 
 @freeze_time("2023-07-13T10:00:00.000Z")
