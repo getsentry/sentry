@@ -1,4 +1,10 @@
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import {addTeamToProject} from 'sentry/actionCreators/projects';
 import {TeamSelector} from 'sentry/components/teamSelector';
@@ -64,10 +70,7 @@ describe('Team Selector', function () {
 
     const option = screen.getByText('#team1');
     await userEvent.click(option);
-    expect(onChangeMock).toHaveBeenCalledWith(
-      expect.objectContaining({value: 'team1'}),
-      expect.anything()
-    );
+    expect(onChangeMock).toHaveBeenCalledWith(expect.objectContaining({value: 'team1'}));
   });
 
   it('respects the team filter', async function () {
@@ -134,12 +137,48 @@ describe('Team Selector', function () {
 
     expect(screen.getByText('#team2')).toBeInTheDocument();
     await userEvent.click(screen.getByText('#team2'));
-    expect(onChangeMock).toHaveBeenCalledWith(
-      expect.objectContaining({value: '2'}),
-      expect.anything()
-    );
+    expect(onChangeMock).toHaveBeenCalledWith(expect.objectContaining({value: '2'}));
 
     // Wait for store to be updated from API response
     await act(tick);
+  });
+
+  it('allows to create a new team if org admin', async function () {
+    const orgWithAccess = TestStubs.Organization({access: ['project:admin']});
+
+    const onChangeMock = jest.fn();
+    createWrapper({
+      allowCreate: true,
+      onChange: onChangeMock,
+      organization: orgWithAccess,
+    });
+    await userEvent.type(screen.getByText('Select...'), '{keyDown}');
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+    });
+
+    renderGlobalModal();
+    await userEvent.click(screen.getByText('Create team'));
+    // it opens the create team modal
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('does not allow to create a new team if not org owner', async function () {
+    const orgWithoutAccess = TestStubs.Organization({access: ['project:write']});
+
+    const onChangeMock = jest.fn();
+    createWrapper({
+      allowCreate: true,
+      onChange: onChangeMock,
+      organization: orgWithoutAccess,
+    });
+    await userEvent.type(screen.getByText('Select...'), '{keyDown}');
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+    });
+
+    expect(screen.queryByText('Create team')).not.toBeInTheDocument();
   });
 });

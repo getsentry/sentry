@@ -1,8 +1,10 @@
 import {useRef} from 'react';
+import {createFilter} from 'react-select';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
 import {Button} from 'sentry/components/button';
 import SelectControl, {
@@ -46,6 +48,20 @@ const unassignedOption = {
   disabled: false,
 };
 
+const CREATE_TEAM_VALUE = 'CREATE_TEAM_VALUE';
+const createOption = {
+  value: CREATE_TEAM_VALUE,
+  label: 'Create team',
+  leadingItems: <IconAdd isCircled />,
+  searchKey: 'create',
+  actor: null,
+  disabled: false,
+};
+
+const optionFilter = createFilter({
+  stringify: option => `${option.label} ${option.value}`,
+});
+
 // Ensures that the svg icon is white when selected
 const unassignedSelectStyles: StylesConfig = {
   option: (provided, state) => {
@@ -88,6 +104,10 @@ const placeholderSelectStyles: StylesConfig = {
 type Props = {
   onChange: (value: any) => any;
   organization: Organization;
+  /**
+   * Controls whether the dropdown allows to create a new team
+   */
+  allowCreate?: boolean;
   includeUnassigned?: boolean;
   /**
    * Can be used to restrict teams to a certain project and allow for new teams to be add to that project
@@ -115,14 +135,18 @@ type TeamOption = GeneralSelectValue & {
 };
 
 function TeamSelector(props: Props) {
-  const {includeUnassigned, styles, ...extraProps} = props;
-  const {teamFilter, organization, project, multiple, value, useId, onChange} = props;
+  const {allowCreate, includeUnassigned, styles, onChange, ...extraProps} = props;
+  const {teamFilter, organization, project, multiple, value, useId} = props;
 
   const api = useApi();
   const {teams, fetching, onSearch} = useTeams();
 
   // TODO(ts) This type could be improved when react-select types are better.
   const selectRef = useRef<any>(null);
+
+  const canCreateTeam = organization.access.includes('project:admin');
+  const canAddTeam = organization.access.includes('project:write');
+  const includeCreate = allowCreate && canCreateTeam;
 
   const createTeamOption = (team: Team): TeamOption => ({
     value: useId ? team.id : team.slug,
@@ -154,6 +178,45 @@ function TeamSelector(props: Props) {
     }
   }
 
+  const createTeam = () =>
+    new Promise<TeamOption>(resolve => {
+      openCreateTeamModal({
+        organization,
+        onClose: async team => {
+          if (project) {
+            await handleAddTeamToProject(team);
+          }
+          resolve(createTeamOption(team));
+        },
+      });
+    });
+
+  const handleChange = (newValue: TeamOption | TeamOption[]) => {
+    if (multiple) {
+      const options = newValue as TeamOption[];
+      const shouldCreate = options.find(option => option.value === CREATE_TEAM_VALUE);
+      if (shouldCreate) {
+        createTeam().then(newTeamOption => {
+          onChange?.([
+            ...options.filter(option => option.value !== CREATE_TEAM_VALUE),
+            newTeamOption,
+          ]);
+        });
+      } else {
+        onChange?.(options);
+      }
+    } else {
+      const option = newValue as TeamOption;
+      if (option.value === CREATE_TEAM_VALUE) {
+        createTeam().then(newTramOption => {
+          onChange?.(newTramOption);
+        });
+      } else {
+        onChange?.(option);
+      }
+    }
+  };
+
   async function handleAddTeamToProject(team: Team) {
     if (!project) {
       closeSelectMenu();
@@ -180,7 +243,6 @@ function TeamSelector(props: Props) {
     if (value === (useId ? team.id : team.slug)) {
       return createTeamOption(team);
     }
-    const canAddTeam = organization.access.includes('project:write');
 
     return {
       ...createTeamOption(team),
@@ -223,6 +285,7 @@ function TeamSelector(props: Props) {
       );
 
       return [
+        ...(includeCreate ? [createOption] : []),
         ...teamsInProject.map(createTeamOption),
         ...teamsNotInProject.map(createTeamOutsideProjectOption),
         ...(includeUnassigned ? [unassignedOption] : []),
@@ -230,6 +293,7 @@ function TeamSelector(props: Props) {
     }
 
     return [
+      ...(includeCreate ? [createOption] : []),
       ...filteredTeams.map(createTeamOption),
       ...(includeUnassigned ? [unassignedOption] : []),
     ];
@@ -241,12 +305,17 @@ function TeamSelector(props: Props) {
       options={getOptions()}
       onInputChange={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}
       getOptionValue={option => option.searchKey}
+      filterOption={(canditate, input) =>
+        // Never filter out the create team option
+        canditate.data.value === CREATE_TEAM_VALUE || optionFilter(canditate, input)
+      }
       styles={{
         ...(includeUnassigned ? unassignedSelectStyles : {}),
         ...(multiple ? {} : placeholderSelectStyles),
         ...(styles ?? {}),
       }}
       isLoading={fetching}
+      onChange={handleChange}
       {...extraProps}
     />
   );
