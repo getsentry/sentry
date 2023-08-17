@@ -121,4 +121,4 @@ def migrate_opsgenie_plugin(integration_id: int, organization_id: int) -> None:
                 rule.save()
 
         # disable plugin
-        plugin.disable(project)
+        plugin.reset_options(project)

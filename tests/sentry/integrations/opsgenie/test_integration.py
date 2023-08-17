@@ -222,8 +222,10 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             },
         ]
 
-        assert self.plugin.get_option("enabled", self.project) is False
-        assert plugin2.get_option("enabled", project2) is False
+        assert self.plugin.is_enabled(self.project) is False
+        assert self.plugin.is_configured(self.project) is False
+        assert plugin2.is_enabled(project2) is False
+        assert plugin2.is_configured(self.project) is False
 
     def test_no_duplicate_keys(self):
         """
@@ -252,6 +254,55 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
                 {"id": id1, "team": "thonk [MIGRATED]", "integration_key": "123-key"},
             ]
         }
+
+    def test_existing_key(self):
+        """
+        Test that migration works if a key has already been added to config.
+        """
+        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        org_integration.config = {
+            "team_table": [
+                {
+                    "id": str(self.organization.id) + "-pikachu",
+                    "team": "pikachu",
+                    "integration_key": "123-key",
+                },
+            ]
+        }
+        org_integration.save()
+
+        Rule.objects.create(
+            label="rule",
+            project=self.project,
+            data={"match": "all", "actions": [ALERT_LEGACY_INTEGRATIONS]},
+        )
+        with self.tasks():
+            self.installation.schedule_migrate_opsgenie_plugin()
+
+        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        assert org_integration.config == {
+            "team_table": [
+                {
+                    "id": str(self.organization.id) + "-pikachu",
+                    "team": "pikachu",
+                    "integration_key": "123-key",
+                },
+            ]
+        }
+
+        rule_updated = Rule.objects.get(
+            label="rule",
+            project=self.project,
+        )
+
+        assert rule_updated.data["actions"] == [
+            ALERT_LEGACY_INTEGRATIONS,
+            {
+                "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+                "account": org_integration.id,
+                "team": str(self.organization.id) + "-pikachu",
+            },
+        ]
 
     def test_multiple_rules(self):
         """
