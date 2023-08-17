@@ -8,7 +8,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test
-class UserTest(TestCase, HybridCloudTestMixin):
+class UserTest(TestCase):
     def test_hybrid_cloud_deletion(self):
         user = self.create_user()
         user_id = user.id
@@ -27,13 +27,13 @@ class UserTest(TestCase, HybridCloudTestMixin):
         # Ensure they are all now gone.
         assert not SavedSearch.objects.filter(owner_id=user_id).exists()
 
+
+@control_silo_test(stable=True)
+class UserDetailsTest(TestCase):
     def test_get_full_name(self):
         user = self.create_user(name="foo bar")
         assert user.name == user.get_full_name() == "foo bar"
 
-
-@control_silo_test(stable=True)
-class UserDetailsTest(TestCase):
     def test_salutation(self):
         user = self.create_user(email="a@example.com", username="a@example.com")
         assert user.get_salutation_name() == "A"
