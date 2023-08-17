@@ -760,6 +760,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.check_am2_compatibility",
     "sentry.dynamic_sampling.tasks.collect_orgs",
     "sentry.tasks.statistical_detectors",
+    "sentry.debug_files.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -1133,6 +1134,11 @@ CELERYBEAT_SCHEDULE_REGION = {
     "statistical-detectors-detect-regressions": {
         "task": "sentry.tasks.statistical_detectors.run_detection",
         "schedule": crontab(minute=0, hour="*/1"),
+    },
+    "backfill-artifact-bundle-index": {
+        "task": "sentry.debug_files.tasks.backfill_artifact_index_updates",
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
     },
 }
 
