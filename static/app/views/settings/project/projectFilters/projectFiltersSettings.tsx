@@ -14,6 +14,7 @@ import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -26,12 +27,48 @@ import filterGroups, {
   customFilterFields,
   getOptionsData,
 } from 'sentry/data/forms/inboundFilters';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+
+const filterDescriptions = {
+  'browser-extensions': {
+    label: t('Filter out errors known to be caused by browser extensions'),
+    help: t(
+      'Certain browser extensions will inject inline scripts and are known to cause errors.'
+    ),
+  },
+  localhost: {
+    label: t('Filter out events coming from localhost'),
+    help: 'This applies to both IPv4 (``127.0.0.1``) and IPv6 (``::1``) addresses.',
+  },
+  'filtered-transaction': {
+    label: t('Filter out health check transactions'),
+    help: tct(
+      'Filter transactions that match most [commonNamingPatterns:common naming patterns] for health checks.',
+      {
+        commonNamingPatterns: (
+          <ExternalLink href="https://docs.sentry.io/product/data-management-settings/filtering/#transactions-coming-from-healthcheck" />
+        ),
+      }
+    ),
+  },
+  'legacy-browser': {
+    label: t('Filter out known errors from legacy browsers'),
+    help: t(
+      'Older browsers often give less accurate information, and while they may report valid issues, the context to understand them is incorrect or missing.'
+    ),
+  },
+  'web-crawlers': {
+    label: t('Filter out known web crawlers'),
+    help: t(
+      'Some crawlers may execute pages in incompatible ways which then cause errors that are unlikely to be seen by a normal user.'
+    ),
+  },
+};
 
 const LEGACY_BROWSER_SUBFILTERS = {
   ie_pre_9: {
@@ -322,9 +359,8 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
               {filterList.map(filter => {
                 const fieldProps = {
                   name: filter.id,
-                  label: filter.name,
-                  help: filter.description,
                   disabled: !hasAccess,
+                  ...filterDescriptions[filter.id],
                 };
 
                 // Note by default, forms generate data in the format of:
