@@ -109,7 +109,7 @@ class IntegrationClassificationTest(BaseClassificationTestCase):
         provider = "acme"
         request = self.factory.post(f"{self.prefix}{provider}/webhook/")
         assert mock_identify_provider(request) == provider
-        assert IntegrationClassification.integration_parsers.get(provider) is None
+        assert self.integration_cls.integration_parsers.get(provider) is None
         self.validate_mock_ran_with_noop(request, mock_identify_provider)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
