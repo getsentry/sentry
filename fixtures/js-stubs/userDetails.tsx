@@ -1,4 +1,6 @@
-export function UserDetails(params = {}) {
+import {User} from 'sentry/types';
+
+export function UserDetails(params: Partial<User> = {}): User {
   return {
     username: 'billyfirefoxusername@test.com',
     emails: [
@@ -10,7 +12,11 @@ export function UserDetails(params = {}) {
     lastActive: '2018-01-25T21:00:19.946Z',
     identities: [],
     id: '4',
+    isStaff: false,
     isActive: true,
+    isSuperuser: false,
+    isAuthenticated: true,
+    ip_address: '',
     has2fa: false,
     name: 'Firefox Billy',
     avatarUrl:
@@ -19,16 +25,21 @@ export function UserDetails(params = {}) {
     dateJoined: '2018-01-11T00:30:41.366Z',
     options: {
       timezone: 'UTC',
-      seenReleaseBroadcast: null,
-      stacktraceOrder: 'default',
+      stacktraceOrder: 1,
       language: 'en',
       clock24Hours: false,
       defaultIssueEvent: 'recommended',
+      avatarType: 'gravatar',
+      theme: 'light',
     },
     avatar: {avatarUuid: null, avatarType: 'letter_avatar'},
     lastLogin: '2018-01-25T19:57:46.973Z',
-    permissions: [],
+    permissions: new Set(),
     email: 'billyfirefox@test.com',
+    canReset2fa: false,
+    experiments: [],
+    flags: {newsletter_consent_prompt: false},
+    hasPasswordAuth: false,
     ...params,
   };
 }
