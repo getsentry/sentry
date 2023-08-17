@@ -243,7 +243,10 @@ type ClientOptions = {
    * The base URL path to prepend to API request URIs.
    */
   baseUrl?: string;
-
+  /**
+   * Credentials policy to apply to each request
+   */
+  credentials?: RequestCredentials;
   /**
    * Base set of headers to apply to each request
    */
@@ -265,6 +268,7 @@ export class Client {
   baseUrl: string;
   activeRequests: Record<string, Request>;
   headers: HeadersInit;
+  credentials?: RequestCredentials;
 
   static JSON_HEADERS = {
     Accept: 'application/json; charset=utf-8',
@@ -275,6 +279,7 @@ export class Client {
     this.baseUrl = options.baseUrl ?? '/api/0';
     this.headers = options.headers ?? Client.JSON_HEADERS;
     this.activeRequests = {};
+    this.credentials = options.credentials ?? 'include';
   }
 
   wrapCallback<T extends any[]>(
@@ -459,7 +464,7 @@ export class Client {
       method,
       body,
       headers,
-      credentials: 'include',
+      credentials: this.credentials,
       signal: aborter?.signal,
     });
 
