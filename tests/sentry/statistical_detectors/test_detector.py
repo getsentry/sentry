@@ -71,6 +71,20 @@ from sentry.statistical_detectors.detector import (
         ),
         pytest.param(
             {
+                TrendState.FIELD_COUNT: "x",
+                TrendState.FIELD_SHORT_TERM: "2",
+                TrendState.FIELD_LONG_TERM: "3",
+            },
+            {
+                TrendState.FIELD_VERSION: 1,
+                TrendState.FIELD_COUNT: 0,
+                TrendState.FIELD_SHORT_TERM: 0,
+                TrendState.FIELD_LONG_TERM: 0,
+            },
+            id="bad version",
+        ),
+        pytest.param(
+            {
                 TrendState.FIELD_VERSION: "1",
                 TrendState.FIELD_COUNT: "foo",
                 TrendState.FIELD_SHORT_TERM: "bar",

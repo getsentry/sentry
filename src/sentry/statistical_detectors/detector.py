@@ -10,7 +10,6 @@ from sentry.utils.math import ExponentialMovingAverage
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
-KEY_TTL = 24 * 60 * 60  # 1 day TTL
 MIN_DATA_POINTS = 6
 
 
