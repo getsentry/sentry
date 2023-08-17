@@ -13,10 +13,16 @@ export enum TabKey {
   ERRORS = 'errors',
   MEMORY = 'memory',
   NETWORK = 'network',
+  PERF = 'perf',
   TRACE = 'trace',
 }
 
-function isReplayTab(tab: string, _organization: Organization): tab is TabKey {
+function isReplayTab(tab: string, organization: Organization): tab is TabKey {
+  const hasPerfTab = organization.features.includes('session-replay-trace-table');
+
+  if (tab === TabKey.PERF) {
+    return hasPerfTab;
+  }
   return Object.values<string>(TabKey).includes(tab);
 }
 
