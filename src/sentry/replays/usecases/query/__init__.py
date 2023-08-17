@@ -173,17 +173,13 @@ def query_using_optimized_search(
     can_search, has_varying_condition = can_scalar_search_subquery(search_filters)
 
     if can_sort and can_search:
-        # If no varying condition is present we can optimize the query further and reduce the
-        # result set to only include segment 0 results.
-        if not has_varying_condition:
-            search_filters.append(SearchFilter(SearchKey("segment_id"), "=", SearchValue(0)))
-
         query = make_simple_scalar_query(
             search_filters=search_filters,
             sort=sort,
             project_ids=project_ids,
             period_start=period_start,
             period_stop=period_stop,
+            has_varying_condition=has_varying_condition,
         )
         referrer = "replays.query.browse_subquery"
     else:
@@ -243,7 +239,14 @@ def query_using_optimized_search(
         index = replay_id_to_index[result["replay_id"]]
         ordered_results[index] = result
 
-    return ordered_results
+    # TODO: Replace group-by aggregation with SELECT DISTINCT.
+    #
+    # Duplicates are possible (double write before merge) but should be rare. This problem can be
+    # removed entirely by applying SELECT DISTINCT.
+    #
+    # This is not a regression. This mirrors current production behavior and we have not observed
+    # any problems from it so far.
+    return list(filter(None, ordered_results))
 
 
 def make_simple_scalar_query(
@@ -252,17 +255,30 @@ def make_simple_scalar_query(
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
+    has_varying_condition: bool,
 ) -> Query:
     orderby = _sort_to_orderby(scalar_sort_config, sort)
     where: list[Condition] = handle_search_filters(scalar_search_config, search_filters)
 
-    # TODO: Replace group-by aggregation with SELECT DISTINCT.
-    #
-    # Work-around until snuba supports it. We don't actually want to aggregate here. Aggregating
-    # means we can't stream the records into memory.  ClickHouse will attempt to aggregate the
-    # whole dataset (every row not reduced in the WHERE clause). This is significantly slower than
-    # just skipping duplicates.
-    orderby = [OrderBy(Function("any", parameters=[orderby[0].exp]), orderby[0].direction)]
+    if has_varying_condition:
+        # TODO: Replace group-by aggregation with SELECT DISTINCT.
+        #
+        # Work-around until snuba supports it. We don't actually want to aggregate here.
+        # Aggregating means we can't break from scanning the set early.
+        #
+        # It's important to note that the GROUP BY clause here force the query to run at its
+        # slowest possible speed (i.e. full scan of every row in the dataset -- except where
+        # reduced by timestamp and project_id). This query will run at exactly the same speed as
+        # the aggregate sub-query, though, it will use slightly less memory.
+        group_by = [Column("replay_id")]
+        orderby = [OrderBy(Function("any", parameters=[orderby[0].exp]), orderby[0].direction)]
+    else:
+        # TODO: Remove conditional check on segment_id once SELECT DISTINCT is available.
+        #
+        # Without the `segment_id = 0` condition we can scan _fewer_ rows. In this case its
+        # necessary because we don't want to return duplicate ids in the response output.
+        group_by = []
+        where.append(Condition(Column("segment_id"), Op.EQ, 0))
 
     return Query(
         match=Entity("replays"),
@@ -274,7 +290,7 @@ def make_simple_scalar_query(
             *where,
         ],
         orderby=orderby,
-        groupby=[Column("replay_id")],
+        groupby=group_by,
         granularity=Granularity(3600),
     )
 

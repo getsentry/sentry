@@ -5,14 +5,13 @@ from typing import Tuple, Union
 
 from sentry.api.event_search import ParenExpression, SearchFilter
 from sentry.replays.lib.new_query.conditions import (
-    IntegerScalar,
     IPv4Scalar,
     StringArray,
     StringScalar,
     UUIDScalar,
 )
 from sentry.replays.lib.new_query.fields import ColumnField, StringColumnField, UUIDColumnField
-from sentry.replays.lib.new_query.parsers import parse_int, parse_str, parse_uuid
+from sentry.replays.lib.new_query.parsers import parse_str, parse_uuid
 from sentry.replays.usecases.query.conditions import ErrorIdsArray
 from sentry.replays.usecases.query.fields import ComputedField
 
@@ -33,7 +32,6 @@ static_search_config: dict[str, ColumnField] = {
     "releases": StringColumnField("release", parse_str, StringScalar),
     "sdk.name": StringColumnField("sdk_name", parse_str, StringScalar),
     "sdk.version": StringColumnField("sdk_version", parse_str, StringScalar),
-    "segment_id": StringColumnField("segment_id", parse_int, IntegerScalar),
 }
 
 # Varying Search Config
