@@ -1,4 +1,5 @@
 from django.db.models import DateTimeField, Index
+from django.db.models.fields import UUIDField
 from django.utils import timezone
 
 from sentry.db.models import CharField, FlexibleForeignKey, Model, region_silo_only_model, sane_repr
@@ -13,6 +14,7 @@ class RuleFireHistory(Model):
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
     event_id = CharField("event_id", max_length=32, null=True)
     date_added = DateTimeField(default=timezone.now, db_index=True)
+    notification_uuid = UUIDField("notification_uuid", null=True)
 
     class Meta:
         db_table = "sentry_rulefirehistory"
