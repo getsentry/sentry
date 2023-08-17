@@ -14,9 +14,15 @@ export enum TabKey {
   MEMORY = 'memory',
   NETWORK = 'network',
   TRACE = 'trace',
+  PERF = 'perf',
 }
 
-function isReplayTab(tab: string, _organization: Organization): tab is TabKey {
+function isReplayTab(tab: string, organization: Organization): tab is TabKey {
+  const hasPerfTab = true || organization.features.includes('session-replay-trace-table');
+
+  if (tab === TabKey.PERF) {
+    return hasPerfTab;
+  }
   return Object.values<string>(TabKey).includes(tab);
 }
 
@@ -34,7 +40,7 @@ function useDefaultTab() {
     return TabKey.DOM;
   }
 
-  return TabKey.CONSOLE;
+  return TabKey.NETWORK;
 }
 
 function useActiveReplayTab() {
