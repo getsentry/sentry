@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from datetime import timezone
+from datetime import datetime, timezone
 from typing import Any, Mapping, Sequence
 from urllib.parse import urlparse
 
 from django import forms
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
-from isodate import parse_datetime
 from rest_framework.request import Request
 
 from sentry.identity.gitlab import get_oauth_data, get_user_info
@@ -167,10 +166,13 @@ class GitlabIntegration(
         except ApiError as e:
             raise e
 
+        date_format_expected = "%Y-%m-%dT%H:%M:%S.%f%z"
         try:
             commit = max(
                 blame_range,
-                key=lambda blame: parse_datetime(blame.get("commit", {}).get("committed_date")),
+                key=lambda blame: datetime.strptime(
+                    blame.get("commit", {}).get("committed_date"), date_format_expected
+                ),
             )
         except (ValueError, IndexError):
             return None
@@ -179,11 +181,11 @@ class GitlabIntegration(
         if not commitInfo:
             return None
         else:
-            # TODO(nisanthan): Use dateutil.parser.isoparse once on python 3.11
-            committed_date = parse_datetime(commitInfo.get("committed_date")).astimezone(
-                timezone.utc
+            committed_date = "{}Z".format(
+                datetime.strptime(commitInfo.get("committed_date"), date_format_expected)
+                .astimezone(timezone.utc)
+                .strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
             )
-
             return {
                 "commitId": commitInfo.get("id"),
                 "committedDate": committed_date,
