@@ -220,12 +220,17 @@ def check_missing(current_datetime=None):
             if monitor_environment.last_checkin:
                 expected_time = monitor.get_next_expected_checkin(monitor_environment.last_checkin)
 
-            # add missed checkin
+            # add missed checkin.
+            #
+            # XXX(epurkhiser): The date_added is backdated so that this missed
+            # check-in correctly reflects the time of when the checkin SHOULD
+            # have happened. It is the same as the expected_time.
             MonitorCheckIn.objects.create(
                 project_id=monitor_environment.monitor.project_id,
                 monitor=monitor_environment.monitor,
                 monitor_environment=monitor_environment,
                 status=CheckInStatus.MISSED,
+                date_added=expected_time,
                 expected_time=expected_time,
                 monitor_config=monitor.get_validated_config(),
             )
