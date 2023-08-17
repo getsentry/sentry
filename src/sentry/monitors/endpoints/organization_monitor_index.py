@@ -87,6 +87,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         Lists monitors, including nested monitor enviroments. May be filtered to a project or environment.
         """
         try:
+
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
         except NoProjects:
             return self.respond([])
@@ -196,7 +197,6 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             return self.respond(validator.errors, status=400)
 
         result = validator.validated_data
-
         try:
             monitor = Monitor.objects.create(
                 project_id=result["project"].id,

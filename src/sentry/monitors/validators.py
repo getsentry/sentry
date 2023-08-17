@@ -1,11 +1,11 @@
 import pytz
 from croniter import croniter
 from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE, DEFAULT_SLUG_PATTERN
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
@@ -198,11 +198,11 @@ class MonitorValidator(CamelSnakeSerializer):
     project = ProjectField(scope="project:read")
     name = serializers.CharField(max_length=128)
     slug = serializers.RegexField(
-        r"^[a-zA-Z0-9_-]+$",
+        DEFAULT_SLUG_PATTERN,
         max_length=MAX_SLUG_LENGTH,
         required=False,
         error_messages={
-            "invalid": _("Invalid monitor slug. Must match the pattern [a-zA-Z0-9_-]+")
+            "invalid": DEFAULT_SLUG_ERROR_MESSAGE,
         },
     )
     status = serializers.ChoiceField(

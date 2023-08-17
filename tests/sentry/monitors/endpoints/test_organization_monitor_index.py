@@ -210,6 +210,21 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
 
         assert response.data["slug"] == "my-monitor"
 
+    def test_invalid_numeric_slug(self):
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "slug": "1234",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        response = self.get_error_response(self.organization.slug, **data, status_code=400)
+
+        assert str(response.data["slug"][0]) == (
+            "Enter a valid slug consisting of lowercase letters, numbers, underscores or "
+            "hyphens. It cannot be entirely numeric."
+        )
+
     @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_organization_limit(self):
         for i in range(settings.MAX_MONITORS_PER_ORG):

@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features, roles
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE, DEFAULT_SLUG_PATTERN, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
@@ -15,7 +15,11 @@ from sentry.models import RegionScheduledDeletion, Team, TeamStatus
 
 
 class TeamSerializer(CamelSnakeModelSerializer):
-    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
+    slug = serializers.RegexField(
+        DEFAULT_SLUG_PATTERN,
+        max_length=50,
+        error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
+    )
     org_role = serializers.ChoiceField(
         choices=tuple(list(roles.get_choices()) + [("")]),
         default="",

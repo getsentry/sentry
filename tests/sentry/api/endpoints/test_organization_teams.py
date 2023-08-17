@@ -248,3 +248,12 @@ class OrganizationTeamsCreateTest(APITestCase):
         self.get_error_response(
             self.organization.slug, name="x" * 65, slug="xxxxxxx", status_code=400
         )
+
+    def test_invalid_numeric_slug(self):
+        response = self.get_error_response(
+            self.organization.slug, name="hello word", slug="1234", status_code=400
+        )
+        assert str(response.data["slug"][0]) == (
+            "Enter a valid slug consisting of lowercase letters, numbers, underscores or "
+            "hyphens. It cannot be entirely numeric."
+        )
