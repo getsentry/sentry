@@ -122,7 +122,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         self.get_error_response(status_code=400, **data)
 
     def test_slugs(self):
-        valid_slugs = ["santry", "downtown-canada", "1234", "CaNaDa"]
+        valid_slugs = ["santry", "downtown-canada", "foo123", "CaNaDa"]
         for input_slug in valid_slugs:
             self.organization.refresh_from_db()
             response = self.get_success_response(name=input_slug, slug=input_slug)
@@ -138,6 +138,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
             self.get_error_response(name="name", slug="canada-", status_code=400)
             self.get_error_response(name="name", slug="-canada", status_code=400)
             self.get_error_response(name="name", slug="----", status_code=400)
+            self.get_error_response(name="name", slug="1234", status_code=400)
 
     def test_without_slug(self):
         data = {"name": "hello world"}
