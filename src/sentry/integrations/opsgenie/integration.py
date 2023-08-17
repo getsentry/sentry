@@ -70,14 +70,14 @@ class InstallationForm(forms.Form):
     )
     provider = forms.CharField(
         label=_("Account Name"),
-        help_text=_("Example: 'hello' for https://hello.app.opsgenie.com/"),
+        help_text=_("Example: 'example' for https://example.app.opsgenie.com/"),
         widget=forms.TextInput(),
     )
 
     api_key = forms.CharField(
         label=("Opsgenie Integration Key"),
         help_text=_(
-            "Optional: add an integration key for sending alerts. You can rename this key later."
+            "Optionally add your first integration key for sending alerts. You can rename this key later."
         ),
         widget=forms.TextInput(),
         required=False,
