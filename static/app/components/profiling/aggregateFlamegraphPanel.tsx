@@ -28,7 +28,7 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
   return (
     <Flex column gap={space(1)}>
       <Flex align="center" gap={space(0.5)}>
-        <HeaderTitle>{t('Flamegraph')}</HeaderTitle>
+        <HeaderTitle>{t('Aggregate Flamegraph')}</HeaderTitle>
         <QuestionTooltip
           size="sm"
           position="right"
@@ -38,7 +38,7 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
               <p>{t('An aggregate of profiles for this transaction.')}</p>
               <p>
                 {t(
-                  'Navigate the flamegraph by scrolling and by double clicking a frame to zoom.'
+                  'Navigate the aggregate flamegraph by scrolling and by double clicking a frame to zoom.'
                 )}
               </p>
             </TooltipContent>
@@ -63,10 +63,10 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
             <Panel>
               <Flex h={400} column justify="center">
                 {isLoading ? (
-                  <LoadingIndicator>{t('Loading Flamegraph')}</LoadingIndicator>
+                  <LoadingIndicator>{t('Loading Aggregate Flamegraph')}</LoadingIndicator>
                 ) : isEmpty ? (
                   <EmptyStateWarning>
-                    <p>{t(`A flamegraph isn't available for your query`)}</p>
+                    <p>{t(`Aggregate flamegraph isn't available for your query`)}</p>
                   </EmptyStateWarning>
                 ) : (
                   <AggregateFlamegraph
