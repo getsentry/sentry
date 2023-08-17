@@ -1,8 +1,9 @@
 from django.urls import reverse
 
 from sentry.models import Integration
+from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 class BaseStacktraceLinkTest(APITestCase):
@@ -25,18 +26,19 @@ class BaseStacktraceLinkTest(APITestCase):
         return self.client.post(url, data={"sourceUrl": source_url, "stackPath": stack_path})
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
     def setUp(self):
         super().setUp()
-        self.integration = Integration.objects.create(
-            provider="github",
-            name="getsentry",
-            external_id="1234",
-            metadata={"domain_name": "github.com/getsentry"},
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="github",
+                name="getsentry",
+                external_id="1234",
+                metadata={"domain_name": "github.com/getsentry"},
+            )
 
-        self.oi = self.integration.add_organization(self.org, self.user)
+            self.oi = self.integration.add_organization(self.org, self.user)
 
         self.repo = self.create_repo(
             project=self.project,
@@ -72,12 +74,13 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
 
     def test_no_integration(self):
         # create the integration but don't install it
-        Integration.objects.create(
-            provider="github",
-            name="steve",
-            external_id="345",
-            metadata={"domain_name": "github.com/steve"},
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            Integration.objects.create(
+                provider="github",
+                name="steve",
+                external_id="345",
+                metadata={"domain_name": "github.com/steve"},
+            )
         source_url = "https://github.com/steve/sentry/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
         resp = self.make_post(source_url, stack_path)
@@ -143,19 +146,20 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         assert resp.status_code == 200, resp.content
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
     def setUp(self):
         super().setUp()
 
-        self.integration = Integration.objects.create(
-            provider="gitlab",
-            name="getsentry",
-            external_id="1234",
-            metadata={"domain_name": "gitlab.com/getsentry"},
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="gitlab",
+                name="getsentry",
+                external_id="1234",
+                metadata={"domain_name": "gitlab.com/getsentry"},
+            )
 
-        self.oi = self.integration.add_organization(self.org, self.user)
+            self.oi = self.integration.add_organization(self.org, self.user)
 
         self.repo = self.create_repo(
             project=self.project,
