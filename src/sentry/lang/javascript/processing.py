@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 # Matches "app:", "webpack:",
 # "x:" where x is a single ASCII letter, or "/".
-NON_BUILTIN_PATH_REGEX = re.compile(r"(app|webpack|[a-zA-Z]):|/")
+NON_BUILTIN_PATH_REGEX = re.compile(r"^((app|webpack|[a-zA-Z]):|/)")
 
 
 def _merge_frame_context(new_frame, symbolicated):
