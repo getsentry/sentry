@@ -13,6 +13,7 @@ from sentry.tasks.deletion.hybrid_cloud import (
     deletion_silo_modes,
     get_watermark,
     schedule_hybrid_cloud_foreign_key_jobs,
+    schedule_hybrid_cloud_foreign_key_jobs_control,
     set_watermark,
 )
 from sentry.testutils.factories import Factories
@@ -159,7 +160,7 @@ def test_control_processing(task_runner):
     with override_settings(SILO_MODE=SiloMode.CONTROL):
         results, _ = setup_deletable_objects(10)
         with task_runner():
-            schedule_hybrid_cloud_foreign_key_jobs()
+            schedule_hybrid_cloud_foreign_key_jobs_control()
 
         # Do not process
         assert results.exists()

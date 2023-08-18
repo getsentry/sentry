@@ -11,7 +11,7 @@ Tombstone row will not, therefore, cascade to any related cross silo rows.
 import datetime
 from dataclasses import dataclass
 from hashlib import sha1
-from typing import Any, List, Tuple, Type
+from typing import Any, Callable, List, Tuple, Type
 from uuid import uuid4
 
 import sentry_sdk
@@ -100,41 +100,93 @@ def _chunk_watermark_batch(
 
 
 @instrumented_task(
+    name="sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
+    queue="cleanup",
+    acks_late=True,
+    silo_mode=SiloMode.CONTROL,
+)
+def schedule_hybrid_cloud_foreign_key_jobs_control():
+    _schedule_hybrid_cloud_foreign_key(
+        SiloMode.CONTROL, process_hybrid_cloud_foreign_key_cascade_batch_control
+    )
+
+
+@instrumented_task(
     name="sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
     queue="cleanup",
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def schedule_hybrid_cloud_foreign_key_jobs():
-    for silo_mode in deletion_silo_modes():
-        for app, app_models in apps.all_models.items():
-            for model in app_models.values():
-                if not hasattr(model._meta, "silo_limit"):
+    _schedule_hybrid_cloud_foreign_key(
+        SiloMode.REGION, process_hybrid_cloud_foreign_key_cascade_batch
+    )
+
+
+def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Callable) -> None:
+    for app, app_models in apps.all_models.items():
+        for model in app_models.values():
+            if not hasattr(model._meta, "silo_limit"):
+                continue
+
+            # Only process models local this operational mode.
+            if silo_mode not in model._meta.silo_limit.modes:
+                continue
+
+            for field in model._meta.fields:
+                if not isinstance(field, HybridCloudForeignKey):
                     continue
 
-                # Only process models local this operational mode.
-                if silo_mode not in model._meta.silo_limit.modes:
-                    continue
+                cascade_task.delay(
+                    app_name=app,
+                    model_name=model.__name__,
+                    field_name=field.name,
+                    silo_mode=silo_mode.name,
+                )
 
-                for field in model._meta.fields:
-                    if not isinstance(field, HybridCloudForeignKey):
-                        continue
 
-                    process_hybrid_cloud_foreign_key_cascade_batch.delay(
-                        app_name=app,
-                        model_name=model.__name__,
-                        field_name=field.name,
-                        silo_mode=silo_mode.name,
-                    )
+@instrumented_task(
+    name="sentry.tasks.deletion.process_hybrid_cloud_foreign_key_cascade_batch_control",
+    queue="cleanup.control",
+    acks_late=True,
+    silo_mode=SiloMode.CONTROL,
+)
+def process_hybrid_cloud_foreign_key_cascade_batch_control(
+    app_name: str, model_name: str, field_name: str, **kwargs: Any
+) -> None:
+    _process_hybrid_cloud_foreign_key_cascade(
+        app_name=app_name,
+        model_name=model_name,
+        field_name=field_name,
+        process_task=process_hybrid_cloud_foreign_key_cascade_batch_control,
+        silo_mode=SiloMode.CONTROL,
+    )
 
 
 @instrumented_task(
     name="sentry.tasks.deletion.process_hybrid_cloud_foreign_key_cascade_batch",
     queue="cleanup",
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def process_hybrid_cloud_foreign_key_cascade_batch(
-    app_name: str, model_name: str, field_name: str, silo_mode: str
+    app_name: str, model_name: str, field_name: str, **kwargs: Any
 ) -> None:
+    _process_hybrid_cloud_foreign_key_cascade(
+        app_name=app_name,
+        model_name=model_name,
+        field_name=field_name,
+        process_task=process_hybrid_cloud_foreign_key_cascade_batch,
+        silo_mode=SiloMode.REGION,
+    )
+
+
+def _process_hybrid_cloud_foreign_key_cascade(
+    app_name: str, model_name: str, field_name: str, process_task: Callable, silo_mode: SiloMode
+) -> None:
+    """
+    Called by the silo bound tasks above.
+    """
     try:
         model = apps.get_model(app_label=app_name, model_name=model_name)
         try:
@@ -145,7 +197,8 @@ def process_hybrid_cloud_foreign_key_cascade_batch(
             sentry_sdk.capture_exception(err)
             raise LookupError(f"Could not find field {field_name} on model {app_name}.{model_name}")
 
-        tombstone_cls: Any = TombstoneBase.class_for_silo_mode(SiloMode[silo_mode])
+        tombstone_cls = TombstoneBase.class_for_silo_mode(silo_mode)
+        assert tombstone_cls, "A tombstone class is required"
 
         # We rely on the return value of _process_tombstone_reconciliation
         # to short circuit the second half of this `or` so that the terminal batch
@@ -153,12 +206,12 @@ def process_hybrid_cloud_foreign_key_cascade_batch(
         if _process_tombstone_reconciliation(
             field, model, tombstone_cls, True
         ) or _process_tombstone_reconciliation(field, model, tombstone_cls, False):
-            process_hybrid_cloud_foreign_key_cascade_batch.apply_async(
+            process_task.apply_async(
                 kwargs=dict(
                     app_name=app_name,
                     model_name=model_name,
                     field_name=field_name,
-                    silo_mode=silo_mode,
+                    silo_mode=silo_mode.name,
                 ),
                 countdown=15,
             )
