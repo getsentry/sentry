@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import {Location} from 'history';
 import moment from 'moment';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -10,17 +9,12 @@ import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parsePeriodToHours} from 'sentry/utils/dates';
-import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {EventsResultsDataRow, Sort} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useProjects from 'sentry/utils/useProjects';
-import {
-  getQueryParams,
-  relativeChange,
-} from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
+import {relativeChange} from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
 import {
   ErrorWrapper,
   ListItemWrapper,
@@ -36,15 +30,15 @@ import {getTrendProjectId} from 'sentry/views/performance/trends/utils';
 
 type FunctionsListProps = {
   breakpoint: number;
-  location: Location;
   organization: Organization;
   transaction: NormalizedTrendsTransaction;
   trendChangeType: TrendChangeType;
+  trendFunction: string;
   trendView: TrendView;
 };
 
 type AveragedSuspectFunction = EventsResultsDataRow<FunctionsField> & {
-  avgSumExclusiveTime: number;
+  avgExclusiveTime: number;
 };
 
 type ChangedSuspectFunction = AveragedSuspectFunction & {
@@ -68,9 +62,21 @@ const functionsFields = [
   'function',
   'count()',
   'p75()',
+  'p50()',
+  'p95()',
+  'p99()',
+  'avg()',
   'sum()',
   'examples()',
 ] as const;
+
+const ProfileFunctionToField = {
+  p50: 'p50()',
+  p75: 'p75()',
+  p95: 'p95()',
+  p99: 'p99()',
+  avg: 'avg()',
+};
 
 export type FunctionsField = (typeof functionsFields)[number];
 
@@ -82,8 +88,14 @@ export const FunctionChangeType = {
 };
 
 export function FunctionsList(props: FunctionsListProps) {
-  const {trendView, location, organization, breakpoint, transaction, trendChangeType} =
-    props;
+  const {
+    trendView,
+    organization,
+    breakpoint,
+    transaction,
+    trendChangeType,
+    trendFunction,
+  } = props;
 
   const hours = trendView.statsPeriod ? parsePeriodToHours(trendView.statsPeriod) : 0;
   const startTime = useMemo(
@@ -107,50 +119,6 @@ export function FunctionsList(props: FunctionsListProps) {
     conditions.setFilterValues('transaction', [transaction.transaction]);
     return conditions.formatString();
   }, [transaction.transaction]);
-
-  const {
-    data: totalTransactionsBefore,
-    isLoading: transactionsLoadingBefore,
-    isError: transactionsErrorBefore,
-  } = useDiscoverQuery(
-    getQueryParams(
-      startTime,
-      breakpointTime,
-      ['count'],
-      'transaction',
-      DiscoverDatasets.METRICS,
-      organization,
-      trendView,
-      transaction.transaction,
-      location
-    )
-  );
-
-  const transactionCountBefore = totalTransactionsBefore?.data
-    ? (totalTransactionsBefore?.data[0]['count()'] as number)
-    : 0;
-
-  const {
-    data: totalTransactionsAfter,
-    isLoading: transactionsLoadingAfter,
-    isError: transactionsErrorAfter,
-  } = useDiscoverQuery(
-    getQueryParams(
-      breakpointTime,
-      endTime,
-      ['count'],
-      'transaction',
-      DiscoverDatasets.METRICS,
-      organization,
-      trendView,
-      transaction.transaction,
-      location
-    )
-  );
-
-  const transactionCountAfter = totalTransactionsAfter?.data
-    ? (totalTransactionsAfter?.data[0]['count()'] as number)
-    : 0;
 
   const beforeFunctionsQuery = useProfileFunctions<FunctionsField>({
     fields: functionsFields,
@@ -180,15 +148,12 @@ export function FunctionsList(props: FunctionsListProps) {
     },
   });
 
-  // need these averaged fields because comparing total self times may be inaccurate depending on
-  // where the breakpoint is
-  const functionsAveragedAfter = addAvgSumOfFunctions(
-    afterFunctionsQuery.data?.data,
-    transactionCountAfter
-  );
-  const functionsAveragedBefore = addAvgSumOfFunctions(
+  const field = ProfileFunctionToField[trendFunction];
+
+  const functionsAveragedAfter = addAvgOfFunctions(afterFunctionsQuery.data?.data, field);
+  const functionsAveragedBefore = addAvgOfFunctions(
     beforeFunctionsQuery.data?.data,
-    transactionCountBefore
+    field
   );
 
   const addedFunctions = addFunctionChangeFields(
@@ -218,7 +183,7 @@ export function FunctionsList(props: FunctionsListProps) {
     ?.concat(addedFunctions ? addedFunctions : [])
     .concat(removedFunctions ? removedFunctions : []);
 
-  // sorts all functions in descending order of avgTimeDifference (change in avg total self time)
+  // sorts all functions in descending order of avgTimeDifference (change in percentile self time)
   const functionList = allFunctionsUpdated?.sort(
     (a, b) => b.avgTimeDifference - a.avgTimeDifference
   );
@@ -236,18 +201,8 @@ export function FunctionsList(props: FunctionsListProps) {
         organization={organization}
         transactionName={transaction.transaction}
         limit={4}
-        isLoading={
-          transactionsLoadingBefore ||
-          transactionsLoadingAfter ||
-          beforeFunctionsQuery.isLoading ||
-          afterFunctionsQuery.isLoading
-        }
-        isError={
-          transactionsErrorBefore ||
-          transactionsErrorAfter ||
-          beforeFunctionsQuery.isError ||
-          afterFunctionsQuery.isError
-        }
+        isLoading={beforeFunctionsQuery.isLoading || afterFunctionsQuery.isLoading}
+        isError={beforeFunctionsQuery.isError || afterFunctionsQuery.isError}
       />
     </div>
   );
@@ -255,19 +210,16 @@ export function FunctionsList(props: FunctionsListProps) {
 
 /**
  *
- * adds an average of the sum() time so it is more comparable when the breakpoint
- * is not close to the middle of the timeseries
+ * adds the correct percentile time
  */
-function addAvgSumOfFunctions(
+function addAvgOfFunctions(
   suspectFunctions: EventsResultsDataRow<FunctionsField>[] | undefined,
-  transactionCount: number
+  field: string
 ) {
   return suspectFunctions?.map(susFunc => {
     return {
       ...susFunc,
-      avgSumExclusiveTime: (susFunc['sum()'] as number)
-        ? (susFunc['sum()'] as number) / transactionCount
-        : 0,
+      avgExclusiveTime: susFunc[field] ? (susFunc[field] as number) : 0,
     };
   });
 }
@@ -311,14 +263,14 @@ function addFunctionChangeFields(
       return {
         ...func,
         percentChange: 100,
-        avgTimeDifference: func.avgSumExclusiveTime,
+        avgTimeDifference: func.avgExclusiveTime,
         changeType: FunctionChangeType.added,
       };
     }
     return {
       ...func,
       percentChange: -100,
-      avgTimeDifference: 0 - func.avgSumExclusiveTime,
+      avgTimeDifference: 0 - func.avgExclusiveTime,
       changeType: FunctionChangeType.removed,
     };
   });
@@ -336,14 +288,14 @@ function addPercentChangeInFunctions(
     );
     const percentageChange =
       relativeChange(
-        functionBefore?.avgSumExclusiveTime || 0,
-        functionAfter.avgSumExclusiveTime
+        functionBefore?.avgExclusiveTime || 0,
+        functionAfter.avgExclusiveTime
       ) * 100;
     return {
       ...functionAfter,
       percentChange: percentageChange,
       avgTimeDifference:
-        functionAfter.avgSumExclusiveTime - (functionBefore?.avgSumExclusiveTime || 0),
+        functionAfter.avgExclusiveTime - (functionBefore?.avgExclusiveTime || 0),
       changeType:
         percentageChange < 0 ? FunctionChangeType.improved : FunctionChangeType.regressed,
     };

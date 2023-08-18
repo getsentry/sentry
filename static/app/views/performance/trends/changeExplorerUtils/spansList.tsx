@@ -12,8 +12,6 @@ import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parsePeriodToHours} from 'sentry/utils/dates';
-import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {SuspectSpan, SuspectSpans} from 'sentry/utils/performance/suspectSpans/types';
 import theme from 'sentry/utils/theme';
@@ -21,6 +19,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useProjects from 'sentry/utils/useProjects';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {
+  SpanSort,
   SpanSortOption,
   SpanSortOthers,
   SpanSortPercentiles,
@@ -29,10 +28,7 @@ import {
   getSuspectSpanSortFromLocation,
   SPAN_SORT_TO_FIELDS,
 } from 'sentry/views/performance/transactionSummary/transactionSpans/utils';
-import {
-  getQueryParams,
-  relativeChange,
-} from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
+import {relativeChange} from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
 import {
   NormalizedTrendsTransaction,
   TrendChangeType,
@@ -46,11 +42,12 @@ type SpansListProps = {
   organization: Organization;
   transaction: NormalizedTrendsTransaction;
   trendChangeType: TrendChangeType;
+  trendFunction: string;
   trendView: TrendView;
 };
 
 type AveragedSuspectSpan = SuspectSpan & {
-  avgSumExclusiveTime: number;
+  avgExclusiveTime: number;
 };
 
 export type ChangedSuspectSpan = AveragedSuspectSpan & {
@@ -77,9 +74,24 @@ export const SpanChangeType = {
   improved: t('Improved'),
 };
 
+const SpanFunctionToField = {
+  p50: 'p50ExclusiveTime',
+  p75: 'p75ExclusiveTime',
+  p95: 'p95ExclusiveTime',
+  p99: 'p99ExclusiveTime',
+  avg: 'p75ExclusiveTime',
+};
+
 export function SpansList(props: SpansListProps) {
-  const {trendView, location, organization, breakpoint, transaction, trendChangeType} =
-    props;
+  const {
+    trendView,
+    location,
+    organization,
+    breakpoint,
+    transaction,
+    trendChangeType,
+    trendFunction,
+  } = props;
 
   const hours = trendView.statsPeriod ? parsePeriodToHours(trendView.statsPeriod) : 0;
   const startTime = useMemo(
@@ -101,6 +113,7 @@ export function SpansList(props: SpansListProps) {
     startTime,
     breakpointTime,
     transaction,
+    SpanSortOthers.SUM_EXCLUSIVE_TIME,
     projectID
   );
 
@@ -123,6 +136,7 @@ export function SpansList(props: SpansListProps) {
     startTime,
     breakpointTime,
     transaction,
+    SpanSortOthers.SUM_EXCLUSIVE_TIME,
     projectID
   );
 
@@ -139,50 +153,6 @@ export function SpansList(props: SpansListProps) {
 
   const afterFields = SPAN_SORT_TO_FIELDS[afterSort.field];
   afterEventView.fields = afterFields ? afterFields.map(field => ({field})) : [];
-
-  const {
-    data: totalTransactionsBefore,
-    isLoading: transactionsLoadingBefore,
-    isError: transactionsErrorBefore,
-  } = useDiscoverQuery(
-    getQueryParams(
-      startTime,
-      breakpointTime,
-      ['count'],
-      'transaction',
-      DiscoverDatasets.METRICS,
-      organization,
-      trendView,
-      transaction.transaction,
-      location
-    )
-  );
-
-  const transactionCountBefore = totalTransactionsBefore?.data
-    ? (totalTransactionsBefore?.data[0]['count()'] as number)
-    : 0;
-
-  const {
-    data: totalTransactionsAfter,
-    isLoading: transactionsLoadingAfter,
-    isError: transactionsErrorAfter,
-  } = useDiscoverQuery(
-    getQueryParams(
-      breakpointTime,
-      endTime,
-      ['count'],
-      'transaction',
-      DiscoverDatasets.METRICS,
-      organization,
-      trendView,
-      transaction.transaction,
-      location
-    )
-  );
-
-  const transactionCountAfter = totalTransactionsAfter?.data
-    ? (totalTransactionsAfter?.data[0]['count()'] as number)
-    : 0;
 
   return (
     <SuspectSpansQuery
@@ -212,25 +182,20 @@ export function SpansList(props: SpansListProps) {
               error: spansErrorAfter,
             }) => {
               const hasSpansErrorAfter = spansErrorAfter !== null;
+              const field = SpanFunctionToField[trendFunction];
 
-              // need these averaged fields because comparing total self times may be inaccurate depending on
-              // where the breakpoint is
-              const spansAveragedAfter = addAvgSumExclusiveTime(
-                suspectSpansAfter,
-                transactionCountAfter
-              );
-              const spansAveragedBefore = addAvgSumExclusiveTime(
-                suspectSpansBefore,
-                transactionCountBefore
-              );
+              const spansAveragedAfter = addAvgExclusiveTime(suspectSpansAfter, field);
+              const spansAveragedBefore = addAvgExclusiveTime(suspectSpansBefore, field);
 
               const addedSpans = addSpanChangeFields(
                 findSpansNotIn(spansAveragedAfter, spansAveragedBefore),
-                true
+                true,
+                field
               );
               const removedSpans = addSpanChangeFields(
                 findSpansNotIn(spansAveragedBefore, spansAveragedAfter),
-                false
+                false,
+                field
               );
 
               const remainingSpansBefore = findSpansIn(
@@ -244,7 +209,8 @@ export function SpansList(props: SpansListProps) {
 
               const remainingSpansWithChange = addPercentChangeInSpans(
                 remainingSpansBefore,
-                remainingSpansAfter
+                remainingSpansAfter,
+                field
               );
 
               const allSpansUpdated = remainingSpansWithChange
@@ -270,18 +236,8 @@ export function SpansList(props: SpansListProps) {
                     organization={organization}
                     transactionName={transaction.transaction}
                     limit={4}
-                    isLoading={
-                      transactionsLoadingBefore ||
-                      transactionsLoadingAfter ||
-                      spansLoadingBefore ||
-                      spansLoadingAfter
-                    }
-                    isError={
-                      transactionsErrorBefore ||
-                      transactionsErrorAfter ||
-                      hasSpansErrorBefore ||
-                      hasSpansErrorAfter
-                    }
+                    isLoading={spansLoadingBefore || spansLoadingAfter}
+                    isError={hasSpansErrorBefore || hasSpansErrorAfter}
                   />
                 </div>
               );
@@ -298,6 +254,7 @@ function updateLocation(
   start: string,
   end: string,
   transaction: NormalizedTrendsTransaction,
+  sort: SpanSort,
   projectID?: string
 ) {
   return {
@@ -305,7 +262,7 @@ function updateLocation(
     start,
     end,
     statsPeriod: undefined,
-    sort: SpanSortOthers.SUM_EXCLUSIVE_TIME,
+    spanSort: sort,
     project: projectID,
     query: {
       query: 'transaction:' + transaction.transaction,
@@ -313,6 +270,7 @@ function updateLocation(
       start,
       end,
       project: projectID,
+      spanSort: sort,
     },
   };
 }
@@ -371,26 +329,23 @@ function findSpansIn(
 
 /**
  *
- * adds an average of the sumExclusive time so it is more comparable when the breakpoint
- * is not close to the middle of the timeseries
+ * adds an average of the appropriate percentileExclusive time so we can compare avg time of span
+ * in a singular transaction
  */
-function addAvgSumExclusiveTime(
-  suspectSpans: SuspectSpans | null,
-  transactionCount: number
-) {
+function addAvgExclusiveTime(suspectSpans: SuspectSpans | null, field: string) {
   return suspectSpans?.map(span => {
     return {
       ...span,
-      avgSumExclusiveTime: span.sumExclusiveTime
-        ? span.sumExclusiveTime / transactionCount
-        : 0,
+      avgExclusiveTime:
+        span[field] && span.avgOccurrences ? span[field] * span.avgOccurrences : 0,
     };
   });
 }
 
 function addPercentChangeInSpans(
   before: AveragedSuspectSpan[] | undefined,
-  after: AveragedSuspectSpan[] | undefined
+  after: AveragedSuspectSpan[] | undefined,
+  field: string
 ) {
   return after?.map(spanAfter => {
     const spanBefore = before?.find(
@@ -398,15 +353,11 @@ function addPercentChangeInSpans(
         spanAfter.op === beforeValue.op && spanAfter.group === beforeValue.group
     );
     const percentageChange =
-      relativeChange(
-        spanBefore?.avgSumExclusiveTime || 0,
-        spanAfter.avgSumExclusiveTime
-      ) * 100;
+      relativeChange(spanBefore?.[field] || 0, spanAfter[field]) * 100;
     return {
       ...spanAfter,
       percentChange: percentageChange,
-      avgTimeDifference:
-        spanAfter.avgSumExclusiveTime - (spanBefore?.avgSumExclusiveTime || 0),
+      avgTimeDifference: spanAfter[field]! - (spanBefore?.[field] || 0),
       changeType:
         percentageChange < 0 ? SpanChangeType.improved : SpanChangeType.regressed,
     };
@@ -415,7 +366,8 @@ function addPercentChangeInSpans(
 
 function addSpanChangeFields(
   spans: AveragedSuspectSpan[] | undefined,
-  added: boolean
+  added: boolean,
+  field: string
 ): ChangedSuspectSpan[] | undefined {
   // percent change is hardcoded to pass the 1% change threshold,
   // avoid infinite values and reflect correct change type
@@ -424,14 +376,14 @@ function addSpanChangeFields(
       return {
         ...span,
         percentChange: 100,
-        avgTimeDifference: span.avgSumExclusiveTime,
+        avgTimeDifference: span[field],
         changeType: SpanChangeType.added,
       };
     }
     return {
       ...span,
       percentChange: -100,
-      avgTimeDifference: 0 - span.avgSumExclusiveTime,
+      avgTimeDifference: 0 - span[field],
       changeType: SpanChangeType.removed,
     };
   });
@@ -489,7 +441,11 @@ export function NumberedSpansList(props: NumberedSpansListProps) {
 
   // percent change of a span must be more than 1%
   const formattedSpans = spans
-    ?.filter(span => (spans.length > 10 ? Math.abs(span.percentChange) >= 1 : true))
+    ?.filter(span =>
+      spans.length > 10
+        ? Math.abs(span.percentChange) >= 1 && span.frequency && span.frequency > 50
+        : true
+    )
     .slice(0, limit)
     .map((span, index) => {
       const spanDetailsPage = spanDetailsRouteWithQuery({

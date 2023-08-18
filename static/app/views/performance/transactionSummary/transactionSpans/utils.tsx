@@ -189,9 +189,13 @@ export function getTotalsView(eventView: EventView): EventView {
 
 export const SPAN_SORT_TO_FIELDS: Record<SpanSort, string[]> = {
   [SpanSortOthers.SUM_EXCLUSIVE_TIME]: [
+    'percentileArray(spans_exclusive_time, 0.50)',
     'percentileArray(spans_exclusive_time, 0.75)',
+    'percentileArray(spans_exclusive_time, 0.95)',
+    'percentileArray(spans_exclusive_time, 0.99)',
     'count()',
     'count_unique(id)',
+    'equation|count() / count_unique(id)',
     'sumArray(spans_exclusive_time)',
   ],
   [SpanSortOthers.AVG_OCCURRENCE]: [

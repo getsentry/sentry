@@ -205,7 +205,11 @@ const functionResults: EventsResultsDataRow<FunctionsField>[] = [
     'count()': 234,
     'examples()': ['serw8r9s', 'aeo4i2u38'],
     function: 'f1',
+    'p50()': 20343,
     'p75()': 4239847,
+    'p95()': 309283249,
+    'p99()': 2348923849,
+    'avg()': 334984,
     package: 'p1',
     'sum()': 2304823908,
   },
@@ -213,7 +217,11 @@ const functionResults: EventsResultsDataRow<FunctionsField>[] = [
     'count()': 234,
     'examples()': ['serw8r9s', 'aeo4i2u38'],
     function: 'f2',
+    'p50()': 20343,
     'p75()': 4239847,
+    'p95()': 309283249,
+    'p99()': 2348923849,
+    'avg()': 334984,
     package: 'p2',
     'sum()': 2304823908,
   },
@@ -221,7 +229,11 @@ const functionResults: EventsResultsDataRow<FunctionsField>[] = [
     'count()': 234,
     'examples()': ['serw8r9s', 'aeo4i2u38'],
     function: 'f3',
+    'p50()': 20343,
     'p75()': 4239847,
+    'p95()': 309283249,
+    'p99()': 2348923849,
+    'avg()': 334984,
     package: 'p3',
     'sum()': 2304823908,
   },
@@ -229,7 +241,11 @@ const functionResults: EventsResultsDataRow<FunctionsField>[] = [
     'count()': 234,
     'examples()': ['serw8r9s', 'aeo4i2u38'],
     function: 'f4',
+    'p50()': 20343,
     'p75()': 4239847,
+    'p95()': 309283249,
+    'p99()': 2348923849,
+    'avg()': 334984,
     package: 'p4',
     'sum()': 2304823908,
   },
@@ -237,7 +253,11 @@ const functionResults: EventsResultsDataRow<FunctionsField>[] = [
     'count()': 234,
     'examples()': ['serw8r9s', 'aeo4i2u38'],
     function: 'f5',
+    'p50()': 20343,
     'p75()': 4239847,
+    'p95()': 309283249,
+    'p99()': 2348923849,
+    'avg()': 334984,
     package: 'p5',
     'sum()': 2304823908,
   },
@@ -245,7 +265,11 @@ const functionResults: EventsResultsDataRow<FunctionsField>[] = [
     'count()': 234,
     'examples()': ['serw8r9s', 'aeo4i2u38'],
     function: 'f5',
+    'p50()': 20343,
     'p75()': 4239847,
+    'p95()': 309283249,
+    'p99()': 2348923849,
+    'avg()': 334984,
     package: 'p5',
     'sum()': 2304823908,
   },
@@ -253,7 +277,11 @@ const functionResults: EventsResultsDataRow<FunctionsField>[] = [
     'count()': 234,
     'examples()': ['serw8r9s', 'aeo4i2u38'],
     function: 'f7',
+    'p50()': 20343,
     'p75()': 4239847,
+    'p95()': 309283249,
+    'p99()': 2348923849,
+    'avg()': 334984,
     package: 'p7',
     'sum()': 2304823908,
   },
@@ -261,7 +289,11 @@ const functionResults: EventsResultsDataRow<FunctionsField>[] = [
     'count()': 234,
     'examples()': ['serw8r9s', 'aeo4i2u38'],
     function: 'f8',
+    'p50()': 20343,
     'p75()': 4239847,
+    'p95()': 309283249,
+    'p99()': 2348923849,
+    'avg()': 334984,
     package: 'p8',
     'sum()': 2304823908,
   },
@@ -269,7 +301,11 @@ const functionResults: EventsResultsDataRow<FunctionsField>[] = [
     'count()': 234,
     'examples()': ['serw8r9s', 'aeo4i2u38'],
     function: 'f9',
+    'p50()': 20343,
     'p75()': 4239847,
+    'p95()': 309283249,
+    'p99()': 2348923849,
+    'avg()': 334984,
     package: 'p9',
     'sum()': 2304823908,
   },
@@ -277,7 +313,11 @@ const functionResults: EventsResultsDataRow<FunctionsField>[] = [
     'count()': 234,
     'examples()': ['serw8r9s', 'aeo4i2u38'],
     function: 'f10',
+    'p50()': 20343,
     'p75()': 4239847,
+    'p95()': 309283249,
+    'p99()': 2348923849,
+    'avg()': 334984,
     package: 'p10',
     'sum()': 2304823908,
   },
@@ -285,7 +325,11 @@ const functionResults: EventsResultsDataRow<FunctionsField>[] = [
     'count()': 234,
     'examples()': ['serw8r9s', 'aeo4i2u38'],
     function: 'f11',
+    'p50()': 20343,
     'p75()': 4239847,
+    'p95()': 309283249,
+    'p99()': 2348923849,
+    'avg()': 334984,
     package: 'p11',
     'sum()': 2304823908,
   },
@@ -583,14 +627,15 @@ describe('Performance > Trends > Performance Change Explorer', function () {
           breakpoint={transaction.breakpoint!}
           transaction={transaction}
           trendChangeType={TrendChangeType.REGRESSION}
+          trendFunction="p75"
         />
         <FunctionsList
-          location={data.location}
           organization={data.organization}
           trendView={data.eventView}
           breakpoint={transaction.breakpoint!}
           transaction={transaction}
           trendChangeType={TrendChangeType.REGRESSION}
+          trendFunction="p75"
         />
       </div>
     );
@@ -625,14 +670,15 @@ describe('Performance > Trends > Performance Change Explorer', function () {
           breakpoint={transaction.breakpoint!}
           transaction={transaction}
           trendChangeType={TrendChangeType.REGRESSION}
+          trendFunction="p75"
         />
         <FunctionsList
-          location={data.location}
           organization={data.organization}
           trendView={data.eventView}
           breakpoint={transaction.breakpoint!}
           transaction={transaction}
           trendChangeType={TrendChangeType.REGRESSION}
+          trendFunction="p75"
         />
       </div>
     );
@@ -666,14 +712,15 @@ describe('Performance > Trends > Performance Change Explorer', function () {
           breakpoint={transaction.breakpoint!}
           transaction={transaction}
           trendChangeType={TrendChangeType.REGRESSION}
+          trendFunction="p75"
         />
         <FunctionsList
-          location={data.location}
           organization={data.organization}
           trendView={data.eventView}
           breakpoint={transaction.breakpoint!}
           transaction={transaction}
           trendChangeType={TrendChangeType.REGRESSION}
+          trendFunction="p75"
         />
       </div>
     );

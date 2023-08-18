@@ -181,14 +181,15 @@ function ExplorerBody(props: ExplorerBodyProps) {
         transaction={transaction}
         breakpoint={transaction.breakpoint!}
         trendChangeType={trendChangeType}
+        trendFunction={trendFunction}
       />
       <FunctionsList
-        location={location}
         organization={organization}
         trendView={trendView}
         transaction={transaction}
         breakpoint={transaction.breakpoint!}
         trendChangeType={trendChangeType}
+        trendFunction={trendFunction}
       />
     </Fragment>
   );
