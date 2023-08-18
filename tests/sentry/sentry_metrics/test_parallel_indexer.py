@@ -4,6 +4,7 @@ import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
+from sentry.metrics.middleware import global_tags
 from sentry.sentry_metrics.consumers.indexer.parallel import MetricsConsumerStrategyFactory
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
@@ -21,6 +22,14 @@ counter_payload = {
     "org_id": 1,
     "project_id": 3,
 }
+
+
+@pytest.fixture(autouse=True)
+def reset_global_metrics_state():
+    # running a MetricsConsumerStrategyFactory has a side-effect of mutating
+    # global metrics tags
+    with global_tags(_all_threads=True):
+        yield
 
 
 @pytest.mark.parametrize("force_disable_multiprocessing", [True, False])

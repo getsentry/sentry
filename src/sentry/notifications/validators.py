@@ -55,9 +55,9 @@ class UserNotificationSettingOptionWithValueSerializer(
 class UserNotificationSettingsProvidersDetailsSerializer(
     UserNotificationSettingsOptionsDetailsSerializer
 ):
-    provider = serializers.ListField(child=serializers.CharField())
+    providers = serializers.ListField(child=serializers.CharField())
 
-    def validate_provider(self, value):
+    def validate_providers(self, value):
         for provider in value:
             if provider not in allowed_providers:
                 raise serializers.ValidationError("Invalid provider")
