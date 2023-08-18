@@ -29,7 +29,7 @@ class OAuthRevokeView(View):
 
     @csrf_exempt
     @method_decorator(never_cache)
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: HttpRequest, *args, **kwargs):
         return super().dispatch(request, *args, **kwargs)
 
     def error(
