@@ -9,9 +9,10 @@ import {t, tct} from 'sentry/locale';
 // Configuration Start
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+}: Partial<
+  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
+> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -24,11 +25,21 @@ export const steps = ({
     configurations: [
       {
         language: 'shell',
-        code: 'dotnet add package Sentry.Maui -v 3.34.0',
+        partialLoading: sourcePackageRegistries?.isLoading,
+        code: `dotnet add package Sentry.Maui -v ${
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.maui']?.version ?? '3.34.0'
+        }`,
       },
       {
         language: 'powershell',
-        code: 'Install-Package Sentry.Maui -Version 3.34.0',
+        partialLoading: sourcePackageRegistries?.isLoading,
+        code: `Install-Package Sentry.Maui -Version ${
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.maui']?.version ?? '3.34.0'
+        }`,
       },
     ],
   },
@@ -186,8 +197,12 @@ transaction.Finish(); // Mark the transaction as finished and send it to Sentry
 ];
 // Configuration End
 
-export function GettingStartedWithMaui({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
+export function GettingStartedWithMaui({
+  dsn,
+  sourcePackageRegistries,
+  ...props
+}: ModuleProps) {
+  return <Layout steps={steps({dsn, sourcePackageRegistries})} {...props} />;
 }
 
 export default GettingStartedWithMaui;
