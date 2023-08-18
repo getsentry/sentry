@@ -228,7 +228,7 @@ class OutboxBase(Model):
     scheduled_for = models.DateTimeField(null=False, default=THE_PAST)
 
     # Initial creation date for the outbox which should not be modified. Used for lag time calculation.
-    created_date = models.DateTimeField(null=False, default=timezone.now, editable=False)
+    date_added = models.DateTimeField(null=False, default=timezone.now, editable=False)
 
     def last_delay(self) -> datetime.timedelta:
         return min(

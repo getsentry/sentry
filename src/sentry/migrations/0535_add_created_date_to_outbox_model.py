@@ -28,19 +28,19 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     sql="""
-                    ALTER TABLE "sentry_controloutbox" ADD COLUMN "created_date" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+                    ALTER TABLE "sentry_controloutbox" ADD COLUMN "date_added" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
                     """,
                     reverse_sql="""
-                    ALTER TABLE "sentry_controloutbox" DROP COLUMN "created_date"
+                    ALTER TABLE "sentry_controloutbox" DROP COLUMN "date_added"
                     """,
                     hints={"tables": ["sentry_region_outbox"]},
                 ),
                 migrations.RunSQL(
                     sql="""
-                    ALTER TABLE "sentry_regionoutbox" ADD COLUMN "created_date" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+                    ALTER TABLE "sentry_regionoutbox" ADD COLUMN "date_added" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
                     """,
                     reverse_sql="""
-                    ALTER TABLE "sentry_regionoutbox" DROP COLUMN "created_date"
+                    ALTER TABLE "sentry_regionoutbox" DROP COLUMN "date_added"
                     """,
                     hints={"tables": ["sentry_regionoutbox"]},
                 ),
@@ -48,12 +48,12 @@ class Migration(CheckedMigration):
             state_operations=[
                 migrations.AddField(
                     model_name="controloutbox",
-                    name="created_date",
+                    name="date_added",
                     field=models.DateTimeField(default=django.utils.timezone.now, editable=False),
                 ),
                 migrations.AddField(
                     model_name="regionoutbox",
-                    name="created_date",
+                    name="date_added",
                     field=models.DateTimeField(default=django.utils.timezone.now, editable=False),
                 ),
             ],
