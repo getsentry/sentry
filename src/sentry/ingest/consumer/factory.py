@@ -17,15 +17,13 @@ from arroyo.processing.strategies import (
 from arroyo.types import Commit, FilteredPayload, Message, Partition
 from django.conf import settings
 
-from sentry.ingest.consumer_v2.attachment_event import (
-    decode_and_process_chunks,
-    process_attachments_and_events,
-)
-from sentry.ingest.consumer_v2.simple_event import process_simple_event_message
 from sentry.ingest.types import ConsumerType
 from sentry.processing.backpressure.arroyo import HealthChecker, create_backpressure_step
 from sentry.utils import kafka_config
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
+
+from .attachment_event import decode_and_process_chunks, process_attachments_and_events
+from .simple_event import process_simple_event_message
 
 
 class MultiProcessConfig(NamedTuple):
@@ -165,7 +163,7 @@ def get_config(
     strict_offset_reset: bool,
     force_cluster: str | None,
 ) -> MutableMapping[str, Any]:
-    cluster_name: str = force_cluster or settings.KAFKA_TOPICS[topic]["cluster"]
+    cluster_name: str = force_cluster or settings.KAFKA_TOPICS[topic]["cluster"]  # type:ignore
     return build_kafka_consumer_configuration(
         kafka_config.get_kafka_consumer_cluster_options(
             cluster_name,
