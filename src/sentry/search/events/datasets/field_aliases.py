@@ -86,21 +86,40 @@ def resolve_project_slug_alias(builder: builder.QueryBuilder, alias: str) -> Sel
 
 
 def resolve_span_module(builder, alias: str) -> SelectType:
+    OP_MAPPING = {
+        "db.redis": "cache",
+        "db.sql.room": "other",
+    }
     return Function(
-        "transform",
+        "if",
         [
-            builder.column("span.category"),
-            [
-                "cache",
-                "db",
-                "http",
-            ],
-            [
-                "cache",
-                "db",
-                "http",
-            ],
-            "other",
+            Function("in", [builder.column("span.op"), list(OP_MAPPING.keys())]),
+            Function(
+                "transform",
+                [
+                    builder.column("span.op"),
+                    list(OP_MAPPING.keys()),
+                    list(OP_MAPPING.values()),
+                    "other",
+                ],
+            ),
+            Function(
+                "transform",
+                [
+                    builder.column("span.category"),
+                    [
+                        "cache",
+                        "db",
+                        "http",
+                    ],
+                    [
+                        "cache",
+                        "db",
+                        "http",
+                    ],
+                    "other",
+                ],
+            ),
         ],
         alias,
     )

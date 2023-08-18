@@ -440,29 +440,41 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             1,
             internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.six_min_ago,
-            tags={"span.category": "http"},
+            tags={"span.category": "http", "span.description": "f"},
         )
         self.store_span_metric(
             3,
             internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.six_min_ago,
-            tags={"span.category": "db"},
+            tags={"span.category": "db", "span.description": "e"},
         )
         self.store_span_metric(
             5,
             internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.six_min_ago,
-            tags={"span.category": "foobar"},
+            tags={"span.category": "foobar", "span.description": "d"},
         )
         self.store_span_metric(
             7,
             internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.six_min_ago,
-            tags={"span.category": "cache"},
+            tags={"span.category": "cache", "span.description": "c"},
+        )
+        self.store_span_metric(
+            9,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={"span.category": "db", "span.op": "db.redis", "span.description": "b"},
+        )
+        self.store_span_metric(
+            11,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={"span.category": "db", "span.op": "db.sql.room", "span.description": "a"},
         )
         response = self.do_request(
             {
-                "field": ["span.module", "p50(span.self_time)"],
+                "field": ["span.module", "span.description", "p50(span.self_time)"],
                 "query": "",
                 "orderby": ["-p50(span.self_time)"],
                 "project": self.project.id,
@@ -473,15 +485,25 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 200, response.content
         data = response.data["data"]
         meta = response.data["meta"]
-        assert len(data) == 4
-        assert data[0]["p50(span.self_time)"] == 7
-        assert data[0]["span.module"] == "cache"
-        assert data[1]["p50(span.self_time)"] == 5
-        assert data[1]["span.module"] == "other"
-        assert data[2]["p50(span.self_time)"] == 3
-        assert data[2]["span.module"] == "db"
-        assert data[3]["p50(span.self_time)"] == 1
-        assert data[3]["span.module"] == "http"
+        assert len(data) == 6
+        assert data[0]["p50(span.self_time)"] == 11
+        assert data[0]["span.module"] == "other"
+        assert data[0]["span.description"] == "a"
+        assert data[1]["p50(span.self_time)"] == 9
+        assert data[1]["span.module"] == "cache"
+        assert data[1]["span.description"] == "b"
+        assert data[2]["p50(span.self_time)"] == 7
+        assert data[2]["span.module"] == "cache"
+        assert data[2]["span.description"] == "c"
+        assert data[3]["p50(span.self_time)"] == 5
+        assert data[3]["span.module"] == "other"
+        assert data[3]["span.description"] == "d"
+        assert data[4]["p50(span.self_time)"] == 3
+        assert data[4]["span.module"] == "db"
+        assert data[4]["span.description"] == "e"
+        assert data[5]["p50(span.self_time)"] == 1
+        assert data[5]["span.module"] == "http"
+        assert data[5]["span.description"] == "f"
         assert meta["dataset"] == "spansMetrics"
         assert meta["fields"]["p50(span.self_time)"] == "duration"
 
@@ -562,7 +584,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     def test_http_error_rate_and_count(self):
         super().test_http_error_rate_and_count()
 
-    @pytest.mark.xfail(reason="Cannot group by transform")
+    @pytest.mark.xfail(reason="Cannot group by function 'if'")
     def test_span_module(self):
         super().test_span_module()
 
