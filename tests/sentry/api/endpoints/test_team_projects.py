@@ -70,7 +70,7 @@ class TeamProjectsCreateTest(APITestCase):
             status_code=400,
         )
 
-        assert str(response.data["slug"][0]) == (
+        assert response.data["slug"][0] == (
             "Enter a valid slug consisting of lowercase "
             "letters, numbers, underscores or hyphens. It cannot be entirely numeric."
         )
@@ -93,7 +93,7 @@ class TeamProjectsCreateTest(APITestCase):
             platform="fake platform",
             status_code=400,
         )
-        assert str(response.data["platform"][0]) == "Invalid platform"
+        assert response.data["platform"][0] == "Invalid platform"
 
     def test_duplicate_slug(self):
         self.create_project(slug="bar")

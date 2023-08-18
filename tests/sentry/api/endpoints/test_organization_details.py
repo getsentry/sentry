@@ -339,7 +339,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug=illegal_slug, status_code=400)
 
     def test_valid_slugs(self):
-        valid_slugs = ["santry", "downtown-canada", "1234", "SaNtRy"]
+        valid_slugs = ["santry", "downtown-canada", "foo123", "SaNtRy"]
         for slug in valid_slugs:
             self.organization.refresh_from_db()
             self.get_success_response(self.organization.slug, slug=slug)
@@ -352,6 +352,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug="canada-", status_code=400)
         self.get_error_response(self.organization.slug, slug="-canada", status_code=400)
         self.get_error_response(self.organization.slug, slug="----", status_code=400)
+        self.get_error_response(self.organization.slug, slug="1234", status_code=400)
 
     def test_upload_avatar(self):
         data = {
