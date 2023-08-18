@@ -3,6 +3,7 @@ from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
 from sentry import features
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -23,6 +24,7 @@ MAX_TEAM_KEY_TRANSACTIONS = 100
 @region_silo_only_model
 class DiscoverSavedQueryProject(Model):
     __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
     discover_saved_query = FlexibleForeignKey("sentry.DiscoverSavedQuery")
@@ -40,6 +42,7 @@ class DiscoverSavedQuery(Model):
     """
 
     __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     projects = models.ManyToManyField("sentry.Project", through=DiscoverSavedQueryProject)
     organization = FlexibleForeignKey("sentry.Organization")
@@ -136,6 +139,7 @@ class TeamKeyTransactionModelManager(BaseManager):
 @region_silo_only_model
 class TeamKeyTransaction(Model):
     __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     # max_length here is based on the maximum for transactions in relay
     transaction = models.CharField(max_length=200)

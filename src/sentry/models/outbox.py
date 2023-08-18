@@ -19,6 +19,7 @@ from django.utils import timezone
 from sentry_sdk.tracing import Span
 from typing_extensions import Self
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -209,6 +210,7 @@ class OutboxBase(Model):
         abstract = True
 
     __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     # Different shard_scope, shard_identifier pairings of messages are always deliverable in parallel
     shard_scope = BoundedPositiveIntegerField(choices=OutboxScope.as_choices(), null=False)
