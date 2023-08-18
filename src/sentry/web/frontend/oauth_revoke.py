@@ -115,7 +115,7 @@ class OAuthRevokeView(View):
         )
 
         # only delete the token if one was found
-        if token_to_delete:
+        if isinstance(token_to_delete, ApiToken):
             token_to_delete.delete()
             logger.info(
                 "oauth.revoke-success",
