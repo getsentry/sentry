@@ -28,7 +28,6 @@ class ApiGrant(Model):
     of the OAuth 2 spec.
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     user = FlexibleForeignKey("sentry.User")

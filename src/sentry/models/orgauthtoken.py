@@ -27,7 +27,6 @@ def validate_scope_list(value):
 
 @control_silo_only_model
 class OrgAuthToken(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     organization_id = HybridCloudForeignKey("sentry.Organization", null=False, on_delete="CASCADE")

@@ -24,7 +24,6 @@ class ReleaseStages(str, Enum):
 
 @region_silo_only_model
 class ReleaseProjectEnvironment(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     release = FlexibleForeignKey("sentry.Release")

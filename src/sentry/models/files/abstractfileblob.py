@@ -30,7 +30,6 @@ MULTI_BLOB_UPLOAD_CONCURRENCY = 8
 
 
 class AbstractFileBlob(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     path = models.TextField(null=True)

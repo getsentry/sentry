@@ -98,7 +98,6 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
 
 @control_silo_only_model
 class SentryAppInstallation(ParanoidModel):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Global
 
     sentry_app = FlexibleForeignKey("sentry.SentryApp", related_name="installations")

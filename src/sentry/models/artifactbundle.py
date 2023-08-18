@@ -66,7 +66,6 @@ class ArtifactBundleIndexingState(Enum):
 
 @region_silo_only_model
 class ArtifactBundle(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
@@ -140,7 +139,6 @@ indexstore = LazyServiceWrapper(
 
 @region_silo_only_model
 class ArtifactBundleFlatFileIndex(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     project_id = BoundedBigIntegerField(db_index=True)
@@ -179,7 +177,6 @@ class ArtifactBundleFlatFileIndex(Model):
 
 @region_silo_only_model
 class FlatFileIndexState(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     flat_file_index = FlexibleForeignKey("sentry.ArtifactBundleFlatFileIndex")
@@ -212,7 +209,6 @@ class FlatFileIndexState(Model):
 
 @region_silo_only_model
 class ArtifactBundleIndex(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
@@ -236,7 +232,6 @@ class ArtifactBundleIndex(Model):
 
 @region_silo_only_model
 class ReleaseArtifactBundle(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
@@ -258,7 +253,6 @@ class ReleaseArtifactBundle(Model):
 
 @region_silo_only_model
 class DebugIdArtifactBundle(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
@@ -276,7 +270,6 @@ class DebugIdArtifactBundle(Model):
 
 @region_silo_only_model
 class ProjectArtifactBundle(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)

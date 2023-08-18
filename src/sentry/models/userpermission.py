@@ -14,7 +14,6 @@ class UserPermission(Model):
     Generally speaking, they should only apply to active superuser sessions.
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.User
 
     user = FlexibleForeignKey("sentry.User")

@@ -32,7 +32,6 @@ SCIM_INTERNAL_INTEGRATION_OVERVIEW = (
 @control_silo_only_model
 class AuthProviderDefaultTeams(Model):
     # Completely defunct model.
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     authprovider_id = BoundedBigIntegerField()
@@ -46,7 +45,6 @@ class AuthProviderDefaultTeams(Model):
 
 @control_silo_only_model
 class AuthProvider(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade", unique=True)

@@ -43,7 +43,6 @@ class GroupLink(Model):
     Link a group with an external resource like a commit, issue, or pull request
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     class Relationship:

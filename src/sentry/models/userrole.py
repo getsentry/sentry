@@ -16,7 +16,6 @@ class UserRole(DefaultFieldsModel):
     Roles are applied to administrative users and apply a set of `UserPermission`.
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.User
 
     name = models.CharField(max_length=32, unique=True)
@@ -43,7 +42,6 @@ class UserRole(DefaultFieldsModel):
 
 @control_silo_only_model
 class UserRoleUser(DefaultFieldsModel):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.User
 
     user = FlexibleForeignKey("sentry.User")

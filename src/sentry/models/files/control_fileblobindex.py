@@ -8,7 +8,6 @@ from sentry.models.files.abstractfileblobindex import AbstractFileBlobIndex
 
 @control_silo_only_model
 class ControlFileBlobIndex(AbstractFileBlobIndex):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     file = FlexibleForeignKey("sentry.ControlFile")

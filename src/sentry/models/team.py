@@ -157,7 +157,6 @@ class Team(Model, SnowflakeIdMixin):
     A team represents a group of individuals which maintain ownership of projects.
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization")
