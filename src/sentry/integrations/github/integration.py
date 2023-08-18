@@ -249,6 +249,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
                     blame
                     for blame in blame_range
                     if blame.get("startingLine", 0) <= lineno <= blame.get("endingLine", 0)
+                    and blame.get("commit", {}).get("committedDate")
                 ),
                 key=lambda blame: parse_datetime(blame.get("commit", {}).get("committedDate")),
                 default={},
@@ -262,7 +263,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         if not commitInfo:
             return None
         else:
-            committed_date = parse_datetime(commitInfo.get("committed_date")).astimezone(
+            committed_date = parse_datetime(commitInfo.get("committedDate")).astimezone(
                 timezone.utc
             )
 

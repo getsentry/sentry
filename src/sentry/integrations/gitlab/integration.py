@@ -169,7 +169,7 @@ class GitlabIntegration(
 
         try:
             commit = max(
-                blame_range,
+                (blame for blame in blame_range if blame.get("commit", {}).get("committed_date")),
                 key=lambda blame: parse_datetime(blame.get("commit", {}).get("committed_date")),
             )
         except (ValueError, IndexError):
