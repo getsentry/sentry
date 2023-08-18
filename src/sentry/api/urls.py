@@ -963,22 +963,22 @@ ORGANIZATION_URLS = [
     re_path(
         r"^(?P<organization_slug>[^\/]+)/alert-templates/$",
         OrganizationAlertTemplateIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-alert-templates",
+        name="sentry-api-0-organization-alert-templates-procedures",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/alert-templates/(?P<alert_template_id>[^\/]+)/$",
         OrganizationAlertTemplateDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-alert-templates",
+        name="sentry-api-0-organization-alert-templates-details",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/alert-procedures/$",
         OrganizationAlertProcedureIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-alert-procedures",
+        name="sentry-api-0-organization-alert-procedures-index",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/alert-procedures/(?P<alert_procedure_id>[^\/]+)/$",
         OrganizationAlertProcedureDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-alert-procedures",
+        name="sentry-api-0-organization-alert-procedures-details",
     ),
     # Data Export
     re_path(

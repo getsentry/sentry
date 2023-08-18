@@ -1,7 +1,5 @@
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.blueprint.endpoints.bases import BlueprintEndpoint
 
 
-@region_silo_endpoint
-class OrganizationAlertTemplateIndexEndpoint(OrganizationEndpoint):
+class OrganizationAlertTemplateIndexEndpoint(BlueprintEndpoint):
     pass

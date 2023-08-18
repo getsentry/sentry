@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 @region_silo_only_model
 class AlertTemplateIssueAlert(Model):
-    __include_in_export__ = False
+    __include_in_export__ = True
 
     rule = FlexibleForeignKey("sentry.Rule")
     template = FlexibleForeignKey("sentry.AlertTemplate")
@@ -50,7 +50,7 @@ class AlertTemplateManager(BaseManager):
 
 @region_silo_only_model
 class AlertTemplate(Model):
-    __include_in_export__ = False
+    __include_in_export__ = True
 
     organization = FlexibleForeignKey("sentry.Organization")
     name = models.CharField(max_length=128)
@@ -61,6 +61,7 @@ class AlertTemplate(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_alerttemplate"
+        unique_together = (("organization", "name"),)
 
     objects = AlertTemplateManager()
 
@@ -87,7 +88,7 @@ class AlertProcedureManager(BaseManager):
 
 @region_silo_only_model
 class AlertProcedure(Model):
-    __include_in_export__ = False
+    __include_in_export__ = True
 
     organization = FlexibleForeignKey("sentry.Organization")
     label = models.CharField(max_length=255)
@@ -97,5 +98,6 @@ class AlertProcedure(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_alertprocedure"
+        unique_together = (("organization", "label"),)
 
     objects = AlertProcedureManager()
