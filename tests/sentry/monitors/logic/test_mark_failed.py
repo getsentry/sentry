@@ -57,7 +57,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 "platform": "other",
                 "contexts": {
                     "monitor": {
-                        "status": "active",
+                        "status": "error",
                         "type": "cron_job",
                         "config": {"schedule_type": 2, "schedule": [1, "month"]},
                         "id": str(monitor.guid),
@@ -102,7 +102,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 "platform": "other",
                 "contexts": {
                     "monitor": {
-                        "status": "active",
+                        "status": "timeout",
                         "type": "cron_job",
                         "config": {"schedule_type": 2, "schedule": [1, "month"]},
                         "id": str(monitor.guid),
@@ -151,7 +151,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 "platform": "other",
                 "contexts": {
                     "monitor": {
-                        "status": "active",
+                        "status": "missed_checkin",
                         "type": "cron_job",
                         "config": {"schedule_type": 2, "schedule": [1, "month"]},
                         "id": str(monitor.guid),
@@ -235,7 +235,7 @@ class MonitorEnvironmentTestCase(TestCase):
             **{
                 "contexts": {
                     "monitor": {
-                        "status": "active",
+                        "status": "error",
                         "type": "cron_job",
                         "config": {"schedule_type": 2, "schedule": [1, "month"]},
                         "id": str(monitor.guid),
@@ -328,7 +328,7 @@ class MonitorEnvironmentTestCase(TestCase):
             **{
                 "contexts": {
                     "monitor": {
-                        "status": "active",
+                        "status": "timeout",
                         "type": "cron_job",
                         "config": {"schedule_type": 2, "schedule": [1, "month"], "max_runtime": 10},
                         "id": str(monitor.guid),
@@ -417,7 +417,7 @@ class MonitorEnvironmentTestCase(TestCase):
             **{
                 "contexts": {
                     "monitor": {
-                        "status": "active",
+                        "status": "missed_checkin",
                         "type": "cron_job",
                         "config": {"schedule_type": 2, "schedule": [1, "month"]},
                         "id": str(monitor.guid),
