@@ -229,13 +229,10 @@ class OutboxBase(Model):
     scheduled_for = models.DateTimeField(null=False, default=THE_PAST)
 
     def last_delay(self) -> datetime.timedelta:
-        return min(
-            max(self.scheduled_for - self.scheduled_from, datetime.timedelta(seconds=1)),
-            datetime.timedelta(hours=1),
-        )
+        return max(self.scheduled_for - self.scheduled_from, datetime.timedelta(seconds=1))
 
     def next_schedule(self, now: datetime.datetime) -> datetime.datetime:
-        return now + (self.last_delay() * 2)
+        return now + min((self.last_delay() * 2), datetime.timedelta(hours=1))
 
     def save(self, **kwds: Any) -> None:  # type: ignore[override]
         if _outbox_context.flushing_enabled:
