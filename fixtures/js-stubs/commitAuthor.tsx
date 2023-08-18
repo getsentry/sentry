@@ -1,5 +1,10 @@
-export function CommitAuthor(params = {}) {
+import {type Commit} from 'sentry/types';
+
+type CommitAuthorType = NonNullable<Commit['author']>;
+
+export function CommitAuthor(params: Partial<CommitAuthorType> = {}): CommitAuthorType {
   return {
+    ...TestStubs.User(),
     username: 'example@sentry.io',
     lastLogin: '2018-11-30T21:18:09.812Z',
     isSuperuser: true,
