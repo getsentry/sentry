@@ -1,3 +1,5 @@
+import time
+
 from sentry.cache.django import DjangoCache
 from sentry.testutils.cases import TestCase
 
@@ -27,4 +29,10 @@ class DjangoCacheTest(TestCase):
 
         # Test deletion without an entry works
         self.cache.delete(self.cache_key)
+        assert self.cache.get(self.cache_key) is None
+
+    def test_ttl(self):
+        self.cache.set(self.cache_key, self.cache_val, 0.1)
+        assert self.cache.get(self.cache_key) == self.cache_val
+        time.sleep(0.1)
         assert self.cache.get(self.cache_key) is None
