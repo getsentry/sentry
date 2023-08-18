@@ -339,10 +339,24 @@ authToken = "your-sentry-auth-token"
           'For other dependency managers see the [mavenRepositorySpring5Link:central Maven repository (Spring 5)] and [mavenRepositorySpring6Link:central Maven repository (Spring 6)].',
           {
             mavenRepositorySpring5Link: (
-              <ExternalLink href="https://central.sonatype.com/artifact/io.sentry/sentry-spring/6.26.0" />
+              <ExternalLink
+                href={`https://central.sonatype.com/artifact/io.sentry/sentry-spring/${
+                  sourcePackageRegistries?.isLoading
+                    ? t('\u2026loading')
+                    : sourcePackageRegistries?.data?.['sentry.java.spring']?.version ??
+                      '6.27.0'
+                }`}
+              />
             ),
             mavenRepositorySpring6Link: (
-              <ExternalLink href="https://central.sonatype.com/artifact/io.sentry/sentry-spring-jakarta/6.26.0" />
+              <ExternalLink
+                href={`https://central.sonatype.com/artifact/io.sentry/sentry-spring-jakarta/${
+                  sourcePackageRegistries?.isLoading
+                    ? t('\u2026loading')
+                    : sourcePackageRegistries?.data?.['sentry.java.spring.jakarta']
+                        ?.version ?? '6.27.0'
+                }`}
+              />
             ),
           }
         )}
