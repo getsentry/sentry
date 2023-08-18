@@ -2,10 +2,12 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
@@ -54,6 +56,7 @@ function NetworkList({
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
+  const [visibleRange, setVisibleRange] = useState([0, 0]);
 
   const filterProps = useNetworkFilters({networkFrames: networkFrames || []});
   const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
@@ -169,6 +172,42 @@ function NetworkList({
     );
   };
 
+  const handleClick = useCallback(() => {
+    const frame = getNextReplayFrame({
+      frames: items,
+      targetOffsetMs: currentTime,
+      allowExact: true,
+    });
+    const frameIndex = items.findIndex(spanFrame => frame === spanFrame);
+    // index needs to be at least 1 to be a valid index to jump to
+    const index = frameIndex < 1 ? 1 : frameIndex;
+    setScrollToRow(index);
+  }, [setScrollToRow, currentTime, items]);
+
+  function indexAtCurrentTime() {
+    const frame = getNextReplayFrame({
+      frames: items,
+      targetOffsetMs: currentTime,
+      allowExact: true,
+    });
+    const frameIndex = items.findIndex(spanFrame => frame === spanFrame);
+    // frameIndex is -1 when the page is loading, so the Jump Up Button appears until the page finishes loading in
+    const index = frameIndex === -1 ? 0 : frameIndex;
+    return index;
+  }
+
+  function pixelsToRow(pixels) {
+    return Math.floor(pixels / BODY_HEIGHT);
+  }
+
+  const showJumpDownButton = () => {
+    return indexAtCurrentTime() > visibleRange[1];
+  };
+
+  const showJumpUpButton = () => {
+    return indexAtCurrentTime() < visibleRange[0];
+  };
+
   return (
     <FluidHeight>
       <NetworkFilters networkFrames={networkFrames} {...filterProps} />
@@ -202,10 +241,14 @@ function NetworkList({
                       </NoRowRenderer>
                     )}
                     onScrollbarPresenceChange={onScrollbarPresenceChange}
-                    onScroll={() => {
+                    onScroll={({clientHeight, scrollTop}) => {
                       if (scrollToRow !== undefined) {
                         setScrollToRow(undefined);
                       }
+                      setVisibleRange([
+                        pixelsToRow(scrollTop),
+                        pixelsToRow(scrollTop + clientHeight),
+                      ]);
                     }}
                     scrollToRow={scrollToRow}
                     overscanColumnCount={COLUMN_COUNT}
@@ -216,6 +259,19 @@ function NetworkList({
                   />
                 )}
               </AutoSizer>
+              {sortConfig.by === 'startTimestamp' && showJumpUpButton() ? (
+                <div>
+                  <Button
+                    onClick={handleClick}
+                    aria-label="Jump Up"
+                    priority="primary"
+                    size="xs"
+                    style={{position: 'absolute', left: '50%', top: '28px'}}
+                  >
+                    {t('Jump Up')}
+                  </Button>
+                </div>
+              ) : null}
             </OverflowHidden>
           ) : (
             <Placeholder height="100%" />
@@ -235,6 +291,19 @@ function NetworkList({
             startTimestampMs={startTimestampMs}
           />
         </SplitPanel>
+        {sortConfig.by === 'startTimestamp' && showJumpDownButton() ? (
+          <div>
+            <Button
+              priority="primary"
+              size="xs"
+              onClick={handleClick}
+              aria-label="Jump Down"
+              style={{position: 'absolute', left: '50%', bottom: '5px'}}
+            >
+              {t('Jump Down')}
+            </Button>
+          </div>
+        ) : null}
       </NetworkTable>
     </FluidHeight>
   );
