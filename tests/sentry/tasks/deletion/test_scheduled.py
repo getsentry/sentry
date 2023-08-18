@@ -19,7 +19,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import pending_delete
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.scheduled import reattempt_deletions, run_scheduled_deletions
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test, region_silo_test
 
 

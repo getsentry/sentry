@@ -4,7 +4,7 @@ import pytest
 from django.urls import reverse
 
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
-from sentry.testutils import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data

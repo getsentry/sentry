@@ -17,7 +17,6 @@ import WidgetBar from './chartPreviews/bar';
 import WidgetLine from './chartPreviews/line';
 import WidgetBigNumber from './chartPreviews/number';
 import WidgetTable from './chartPreviews/table';
-import WidgetWorldMap from './chartPreviews/world';
 
 function miniWidget(displayType: DisplayType): () => JSX.Element {
   switch (displayType) {
@@ -30,8 +29,6 @@ function miniWidget(displayType: DisplayType): () => JSX.Element {
       return WidgetBigNumber;
     case DisplayType.TABLE:
       return WidgetTable;
-    case DisplayType.WORLD_MAP:
-      return WidgetWorldMap;
     case DisplayType.LINE:
     default:
       return WidgetLine;

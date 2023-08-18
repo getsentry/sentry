@@ -8,7 +8,7 @@ from sentry.incidents.models import AlertRule, AlertRuleThresholdType
 from sentry.models import Rule
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import region_silo_test
 
 NOT_SET = object()
@@ -41,6 +41,7 @@ class BaseAlertRuleSerializerTest:
         assert result["includeAllProjects"] == alert_rule.include_all_projects
         if alert_rule.created_by_id:
             created_by = user_service.get_user(user_id=alert_rule.created_by_id)
+            assert created_by is not None
             assert result["createdBy"] == {
                 "id": alert_rule.created_by_id,
                 "name": created_by.get_display_name(),

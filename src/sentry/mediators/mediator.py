@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import logging
 from contextlib import contextmanager
@@ -126,6 +128,8 @@ class Mediator:
     # class.
     _params_prepared = False
 
+    using: str | None = "default"
+
     @classmethod
     def _prepare_params(cls):
         if sentry.mediators.mediator.Mediator in cls.__bases__ and not cls._params_prepared:
@@ -136,15 +140,21 @@ class Mediator:
 
     @classmethod
     def run(cls, *args, **kwargs):
-        with transaction.atomic():
+        def _inner():
             obj = cls(*args, **kwargs)
 
             with obj.log():
                 result = obj.call()
                 obj.audit()
                 obj.record_analytics()
-        obj.post_commit()
-        return result
+            obj.post_commit()
+            return result
+
+        if cls.using:
+            with transaction.atomic(cls.using):
+                return _inner()
+        else:
+            return _inner()
 
     def __init__(self, *args, **kwargs):
         self.kwargs = kwargs

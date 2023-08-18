@@ -15,7 +15,7 @@ from sentry.models.outbox import (
     WebhookProviderIdentifier,
 )
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.types.region import Region, RegionCategory
 
 

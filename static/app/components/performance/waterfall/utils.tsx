@@ -1,4 +1,5 @@
 import {Theme} from '@emotion/react';
+import Color from 'color';
 
 import {DurationDisplay} from 'sentry/components/performance/waterfall/types';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
@@ -188,10 +189,6 @@ export const getHumanDuration = (duration: number): string => {
   })}ms`;
 };
 
-export const toPercent = (value: number) => `${(value * 100).toFixed(3)}%`;
-
-export const toRoundedPercent = (value: number) => `${Math.round(value * 100)}%`;
-
 type Rect = {
   height: number;
   width: number;
@@ -274,4 +271,12 @@ export const pickBarColor = (input: string | undefined): string => {
   return colorsAsArray[
     (letterIndex1 + letterIndex2 + letterIndex3 + letterIndex4) % colorsAsArray.length
   ];
+};
+
+export const lightenBarColor = (
+  input: string | undefined,
+  lightenRatio: number
+): string => {
+  const barColor = pickBarColor(input);
+  return Color(barColor).lighten(lightenRatio).string();
 };

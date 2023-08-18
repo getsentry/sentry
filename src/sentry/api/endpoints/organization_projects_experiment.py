@@ -3,7 +3,7 @@ import random
 import string
 from email.headerregistry import Address
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils.text import slugify
 from rest_framework.exceptions import NotAuthenticated, PermissionDenied
 from rest_framework.request import Request
@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
 from sentry import audit_log, features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.endpoints.team_projects import ProjectPostSerializer
@@ -52,6 +53,7 @@ class OrgProjectPermission(OrganizationPermission):
 class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
     permission_classes = (OrgProjectPermission,)
     logger = logging.getLogger("team-project.create")
+    owner = ApiOwner.ENTERPRISE
 
     def should_add_creator_to_team(self, request: Request):
         return request.user.is_authenticated
@@ -113,7 +115,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
         default_team_slug = suffixed_team_slug
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Team)):
                 team = Team.objects.create(
                     name=default_team_slug,
                     slug=default_team_slug,

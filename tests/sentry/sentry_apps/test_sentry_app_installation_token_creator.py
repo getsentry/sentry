@@ -2,8 +2,11 @@ from datetime import date
 from unittest.mock import patch
 
 from sentry.models import SentryAppInstallation, SentryAppInstallationToken
-from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallationTokenCreator
-from sentry.testutils import TestCase
+from sentry.sentry_apps.installations import (
+    SentryAppInstallationCreator,
+    SentryAppInstallationTokenCreator,
+)
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 

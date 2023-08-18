@@ -10,10 +10,11 @@ from django.urls import reverse
 from sentry import audit_log
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.helper import AuthHelperSessionStore
-from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
+from sentry.auth.providers.saml2.generic.provider import GenericSAML2Provider
+from sentry.auth.providers.saml2.provider import Attributes
 from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organization
 from sentry.silo import SiloMode
-from sentry.testutils import AuthProviderTestCase
+from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -34,7 +35,7 @@ dummy_provider_config = {
 }
 
 
-class DummySAML2Provider(SAML2Provider):
+class DummySAML2Provider(GenericSAML2Provider):
     name = "dummy"
 
     def get_saml_setup_pipeline(self):
@@ -193,6 +194,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         def side_effect(request):
             helper = original_get_for_request(request)
+            assert helper is not None
             # This could occur if redis state has expired
             helper.state.step_index = None
             return helper

@@ -8,8 +8,7 @@ from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.models import ExternalIssue, Integration
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.testutils import TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import region_silo_test
@@ -120,15 +119,15 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
             },
             project_id=self.project.id,
         )
-        event = event.for_group(event.groups[0])
-        event.occurrence = occurrence
+        group_event = event.for_group(event.groups[0])
+        group_event.occurrence = occurrence
 
-        description = GitHubIssueBasic().get_group_description(event.group, event)
-        assert event.occurrence.evidence_display[0].value in description
-        assert event.occurrence.evidence_display[1].value in description
-        assert event.occurrence.evidence_display[2].value in description
-        title = GitHubIssueBasic().get_group_title(event.group, event)
-        assert title == event.occurrence.issue_title
+        description = GitHubIssueBasic().get_group_description(group_event.group, group_event)
+        assert group_event.occurrence.evidence_display[0].value in description
+        assert group_event.occurrence.evidence_display[1].value in description
+        assert group_event.occurrence.evidence_display[2].value in description
+        title = GitHubIssueBasic().get_group_title(group_event.group, group_event)
+        assert title == group_event.occurrence.issue_title
 
     def test_error_issues_content(self):
         """Test that a GitHub issue created from an error issue has the expected title and descriptionn"""
@@ -140,6 +139,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         description = GitHubIssueBasic().get_group_description(event.group, event)
         assert "oh no" in description
@@ -306,6 +306,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
         )
+        assert event.group is not None
         group = event.group
         integration_service.update_organization_integration(
             org_integration_id=self.integration.org_integration.id,
@@ -344,6 +345,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
         )
+        assert event.group is not None
         group = event.group
         integration_service.update_organization_integration(
             org_integration_id=self.integration.org_integration.id,

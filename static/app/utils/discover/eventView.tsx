@@ -62,7 +62,7 @@ import {MutableSearch} from '../tokenizeSearch';
 import {getSortField} from './fieldRenderers';
 
 // Metadata mapping for discover results.
-export type MetaType = Record<string, ColumnType> & {
+export type MetaType = Record<string, any> & {
   isMetricsData?: boolean;
   tips?: {columns: string; query: string};
   units?: Record<string, string>;
@@ -431,6 +431,18 @@ class EventView {
     };
 
     return EventView.fromSavedQuery(saved);
+  }
+
+  static fromNewQueryWithPageFilters(newQuery: NewQuery, pageFilters: PageFilters) {
+    return EventView.fromSavedQuery({
+      ...newQuery,
+      environment: newQuery.environment ?? pageFilters.environments,
+      projects: newQuery.projects ?? pageFilters.projects,
+      start: newQuery.start ?? pageFilters.datetime.start ?? undefined,
+      end: newQuery.end ?? pageFilters.datetime.end ?? undefined,
+      range: newQuery.range ?? pageFilters.datetime.period ?? undefined,
+      utc: newQuery.utc ?? pageFilters.datetime.utc ?? undefined,
+    });
   }
 
   static getFields(saved: NewQuery | SavedQuery) {

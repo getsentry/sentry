@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Union
 
 import sentry_sdk
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_field, inline_serializer
 from rest_framework import serializers
@@ -167,7 +167,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         audit_data = member.get_audit_log_data()
         if member.is_only_owner():
             raise PermissionDenied(detail=ERR_ONLY_OWNER)
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(OrganizationMember)):
             member.delete()
             self.create_audit_entry(
                 request=request,
@@ -399,7 +399,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         ).order_by("email", "id")
         if query_params["filter"]:
             filtered_users = user_service.get_many_by_email(
-                emails=query_params["filter"],
+                emails=[query_params["filter"]],
                 organization_id=organization.id,
                 is_verified=False,
             )
@@ -505,7 +505,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                 raise SCIMApiError(detail=json.dumps(serializer.errors))
 
             result = serializer.validated_data
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(OrganizationMember)):
                 member_query = OrganizationMember.objects.filter(
                     organization=organization, email=result["email"], role=result["role"]
                 )

@@ -8,8 +8,8 @@ from sentry.types.group import GroupSubStatus
 
 
 def bulk_transition_group_to_ongoing(
-    from_status: GroupStatus,
-    from_substatus: GroupSubStatus,
+    from_status: int,
+    from_substatus: int,
     groups: List[Group],
     activity_data: Optional[Mapping[str, Any]] = None,
 ) -> None:
@@ -20,8 +20,8 @@ def bulk_transition_group_to_ongoing(
 
     Group.objects.update_group_status(
         groups=groups_to_transistion,
-        status=GroupStatus.UNRESOLVED,  # type: ignore
-        substatus=GroupSubStatus.ONGOING,  # type: ignore
+        status=GroupStatus.UNRESOLVED,
+        substatus=GroupSubStatus.ONGOING,
         activity_type=ActivityType.AUTO_SET_ONGOING,
         activity_data=activity_data,
         send_activity_notification=False,

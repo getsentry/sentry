@@ -2,11 +2,11 @@ from datetime import datetime
 
 from django.utils import timezone
 
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
-@region_silo_test(stable=True)
+@no_silo_test(stable=True)
 class OrganizationReleasesTest(AcceptanceTestCase):
     release_date = datetime(2020, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)
 

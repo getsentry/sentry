@@ -1,9 +1,6 @@
 import sys
 
-try:
-    import pkg_resources
-except ImportError:
-    pkg_resources = None
+import pkg_resources
 
 
 def get_package_version(module_name, app):

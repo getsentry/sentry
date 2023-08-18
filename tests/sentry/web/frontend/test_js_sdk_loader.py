@@ -7,7 +7,7 @@ from django.conf import settings
 from django.urls import reverse
 
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
 

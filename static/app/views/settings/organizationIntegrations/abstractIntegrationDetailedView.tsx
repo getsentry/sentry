@@ -36,7 +36,7 @@ import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb
 import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';
 import IntegrationStatus from './integrationStatus';
 
-type Tab = 'overview' | 'configurations';
+export type Tab = 'overview' | 'configurations' | 'features';
 
 interface AlertType extends AlertProps {
   text: string;

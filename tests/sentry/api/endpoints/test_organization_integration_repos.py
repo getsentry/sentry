@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
@@ -30,6 +30,37 @@ class OrganizationIntegrationReposTest(APITestCase):
         assert response.data == {
             "repos": [
                 {"name": "rad-repo", "identifier": "Example/rad-repo", "defaultBranch": "main"},
+                {
+                    "name": "cool-repo",
+                    "identifier": "Example/cool-repo",
+                    "defaultBranch": None,
+                },
+            ],
+            "searchable": True,
+        }
+
+    @patch("sentry.integrations.github.GitHubAppsClient.get_repositories", return_value=[])
+    def test_hide_hidden_repos(self, get_repositories):
+        get_repositories.return_value = [
+            {
+                "name": "rad-repo",
+                "full_name": "Example/rad-repo",
+                "default_branch": "main",
+            },
+            {"name": "cool-repo", "full_name": "Example/cool-repo"},
+        ]
+
+        self.create_repo(
+            project=self.project,
+            integration_id=self.integration.id,
+            name="Example/rad-repo",
+        )
+
+        response = self.client.get(self.path, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "repos": [
                 {
                     "name": "cool-repo",
                     "identifier": "Example/cool-repo",

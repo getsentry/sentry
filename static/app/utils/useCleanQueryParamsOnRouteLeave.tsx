@@ -4,8 +4,9 @@ import type {Location} from 'history';
 
 import {useLocation} from 'sentry/utils/useLocation';
 
-type Opts = {
+type Opts<Q> = {
   fieldsToClean: string[];
+  shouldClean?: (newLocation: Location<Q>) => boolean;
 };
 
 export function handleRouteLeave<Q extends object>({
@@ -41,18 +42,20 @@ export function handleRouteLeave<Q extends object>({
   });
 }
 
-function useCleanQueryParamsOnRouteLeave({fieldsToClean}: Opts) {
+function useCleanQueryParamsOnRouteLeave<Q>({fieldsToClean, shouldClean}: Opts<Q>) {
   const location = useLocation();
 
   const onRouteLeave = useCallback(
     newLocation => {
-      handleRouteLeave({
-        fieldsToClean,
-        newLocation,
-        oldPathname: location.pathname,
-      });
+      if (!shouldClean || shouldClean(newLocation)) {
+        handleRouteLeave({
+          fieldsToClean,
+          newLocation,
+          oldPathname: location.pathname,
+        });
+      }
     },
-    [location.pathname, fieldsToClean]
+    [shouldClean, fieldsToClean, location.pathname]
   );
 
   useEffect(() => {

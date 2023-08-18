@@ -5,10 +5,11 @@ from unittest.mock import patch
 from urllib.parse import parse_qs
 
 import responses
+from django.conf import settings
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.utils import timezone
-from sentry_relay import parse_release
+from sentry_relay.processing import parse_release
 
 from sentry.event_manager import EventManager
 from sentry.models import (
@@ -24,7 +25,7 @@ from sentry.models import (
 )
 from sentry.silo import SiloMode
 from sentry.tasks.post_process import post_process_group
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -105,6 +106,9 @@ class ActivityNotificationTest(APITestCase):
             body='{"ok": true}',
             status=200,
             content_type="application/json",
+        )
+        responses.add_passthru(
+            settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
         )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
@@ -367,9 +371,10 @@ class ActivityNotificationTest(APITestCase):
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
+        parsed_version = parse_release(release.version)["description"]
         # check the txt version
         assert (
-            f"Resolved Issue\n\n{self.user.username} marked {self.short_id} as resolved in {release.version}"
+            f"Resolved Issue\n\n{self.user.username} marked {self.short_id} as resolved in {parsed_version}"
             in msg.body
         )
         # check the html version
@@ -379,7 +384,7 @@ class ActivityNotificationTest(APITestCase):
         )
 
         attachment, text = get_attachment()
-        assert text == f"Issue marked as resolved in {release.version} by {self.name}"
+        assert text == f"Issue marked as resolved in {parsed_version} by {self.name}"
         assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]

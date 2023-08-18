@@ -17,6 +17,16 @@ import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOpt
 
 describe('ReleasesList', () => {
   const {organization, routerContext, router, routerProps} = initializeOrg();
+  const semverVersionInfo = {
+    version: {
+      raw: '1.2.3',
+      major: 1,
+      minor: 2,
+      patch: 3,
+      buildCode: null,
+      components: 3,
+    },
+  };
 
   const props = {
     ...routerProps,
@@ -51,8 +61,14 @@ describe('ReleasesList', () => {
     endpointMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [
-        TestStubs.Release({version: '1.0.0'}),
-        TestStubs.Release({version: '1.0.1'}),
+        TestStubs.Release({
+          version: '1.0.0',
+          versionInfo: {...semverVersionInfo, raw: '1.0.0'},
+        }),
+        TestStubs.Release({
+          version: '1.0.1',
+          versionInfo: {...semverVersionInfo, raw: '1.0.1'},
+        }),
         {
           ...TestStubs.Release({version: 'af4f231ec9a8'}),
           projects: [

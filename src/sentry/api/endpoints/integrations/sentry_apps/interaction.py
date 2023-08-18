@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry import tsdb
 from sentry.api.base import StatsMixin, region_silo_endpoint
-from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
+from sentry.api.bases import RegionSentryAppBaseEndpoint, SentryAppStatsPermission
 from sentry.api.bases.sentryapps import COMPONENT_TYPES
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.tsdb.base import TSDBModel
@@ -20,7 +20,7 @@ def get_component_interaction_key(sentry_app, component_type):
 
 
 @region_silo_endpoint
-class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
+class SentryAppInteractionEndpoint(RegionSentryAppBaseEndpoint, StatsMixin):
     permission_classes = (SentryAppStatsPermission,)
 
     def get(self, request: Request, sentry_app) -> Response:

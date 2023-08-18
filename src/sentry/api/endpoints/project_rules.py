@@ -3,7 +3,8 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
@@ -21,6 +22,7 @@ from sentry.web.decorators import transaction_start
 
 @region_silo_endpoint
 class ProjectRulesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ISSUES
     permission_classes = (ProjectAlertRulePermission,)
 
     @transaction_start("ProjectRulesEndpoint")
@@ -91,15 +93,19 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                     slow_rules += 1
                     break
 
-        if new_rule_is_slow and slow_rules >= settings.MAX_SLOW_CONDITION_ISSUE_ALERTS:
-            return Response(
-                {
-                    "conditions": [
-                        f"You may not exceed {settings.MAX_SLOW_CONDITION_ISSUE_ALERTS} rules with this type of condition per project.",
-                    ]
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        if new_rule_is_slow:
+            max_slow_alerts = settings.MAX_SLOW_CONDITION_ISSUE_ALERTS
+            if features.has("organizations:more-slow-alerts", project.organization):
+                max_slow_alerts = settings.MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS
+            if slow_rules >= max_slow_alerts:
+                return Response(
+                    {
+                        "conditions": [
+                            f"You may not exceed {max_slow_alerts} rules with this type of condition per project.",
+                        ]
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
         if (
             not new_rule_is_slow
             and (len(rules) - slow_rules) >= settings.MAX_FAST_CONDITION_ISSUE_ALERTS

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Mapping
 from django.conf import settings
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -17,8 +18,8 @@ if TYPE_CHECKING:
 option_scope_error = "this is not a supported use case, scope to project OR organization"
 
 
-class UserOptionManager(OptionManager["User"]):
-    def _make_key(
+class UserOptionManager(OptionManager["UserOption"]):
+    def _make_key(  # type: ignore[override]
         self,
         user: User | RpcUser | int,
         project: Project | int | None = None,
@@ -186,6 +187,7 @@ class UserOption(Model):
     """
 
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.User
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     project_id = HybridCloudForeignKey("sentry.Project", null=True, on_delete="CASCADE")

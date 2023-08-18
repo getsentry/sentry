@@ -21,7 +21,6 @@ from typing import (
     Set,
     Tuple,
     Union,
-    cast,
 )
 
 from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request
@@ -55,9 +54,12 @@ from sentry.snuba.metrics.fields.snql import (
     failure_count_transaction,
     foreground_anr_users,
     histogram_snql_factory,
+    http_error_count_transaction,
     max_timestamp,
     min_timestamp,
     miserable_users,
+    on_demand_apdex_snql_factory,
+    on_demand_failure_rate_snql_factory,
     rate_snql_factory,
     satisfaction_count_transaction,
     session_duration_filters,
@@ -152,7 +154,7 @@ def run_metrics_query(
         tenant_ids={"organization_id": org_id},
     )
     result = raw_snql_query(request, referrer, use_cache=True)
-    return cast(List[SnubaDataType], result["data"])
+    return result["data"]
 
 
 def _get_known_entity_of_metric_mri(metric_mri: str) -> Optional[EntityKey]:
@@ -225,7 +227,7 @@ def _get_entity_of_metric_mri(
 
 def org_id_from_projects(projects: Sequence[Project]) -> int:
     assert len({p.organization_id for p in projects}) == 1
-    return cast(int, projects[0].organization_id)
+    return projects[0].organization_id
 
 
 @dataclass
@@ -1278,7 +1280,7 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
 
 # ToDo(ahmed): Investigate dealing with derived metric keys as Enum objects rather than string
 #  values
-DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
+DERIVED_METRICS = {
     derived_metric.metric_mri: derived_metric
     for derived_metric in [
         SingularEntityDerivedMetric(
@@ -1548,6 +1550,25 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             ),
         ),
         SingularEntityDerivedMetric(
+            metric_mri=TransactionMRI.HTTP_ERROR_COUNT.value,
+            metrics=[TransactionMRI.DURATION.value],
+            unit="transactions",
+            snql=lambda project_ids, org_id, metric_ids, alias=None: http_error_count_transaction(
+                org_id, metric_ids=metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=TransactionMRI.HTTP_ERROR_RATE.value,
+            metrics=[
+                TransactionMRI.HTTP_ERROR_COUNT.value,
+                TransactionMRI.ALL.value,
+            ],
+            unit="transactions",
+            snql=lambda http_error_count, tx_count, project_ids, org_id, metric_ids, alias=None: division_float(
+                http_error_count, tx_count, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.SATISFIED.value,
             metrics=[TransactionMRI.DURATION.value, TransactionMRI.MEASUREMENTS_LCP.value],
             unit="transactions",
@@ -1694,6 +1715,19 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             snql_func=max_timestamp,
             meta_type="datetime",
             default_null_value=None,
+        ),
+        # Custom operations used for on demand derived metrics.
+        DerivedOp(
+            op="on_demand_failure_rate",
+            can_orderby=True,
+            snql_func=on_demand_failure_rate_snql_factory,
+            default_null_value=0,
+        ),
+        DerivedOp(
+            op="on_demand_apdex",
+            can_orderby=True,
+            snql_func=on_demand_apdex_snql_factory,
+            default_null_value=0,
         ),
     ]
 }

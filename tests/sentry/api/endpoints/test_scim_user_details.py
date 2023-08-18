@@ -7,7 +7,7 @@ from sentry.models import AuthProvider, OrganizationMember
 from sentry.models.authidentity import AuthIdentity
 from sentry.scim.endpoints.utils import SCIMFilterError, parse_filter_conditions
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase, SCIMAzureTestCase, SCIMTestCase
+from sentry.testutils.cases import APITestCase, SCIMAzureTestCase, SCIMTestCase
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test, region_silo_test
 
 CREATE_USER_POST_DATA = {

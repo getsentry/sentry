@@ -7,7 +7,7 @@ from django.urls import reverse
 from sentry.models import File, Release, ReleaseFile
 from sentry.models.distribution import Distribution
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 
 
 class ReleaseFilesListTest(APITestCase):

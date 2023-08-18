@@ -7,9 +7,7 @@ import {t, tct} from 'sentry/locale';
 // Configuration Start
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -39,7 +37,7 @@ export const steps = ({
     configurations: [
       {
         language: 'php',
-        code: `\Sentry\init(['dsn' => '${dsn}' ]);`,
+        code: `\\Sentry\\init(['dsn' => '${dsn}' ]);`,
       },
     ],
   },
@@ -54,13 +52,13 @@ export const steps = ({
         code: `
 try {
   $this->functionFailsForSure();
-} catch (\Throwable $exception) {
-  \Sentry\captureException($exception);
+} catch (\\Throwable $exception) {
+  \\Sentry\\captureException($exception);
 }
 
 // OR
 
-\Sentry\captureLastError();
+\\Sentry\\captureLastError();
         `,
       },
     ],

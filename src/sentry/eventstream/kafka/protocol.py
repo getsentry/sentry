@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import Any, Callable, FrozenSet, Mapping, MutableMapping, Optional, Sequence, Tuple
 
@@ -12,7 +14,7 @@ class UnexpectedOperation(Exception):
 
 def basic_protocol_handler(
     unsupported_operations: FrozenSet[str],
-) -> Callable[[str, Any, Any], Optional[Mapping[str, Any]]]:
+) -> Callable[[str, Any, Any], Optional[dict[str, Any]]]:
     # The insert message formats for Version 1 and 2 are essentially unchanged,
     # so this function builds a handler function that can deal with both.
 
@@ -20,7 +22,7 @@ def basic_protocol_handler(
         operation: str,
         event_data: Mapping[str, Any],
         task_state: Mapping[str, Any],
-    ) -> Optional[Mapping[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         if task_state and task_state.get("skip_consume", False):
             return None  # nothing to do
 
@@ -41,7 +43,7 @@ def basic_protocol_handler(
 
         return kwargs
 
-    def handle_message(operation: str, *data: Any) -> Optional[Mapping[str, Any]]:
+    def handle_message(operation: str, *data: Any) -> Optional[dict[str, Any]]:
         if operation == "insert":
             return get_task_kwargs_for_insert(operation, *data)
         elif operation in unsupported_operations:
@@ -85,7 +87,7 @@ class InvalidVersion(Exception):
     pass
 
 
-def get_task_kwargs_for_message(value: bytes) -> Optional[Mapping[str, Any]]:
+def get_task_kwargs_for_message(value: bytes) -> Optional[dict[str, Any]]:
     """
     Decodes a message body, returning a dictionary of keyword arguments that
     can be applied to a post-processing task, or ``None`` if no task should be
@@ -149,7 +151,7 @@ def decode_optional_list_str(value: Optional[str]) -> Optional[Sequence[Any]]:
 
 def get_task_kwargs_for_message_from_headers(
     headers: Sequence[Tuple[str, Optional[bytes]]]
-) -> Optional[Mapping[str, Any]]:
+) -> Optional[dict[str, Any]]:
     """
     Same as get_task_kwargs_for_message but gets the required information from
     the kafka message headers.

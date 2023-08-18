@@ -7,13 +7,13 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.silo import unguarded_write
 from sentry.tasks.organization_mapping import ORGANIZATION_MAPPING_EXPIRY, repair_mappings
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 
 
 @pytest.fixture(autouse=True)
 def role_override():
-    with unguarded_write():
+    with unguarded_write(using=router.db_for_write(OrganizationMapping)):
         yield
 
 

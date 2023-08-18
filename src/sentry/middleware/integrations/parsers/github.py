@@ -3,7 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Any, Mapping
 
-from sentry.integrations.github.webhook import get_github_external_id
+from sentry.integrations.github.webhook import (
+    GitHubIntegrationsWebhookEndpoint,
+    get_github_external_id,
+)
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.integrations.integration import Integration
 from sentry.models.outbox import WebhookProviderIdentifier
@@ -17,6 +20,8 @@ logger = logging.getLogger(__name__)
 class GithubRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.GITHUB]
     webhook_identifier = WebhookProviderIdentifier.GITHUB
+    webhook_endpoint: Any = GitHubIntegrationsWebhookEndpoint
+    """Overridden in GithubEnterpriseRequestParser"""
 
     def _get_external_id(self, event: Mapping[str, Any]) -> str | None:
         """Overridden in GithubEnterpriseRequestParser"""
@@ -36,10 +41,10 @@ class GithubRequestParser(BaseRequestParser):
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
     def get_response(self):
-        # All github webhooks will be sent to region silos
-        regions = self.get_regions_from_organizations()
-        if len(regions) == 0:
-            logger.error("no_regions", extra={"path": self.request.path})
-            return self.get_response_from_control_silo()
-
-        return self.get_response_from_outbox_creation(regions=regions)
+        if self.view_class == self.webhook_endpoint:
+            regions = self.get_regions_from_organizations()
+            if len(regions) == 0:
+                logger.error("no_regions", extra={"path": self.request.path})
+                return self.get_response_from_control_silo()
+            return self.get_response_from_outbox_creation(regions=regions)
+        return self.get_response_from_control_silo()

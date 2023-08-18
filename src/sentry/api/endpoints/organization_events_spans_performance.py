@@ -18,7 +18,6 @@ from sentry import eventstore
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.serializers.rest_framework import ListField
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.models import Organization
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
@@ -113,10 +112,15 @@ class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):
 
 
 class SpansPerformanceSerializer(serializers.Serializer):
-    field = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    field = serializers.ListField(child=serializers.CharField(), required=False, allow_null=True)
     query = serializers.CharField(required=False, allow_null=True)
-    spanOp = ListField(child=serializers.CharField(), required=False, allow_null=True, max_length=4)
-    spanGroup = ListField(
+    spanOp = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True, max_length=5
+    )
+    excludeSpanOp = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True, max_length=5
+    )
+    spanGroup = serializers.ListField(
         child=serializers.CharField(), required=False, allow_null=True, max_length=4
     )
     min_exclusive_time = serializers.FloatField(required=False)
@@ -157,6 +161,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
         fields = serialized.get("field", [])
         query = serialized.get("query")
         span_ops = serialized.get("spanOp")
+        exclude_span_ops = serialized.get("excludeSpanOp")
         span_groups = serialized.get("spanGroup")
         min_exclusive_time = serialized.get("min_exclusive_time")
         max_exclusive_time = serialized.get("max_exclusive_time")
@@ -169,6 +174,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
                 fields,
                 query,
                 span_ops,
+                exclude_span_ops,
                 span_groups,
                 direction,
                 orderby_column,
@@ -467,6 +473,7 @@ def query_suspect_span_groups(
     fields: List[str],
     query: Optional[str],
     span_ops: Optional[List[str]],
+    exclude_span_ops: Optional[List[str]],
     span_groups: Optional[List[str]],
     direction: str,
     orderby: str,
@@ -516,6 +523,15 @@ def query_suspect_span_groups(
                 builder.resolve_function("array_join(spans_op)"),
                 Op.IN,
                 Function("tuple", span_ops),
+            )
+        )
+
+    if exclude_span_ops:
+        extra_conditions.append(
+            Condition(
+                builder.resolve_function("array_join(spans_op)"),
+                Op.NOT_IN,
+                Function("tuple", exclude_span_ops),
             )
         )
 

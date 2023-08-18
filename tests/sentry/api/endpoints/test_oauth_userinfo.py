@@ -4,7 +4,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from sentry.models import ApiToken
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -85,7 +85,7 @@ class OAuthUserInfoTest(APITestCase):
 
     def test_gets_multiple_scopes(self):
         all_access_token = ApiToken.objects.create(
-            user=self.user, scope_list=["openid", "profile", "email", "address", "phone"]
+            user=self.user, scope_list=["openid", "profile", "email"]
         )
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + all_access_token.token)
 

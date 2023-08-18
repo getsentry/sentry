@@ -1,104 +1,40 @@
-from freezegun import freeze_time
+from unittest.mock import patch
 
-from sentry.dynamic_sampling.tasks.utils import Timer
+import pytest
 
-
-def test_timer_raw():
-    """
-    Tests the direct functionality of Timer (i.e. not as a context manager)
-    """
-
-    t = Timer()
-    with freeze_time("2023-07-12 10:00:00") as frozen_time:
-        # timer is not started, so it should have a 0 interval
-        assert t.current() == 0
-
-        t.start()
-        t.stop()
-        # no time has passed
-        assert t.current() == 0
-
-        t.start()
-        # still no time passed
-        assert t.current() == 0
-        t.stop()
-
-        # jump 1 second in the future
-        frozen_time.tick()
-
-        # the timer is stopped so nothing should have happened
-        assert t.current() == 0
-
-        # stopping and starting should not do anything either since no time
-        # is advancing at the moment
-        t.start()
-        assert t.current() == 0
-        t.stop()
-        assert t.current() == 0
-
-        # start and jump another second
-        t.start()
-
-        # another sec
-        frozen_time.tick()
-
-        # now the timer should be at 1 sec
-        assert t.current() == 1.0
-
-        # stopping and starting it at this point should still be at 1 sec
-        t.start()
-        assert t.current() == 1.0
-        t.stop()
-        assert t.current() == 1.0
-        t.start()
-        assert t.current() == 1.0
-        t.stop()
-        assert t.current() == 1.0
-
-        frozen_time.tick()
-        # check that we can accumulate multiple stops and starts
-        assert t.current() == 1.0
-        t.start()
-        assert t.current() == 1.0
-
-        # another sec
-        frozen_time.tick()
-
-        assert t.current() == 2.0
-        t.stop()
-        assert t.current() == 2.0
-        t.start()
-        assert t.current() == 2.0
-        t.stop()
-        assert t.current() == 2.0
-        t.reset()
-        assert t.current() == 0.0
-        t.start()
-        assert t.current() == 0.0
-        t.stop()
-        assert t.current() == 0.0
-        t.start()
-
-        # another sec
-        frozen_time.tick()
-
-        assert t.current() == 1.0
+from sentry.dynamic_sampling.tasks.common import TimeoutException
+from sentry.dynamic_sampling.tasks.task_context import TaskContext
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task_with_context
 
 
-def test_timer_context_manager():
-    """
-    Tests the context manager functionality of the timer
-    """
-    with freeze_time("2023-07-12 10:00:00") as frozen_time:
-        t = Timer()
-        for i in range(3):
-            with t:
-                # only the seconds advanced within the counter should be counted
-                assert t.current() == i
+def test_injection_dynamic_sampling_task_with_context():
+    duration = 420
 
-                # jump one sec
-                frozen_time.tick()
-            frozen_time.tick()
+    @dynamic_sampling_task_with_context(max_task_execution=duration)
+    def inner(context: TaskContext):
+        assert context.name == "sentry.tasks.dynamic_sampling.inner"
+        assert context.num_seconds == duration
 
-        # we advanced 3 seconds within the timer and 3 outside we should have only counted 3
-        assert t.current() == 3
+    inner()
+
+
+@patch("sentry.dynamic_sampling.tasks.utils.log_task_execution")
+def test_log_dynamic_sampling_task_with_context(log_task_execution):
+    @dynamic_sampling_task_with_context(max_task_execution=100)
+    def inner(context: TaskContext):
+        pass
+
+    inner()
+    log_task_execution.assert_called_once()
+
+
+@patch("sentry.dynamic_sampling.tasks.utils.log_task_timeout")
+def test_timeout_dynamic_sampling_task_with_context(log_task_timeout):
+    @dynamic_sampling_task_with_context(max_task_execution=100)
+    def inner(context: TaskContext):
+        raise TimeoutException(context)
+
+    with pytest.raises(TimeoutException):
+        inner()
+
+    log_task_timeout.assert_called_once()

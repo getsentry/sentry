@@ -3,7 +3,7 @@ from functools import cached_property
 from django.http import HttpRequest
 
 from sentry.middleware.proxy import SetRemoteAddrFromForwardedFor
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class SetRemoteAddrFromForwardedForTestCase(TestCase):

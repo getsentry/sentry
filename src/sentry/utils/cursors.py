@@ -252,7 +252,7 @@ def build_cursor(
     cursor: Cursor | None = None,
     hits: int | None = None,
     max_hits: int | None = None,
-    on_results: None | OnResultCallable[T] = None,
+    on_results: OnResultCallable[T] | None = None,
 ) -> CursorResult[T | JSONData]:
     if cursor is None:
         cursor = Cursor(0, 0, 0)

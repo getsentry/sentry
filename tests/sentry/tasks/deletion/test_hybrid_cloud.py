@@ -16,9 +16,9 @@ from sentry.tasks.deletion.hybrid_cloud import (
     set_watermark,
 )
 from sentry.testutils.factories import Factories
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test, region_silo_test
 from sentry.types.region import find_regions_for_user
-from sentry.utils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture(autouse=True)
@@ -105,7 +105,9 @@ def setup_deletable_objects(
         Factories.create_saved_search(f"s-{i}", owner_id=u_id)
 
     for region_name in find_regions_for_user(u_id):
-        shard = ControlOutbox.for_shard(OutboxScope.USER_SCOPE, u_id, region_name)
+        shard = ControlOutbox(
+            shard_scope=OutboxScope.USER_SCOPE, shard_identifier=u_id, region_name=region_name
+        )
         if send_tombstones:
             shard.drain_shard()
 

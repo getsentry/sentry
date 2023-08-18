@@ -6,11 +6,13 @@ from unittest.mock import patch
 from django.urls import reverse
 
 from sentry.models import ProjectOption
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
 
 class ReleaseWebhookTestBase(TestCase):
+    plugin_id: str
+
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization()

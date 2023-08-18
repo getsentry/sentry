@@ -7,9 +7,7 @@ import PlayerDOMAlert from './playerDOMAlert';
 jest.mock('sentry/utils/localStorage');
 jest.useFakeTimers();
 
-const mockGetItem = localStorage.getItem as jest.MockedFunction<
-  typeof localStorage.getItem
->;
+const mockGetItem = jest.mocked(localStorage.getItem);
 
 const now = new Date('2020-01-01');
 jest.setSystemTime(now);

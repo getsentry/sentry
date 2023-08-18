@@ -17,7 +17,7 @@ from sentry.models import (
 )
 from sentry.notifications.types import NotificationScopeType
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import add_identity, get_response_text, install_slack, link_team
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders

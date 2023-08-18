@@ -317,7 +317,7 @@ class BitFieldTest(TestCase):
         from django.db.models.fields import BigIntegerField
 
         # Local maximum value, slow canonical algorithm
-        MAX_COUNT = int(math.floor(math.log(BigIntegerField.MAX_BIGINT, 2)))  # type: ignore[attr-defined]
+        MAX_COUNT = int(math.floor(math.log(BigIntegerField.MAX_BIGINT, 2)))
 
         # Big flags list
         flags = ["f" + str(i) for i in range(100)]

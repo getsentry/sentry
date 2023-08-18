@@ -36,10 +36,10 @@ class MemberTeamFields extends Component<Props> {
       ...ruleData,
       [attribute]: newValue,
     };
-    /**
-     * TargetIdentifiers between the targetTypes are not unique, and may wrongly map to something that has not been
-     * selected. E.g. A member and project can both have the `targetIdentifier`, `'2'`. Hence we clear the identifier.
-     **/
+    // TargetIdentifiers between the targetTypes are not unique, and may
+    // wrongly map to something that has not been selected. E.g. A member and
+    // project can both have the `targetIdentifier`, `'2'`. Hence we clear the
+    // identifier.
     if (attribute === 'targetType') {
       newData.targetIdentifier = '';
     }

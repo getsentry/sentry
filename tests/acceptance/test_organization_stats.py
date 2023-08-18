@@ -1,10 +1,10 @@
 from django.utils import timezone
 
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
-@region_silo_test
+@no_silo_test(stable=True)
 class OrganizationStatsTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

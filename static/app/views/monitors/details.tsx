@@ -90,23 +90,23 @@ function MonitorDetails({params, location}: Props) {
               <EnvironmentPageFilter />
             </StyledPageFilterBar>
             {!hasLastCheckIn(monitor) ? (
-              <MonitorOnboarding orgId={organization.slug} monitor={monitor} />
+              <MonitorOnboarding monitor={monitor} />
             ) : (
               <Fragment>
                 <MonitorStats
-                  orgId={organization.slug}
+                  orgSlug={organization.slug}
                   monitor={monitor}
                   monitorEnvs={monitor.environments}
                 />
 
                 <MonitorIssues
-                  orgId={organization.slug}
+                  orgSlug={organization.slug}
                   monitor={monitor}
                   monitorEnvs={monitor.environments}
                 />
 
                 <MonitorCheckIns
-                  orgId={organization.slug}
+                  orgSlug={organization.slug}
                   monitor={monitor}
                   monitorEnvs={monitor.environments}
                 />

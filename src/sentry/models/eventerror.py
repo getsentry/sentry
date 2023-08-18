@@ -82,6 +82,7 @@ class EventError:
         JS_INVALID_SOURCEMAP_LOCATION: "Invalid location in sourcemap",
         JS_TOO_LARGE: "Remote file too large",
         JS_FETCH_TIMEOUT: "Remote file took too long to load",
+        JS_SCRAPING_DISABLED: "Javascript scraping was disabled",
         NATIVE_NO_CRASHED_THREAD: "No crashed thread found in crash report",
         NATIVE_INTERNAL_FAILURE: "Internal failure when attempting to symbolicate",
         NATIVE_BAD_DSYM: "The debug information file used was broken.",

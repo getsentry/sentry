@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import re
+from typing import Any
 
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.safe import setdefault_path
@@ -268,7 +271,8 @@ def get_function_name_for_frame(frame, platform=None):
         return trim_function_name(rv, frame.get("platform") or platform)
 
 
-def set_in_app(frame, value):
+def set_in_app(frame: dict[str, Any], value: bool) -> None:
+    """Set the value of in_app in the frame to the given value."""
     orig_in_app = frame.get("in_app")
     if orig_in_app == value:
         return

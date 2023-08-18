@@ -60,6 +60,7 @@ export default function useSlowMedianFastSamplesQuery(eventView: EventView) {
   const eventViewAggregates = eventView.clone().withColumns([
     {kind: 'function', function: ['p50', 'transaction.duration', undefined, undefined]},
     {kind: 'function', function: ['p95', 'transaction.duration', undefined, undefined]},
+    {kind: 'function', function: ['avg', 'transaction.duration', undefined, undefined]},
   ]);
 
   const {isLoading: isLoadingAgg, data: aggregatesData} = useDiscoverQuery({

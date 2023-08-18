@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from functools import cached_property, reduce
+from typing import Mapping, MutableMapping, MutableSequence
 
 from sentry.digests import Record
 from sentry.digests.notifications import (
@@ -14,7 +17,7 @@ from sentry.digests.notifications import (
 )
 from sentry.models import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
@@ -76,9 +79,10 @@ class GroupRecordsTestCase(TestCase):
             Record(event.event_id, Notification(event, [self.rule]), event.datetime)
             for event in events
         ]
-        assert reduce(group_records, records, defaultdict(lambda: defaultdict(list))) == {
-            self.rule: {group: records}
-        }
+        results: MutableMapping[str, Mapping[str, MutableSequence[Record]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+        assert reduce(group_records, records, results) == {self.rule: {group: records}}
 
 
 @region_silo_test(stable=True)

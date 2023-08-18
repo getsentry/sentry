@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import random
+import string
 from typing import TYPE_CHECKING, Any, Callable, Mapping, Type
 
 from django.conf import settings
-from rest_framework.request import Request
+from django.http.request import HttpRequest
 from rest_framework.response import Response
 
 from sentry import features
 from sentry.ratelimits.concurrent import ConcurrentRateLimiter
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
+from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, RateLimitType
 from sentry.utils.hashlib import md5_text
 
@@ -17,7 +20,6 @@ from . import backend as ratelimiter
 if TYPE_CHECKING:
     from sentry.models import Organization, User
     from sentry.models.apitoken import ApiToken
-    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 
 # TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
 EndpointFunction = Callable[..., Response]
@@ -43,7 +45,7 @@ def concurrent_limiter() -> ConcurrentRateLimiter:
 
 def get_rate_limit_key(
     view_func: EndpointFunction,
-    request: Request,
+    request: HttpRequest,
     rate_limit_group: str,
     rate_limit_config: RateLimitConfig | None = None,
 ) -> str | None:
@@ -55,7 +57,7 @@ def get_rate_limit_key(
     ):
         return None
 
-    view = view_func.__qualname__
+    view = view_func.view_class.__name__
     http_method = request.method
 
     # This avoids touching user session, which means we avoid
@@ -80,7 +82,7 @@ def get_rate_limit_key(
     if is_api_token_auth(request_auth) and request_user:
         if isinstance(request_auth, ApiToken):
             token_id = request_auth.id
-        elif isinstance(request_auth, AuthenticatedToken):
+        elif isinstance(request_auth, AuthenticatedToken) and request_auth.entity_id is not None:
             token_id = request_auth.entity_id
         else:
             assert False  # Can't happen as asserted by is_api_token_auth check
@@ -117,11 +119,17 @@ def get_rate_limit_key(
         return f"{category}:{rate_limit_group}:{http_method}:{id}"
 
 
-def get_organization_id_from_token(token_id: str) -> int | None:
+def get_organization_id_from_token(token_id: int) -> Any:
     from sentry.models import SentryAppInstallation
 
     installation = SentryAppInstallation.objects.get_by_api_token(token_id).first()
-    return installation.organization_id if installation else None
+
+    # Return a random uppercase/lowercase letter to avoid collisions caused by tokens not being
+    # associated with a SentryAppInstallation. This is a temporary fix while we solve the root cause
+    if not installation:
+        return random.choice(string.ascii_letters)
+
+    return installation.organization_id
 
 
 def get_rate_limit_config(

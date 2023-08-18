@@ -13,7 +13,7 @@ from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData
 from sentry.models import Group
-from sentry.testutils import SnubaTestCase
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.helpers.datetime import iso_format
 
 
@@ -65,7 +65,7 @@ class OccurrenceTestMixin:
 
 class SearchIssueTestMixin(OccurrenceTestMixin):
     def store_search_issue(
-        self: SnubaTestCase,
+        self,
         project_id: int,
         user_id: int,
         fingerprints: Sequence[str],
@@ -113,7 +113,7 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         assert Group.objects.filter(grouphash__hash=saved_occurrence.fingerprint[0]).exists()
 
         result = snuba.raw_query(
-            dataset=snuba.Dataset.IssuePlatform,
+            dataset=Dataset.IssuePlatform,
             start=insert_timestamp - timedelta(days=1),
             end=insert_timestamp + timedelta(days=1),
             selected_columns=[

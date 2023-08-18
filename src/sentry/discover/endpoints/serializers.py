@@ -3,9 +3,9 @@ from typing import Sequence
 
 from django.db.models import Count, Max
 from rest_framework import serializers
+from rest_framework.serializers import ListField
 
 from sentry.api.fields.empty_integer import EmptyIntegerField
-from sentry.api.serializers.rest_framework import ListField
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns

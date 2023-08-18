@@ -2,6 +2,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -33,6 +34,7 @@ class NotificationSetting(Model):
     """
 
     __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     @property
     def scope_str(self) -> str:
@@ -85,7 +87,7 @@ class NotificationSetting(Model):
             (NotificationSettingTypes.QUOTA, "quota"),
             (NotificationSettingTypes.QUOTA_ERRORS, "quotaErrors"),
             (NotificationSettingTypes.QUOTA_TRANSACTIONS, "quotaTransactions"),
-            (NotificationSettingTypes.QUOTA_ATTACHMENTS, "quotaAttacments"),
+            (NotificationSettingTypes.QUOTA_ATTACHMENTS, "quotaAttachments"),
             (NotificationSettingTypes.QUOTA_REPLAYS, "quotaReplays"),
             (NotificationSettingTypes.QUOTA_WARNINGS, "quotaWarnings"),
             (NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS, "quotaSpendAllocations"),

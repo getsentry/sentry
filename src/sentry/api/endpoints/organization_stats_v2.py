@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from typing_extensions import TypedDict
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import InvalidParams as InvalidParamsApi
@@ -66,7 +67,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
 
     groupBy = serializers.MultipleChoiceField(
-        list(GROUPBY_MAP.keys()),
+        choices=list(GROUPBY_MAP.keys()),
         required=True,
         help_text=(
             "can pass multiple groupBy parameters to group by multiple, e.g. `groupBy=project&groupBy=outcome` to group by multiple dimensions. "
@@ -130,6 +131,7 @@ class StatsApiResponse(TypedDict):
 @extend_schema(tags=["Organizations"])
 @region_silo_endpoint
 class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
+    owner = ApiOwner.ENTERPRISE
     enforce_rate_limit = True
     rate_limits = {
         "GET": {

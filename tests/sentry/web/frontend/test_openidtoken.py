@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sentry.models import ApiApplication, ApiGrant
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils import jwt as jwt_utils
 from sentry.web.frontend.openidtoken import OpenIDToken
 
@@ -68,7 +68,7 @@ class OpenIDTokenTest(TestCase):
             "date_joined": str(grant_multiple_scopes.user.date_joined),
         }
 
-    def test_get_encrypted_id_token_no_scopes(self):
+    def test_get_signed_id_token_no_scopes(self):
         grant = ApiGrant.objects.create(
             user=self.user,
             application=self.application,
@@ -76,7 +76,7 @@ class OpenIDTokenTest(TestCase):
             scope_list=["openid"],
         )
         id_token = OpenIDToken("ex_client_id", self.user.id, "shared_secret", nonce="abcd")
-        encrypted_id_token = id_token.get_encrypted_id_token(grant)
+        encrypted_id_token = id_token.get_signed_id_token(grant)
         assert encrypted_id_token.count(".") == 2
 
         decrypted_id_token = jwt_utils.decode(
@@ -93,7 +93,7 @@ class OpenIDTokenTest(TestCase):
         assert decrypted_id_token["exp"] > current_timestamp
         assert decrypted_id_token["iat"] < current_timestamp
 
-    def test_get_encrypted_id_token_with_scopes(self):
+    def test_get_signed_id_token_with_scopes(self):
         grant = ApiGrant.objects.create(
             user=self.user,
             application=self.application,
@@ -101,7 +101,7 @@ class OpenIDTokenTest(TestCase):
             scope_list=["openid", "profile", "email"],
         )
         id_token = OpenIDToken("ex_client_id", self.user.id, "shared_secret", nonce="abcd")
-        encrypted_id_token = id_token.get_encrypted_id_token(grant)
+        encrypted_id_token = id_token.get_signed_id_token(grant)
         assert encrypted_id_token.count(".") == 2
 
         decrypted_id_token = jwt_utils.decode(

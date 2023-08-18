@@ -8,8 +8,8 @@ from django.utils import timezone
 from sentry.nodestore.base import json_dumps
 from sentry.nodestore.django.backend import DjangoNodeStorage
 from sentry.nodestore.django.models import Node
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.pytest.fixtures import django_db_all
 from sentry.utils.strings import compress
 
 

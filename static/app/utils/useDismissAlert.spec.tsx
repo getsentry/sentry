@@ -6,12 +6,8 @@ import useDismissAlert from 'sentry/utils/useDismissAlert';
 jest.mock('sentry/utils/localStorage');
 jest.useFakeTimers();
 
-const mockSetItem = localStorage.setItem as jest.MockedFunction<
-  typeof localStorage.setItem
->;
-const mockGetItem = localStorage.getItem as jest.MockedFunction<
-  typeof localStorage.getItem
->;
+const mockSetItem = jest.mocked(localStorage.setItem);
+const mockGetItem = jest.mocked(localStorage.getItem);
 
 const key = 'test_123';
 const now = new Date('2020-01-01');

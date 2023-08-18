@@ -1,5 +1,6 @@
 .env
 .cache/
+.code-workspace
 .coverage*
 .DS_Store
 .venv
@@ -46,6 +47,7 @@ Gemfile.lock
 *.iml
 .pytest_cache/
 .vscode/tags
+.vscode/bookmarks.json
 coverage.xml
 junit.xml
 *.codestyle.xml

@@ -6,8 +6,7 @@ from django.core import mail
 
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember, OrganizationOption
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
-from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_attachment_no_text
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -138,7 +137,10 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         assert not join_request.invite_approved
 
         mock_record.assert_called_with(
-            "join_request.created", member_id=join_request.id, organization_id=self.organization.id
+            "join_request.created",
+            member_id=join_request.id,
+            organization_id=self.organization.id,
+            referrer=None,
         )
 
         self.assert_org_member_mapping(org_member=join_request)

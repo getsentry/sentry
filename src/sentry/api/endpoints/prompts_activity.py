@@ -1,6 +1,6 @@
 import calendar
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.http import HttpResponse
 from django.utils import timezone
@@ -101,7 +101,7 @@ class PromptsActivityEndpoint(Endpoint):
             data["dismissed_ts"] = now
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(PromptsActivity)):
                 PromptsActivity.objects.create_or_update(
                     feature=feature, user_id=request.user.id, values={"data": data}, **fields
                 )

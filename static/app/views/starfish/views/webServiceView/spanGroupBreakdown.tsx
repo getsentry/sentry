@@ -7,12 +7,14 @@ import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {EChartClickHandler} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
 import Chart from 'sentry/views/starfish/components/chart';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {
   DataDisplayType,
   DataRow,
@@ -26,8 +28,8 @@ type Props = {
   isCumulativeTimeLoading: boolean;
   isTableLoading: boolean;
   isTimeseriesLoading: boolean;
+  onDisplayTypeChange: (value: SelectOption<DataDisplayType>['value']) => void;
   options: SelectOption<DataDisplayType>[];
-  setDataDisplayType: any;
   tableData: DataRow[];
   topSeriesData: LineChartSeries[];
   totalCumulativeTime: number;
@@ -42,9 +44,10 @@ export function SpanGroupBreakdown({
   errored,
   options,
   dataDisplayType,
-  setDataDisplayType,
+  onDisplayTypeChange,
 }: Props) {
   const organization = useOrganization();
+  const routingContext = useRoutingContext();
   const hasDropdownFeatureFlag = organization.features.includes(
     'starfish-wsv-chart-dropdown'
   );
@@ -76,7 +79,7 @@ export function SpanGroupBreakdown({
   }
 
   const handleChange = (option: SelectOption<DataDisplayType>) => {
-    setDataDisplayType(option.value);
+    onDisplayTypeChange(option.value);
     trackAnalytics('starfish.web_service_view.breakdown.display_change', {
       organization,
       display: option.value,
@@ -85,22 +88,25 @@ export function SpanGroupBreakdown({
 
   const isEndpointBreakdownView = Boolean(transaction);
 
-  const handleModuleAreaClick = event => {
+  const handleModuleAreaClick: EChartClickHandler = event => {
     let spansLink;
-    const spansLinkQueryParams = {};
+    const spansLinkQueryParams: Record<string, string | string[]> = {};
     if (event.seriesName === 'db') {
-      spansLink = `/starfish/database/`;
-    } else if (event.seriesName === 'http') {
-      spansLink = `/starfish/api/`;
+      spansLink = `/${routingContext.baseURL}/database/`;
     } else if (event.seriesName === 'Other') {
-      spansLinkQueryParams['!span.category'] = data.map(r => r.seriesName);
+      spansLinkQueryParams[SPAN_MODULE] = 'other';
+      spansLinkQueryParams['!span.category'] = data
+        .filter(r => r.seriesName !== 'Other')
+        .map(r => r.seriesName);
     } else {
-      spansLinkQueryParams[SPAN_MODULE] = 'Other';
+      spansLinkQueryParams[SPAN_MODULE] = 'other';
       spansLinkQueryParams['span.category'] = event.seriesName;
     }
 
     if (!spansLink) {
-      spansLink = `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
+      spansLink = `/${routingContext.baseURL}/spans/?${qs.stringify(
+        spansLinkQueryParams
+      )}`;
     }
     browserHistory.push(spansLink);
   };
@@ -110,7 +116,9 @@ export function SpanGroupBreakdown({
       <ChartPadding>
         <Header>
           <ChartLabel>
-            {isEndpointBreakdownView ? t('Endpoint Breakdown') : t('Service Breakdown')}
+            {isEndpointBreakdownView
+              ? t('Endpoint Breakdown')
+              : t('Time Spent Breakdown')}
           </ChartLabel>
           {hasDropdownFeatureFlag && (
             <CompactSelect
@@ -122,7 +130,6 @@ export function SpanGroupBreakdown({
         </Header>
         <VisuallyCompleteWithData id="WSV.SpanGroupBreakdown" hasData={data.length > 0}>
           <Chart
-            statsPeriod="24h"
             height={340}
             showLegend
             data={
@@ -132,8 +139,6 @@ export function SpanGroupBreakdown({
             durationUnit={
               dataDisplayType === DataDisplayType.PERCENTAGE ? 0.25 : undefined
             }
-            start=""
-            end=""
             errored={errored}
             loading={isTimeseriesLoading}
             utc={false}
@@ -150,6 +155,12 @@ export function SpanGroupBreakdown({
               dataDisplayType === DataDisplayType.PERCENTAGE ? 'percentage' : 'duration'
             }
             tooltipFormatterOptions={{
+              nameFormatter: name => {
+                if (name === 'db') {
+                  return 'database';
+                }
+                return name;
+              },
               valueFormatter: value =>
                 dataDisplayType === DataDisplayType.PERCENTAGE
                   ? tooltipFormatterUsingAggregateOutputType(value, 'percentage')
@@ -161,6 +172,12 @@ export function SpanGroupBreakdown({
                 selected: Object.keys(event.selected).filter(key => event.selected[key]),
                 toggled: event.name,
               });
+            }}
+            legendFormatter={(name: string) => {
+              if (name === 'db') {
+                return 'database';
+              }
+              return name;
             }}
           />
         </VisuallyCompleteWithData>

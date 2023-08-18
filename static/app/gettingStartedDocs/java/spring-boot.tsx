@@ -7,27 +7,32 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
-const introduction = tct(
-  "There are two variants of Sentry available for Spring Boot. If you're using Spring Boot 2, use [springBootStarterLink:sentry-spring-boot-starter]. If you're using Spring Boot 3, use [springBootStarterJakartaLink:sentry-spring-boot-starter-jakarta] instead. Sentry's integration with [springBootLink:Spring Boot] supports Spring Boot 2.1.0 and above to report unhandled exceptions as well as release and registration of beans. If you're on an older version, use [legacyIntegrationLink:our legacy integration].",
-  {
-    springBootStarterLink: (
-      <ExternalLink href="https://github.com/getsentry/sentry-java/tree/master/sentry-spring-boot-starter" />
-    ),
-    springBootStarterJakartaLink: (
-      <ExternalLink href="https://github.com/getsentry/sentry-java/tree/master/sentry-spring-boot-starter-jakarta" />
-    ),
-    springBootLink: <ExternalLink href="https://spring.io/projects/spring-boot" />,
-    legacyIntegrationLink: (
-      <ExternalLink href="https://docs.sentry.io/platforms/java/legacy/spring/" />
-    ),
-  }
+const introduction = (
+  <p>
+    {tct(
+      "There are two variants of Sentry available for Spring Boot. If you're using Spring Boot 2, use [springBootStarterLink:sentry-spring-boot-starter]. If you're using Spring Boot 3, use [springBootStarterJakartaLink:sentry-spring-boot-starter-jakarta] instead. Sentry's integration with [springBootLink:Spring Boot] supports Spring Boot 2.1.0 and above to report unhandled exceptions as well as release and registration of beans. If you're on an older version, use [legacyIntegrationLink:our legacy integration].",
+      {
+        springBootStarterLink: (
+          <ExternalLink href="https://github.com/getsentry/sentry-java/tree/master/sentry-spring-boot-starter" />
+        ),
+        springBootStarterJakartaLink: (
+          <ExternalLink href="https://github.com/getsentry/sentry-java/tree/master/sentry-spring-boot-starter-jakarta" />
+        ),
+        springBootLink: <ExternalLink href="https://spring.io/projects/spring-boot" />,
+        legacyIntegrationLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/java/legacy/spring/" />
+        ),
+      }
+    )}
+  </p>
 );
 
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+}: Partial<
+  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
+> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t('Install using either Maven or Gradle:'),
@@ -37,23 +42,34 @@ export const steps = ({
         configurations: [
           {
             language: 'xml',
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: <strong>{t('Spring Boot 2')}</strong>,
             code: `
 <dependency>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-spring-boot-starter</artifactId>
-    <version>{{@inject packages.version('sentry.java.spring-boot', '4.0.0') }}</version>
+    <version>${
+      sourcePackageRegistries?.isLoading
+        ? t('\u2026loading')
+        : sourcePackageRegistries?.data?.['sentry.java.spring-boot']?.version ?? '6.27.0'
+    }</version>
 </dependency>
           `,
           },
           {
             language: 'xml',
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: <strong>{t('Spring Boot 3')}</strong>,
             code: `
 <dependency>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-spring-boot-starter-jakarta</artifactId>
-    <version>{{@inject packages.version('sentry.java.spring-boot.jakarta', '6.7.0') }}</version>
+    <version>${
+      sourcePackageRegistries?.isLoading
+        ? t('\u2026loading')
+        : sourcePackageRegistries?.data?.['sentry.java.spring-boot.jakarta']?.version ??
+          '6.27.0'
+    }</version>
 </dependency>
         `,
           },
@@ -65,12 +81,24 @@ export const steps = ({
           {
             language: 'properties',
             description: <strong>{t('Spring Boot 2')}</strong>,
-            code: "implementation 'io.sentry:sentry-spring-boot-starter:{{@inject packages.version('sentry.java.spring-boot', '4.0.0') }}'",
+            partialLoading: sourcePackageRegistries?.isLoading,
+            code: `implementation 'io.sentry:sentry-spring-boot-starter:${
+              sourcePackageRegistries?.isLoading
+                ? t('\u2026loading')
+                : sourcePackageRegistries?.data?.['sentry.java.spring-boot']?.version ??
+                  '6.27.0'
+            }'`,
           },
           {
             language: 'properties',
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: <strong>{t('Spring Boot 3')}</strong>,
-            code: "implementation 'io.sentry:sentry-spring-boot-starter-jakarta:{{@inject packages.version('sentry.java.spring-boot.jakarta', '6.7.0') }}'",
+            code: `implementation 'io.sentry:sentry-spring-boot-starter-jakarta:${
+              sourcePackageRegistries?.isLoading
+                ? t('\u2026loading')
+                : sourcePackageRegistries?.data?.['sentry.java.spring-boot.jakarta']
+                    ?.version ?? '6.27.0'
+            }'`,
           },
         ],
       },
@@ -81,9 +109,10 @@ export const steps = ({
     description: (
       <p>
         {tct(
-          'Open up [code:src/main/application.properties] (or [code:src/main/application.yml]) and configure the DSN, and any other settings you need:',
+          'Open up [applicationPropertiesCode:src/main/application.properties] (or [applicationYmlCode:src/main/application.yml]) and configure the DSN, and any other settings you need:',
           {
-            code: <code />,
+            applicationPropertiesCode: <code />,
+            applicationYmlCode: <code />,
           }
         )}
       </p>
@@ -116,8 +145,8 @@ sentry:
         additionalInfo: (
           <p>
             {tct(
-              'If you use Logback for logging you may also want to send error logs to Sentry. Add a dependency to the [code:sentry-logback] module using either Maven or Gradle. Sentry Spring Boot Starter will auto-configure [code:SentryAppender].',
-              {code: <code />}
+              'If you use Logback for logging you may also want to send error logs to Sentry. Add a dependency to the [sentryLogbackCode:sentry-logback] module using either Maven or Gradle. Sentry Spring Boot Starter will auto-configure [sentryAppenderCode:SentryAppender].',
+              {sentryAppenderCode: <code />, sentryLogbackCode: <code />}
             )}
           </p>
         ),
@@ -131,7 +160,11 @@ sentry:
 <dependency>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-logback</artifactId>
-    <version>{{@inject packages.version('sentry.java.logback', '4.0.0') }}</version>
+    <version>${
+      sourcePackageRegistries?.isLoading
+        ? t('\u2026loading')
+        : sourcePackageRegistries?.data?.['sentry.java.logback']?.version ?? '6.27.0'
+    }</version>
 </dependency>
           `,
           },
@@ -146,7 +179,11 @@ sentry:
     <plugin>
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
-      <version>{{@inject packages.version('sentry.java.mavenplugin', '0.0.2') }}</version>
+      <version>${
+        sourcePackageRegistries?.isLoading
+          ? t('\u2026loading')
+          : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.3'
+      }</version>
       <configuration>
         <!-- for showing output of sentry-cli -->
         <debugSentryCli>true</debugSentryCli>
@@ -188,7 +225,13 @@ sentry:
         configurations: [
           {
             language: 'properties',
-            code: "implementation 'io.sentry:sentry-logback:{{@inject packages.version('sentry.java.logback', '4.0.0') }}'",
+            partialLoading: sourcePackageRegistries?.isLoading,
+            code: `implementation 'io.sentry:sentry-logback:${
+              sourcePackageRegistries?.isLoading
+                ? t('\u2026loading')
+                : sourcePackageRegistries?.data?.['sentry.java.logback']?.version ??
+                  '6.27.0'
+            }'`,
           },
           {
             language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
@@ -203,7 +246,12 @@ buildscript {
 }
 
 plugins {
-  id "io.sentry.jvm.gradle" version "{{@inject packages.version('sentry.java.android.gradle-plugin', '3.9.0') }}"
+  id "io.sentry.jvm.gradle" version "${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
+        '3.11.1'
+  }"
 }
 
 sentry {
@@ -378,8 +426,18 @@ class PersonService {
 ];
 // Configuration End
 
-export function GettingStartedWithSpringBoot({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} introduction={introduction} {...props} />;
+export function GettingStartedWithSpringBoot({
+  dsn,
+  sourcePackageRegistries,
+  ...props
+}: ModuleProps) {
+  return (
+    <Layout
+      steps={steps({dsn, sourcePackageRegistries})}
+      introduction={introduction}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithSpringBoot;

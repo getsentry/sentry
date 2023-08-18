@@ -28,6 +28,7 @@ def query(
     has_metrics: bool = False,
     functions_acl: Optional[List[str]] = None,
     use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
 ) -> Any:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -64,6 +65,7 @@ def timeseries_query(
     allow_metric_aggregates: bool = False,
     has_metrics: bool = False,
     use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
 ) -> Any:
     builder = ProfilesTimeseriesQueryBuilder(
         dataset=Dataset.Profiles,

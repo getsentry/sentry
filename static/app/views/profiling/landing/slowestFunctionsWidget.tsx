@@ -17,6 +17,7 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconChevron, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
@@ -112,8 +113,8 @@ export function SlowestFunctionsWidget({
   return (
     <WidgetContainer height={widgetHeight}>
       <HeaderContainer>
-        {header ?? <HeaderTitleLegend>{t('Suspect Functions')}</HeaderTitleLegend>}
-        <Subtitle>{t('Slowest functions by total time spent.')}</Subtitle>
+        {header ?? <HeaderTitleLegend>{t('Slowest Functions')}</HeaderTitleLegend>}
+        <Subtitle>{t('Slowest functions by total self time spent.')}</Subtitle>
         <StyledPagination
           pageLinks={functionsQuery.getResponseHeader?.('Link') ?? null}
           size="xs"
@@ -221,7 +222,7 @@ function SlowestFunctionEntry({
           <Tooltip title={func.package}>{func.function}</Tooltip>
         </FunctionName>
         <Tooltip
-          title={tct('Appeared [count] times for a total self time of [totalSelfTime]', {
+          title={tct('Appeared [count] times for a total time spent of [totalSelfTime]', {
             count: <Count value={func['count()'] as number} />,
             totalSelfTime: (
               <PerformanceDuration nanoseconds={func['sum()'] as number} abbreviation />
@@ -260,7 +261,10 @@ function SlowestFunctionEntry({
                 <TextOverflow>{t('Count')}</TextOverflow>
               </TransactionsListHeader>
               <TransactionsListHeader align="right">
-                <TextOverflow>{t('Total Self Time')}</TextOverflow>
+                <TextOverflow>{t('P75()')}</TextOverflow>
+              </TransactionsListHeader>
+              <TransactionsListHeader align="right">
+                <TextOverflow>{t('Time Spent')}</TextOverflow>
               </TransactionsListHeader>
               {(functionTransactionsQuery.data?.data ?? []).map(transaction => {
                 const examples = transaction['examples()'] as string[];
@@ -276,7 +280,19 @@ function SlowestFunctionEntry({
                       framePackage: func.package as string,
                     },
                   });
-                  transactionCol = <Link to={target}>{transactionCol}</Link>;
+                  transactionCol = (
+                    <Link
+                      to={target}
+                      onClick={() => {
+                        trackAnalytics('profiling_views.go_to_flamegraph', {
+                          organization,
+                          source: 'profiling.global_suspect_functions',
+                        });
+                      }}
+                    >
+                      {transactionCol}
+                    </Link>
+                  );
                 }
 
                 return (
@@ -286,6 +302,12 @@ function SlowestFunctionEntry({
                     </TransactionsListCell>
                     <TransactionsListCell align="right">
                       <Count value={transaction['count()'] as number} />
+                    </TransactionsListCell>
+                    <TransactionsListCell align="right">
+                      <PerformanceDuration
+                        nanoseconds={transaction['p75()'] as number}
+                        abbreviation
+                      />
                     </TransactionsListCell>
                     <TransactionsListCell align="right">
                       <PerformanceDuration
@@ -322,6 +344,7 @@ type TotalsField = (typeof totalsFields)[number];
 const functionTransactionsFields = [
   'transaction',
   'count()',
+  'p75()',
   'sum()',
   'examples()',
 ] as const;
@@ -349,7 +372,7 @@ const FunctionName = styled(TextOverflow)`
 const TransactionsList = styled('div')`
   flex: 1 1 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   grid-template-rows: 18px auto auto auto auto auto;
   column-gap: ${space(1)};
   padding: ${space(0)} ${space(2)};

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import uuid
+from typing import Any
 from unittest import mock
 
 from sentry.replays.usecases.ingest.dom_index import (
@@ -120,6 +123,7 @@ def test_parse_replay_actions():
     ]
     replay_actions = parse_replay_actions(1, "1", 30, events)
 
+    assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
     assert isinstance(replay_actions["start_time"], float)
     assert replay_actions["replay_id"] == "1"
@@ -163,6 +167,7 @@ def test_parse_replay_dead_click_actions():
                     "message": "div.container > div#root > div > ul > div",
                     "data": {
                         "endReason": "timeout",
+                        "timeafterclickms": 7000.0,
                         "nodeId": 59,
                         "node": {
                             "id": 59,
@@ -193,8 +198,43 @@ def test_parse_replay_dead_click_actions():
                     "category": "ui.slowClickDetected",
                     "message": "div.container > div#root > div > ul > div",
                     "data": {
-                        "clickcount": 3,
+                        "clickcount": 5,
                         "endReason": "timeout",
+                        "timeafterclickms": 7000.0,
+                        "nodeId": 59,
+                        "node": {
+                            "id": 59,
+                            "tagName": "a",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        },
+        # New style slowClickDetected payload.
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.slowClickDetected",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "clickCount": 5,
+                        "endReason": "timeout",
+                        "timeAfterClickMs": 7000.0,
                         "nodeId": 59,
                         "node": {
                             "id": 59,
@@ -217,6 +257,7 @@ def test_parse_replay_dead_click_actions():
     ]
     replay_actions = parse_replay_actions(1, "1", 30, events)
 
+    assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
     assert isinstance(replay_actions["start_time"], float)
     assert replay_actions["replay_id"] == "1"
@@ -227,7 +268,7 @@ def test_parse_replay_dead_click_actions():
     payload = json.loads(bytes(replay_actions["payload"]))
     assert payload["type"] == "replay_actions"
     assert payload["replay_id"] == "1"
-    assert len(payload["clicks"]) == 2
+    assert len(payload["clicks"]) == 3
 
     action = payload["clicks"][0]
     assert action["node_id"] == 59
@@ -250,6 +291,11 @@ def test_parse_replay_dead_click_actions():
     assert action["is_dead"] == 1
     assert action["is_rage"] == 1
 
+    # Third slow click had more than 2 clicks which makes it a rage+dead combo.
+    action = payload["clicks"][2]
+    assert action["is_dead"] == 1
+    assert action["is_rage"] == 1
+
 
 def test_parse_replay_rage_click_actions():
     events = [
@@ -261,13 +307,16 @@ def test_parse_replay_rage_click_actions():
                 "payload": {
                     "timestamp": 1.1,
                     "type": "default",
-                    "category": "ui.multiClick",
+                    "category": "ui.slowClickDetected",
                     "message": "div.container > div#root > div > ul > div",
                     "data": {
+                        "endReason": "timeout",
+                        "timeafterclickms": 7000.0,
+                        "clickcount": 5,
                         "nodeId": 59,
                         "node": {
                             "id": 59,
-                            "tagName": "div",
+                            "tagName": "a",
                             "attributes": {
                                 "id": "id",
                                 "class": "class1 class2",
@@ -286,6 +335,7 @@ def test_parse_replay_rage_click_actions():
     ]
     replay_actions = parse_replay_actions(1, "1", 30, events)
 
+    assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
     assert isinstance(replay_actions["start_time"], float)
     assert replay_actions["replay_id"] == "1"
@@ -300,7 +350,7 @@ def test_parse_replay_rage_click_actions():
 
     action = payload["clicks"][0]
     assert action["node_id"] == 59
-    assert action["tag"] == "div"
+    assert action["tag"] == "a"
     assert action["id"] == "id"
     assert action["class"] == ["class1", "class2"]
     assert action["text"] == "text"
@@ -309,7 +359,7 @@ def test_parse_replay_rage_click_actions():
     assert action["alt"] == "1"
     assert action["testid"] == "2"
     assert action["title"] == "3"
-    assert action["is_dead"] == 0
+    assert action["is_dead"] == 1
     assert action["is_rage"] == 1
     assert action["timestamp"] == 1
     assert len(action["event_hash"]) == 36
@@ -478,7 +528,7 @@ def test_parse_request_response_old_format_request_and_response():
 
 
 def test_log_sdk_options():
-    events = [
+    events: list[dict[str, Any]] = [
         {
             "data": {
                 "payload": {
@@ -513,7 +563,7 @@ def test_log_sdk_options():
 
 
 def test_log_large_dom_mutations():
-    events = [
+    events: list[dict[str, Any]] = [
         {
             "type": 5,
             "timestamp": 1684218178.308,

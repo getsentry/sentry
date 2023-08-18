@@ -1,47 +1,55 @@
 from __future__ import annotations
 
 import contextlib
-import sys
 import threading
 
 from django.conf import settings
-from django.db import transaction
+from django.db import connections, transaction
+
+from sentry.silo import SiloMode
+from sentry.utils.env import in_test_environment
 
 
 @contextlib.contextmanager
 def django_test_transaction_water_mark(using: str | None = None):
     """
     Hybrid cloud outbox flushing depends heavily on transaction.on_commit logic, but our tests do not follow
-    production in terms of isolation (TestCase users two outer transactions, and stubbed RPCs cannot simulate
+    production in terms of isolation (TestCase uses two outer transactions, and stubbed RPCs cannot simulate
     transactional isolation without breaking other test case assumptions).  Therefore, in order to correctly
     simulate transaction.on_commit semantics, use this context in any place where we "simulate" inter transaction
     work that in tests should behave that way.
 
     This method has no effect in production.
     """
-    if "pytest" not in sys.argv[0]:
+    if not in_test_environment():
         yield
         return
 
     if using is None:
         with contextlib.ExitStack() as stack:
-            for db_name in settings.DATABASES:  # type: ignore
+            for db_name in settings.DATABASES:
                 stack.enter_context(django_test_transaction_water_mark(db_name))
             yield
         return
 
-    from sentry.testutils import hybrid_cloud
+    from sentry.testutils import hybrid_cloud  # NOQA:S007
 
-    connection = transaction.get_connection(using)
+    # Exempt get_connection call from silo validation checks
+    with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
+        SiloMode.MONOLITH
+    ):
+        connection = transaction.get_connection(using)
 
     prev = hybrid_cloud.simulated_transaction_watermarks.state.get(using, 0)
     hybrid_cloud.simulated_transaction_watermarks.state[
         using
     ] = hybrid_cloud.simulated_transaction_watermarks.get_transaction_depth(connection)
+    old_run_on_commit = connection.run_on_commit
+    connection.run_on_commit = []
     try:
-        connection.maybe_flush_commit_hooks()
         yield
     finally:
+        connection.run_on_commit = old_run_on_commit
         hybrid_cloud.simulated_transaction_watermarks.state[using] = min(
             hybrid_cloud.simulated_transaction_watermarks.get_transaction_depth(connection), prev
         )
@@ -61,7 +69,7 @@ def in_test_hide_transaction_boundary():
     In tests, it hides 'in_test_assert_no_transaction' invocations against problematic code paths.
     Using this function is a huge code smell, often masking some other code smell, but not always possible to avoid.
     """
-    if "pytest" not in sys.argv[0]:
+    if not in_test_environment():
         yield
         return
 
@@ -82,12 +90,12 @@ def in_test_assert_no_transaction(msg: str):
     execution time can have cause major performance issues by holding transactional resources open for long periods
     of time.
     """
-    if "pytest" not in sys.argv[0] or not in_test_transaction_enforcement.enabled:
+    if not in_test_environment() or not in_test_transaction_enforcement.enabled:
         return
 
-    from sentry.testutils import hybrid_cloud
+    from sentry.testutils import hybrid_cloud  # NOQA:S007
 
-    for using in settings.DATABASES:  # type: ignore
-        assert not hybrid_cloud.simulated_transaction_watermarks.connection_above_watermark(
-            using
+    for conn in connections.all():
+        assert not hybrid_cloud.simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
+            connection=conn
         ), msg

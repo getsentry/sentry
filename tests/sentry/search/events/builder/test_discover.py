@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import datetime
 import re
+from datetime import timezone
+from typing import Any
 
 import pytest
-from django.utils import timezone
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op, Or
@@ -27,7 +30,7 @@ class QueryBuilderTest(TestCase):
         ) - datetime.timedelta(days=2)
         self.end = self.start + datetime.timedelta(days=1)
         self.projects = [self.project.id, self.create_project().id, self.create_project().id]
-        self.params = {
+        self.params: dict[str, Any] = {
             "project_id": self.projects,
             "start": self.start,
             "end": self.end,

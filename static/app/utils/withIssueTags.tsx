@@ -60,30 +60,25 @@ function withIssueTags<Props extends WithIssueTagsProps>(
         .filter(team => !team.isMember)
         .map(team => `#${team.slug}`);
 
-      const meAndMyTeams = props.organization.features.includes('assign-to-me')
-        ? ['my_teams', '[me, my_teams, none]']
-        : ['[me, none]'];
+      const meAndMyTeams = ['my_teams', '[me, my_teams, none]'];
       const suggestedAssignees: string[] = ['me', ...meAndMyTeams, ...userTeams];
-      const assigndValues: SearchGroup[] | string[] =
-        props.organization.features.includes('issue-search-shortcuts')
-          ? [
-              {
-                title: t('Suggested Values'),
-                type: 'header',
-                icon: <IconStar size="xs" />,
-                children: suggestedAssignees.map(convertToSearchItem),
-              },
-              {
-                title: t('All Values'),
-                type: 'header',
-                icon: <IconUser size="xs" />,
-                children: [
-                  ...usernames.map(convertToSearchItem),
-                  ...nonMemberTeams.map(convertToSearchItem),
-                ],
-              },
-            ]
-          : [...suggestedAssignees, ...usernames, ...nonMemberTeams];
+      const assigndValues: SearchGroup[] | string[] = [
+        {
+          title: t('Suggested Values'),
+          type: 'header',
+          icon: <IconStar size="xs" />,
+          children: suggestedAssignees.map(convertToSearchItem),
+        },
+        {
+          title: t('All Values'),
+          type: 'header',
+          icon: <IconUser size="xs" />,
+          children: [
+            ...usernames.map(convertToSearchItem),
+            ...nonMemberTeams.map(convertToSearchItem),
+          ],
+        },
+      ];
 
       return {
         ...tags,
@@ -100,7 +95,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
           values: assigndValues,
         },
       };
-    }, [props.organization, teams, members, tags]);
+    }, [teams, members, tags]);
 
     // Listen to tag store updates and cleanup listener on unmount
     useEffect(() => {

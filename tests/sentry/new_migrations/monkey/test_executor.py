@@ -5,7 +5,7 @@ from sentry.new_migrations.monkey.executor import (
     MissingDatabaseRoutingInfo,
     SentryMigrationExecutor,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class SentryMigrationExecutorTest(TestCase):

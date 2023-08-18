@@ -1,4 +1,3 @@
-from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -6,16 +5,11 @@ from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
-from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.github_enterprise import GithubEnterpriseRequestParser
-from sentry.models.outbox import (
-    ControlOutbox,
-    OutboxCategory,
-    OutboxScope,
-    WebhookProviderIdentifier,
-)
+from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.outbox import assert_webhook_outboxes
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
@@ -23,7 +17,6 @@ from sentry.types.region import Region, RegionCategory
 @control_silo_test(stable=True)
 class GithubEnterpriseRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
-    middleware = IntegrationControlMiddleware(get_response)
     factory = RequestFactory()
     path = reverse("sentry-integration-github-enterprise-webhook")
     region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
@@ -112,23 +105,8 @@ class GithubEnterpriseRequestParserTest(TestCase):
             parser, "get_regions_from_organizations", return_value=[self.region]
         ):
             parser.get_response()
-
-            assert ControlOutbox.objects.count() == 1
-            outbox = ControlOutbox.objects.first()
-            expected_payload: Any = {
-                "method": "POST",
-                "path": self.path,
-                "uri": f"http://testserver{self.path}",
-                "headers": {
-                    "Cookie": "",
-                    "Content-Length": "47",
-                    "Content-Type": "application/json",
-                },
-                "body": request.body.decode(encoding="utf-8"),
-            }
-            assert outbox.payload == expected_payload
-            assert outbox.shard_scope == OutboxScope.WEBHOOK_SCOPE
-            assert outbox.shard_identifier == WebhookProviderIdentifier.GITHUB_ENTERPRISE
-            assert outbox.category == OutboxCategory.WEBHOOK_PROXY
-            assert outbox.region_name == self.region.name
-            assert outbox.payload == expected_payload
+            assert_webhook_outboxes(
+                factory_request=request,
+                webhook_identifier=WebhookProviderIdentifier.GITHUB_ENTERPRISE,
+                region_names=[self.region.name],
+            )

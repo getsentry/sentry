@@ -41,6 +41,7 @@ from sentry.shared_integrations.exceptions import (
     UnsupportedResponseType,
 )
 from sentry.utils.audit import create_audit_entry
+from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration
@@ -364,6 +365,10 @@ class IntegrationInstallation:
             filter={"id": self.org_integration.default_auth_id}
         )
         if identity is None:
+            with configure_scope() as scope:
+                scope.set_tag("integration_provider", self.model.get_provider().name)
+                scope.set_tag("org_integration_id", self.org_integration.id)
+                scope.set_tag("default_auth_id", self.org_integration.default_auth_id)
             raise Identity.DoesNotExist
         return identity
 
@@ -413,6 +418,9 @@ class IntegrationInstallation:
         else:
             self.logger.exception(str(exc))
             raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
+
+    def is_rate_limited_error(self, exc: Exception) -> bool:
+        raise NotImplementedError
 
     @property
     def metadata(self) -> IntegrationMetadata:

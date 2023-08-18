@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from sentry.eventtypes.base import format_title_from_tree_label
@@ -64,7 +66,7 @@ def test_event_hash_variant(config_name, grouping_input, insta_snapshot, log):
     # Set the synthetic marker if detected
     detect_synthetic_exception(evt.data, grouping_config)
 
-    rv = []
+    rv: list[str] = []
     for (key, value) in sorted(evt.get_grouping_variants().items()):
         if rv:
             rv.append("-" * 74)

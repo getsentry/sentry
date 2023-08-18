@@ -1,4 +1,5 @@
 import click
+from django.db import router
 
 from sentry.runner.decorators import configuration
 
@@ -35,7 +36,7 @@ def add(user, permission):
     user = user_param_to_user(user)
 
     try:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(UserPermission)):
             UserPermission.objects.create(user=user, permission=permission)
     except IntegrityError:
         click.echo(f"Permission already exists for `{user.username}`")

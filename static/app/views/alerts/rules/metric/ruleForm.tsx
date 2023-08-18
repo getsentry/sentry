@@ -27,6 +27,10 @@ import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
+import {
+  hasOnDemandMetricAlertFeature,
+  isOnDemandQueryString,
+} from 'sentry/utils/onDemandMetrics';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
@@ -37,7 +41,6 @@ import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {
-  hasNonStandardMetricSearchFilters,
   isOnDemandMetricAlert,
   isValidOnDemandMetricAlert,
 } from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
@@ -117,6 +120,7 @@ type State = {
   triggerErrors: Map<number, {[fieldName: string]: string}>;
   triggers: Trigger[];
   comparisonDelta?: number;
+  isExtrapolatedChartData?: boolean;
   uuid?: string;
 } & DeprecatedAsyncComponent['state'];
 
@@ -127,14 +131,11 @@ function determineAlertDataset(
   selectedDataset: Dataset,
   query: string
 ) {
-  if (!org.features.includes('on-demand-metrics-extraction')) {
+  if (!hasOnDemandMetricAlertFeature(org)) {
     return selectedDataset;
   }
 
-  if (
-    hasNonStandardMetricSearchFilters(query) &&
-    selectedDataset === Dataset.TRANSACTIONS
-  ) {
+  if (isOnDemandQueryString(query) && selectedDataset === Dataset.TRANSACTIONS) {
     // for on-demand metrics extraction we want to override the dataset and use performance metrics instead
     return Dataset.GENERIC_METRICS;
   }
@@ -629,10 +630,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       const [data, , resp] = await addOrUpdateRule(
         this.api,
         organization.slug,
-        project.slug,
         {
           ...rule,
           ...model.getTransformedData(),
+          projects: [project.slug],
           triggers: sanitizedTriggers,
           resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
           thresholdType,
@@ -750,11 +751,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleDeleteRule = async () => {
     const {organization, params} = this.props;
-    const {projectId, ruleId} = params;
+    const {ruleId} = params;
 
     try {
       await this.api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/alert-rules/${ruleId}/`,
+        `/organizations/${organization.slug}/alert-rules/${ruleId}/`,
         {
           method: 'DELETE',
         }
@@ -796,23 +797,23 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     }
   };
 
+  handleTimeSeriesDataFetched = (data: EventsStats | MultiSeriesEventsStats | null) => {
+    const {isExtrapolatedData} = data ?? {};
+
+    this.setState({isExtrapolatedChartData: Boolean(isExtrapolatedData)});
+    if (!isOnDemandMetricAlert(this.state.dataset, this.state.query)) {
+      this.handleMEPAlertDataset(data);
+    }
+  };
+
   renderLoading() {
     return this.renderBody();
   }
 
-  renderBody() {
+  renderTriggerChart() {
+    const {organization, ruleId, rule} = this.props;
+
     const {
-      organization,
-      ruleId,
-      rule,
-      onSubmitSuccess,
-      router,
-      disableProjectSelector,
-      eventView,
-      location,
-    } = this.props;
-    const {
-      name,
       query,
       project,
       timeWindow,
@@ -820,16 +821,17 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       aggregate,
       environment,
       thresholdType,
-      thresholdPeriod,
       comparisonDelta,
       comparisonType,
       resolveThreshold,
-      loading,
       eventTypes,
       dataset,
       alertType,
       isQueryValid,
+      location,
     } = this.state;
+
+    const onDemandMetricsAlert = isOnDemandMetricAlert(dataset, query);
 
     const chartProps = {
       organization,
@@ -840,7 +842,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       aggregate,
       dataset,
       newAlertOrQuery: !ruleId || query !== rule.query,
-      handleMEPAlertDataset: this.handleMEPAlertDataset,
       timeWindow,
       environment,
       resolveThreshold,
@@ -848,11 +849,13 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
       isQueryValid,
+      isOnDemandMetricAlert: onDemandMetricsAlert,
+      onDataLoaded: this.handleTimeSeriesDataFetched,
     };
+
     const wizardBuilderChart = (
       <TriggersChart
         {...chartProps}
-        isOnDemandMetricAlert={isOnDemandMetricAlert(dataset, query)}
         header={
           <ChartHeader>
             <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
@@ -867,6 +870,40 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         }
       />
     );
+
+    return wizardBuilderChart;
+  }
+
+  renderBody() {
+    const {
+      organization,
+      ruleId,
+      rule,
+      onSubmitSuccess,
+      router,
+      disableProjectSelector,
+      eventView,
+    } = this.props;
+    const {
+      name,
+      query,
+      project,
+      timeWindow,
+      triggers,
+      aggregate,
+      thresholdType,
+      thresholdPeriod,
+      comparisonDelta,
+      comparisonType,
+      resolveThreshold,
+      loading,
+      eventTypes,
+      dataset,
+      alertType,
+      isExtrapolatedChartData,
+    } = this.state;
+
+    const wizardBuilderChart = this.renderTriggerChart();
 
     const triggerForm = (disabled: boolean) => (
       <Triggers
@@ -946,8 +983,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             rule.id ? (
               <Confirm
                 disabled={formDisabled}
-                message={t('Are you sure you want to delete this alert rule?')}
-                header={t('Delete Alert Rule?')}
+                message={t(
+                  'Are you sure you want to delete "%s"? You won\'t be able to view the history of this alert once it\'s deleted.',
+                  rule.name
+                )}
+                header={<h5>{t('Delete Alert Rule?')}</h5>}
                 priority="danger"
                 confirmText={t('Delete Rule')}
                 onConfirm={this.handleDeleteRule}
@@ -977,6 +1017,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               }
               onTimeWindowChange={value => this.handleFieldChange('timeWindow', value)}
               disableProjectSelector={disableProjectSelector}
+              isExtrapolatedChartData={isExtrapolatedChartData}
             />
             <AlertListItem>{t('Set thresholds')}</AlertListItem>
             {thresholdTypeForm(formDisabled)}

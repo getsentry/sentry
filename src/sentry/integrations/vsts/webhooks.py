@@ -131,9 +131,7 @@ def handle_status_change(
     )
 
     for org_integration in org_integrations:
-        installation = integration_service.get_installation(
-            integration=integration, organization_id=org_integration.organization_id
-        )
+        installation = integration.get_installation(organization_id=org_integration.organization_id)
         if isinstance(installation, IssueSyncMixin):
             installation.sync_status_inbound(
                 external_issue_key,

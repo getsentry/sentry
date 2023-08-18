@@ -6,6 +6,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry import roles
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, sane_repr
 from sentry.db.models.base import control_silo_only_model
 from sentry.models.organization import OrganizationStatus
@@ -22,9 +23,12 @@ class OrganizationMapping(Model):
 
     __include_in_export__ = True
 
+    # This model is "autocreated" via an outbox write from the regional `Organization` it
+    # references, so there is no need to explicitly include it in the export.
+    __relocation_scope__ = RelocationScope.Excluded
+
     organization_id = BoundedBigIntegerField(db_index=True, unique=True)
     slug = models.SlugField(unique=True)
-    # TODO(hybrid-cloud): Name is currently blank for all records. Updating an org name should happen for all applicable slugs.
     name = models.CharField(max_length=64)
     date_created = models.DateTimeField(default=timezone.now)
     customer_id = models.CharField(max_length=255, db_index=True, null=True)

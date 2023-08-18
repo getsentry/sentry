@@ -6,7 +6,7 @@ import pytest
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.oauth2 import OAuth2Provider
 from sentry.models import AuthIdentity, AuthProvider
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 

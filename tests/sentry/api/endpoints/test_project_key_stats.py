@@ -3,15 +3,14 @@ import pytest
 
 from sentry.constants import DataCategory
 from sentry.models import ProjectKey
-from sentry.testutils import APITestCase
-from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase
+from sentry.testutils.cases import APITestCase, OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
 @freezegun.freeze_time("2022-01-01 03:30:00")
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
     def setUp(self):
         super().setUp()
@@ -20,6 +19,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         self.login_as(user=self.user)
         self.path = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/keys/{self.key.public_key}/stats/"
 
+    @pytest.mark.skip(reason="flakey: https://github.com/getsentry/sentry/issues/54520")
     def test_simple(self):
         # This outcome should not be included.
         other_key = ProjectKey.objects.create(project=self.project)

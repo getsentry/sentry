@@ -15,6 +15,7 @@ from sentry import nodestore
 from sentry.utils.dates import parse_timestamp
 
 GROUP_FORECAST_TTL = 14
+ONE_EVENT_FORECAST = [10] * 14
 
 
 class EscalatingGroupForecastData(TypedDict):
@@ -48,16 +49,23 @@ class EscalatingGroupForecast:
 
     @classmethod
     def fetch(cls, project_id: int, group_id: int) -> Optional[EscalatingGroupForecast]:
+        """
+        Return the forecast from nodestore if it exists.
+        If it does not exist, it is because the TTL expired and the issue has not been seen in 7
+        days. Generate the forecast in a task, and return the forecast for one event.
+        """
         from sentry.issues.forecasts import generate_and_save_missing_forecasts
 
         results = nodestore.get(cls.build_storage_identifier(project_id, group_id))
         if results:
             return EscalatingGroupForecast.from_dict(results)
-        logger.exception(
-            f"Forecast does not exist for project id: {str(project_id)} group id: {str(group_id)}"
-        )
         generate_and_save_missing_forecasts.delay(group_id=group_id)
-        return None
+        return EscalatingGroupForecast(
+            project_id=project_id,
+            group_id=group_id,
+            forecast=ONE_EVENT_FORECAST,
+            date_added=datetime.now(),
+        )
 
     @classmethod
     def fetch_todays_forecast(cls, project_id: int, group_id: int) -> Optional[int]:
@@ -67,9 +75,12 @@ class EscalatingGroupForecast:
         if not escalating_forecast:
             return None
 
-        forecast_today_index = (date_now - escalating_forecast.date_added.date()).days
+        date_added = escalating_forecast.date_added.date()
+        forecast_today_index = (date_now - date_added).days
         if forecast_today_index >= len(escalating_forecast.forecast):
-            logger.error("Forecast list index is out of range")
+            logger.error(
+                f"Forecast list index is out of range. Index: {forecast_today_index}. Date now: {date_now}. Forecast date added: {date_added}."
+            )
             # Use last available forecast as a fallback
             forecast_today_index = -1
         return escalating_forecast.forecast[forecast_today_index]

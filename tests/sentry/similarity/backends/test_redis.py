@@ -5,7 +5,7 @@ import msgpack
 
 from sentry.similarity.backends.redis import RedisScriptMinHashIndexBackend
 from sentry.similarity.signatures import MinHashSignatureBuilder
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils import redis
 
 signature_builder = MinHashSignatureBuilder(32, 0xFFFF)

@@ -2,7 +2,7 @@ import os.path
 
 from sentry.models import Activity
 from sentry.services.smtp import STATUS, SentrySMTPServer
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 from sentry.utils.email import email_to_group_id, group_id_to_email
 

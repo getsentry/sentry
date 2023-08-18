@@ -3,7 +3,7 @@ from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EveryEventConditionTest(RuleTestCase):
     rule_cls = EveryEventCondition
 

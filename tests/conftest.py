@@ -6,7 +6,7 @@ from django.db import connections
 
 from sentry.silo import SiloMode
 
-pytest_plugins = ["sentry.utils.pytest"]
+pytest_plugins = ["sentry.testutils.pytest"]
 
 
 # XXX: The below code is vendored code from https://github.com/utgwkk/pytest-github-actions-annotate-failures
@@ -148,6 +148,14 @@ def setup_simulate_on_commit(request):
     from sentry.testutils.hybrid_cloud import simulate_on_commit
 
     with simulate_on_commit(request):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def setup_enforce_monotonic_transactions(request):
+    from sentry.testutils.hybrid_cloud import enforce_no_cross_transaction_interactions
+
+    with enforce_no_cross_transaction_interactions():
         yield
 
 

@@ -42,6 +42,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
         return {
             constants.PROJECT_ALIAS: self._resolve_project_slug_alias,
             constants.PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
+            constants.SPAN_MODULE_ALIAS: self._resolve_span_module,
         }
 
     @property
@@ -71,6 +72,16 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                     snql_aggregate=lambda args, alias: Function("sum", [args["column"]], alias),
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
+                ),
+                SnQLFunction(
+                    "avg",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=lambda args, alias: Function("avg", [args["column"]], alias),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
                 ),
                 SnQLFunction(
                     "percentile",
@@ -155,7 +166,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                         "divide", [Function("count", []), args["interval"]], alias
                     ),
                     optional_args=[IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
                 SnQLFunction(
                     "epm",
@@ -165,7 +176,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     optional_args=[IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
             ]
         }
@@ -185,6 +196,9 @@ class SpansIndexedDatasetConfig(DatasetConfig):
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
         return field_aliases.resolve_project_slug_alias(self.builder, alias)
+
+    def _resolve_span_module(self, alias: str) -> SelectType:
+        return field_aliases.resolve_span_module(self.builder, alias)
 
     def _resolve_bounded_sample(
         self,

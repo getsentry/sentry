@@ -1,7 +1,10 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {getBackgroundColor} from 'sentry/components/performance/waterfall/utils';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import toPercent from 'sentry/utils/number/toPercent';
 
 interface RowProps extends React.HTMLAttributes<HTMLDivElement> {
   cursor?: 'pointer' | 'default';
@@ -56,4 +59,38 @@ export const RowCell = styled('div')<RowCellProps>`
   color: ${p => (p.showDetail ? p.theme.background : 'inherit')};
   display: flex;
   align-items: center;
+`;
+
+export function RowReplayTimeIndicators() {
+  const {currentTime, currentHoverTime, replay} = useReplayContext();
+  const durationMs = replay?.getDurationMs();
+
+  if (!replay || !durationMs) {
+    return null;
+  }
+
+  return (
+    <Fragment>
+      <RowIndicatorBar style={{left: toPercent(currentTime / durationMs)}} />
+      {currentHoverTime !== undefined ? (
+        <RowHoverIndicatorBar style={{left: toPercent(currentHoverTime / durationMs)}} />
+      ) : null}
+    </Fragment>
+  );
+}
+
+const RowIndicatorBar = styled('div')`
+  background: ${p => p.theme.purple300};
+  content: '';
+  display: block;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  width: 1px;
+  z-index: 1;
+`;
+
+const RowHoverIndicatorBar = styled(RowIndicatorBar)`
+  background: ${p => p.theme.purple200};
 `;

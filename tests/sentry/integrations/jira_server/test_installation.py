@@ -3,7 +3,7 @@ from requests.exceptions import ReadTimeout
 
 from sentry.integrations.jira_server import JiraServerIntegrationProvider
 from sentry.models import Identity, IdentityProvider, Integration, OrganizationIntegration
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json, jwt
 

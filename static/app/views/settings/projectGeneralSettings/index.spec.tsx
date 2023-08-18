@@ -252,7 +252,7 @@ describe('projectGeneralSettings', function () {
     });
 
     render(
-      <ProjectContext orgId={org.slug} projectId={project.slug}>
+      <ProjectContext projectSlug={project.slug}>
         <ProjectGeneralSettings
           {...routerProps}
           routes={[]}
@@ -286,7 +286,7 @@ describe('projectGeneralSettings', function () {
     });
 
     render(
-      <ProjectContext orgId={org.slug} projectId={project.slug}>
+      <ProjectContext projectSlug={project.slug}>
         <ProjectGeneralSettings
           {...routerProps}
           routes={[]}
@@ -328,7 +328,7 @@ describe('projectGeneralSettings', function () {
       });
 
       render(
-        <ProjectContext orgId={org.slug} projectId={project.slug}>
+        <ProjectContext projectSlug={project.slug}>
           <ProjectGeneralSettings
             {...routerProps}
             routes={[]}

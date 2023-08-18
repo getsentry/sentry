@@ -138,9 +138,7 @@ def get_installation(config: RepositoryProjectPathConfig) -> IntegrationInstalla
     integration = integration_service.get_integration(
         organization_integration_id=config.organization_integration_id
     )
-    return integration_service.get_installation(
-        integration=integration, organization_id=config.project.organization_id
-    )
+    return integration.get_installation(organization_id=config.project.organization_id)
 
 
 def check_file(

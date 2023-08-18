@@ -5,7 +5,7 @@ from typing import List
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.contrib.auth.signals import user_logged_out
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.db.models import Count, Subquery
 from django.db.models.query import QuerySet
 from django.dispatch import receiver
@@ -15,6 +15,7 @@ from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry.auth.authenticators import available_authenticators
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BaseModel,
@@ -69,6 +70,7 @@ class UserManager(BaseManager, DjangoUserManager):
 @control_silo_only_model
 class User(BaseModel, AbstractBaseUser):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.User
 
     id = BoundedBigAutoField(primary_key=True)
     username = models.CharField(_("username"), max_length=128, unique=True)
@@ -162,7 +164,7 @@ class User(BaseModel, AbstractBaseUser):
     def delete(self):
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(transaction.atomic(using=router.db_for_write(User)), flush=False):
             avatar = self.avatar.first()
             if avatar:
                 avatar.delete()
@@ -171,13 +173,13 @@ class User(BaseModel, AbstractBaseUser):
             return super().delete()
 
     def update(self, *args, **kwds):
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(transaction.atomic(using=router.db_for_write(User)), flush=False):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().update(*args, **kwds)
 
     def save(self, *args, **kwargs):
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(transaction.atomic(using=router.db_for_write(User)), flush=False):
             if not self.username:
                 self.username = self.email
             result = super().save(*args, **kwargs)
@@ -323,7 +325,7 @@ class User(BaseModel, AbstractBaseUser):
         for model in model_list:
             for obj in model.objects.filter(user_id=from_user.id):
                 try:
-                    with transaction.atomic():
+                    with transaction.atomic(using=router.db_for_write(User)):
                         obj.update(user_id=to_user.id)
                 except IntegrityError:
                     pass
@@ -355,16 +357,6 @@ class User(BaseModel, AbstractBaseUser):
         self.session_nonce = get_random_string(12)
         if request is not None:
             request.session["_nonce"] = self.session_nonce
-
-    def get_orgs(self):
-        from sentry.models import Organization
-
-        return Organization.objects.get_for_user_ids({self.id})
-
-    def get_projects(self):
-        from sentry.models import Project
-
-        return Project.objects.get_for_user_ids({self.id})
 
     def get_orgs_require_2fa(self):
         from sentry.models import Organization, OrganizationStatus

@@ -8,7 +8,7 @@ from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
 from sentry.models import Rule
 from sentry.plugins.base import Notification
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.testutils import PluginTestCase
+from sentry.testutils.cases import PluginTestCase
 from sentry.utils import json
 from sentry_plugins.slack.plugin import SlackPlugin
 

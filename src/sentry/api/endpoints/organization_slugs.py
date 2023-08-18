@@ -1,5 +1,6 @@
-from django.core.validators import ValidationError, validate_slug
-from django.db import transaction
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_slug
+from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -38,7 +39,7 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
 
         rv = {}
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Project)):
             projects = {}
 
             # Clear out all slugs first so that we can move them

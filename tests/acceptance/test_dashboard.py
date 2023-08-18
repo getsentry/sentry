@@ -12,10 +12,12 @@ from sentry.models import (
     Release,
     ReleaseProjectEnvironment,
 )
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
 
+@no_silo_test(stable=True)
 class DashboardTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

@@ -30,7 +30,9 @@ def test_loading_definitions() -> None:
 
 
 def test_check_redis_health() -> None:
-    cluster = redis.redis_clusters.get("default")
+    _, cluster, _ = redis.get_dynamic_cluster_from_options(
+        setting="tess", config={"cluster": "default"}
+    )
     services = {"redis": Redis(cluster)}
 
     with override_options(

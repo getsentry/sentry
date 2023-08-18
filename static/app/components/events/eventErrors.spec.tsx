@@ -2,7 +2,10 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {EventErrors} from 'sentry/components/events/eventErrors';
-import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
+import {
+  GenericSchemaErrors,
+  JavascriptProcessingErrors,
+} from 'sentry/constants/eventErrors';
 import {EntryType} from 'sentry/types';
 
 describe('EventErrors', () => {
@@ -98,6 +101,19 @@ describe('EventErrors', () => {
     });
 
     render(<EventErrors {...defaultProps} event={eventWithDifferentDist} />);
+    expect(screen.queryByText(/problem processing this event/i)).not.toBeInTheDocument();
+  });
+
+  it('hides event error that is hidden', () => {
+    const eventWithUnknownError = TestStubs.Event({
+      errors: [
+        {
+          type: GenericSchemaErrors.UNKNOWN_ERROR,
+        },
+      ],
+    });
+
+    render(<EventErrors {...defaultProps} event={eventWithUnknownError} />);
     expect(screen.queryByText(/problem processing this event/i)).not.toBeInTheDocument();
   });
 

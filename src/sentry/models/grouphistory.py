@@ -5,6 +5,7 @@ from django.db.models import SET_NULL, Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -164,6 +165,7 @@ class GroupHistory(Model):
     """
 
     __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     objects = GroupHistoryManager()
 
@@ -242,7 +244,8 @@ def record_group_history_from_activity_type(
     # Substatus-based GroupHistory should override activity-based GroupHistory since it's more specific.
     if group.substatus:
         status_str = GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS.get(group.substatus, None)
-        status = STRING_TO_STATUS_LOOKUP.get(status_str, status)
+        if status_str is not None:
+            status = STRING_TO_STATUS_LOOKUP.get(status_str, status)
 
     if status is not None:
         return record_group_history(group, status, actor, release)

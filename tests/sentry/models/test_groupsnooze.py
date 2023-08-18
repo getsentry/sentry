@@ -6,8 +6,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.models import Group, GroupSnooze
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
@@ -168,7 +167,9 @@ class GroupSnoozeTest(
                 fingerprints=["test_user_rate_reached_generic_issues-group"],
                 environment=None,
             )
+        assert group_info is not None
         generic_group = group_info.group
+        assert generic_group is not None
         snooze = GroupSnooze.objects.create(group=generic_group, user_count=10, user_window=60)
         assert not snooze.is_valid(test_rates=True)
 
@@ -182,6 +183,8 @@ class GroupSnoozeTest(
                 fingerprints=["test_rate_reached_generic_issue-group"],
                 environment=None,
             )
+        assert group_info is not None
         generic_group = group_info.group
+        assert generic_group is not None
         snooze = GroupSnooze.objects.create(group=generic_group, count=10, window=24 * 60)
         assert not snooze.is_valid(test_rates=True)

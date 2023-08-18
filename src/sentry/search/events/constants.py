@@ -42,6 +42,7 @@ TRACE_PARENT_SPAN_ALIAS = "trace.parent_span"
 HTTP_STATUS_CODE_ALIAS = "http.status_code"
 DEVICE_CLASS_ALIAS = "device.class"
 TOTAL_SPAN_DURATION_ALIAS = "total.span_duration"
+SPAN_MODULE_ALIAS = "span.module"
 
 
 class ThresholdDict(TypedDict):
@@ -95,7 +96,16 @@ FUNCTION_PATTERN = re.compile(
 
 DURATION_PATTERN = re.compile(r"(\d+\.?\d?)(\D{1,3})")
 
-RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "percent_change", "date"}
+RESULT_TYPES = {
+    "duration",
+    "string",
+    "number",
+    "integer",
+    "percentage",
+    "percent_change",
+    "date",
+    "rate",
+}
 # event_search normalizes to bytes
 # based on https://getsentry.github.io/relay/relay_metrics/enum.InformationUnit.html
 SIZE_UNITS = {
@@ -226,16 +236,11 @@ FUNCTION_ALIASES = {
     "tps": "eps",
 }
 
-METRICS_FUNCTION_ALIASES = {
-    "tps_percent_change": "eps_percent_change",
-    "tpm_percent_change": "epm_percent_change",
-}
+METRICS_FUNCTION_ALIASES: Dict[str, str] = {}
 
 SPAN_FUNCTION_ALIASES = {
     "sps": "eps",
     "spm": "epm",
-    "sps_percent_change": "eps_percent_change",
-    "spm_percent_change": "epm_percent_change",
 }
 
 # Mapping of public aliases back to the metrics identifier

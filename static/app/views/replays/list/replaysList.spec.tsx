@@ -26,19 +26,13 @@ jest.mock('sentry/utils/replays/hooks/useReplayList', () => {
   };
 });
 
-const mockUseReplayList = useReplayList as jest.MockedFunction<typeof useReplayList>;
-const mockUseOrganization = useOrganization as jest.MockedFunction<
-  typeof useOrganization
->;
+const mockUseReplayList = jest.mocked(useReplayList);
 
-const mockUseHaveSelectedProjectsSentAnyReplayEvents =
-  useHaveSelectedProjectsSentAnyReplayEvents as jest.MockedFunction<
-    typeof useHaveSelectedProjectsSentAnyReplayEvents
-  >;
-const mockUseReplayOnboardingSidebarPanel =
-  useReplayOnboardingSidebarPanel as jest.MockedFunction<
-    typeof useReplayOnboardingSidebarPanel
-  >;
+const mockUseHaveSelectedProjectsSentAnyReplayEvents = jest.mocked(
+  useHaveSelectedProjectsSentAnyReplayEvents
+);
+const mockUseReplayOnboardingSidebarPanel = jest.mocked(useReplayOnboardingSidebarPanel);
+
 mockUseReplayOnboardingSidebarPanel.mockReturnValue({activateSidebar: jest.fn()});
 
 const AM1_FEATURES = [];
@@ -50,7 +44,7 @@ function getMockOrganization({features}: {features: string[]}) {
     access: [],
   });
 
-  mockUseOrganization.mockReturnValue(mockOrg);
+  jest.mocked(useOrganization).mockReturnValue(mockOrg);
 
   return mockOrg;
 }
@@ -59,14 +53,14 @@ function getMockContext(mockOrg: Organization) {
   return TestStubs.routerContext([{organization: mockOrg}]);
 }
 
-MockApiClient.addMockResponse({
-  url: '/organizations/org-slug/sdk-updates/',
-  body: [],
-});
-
 describe('ReplayList', () => {
   beforeEach(() => {
     mockUseReplayList.mockClear();
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
   });
 
   it('should render the onboarding panel when the org is on AM1', async () => {

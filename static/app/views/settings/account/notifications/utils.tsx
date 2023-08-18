@@ -53,7 +53,18 @@ export const getFallBackValue = (notificationType: string): string => {
       return 'committed_only';
     case 'workflow':
       return 'subscribe_only';
+    case 'approval':
+      return 'always';
+    case 'quota':
+      return 'always';
+    case 'spikeProtection':
+      return 'always';
+    case 'reports':
+      return 'always';
     default:
+      // These are the expected potential settings with fallback of ''
+      // issue, quotaErrors, quotaTransactions, quotaAttachments,
+      // quotaReplays, quotaWarnings, quotaSpendAllocations
       return '';
   }
 };

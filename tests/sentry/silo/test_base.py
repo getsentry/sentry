@@ -2,7 +2,7 @@ import django.apps
 import django.urls
 
 from sentry.api.base import Endpoint
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class SiloLimitCoverageTest(TestCase):

@@ -146,7 +146,6 @@ def test_static_and_non_static_strings_generic_metrics(indexer):
         {
             "sentry-metrics.writes-limiter.limits.spans.global": [],
             "sentry-metrics.writes-limiter.limits.spans.per-org": [],
-            "sentry-metrics.writes-limiter.apply-uca-limiting": True,
         },
     ):
         results = static_indexer.bulk_record(strings=strings)
@@ -179,7 +178,7 @@ def test_static_and_non_static_strings_generic_metrics(indexer):
     assert_fetch_type_for_tag_string_set(
         meta[UseCaseID.TRANSACTIONS][3],
         FetchType.HARDCODED,
-        {},
+        set(),
     )
 
     assert_fetch_type_for_tag_string_set(
@@ -448,7 +447,7 @@ def test_rate_limited(indexer, use_case_id, writes_limiter_option_name):
             fetch_type_ext=FetchTypeExt(is_global=False),
         )
 
-    org_strings = {1: rate_limited_strings}
+    org_strings2 = {1: rate_limited_strings}
 
     # assert that if we reconfigure limits, the quota resets
     with override_options(
@@ -458,7 +457,7 @@ def test_rate_limited(indexer, use_case_id, writes_limiter_option_name):
             ],
         }
     ):
-        results = indexer.bulk_record({use_case_id: org_strings})
+        results = indexer.bulk_record({use_case_id: org_strings2})
 
     rate_limited_strings2 = set()
     for k, v in results[use_case_id][1].items():

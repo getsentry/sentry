@@ -53,7 +53,10 @@ def load_service_definitions() -> Dict[str, Service]:
     services: Dict[str, Service] = {}
     for name, definition in settings.SENTRY_PROCESSING_SERVICES.items():
         if cluster_id := definition.get("redis"):
-            cluster = redis.redis_clusters.get(cluster_id)
+            _is_clsuter, cluster, _config = redis.get_dynamic_cluster_from_options(
+                setting=f"SENTRY_PROCESSING_SERVICES[{name}]",
+                config={"cluster": cluster_id},
+            )
             services[name] = Redis(cluster)
 
         elif rabbitmq_urls := definition.get("rabbitmq"):

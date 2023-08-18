@@ -1,7 +1,7 @@
 from unittest import mock
 
 from sentry.rules.actions.notify_event import NotifyEventAction
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 
 
 class ProjectRuleActionsEndpointTest(APITestCase):

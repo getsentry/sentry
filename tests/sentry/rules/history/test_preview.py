@@ -22,8 +22,7 @@ from sentry.rules.history.preview import (
     preview,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType

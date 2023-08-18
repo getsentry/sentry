@@ -1,6 +1,6 @@
 from sentry.models import ProjectCodeOwners
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cache import cache
 
@@ -69,6 +69,7 @@ class ProjectCodeOwnersTestCase(TestCase):
 
         code_owners = ProjectCodeOwners.objects.filter(project=self.project)
         merged = ProjectCodeOwners.merge_code_owners_list(code_owners_list=code_owners)
+        assert merged is not None
 
         assert merged.schema == {
             "$version": 1,

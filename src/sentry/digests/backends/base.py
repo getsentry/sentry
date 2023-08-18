@@ -170,7 +170,7 @@ class Backend(Service):
 
     def schedule(
         self, deadline: float, timestamp: Optional[float] = None
-    ) -> Optional[Iterable["ScheduleEntry"]]:
+    ) -> Iterable["ScheduleEntry"]:
         """
         Identify timelines that are ready for processing.
 

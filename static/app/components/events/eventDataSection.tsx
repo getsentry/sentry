@@ -94,7 +94,7 @@ export function EventDataSection({
   return (
     <DataSection ref={scrollToSection} className={className || ''} {...props}>
       {title && (
-        <SectionHeader id={type}>
+        <SectionHeader id={type} data-test-id={`event-section-${type}`}>
           <Title>
             {showPermalink ? (
               <Permalink className="permalink">

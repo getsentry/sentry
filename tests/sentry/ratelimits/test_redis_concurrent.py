@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from freezegun import freeze_time
 
 from sentry.ratelimits.concurrent import DEFAULT_MAX_TTL_SECONDS, ConcurrentRateLimiter
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class ConcurrentLimiterTest(TestCase):

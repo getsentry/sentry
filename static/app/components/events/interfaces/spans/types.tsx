@@ -32,6 +32,13 @@ export type RawSpanType = {
   tags?: {[key: string]: string};
 };
 
+/**
+ * Extendeds the Raw type from json with a type for discriminating the union.
+ */
+type BaseSpanType = RawSpanType & {
+  type?: undefined;
+};
+
 export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
   'trace_id',
   'parent_span_id',
@@ -49,11 +56,11 @@ export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
   'exclusive_time',
 ]);
 
-export type OrphanSpanType = {
+export type OrphanSpanType = RawSpanType & {
   type: 'orphan';
-} & RawSpanType;
+};
 
-export type SpanType = RawSpanType | OrphanSpanType;
+export type SpanType = BaseSpanType | OrphanSpanType;
 
 // this type includes natural spans which are part of the transaction event payload,
 // and as well as pseudo-spans (e.g. gap spans)

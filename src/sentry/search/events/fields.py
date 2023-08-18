@@ -10,7 +10,8 @@ from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.models import ProjectTeam, ProjectTransactionThreshold
+from sentry.models import ProjectTransactionThreshold
+from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
     ProjectTransactionThresholdOverride,
@@ -2134,6 +2135,7 @@ class MetricsFunction(SnQLFunction):
         self.snql_set = kwargs.pop("snql_set", None)
         self.snql_counter = kwargs.pop("snql_counter", None)
         self.snql_metric_layer = kwargs.pop("snql_metric_layer", None)
+        self.is_percentile = kwargs.pop("is_percentile", False)
         super().__init__(*args, **kwargs)
 
     def validate(self) -> None:

@@ -7,9 +7,7 @@ import {t, tct} from 'sentry/locale';
 // Configuration Start
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -29,9 +27,13 @@ export const steps = ({
         language: 'bash',
         description: (
           <p>
-            {tct('Install [code:sentry-sdk] from PyPI with the [code:flask] extra:', {
-              code: <code />,
-            })}
+            {tct(
+              'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryFlaskCode:flask] extra:',
+              {
+                sentrySdkCode: <code />,
+                sentryFlaskCode: <code />,
+              }
+            )}
           </p>
         ),
         code: "pip install --upgrade 'sentry-sdk[flask]'",

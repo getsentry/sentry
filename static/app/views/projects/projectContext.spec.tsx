@@ -40,8 +40,7 @@ describe('projectContext component', function () {
         loadingProjects={false}
         projects={[]}
         organization={org}
-        orgId={org.slug}
-        projectId={project.slug}
+        projectSlug={project.slug}
       >
         {null}
       </ProjectContext>
@@ -72,8 +71,7 @@ describe('projectContext component', function () {
         projects={[]}
         loadingProjects={false}
         organization={org}
-        orgId={org.slug}
-        projectId={project.slug}
+        projectSlug={project.slug}
       >
         {null}
       </ProjectContext>
@@ -100,8 +98,7 @@ describe('projectContext component', function () {
         projects={[]}
         loadingProjects={false}
         organization={org}
-        orgId={org.slug}
-        projectId="new-slug"
+        projectSlug="new-slug"
       >
         {null}
       </ProjectContext>
@@ -124,8 +121,7 @@ describe('projectContext component', function () {
         loadingProjects={false}
         projects={[]}
         organization={org}
-        orgId={org.slug}
-        projectId={project.slug}
+        projectSlug={project.slug}
       >
         {null}
       </ProjectContext>
@@ -149,8 +145,7 @@ describe('projectContext component', function () {
         loadingProjects={false}
         api={new MockApiClient()}
         projects={[project]}
-        orgId={org.slug}
-        projectId={project.slug}
+        projectSlug={project.slug}
       >
         {null}
       </ProjectContext>

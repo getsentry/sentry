@@ -4,13 +4,13 @@ import logging
 import warnings
 from collections import defaultdict
 from itertools import chain
-from typing import TYPE_CHECKING, Collection, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Collection, Iterable, Mapping
 from uuid import uuid1
 
 import sentry_sdk
 from django.conf import settings
-from django.db import IntegrityError, models, transaction
-from django.db.models import QuerySet
+from django.db import IntegrityError, models, router, transaction
+from django.db.models import QuerySet, Subquery
 from django.db.models.signals import pre_delete
 from django.utils import timezone
 from django.utils.http import urlencode
@@ -18,6 +18,7 @@ from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry import projectoptions
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
@@ -32,15 +33,15 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
-from sentry.models import OptionMixin
 from sentry.models.grouplink import GroupLink
+from sentry.models.options.option import OptionMixin
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
-from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
@@ -51,7 +52,100 @@ if TYPE_CHECKING:
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
-MIGRATED_GETTING_STARTD_DOCS = ["javascript-react", "javascript-remix"]
+# NOTE:
+# - When you modify this list, ensure that the platform IDs listed in "sentry/static/app/data/platforms.tsx" match.
+# - Please keep this list organized alphabetically.
+GETTING_STARTD_DOCS_PLATFORMS = [
+    "android",
+    "apple",
+    "apple-ios",
+    "apple-macos",
+    "capacitor",
+    "cordova",
+    "dart",
+    "dotnet",
+    "dotnet-aspnet",
+    "dotnet-aspnetcore",
+    "dotnet-awslambda",
+    "dotnet-gcpfunctions",
+    "dotnet-maui",
+    "dotnet-uwp",
+    "dotnet-winforms",
+    "dotnet-wpf",
+    "dotnet-xamarin",
+    "electron",
+    "elixir",
+    "flutter",
+    "go",
+    "go-echo",
+    "go-fasthttp",
+    "go-gin",
+    "go-http",
+    "go-iris",
+    "go-martini",
+    "go-negroni",
+    "ionic",
+    "java",
+    "java-log4j2",
+    "java-logback",
+    "java-spring",
+    "java-spring-boot",
+    "javascript",
+    "javascript-angular",
+    "javascript-ember",
+    "javascript-gatsby",
+    "javascript-nextjs",
+    "javascript-react",
+    "javascript-remix",
+    "javascript-svelte",
+    "javascript-sveltekit",
+    "javascript-vue",
+    "kotlin",
+    "minidump",
+    "native",
+    "native-qt",
+    "node",
+    "node-awslambda",
+    "node-azurefunctions",
+    "node-connect",
+    "node-express",
+    "node-gcpfunctions",
+    "node-koa",
+    "node-serverlesscloud",
+    "php",
+    "php-laravel",
+    "php-symfony",
+    "python",
+    "python-aiohttp",
+    "python-asgi",
+    "python-awslambda",
+    "python-bottle",
+    "python-celery",
+    "python-chalice",
+    "python-django",
+    "python-falcon",
+    "python-fastapi",
+    "python-flask",
+    "python-gcpfunctions",
+    "python-pylons",
+    "python-pymongo",
+    "python-pyramid",
+    "python-quart",
+    "python-rq",
+    "python-sanic",
+    "python-serverless",
+    "python-starlette",
+    "python-tornado",
+    "python-tryton",
+    "python-wsgi",
+    "react-native",
+    "ruby",
+    "ruby-rack",
+    "ruby-rails",
+    "rust",
+    "unity",
+    "unreal",
+]
 
 
 class ProjectManager(BaseManager):
@@ -78,7 +172,7 @@ class ProjectManager(BaseManager):
             teams__organizationmember__user_id__in=user_ids,
         )
 
-    def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
+    def get_for_team_ids(self, team_ids: Collection[int] | Subquery) -> QuerySet:
         """Returns the QuerySet of all projects that a set of Teams have access to."""
         return self.filter(status=ObjectStatus.ACTIVE, teams__in=team_ids)
 
@@ -119,6 +213,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     """
 
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     slug = models.SlugField(null=True)
     # DEPRECATED do not use, prefer slug
@@ -264,6 +359,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     def color(self):
         if self.forced_color is not None:
             return f"#{self.forced_color}"
+        assert self.slug is not None
         return get_hashed_color(self.slug.upper())
 
     @property
@@ -326,13 +422,13 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
             Environment,
             EnvironmentProject,
             ExternalIssue,
-            ProjectTeam,
             RegionScheduledDeletion,
             ReleaseProject,
             ReleaseProjectEnvironment,
             Rule,
         )
         from sentry.models.actor import ACTOR_TYPES
+        from sentry.models.projectteam import ProjectTeam
         from sentry.monitors.models import Monitor
 
         old_org_id = self.organization_id
@@ -341,7 +437,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         self.organization = organization
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Project)):
                 self.update(organization=organization)
         except IntegrityError:
             slugify_instance(self, self.name, organization=organization, max_length=50)
@@ -451,7 +547,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         from sentry.models.projectteam import ProjectTeam
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(ProjectTeam)):
                 ProjectTeam.objects.create(project=self, team=team)
         except IntegrityError:
             return False
@@ -492,19 +588,15 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         Returns True if the settings have successfully been copied over
         Returns False otherwise
         """
-        from sentry.models import (
-            EnvironmentProject,
-            ProjectOption,
-            ProjectOwnership,
-            ProjectTeam,
-            Rule,
-        )
+        from sentry.models import EnvironmentProject, ProjectOption, Rule
+        from sentry.models.projectownership import ProjectOwnership
+        from sentry.models.projectteam import ProjectTeam
 
         model_list = [EnvironmentProject, ProjectOwnership, ProjectTeam, Rule]
 
         project = Project.objects.get(id=project_id)
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Project)):
                 for model in model_list:
                     # remove all previous project settings
                     model.objects.filter(project_id=self.id).delete()
@@ -533,9 +625,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
     @staticmethod
     def is_valid_platform(value):
-        if not value or value == "other" or value in MIGRATED_GETTING_STARTD_DOCS:
-            return True
-        return integration_doc_exists(value)
+        return value in GETTING_STARTD_DOCS_PLATFORMS
 
     @staticmethod
     def outbox_for_update(project_identifier: int, organization_identifier: int) -> RegionOutbox:
@@ -547,11 +637,11 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         )
 
     def delete(self, **kwargs):
-        from sentry.models import NotificationSetting
 
         # There is no foreign key relationship so we have to manually cascade.
-        NotificationSetting.objects.remove_for_project(self)
-        with outbox_context(transaction.atomic()):
+        notifications_service.remove_notification_settings_for_project(project_id=self.id)
+
+        with outbox_context(transaction.atomic(router.db_for_write(Project))):
             Project.outbox_for_update(self.id, self.organization_id).save()
             return super().delete(**kwargs)
 

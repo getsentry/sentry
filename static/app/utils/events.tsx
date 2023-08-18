@@ -479,7 +479,7 @@ export type CommonGroupAnalyticsData = {
   is_assigned?: boolean;
   issue_level?: string;
   issue_status?: string;
-  issue_substatus?: string;
+  issue_substatus?: string | null;
 };
 
 export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnalyticsData {

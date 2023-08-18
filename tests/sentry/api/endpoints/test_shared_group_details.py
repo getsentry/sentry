@@ -1,5 +1,5 @@
 from sentry.models import GroupShare
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
@@ -21,6 +21,7 @@ class SharedGroupDetailsTest(APITestCase):
 
         min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(data={"timestamp": min_ago}, project_id=self.project.id)
+        assert event.group is not None
         group = event.group
 
         share_id = group.get_share_id()

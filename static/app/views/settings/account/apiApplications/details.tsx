@@ -1,6 +1,11 @@
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/actions/button';
+import {Alert} from 'sentry/components/alert';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -22,6 +27,33 @@ type State = {
 } & DeprecatedAsyncView['state'];
 
 class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
+  rotateClientSecret = async () => {
+    try {
+      const rotateResponse = await this.api.requestPromise(
+        `/api-applications/${this.props.params.appId}/rotate-secret/`,
+        {
+          method: 'POST',
+        }
+      );
+      openModal(({Body, Header}) => (
+        <Fragment>
+          <Header>{t('Rotated Client Secret')}</Header>
+          <Body>
+            <Alert type="info" showIcon>
+              {t('This will be the only time your client secret is visible!')}
+            </Alert>
+            <p>
+              {t('Your client secret is:')}
+              <code>{rotateResponse.clientSecret}</code>
+            </p>
+          </Body>
+        </Fragment>
+      ));
+    } catch {
+      addErrorMessage(t('Error rotating secret'));
+    }
+  };
+
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['app', `/api-applications/${this.props.params.appId}/`]];
   }
@@ -73,7 +105,16 @@ class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
                       {getDynamicText({value, fixed: 'CI_CLIENT_SECRET'})}
                     </TextCopyInput>
                   ) : (
-                    <em>hidden</em>
+                    <ClientSecret>
+                      <HiddenSecret>{t('hidden')}</HiddenSecret>
+                      <Button
+                        size="md"
+                        onClick={this.rotateClientSecret}
+                        priority="danger"
+                      >
+                        Rotate client secret
+                      </Button>
+                    </ClientSecret>
                   )
                 }
               </FormField>
@@ -92,5 +133,17 @@ class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
     );
   }
 }
+
+const HiddenSecret = styled('span')`
+  width: 100px;
+  font-style: italic;
+`;
+
+const ClientSecret = styled('div')`
+  display: flex;
+  justify-content: right;
+  align-items: center;
+  margin-right: 0;
+`;
 
 export default ApiApplicationsDetails;

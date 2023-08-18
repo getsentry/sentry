@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set, Union
 
-from django.db import transaction
+from django.db import router, transaction
 from django.utils import timezone
 from rest_framework.request import Request
 
@@ -13,8 +13,8 @@ from sentry.models import Group, Rule, RuleActivity, RuleActivityType, RuleSourc
 from sentry.models.project import Project
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 
+from .constants import MAX_TIMEOUT, TIMEOUT
 from .models import CheckInStatus, Monitor, MonitorCheckIn
-from .tasks import TIMEOUT
 
 
 def signal_first_checkin(project: Project, monitor: Monitor):
@@ -24,7 +24,8 @@ def signal_first_checkin(project: Project, monitor: Monitor):
         transaction.on_commit(
             lambda: first_cron_checkin_received.send_robust(
                 project=project, monitor_id=str(monitor.guid), sender=Project
-            )
+            ),
+            router.db_for_write(Project),
         )
 
 
@@ -41,7 +42,7 @@ def get_timeout_at(
 ) -> Optional[datetime]:
     if status == CheckInStatus.IN_PROGRESS:
         return date_added.replace(second=0, microsecond=0) + timedelta(
-            minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT
+            minutes=min(((monitor_config or {}).get("max_runtime") or TIMEOUT), MAX_TIMEOUT)
         )
 
     return None
@@ -227,11 +228,9 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
         "conditions": [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                "name": "A new issue is created",
             },
             {
                 "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
-                "name": "The issue changes state from resolved to unresolved",
             },
         ],
         "createdBy": {
@@ -247,7 +246,6 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
                 "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
                 "key": "monitor.slug",
                 "match": "eq",
-                "name": f"The event's tags match monitor.slug contains {monitor.slug}",
                 "value": monitor.slug,
             }
         ],
@@ -264,7 +262,6 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
 
         action = {
             "id": "sentry.mail.actions.NotifyEmailAction",
-            "name": f"Send a notification to {target_type}",
             "targetIdentifier": target_identifier,
             "targetType": target_type,
         }
@@ -281,7 +278,6 @@ def update_alert_rule(request: Request, project: Project, alert_rule: Rule, aler
 
         action = {
             "id": "sentry.mail.actions.NotifyEmailAction",
-            "name": f"Send a notification to {target_type}",
             "targetIdentifier": target_identifier,
             "targetType": target_type,
         }

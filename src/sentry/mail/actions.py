@@ -31,7 +31,7 @@ class NotifyEmailAction(EventAction):
 
     def render_label(self) -> str:
         if "fallthroughType" not in self.data:
-            self.data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
+            self.data = {**self.data, "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value}
         return self.label.format(**self.data)
 
     def after(self, event, state):

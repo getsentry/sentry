@@ -1,7 +1,7 @@
 import datetime
+from datetime import timezone
 
 import pytest
-from django.utils import timezone
 from snuba_sdk import And, Column, Condition, Op, Or
 
 from sentry.search.events.builder import (

@@ -6,7 +6,7 @@ from sentry import audit_log, deletions
 from sentry.constants import SentryAppStatus
 from sentry.models import AuditLogEntry, OrganizationMember, SentryApp
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
@@ -403,6 +403,9 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
     def test_members_cant_update(self):
         with assume_test_silo_mode(SiloMode.REGION):
+            # create extra owner because we are demoting one
+            self.create_member(organization=self.org, user=self.create_user(), role="owner")
+
             member_om = OrganizationMember.objects.get(user_id=self.user.id, organization=self.org)
             member_om.role = "member"
             member_om.save()
@@ -413,6 +416,9 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
     def test_create_integration_exceeding_scopes(self):
         with assume_test_silo_mode(SiloMode.REGION):
+            # create extra owner because we are demoting one
+            self.create_member(organization=self.org, user=self.create_user(), role="owner")
+
             member_om = OrganizationMember.objects.get(user_id=self.user.id, organization=self.org)
             member_om.role = "manager"
             member_om.save()

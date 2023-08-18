@@ -1,7 +1,7 @@
 from typing import Optional
 
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
@@ -49,14 +49,17 @@ def resolve_group_resolutions(instance, created, **kwargs):
     if not created:
         return
 
-    transaction.on_commit(lambda: clear_expired_resolutions.delay(release_id=instance.id))
+    transaction.on_commit(
+        lambda: clear_expired_resolutions.delay(release_id=instance.id),
+        router.db_for_write(Release),
+    )
 
 
 def remove_resolved_link(link):
     # TODO(dcramer): ideally this would simply "undo" the link change,
     # but we don't know for a fact that the resolution was most recently from
     # the GroupLink
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(GroupLink)):
         link.delete()
         affected = Group.objects.filter(status=GroupStatus.RESOLVED, id=link.group_id).update(
             status=GroupStatus.UNRESOLVED,
@@ -119,7 +122,7 @@ def resolved_in_commit(instance, created, **kwargs):
         try:
             # XXX(dcramer): This code is somewhat duplicated from the
             # project_group_index mutation api
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(GroupLink)):
                 GroupLink.objects.create(
                     group_id=group.id,
                     project_id=group.project_id,
@@ -218,7 +221,7 @@ def resolved_in_pull_request(instance, created, **kwargs):
 
     for group in groups:
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(GroupLink)):
                 GroupLink.objects.create(
                     group_id=group.id,
                     project_id=group.project_id,

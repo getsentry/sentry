@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 import hmac
 import logging
@@ -47,7 +49,7 @@ class HerokuReleaseHook(ReleaseHook):
 
         return hmac.compare_digest(heroku_hmac, computed_hmac)
 
-    def handle(self, request: Request) -> HttpResponse:
+    def handle(self, request: Request) -> HttpResponse | None:
         heroku_hmac = request.headers.get("Heroku-Webhook-Hmac-SHA256")
 
         if not self.is_valid_signature(request.body.decode("utf-8"), heroku_hmac):
@@ -89,6 +91,8 @@ class HerokuReleaseHook(ReleaseHook):
                 )
             else:
                 self.finish_release(version=commit, owner_id=user.id if user else None)
+
+        return None
 
     def set_refs(self, release, **values):
         if not values.get("owner_id", None):

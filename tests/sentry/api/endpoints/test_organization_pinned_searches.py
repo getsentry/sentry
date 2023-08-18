@@ -3,7 +3,7 @@ from functools import cached_property
 from sentry.api.endpoints.organization_pinned_searches import PINNED_SEARCH_NAME
 from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 

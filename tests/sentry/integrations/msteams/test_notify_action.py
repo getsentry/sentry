@@ -76,12 +76,12 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-        event = event.for_group(event.groups[0])
+        group_event = event.for_group(event.groups[0])
 
         rule = self.get_rule(
             data={"team": self.integration.id, "channel": "Hellboy", "channel_id": "nb"}
         )
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=group_event, state=self.get_state()))
         assert len(results) == 1
 
         responses.add(

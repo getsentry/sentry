@@ -4,6 +4,7 @@ from django.db import models
 from django.db.models.signals import pre_delete
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
@@ -21,11 +22,13 @@ from sentry.signals import pending_delete
 @region_silo_only_model
 class Repository(Model, PendingDeletionMixin):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     organization_id = BoundedBigIntegerField(db_index=True)
     name = models.CharField(max_length=200)
     url = models.URLField(null=True)
     provider = models.CharField(max_length=64, null=True)
+    # The external_id is the id of the repo in the provider's system. (e.g. GitHub's repo id)
     external_id = models.CharField(max_length=64, null=True)
     config = JSONField(default=dict)
     status = BoundedPositiveIntegerField(
@@ -37,10 +40,7 @@ class Repository(Model, PendingDeletionMixin):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_repository"
-        unique_together = (
-            ("organization_id", "name"),
-            ("organization_id", "provider", "external_id"),
-        )
+        unique_together = (("organization_id", "provider", "external_id"),)
 
     __repr__ = sane_repr("organization_id", "name", "provider")
 

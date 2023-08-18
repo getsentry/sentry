@@ -4,7 +4,6 @@ import dataclasses
 from typing import Any, List, Mapping, MutableMapping
 from urllib.parse import urlparse, urlunparse
 
-from django.db import transaction
 from django.utils.encoding import force_str
 from django.utils.http import urlencode
 
@@ -22,13 +21,12 @@ class SentryAppComponentPreparer:
     values: List[Mapping[str, Any]] = dataclasses.field(default_factory=list)
 
     def run(self) -> None:
-        with transaction.atomic():
-            if self.component.type == "issue-link":
-                self._prepare_issue_link()
-            elif self.component.type == "stacktrace-link":
-                self._prepare_stacktrace_link()
-            elif self.component.type == "alert-rule-action":
-                self._prepare_alert_rule_action()
+        if self.component.type == "issue-link":
+            self._prepare_issue_link()
+        elif self.component.type == "stacktrace-link":
+            self._prepare_stacktrace_link()
+        elif self.component.type == "alert-rule-action":
+            self._prepare_alert_rule_action()
 
     def _prepare_stacktrace_link(self) -> None:
         schema = self.component.schema

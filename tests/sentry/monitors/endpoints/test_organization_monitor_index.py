@@ -9,7 +9,7 @@ from django.test.utils import override_settings
 from sentry.constants import ObjectStatus
 from sentry.models import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
-from sentry.testutils import MonitorTestCase
+from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
 
@@ -183,6 +183,8 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "schedule": "0 0 * * *",
             "checkin_margin": None,
             "max_runtime": None,
+            "failure_issue_threshold": None,
+            "recovery_threshold": None,
         }
 
         self.project.refresh_from_db()

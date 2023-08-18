@@ -141,13 +141,13 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
             inline={false}
             flexibleControlStateSize
           >
-            <TextCopyInput>
+            <TextCopyInput aria-label={t('Loader Script')}>
               {`<script src='${loaderLink}' crossorigin="anonymous"></script>`}
             </TextCopyInput>
           </FieldGroup>
 
           <SelectField
-            name="browserSdkVersion"
+            name={`${keyId}-browserSdkVersion`}
             label={t('SDK Version')}
             options={
               data.browserSdk
@@ -168,7 +168,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
 
           <BooleanField
             label={t('Enable Performance Monitoring')}
-            name="has-performance"
+            name={`${keyId}-has-performance`}
             value={
               sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
                 ? values.hasPerformance
@@ -196,7 +196,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
 
           <BooleanField
             label={t('Enable Session Replay')}
-            name="has-replay"
+            name={`${keyId}-has-replay`}
             value={
               sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
                 ? values.hasReplay
@@ -228,7 +228,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
 
           <BooleanField
             label={t('Enable Debug Bundles & Logging')}
-            name="has-logging"
+            name={`${keyId}-has-logging`}
             value={values.hasDebug}
             onChange={value => {
               updateLoaderOption({hasDebug: value});

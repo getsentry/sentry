@@ -185,6 +185,7 @@ def query(
     use_metrics_layer=False,
     skip_tag_resolution=False,
     extra_columns=None,
+    on_demand_metrics_enabled=False,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -253,7 +254,7 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, str],
+    params: Dict[str, Any],
     rollup: int,
     referrer: Optional[str] = None,
     zerofill_results: bool = True,
@@ -262,6 +263,7 @@ def timeseries_query(
     allow_metric_aggregates=False,
     has_metrics=False,
     use_metrics_layer=False,
+    on_demand_metrics_enabled=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -715,6 +717,7 @@ def spans_histogram_query(
     extra_condition=None,
     normalize_results=True,
     use_metrics_layer=False,
+    on_demand_metrics_enabled=False,
 ):
     """
     API for generating histograms for span exclusive time.
@@ -802,6 +805,7 @@ def histogram_query(
     extra_conditions=None,
     normalize_results=True,
     use_metrics_layer=False,
+    on_demand_metrics_enabled=False,
 ):
     """
     API for generating histograms for numeric columns.

@@ -4,6 +4,7 @@ from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
 from sentry import eventstream, similarity, tsdb
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.tsdb.base import TSDBModel
 
@@ -19,6 +20,7 @@ EXTRA_MERGE_MODELS = []
     queue="merge",
     default_retry_delay=60 * 5,
     max_retries=None,
+    silo_mode=SiloMode.REGION,
 )
 @track_group_async_operation
 def merge_groups(
@@ -152,7 +154,7 @@ def merge_groups(
 
             previous_group_id = group.id
 
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(GroupRedirect)):
                 GroupRedirect.create_for_group(group, new_group)
                 group.delete()
             delete_logger.info(

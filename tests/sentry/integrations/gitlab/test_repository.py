@@ -8,8 +8,8 @@ from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
 from sentry.models import Identity, IdentityProvider, Integration, PullRequest, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo import SiloMode
-from sentry.testutils import IntegrationRepositoryTestCase
 from sentry.testutils.asserts import assert_commit_shape
+from sentry.testutils.cases import IntegrationRepositoryTestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 

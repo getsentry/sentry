@@ -24,7 +24,7 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
         ]
 
         if not self.get_integration_id() and integration_choices:
-            self.data[self.integration_key] = integration_choices[0][0]
+            self.data = {**self.data, self.integration_key: integration_choices[0][0]}
 
         self.form_fields = {
             self.integration_key: {

@@ -23,7 +23,10 @@ export interface TimeWindowOptions {
 
 export type TimeWindowData = Record<TimeWindow, TimeWindowOptions>;
 
-export type MonitorBucketData = [timestamp: number, envData: MonitorBucketEnvMapping][];
+// TODO(davidenwang): Remove this type as its a little too specific
+export type MonitorBucketData = MonitorBucket[];
+
+export type MonitorBucket = [timestamp: number, envData: MonitorBucketEnvMapping];
 
 export interface JobTickData {
   endTs: number;

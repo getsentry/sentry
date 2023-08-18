@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 from botocore.client import ClientError
 
-from sentry.testutils import PluginTestCase
+from sentry.testutils.cases import PluginTestCase
 from sentry.utils import json
 from sentry_plugins.amazon_sqs.plugin import AmazonSQSPlugin
 

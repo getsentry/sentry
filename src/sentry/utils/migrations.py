@@ -1,3 +1,4 @@
+from django.db import router
 from django.db.models import F
 
 from sentry.silo import unguarded_write
@@ -15,5 +16,5 @@ def clear_flag(Model, flag_name, flag_attr_name="flags"):
             update_kwargs = {
                 flag_attr_name: F(flag_attr_name).bitand(~getattr(Model, flag_attr_name)[flag_name])
             }
-            with unguarded_write():
+            with unguarded_write(router.db_for_write(Model)):
                 Model.objects.filter(id=item.id).update(**update_kwargs)

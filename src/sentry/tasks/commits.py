@@ -6,6 +6,7 @@ import sentry_sdk
 from django.urls import reverse
 from sentry_sdk import set_tag
 
+from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models import (
     Deploy,
@@ -21,6 +22,7 @@ from sentry.plugins.base import bindings
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -71,6 +73,7 @@ def handle_invalid_identity(identity, commit_failure=False):
     queue="commits",
     default_retry_delay=60 * 5,
     max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
 @retry(exclude=(Release.DoesNotExist, User.DoesNotExist))
 def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **kwargs):
@@ -91,11 +94,16 @@ def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **k
             pass
 
     for ref in refs:
-        try:
-            repo = Repository.objects.get(
-                organization_id=release.organization_id, name=ref["repository"]
+        repo = (
+            Repository.objects.filter(
+                organization_id=release.organization_id,
+                name=ref["repository"],
+                status=ObjectStatus.ACTIVE,
             )
-        except Repository.DoesNotExist:
+            .order_by("-pk")
+            .first()
+        )
+        if not repo:
             logger.info(
                 "repository.missing",
                 extra={

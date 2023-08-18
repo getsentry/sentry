@@ -3,7 +3,9 @@ from unittest.mock import patch
 
 import pytest
 from django.core import mail
+from django.db import router
 from django.utils import timezone
+from rest_framework.serializers import ValidationError
 
 from sentry import roles
 from sentry.auth import manager
@@ -19,7 +21,7 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode, unguarded_write
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
@@ -207,12 +209,12 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             AuthProvider.objects.create(
                 provider="saml2",
                 organization_id=organization.id,
-                flags=AuthProvider.flags["scim_enabled"],
+                flags=AuthProvider.flags.scim_enabled,
             )
             AuthProvider.objects.create(
                 provider="saml2",
                 organization_id=org3.id,
-                flags=AuthProvider.flags["allow_unlinked"],
+                flags=AuthProvider.flags.allow_unlinked,
             )
         ninety_one_days = timezone.now() - timedelta(days=91)
         member = self.create_member(
@@ -488,7 +490,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         member = OrganizationMember.objects.get(
             user_id=self.user.id, organization=self.organization
         )
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             member.update(role="manager")
         assert member.get_allowed_org_roles_to_invite() == [
             roles.get("member"),
@@ -511,3 +513,12 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert roles[0][1].id == "owner"
         assert roles[-1][0] == manager_team.slug
         assert roles[-1][1].id == "manager"
+
+    def test_cannot_demote_last_owner(self):
+        org = self.create_organization()
+
+        with pytest.raises(ValidationError):
+            member = self.create_member(organization=org, role="owner", user=self.create_user())
+
+            member.role = "manager"
+            member.save()

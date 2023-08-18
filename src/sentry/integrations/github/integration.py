@@ -30,6 +30,9 @@ from sentry.services.hybrid_cloud.repository import RpcRepository, repository_se
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
+from sentry.tasks.integrations.github.pr_comment import RATE_LIMITED_MESSAGE
+from sentry.tasks.integrations.link_all_repos import link_all_repos
+from sentry.utils import metrics
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubAppsClient, GitHubClientMixin
@@ -111,6 +114,13 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         if not self.org_integration:
             raise IntegrationError("Organization Integration does not exist")
         return GitHubAppsClient(integration=self.model, org_integration_id=self.org_integration.id)
+
+    def is_rate_limited_error(self, exc: Exception) -> bool:
+        if exc.json and RATE_LIMITED_MESSAGE in exc.json.get("message", ""):
+            metrics.incr("github.link_all_repos.rate_limited_error")
+            return True
+
+        return False
 
     def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> Dict[str, RepoTree]:
         trees: Dict[str, RepoTree] = {}
@@ -204,7 +214,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
         return f"Error Communicating with GitHub (HTTP {exc.code}): {message}"
 
-    def has_repo_access(self, repo: Repository) -> bool:
+    def has_repo_access(self, repo: RpcRepository) -> bool:
         client = self.get_client()
         try:
             # make sure installation has access to this specific repo
@@ -304,6 +314,14 @@ class GitHubIntegrationProvider(IntegrationProvider):
                     "organization_id": organization.id,
                 }
             )
+
+        link_all_repos.apply_async(
+            kwargs={
+                "integration_key": self.key,
+                "integration_id": integration.id,
+                "organization_id": organization.id,
+            }
+        )
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
         return [GitHubInstallationRedirect()]

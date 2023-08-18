@@ -89,17 +89,17 @@ from sentry.utils.snuba import parse_snuba_datetime
 QUERY_PROJECT_LIMIT = 10
 
 
-def parse_field(field: str, allow_mri: bool = False) -> MetricField:
+def parse_field(field: str, allow_mri: bool = False, allow_private: bool = False) -> MetricField:
 
     if allow_mri:
         mri_matches = MRI_SCHEMA_REGEX.match(field) or MRI_EXPRESSION_REGEX.match(field)
         if mri_matches:
-            return parse_mri_field(field)
+            return parse_mri_field(field, allow_private)
 
     return parse_public_field(field)
 
 
-def parse_mri_field(field: str) -> MetricField:
+def parse_mri_field(field: str, allow_private: bool = False) -> MetricField:
     matches = MRI_EXPRESSION_REGEX.match(field)
 
     try:
@@ -108,7 +108,8 @@ def parse_mri_field(field: str) -> MetricField:
     except (IndexError, TypeError):
         operation = None
         mri = field
-    return MetricField(operation, mri, alias=mri)
+
+    return MetricField(operation, mri, alias=mri, allow_private=allow_private)
 
 
 def parse_public_field(field: str) -> MetricField:
@@ -149,7 +150,7 @@ def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=Non
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
 # a limited expression language with only AND, OR, IN and NOT IN
-FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match")
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match", "team_key_transaction")
 
 
 def resolve_tags(
@@ -473,7 +474,12 @@ class QueryDefinition:
             MetricGroupByField(groupby_col) for groupby_col in query_params.getlist("groupBy", [])
         ]
         self.fields = [
-            parse_field(key, allow_mri=allow_mri) for key in query_params.getlist("field", [])
+            parse_field(
+                key,
+                allow_mri=allow_mri,
+                allow_private=bool(query_params.get("allowPrivate", False)),
+            )
+            for key in query_params.getlist("field", [])
         ]
         self.orderby = self._parse_orderby(query_params, allow_mri)
         self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)

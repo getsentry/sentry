@@ -1,67 +1,56 @@
-import time
-from typing import Optional
+from functools import wraps
 
+import sentry_sdk
+
+from sentry.dynamic_sampling.tasks.common import TimeoutException
+from sentry.dynamic_sampling.tasks.logging import log_task_execution, log_task_timeout
+from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.utils import metrics
 
 
-def dynamic_sampling_task(func):
-    """
-    Measures a dynamic sampling task by wrapping the function call with metrics collection.
-    """
+def _compute_task_name(function_name: str) -> str:
+    return f"sentry.tasks.dynamic_sampling.{function_name}"
 
-    def wrapped_func(*args, **kwargs):
+
+def dynamic_sampling_task_with_context(max_task_execution: int):
+    def wrapper(func):
+        @wraps(func)
+        def _wrapper():
+            function_name = func.__name__
+            task_name = _compute_task_name(function_name)
+
+            # We will count how many times the function is run.
+            metrics.incr(f"{task_name}.start", sample_rate=1.0)
+            # We will count how much it takes to run the function.
+            with metrics.timer(task_name, sample_rate=1.0):
+                context = TaskContext(task_name, max_task_execution)
+
+                try:
+                    func(context=context)
+                except TimeoutException:
+                    sentry_sdk.set_extra("context-data", context.to_dict())
+                    log_task_timeout(context)
+                    raise
+                else:
+                    sentry_sdk.set_extra("context-data", context.to_dict())
+                    sentry_sdk.capture_message(f"timing for {task_name}")
+                    log_task_execution(context)
+
+        return _wrapper
+
+    return wrapper
+
+
+def dynamic_sampling_task(func):
+    @wraps(func)
+    def _wrapper(*args, **kwargs):
         function_name = func.__name__
+        task_name = _compute_task_name(function_name)
 
         # We will count how many times the function is run.
-        metrics.incr(f"sentry.tasks.dynamic_sampling.{function_name}.start", sample_rate=1.0)
+        metrics.incr(f"{task_name}.start", sample_rate=1.0)
         # We will count how much it takes to run the function.
-        with metrics.timer(f"sentry.tasks.dynamic_sampling.{function_name}", sample_rate=1.0):
+        with metrics.timer(task_name, sample_rate=1.0):
             return func(*args, **kwargs)
 
-    return wrapped_func
-
-
-class Timer:
-    """
-    Simple timer class for investigating timeout issues with dynamic sampling tasks
-
-    """
-
-    def __init__(self):
-        self.elapsed: float = 0
-        self.started: Optional[float] = None
-
-    def __enter__(self):
-        self.start()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stop()
-        return False
-
-    def start(self) -> float:
-        if not self.started:
-            self.started = time.monotonic()
-        return self.current()
-
-    def stop(self) -> float:
-        if self.started:
-            self.elapsed += time.monotonic() - self.started
-        self.started = None
-        return self.current()
-
-    def current(self) -> float:
-        if self.started:
-            return self.elapsed + time.monotonic() - self.started
-        return self.elapsed
-
-    def reset(self) -> float:
-        self.elapsed = 0
-        self.started = None
-        return 0
-
-    def __str__(self) -> str:
-        return str(self.current())
-
-    def __repr__(self) -> str:
-        return f"{self.current()}s"
+    return _wrapper

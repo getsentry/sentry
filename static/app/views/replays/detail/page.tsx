@@ -9,11 +9,12 @@ import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import ReplayMetaData from 'sentry/components/replays/header/replayMetaData';
 import ShareButton from 'sentry/components/replays/shareButton';
-import {CrumbWalker, StringWalker} from 'sentry/components/replays/walker/urlWalker';
+import FrameWalker from 'sentry/components/replays/walker/frameWalker';
+import StringWalker from 'sentry/components/replays/walker/stringWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Crumb} from 'sentry/types/breadcrumbs';
+import type {ReplayFrame} from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -22,12 +23,12 @@ type Props = {
   projectSlug: string | null;
   replayErrors: ReplayError[];
   replayRecord: undefined | ReplayRecord;
-  crumbs?: Crumb[];
+  frames?: ReplayFrame[];
 };
 
 function Page({
   children,
-  crumbs,
+  frames,
   orgSlug,
   replayRecord,
   projectSlug,
@@ -67,8 +68,8 @@ function Page({
           // this is the subheading for the avatar, so displayEmail in this case is a misnomer
           displayEmail={
             <Cols>
-              {crumbs?.length ? (
-                <CrumbWalker replayRecord={replayRecord} crumbs={crumbs} />
+              {frames?.length ? (
+                <FrameWalker replayRecord={replayRecord} frames={frames} />
               ) : (
                 <StringWalker urls={replayRecord.urls} />
               )}

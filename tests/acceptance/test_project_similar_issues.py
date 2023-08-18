@@ -1,11 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from django.utils import timezone
-
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import create_sample_event
 
 
+@no_silo_test(stable=True)
 class ProjectIssuesGroupingTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

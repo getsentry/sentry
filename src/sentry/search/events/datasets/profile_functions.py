@@ -247,6 +247,22 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 SnQLFunction(
+                    "worst",
+                    snql_aggregate=lambda _, alias: Function(
+                        "replaceAll",
+                        [
+                            Function(
+                                "toString",
+                                [Function("argMaxMerge", [SnQLColumn("worst")])],
+                            ),
+                            "-",
+                            "",
+                        ],
+                        alias,
+                    ),
+                    default_result_type="string",  # TODO: support array type
+                ),
+                SnQLFunction(
                     "examples",
                     snql_aggregate=lambda _, alias: Function(
                         "arrayMap",

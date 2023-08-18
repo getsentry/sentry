@@ -209,6 +209,10 @@ function renderMockRequests() {
 }
 
 describe('Results', function () {
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
+    ProjectsStore.reset();
+  });
   describe('Events', function () {
     const features = ['discover-basic'];
     it('loads data when moving from an invalid to valid EventView', function () {
@@ -1131,6 +1135,7 @@ describe('Results', function () {
       });
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
+      renderMockRequests();
 
       render(
         <Results
@@ -1195,6 +1200,7 @@ describe('Results', function () {
       });
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
+      renderMockRequests();
 
       const {rerender} = render(
         <Results
@@ -1263,6 +1269,7 @@ describe('Results', function () {
       });
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
+      renderMockRequests();
 
       const {rerender} = render(
         <Results
@@ -1314,6 +1321,7 @@ describe('Results', function () {
       });
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
+      renderMockRequests();
 
       render(
         <Results
@@ -1343,6 +1351,7 @@ describe('Results', function () {
           location: {query: {id: '1'}},
         },
       });
+      renderMockRequests();
 
       render(
         <Results
@@ -1382,6 +1391,7 @@ describe('Results', function () {
       });
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
+      renderMockRequests();
 
       render(
         <Results
@@ -1395,6 +1405,40 @@ describe('Results', function () {
       );
 
       expect(screen.getByTestId('set-as-default')).toBeEnabled();
+    });
+
+    it("doesn't render sample data alert", function () {
+      const organization = TestStubs.Organization({
+        features: ['discover-basic', 'discover-query'],
+      });
+      const initialData = initializeOrg({
+        organization,
+        router: {
+          location: {
+            ...TestStubs.location(),
+            query: {
+              ...EventView.fromNewQueryWithLocation(
+                {...DEFAULT_EVENT_VIEW, query: 'event.type:error'},
+                TestStubs.location()
+              ).generateQueryStringObject(),
+            },
+          },
+        },
+      });
+      renderMockRequests();
+
+      render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {context: initialData.routerContext, organization}
+      );
+
+      expect(screen.queryByText(/Based on your search criteria/)).not.toBeInTheDocument();
     });
   });
 });

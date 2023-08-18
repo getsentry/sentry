@@ -3,7 +3,7 @@ from sentry.models import OrganizationMember, User, manage_default_super_admin_r
 from sentry.receivers import create_default_projects
 from sentry.runner.commands.createuser import createuser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.testutils import CliTestCase
+from sentry.testutils.cases import CliTestCase
 from sentry.testutils.silo import control_silo_test
 
 

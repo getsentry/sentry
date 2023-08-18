@@ -1,5 +1,6 @@
 from .base import *  # NOQA
 from .bitbucket import *  # NOQA
+from .discord import *  # NOQA
 from .github import *  # NOQA
 from .github_enterprise import *  # NOQA
 from .gitlab import *  # NOQA
@@ -30,3 +31,4 @@ register(VercelIdentityProvider)  # NOQA
 register(BitbucketIdentityProvider)  # NOQA
 register(GitlabIdentityProvider)  # NOQA
 register(GoogleIdentityProvider)  # NOQA
+register(DiscordIdentityProvider)  # NOQA

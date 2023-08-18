@@ -6,22 +6,62 @@ import {PlatformIntegration} from 'sentry/types';
 
 import {tracing} from './platformCategories';
 
-const otherPlatform = {
-  integrations: [
-    {
-      link: 'https://docs.sentry.io/platforms/',
-      type: 'language',
-      id: 'other',
-      name: t('Other'),
-    },
-  ],
-  id: 'other',
-  name: t('Other'),
-};
+const goPlatforms = [
+  {
+    integrations: [
+      ...(integrationDocsPlatforms.platforms.find(platform => platform.id === 'go')
+        ?.integrations ?? []),
+      {
+        link: 'https://docs.sentry.io/platforms/go/guides/echo/',
+        type: 'framework',
+        id: 'go-echo',
+        name: t('Echo'),
+      },
+      {
+        link: 'https://docs.sentry.io/platforms/go/guides/fasthttp/',
+        type: 'framework',
+        id: 'go-fasthttp',
+        name: t('FastHTTP'),
+      },
+      {
+        link: 'https://docs.sentry.io/platforms/go/guides/gin/',
+        type: 'framework',
+        id: 'go-gin',
+        name: t('Gin'),
+      },
+      {
+        link: 'https://docs.sentry.io/platforms/go/guides/http/',
+        type: 'framework',
+        id: 'go-http',
+        name: t('Net/Http'),
+      },
+      {
+        link: 'https://docs.sentry.io/platforms/go/guides/iris',
+        type: 'framework',
+        id: 'go-iris',
+        name: t('Iris'),
+      },
+      {
+        link: 'https://docs.sentry.io/platforms/go/guides/martini/',
+        type: 'framework',
+        id: 'go-martini',
+        name: t('Martini'),
+      },
+      {
+        link: 'https://docs.sentry.io/platforms/go/guides/negroni/',
+        type: 'framework',
+        id: 'go-negroni',
+        name: t('Negroni'),
+      },
+    ],
+    id: 'go',
+    name: t('Go'),
+  },
+];
 
 const platformIntegrations: PlatformIntegration[] = [
-  ...integrationDocsPlatforms.platforms,
-  otherPlatform,
+  ...integrationDocsPlatforms.platforms.filter(platform => platform.id !== 'go'),
+  ...goPlatforms,
 ]
   .map(platform => {
     const integrations = platform.integrations.reduce((acc, value) => {

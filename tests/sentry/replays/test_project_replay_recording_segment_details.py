@@ -10,7 +10,7 @@ from sentry.replays.lib.storage import (
     make_filename,
 )
 from sentry.replays.testutils import mock_replay
-from sentry.testutils import APITestCase, ReplaysSnubaTestCase
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.silo import region_silo_test
 
 
@@ -63,7 +63,7 @@ class EnvironmentMixin:
             assert self.segment_data == b"".join(response.streaming_content)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentMixin, APITestCase):
     def init_environment(self):
         metadata = RecordingSegmentStorageMeta(
@@ -77,7 +77,7 @@ class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentMixin, APITestCa
         FilestoreBlob().set(metadata, self.segment_data)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class StorageReplayRecordingSegmentDetailsTestCase(
     EnvironmentMixin, APITestCase, ReplaysSnubaTestCase
 ):

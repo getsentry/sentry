@@ -3,8 +3,7 @@ import uuid
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import Group
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
@@ -122,7 +121,8 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
 
         group = Group.objects.first()
         assert (
-            group.get_helpful_event_for_environments().event_id == event_all_helpful_params.event_id
+            group.get_recommended_event_for_environments().event_id
+            == event_all_helpful_params.event_id
         )
         assert (
             group.get_latest_event_for_environments().event_id == event_none_helpful_params.event_id
@@ -170,7 +170,8 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
         perf_group = transaction_event_1.group
 
         assert (
-            perf_group.get_helpful_event_for_environments().event_id == transaction_event_1.event_id
+            perf_group.get_recommended_event_for_environments().event_id
+            == transaction_event_1.event_id
         )
         assert (
             perf_group.get_latest_event_for_environments().event_id == transaction_event_1.event_id
@@ -215,7 +216,7 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
         group = Group.objects.first()
         group.update(type=ProfileFileIOGroupType.type_id)
 
-        group_event = group.get_helpful_event_for_environments()
+        group_event = group.get_recommended_event_for_environments()
         assert group_event.event_id == occurrence.event_id
         self.assert_occurrences_identical(group_event.occurrence, occurrence)
 

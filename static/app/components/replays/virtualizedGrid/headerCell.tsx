@@ -6,17 +6,11 @@ import {IconArrow, IconInfo} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import type {BreadcrumbFrame, SpanFrame} from 'sentry/utils/replays/types';
-import type {NetworkSpan} from 'sentry/views/replays/types';
 
 interface SortCrumbs {
   asc: boolean;
   by: keyof Crumb | string;
   getValue: (row: Crumb) => any;
-}
-interface SortSpans {
-  asc: boolean;
-  by: keyof NetworkSpan | string;
-  getValue: (row: NetworkSpan) => any;
 }
 
 interface SortBreadcrumbFrame {
@@ -34,7 +28,7 @@ type Props = {
   field: string;
   handleSort: (fieldName: string) => void;
   label: string;
-  sortConfig: SortCrumbs | SortSpans | SortBreadcrumbFrame | SortSpanFrame;
+  sortConfig: SortCrumbs | SortBreadcrumbFrame | SortSpanFrame;
   style: CSSProperties;
   tooltipTitle: undefined | ReactNode;
 };

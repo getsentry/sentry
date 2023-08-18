@@ -139,7 +139,7 @@ function getProject(maybe: ParamValue) {
   return isNaN(projectFromQueryIdInt) ? [] : [projectFromQueryIdInt];
 }
 
-/*
+/**
  * Normalizes a string or string[] into the environment list parameter
  */
 function getEnvironment(maybe: ParamValue) {

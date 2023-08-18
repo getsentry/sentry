@@ -2,12 +2,12 @@ from django.urls import reverse
 
 from sentry.models import Project, Rule
 from sentry.notifications.types import FallthroughChoiceType
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamProjectIndexTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -27,7 +27,7 @@ class TeamProjectIndexTest(APITestCase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamProjectsListTest(APITestCase):
     def test_simple(self):
         user = self.create_user()
@@ -48,7 +48,7 @@ class TeamProjectsListTest(APITestCase):
         assert response.data[0]["id"] == str(project1.id)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamProjectsCreateTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

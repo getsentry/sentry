@@ -1,6 +1,6 @@
 from typing import List
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -184,7 +184,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             result = serializer.validated_data
 
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(Team)):
                     team = Team.objects.create(
                         name=result.get("name") or result["slug"],
                         slug=result.get("slug"),

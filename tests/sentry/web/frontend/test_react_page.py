@@ -3,12 +3,12 @@ from fnmatch import fnmatch
 from django.urls import URLResolver, get_resolver, reverse
 
 from sentry.models import OrganizationStatus
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES, ReactMixin
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class ReactPageViewTest(TestCase):
     def test_redirects_unauthenticated_request(self):
         owner = self.create_user("bar@example.com")
@@ -94,7 +94,7 @@ class ReactPageViewTest(TestCase):
         ]:
             resp = self.client.get(path)
             assert resp.status_code == 302
-            assert resp.url == f"/auth/login/{org.slug}/"
+            assert resp.headers["Location"] == f"/auth/login/{org.slug}/"
 
     def test_redirect_to_customer_domain(self):
         user = self.create_user("bar@example.com")

@@ -11,7 +11,7 @@ app:
         exception*
           type*
             "MyApp.Exception"
-          value* (stripped common values)
+          value* (stripped event-specific values)
             "Test <int>"
         exception*
           type*

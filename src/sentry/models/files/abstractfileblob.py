@@ -1,12 +1,20 @@
+from __future__ import annotations
+
+from abc import abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from threading import Semaphore
+from typing import Any, ClassVar
 from uuid import uuid4
 
 from django.db import IntegrityError, models, router
 from django.utils import timezone
+from typing_extensions import Self
 
+from sentry.backup.scopes import RelocationScope
+from sentry.celery import SentryTask
 from sentry.db.models import BoundedPositiveIntegerField, Model
 from sentry.locks import locks
+from sentry.models.files.abstractfileblobowner import AbstractFileBlobOwner
 from sentry.models.files.utils import (
     UPLOAD_RETRY_TIME,
     _get_size_and_checksum,
@@ -23,6 +31,7 @@ MULTI_BLOB_UPLOAD_CONCURRENCY = 8
 
 class AbstractFileBlob(Model):
     __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     path = models.TextField(null=True)
     size = BoundedPositiveIntegerField(null=True)
@@ -32,8 +41,14 @@ class AbstractFileBlob(Model):
     class Meta:
         abstract = True
 
-    FILE_BLOB_OWNER_MODEL = None
-    DELETE_FILE_TASK = None
+    # abstract
+    FILE_BLOB_OWNER_MODEL: ClassVar[type[AbstractFileBlobOwner]]
+    DELETE_FILE_TASK: ClassVar[SentryTask]
+
+    @classmethod
+    @abstractmethod
+    def _storage_config(cls) -> dict[str, Any] | None:
+        raise NotImplementedError(cls)
 
     @classmethod
     def from_files(cls, files, organization=None, logger=nooplogger):
@@ -158,7 +173,7 @@ class AbstractFileBlob(Model):
             logger.debug("FileBlob.from_files.end")
 
     @classmethod
-    def from_file(cls, fileobj, logger=nooplogger):
+    def from_file(cls, fileobj, logger=nooplogger) -> Self:
         """
         Retrieve a single FileBlob instances for the given file.
         """

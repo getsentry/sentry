@@ -1,6 +1,7 @@
 from django.core.signing import BadSignature, SignatureExpired
 from django.db import IntegrityError
 from django.http import Http404, HttpResponse
+from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
 from sentry.integrations.utils import get_identity_or_404
@@ -36,7 +37,7 @@ class SlackUnlinkIdentityView(BaseView):
     """
 
     @transaction_start("SlackUnlinkIdentityView")
-    @never_cache
+    @method_decorator(never_cache)
     def handle(self, request: Request, signed_params: str) -> HttpResponse:
         try:
             params = unsign(signed_params)
