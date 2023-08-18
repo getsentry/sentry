@@ -388,7 +388,10 @@ from .endpoints.organization_repositories import OrganizationRepositoriesEndpoin
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
 from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
 from .endpoints.organization_request_project_creation import OrganizationRequestProjectCreation
-from .endpoints.organization_sdk_updates import OrganizationSdkUpdatesEndpoint
+from .endpoints.organization_sdk_updates import (
+    OrganizationSdksEndpoint,
+    OrganizationSdkUpdatesEndpoint,
+)
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_searches import OrganizationSearchesEndpoint
 from .endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
@@ -1184,6 +1187,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/sdk-updates/$",
         OrganizationSdkUpdatesEndpoint.as_view(),
         name="sentry-api-0-organization-sdk-updates",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/sdks/$",
+        OrganizationSdksEndpoint.as_view(),
+        name="sentry-api-0-organization-sdks",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/events/$",
