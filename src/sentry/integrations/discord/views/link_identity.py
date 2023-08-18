@@ -1,6 +1,7 @@
 from django.core.signing import BadSignature, SignatureExpired
 from django.http import HttpResponse
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 
@@ -32,7 +33,7 @@ class DiscordLinkIdentityView(BaseView):
     """
 
     @transaction_start("DiscordLinkIdentityView")
-    @never_cache
+    @method_decorator(never_cache)
     def handle(self, request: Request, signed_params: str) -> HttpResponse:
         try:
             params = unsign(signed_params)
