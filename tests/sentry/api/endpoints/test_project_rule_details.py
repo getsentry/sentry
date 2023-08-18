@@ -428,7 +428,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             {
                 "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
                 "interval": "1h",
-                "value": 100,
+                "value": "100",
                 "comparisonType": "count",
             }
         )

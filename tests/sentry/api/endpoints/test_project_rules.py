@@ -372,6 +372,14 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         Rule.objects.filter(project=self.project).update(status=ObjectStatus.PENDING_DELETION)
         self.run_test(conditions=conditions, actions=actions)
 
+        actions.append(
+            {
+                "targetType": "Team",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": self.team.id,
+            }
+        )
         with self.feature("organizations:more-slow-alerts"):
             self.run_test(conditions=conditions, actions=actions)
 
@@ -428,6 +436,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         # Upper bound shouldn't be enforced when we're doing a comparison alert
         condition["comparisonType"] = "percent"
         condition["comparisonInterval"] = "1d"
+        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
         self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -436,6 +445,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             owner=self.user.get_actor_identifier(),
             actionMatch="any",
             filterMatch="any",
+            actions=actions,
             conditions=[condition],
             status_code=status.HTTP_200_OK,
         )
@@ -635,11 +645,26 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
 
         condition["comparisonType"] = "count"
+        actions.append(
+            {
+                "targetType": "Team",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": self.team.id,
+            }
+        )
         self.run_test(actions=actions, conditions=[condition])
 
         condition["comparisonType"] = "percent"
         condition["comparisonInterval"] = "1d"
-
+        actions.append(
+            {
+                "targetType": "Member",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": self.user.id,
+            }
+        )
         self.run_test(actions=actions, conditions=[condition])
 
     def test_comparison_condition_validation(self):
