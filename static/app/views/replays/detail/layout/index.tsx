@@ -83,7 +83,7 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
     return (
       <BodyContent>
         {timeline}
-        <div ref={measureRef}>
+        <FluidHeight ref={measureRef}>
           {hasSize ? (
             <SplitPanel
               key={layout}
@@ -97,7 +97,7 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
               right={sidebarArea}
             />
           ) : null}
-        </div>
+        </FluidHeight>
       </BodyContent>
     );
   }
@@ -106,7 +106,7 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
     return (
       <BodyContent>
         {timeline}
-        <div ref={measureRef}>
+        <FluidHeight ref={measureRef}>
           {hasSize ? (
             <SplitPanel
               key={layout}
@@ -132,7 +132,7 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
               right={focusArea}
             />
           ) : null}
-        </div>
+        </FluidHeight>
       </BodyContent>
     );
   }
@@ -141,7 +141,7 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
   return (
     <BodyContent>
       {timeline}
-      <div ref={measureRef}>
+      <FluidHeight ref={measureRef}>
         {hasSize ? (
           <SplitPanel
             key={layout}
@@ -166,7 +166,7 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
             bottom={focusArea}
           />
         ) : null}
-      </div>
+      </FluidHeight>
     </BodyContent>
   );
 }
