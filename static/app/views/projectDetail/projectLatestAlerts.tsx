@@ -6,6 +6,7 @@ import AlertBadge from 'sentry/components/alertBadge';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Link from 'sentry/components/links/link';
+import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
@@ -80,18 +81,22 @@ function ProjectLatestAlerts({
     ...pick(location.query, Object.values(URL_PARAM)),
     per_page: 3,
   };
-  const {data: unresolvedAlerts = [], isLoading: unresolvedAlertsIsLoading} = useApiQuery<
-    Incident[]
-  >(
+  const {
+    data: unresolvedAlerts = [],
+    isLoading: unresolvedAlertsIsLoading,
+    isError: unresolvedAlertsIsError,
+  } = useApiQuery<Incident[]>(
     [
       `/organizations/${organization.slug}/incidents/`,
       {query: {...query, status: 'open'}},
     ],
     {staleTime: 0, enabled: isProjectStabilized}
   );
-  const {data: resolvedAlerts = [], isLoading: resolvedAlertsIsLoading} = useApiQuery<
-    Incident[]
-  >(
+  const {
+    data: resolvedAlerts = [],
+    isLoading: resolvedAlertsIsLoading,
+    isError: resolvedAlertsIsError,
+  } = useApiQuery<Incident[]>(
     [
       `/organizations/${organization.slug}/incidents/`,
       {query: {...query, status: 'closed'}},
@@ -125,6 +130,10 @@ function ProjectLatestAlerts({
 
   function renderAlertRules() {
     const isLoading = unresolvedAlertsIsLoading || resolvedAlertsIsLoading;
+    if (unresolvedAlertsIsError || resolvedAlertsIsError) {
+      return <LoadingError message={t('Unable to load latest alerts')} />;
+    }
+
     if (isLoading || (shouldLoadAlertRules && alertRulesLoading)) {
       return <Placeholder height={PLACEHOLDER_AND_EMPTY_HEIGHT} />;
     }
@@ -165,7 +174,7 @@ function ProjectLatestAlerts({
             },
           }}
         >
-          <IconOpen />
+          <IconOpen aria-label={t('Metric Alert History')} />
         </SectionHeadingLink>
       </SectionHeadingWrapper>
 
