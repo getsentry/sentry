@@ -172,7 +172,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
                 handler.action.alert_rule_trigger,
                 TriggerStatus.ACTIVE,
                 IncidentStatus.CRITICAL,
-                str(incident_activity.notification_uuid),
+                notification_uuid=str(incident_activity.notification_uuid),
             ),
             TriggerStatus.ACTIVE,
             self.user.id,
