@@ -88,7 +88,6 @@ type Props = {
   isOrphanError?: boolean;
   measurements?: Map<number, VerticalMark>;
   numOfOrphanErrors?: number;
-  traceHasSingleOrphanError?: boolean;
 };
 
 type State = {
@@ -478,10 +477,6 @@ class TransactionBar extends Component<Props, State> {
   }
 
   renderRectangle() {
-    if (this.props.traceHasSingleOrphanError) {
-      return null;
-    }
-
     const {transaction, traceInfo, barColor} = this.props;
     const {showDetail} = this.state;
 
@@ -565,11 +560,11 @@ class TransactionBar extends Component<Props, State> {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
     scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
   }) {
-    const {hasGuideAnchor, index} = this.props;
+    const {hasGuideAnchor, index, transaction, organization} = this.props;
     const {showDetail} = this.state;
     const {dividerPosition} = dividerHandlerChildrenProps;
 
-    return (
+    const rowcellContainer = (
       <RowCellContainer showDetail={showDetail}>
         <RowCell
           data-test-id="transaction-row-title"
@@ -609,6 +604,14 @@ class TransactionBar extends Component<Props, State> {
         </RowCell>
         {!showDetail && this.renderGhostDivider(dividerHandlerChildrenProps)}
       </RowCellContainer>
+    );
+
+    return isTraceError(transaction) ? (
+      <Link to={generateIssueEventTarget(transaction, organization)}>
+        {rowcellContainer}
+      </Link>
+    ) : (
+      rowcellContainer
     );
   }
 

@@ -19,10 +19,10 @@ function LimitExceededMessage({
   organization,
   meta,
 }: LimitExceededMessageProps) {
-  const count = traceInfo.transactions.size;
-  const totalTransactions = meta?.transactions ?? count;
+  const count = traceInfo.transactions.size + traceInfo.errors.size;
+  const totalEvents = (meta && meta.transactions + meta.errors) ?? count;
 
-  if (totalTransactions === null || count >= totalTransactions) {
+  if (totalEvents === null || count >= totalEvents) {
     return null;
   }
 
@@ -30,21 +30,18 @@ function LimitExceededMessage({
 
   return (
     <MessageRow>
-      {tct(
-        'Limited to a view of [count] transactions. To view the full list, [discover].',
-        {
-          count,
-          discover: (
-            <DiscoverFeature>
-              {({hasFeature}) => (
-                <Link disabled={!hasFeature} to={target}>
-                  {t('Open in Discover')}
-                </Link>
-              )}
-            </DiscoverFeature>
-          ),
-        }
-      )}
+      {tct('Limited to a view of [count] rows. To view the full list, [discover].', {
+        count,
+        discover: (
+          <DiscoverFeature>
+            {({hasFeature}) => (
+              <Link disabled={!hasFeature} to={target}>
+                {t('Open in Discover')}
+              </Link>
+            )}
+          </DiscoverFeature>
+        ),
+      })}
     </MessageRow>
   );
 }

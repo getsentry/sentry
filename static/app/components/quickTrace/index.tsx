@@ -103,6 +103,23 @@ export default function QuickTrace({
   const {root, ancestors, parent, children, descendants, current} = parsedQuickTrace;
 
   const nodes: React.ReactNode[] = [];
+  const isOrphanErrorNode = traceLength === 1 && isTraceError(current);
+
+  const currentNode = (
+    <EventNodeSelector
+      key="current-node"
+      location={location}
+      organization={organization}
+      text={t('This Event')}
+      events={[current]}
+      currentEvent={event}
+      anchor={anchor}
+      nodeKey="current"
+      errorDest={errorDest}
+      isOrphanErrorNode={isOrphanErrorNode}
+      transactionDest={transactionDest}
+    />
+  );
 
   if (root) {
     nodes.push(
@@ -119,7 +136,27 @@ export default function QuickTrace({
         transactionDest={transactionDest}
       />
     );
-    nodes.push(<TraceConnector key="root-connector" />);
+    nodes.push(<TraceConnector key="root-connector" dashed={isOrphanErrorNode} />);
+  }
+
+  if (isOrphanErrorNode) {
+    nodes.push(
+      <EventNodeSelector
+        key="root-node"
+        location={location}
+        organization={organization}
+        events={[]}
+        currentEvent={event}
+        text={t('Root')}
+        anchor={anchor}
+        nodeKey="root"
+        errorDest={errorDest}
+        transactionDest={transactionDest}
+      />
+    );
+    nodes.push(<TraceConnector key="root-connector" dashed />);
+    nodes.push(currentNode);
+    return <QuickTraceContainer>{nodes}</QuickTraceContainer>;
   }
 
   if (ancestors?.length) {
@@ -157,22 +194,6 @@ export default function QuickTrace({
     );
     nodes.push(<TraceConnector key="parent-connector" />);
   }
-
-  const currentNode = (
-    <EventNodeSelector
-      key="current-node"
-      location={location}
-      organization={organization}
-      text={t('This Event')}
-      events={[current]}
-      currentEvent={event}
-      anchor={anchor}
-      nodeKey="current"
-      errorDest={errorDest}
-      isOrphanErrorNode={traceLength === 1 && isTraceError(current)}
-      transactionDest={transactionDest}
-    />
-  );
 
   if (traceLength === 1) {
     nodes.push(
