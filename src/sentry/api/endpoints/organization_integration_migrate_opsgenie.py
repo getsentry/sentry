@@ -3,6 +3,7 @@ from typing import Any
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.integrations.opsgenie.integration import OpsgenieIntegration
@@ -11,6 +12,8 @@ from sentry.models import Organization
 
 @region_silo_endpoint
 class OrganizationIntegrationMigrateOpsgenieEndpoint(RegionOrganizationIntegrationBaseEndpoint):
+    owner = ApiOwner.ENTERPRISE
+
     def put(
         self,
         request: Request,
