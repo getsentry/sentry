@@ -218,6 +218,17 @@ function NetworkList({
             gridTemplateRows: splitSize !== undefined ? `1fr auto ${splitSize}px` : '1fr',
           }}
         >
+          {sortConfig.by === 'startTimestamp' && showJumpUpButton() ? (
+            <Button
+              onClick={handleClick}
+              aria-label="Jump Up"
+              priority="primary"
+              size="xs"
+              style={{position: 'absolute', justifySelf: 'center', top: '28px'}}
+            >
+              {t('Jump Up')}
+            </Button>
+          ) : null}
           {networkFrames ? (
             <OverflowHidden>
               <AutoSizer onResize={onWrapperResize}>
@@ -259,19 +270,6 @@ function NetworkList({
                   />
                 )}
               </AutoSizer>
-              {sortConfig.by === 'startTimestamp' && showJumpUpButton() ? (
-                <div>
-                  <Button
-                    onClick={handleClick}
-                    aria-label="Jump Up"
-                    priority="primary"
-                    size="xs"
-                    style={{position: 'absolute', left: '50%', top: '28px'}}
-                  >
-                    {t('Jump Up')}
-                  </Button>
-                </div>
-              ) : null}
             </OverflowHidden>
           ) : (
             <Placeholder height="100%" />
@@ -291,17 +289,15 @@ function NetworkList({
             startTimestampMs={startTimestampMs}
           />
           {sortConfig.by === 'startTimestamp' && showJumpDownButton() ? (
-            <div>
-              <Button
-                priority="primary"
-                size="xs"
-                onClick={handleClick}
-                aria-label="Jump Down"
-                style={{position: 'absolute', left: '50%', bottom: '5px'}}
-              >
-                {t('Jump Down')}
-              </Button>
-            </div>
+            <Button
+              priority="primary"
+              size="xs"
+              onClick={handleClick}
+              aria-label="Jump Down"
+              style={{position: 'absolute', justifySelf: 'center', bottom: '5px'}}
+            >
+              {t('Jump Down')}
+            </Button>
           ) : null}
         </SplitPanel>
       </NetworkTable>
