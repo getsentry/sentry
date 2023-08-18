@@ -28,18 +28,18 @@ export type NotificationSettingsByProviderObject = {[key: string]: string};
 export type NotificationSettingsObject = {
   [key: string]: {[key: string]: {[key: string]: NotificationSettingsByProviderObject}};
 };
-interface NotificaitonBaseObject {
+interface NotificationBaseObject {
   id: string;
   scopeIdentifier: string;
   scopeType: string;
   type: string;
 }
 
-export interface NotificationOptionsObject extends NotificaitonBaseObject {
+export interface NotificationOptionsObject extends NotificationBaseObject {
   value: ProviderValue | 'subscribe_only' | 'committed_only';
 }
 
-export interface NotificationProvidersObject extends NotificaitonBaseObject {
+export interface NotificationProvidersObject extends NotificationBaseObject {
   provider: SupportedProviders;
   value: ProviderValue;
 }
