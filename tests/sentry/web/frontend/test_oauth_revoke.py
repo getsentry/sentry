@@ -30,10 +30,11 @@ class OAuthRevokeTest(TestCase):
             redirect_uris="http://localhost:5678",
         )
 
-        # authorize the api application to act on behalf of the test user
         self.grants: List[ApiGrant] = []
+        self.tokens: List[ApiToken] = []
 
         for i in range(4):
+            # authorize the api application to act on behalf of the test user
             grant = ApiGrant.objects.create(
                 user=self.user,
                 application=self.application,
@@ -41,10 +42,7 @@ class OAuthRevokeTest(TestCase):
             )
             self.grants.append(grant)
 
-        # create some oauth tokens
-        self.tokens: List[ApiToken] = []
-
-        for i in range(4):
+            # create associated token from the grant
             token = ApiToken.from_grant(self.grants[i])
             self.tokens.append(token)
 

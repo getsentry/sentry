@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import logging
 from hashlib import sha256
-from typing import Optional
 
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
@@ -31,7 +32,13 @@ class OAuthRevokeView(View):
     def dispatch(self, request, *args, **kwargs):
         return super().dispatch(request, *args, **kwargs)
 
-    def error(self, request: HttpRequest, name, error_description=None, status=400):
+    def error(
+        self,
+        request: HttpRequest,
+        name: str,
+        error_description: str | None = None,
+        status: int = 400,
+    ):
         client_id = request.POST.get("client_id")
 
         logger.error(
@@ -101,7 +108,7 @@ class OAuthRevokeView(View):
                 status=401,
             )
 
-        token_to_delete: ApiToken = self._get_token_to_delete(
+        token_to_delete: ApiToken | None = self._get_token_to_delete(
             token=token,
             token_type_hint=token_type_hint,
             application=application,  # an application can only revoke tokens it owns
@@ -132,8 +139,8 @@ class OAuthRevokeView(View):
         return HttpResponse(status=200)
 
     def _get_token_to_delete(
-        self, token: str, token_type_hint: Optional[str], application: ApiApplication
-    ) -> Optional[ApiToken]:
+        self, token: str, token_type_hint: str | None, application: ApiApplication
+    ) -> ApiToken | None:
         try:
             if token_type_hint == "access_token":
                 token_to_delete = ApiToken.objects.get(token=token, application=application)
