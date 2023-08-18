@@ -1616,6 +1616,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-trace-table": False,
     # Enable optimized serach feature.
     "organizations:session-replay-optimized-search": False,
+    # Enable replay event linking in event processing
+    "organizations:session-replay-event-linking": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
