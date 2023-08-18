@@ -50,7 +50,7 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     snuba_span: MutableMapping[str, Any] = {}
     snuba_span["description"] = relay_span.get("description")
     snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
-    snuba_span["is_segment"] = not relay_span.get("parent_span_id")
+    snuba_span["is_segment"] = relay_span.get("is_segment", False)
     snuba_span["organization_id"] = organization.id
     snuba_span["parent_span_id"] = relay_span.get("parent_span_id", "0")
     snuba_span["project_id"] = relay_span["project_id"]
@@ -70,8 +70,14 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     )
 
     trace_context = relay_span.get("data", {}).get("trace")
-    if trace_context:
-        snuba_span["group_raw"] = trace_context.get("hash")
+    snuba_span["group_raw"] = (
+        trace_context.get(
+            "hash",
+            "0",
+        )
+        if trace_context
+        else "0"
+    )
 
     sentry_tags: MutableMapping[str, Any] = {}
     if tags := relay_span.get("data"):
