@@ -47,7 +47,10 @@ export class SQLishFormatter {
     try {
       tokens = this.parser.parse(sql);
     } catch (error) {
-      Sentry.captureException(error);
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['sqlish-format-error']);
+        Sentry.captureException(error);
+      });
       // If we fail to parse the SQL, return the original string
       return sql;
     }
