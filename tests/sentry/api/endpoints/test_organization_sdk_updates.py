@@ -210,10 +210,10 @@ class OrganizationSdks(APITestCase):
 
     @mock.patch("sentry.api.endpoints.organization_sdk_updates.get_sdk_index", return_value={})
     def test_sdks_empty(self, mocked_sdk_index):
-        response = self.get_success_response(self.organization.slug)
+        response = self.get_error_response(self.organization.slug)
 
         assert mocked_sdk_index.call_count == 1
-        assert response.data == {}
+        assert response.data == {"detail": "Error occurred while fetching SDKs"}
 
     @mock.patch(
         "sentry.api.endpoints.organization_sdk_updates.get_sdk_index",
@@ -238,7 +238,7 @@ class OrganizationSdks(APITestCase):
         side_effect=Exception("Something went wrong"),
     )
     def test_sdks_error(self, mocked_sdk_index):
-        response = self.get_success_response(self.organization.slug)
+        response = self.get_error_response(self.organization.slug, status_code=500)
 
         assert mocked_sdk_index.call_count == 1
-        assert response.data == {}
+        assert response.data == {"detail": "Error occurred while fetching SDKs"}

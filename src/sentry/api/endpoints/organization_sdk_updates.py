@@ -7,6 +7,7 @@ from packaging import version
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -100,6 +101,8 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
 
 @region_silo_endpoint
 class OrganizationSdksEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
     def get(self, request: Request, organization) -> Response:
         try:
             sdks = get_sdk_index()
@@ -110,6 +113,5 @@ class OrganizationSdksEndpoint(OrganizationEndpoint):
             return Response(sdks)
 
         except Exception as e:
-
             sentry_sdk.capture_exception(e)
-            return Response({})
+            return Response({"detail": "Error occurred while fetching SDKs"}, status=500)
