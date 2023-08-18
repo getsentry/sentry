@@ -4,9 +4,10 @@ import msgpack
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.types import Message
 
-from sentry.ingest.ingest_consumer import IngestMessage, process_event
 from sentry.models import Project
 from sentry.utils import metrics
+
+from .processors import IngestMessage, process_event
 
 logger = logging.getLogger(__name__)
 
