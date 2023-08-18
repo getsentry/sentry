@@ -1,4 +1,4 @@
-import {MemberRole, OrgRole} from 'sentry/types';
+import {OrgRole, TeamRole} from 'sentry/types';
 
 export function OrgRoleList(
   params: OrgRole[] = [],
@@ -53,19 +53,21 @@ export function OrgRoleList(
   ];
 }
 
-export function TeamRoleList(params: MemberRole[] = []): MemberRole[] {
+export function TeamRoleList(params: TeamRole[] = []): TeamRole[] {
   return [
     {
       id: 'contributor',
       name: 'Contributor',
       desc: '...',
       isRetired: false,
+      isMinimumRoleFor: '',
     },
     {
       id: 'admin',
       name: 'Team Admin',
       desc: '...',
       isRetired: false,
+      isMinimumRoleFor: '',
     },
     ...params,
   ];
