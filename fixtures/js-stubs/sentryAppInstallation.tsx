@@ -1,6 +1,8 @@
 import {SentryAppInstallation as SentryAppInstallationType} from 'sentry/types';
 
-export function SentryAppInstallation(params = {}): SentryAppInstallationType {
+export function SentryAppInstallation(
+  params: Partial<SentryAppInstallationType> = {}
+): SentryAppInstallationType {
   return {
     uuid: 'd950595e-cba2-46f6-8a94-b79e42806f98',
     app: {
