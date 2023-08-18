@@ -147,8 +147,8 @@ class OAuthRevokeView(View):
             elif token_type_hint == "refresh_token":
                 token_to_delete = ApiToken.objects.get(refresh_token=token, application=application)
             else:
-                # the client request did not provide a token hint so we must check both token (aka. access_token)
-                # and refresh_token for a match
+                # the client request did not provide a token hint so we must check both `token` (aka. access_token)
+                # and `refresh_token` for a match
                 query = Q(token=token)
                 query.add(Q(refresh_token=token), Q.OR)
                 query.add(
