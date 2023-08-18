@@ -115,21 +115,33 @@ class OAuthRevokeView(View):
         )
 
         # only delete the token if one was found
-        if isinstance(token_to_delete, ApiToken):
+        if isinstance(token_to_delete, ApiToken) and token_to_delete is not None:
             token_to_delete.delete()
+
+            # hash the tokens to prevent leaking any plaintext secrets in log data
+            sha256_provided_token = sha256(token.encode("utf-8")).hexdigest()
+            sha256_access_token = sha256(token_to_delete.token.encode("utf-8")).hexdigest()
+
+            # the refresh_token is optional on the ApiToken model
+            # if there is no refresh_token, set it to an empty string in the log
+            #
+            # NOTE: this should never occur in terms of our OAuth tokens, but the ApiToken
+            # model serves as the base for multiple token authentication methods
+            sha256_refresh_token = (
+                ""
+                if token_to_delete.refresh_token is None
+                else sha256(token_to_delete.refresh_token.encode("utf-8")).hexdigest()
+            )
+
             logger.info(
                 "oauth.revoke-success",
                 extra={
                     "client_id": client_id,
                     "application_id": application.id,
                     # don't log the actual token, just a hash of it
-                    "sha256_provided_token": sha256(token.encode("utf-8")).hexdigest(),
-                    "sha256_access_token": sha256(
-                        token_to_delete.token.encode("utf-8")
-                    ).hexdigest(),
-                    "sha256_refresh_token": sha256(
-                        token_to_delete.refresh_token.encode("utf-8")
-                    ).hexdigest(),
+                    "sha256_provided_token": sha256_provided_token,
+                    "sha256_access_token": sha256_access_token,
+                    "sha256_refresh_token": sha256_refresh_token,
                     "resource_owner_id": token_to_delete.user.id,
                 },
             )
