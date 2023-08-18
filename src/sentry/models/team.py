@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
@@ -156,7 +157,7 @@ class Team(Model, SnowflakeIdMixin):
     A team represents a group of individuals which maintain ownership of projects.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization")
     slug = models.SlugField()

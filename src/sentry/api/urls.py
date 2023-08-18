@@ -93,6 +93,9 @@ from sentry.replays.endpoints.organization_replay_events_meta import (
     OrganizationReplayEventsMetaEndpoint,
 )
 from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
+from sentry.replays.endpoints.organization_replay_selector_index import (
+    OrganizationReplaySelectorIndexEndpoint,
+)
 from sentry.replays.endpoints.project_replay_clicks_index import ProjectReplayClicksIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
 from sentry.replays.endpoints.project_replay_recording_segment_details import (
@@ -385,7 +388,10 @@ from .endpoints.organization_repositories import OrganizationRepositoriesEndpoin
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
 from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
 from .endpoints.organization_request_project_creation import OrganizationRequestProjectCreation
-from .endpoints.organization_sdk_updates import OrganizationSdkUpdatesEndpoint
+from .endpoints.organization_sdk_updates import (
+    OrganizationSdksEndpoint,
+    OrganizationSdkUpdatesEndpoint,
+)
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_searches import OrganizationSearchesEndpoint
 from .endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
@@ -546,8 +552,14 @@ from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_notification_fine_tuning import UserNotificationFineTuningEndpoint
-from .endpoints.user_notification_options import UserNotificationOptionsEndpoint
 from .endpoints.user_notification_settings_details import UserNotificationSettingsDetailsEndpoint
+from .endpoints.user_notification_settings_options import UserNotificationSettingsOptionsEndpoint
+from .endpoints.user_notification_settings_options_detail import (
+    UserNotificationSettingsOptionsDetailEndpoint,
+)
+from .endpoints.user_notification_settings_providers import (
+    UserNotificationSettingsProvidersEndpoint,
+)
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_password import UserPasswordEndpoint
@@ -821,8 +833,18 @@ USER_URLS = [
     ),
     re_path(
         r"^(?P<user_id>[^\/]+)/notification-options/$",
-        UserNotificationOptionsEndpoint.as_view(),
+        UserNotificationSettingsOptionsEndpoint.as_view(),
         name="sentry-api-0-user-notification-options",
+    ),
+    re_path(
+        r"^(?P<user_id>[^\/]+)/notification-options/(?P<notification_option_id>[^\/]+)/$",
+        UserNotificationSettingsOptionsDetailEndpoint.as_view(),
+        name="sentry-api-0-user-notification-options-details",
+    ),
+    re_path(
+        r"^(?P<user_id>[^\/]+)/notification-providers/$",
+        UserNotificationSettingsProvidersEndpoint.as_view(),
+        name="sentry-api-0-user-notification-providers",
     ),
     re_path(
         r"^(?P<user_id>[^\/]+)/password/$",
@@ -1165,6 +1187,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/sdk-updates/$",
         OrganizationSdkUpdatesEndpoint.as_view(),
         name="sentry-api-0-organization-sdk-updates",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/sdks/$",
+        OrganizationSdksEndpoint.as_view(),
+        name="sentry-api-0-organization-sdks",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/events/$",
@@ -1718,6 +1745,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/replays/$",
         OrganizationReplayIndexEndpoint.as_view(),
         name="sentry-api-0-organization-replay-index",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/replay-selectors/$",
+        OrganizationReplaySelectorIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-replay-selectors-index",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/replay-count/$",

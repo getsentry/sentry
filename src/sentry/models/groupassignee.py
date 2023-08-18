@@ -7,6 +7,7 @@ from django.conf import settings
 from django.db import models, router, transaction
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -150,7 +151,7 @@ class GroupAssignee(Model):
     aggregated event (Group).
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     objects = GroupAssigneeManager()
 

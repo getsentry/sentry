@@ -13,9 +13,10 @@ import {t, tct} from 'sentry/locale';
 // Configuration Start
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+}: Partial<
+  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
+> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -28,12 +29,21 @@ export const steps = ({
     configurations: [
       {
         language: 'shell',
+        partialLoading: sourcePackageRegistries?.isLoading,
         code: `
 # Using Package Manager
-Install-Package Sentry -Version 3.34.0
+Install-Package Sentry -Version ${
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet']?.version ?? '3.34.0'
+        }
 
 # Or using .NET Core CLI
-dotnet add package Sentry -v 3.34.0
+dotnet add package Sentry -v ${
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet']?.version ?? '3.34.0'
+        }
         `,
       },
     ],
@@ -224,8 +234,12 @@ transaction.Finish(); // Mark the transaction as finished and send it to Sentry
 ];
 // Configuration End
 
-export function GettingStartedWithUwp({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
+export function GettingStartedWithUwp({
+  dsn,
+  sourcePackageRegistries,
+  ...props
+}: ModuleProps) {
+  return <Layout steps={steps({dsn, sourcePackageRegistries})} {...props} />;
 }
 
 export default GettingStartedWithUwp;

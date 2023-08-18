@@ -1034,7 +1034,6 @@
     "src/sentry/incidents/utils/sentry_apps.py",
     "src/sentry/ingest/__init__.py",
     "src/sentry/ingest/inbound_filters.py",
-    "src/sentry/ingest/ingest_consumer.py",
     "src/sentry/ingest/types.py",
     "src/sentry/ingest/userreport.py",
     "src/sentry/integrations/__init__.py",

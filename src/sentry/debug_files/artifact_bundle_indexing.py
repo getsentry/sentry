@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import random
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, TypeVar
@@ -23,6 +24,9 @@ from sentry.utils import json, metrics
 from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger(__name__)
+
+# The number of indexes to update with one execution of `backfill_artifact_index_updates`.
+BACKFILL_BATCH_SIZE = 10
 
 # The TTL of the cache containing information about a specific flat file index. The TTL is set to 1 hour, since
 # we know that the cache will be invalidated in case of flat file index updates, thus it is mostly to keep the
@@ -91,6 +95,12 @@ class FlatFileIdentifier(NamedTuple):
     dist: str
 
     @staticmethod
+    def from_index(idx: ArtifactBundleFlatFileIndex) -> FlatFileIdentifier:
+        return FlatFileIdentifier(
+            project_id=idx.project_id, release=idx.release_name, dist=idx.dist_name
+        )
+
+    @staticmethod
     def for_debug_id(project_id: int) -> FlatFileIdentifier:
         return FlatFileIdentifier(project_id, release=NULL_STRING, dist=NULL_STRING)
 
@@ -98,11 +108,11 @@ class FlatFileIdentifier(NamedTuple):
         # An identifier is indexing by release if release is set.
         return bool(self.release)
 
-    def _hashed(self):
+    def _hashed(self) -> str:
         key = f"{self.project_id}|{self.release}|{self.dist}"
         return hashlib.sha1(key.encode()).hexdigest()
 
-    def _flat_file_meta_cache_key(self):
+    def _flat_file_meta_cache_key(self) -> str:
         return f"flat_file_index:{self._hashed()}"
 
     def set_flat_file_meta_in_cache(self, flat_file_meta: FlatFileMeta):
@@ -172,6 +182,17 @@ class FlatFileIdentifier(NamedTuple):
         return meta
 
 
+DELETION_KEY_PREFIX = "flat_file_index_deletions"
+
+
+def get_all_deletions_key() -> str:
+    return DELETION_KEY_PREFIX
+
+
+def get_deletion_key(flat_file_id: int) -> str:
+    return f"{DELETION_KEY_PREFIX}:{flat_file_id}"
+
+
 @sentry_sdk.tracing.trace
 def mark_bundle_for_flat_file_indexing(
     artifact_bundle: ArtifactBundle,
@@ -216,21 +237,105 @@ def mark_bundle_for_flat_file_indexing(
 
 @sentry_sdk.tracing.trace
 def remove_artifact_bundle_from_indexes(artifact_bundle: ArtifactBundle):
+    redis_client = get_redis_cluster_for_artifact_bundles()
+
     flat_file_indexes = ArtifactBundleFlatFileIndex.objects.filter(
         flatfileindexstate__artifact_bundle=artifact_bundle
     )
     for idx in flat_file_indexes:
-        identifier = FlatFileIdentifier(
-            project_id=idx.project_id, release=idx.release_name, dist=idx.dist_name
-        )
+        identifier = FlatFileIdentifier.from_index(idx)
 
         was_removed = update_artifact_bundle_index(
             identifier, bundles_to_remove=[artifact_bundle.id]
         )
         if not was_removed:
             metrics.incr("artifact_bundle_flat_file_indexing.removal.would_block")
-            # TODO: mark this for async removal
-            pass
+            redis_client.sadd(get_deletion_key(idx.id), artifact_bundle.id)
+            redis_client.sadd(get_all_deletions_key(), idx.id)
+
+
+@sentry_sdk.tracing.trace
+def backfill_artifact_index_updates() -> bool:
+    redis_client = get_redis_cluster_for_artifact_bundles()
+
+    indexes_needing_update = list(
+        ArtifactBundleFlatFileIndex.objects.filter(
+            flatfileindexstate__indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+        ).distinct()[:BACKFILL_BATCH_SIZE]
+    )
+
+    # To avoid multiple backfill tasks from running into lock contention,
+    # we will randomize the order in which we update the indexes
+    random.shuffle(indexes_needing_update)
+
+    # First, we are processing all the indexes that need bundles *added* to them,
+    # we also process *removals* at the same time.
+    for index in indexes_needing_update:
+        identifier = FlatFileIdentifier.from_index(index)
+
+        artifact_bundles = ArtifactBundle.objects.filter(
+            flatfileindexstate__flat_file_index=index,
+            flatfileindexstate__indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+        ).select_related("file")
+
+        bundles_to_add = []
+        for artifact_bundle in artifact_bundles:
+            with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
+                bundles_to_add.append(BundleManifest.from_artifact_bundle(artifact_bundle, archive))
+
+        deletion_key = get_deletion_key(index.id)
+        redis_client.srem(get_all_deletions_key(), index.id)
+        bundles_to_remove = [int(bundle_id) for bundle_id in redis_client.smembers(deletion_key)]
+
+        if bundles_to_add or bundles_to_remove:
+            update_artifact_bundle_index(
+                identifier,
+                blocking=True,
+                bundles_to_add=bundles_to_add,
+                bundles_to_remove=bundles_to_remove,
+            )
+            if bundles_to_remove:
+                redis_client.srem(deletion_key, *bundles_to_remove)
+
+    # Then, we process any pending removals marked in redis.
+    # NOTE on the usage of redis sets:
+    # We could use a redis `SCAN` to find all the sets of scheduled deletions,
+    # however that scales with the *total* number of keys in the redis server.
+    # Therefore, we rather use a second redis set for the indexes that have deletions scheduled.
+    # Races when adding to these sets should not cause a problem, as the *writer*
+    # side first adds to the per-index set, and then adds the index to the set of indexes
+    # needing deletions.
+    # However, there is indeed a slight consistency problem here in case we hit an
+    # error after removing the index from the set.
+    # In that case we would indeed forget that this index has pending removals,
+    # until another deletion request re-adds it to the set of indexes.
+    # If this is indeed a problem, we can try to indeed use `scan_iter` to find all
+    # the indexes that were missed, like so:
+    # deletion_keys = redis_client.scan_iter(
+    #     match=DELETION_KEY_PREFIX + ":*",
+    # )
+    # for deletion_key in deletion_keys:
+    #     _prefix, idx_id = deletion_key.split(":")
+
+    deletion_keys = redis_client.srandmember(get_all_deletions_key(), BACKFILL_BATCH_SIZE)
+    for idx_id in deletion_keys:
+        index = ArtifactBundleFlatFileIndex.objects.get(id=idx_id)
+        identifier = FlatFileIdentifier.from_index(index)
+
+        redis_client.srem(get_all_deletions_key(), idx_id)
+        deletion_key = get_deletion_key(idx_id)
+        bundles_to_remove = [int(bundle_id) for bundle_id in redis_client.smembers(deletion_key)]
+        if bundles_to_remove:
+            update_artifact_bundle_index(
+                identifier, blocking=True, bundles_to_remove=bundles_to_remove
+            )
+
+            redis_client.srem(deletion_key, *bundles_to_remove)
+
+    return (
+        len(indexes_needing_update) >= BACKFILL_BATCH_SIZE
+        or len(deletion_keys) >= BACKFILL_BATCH_SIZE
+    )
 
 
 @sentry_sdk.tracing.trace

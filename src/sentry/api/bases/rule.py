@@ -2,6 +2,7 @@ from typing import Any, Tuple
 
 from rest_framework.request import Request
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import ObjectStatus
@@ -9,6 +10,7 @@ from sentry.models import Rule
 
 
 class RuleEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ISSUES
     permission_classes = (ProjectAlertRulePermission,)
 
     def convert_args(

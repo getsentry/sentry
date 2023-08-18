@@ -6,7 +6,7 @@ from time import time
 
 from sentry.attachments import attachment_cache
 from sentry.eventstore.processing import event_processing_store
-from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
+from sentry.ingest.consumer.processors import CACHE_TIMEOUT
 from sentry.tasks.store import preprocess_event, preprocess_event_from_reprocessing
 from sentry.utils.canonical import CANONICAL_TYPES
 

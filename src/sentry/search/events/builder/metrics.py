@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Mapping, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, Union
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -28,7 +28,12 @@ from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.builder.utils import remove_hours, remove_minutes
+from sentry.search.events.builder.utils import (
+    adjust_datetime_to_granularity,
+    optimal_granularity_for_date_range,
+    remove_hours,
+    remove_minutes,
+)
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
     HistogramParams,
@@ -167,7 +172,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 Condition(
                     lhs=Column(QUERY_HASH_KEY),
                     op=Op.EQ,
-                    rhs=spec.query_hash(),
+                    rhs=spec.query_hash,
                 ),
             ],
             limit=limit,
@@ -215,6 +220,10 @@ class MetricsQueryBuilder(QueryBuilder):
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_granularity"):
             # Needs to happen before params and after time conditions since granularity can change start&end
             self.granularity = self.resolve_granularity()
+            if self.start is not None:
+                self.start = adjust_datetime_to_granularity(
+                    self.start, self.granularity.granularity
+                )
 
         # Resolutions that we will perform only in case the query is not on demand. The reasoning for this is that
         # for building an on demand query we only require a time interval and granularity. All the other fields are
@@ -308,58 +317,8 @@ class MetricsQueryBuilder(QueryBuilder):
 
         if self.end is None or self.start is None:
             raise ValueError("skip_time_conditions must be False when calling this method")
-        duration = (self.end - self.start).total_seconds()
 
-        near_midnight: Callable[[datetime], bool] = lambda time: (
-            time.minute <= 30 and time.hour == 0
-        ) or (time.minute >= 30 and time.hour == 23)
-        near_hour: Callable[[datetime], bool] = lambda time: time.minute <= 15 or time.minute >= 45
-
-        if (
-            # precisely going hour to hour
-            self.start.minute
-            == self.end.minute
-            == self.start.second
-            == self.end.second
-            == duration % 3600
-            == 0
-        ):
-            # we're going from midnight -> midnight which aligns with our daily buckets
-            if self.start.hour == self.end.hour == duration % 86400 == 0:
-                granularity = 86400
-            # we're roughly going from start of hour -> next which aligns with our hourly buckets
-            else:
-                granularity = 3600
-        elif (
-            # Its over 30d, just use the daily granularity
-            duration
-            >= 86400 * 30
-        ):
-            self.start = self.start.replace(hour=0, minute=0, second=0, microsecond=0)
-            granularity = 86400
-        elif (
-            # more than 3 days
-            duration
-            >= 86400 * 3
-        ):
-            # Allow 30 minutes for the daily buckets
-            if near_midnight(self.start) and near_midnight(self.end):
-                self.start = self.start.replace(hour=0, minute=0, second=0, microsecond=0)
-                granularity = 86400
-            else:
-                self.start = self.start.replace(minute=0, second=0, microsecond=0)
-                granularity = 3600
-        elif (
-            # more than 12 hours
-            (duration >= 3600 * 12)
-            # Allow 15 minutes for the hourly buckets
-            and near_hour(self.start)
-            and near_hour(self.end)
-        ):
-            self.start = self.start.replace(minute=0, second=0, microsecond=0)
-            granularity = 3600
-        else:
-            granularity = 60
+        granularity = optimal_granularity_for_date_range(self.start, self.end)
         return Granularity(granularity)
 
     def resolve_split_granularity(self) -> Tuple[List[Condition], Optional[Granularity]]:
@@ -1214,17 +1173,23 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
     def resolve_granularity(self) -> Granularity:
         """Find the largest granularity that is smaller than the interval"""
-        granularity = super().resolve_granularity()
-        if granularity.granularity > self.interval:
-            for available_granularity in constants.METRICS_GRANULARITIES:
-                if available_granularity <= self.interval:
-                    return Granularity(available_granularity)
+        for available_granularity in constants.METRICS_GRANULARITIES:
+            if available_granularity <= self.interval:
+                max_granularity = available_granularity
+                break
+        else:
             # if we are here the user requested an interval smaller than the smallest granularity available.
             # We'll force the interval to be the smallest granularity (since we don't have data at the requested interval)
             # and return the smallest granularity
             self.interval = constants.METRICS_GRANULARITIES[-1]
-            return Granularity(self.interval)
-        return granularity
+            max_granularity = self.interval
+
+        optimal_granularity = optimal_granularity_for_date_range(self.start, self.end)
+
+        # get the minimum granularity between the optimal granularity and the max granularity
+        granularity = min(optimal_granularity, max_granularity)
+
+        return Granularity(granularity)
 
     def resolve_split_granularity(self) -> Tuple[List[Condition], Optional[Granularity]]:
         """Don't do this for timeseries"""

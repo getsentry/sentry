@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from rest_framework.request import Request
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import (
     SENTRY_APP_SLUG_MAX_LENGTH,
     SentryAppInstallationStatus,
@@ -107,7 +108,7 @@ class SentryAppManager(ParanoidManager):
 
 @control_silo_only_model
 class SentryApp(ParanoidModel, HasApiScopes):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Global
 
     application = models.OneToOneField(
         "sentry.ApiApplication", null=True, on_delete=models.SET_NULL, related_name="sentry_app"

@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
@@ -21,6 +22,7 @@ from sentry.web.decorators import transaction_start
 
 @region_silo_endpoint
 class ProjectRulesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ISSUES
     permission_classes = (ProjectAlertRulePermission,)
 
     @transaction_start("ProjectRulesEndpoint")
