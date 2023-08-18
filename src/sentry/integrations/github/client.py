@@ -669,7 +669,7 @@ class GitHubAppsClient(GitHubClientMixin):
     ) -> None:
         self.integration = integration
         kwargs = {}
-        if type(self.integration) == Integration:
+        if type(self.integration) == RpcIntegration:
             kwargs["integration_id"] = integration.id
 
         super().__init__(
