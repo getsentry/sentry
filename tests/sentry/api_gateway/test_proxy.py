@@ -220,7 +220,13 @@ class ProxyTestCase(ApiGatewayTestCase):
             "http://sentry.io/post",
             data=request_body,
             content_type="application/json",
-            headers={header: "1" for header in INVALID_OUTBOUND_HEADERS},
+            headers={
+                header: "1"
+                for header in INVALID_OUTBOUND_HEADERS
+                # can't test `content-length` -- django 4 respects this when
+                # reading the json body and gets just `'{'`
+                if header != "Content-Length"
+            },
         )
 
         resp = proxy_request(request, self.organization.slug)
