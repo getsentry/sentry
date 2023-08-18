@@ -365,7 +365,7 @@ class RegionOutboxBase(OutboxBase):
     class Meta:
         abstract = True
 
-    __repr__ = sane_repr(*coalesced_columns)
+    __repr__ = sane_repr("payload", *coalesced_columns)
 
 
 @region_silo_only_model
@@ -415,7 +415,7 @@ class ControlOutboxBase(OutboxBase):
     class Meta:
         abstract = True
 
-    __repr__ = sane_repr(*coalesced_columns)
+    __repr__ = sane_repr("payload", *coalesced_columns)
 
     @classmethod
     def get_webhook_payload_from_request(cls, request: HttpRequest) -> OutboxWebhookPayload:
