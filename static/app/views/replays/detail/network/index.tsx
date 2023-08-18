@@ -181,8 +181,12 @@ function NetworkList({
     const frameIndex = items.findIndex(spanFrame => frame === spanFrame);
     // index needs to be at least 1 to be a valid index to jump to
     const index = frameIndex < 1 ? 1 : frameIndex;
-    setScrollToRow(index);
-  }, [setScrollToRow, currentTime, items]);
+    if (index > visibleRange[1]) {
+      setScrollToRow(index + 1);
+    } else {
+      setScrollToRow(index);
+    }
+  }, [setScrollToRow, items, currentTime, visibleRange]);
 
   function indexAtCurrentTime() {
     const frame = getNextReplayFrame({
@@ -191,8 +195,8 @@ function NetworkList({
       allowExact: true,
     });
     const frameIndex = items.findIndex(spanFrame => frame === spanFrame);
-    // frameIndex is -1 when the page is loading, so the Jump Up Button appears until the page finishes loading in
-    const index = frameIndex === -1 ? 0 : frameIndex;
+    // frameIndex is -1 when the page is loading or at end of time, so use currentTime
+    const index = frameIndex === -1 ? currentTime : frameIndex;
     return index;
   }
 
