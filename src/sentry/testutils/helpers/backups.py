@@ -105,11 +105,11 @@ def export_to_file(path: Path, scope: ExportScope) -> JSONData:
         # These functions are just thin wrappers, but its best to exercise them directly anyway in
         # case that ever changes.
         if scope == ExportScope.Global:
-            export_in_global_scope(tmp_file, NOOP_PRINTER)
+            export_in_global_scope(tmp_file, printer=NOOP_PRINTER)
         elif scope == ExportScope.Organization:
-            export_in_organization_scope(tmp_file, NOOP_PRINTER)
+            export_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
         elif scope == ExportScope.User:
-            export_in_user_scope(tmp_file, NOOP_PRINTER)
+            export_in_user_scope(tmp_file, printer=NOOP_PRINTER)
         else:
             raise AssertionError(f"Unknown `ExportScope`: `{scope.name}`")
 
@@ -126,24 +126,29 @@ def reversed_dependencies():
     return sorted
 
 
-def clear_database_but_keep_sequences():
+def clear_database(*, reset_pks: bool = False):
     """Deletes all models we care about from the database, in a sequence that ensures we get no
     foreign key errors."""
 
-    with unguarded_write(using="default"), transaction.atomic(using="default"):
-        reversed = reversed_dependencies()
-        for model in reversed:
-            # For some reason, the tables for `SentryApp*` models don't get deleted properly here
-            # when using `model.objects.all().delete()`, so we have to call out to Postgres
-            # manually.
-            connection = connections[router.db_for_write(SentryApp)]
-            with connection.cursor() as cursor:
-                table = model._meta.db_table
-                cursor.execute(f"DELETE FROM {table:s};")
+    with unguarded_write(using="default"):
+        if reset_pks:
+            call_command("flush", verbosity=0, interactive=False)
+            return
 
-        # Clear remaining tables that are not explicitly in Sentry's own model dependency graph.
-        for model in set(apps.get_models()) - set(reversed):
-            model.objects.all().delete()
+        with transaction.atomic(using="default"):
+            reversed = reversed_dependencies()
+            for model in reversed:
+                # For some reason, the tables for `SentryApp*` models don't get deleted properly here
+                # when using `model.objects.all().delete()`, so we have to call out to Postgres
+                # manually.
+                connection = connections[router.db_for_write(SentryApp)]
+                with connection.cursor() as cursor:
+                    table = model._meta.db_table
+                    cursor.execute(f"DELETE FROM {table:s};")
+
+            # Clear remaining tables that are not explicitly in Sentry's own model dependency graph.
+            for model in set(apps.get_models()) - set(reversed):
+                model.objects.all().delete()
 
 
 def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> JSONData:
@@ -157,17 +162,12 @@ def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> 
         # Export the current state of the database into the "expected" temporary file, then
         # parse it into a JSON object for comparison.
         expect = export_to_file(tmp_expect, ExportScope.Global)
+        clear_database(reset_pks=reset_pks)
 
         # Write the contents of the "expected" JSON file into the now clean database.
         # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
-        with unguarded_write(using="default"):
-            if reset_pks:
-                call_command("flush", verbosity=0, interactive=False)
-            else:
-                clear_database_but_keep_sequences()
-
-            with open(tmp_expect) as tmp_file:
-                _import(tmp_file, ImportScope.Global, OldImportConfig(), NOOP_PRINTER)
+        with unguarded_write(using="default"), open(tmp_expect) as tmp_file:
+            _import(tmp_file, ImportScope.Global, OldImportConfig(), printer=NOOP_PRINTER)
 
         # Validate that the "expected" and "actual" JSON matches.
         actual = export_to_file(tmp_actual, ExportScope.Global)
@@ -211,7 +211,7 @@ def import_export_from_fixture_then_validate(
 
     # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
     with unguarded_write(using="default"), open(fixture_file_path) as fixture_file:
-        _import(fixture_file, ImportScope.Global, OldImportConfig(), NOOP_PRINTER)
+        _import(fixture_file, ImportScope.Global, OldImportConfig(), printer=NOOP_PRINTER)
 
     res = validate(
         expect, export_to_file(tmp_path.joinpath("tmp_test_file.json"), ExportScope.Global), map
