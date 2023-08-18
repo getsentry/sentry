@@ -16,6 +16,7 @@ from django.db.transaction import Atomic
 from django.dispatch import Signal
 from django.http import HttpRequest
 from django.utils import timezone
+from sentry_sdk.tracing import Span
 from typing_extensions import Self
 
 from sentry.db.models import (
@@ -61,6 +62,19 @@ class OutboxScope(IntEnum):
     @classmethod
     def as_choices(cls):
         return [(i.value, i.value) for i in cls]
+
+    @staticmethod
+    def get_tag_name(scope: OutboxScope):
+        if scope == OutboxScope.ORGANIZATION_SCOPE:
+            return "organization_id"
+        if scope == OutboxScope.USER_SCOPE:
+            return "user_id"
+        if scope == OutboxScope.TEAM_SCOPE:
+            return "team_id"
+        if scope == OutboxScope.APP_SCOPE:
+            return "app_id"
+
+        return "shard_identifier"
 
 
 class OutboxCategory(IntEnum):
@@ -266,6 +280,7 @@ class OutboxBase(Model):
             )
 
             tags = {"category": OutboxCategory(self.category).name}
+
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
                 "outbox.processing_lag",
@@ -273,17 +288,25 @@ class OutboxBase(Model):
                 tags=tags,
             )
 
+    def _set_span_data_for_coalesced_message(self, span: Span, message: OutboxBase):
+        tag_for_outbox = OutboxScope.get_tag_name(message.shard_scope)
+        span.set_tag(tag_for_outbox, message.shard_identifier)
+        span.set_data("payload", message.payload)
+        span.set_data("outbox_id", message.id)
+        span.set_tag("outbox_category", OutboxCategory(message.category).name)
+        span.set_tag("outbox_scope", OutboxScope(message.shard_scope).name)
+
     def process(self) -> bool:
         with self.process_coalesced() as coalesced:
             if coalesced is not None:
                 with metrics.timer(
                     "outbox.send_signal.duration",
                     tags={"category": OutboxCategory(coalesced.category).name},
-                ):
+                ), sentry_sdk.start_span(op="outbox.process") as span:
+                    self._set_span_data_for_coalesced_message(span=span, message=coalesced)
                     try:
                         coalesced.send_signal()
                     except Exception as e:
-                        sentry_sdk.capture_exception(e)
                         raise OutboxFlushError(f"Could not flush shard {repr(coalesced)}") from e
 
                 return True
