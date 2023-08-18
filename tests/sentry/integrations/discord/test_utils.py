@@ -51,6 +51,18 @@ class ValidateChannelTest(TestCase):
             validate_channel_id(self.channel_id, self.guild_id, self.integration_id)
 
     @mock.patch("sentry.integrations.discord.utils.channel.DiscordClient.get_channel")
+    def test_403(self, mock_get_channel):
+        mock_get_channel.side_effect = ApiError(code=403, text="")
+        with raises(ValidationError):
+            validate_channel_id(self.channel_id, self.guild_id, self.integration_id)
+
+    @mock.patch("sentry.integrations.discord.utils.channel.DiscordClient.get_channel")
+    def test_400(self, mock_get_channel):
+        mock_get_channel.side_effect = ApiError(code=400, text="")
+        with raises(ValidationError):
+            validate_channel_id(self.channel_id, self.guild_id, self.integration_id)
+
+    @mock.patch("sentry.integrations.discord.utils.channel.DiscordClient.get_channel")
     def test_api_error(self, mock_get_channel):
         mock_get_channel.side_effect = ApiError(code=401, text="")
         with raises(IntegrationError):
