@@ -46,12 +46,12 @@ import {
 import {
   getDurationDisplay,
   getHumanDuration,
-  toPercent,
 } from 'sentry/components/performance/waterfall/utils';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import toPercent from 'sentry/utils/number/toPercent';
 import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {
   isTraceError,

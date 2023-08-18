@@ -97,6 +97,10 @@ class IncidentManager(BaseManager):
     def clear_active_incident_cache(cls, instance, **kwargs):
         for project in instance.projects.all():
             cache.delete(cls._build_active_incident_cache_key(instance.alert_rule_id, project.id))
+            assert (
+                cache.get(cls._build_active_incident_cache_key(instance.alert_rule_id, project.id))
+                is None
+            )
 
     @classmethod
     def clear_active_incident_project_cache(cls, instance, **kwargs):
@@ -104,6 +108,14 @@ class IncidentManager(BaseManager):
             cls._build_active_incident_cache_key(
                 instance.incident.alert_rule_id, instance.project_id
             )
+        )
+        assert (
+            cache.get(
+                cls._build_active_incident_cache_key(
+                    instance.incident.alert_rule_id, instance.project_id
+                )
+            )
+            is None
         )
 
     @TimedRetryPolicy.wrap(timeout=5, exceptions=(IntegrityError,))
@@ -334,6 +346,7 @@ class AlertRuleManager(BaseManager):
     @classmethod
     def clear_subscription_cache(cls, instance, **kwargs):
         cache.delete(cls.__build_subscription_cache_key(instance.id))
+        assert cache.get(cls.__build_subscription_cache_key(instance.id)) is None
 
     @classmethod
     def clear_alert_rule_subscription_caches(cls, instance, **kwargs):
@@ -343,6 +356,10 @@ class AlertRuleManager(BaseManager):
         if subscription_ids:
             cache.delete_many(
                 cls.__build_subscription_cache_key(sub_id) for sub_id in subscription_ids
+            )
+            assert all(
+                cache.get(cls.__build_subscription_cache_key(sub_id)) is None
+                for sub_id in subscription_ids
             )
 
 
@@ -443,10 +460,12 @@ class IncidentTriggerManager(BaseManager):
     @classmethod
     def clear_incident_cache(cls, instance, **kwargs):
         cache.delete(cls._build_cache_key(instance.id))
+        assert cache.get(cls._build_cache_key(instance.id)) is None
 
     @classmethod
     def clear_incident_trigger_cache(cls, instance, **kwargs):
         cache.delete(cls._build_cache_key(instance.incident_id))
+        assert cache.get(cls._build_cache_key(instance.incident_id)) is None
 
 
 @region_silo_only_model
@@ -489,10 +508,12 @@ class AlertRuleTriggerManager(BaseManager):
     @classmethod
     def clear_trigger_cache(cls, instance, **kwargs):
         cache.delete(cls._build_trigger_cache_key(instance.alert_rule_id))
+        assert cache.get(cls._build_trigger_cache_key(instance.alert_rule_id)) is None
 
     @classmethod
     def clear_alert_rule_trigger_cache(cls, instance, **kwargs):
         cache.delete(cls._build_trigger_cache_key(instance.id))
+        assert cache.get(cls._build_trigger_cache_key(instance.id)) is None
 
 
 @region_silo_only_model

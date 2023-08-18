@@ -22,6 +22,10 @@ describe('SQLishParser', function () {
       'created >= %s', // Python-style
       'created >= $1', // Rails-style
       '@@ to_tsquery', // Postgres full-text search
+      'flags & %s)', // Bitwise AND
+      'flags | %s)', // Bitwise OR
+      'flags ^ %s)', // Bitwise XOR
+      'flags ~ %s)', // Bitwise NOT
     ])('Parses %s', sql => {
       expect(() => {
         parser.parse(sql);
@@ -35,7 +39,7 @@ describe('SQLishParser', function () {
       expect(parser.parse('select ..')).toEqual([
         {
           type: 'Keyword',
-          content: 'select',
+          content: 'SELECT',
         },
         {
           type: 'Whitespace',

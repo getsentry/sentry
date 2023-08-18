@@ -24,7 +24,7 @@ from sentry.incidents.models import (
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
 )
-from sentry.models.actor import ACTOR_TYPES, Actor
+from sentry.models.actor import Actor
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apikey import ApiKey
@@ -210,6 +210,7 @@ class ModelBackupTests(TransactionTestCase):
     @targets(mark(AuthIdentity, AuthProvider))
     def test_auth_identity_provider(self):
         user = self.create_user()
+        org = self.create_organization(owner=user)
         test_data = {
             "key1": "value1",
             "key2": 42,
@@ -218,7 +219,7 @@ class ModelBackupTests(TransactionTestCase):
         }
         AuthIdentity.objects.create(
             user=user,
-            auth_provider=AuthProvider.objects.create(organization_id=1, provider="sentry"),
+            auth_provider=AuthProvider.objects.create(organization_id=org.id, provider="sentry"),
             ident="123456789",
             data=test_data,
         )
@@ -440,7 +441,8 @@ class ModelBackupTests(TransactionTestCase):
         Repository.objects.create(
             name="test_repo",
             organization_id=self.organization.id,
-            integration_id=self.integration.id,
+            # TODO(getsentry/issue#187): Re-activate once we add `Integration` model to exports.
+            # integration_id=self.integration.id,
         )
         return self.import_export_then_validate()
 
@@ -470,9 +472,7 @@ class ModelBackupTests(TransactionTestCase):
     @targets(mark(SentryApp, SentryAppComponent, SentryAppInstallation))
     def test_sentry_app(self):
         app = self.create_sentry_app(name="test_app", organization=self.organization)
-        self.create_sentry_app_installation(
-            slug=app.slug, organization=self.organization, user=self.user
-        )
+        self.create_sentry_app_installation(slug=app.slug, organization=self.organization)
         updater = SentryAppUpdater(sentry_app=app)
         updater.schema = {"elements": [self.create_alert_rule_action_schema()]}
         updater.run(self.user)
@@ -489,16 +489,13 @@ class ModelBackupTests(TransactionTestCase):
     @targets(mark(ServiceHook))
     def test_service_hook(self):
         app = self.create_sentry_app()
-        actor = Actor.objects.create(type=ACTOR_TYPES["team"])
         install = self.create_sentry_app_installation(organization=self.organization, slug=app.slug)
-        ServiceHook.objects.create(
-            application_id=app.id,
-            actor_id=actor.id,
-            project_id=self.project.id,
-            organization_id=self.organization.id,
-            events=[],
+        self.create_service_hook(
+            application_id=app.application.id,
+            actor_id=app.proxy_user.id,
             installation_id=install.id,
-            url="https://example.com",
+            project=self.project,
+            org=self.project.organization,
         )
         return self.import_export_then_validate()
 

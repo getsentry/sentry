@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from functools import lru_cache
 from typing import Callable, Dict, List, Type
 
 from dateutil import parser
@@ -423,13 +424,15 @@ ComparatorList = List[JSONScrubbingComparator]
 ComparatorMap = Dict[str, ComparatorList]
 
 
-def build_default_comparators():
-    """Helper function executed at startup time which builds the `DEFAULT_COMPARATORS` global."""
+# No arguments, so we lazily cache the result after the first calculation.
+@lru_cache(maxsize=1)
+def get_default_comparators():
+    """Helper function executed at startup time which builds the static default comparators map."""
 
     # Some comparators (like `DateAddedComparator`) we can automatically assign by inspecting the
     # `Field` type on the Django `Model` definition. Others, like the ones in this map, we must assign
     # manually, since there is no clever way to derive them automatically.
-    comparators: ComparatorMap = defaultdict(
+    default_comparators: ComparatorMap = defaultdict(
         list,
         {
             # TODO(hybrid-cloud): actor refactor. Remove this entry when done.
@@ -459,14 +462,10 @@ def build_default_comparators():
         },
     )
 
-    # Where possible, we automatically deduce fields that should have special comparators and add them
-    # to the `DEFAULT_COMPARATORS` map.
-    auto_assign_datetime_equality_comparators(comparators)
-    auto_assign_email_obfuscating_comparators(comparators)
-    auto_assign_foreign_key_comparators(comparators)
+    # Where possible, we automatically deduce fields that should have special comparators and add
+    # them to the `default_comparators` map.
+    auto_assign_datetime_equality_comparators(default_comparators)
+    auto_assign_email_obfuscating_comparators(default_comparators)
+    auto_assign_foreign_key_comparators(default_comparators)
 
-    return comparators
-
-
-# A global list mapping special comparator operations for various model field names.
-DEFAULT_COMPARATORS = build_default_comparators()
+    return default_comparators

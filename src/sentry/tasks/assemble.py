@@ -772,8 +772,8 @@ class ArtifactBundlePostAssembler(PostAssembler):
                 )
                 if not was_indexed:
                     metrics.incr("artifact_bundle_flat_file_indexing.indexing.would_block")
-                    # TODO: spawn an async task to backfill the indexing
-                    pass
+                    # NOTE: the `backfill_artifact_index_updates` will pick this up automatically,
+                    # no need to explicitly spawn any backfill task for this
             except Exception as e:
                 metrics.incr("artifact_bundle_flat_file_indexing.error_when_indexing")
                 sentry_sdk.capture_exception(e)
