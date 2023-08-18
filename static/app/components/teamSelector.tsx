@@ -102,7 +102,8 @@ const placeholderSelectStyles: StylesConfig = {
 type Props = {
   onChange: (value: any) => any;
   /**
-   * TODO: It can be undefined in some cases -> needs investigation
+   * Received via withOrganization
+   * Note: withOrganization collects it from the context, this is not type safe
    */
   organization: Organization;
   /**
@@ -208,7 +209,7 @@ function TeamSelector(props: Props) {
 
       closeSelectMenu();
     },
-    [api, createTeamOption, multiple, onChange, organization.slug, project, value]
+    [api, createTeamOption, multiple, onChange, organization, project, value]
   );
 
   const createTeam = useCallback(
