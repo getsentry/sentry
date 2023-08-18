@@ -11,10 +11,11 @@ Tombstone row will not, therefore, cascade to any related cross silo rows.
 import datetime
 from dataclasses import dataclass
 from hashlib import sha1
-from typing import Any, Callable, List, Tuple, Type
+from typing import Any, List, Tuple, Type
 from uuid import uuid4
 
 import sentry_sdk
+from celery import Task
 from django.apps import apps
 from django.db import connections, router
 from django.db.models import Max
@@ -123,7 +124,7 @@ def schedule_hybrid_cloud_foreign_key_jobs():
     )
 
 
-def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Callable) -> None:
+def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task) -> None:
     for app, app_models in apps.all_models.items():
         for model in app_models.values():
             if not hasattr(model._meta, "silo_limit"):
@@ -182,7 +183,7 @@ def process_hybrid_cloud_foreign_key_cascade_batch(
 
 
 def _process_hybrid_cloud_foreign_key_cascade(
-    app_name: str, model_name: str, field_name: str, process_task: Callable, silo_mode: SiloMode
+    app_name: str, model_name: str, field_name: str, process_task: Task, silo_mode: SiloMode
 ) -> None:
     """
     Called by the silo bound tasks above.

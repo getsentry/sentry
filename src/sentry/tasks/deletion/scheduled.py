@@ -1,8 +1,9 @@
 import logging
 from datetime import timedelta
-from typing import Any, Callable, Type
+from typing import Any, Type
 
 import sentry_sdk
+from celery import Task
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import router, transaction
 from django.utils import timezone
@@ -80,7 +81,7 @@ def run_scheduled_deletions() -> None:
 
 
 def _run_scheduled_deletions(
-    model_class: Type[BaseScheduledDeletion], process_task: Callable, silo_mode: SiloMode
+    model_class: Type[BaseScheduledDeletion], process_task: Task, silo_mode: SiloMode
 ) -> None:
     queryset = model_class.objects.filter(in_progress=False, date_scheduled__lte=timezone.now())
     for item in queryset:
@@ -137,7 +138,7 @@ def _run_deletion(
     deletion_id: int,
     first_pass: bool,
     model_class: Type[BaseScheduledDeletion],
-    process_task: Callable,
+    process_task: Task,
     silo_mode: SiloMode,
 ) -> None:
     from sentry import deletions
