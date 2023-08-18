@@ -273,6 +273,7 @@ function TeamSelector(props: Props) {
       searchKey: 'create',
       actor: null,
       disabled: !canCreateTeam,
+      'data-test-id': 'create-team-option',
     };
 
     if (project) {
