@@ -57,7 +57,7 @@ def get_rate_limit_key(
     ):
         return None
 
-    view = view_func.__qualname__
+    view = view_func.view_class.__name__
     http_method = request.method
 
     # This avoids touching user session, which means we avoid
