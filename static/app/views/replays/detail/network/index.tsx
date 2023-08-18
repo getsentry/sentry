@@ -290,20 +290,20 @@ function NetworkList({
             projectId={projectId}
             startTimestampMs={startTimestampMs}
           />
+          {sortConfig.by === 'startTimestamp' && showJumpDownButton() ? (
+            <div>
+              <Button
+                priority="primary"
+                size="xs"
+                onClick={handleClick}
+                aria-label="Jump Down"
+                style={{position: 'absolute', left: '50%', bottom: '5px'}}
+              >
+                {t('Jump Down')}
+              </Button>
+            </div>
+          ) : null}
         </SplitPanel>
-        {sortConfig.by === 'startTimestamp' && showJumpDownButton() ? (
-          <div>
-            <Button
-              priority="primary"
-              size="xs"
-              onClick={handleClick}
-              aria-label="Jump Down"
-              style={{position: 'absolute', left: '50%', bottom: '5px'}}
-            >
-              {t('Jump Down')}
-            </Button>
-          </div>
-        ) : null}
       </NetworkTable>
     </FluidHeight>
   );
