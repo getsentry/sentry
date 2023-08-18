@@ -161,7 +161,7 @@ export function ScreensView({yAxes}: {yAxes: YAxis[]}) {
     if (defined(releaseSeries)) {
       Object.keys(releaseSeries).forEach(seriesName => {
         const [deviceClass, ...releaseArray] = seriesName.split(',');
-        const index = DEVICE_CLASS_BREAKDOWN_INDEX[deviceClass] ?? 0;
+        const index = DEVICE_CLASS_BREAKDOWN_INDEX[deviceClass] ?? 3;
         const release = releaseArray.join(',');
         const isPrimary = release === primaryRelease;
 
