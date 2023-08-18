@@ -368,6 +368,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
 const StacktraceLinkWrapper = styled('div')`
   display: flex;
   gap: ${space(2)};
+  align-items: center;
   color: ${p => p.theme.subText};
   background-color: ${p => p.theme.background};
   font-family: ${p => p.theme.text.family};
