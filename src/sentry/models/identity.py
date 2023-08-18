@@ -9,6 +9,7 @@ from django.db.models import Q, QuerySet
 from django.utils import timezone
 
 from sentry import analytics
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     ArrayField,
     BaseManager,
@@ -49,6 +50,7 @@ class IdentityProvider(Model):
     """
 
     __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     type = models.CharField(max_length=64)
     config = JSONField()
@@ -191,6 +193,7 @@ class Identity(Model):
     """
 
     __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     idp = FlexibleForeignKey("sentry.IdentityProvider")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)

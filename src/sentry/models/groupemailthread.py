@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -20,6 +21,7 @@ class GroupEmailThread(Model):
     """
 
     __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     email = models.EmailField(max_length=75)
     project = FlexibleForeignKey("sentry.Project", related_name="groupemail_set")

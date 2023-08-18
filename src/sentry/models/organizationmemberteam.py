@@ -3,6 +3,7 @@ from typing import FrozenSet
 from django.db import models
 
 from sentry import features, roles
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseModel,
     BoundedAutoField,
@@ -21,6 +22,7 @@ class OrganizationMemberTeam(BaseModel):
     """
 
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     id = BoundedAutoField(primary_key=True)
     team = FlexibleForeignKey("sentry.Team")

@@ -18,6 +18,7 @@ from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry import projectoptions
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
@@ -212,6 +213,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     """
 
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     slug = models.SlugField(null=True)
     # DEPRECATED do not use, prefer slug

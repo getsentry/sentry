@@ -5,6 +5,7 @@ from django.db.models import SET_NULL, Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -164,6 +165,7 @@ class GroupHistory(Model):
     """
 
     __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     objects = GroupHistoryManager()
 

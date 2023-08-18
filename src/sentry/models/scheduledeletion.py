@@ -9,6 +9,7 @@ from django.apps import apps
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     JSONField,
@@ -47,6 +48,7 @@ class BaseScheduledDeletion(Model):
         abstract = True
 
     __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     guid = models.CharField(max_length=32, unique=True, default=default_guid)
     app_label = models.CharField(max_length=64)

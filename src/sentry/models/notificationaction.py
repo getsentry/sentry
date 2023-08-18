@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Mapping, MutableMapping, Opti
 
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.base import region_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -152,6 +153,7 @@ class TriggerGenerator:
 @region_silo_only_model
 class NotificationActionProject(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Global
 
     project = FlexibleForeignKey("sentry.Project")
     action = FlexibleForeignKey("sentry.NotificationAction")
@@ -205,6 +207,7 @@ class NotificationAction(AbstractNotificationAction):
     """
 
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Global
     __repr__ = sane_repr("id", "trigger_type", "service_type", "target_display")
 
     _trigger_types: tuple[tuple[int, str], ...] = ActionTrigger.as_choices()
