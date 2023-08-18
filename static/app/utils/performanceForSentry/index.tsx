@@ -41,7 +41,7 @@ export function onRenderCallback(
   actualDuration: number
 ) {
   try {
-    const transaction: Transaction | undefined = getPerformanceTransaction();
+    const transaction = getPerformanceTransaction();
     if (transaction && actualDuration > MIN_UPDATE_SPAN_TIME) {
       const now = timestampWithMs();
       transaction.startChild({
