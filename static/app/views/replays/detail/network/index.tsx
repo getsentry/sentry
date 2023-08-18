@@ -200,13 +200,9 @@ function NetworkList({
     return Math.floor(pixels / BODY_HEIGHT);
   }
 
-  const showJumpDownButton = () => {
-    return indexAtCurrentTime() > visibleRange[1];
-  };
-
-  const showJumpUpButton = () => {
-    return indexAtCurrentTime() < visibleRange[0];
-  };
+  const currentIndex = indexAtCurrentTime();
+  const showJumpDownButton = currentIndex > visibleRange[1];
+  const showJumpUpButton = currentIndex < visibleRange[0];
 
   return (
     <FluidHeight>
@@ -219,7 +215,7 @@ function NetworkList({
           }}
         >
           {networkFrames ? (
-            <OverflowHidden>
+            <OverflowHidden style={{display: 'grid'}}>
               <AutoSizer onResize={onWrapperResize}>
                 {({height, width}) => (
                   <MultiGrid
@@ -259,6 +255,28 @@ function NetworkList({
                   />
                 )}
               </AutoSizer>
+              {sortConfig.by === 'startTimestamp' && showJumpUpButton ? (
+                <Button
+                  onClick={handleClick}
+                  aria-label={t('Jump Up')}
+                  priority="primary"
+                  size="xs"
+                  style={{position: 'absolute', justifySelf: 'center', top: '28px'}}
+                >
+                  {t('↑ Jump to your timestamp')}
+                </Button>
+              ) : null}
+              {sortConfig.by === 'startTimestamp' && showJumpDownButton ? (
+                <Button
+                  priority="primary"
+                  size="xs"
+                  onClick={handleClick}
+                  aria-label={t('Jump Down')}
+                  style={{position: 'absolute', justifySelf: 'center', bottom: '5px'}}
+                >
+                  {t('↓ Jump to your timestamp')}
+                </Button>
+              ) : null}
             </OverflowHidden>
           ) : (
             <Placeholder height="100%" />
@@ -277,28 +295,6 @@ function NetworkList({
             projectId={projectId}
             startTimestampMs={startTimestampMs}
           />
-          {sortConfig.by === 'startTimestamp' && showJumpUpButton() ? (
-            <Button
-              onClick={handleClick}
-              aria-label={t('Jump Up')}
-              priority="primary"
-              size="xs"
-              style={{position: 'absolute', justifySelf: 'center', top: '28px'}}
-            >
-              {t('Jump Up')}
-            </Button>
-          ) : null}
-          {sortConfig.by === 'startTimestamp' && showJumpDownButton() ? (
-            <Button
-              priority="primary"
-              size="xs"
-              onClick={handleClick}
-              aria-label={t('Jump Down')}
-              style={{position: 'absolute', justifySelf: 'center', bottom: '5px'}}
-            >
-              {t('Jump Down')}
-            </Button>
-          ) : null}
         </SplitPanel>
       </NetworkTable>
     </FluidHeight>
