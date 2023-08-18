@@ -1,4 +1,4 @@
-from sentry.models import EventError, PromptsActivity, SourceMapProcessingIssue
+from sentry.models import EventError, SourceMapProcessingIssue
 
 
 class ActionPriority:
@@ -126,12 +126,3 @@ def is_frame_filename_valid(frame):
     elif filename and not get_file_extension(filename):
         return False
     return True
-
-
-def find_prompts_activity(organization_id, project_id, user_id, features):
-    return PromptsActivity.objects.filter(
-        organization_id=organization_id,
-        feature__in=features,
-        user_id=user_id,
-        project_id=project_id,
-    )
