@@ -136,8 +136,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         def get_top_events(user_query, params, event_limit, referrer):
             top_event_columns = cast(List[str], selected_columns[:])
             top_event_columns.append("count()")
-
-            # if features.has("performance-trends-issues"):
             top_event_columns.append("project_id")
 
             # Granularity is set to 1d - the highest granularity possible
@@ -427,7 +425,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     evidence_data=qualifying_trend,
                     evidence_display={},
                     detection_time=current_timestamp,
-                    level="warning",
+                    level="info",
                 )
 
                 event_data = {
