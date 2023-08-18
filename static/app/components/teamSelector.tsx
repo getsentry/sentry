@@ -96,14 +96,14 @@ const placeholderSelectStyles: StylesConfig = {
 type Props = {
   onChange: (value: any) => any;
   /**
+   * TODO: It can be undefined in some cases -> needs investigation
+   */
+  organization: Organization;
+  /**
    * Controls whether the dropdown allows to create a new team
    */
   allowCreate?: boolean;
   includeUnassigned?: boolean;
-  /**
-   * TODO: It can be undefined in some cases -> needs investigation
-   */
-  organization?: Organization;
   /**
    * Can be used to restrict teams to a certain project and allow for new teams to be add to that project
    */
