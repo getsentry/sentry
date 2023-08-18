@@ -19,7 +19,7 @@ from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
+from sentry.issues.grouptype import PerformanceP95TransactionDurationRegressionGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import produce_occurrence_to_kafka
 from sentry.net.http import connection_from_url
@@ -131,16 +131,21 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         query = request.GET.get("query")
 
+        top_trending_transactions = []
+
         def get_top_events(user_query, params, event_limit, referrer):
             top_event_columns = cast(List[str], selected_columns[:])
             top_event_columns.append("count()")
+
+            # if features.has("performance-trends-issues"):
+            top_event_columns.append("project_id")
 
             # Granularity is set to 1d - the highest granularity possible
             # in order to optimize the top event query since we don't care
             # about having exact counts.
             return metrics_query(
                 top_event_columns,
-                query=user_query,
+                query="",
                 params=params,
                 orderby=["-count()"],
                 limit=event_limit,
@@ -244,8 +249,10 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 int(request.GET.get("topEvents", DEFAULT_TOP_EVENTS_LIMIT)),
                 MAX_TOP_EVENTS_LIMIT,
             )
+
             # Fetch transactions names with the highest event count
-            top_events = get_top_events(
+            global top_trending_transactions
+            top_trending_transactions = get_top_events(
                 user_query=user_query,
                 params=params,
                 event_limit=top_event_limit,
@@ -253,13 +260,14 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             )
 
             sentry_sdk.set_tag(
-                "performance.trendsv2.top_events", top_events.get("data", None) is not None
+                "performance.trendsv2.top_events",
+                top_trending_transactions.get("data", None) is not None,
             )
-            if len(top_events.get("data", [])) == 0:
+            if len(top_trending_transactions.get("data", [])) == 0:
                 return {}
 
             # Fetch timeseries for each top transaction name
-            return get_timeseries(top_events, params, rollup, zerofill_results)
+            return get_timeseries(top_trending_transactions, params, rollup, zerofill_results)
 
         def format_start_end(data):
             # format start and end
@@ -379,121 +387,63 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         def fingerprint_regression(trending_event):
             return hashlib.sha1(
-                (f'p95_transaction_duration-{trending_event["transaction"]}').encode()
+                (f'p95_transaction_duration_regression-{trending_event["transaction"]}').encode()
             ).hexdigest()
 
         def send_occurrence_to_plaform(found_trending_events):
-            # test data
-            events = [
-                {
-                    "absolute_percentage_change": 2.094919791085335,
-                    "aggregate_range_1": 50.83569680365293,
-                    "aggregate_range_2": 106.49670732758604,
-                    "breakpoint": 1691805600,
-                    "change": "regression",
-                    "project": 3,
-                    "transaction": "sentry.tasks.store.process_event",
-                    "trend_difference": 55.66101052393311,
-                    "trend_percentage": 2.094919791085335,
-                    "unweighted_p_value": 0,
-                    "unweighted_t_value": -11.044457641018662,
-                },
-                {
-                    "absolute_percentage_change": 1.2824544573384014,
-                    "aggregate_range_1": 342.913917132867,
-                    "aggregate_range_2": 439.77148151041655,
-                    "breakpoint": 1691532000,
-                    "change": "regression",
-                    "project": 3,
-                    "transaction": "/api/0/projects/{organization_slug}/stats/",
-                    "trend_difference": 96.85756437754952,
-                    "trend_percentage": 1.2824544573384014,
-                    "unweighted_p_value": 0,
-                    "unweighted_t_value": -21.114512168254933,
-                },
-                {
-                    "absolute_percentage_change": 1.134644152203171,
-                    "aggregate_range_1": 2126.130238679245,
-                    "aggregate_range_2": 2412.4012421397374,
-                    "breakpoint": 1691398800,
-                    "change": "regression",
-                    "project": 3,
-                    "transaction": "/api/0/organizations/{organization_slug}/issues/",
-                    "trend_difference": 286.27100346049247,
-                    "trend_percentage": 1.134644152203171,
-                    "unweighted_p_value": 0,
-                    "unweighted_t_value": -10.763685029891265,
-                },
-                {
-                    "absolute_percentage_change": 1.1239448233255223,
-                    "aggregate_range_1": 1007.5358023809521,
-                    "aggregate_range_2": 1132.4146494011975,
-                    "breakpoint": 1691618760,
-                    "change": "regression",
-                    "project": 3,
-                    "transaction": "/api/0/projects/{organization_slug}/issues|groups/",
-                    "trend_difference": 124.87884702024542,
-                    "trend_percentage": 1.1239448233255223,
-                    "unweighted_p_value": 0,
-                    "unweighted_t_value": -10.396684676083325,
-                },
-                {
-                    "absolute_percentage_change": 1.1161892015212427,
-                    "aggregate_range_1": 462.30956666666657,
-                    "aggregate_range_2": 516.0249460732982,
-                    "breakpoint": 1691535600,
-                    "change": "regression",
-                    "project": 3,
-                    "transaction": "/api/0/organizations/{organization_slug}/stats_v2/",
-                    "trend_difference": 53.715379406631655,
-                    "trend_percentage": 1.1161892015212427,
-                    "unweighted_p_value": 0,
-                    "unweighted_t_value": -7.778903161355497,
-                },
-            ]
+            global top_trending_transactions
             qualifying_trends = []
-            for trend in events:
+            for trend in found_trending_events:
                 if (
-                    trend.get("change", None) == "regression"
-                    and (trend.get("trend_percentage", None) - 1) >= 1
+                    request.GET.get("statsPeriod", None) == "14d"
+                    and trend.get("change", None) == "regression"
+                    and (trend.get("trend_percentage", None) - 1) >= 0.5
+                    and trend_function == "p95(transaction.duration)"
                 ):
                     qualifying_trends.append(trend)
 
-            print("HAIIII")
-            print(qualifying_trends)
+            current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
+            for qualifying_trend in qualifying_trends:
+                old_baseline = round(float(qualifying_trend["aggregate_range_1"]), 2)
+                new_baseline = round(float(qualifying_trend["aggregate_range_2"]), 2)
 
-            for q_trend in qualifying_trends:
-                current_timestamp = datetime.now()
+                project_id = next(
+                    transaction["project_id"]
+                    for transaction in top_trending_transactions["data"]
+                    if transaction["transaction"] == qualifying_trend["transaction"]
+                    and transaction["project"] == qualifying_trend["project"]
+                )
+
                 occurrence = IssueOccurrence(
                     id=uuid.uuid4().hex,
                     resource_id=None,
                     # todo get project id
-                    project_id=q_trend["project"],
-                    event_id=None,
-                    fingerprint=[fingerprint_regression(q_trend)],
-                    # todo add a new type
-                    type=PerformanceConsecutiveDBQueriesGroupType,
-                    issue_title="P95 Transaction Duration Regression",
-                    subtitle=f'{q_trend["aggregate_range_1"]} -> {q_trend["aggregate_range_2"]}',
-                    culprit=q_trend["transaction"],
-                    evidence_data=q_trend,
+                    project_id=project_id,
+                    event_id=uuid.uuid4().hex,
+                    fingerprint=[fingerprint_regression(qualifying_trend)],
+                    type=PerformanceP95TransactionDurationRegressionGroupType,
+                    issue_title=PerformanceP95TransactionDurationRegressionGroupType.description,
+                    subtitle=f"Transaction duration changed from {old_baseline} ms to {new_baseline} ms",
+                    culprit=qualifying_trend["transaction"],
+                    evidence_data=qualifying_trend,
                     evidence_display={},
                     detection_time=current_timestamp,
                     level="warning",
                 )
 
                 event_data = {
-                    "event_id": None,
                     "timestamp": current_timestamp,
-                    "project": q_trend["project"],
-                    "transaction": q_trend["transaction"],
+                    "project_id": project_id,
+                    "transaction": qualifying_trend["transaction"],
+                    "event_id": occurrence.event_id,
+                    "platform": "python",
+                    "received": current_timestamp.isoformat(),
+                    "tags": {},
                 }
 
                 produce_occurrence_to_kafka(occurrence, event_data)
 
         with self.handle_query_errors():
-            send_occurrence_to_plaform([])
-
             stats_data = self.get_event_stats_data(
                 request,
                 organization,
@@ -527,8 +477,10 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 trends_requests,
             ) = get_trends_data(stats_data, request)
 
-            # TODO add a feature flag
-            send_occurrence_to_plaform(trending_events)
+            if features.has(
+                "organizations:performance-trends-issues", organization, actor=request.user
+            ):
+                send_occurrence_to_plaform(trending_events)
 
             return self.paginate(
                 request=request,
