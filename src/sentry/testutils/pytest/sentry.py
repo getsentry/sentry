@@ -189,6 +189,7 @@ def pytest_configure(config):
             "aws-lambda.python.layer-version": "34",
         }
     )
+    settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
 
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
     settings.SENTRY_USE_BIG_INTS = True
