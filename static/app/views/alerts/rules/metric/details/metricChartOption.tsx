@@ -19,6 +19,7 @@ import {
   Dataset,
   MetricRule,
 } from 'sentry/views/alerts/rules/metric/types';
+import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {Incident, IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
@@ -143,6 +144,7 @@ export type MetricChartData = {
   timeseriesData: Series[];
   handleIncidentClick?: (incident: Incident) => void;
   incidents?: Incident[];
+  isOnDemandMetricAlert?: boolean;
   selectedIncident?: Incident | null;
 };
 
@@ -150,6 +152,7 @@ type MetricChartOption = {
   chartOption: AreaChartProps;
   criticalDuration: number;
   totalDuration: number;
+  waitingForDataDuration: number;
   warningDuration: number;
 };
 
@@ -196,12 +199,23 @@ export function getMetricAlertChartOption({
   const firstPoint = new Date(dataArr[0]?.name).getTime();
   const lastPoint = new Date(dataArr[dataArr.length - 1]?.name).getTime();
   const totalDuration = lastPoint - firstPoint;
+  let waitingForDataDuration = 0;
   let criticalDuration = 0;
   let warningDuration = 0;
 
   series.push(
     createStatusAreaSeries(theme.green300, firstPoint, lastPoint, minChartValue)
   );
+
+  if (isOnDemandMetricAlert(rule.dataset, rule.query)) {
+    const {startIndex, endIndex} = getWaitingForDataRange(dataArr);
+    const startTime = new Date(dataArr[startIndex]?.name).getTime();
+    const endTime = new Date(dataArr[endIndex]?.name).getTime();
+
+    waitingForDataDuration = Math.abs(endTime - startTime);
+
+    series.push(createStatusAreaSeries(theme.gray200, startTime, endTime, minChartValue));
+  }
 
   if (incidents) {
     // select incidents that fall within the graph range
@@ -362,6 +376,7 @@ export function getMetricAlertChartOption({
   return {
     criticalDuration,
     warningDuration,
+    waitingForDataDuration,
     totalDuration,
     chartOption: {
       isGroupedByDate: true,
@@ -375,6 +390,21 @@ export function getMetricAlertChartOption({
       },
     },
   };
+}
+
+function getWaitingForDataRange(dataArr) {
+  if (dataArr[0].value > 0) {
+    return {startIndex: 0, endIndex: 0};
+  }
+
+  for (let i = 0; i < dataArr.length; i++) {
+    const dataPoint = dataArr[i];
+    if (dataPoint.value > 0) {
+      return {startIndex: 0, endIndex: i - 1};
+    }
+  }
+
+  return {startIndex: 0, endIndex: dataArr.length - 1};
 }
 
 export function transformSessionResponseToSeries(
