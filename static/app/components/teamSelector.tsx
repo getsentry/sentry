@@ -95,12 +95,15 @@ const placeholderSelectStyles: StylesConfig = {
 
 type Props = {
   onChange: (value: any) => any;
-  organization: Organization;
   /**
    * Controls whether the dropdown allows to create a new team
    */
   allowCreate?: boolean;
   includeUnassigned?: boolean;
+  /**
+   * TODO: It can be undefined in some cases -> needs investigation
+   */
+  organization?: Organization;
   /**
    * Can be used to restrict teams to a certain project and allow for new teams to be add to that project
    */
@@ -136,8 +139,8 @@ function TeamSelector(props: Props) {
   // TODO(ts) This type could be improved when react-select types are better.
   const selectRef = useRef<any>(null);
 
-  const canCreateTeam = organization.access.includes('project:admin');
-  const canAddTeam = organization.access.includes('project:write');
+  const canCreateTeam = organization?.access?.includes('project:admin') ?? false;
+  const canAddTeam = organization?.access?.includes('project:write') ?? false;
 
   const createTeamOption = (team: Team): TeamOption => ({
     value: useId ? team.id : team.slug,
