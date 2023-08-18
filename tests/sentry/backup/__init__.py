@@ -13,7 +13,7 @@ def targets(expected_models: list[Type]):
     """A helper decorator that checks that every model that a test "targeted" was actually seen in
     the output, ensuring that we're actually testing the thing we think we are. Additionally, this
     decorator is easily legible to static analysis, which allows for static checks to ensure that
-    all `__include_in_export__ = True` models are being tested.
+    all `__relocation_scope__ != RelocationScope.Excluded` models are being tested.
 
     To be considered a proper "testing" of a given target type, the resulting output must contain at
     least one instance of that type with all of its fields present and set to non-default values."""

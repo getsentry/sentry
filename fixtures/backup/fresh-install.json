@@ -94,21 +94,6 @@
   }
 },
 {
-  "model": "sentry.organizationmapping",
-  "pk": 1,
-  "fields": {
-    "organization_id": 1,
-    "slug": "testing",
-    "name": "Testing",
-    "date_created": "2023-06-22T22:54:29.123Z",
-    "customer_id": null,
-    "verified": true,
-    "idempotency_key": "",
-    "region_name": "--monolith--",
-    "status": 0
-  }
-},
-{
   "model": "sentry.relayusage",
   "pk": 1,
   "fields": {
