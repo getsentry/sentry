@@ -234,7 +234,7 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
 
 @trace_func(name="ingest_consumer.process_userreport")
 @metrics.wraps("ingest_consumer.process_userreport")
-def process_userreport(message: IngestMessage, project: Project) -> None:
+def process_userreport(message: IngestMessage, project: Project) -> bool:
     start_time = to_datetime(message["start_time"])
     feedback = json.loads(message["payload"], use_rapid_json=True)
 
