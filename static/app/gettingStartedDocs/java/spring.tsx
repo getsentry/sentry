@@ -28,9 +28,10 @@ const introduction = (
 
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+}: Partial<
+  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
+> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t(
@@ -42,23 +43,33 @@ export const steps = ({
         configurations: [
           {
             language: 'xml',
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: <strong>{t('Spring 5')}</strong>,
             code: `
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry-spring</artifactId>
-  <version>6.27.0</version>
+  <version>${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java.spring']?.version ?? '6.27.0'
+  }</version>
 </dependency>
           `,
           },
           {
             language: 'xml',
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: <strong>{t('Spring 6')}</strong>,
             code: `
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry-spring-jakarta</artifactId>
-  <version>6.27.0</version>
+  <version>${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java.spring.jakarta']?.version ?? '6.27.0'
+  }</version>
 </dependency>
         `,
           },
@@ -155,6 +166,7 @@ import org.springframework.core.Ordered
         configurations: [
           {
             language: 'xml',
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: t(
               'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
             ),
@@ -164,7 +176,11 @@ import org.springframework.core.Ordered
     <plugin>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-maven-plugin</artifactId>
-    <version>0.0.3</version>
+    <version>${
+      sourcePackageRegistries?.isLoading
+        ? t('\u2026loading')
+        : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.3'
+    }</version>
     <configuration>
       <!-- for showing output of sentry-cli -->
       <debugSentryCli>true</debugSentryCli>
@@ -206,12 +222,23 @@ import org.springframework.core.Ordered
           {
             description: <strong>{t('Spring 5')}</strong>,
             language: 'groovy',
-            code: `implementation 'io.sentry:sentry-spring:6.27.0'`,
+            partialLoading: sourcePackageRegistries?.isLoading,
+            code: `implementation 'io.sentry:sentry-spring:${
+              sourcePackageRegistries?.isLoading
+                ? t('\u2026loading')
+                : sourcePackageRegistries?.data?.['sentry.java.spring']?.version ??
+                  '6.27.0'
+            }'`,
           },
           {
             description: <strong>{t('Spring 6')}</strong>,
             language: 'groovy',
-            code: `implementation 'io.sentry:sentry-spring-jakarta:6.27.0'`,
+            code: `implementation 'io.sentry:sentry-spring-jakarta:${
+              sourcePackageRegistries?.isLoading
+                ? t('\u2026loading')
+                : sourcePackageRegistries?.data?.['sentry.java.spring.jakarta']
+                    ?.version ?? '6.27.0'
+            }'`,
           },
         ],
       },
@@ -272,6 +299,7 @@ try {
     configurations: [
       {
         language: 'groovy',
+        partialLoading: sourcePackageRegistries?.isLoading,
         description: t(
           'To upload your source code to Sentry so it can be shown in stack traces, use our Gradle plugin.'
         ),
@@ -283,7 +311,12 @@ repositories {
 }
 
 plugins {
-id "io.sentry.jvm.gradle" version "3.11.1"
+id "io.sentry.jvm.gradle" version "${
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']
+                ?.version ?? '3.11.1'
+        }"
 }
 
 sentry {
@@ -306,10 +339,20 @@ authToken = "your-sentry-auth-token"
           'For other dependency managers see the [mavenRepositorySpring5Link:central Maven repository (Spring 5)] and [mavenRepositorySpring6Link:central Maven repository (Spring 6)].',
           {
             mavenRepositorySpring5Link: (
-              <ExternalLink href="https://central.sonatype.com/artifact/io.sentry/sentry-spring/6.26.0" />
+              <ExternalLink
+                href={`https://central.sonatype.com/artifact/io.sentry/sentry-spring/${
+                  sourcePackageRegistries?.data?.['sentry.java.spring']?.version ??
+                  '6.27.0'
+                }`}
+              />
             ),
             mavenRepositorySpring6Link: (
-              <ExternalLink href="https://central.sonatype.com/artifact/io.sentry/sentry-spring-jakarta/6.26.0" />
+              <ExternalLink
+                href={`https://central.sonatype.com/artifact/io.sentry/sentry-spring-jakarta/${
+                  sourcePackageRegistries?.data?.['sentry.java.spring.jakarta']
+                    ?.version ?? '6.27.0'
+                }`}
+              />
             ),
           }
         )}
@@ -334,8 +377,18 @@ authToken = "your-sentry-auth-token"
 ];
 // Configuration End
 
-export function GettingStartedWithSpring({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} introduction={introduction} {...props} />;
+export function GettingStartedWithSpring({
+  dsn,
+  sourcePackageRegistries,
+  ...props
+}: ModuleProps) {
+  return (
+    <Layout
+      steps={steps({dsn, sourcePackageRegistries})}
+      introduction={introduction}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithSpring;

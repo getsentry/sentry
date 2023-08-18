@@ -13,9 +13,7 @@ const introduction = tct(
 );
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (

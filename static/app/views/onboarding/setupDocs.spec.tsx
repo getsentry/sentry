@@ -31,6 +31,20 @@ function renderMockRequests({
     body: [],
   });
 
+  MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/sdks/`,
+    body: {
+      'sentry.java': {
+        canonical: 'maven:io.sentry:sentry',
+        main_docs_url: 'https://docs.sentry.io/platforms/java',
+        name: 'io.sentry:sentry',
+        package_url: 'https://search.maven.org/artifact/io.sentry/sentry',
+        repo_url: 'https://github.com/getsentry/sentry-java',
+        version: '6.28.0',
+      },
+    },
+  });
+
   if (project.slug !== 'javascript-react') {
     MockApiClient.addMockResponse({
       url: `/projects/${orgSlug}/${project.slug}/docs/${project.platform}/`,
@@ -86,6 +100,48 @@ describe('Onboarding Setup Docs', function () {
         `product-${ProductSolution.ERROR_MONITORING}-${ProductSolution.PERFORMANCE_MONITORING}-${ProductSolution.SESSION_REPLAY}`
       )
     ).not.toBeInTheDocument();
+  });
+
+  it('renders SDK version from the sentry release registry', async function () {
+    const {router, route, routerContext, organization, project} = initializeOrg({
+      projects: [
+        {
+          ...initializeOrg().project,
+          slug: 'java',
+          platform: 'java',
+        },
+      ],
+    });
+
+    ProjectsStore.init();
+    ProjectsStore.loadInitialData([project]);
+
+    renderMockRequests({project, orgSlug: organization.slug});
+
+    render(
+      <OnboardingContextProvider>
+        <SetupDocs
+          active
+          onComplete={() => {}}
+          stepIndex={2}
+          router={router}
+          route={route}
+          location={router.location}
+          genSkipOnboardingLink={() => ''}
+          orgId={organization.slug}
+          search=""
+          recentCreatedProject={project}
+        />
+      </OnboardingContextProvider>,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
+
+    expect(
+      await screen.findByText(/implementation 'io.sentry:sentry:6.28.0'/)
+    ).toBeInTheDocument();
   });
 
   describe('renders Product Selection', function () {

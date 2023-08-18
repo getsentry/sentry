@@ -13,9 +13,10 @@ import {t, tct} from 'sentry/locale';
 // Configuration Start
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+}: Partial<
+  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
+> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -28,13 +29,23 @@ export const steps = ({
     configurations: [
       {
         language: 'shell',
+        partialLoading: sourcePackageRegistries?.isLoading,
         description: t('Package Manager:'),
-        code: 'Install-Package Sentry.AspNet -Version 3.34.0',
+        code: `Install-Package Sentry.AspNet -Version ${
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.aspnet']?.version ?? '3.34.0'
+        }`,
       },
       {
         language: 'shell',
+        partialLoading: sourcePackageRegistries?.isLoading,
         description: t('Using Entity Framework 6?'),
-        code: 'Install-Package Sentry.EntityFramework -Version 3.34.0',
+        code: `Install-Package Sentry.EntityFramework -Version ${
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.ef']?.version ?? '3.34.0'
+        }`,
       },
     ],
     additionalInfo: (
@@ -164,8 +175,12 @@ public class MvcApplication : HttpApplication
 ];
 // Configuration End
 
-export function GettingStartedWithAspnet({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
+export function GettingStartedWithAspnet({
+  dsn,
+  sourcePackageRegistries,
+  ...props
+}: ModuleProps) {
+  return <Layout steps={steps({dsn, sourcePackageRegistries})} {...props} />;
 }
 
 export default GettingStartedWithAspnet;

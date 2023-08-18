@@ -29,9 +29,10 @@ const introduction = (
 
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+}: Partial<
+  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
+> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t('Install using either Maven or Gradle:'),
@@ -41,23 +42,34 @@ export const steps = ({
         configurations: [
           {
             language: 'xml',
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: <strong>{t('Spring Boot 2')}</strong>,
             code: `
 <dependency>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-spring-boot-starter</artifactId>
-    <version>6.27.0</version>
+    <version>${
+      sourcePackageRegistries?.isLoading
+        ? t('\u2026loading')
+        : sourcePackageRegistries?.data?.['sentry.java.spring-boot']?.version ?? '6.27.0'
+    }</version>
 </dependency>
           `,
           },
           {
             language: 'xml',
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: <strong>{t('Spring Boot 3')}</strong>,
             code: `
 <dependency>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-spring-boot-starter-jakarta</artifactId>
-    <version>6.27.0</version>
+    <version>${
+      sourcePackageRegistries?.isLoading
+        ? t('\u2026loading')
+        : sourcePackageRegistries?.data?.['sentry.java.spring-boot.jakarta']?.version ??
+          '6.27.0'
+    }</version>
 </dependency>
         `,
           },
@@ -69,12 +81,24 @@ export const steps = ({
           {
             language: 'properties',
             description: <strong>{t('Spring Boot 2')}</strong>,
-            code: "implementation 'io.sentry:sentry-spring-boot-starter:6.27.0'",
+            partialLoading: sourcePackageRegistries?.isLoading,
+            code: `implementation 'io.sentry:sentry-spring-boot-starter:${
+              sourcePackageRegistries?.isLoading
+                ? t('\u2026loading')
+                : sourcePackageRegistries?.data?.['sentry.java.spring-boot']?.version ??
+                  '6.27.0'
+            }'`,
           },
           {
             language: 'properties',
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: <strong>{t('Spring Boot 3')}</strong>,
-            code: "implementation 'io.sentry:sentry-spring-boot-starter-jakarta:6.27.0'",
+            code: `implementation 'io.sentry:sentry-spring-boot-starter-jakarta:${
+              sourcePackageRegistries?.isLoading
+                ? t('\u2026loading')
+                : sourcePackageRegistries?.data?.['sentry.java.spring-boot.jakarta']
+                    ?.version ?? '6.27.0'
+            }'`,
           },
         ],
       },
@@ -136,7 +160,11 @@ sentry:
 <dependency>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-logback</artifactId>
-    <version>6.27.0</version>
+    <version>${
+      sourcePackageRegistries?.isLoading
+        ? t('\u2026loading')
+        : sourcePackageRegistries?.data?.['sentry.java.logback']?.version ?? '6.27.0'
+    }</version>
 </dependency>
           `,
           },
@@ -151,7 +179,11 @@ sentry:
     <plugin>
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
-      <version>0.0.3</version>
+      <version>${
+        sourcePackageRegistries?.isLoading
+          ? t('\u2026loading')
+          : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.3'
+      }</version>
       <configuration>
         <!-- for showing output of sentry-cli -->
         <debugSentryCli>true</debugSentryCli>
@@ -193,7 +225,13 @@ sentry:
         configurations: [
           {
             language: 'properties',
-            code: "implementation 'io.sentry:sentry-logback:6.27.0'",
+            partialLoading: sourcePackageRegistries?.isLoading,
+            code: `implementation 'io.sentry:sentry-logback:${
+              sourcePackageRegistries?.isLoading
+                ? t('\u2026loading')
+                : sourcePackageRegistries?.data?.['sentry.java.logback']?.version ??
+                  '6.27.0'
+            }'`,
           },
           {
             language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
@@ -208,7 +246,12 @@ buildscript {
 }
 
 plugins {
-  id "io.sentry.jvm.gradle" version "3.11.1"
+  id "io.sentry.jvm.gradle" version "${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
+        '3.11.1'
+  }"
 }
 
 sentry {
@@ -383,8 +426,18 @@ class PersonService {
 ];
 // Configuration End
 
-export function GettingStartedWithSpringBoot({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} introduction={introduction} {...props} />;
+export function GettingStartedWithSpringBoot({
+  dsn,
+  sourcePackageRegistries,
+  ...props
+}: ModuleProps) {
+  return (
+    <Layout
+      steps={steps({dsn, sourcePackageRegistries})}
+      introduction={introduction}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithSpringBoot;
