@@ -172,14 +172,15 @@ def query_using_optimized_search(
     can_scalar_sort = can_scalar_sort_subquery(sort or "started_at")
     can_scalar_search, has_varying_condition = can_scalar_search_subquery(search_filters)
 
-    if can_scalar_sort and can_scalar_search:
+    # TODO: Remove `not has_varying_condition` conditional check when (or if...) sub-queries become
+    # a supported feature in Snuba.
+    if can_scalar_sort and can_scalar_search and not has_varying_condition:
         query = make_simple_scalar_query(
             search_filters=search_filters,
             sort=sort,
             project_ids=project_ids,
             period_start=period_start,
             period_stop=period_stop,
-            has_varying_condition=has_varying_condition,
         )
         referrer = "replays.query.browse_subquery"
     else:
@@ -218,35 +219,17 @@ def query_using_optimized_search(
         referrer="replays.query.browse_query",
     )["data"]
 
-    # A weird snuba-ism.  You can't sort by an aggregation that is also present in the select.
-    # Even if the aggregations are different.  So we have to fallback to sorting on the
-    # application server.
-    #
-    # For example these are all examples of valid SQL that are not possible with Snuba.
-    #
-    #   SELECT any(os_name)
-    #   FROM replays_local
-    #   GROUP BY replay_id
-    #   ORDER BY any(os_name)
-    #
-    #   SELECT anyIf(os_name, notEmpty(os_name))
-    #   FROM replays_local
-    #   GROUP BY replay_id
-    #   ORDER BY any(os_name)
-    ordered_results = [None] * len(replay_ids)
-    replay_id_to_index = {replay_id: index for index, replay_id in enumerate(replay_ids)}
+    replay_id_to_index = {}
+    for i, replay_id in enumerate(replay_ids):
+        if replay_id not in replay_id_to_index:
+            replay_id_to_index[replay_id] = i
+
+    ordered_results = [None] * len(replay_id_to_index)
     for result in results:
         index = replay_id_to_index[result["replay_id"]]
         ordered_results[index] = result
 
-    # TODO: Replace group-by aggregation with SELECT DISTINCT.
-    #
-    # Duplicates are possible (double write before merge) but should be rare. This problem can be
-    # removed entirely by applying SELECT DISTINCT.
-    #
-    # This is not a regression. This mirrors current production behavior and we have not observed
-    # any problems from it so far.
-    return list(filter(None, ordered_results))
+    return ordered_results
 
 
 def make_simple_scalar_query(
@@ -255,30 +238,9 @@ def make_simple_scalar_query(
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
-    has_varying_condition: bool,
 ) -> Query:
     orderby = _sort_to_orderby(scalar_sort_config, sort)
     where: list[Condition] = handle_search_filters(scalar_search_config, search_filters)
-
-    if has_varying_condition:
-        # TODO: Replace group-by aggregation with SELECT DISTINCT.
-        #
-        # Work-around until snuba supports it. We don't actually want to aggregate here.
-        # Aggregating means we can't break from scanning the set early.
-        #
-        # It's important to note that the GROUP BY clause here force the query to run at its
-        # slowest possible speed (i.e. full scan of every row in the dataset -- except where
-        # reduced by timestamp and project_id). This query will run at exactly the same speed as
-        # the aggregate sub-query, though, it will use slightly less memory.
-        group_by = [Column("replay_id")]
-        orderby = [OrderBy(Function("any", parameters=[orderby[0].exp]), orderby[0].direction)]
-    else:
-        # TODO: Remove conditional check on segment_id once SELECT DISTINCT is available.
-        #
-        # Without the `segment_id = 0` condition we can scan _fewer_ rows. In this case its
-        # necessary because we don't want to return duplicate ids in the response output.
-        group_by = []
-        where.append(Condition(Column("segment_id"), Op.EQ, 0))
 
     return Query(
         match=Entity("replays"),
@@ -287,10 +249,10 @@ def make_simple_scalar_query(
             Condition(Column("project_id"), Op.IN, project_ids),
             Condition(Column("timestamp"), Op.LT, period_stop),
             Condition(Column("timestamp"), Op.GTE, period_start),
+            Condition(Column("segment_id"), Op.EQ, 0),
             *where,
         ],
         orderby=orderby,
-        groupby=group_by,
         granularity=Granularity(3600),
     )
 
