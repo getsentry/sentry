@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Callable, NamedTuple, Optional, Sequence
+from typing import Any, Callable, Mapping, MutableMapping, NamedTuple, Optional, Sequence
 
 import sentry_sdk
 
-from sentry.db.models.fields.node import NodeData
 from sentry.models import Project, Release
 from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils.cache import cache
@@ -187,7 +186,7 @@ class StacktraceProcessor:
 
 
 def find_stacktraces_in_data(
-    data: NodeData, include_raw: bool = False, include_empty_exceptions: bool = False
+    data: Mapping[str, Any], include_raw: bool = False, include_empty_exceptions: bool = False
 ) -> list[StacktraceInfo]:
     """
     Finds all stacktraces in a given data blob and returns them together with some meta information.
@@ -274,18 +273,36 @@ def _has_system_frames(frames):
     return bool(system_frames) and len(frames) != system_frames
 
 
-def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> None:
+def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> str:
     """
-    Ensures consistent values of in_app across a stacktrace.
+    Ensures consistent values of in_app across a stacktrace. Returns a classification of the
+    stacktrace as either "in-app-only", "system-only", or "mixed", for use in metrics.
     """
+    has_in_app_frames = False
+    has_system_frames = False
+
     # Default to false in all cases where processors or grouping enhancers
     # have not yet set in_app.
     for frame in stacktrace:
         if frame.get("in_app") is None:
             set_in_app(frame, False)
 
+        if frame.get("in_app"):
+            has_in_app_frames = True
+        else:
+            has_system_frames = True
 
-def normalize_stacktraces_for_grouping(data, grouping_config=None) -> None:
+    if has_in_app_frames and has_system_frames:
+        return "mixed"
+    elif has_in_app_frames:
+        return "in-app-only"
+    else:
+        return "system-only"
+
+
+def normalize_stacktraces_for_grouping(
+    data: MutableMapping[str, Any], grouping_config=None, load_stacktrace_from_cache: bool = False
+) -> None:
     """
     Applies grouping enhancement rules and ensure in_app is set on all frames.
     This also trims functions if necessary.
@@ -321,15 +338,34 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None) -> None:
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
         with sentry_sdk.start_span(op=op, description="apply_modifications_to_frame"):
-            for frames, exception_data in zip(stacktrace_frames, stacktrace_containers):
+            for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
+                # This call has a caching mechanism when the same stacktrace and rules are used
                 grouping_config.enhancements.apply_modifications_to_frame(
-                    frames, platform, exception_data
+                    frames,
+                    platform,
+                    stacktrace_container,
+                    extra_fingerprint=grouping_config.id,
+                    load_stacktrace_from_cache=load_stacktrace_from_cache,
                 )
 
-    # normalize in-app
+    # normalize `in_app` values, noting and storing the event's mix of in-app and system frames, so
+    # we can track the mix with a metric in cases where this event creates a new group
     with sentry_sdk.start_span(op=op, description="normalize_in_app_stacktraces"):
+        frame_mixes = {"mixed": 0, "in-app-only": 0, "system-only": 0}
+
         for frames in stacktrace_frames:
-            _normalize_in_app(frames)
+            stacktrace_frame_mix = _normalize_in_app(frames)
+            frame_mixes[stacktrace_frame_mix] += 1
+
+        event_metadata = data.get("metadata") or {}
+        event_metadata["in_app_frame_mix"] = (
+            "in-app-only"
+            if frame_mixes["in-app-only"] == len(stacktrace_frames)
+            else "system-only"
+            if frame_mixes["system-only"] == len(stacktrace_frames)
+            else "mixed"
+        )
+        data["metadata"] = event_metadata
 
 
 def _update_frame(frame: dict[str, Any], platform: Optional[str]) -> None:

@@ -3,7 +3,7 @@ from unittest import mock
 from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
-from fixtures.integrations.jira import MockJira
+from fixtures.integrations.jira.mock import MockJira
 from sentry.eventstore.models import Event
 from sentry.integrations.jira import JiraCreateTicketAction
 from sentry.models import ExternalIssue, Integration, Rule

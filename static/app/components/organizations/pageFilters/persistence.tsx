@@ -39,7 +39,9 @@ export function setPageFiltersStorage(
 ) {
   const {selection, pinnedFilters} = PageFiltersStore.getState();
 
-  const {state: currentStoredState} = getPageFilterStorage(orgSlug) ?? {state: null};
+  const {state: currentStoredState} = getPageFilterStorage(orgSlug, storageNamespace) ?? {
+    state: null,
+  };
 
   const projects = updateFilters.has('projects')
     ? selection.projects

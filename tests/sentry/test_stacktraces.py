@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 import pytest
 
 from sentry.stacktraces.processing import find_stacktraces_in_data, get_crash_frame_from_event_data
@@ -6,7 +10,7 @@ from sentry.testutils.cases import TestCase
 
 class FindStacktracesTest(TestCase):
     def test_stacktraces_basics(self):
-        data = {
+        data: dict[str, Any] = {
             "message": "hello",
             "platform": "javascript",
             "stacktrace": {
@@ -34,7 +38,7 @@ class FindStacktracesTest(TestCase):
         assert infos[0].platforms == {"javascript", "native"}
 
     def test_stacktraces_exception(self):
-        data = {
+        data: dict[str, Any] = {
             "message": "hello",
             "platform": "javascript",
             "exception": {
@@ -67,7 +71,7 @@ class FindStacktracesTest(TestCase):
         assert len(infos[0].stacktrace["frames"]) == 2
 
     def test_stacktraces_threads(self):
-        data = {
+        data: dict[str, Any] = {
             "message": "hello",
             "platform": "javascript",
             "threads": {
@@ -106,7 +110,7 @@ class FindStacktracesTest(TestCase):
         #  3. frames is None
         #  3. frames contains only None
         #  4. frame is None
-        data = {
+        data: dict[str, Any] = {
             "message": "hello",
             "platform": "javascript",
             "exception": {

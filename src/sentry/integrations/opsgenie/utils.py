@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
@@ -12,7 +14,9 @@ logger = logging.getLogger("sentry.integrations.opsgenie")
 from .client import OpsgenieClient
 
 
-def build_incident_attachment(incident: Incident, new_status: IncidentStatus, metric_value=None):
+def build_incident_attachment(
+    incident: Incident, new_status: IncidentStatus, metric_value: int | None = None
+) -> dict[str, Any]:
     data = incident_attachment_info(incident, new_status, metric_value)
     alert_key = f"incident_{incident.organization_id}_{incident.identifier}"
     if new_status == IncidentStatus.CLOSED:

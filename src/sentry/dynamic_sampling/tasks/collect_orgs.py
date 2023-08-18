@@ -6,6 +6,7 @@ from sentry.dynamic_sampling.tasks.constants import MAX_PROJECTS_PER_QUERY, MAX_
 from sentry.dynamic_sampling.tasks.logging import log_task_execution, log_task_timeout
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 
 
@@ -16,6 +17,7 @@ from sentry.tasks.base import instrumented_task
     max_retries=5,
     soft_time_limit=2 * 60 * 60,
     time_limit=2 * 60 * 60 + 5,
+    silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task
 def collect_orgs() -> None:

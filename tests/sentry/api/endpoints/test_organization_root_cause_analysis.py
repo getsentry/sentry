@@ -2,7 +2,7 @@ import pytest
 from django.urls import reverse
 from freezegun import freeze_time
 
-from sentry.snuba.metrics.naming_layer import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.silo import region_silo_test
 

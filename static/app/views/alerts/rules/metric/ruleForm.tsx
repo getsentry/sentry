@@ -27,6 +27,10 @@ import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
+import {
+  hasOnDemandMetricAlertFeature,
+  isOnDemandQueryString,
+} from 'sentry/utils/onDemandMetrics';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
@@ -37,7 +41,6 @@ import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {
-  hasNonStandardMetricSearchFilters,
   isOnDemandMetricAlert,
   isValidOnDemandMetricAlert,
 } from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
@@ -128,14 +131,11 @@ function determineAlertDataset(
   selectedDataset: Dataset,
   query: string
 ) {
-  if (!org.features.includes('on-demand-metrics-extraction')) {
+  if (!hasOnDemandMetricAlertFeature(org)) {
     return selectedDataset;
   }
 
-  if (
-    hasNonStandardMetricSearchFilters(query) &&
-    selectedDataset === Dataset.TRANSACTIONS
-  ) {
+  if (isOnDemandQueryString(query) && selectedDataset === Dataset.TRANSACTIONS) {
     // for on-demand metrics extraction we want to override the dataset and use performance metrics instead
     return Dataset.GENERIC_METRICS;
   }
@@ -630,7 +630,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       const [data, , resp] = await addOrUpdateRule(
         this.api,
         organization.slug,
-        project.slug,
         {
           ...rule,
           ...model.getTransformedData(),

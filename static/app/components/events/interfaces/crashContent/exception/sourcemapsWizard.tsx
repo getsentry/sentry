@@ -74,9 +74,9 @@ export default function SourceMapsWizard({analyticsParams}: Props) {
       <EmptyMessage
         size="medium"
         icon={<IconFlag size="xl" />}
-        title={t("Sentry isn't Sentry without source maps")}
+        title={t("You're not a computer, so why parse minified code?")}
         description={tct(
-          'Automatically upload your source maps to enable readable stack traces and better error grouping using the Sentry Wizard. [link:Learn more]',
+          'Upload source maps with the Sentry Wizard to unlock readable stack traces and better error grouping. [link:Learn more]',
           {
             link: (
               <ExternalLink

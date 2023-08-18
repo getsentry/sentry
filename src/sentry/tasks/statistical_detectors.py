@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
@@ -9,10 +10,14 @@ from sentry import options
 from sentry.models.project import Project
 from sentry.snuba import functions
 from sentry.snuba.referrer import Referrer
+from sentry.statistical_detectors.detector import TrendPayload
 from sentry.tasks.base import instrumented_task
+from sentry.utils.iterators import chunked
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
+
+FUNCTIONS_PER_PROJECT = 100
 
 ITERATOR_CHUNK = 1_000
 
@@ -43,32 +48,32 @@ def run_detection() -> None:
             performance_projects.append(project.id)
 
             if len(performance_projects) >= ITERATOR_CHUNK:
-                detect_regressed_transactions.delay(performance_projects)
+                detect_transaction_trends.delay(performance_projects)
                 performance_projects = []
 
         if project.flags.has_profiles:
             profiling_projects.append(project.id)
 
             if len(profiling_projects) >= ITERATOR_CHUNK:
-                detect_regressed_functions.delay(profiling_projects, now)
+                detect_function_trends.delay(profiling_projects, now)
                 profiling_projects = []
     """
 
     # make sure to dispatch a task to handle the remaining projects
     if performance_projects:
-        detect_regressed_transactions.delay(performance_projects)
+        detect_transaction_trends.delay(performance_projects)
         performance_projects = []
     if profiling_projects:
-        detect_regressed_functions.delay(profiling_projects, now)
+        detect_function_trends.delay(profiling_projects, now)
         profiling_projects = []
 
 
 @instrumented_task(
-    name="sentry.tasks.statistical_detectors._detect_regressed_transactions",
+    name="sentry.tasks.statistical_detectors.detect_transaction_trends",
     queue="performance.statistical_detector",
     max_retries=0,
 )
-def detect_regressed_transactions(project_ids: List[int], **kwargs) -> None:
+def detect_transaction_trends(project_ids: List[int], **kwargs) -> None:
     if not options.get("statistical_detectors.enable"):
         return
 
@@ -77,17 +82,20 @@ def detect_regressed_transactions(project_ids: List[int], **kwargs) -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.statistical_detectors._detect_regressed_functions",
-    queue="performance.statistical_detector",
+    name="sentry.tasks.statistical_detectors.detect_function_trends",
+    queue="profiling.statistical_detector",
     max_retries=0,
 )
-def detect_regressed_functions(project_ids: List[int], start: datetime, **kwargs) -> None:
+def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) -> None:
     if not options.get("statistical_detectors.enable"):
         return
 
-    for project in Project.objects.filter(id__in=project_ids):
+    projects_per_query = options.get("statistical_detectors.query.batch_size")
+    assert projects_per_query > 0
+
+    for projects in chunked(Project.objects.filter(id__in=project_ids), projects_per_query):
         try:
-            query_functions(project, start)
+            query_functions(projects, start)
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
@@ -96,14 +104,15 @@ def query_transactions(project_id: int) -> None:
     pass
 
 
-def query_functions(project: Project, start: datetime) -> None:
-    params = _get_function_query_params(project, start)
+def query_functions(projects: List[Project], start: datetime) -> Dict[int, List[TrendPayload]]:
+    params = _get_function_query_params(projects, start)
 
     # TODOs:
     # - format and return this for further processing
     # - handle any errors
-    functions.query(
+    query_results = functions.query(
         selected_columns=[
+            "project.id",
             "timestamp",
             "fingerprint",
             "count()",
@@ -111,16 +120,28 @@ def query_functions(project: Project, start: datetime) -> None:
         ],
         query="is_application:1",
         params=params,
-        orderby=["-count()"],
-        limit=100,
+        orderby=["project.id", "-count()"],
+        limit=FUNCTIONS_PER_PROJECT * len(projects),
         referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR.value,
         auto_aggregations=True,
         use_aggregate_conditions=True,
         transform_alias_to_input_format=True,
     )
 
+    function_results = defaultdict(list)
+    for row in query_results["data"]:
+        payload = TrendPayload(
+            group=row["fingerprint"],
+            count=row["count()"],
+            value=row["p95()"],
+            timestamp=datetime.fromisoformat(row["timestamp"]),
+        )
+        function_results[row["project.id"]].append(payload)
 
-def _get_function_query_params(project: Project, start: datetime) -> Dict[str, Any]:
+    return function_results
+
+
+def _get_function_query_params(projects: List[Project], start: datetime) -> Dict[str, Any]:
     # The functions dataset only supports 1 hour granularity.
     # So we always look back at the last full hour that just elapsed.
     # And since the timestamps are truncated to the start of the hour
@@ -131,7 +152,6 @@ def _get_function_query_params(project: Project, start: datetime) -> Dict[str, A
     return {
         "start": start,
         "end": start + timedelta(minutes=1),
-        "project_id": [project.id],
-        "project_objects": [project],
-        "organization_id": project.organization_id,
+        "project_id": [project.id for project in projects],
+        "project_objects": projects,
     }

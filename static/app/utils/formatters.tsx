@@ -325,6 +325,10 @@ export function formatAbbreviatedNumber(
   return number.toLocaleString(undefined, {maximumSignificantDigits: precision});
 }
 
-export function formatRate(value: number, unit: RateUnits = RateUnits.PER_SECOND) {
-  return `${formatAbbreviatedNumber(value)}${RATE_UNIT_LABELS[unit]}`;
+export function formatRate(
+  value: number,
+  unit: RateUnits = RateUnits.PER_SECOND,
+  significantDigits?: number
+) {
+  return `${formatAbbreviatedNumber(value, significantDigits)}${RATE_UNIT_LABELS[unit]}`;
 }

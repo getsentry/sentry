@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from django.contrib.sessions.backends.base import SessionBase
 from django.http import HttpRequest
 
 from sentry.pipeline import Pipeline, PipelineProvider, PipelineView
@@ -28,6 +29,11 @@ class DummyPipeline(Pipeline):
     # Simplify tests, the manager can just be a dict.
     provider_manager = {"dummy": DummyProvider()}
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.finished = False
+        self.dispatch_count = 0
+
     def finish_pipeline(self):
         self.finished = True
 
@@ -38,7 +44,7 @@ class PipelineTestCase(TestCase):
     def test_simple_pipeline(self, mock_bind_org_context: MagicMock):
         org = self.create_organization()
         request = HttpRequest()
-        request.session = {}
+        request.session = SessionBase()
         request.user = self.user
 
         pipeline = DummyPipeline(request, "dummy", org, config={"some_config": True})
@@ -47,10 +53,6 @@ class PipelineTestCase(TestCase):
         assert pipeline.is_valid()
         assert "some_config" in pipeline.provider.config
         mock_bind_org_context.assert_called_with(org)
-
-        # Test state
-        pipeline.finished = False
-        pipeline.dispatch_count = 0
 
         # Pipeline has two steps, ensure both steps compete. Usually the
         # dispatch itself would be the one calling the current_step and
@@ -72,7 +74,7 @@ class PipelineTestCase(TestCase):
     def test_invalidated_pipeline(self):
         org = self.create_organization()
         request = HttpRequest()
-        request.session = {}
+        request.session = SessionBase()
         request.user = self.user
 
         pipeline = DummyPipeline(request, "dummy", org)
@@ -82,11 +84,8 @@ class PipelineTestCase(TestCase):
 
         # Mutate the provider, Remove an item from the pipeline, thus
         # invalidating the pipeline.
-        prev_pipeline_views = DummyProvider.pipeline_views
-        DummyProvider.pipeline_views = [PipelineStep()]
+        with patch.object(DummyProvider, "pipeline_views", [PipelineStep()]):
+            new_pipeline = DummyPipeline.get_for_request(request)
+            assert new_pipeline is not None
 
-        pipeline = DummyPipeline.get_for_request(request)
-
-        assert not pipeline.is_valid()
-
-        DummyProvider.pipeline_views = prev_pipeline_views
+            assert not new_pipeline.is_valid()

@@ -1,11 +1,10 @@
-from datetime import timedelta
+from datetime import timedelta, timezone
 from unittest import mock
 from uuid import uuid4
 
 import requests
 from django.urls import reverse
-from django.utils import timezone
-from pytz import utc
+from django.utils import timezone as django_timezone
 from rest_framework.exceptions import ParseError
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -272,7 +271,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(
             data={
                 "event_id": uuid4().hex,
-                "timestamp": iso_format(timezone.now()),
+                "timestamp": iso_format(django_timezone.now()),
                 "tags": {"color": "red"},
             },
             project_id=self.project2.id,
@@ -603,7 +602,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=utc)
+        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
         with self.feature("organizations:discover-basic"):
             # Don't quantize short time periods
             self.client.get(

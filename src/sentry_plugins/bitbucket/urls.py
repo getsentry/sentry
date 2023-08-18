@@ -6,5 +6,6 @@ urlpatterns = [
     re_path(
         r"^organizations/(?P<organization_id>[^\/]+)/webhook/$",
         BitbucketPluginWebhookEndpoint.as_view(),
+        name="sentry-plugins-bitbucket-webhook",
     )
 ]

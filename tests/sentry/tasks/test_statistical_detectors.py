@@ -1,18 +1,23 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 
 import pytest
 from freezegun import freeze_time
 
+from sentry.statistical_detectors.detector import TrendPayload
 from sentry.tasks.statistical_detectors import (
-    detect_regressed_functions,
-    detect_regressed_transactions,
+    detect_function_trends,
+    detect_transaction_trends,
+    query_functions,
     run_detection,
 )
+from sentry.testutils.cases import ProfilesSnubaTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.silo import region_silo_test
 
 
 @pytest.fixture
@@ -87,12 +92,12 @@ def project(organization, team):
         ),
     ],
 )
-@mock.patch("sentry.tasks.statistical_detectors.detect_regressed_transactions")
-@mock.patch("sentry.tasks.statistical_detectors.detect_regressed_functions")
+@mock.patch("sentry.tasks.statistical_detectors.detect_transaction_trends")
+@mock.patch("sentry.tasks.statistical_detectors.detect_function_trends")
 @django_db_all
 def test_run_detection_options(
-    detect_regressed_functions,
-    detect_regressed_transactions,
+    detect_function_trends,
+    detect_transaction_trends,
     options,
     performance_projects,
     profiling_projects,
@@ -102,18 +107,18 @@ def test_run_detection_options(
         run_detection()
 
     if performance_projects is None:
-        assert not detect_regressed_transactions.delay.called
+        assert not detect_transaction_trends.delay.called
     else:
-        assert detect_regressed_transactions.delay.called
-        detect_regressed_transactions.delay.assert_has_calls(
+        assert detect_transaction_trends.delay.called
+        detect_transaction_trends.delay.assert_has_calls(
             [mock.call(projects) for projects in performance_projects]
         )
 
     if profiling_projects is None:
-        assert not detect_regressed_functions.delay.called
+        assert not detect_function_trends.delay.called
     else:
-        assert detect_regressed_functions.delay.called
-        detect_regressed_functions.delay.assert_has_calls(
+        assert detect_function_trends.delay.called
+        detect_function_trends.delay.assert_has_calls(
             [mock.call(call, timestamp) for call in profiling_projects],
         )
 
@@ -127,14 +132,14 @@ def test_run_detection_options(
 )
 @mock.patch("sentry.tasks.statistical_detectors.query_transactions")
 @django_db_all
-def test_detect_regressed_transactions_options(
+def test_detect_transaction_trends_options(
     query_transactions,
     enabled,
     timestamp,
     project,
 ):
     with override_options({"statistical_detectors.enable": enabled}):
-        detect_regressed_transactions([project.id])
+        detect_transaction_trends([project.id])
     assert query_transactions.called == enabled
 
 
@@ -147,24 +152,71 @@ def test_detect_regressed_transactions_options(
 )
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
 @django_db_all
-def test_detect_regressed_functions_options(
+def test_detect_function_trends_options(
     query_functions,
     enabled,
     timestamp,
     project,
 ):
     with override_options({"statistical_detectors.enable": enabled}):
-        detect_regressed_functions([project.id], timestamp)
+        detect_function_trends([project.id], timestamp)
     assert query_functions.called == enabled
 
 
 @mock.patch("sentry.snuba.functions.query")
 @django_db_all
-def test_detect_regressed_functions_query_timerange(functions_query, timestamp, project):
+def test_detect_function_trends_query_timerange(functions_query, timestamp, project):
     with override_options({"statistical_detectors.enable": True}):
-        detect_regressed_functions([project.id], timestamp)
+        detect_function_trends([project.id], timestamp)
 
     assert functions_query.called
     params = functions_query.mock_calls[0].kwargs["params"]
     assert params["start"] == datetime(2023, 8, 1, 11, 0, tzinfo=timezone.utc)
     assert params["end"] == datetime(2023, 8, 1, 11, 1, tzinfo=timezone.utc)
+
+
+@region_silo_test(stable=True)
+class FunctionsQueryTest(ProfilesSnubaTestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.now = before_now(minutes=10)
+        self.hour_ago = (self.now - timedelta(hours=1)).replace(
+            minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+        )
+
+    def test_functions_query(self):
+        self.store_functions(
+            [
+                {
+                    "self_times_ns": [100 for _ in range(100)],
+                    "package": "foo",
+                    "function": "bar",
+                    # only in app functions should
+                    # appear in the results
+                    "in_app": True,
+                },
+                {
+                    "self_times_ns": [200 for _ in range(100)],
+                    "package": "baz",
+                    "function": "quz",
+                    # non in app functions should not
+                    # appear in the results
+                    "in_app": False,
+                },
+            ],
+            project=self.project,
+            timestamp=self.hour_ago,
+        )
+
+        results = query_functions([self.project], self.now)
+        assert results == {
+            self.project.id: [
+                TrendPayload(
+                    group=self.function_fingerprint({"package": "foo", "function": "bar"}),
+                    count=100,
+                    value=pytest.approx(100),  # type: ignore[arg-type]
+                    timestamp=self.hour_ago,
+                )
+            ],
+        }

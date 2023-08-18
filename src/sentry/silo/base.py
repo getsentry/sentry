@@ -79,13 +79,15 @@ class SiloMode(Enum):
         process boundaries in play.  Call this inside of any RPC interaction to ensure that such acceptance tests
         can 'swap' the silo context on the fly.
         """
-        old = single_process_silo_mode_state.mode
+        old_mode = single_process_silo_mode_state.mode
+        old_region = single_process_silo_mode_state.region
         single_process_silo_mode_state.mode = None
         single_process_silo_mode_state.region = None
         try:
             yield
         finally:
-            single_process_silo_mode_state.mode = old
+            single_process_silo_mode_state.mode = old_mode
+            single_process_silo_mode_state.region = old_region
 
     @classmethod
     def get_current_mode(cls) -> SiloMode:

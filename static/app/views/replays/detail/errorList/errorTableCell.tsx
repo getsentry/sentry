@@ -11,6 +11,7 @@ import {
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {getShortEventId} from 'sentry/utils/events';
+import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -22,19 +23,16 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 const EMPTY_CELL = '--';
 
-type Props = {
+interface Props extends ReturnType<typeof useCrumbHandlers> {
   columnIndex: number;
   currentHoverTime: number | undefined;
   currentTime: number;
   frame: ErrorFrame;
-  onClickTimestamp: (frame: ErrorFrame) => void;
-  onMouseEnter: (frame: ErrorFrame) => void;
-  onMouseLeave: (frame: ErrorFrame) => void;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortErrors>['sortConfig'];
   startTimestampMs: number;
   style: CSSProperties;
-};
+}
 
 const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
   (
@@ -43,9 +41,9 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
       currentHoverTime,
       currentTime,
       frame,
-      onClickTimestamp,
       onMouseEnter,
       onMouseLeave,
+      onClickTimestamp,
       sortConfig,
       startTimestampMs,
       style,

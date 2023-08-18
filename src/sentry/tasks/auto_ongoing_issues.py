@@ -20,6 +20,7 @@ from sentry.models import (
     Project,
 )
 from sentry.monitoring.queues import backend
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.group import GroupSubStatus
 from sentry.utils.iterators import chunked
@@ -73,6 +74,7 @@ def get_daily_10min_bucket(now: datetime):
     max_retries=3,
     default_retry_delay=60,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry(on=(OperationalError,))
 @monitor(monitor_slug="schedule_auto_transition_to_ongoing")
@@ -101,6 +103,7 @@ def schedule_auto_transition_to_ongoing() -> None:
             auto_transition_issues_new_to_ongoing.delay(
                 project_ids=project_ids,
                 first_seen_lte=int(seven_days_ago.timestamp()),
+                organization_id=org.id,
                 expires=now + timedelta(hours=1),
             )
 
@@ -125,24 +128,35 @@ def schedule_auto_transition_to_ongoing() -> None:
     max_retries=3,
     default_retry_delay=60,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry(on=(OperationalError,))
 @log_error_if_queue_has_items
 def auto_transition_issues_new_to_ongoing(
     project_ids: List[int],
     first_seen_lte: int,
+    organization_id: int,
     **kwargs,
 ) -> None:
     """
     We will update all NEW Groups to ONGOING that were created before the
     most recent Group first seen 7 days ago.
     """
+
     most_recent_group_first_seen_seven_days_ago = (
         Group.objects.filter(
             first_seen__lte=datetime.fromtimestamp(first_seen_lte, timezone.utc),
         )
         .order_by("-id")
         .first()
+    )
+    logger.info(
+        "auto_transition_issues_new_to_ongoing started",
+        extra={
+            "organization_id": organization_id,
+            "most_recent_group_first_seen_seven_days_ago": most_recent_group_first_seen_seven_days_ago.id,
+            "first_seen_lte": first_seen_lte,
+        },
     )
 
     for new_groups in chunked(
@@ -157,6 +171,15 @@ def auto_transition_issues_new_to_ongoing(
         ),
         ITERATOR_CHUNK,
     ):
+        for group in new_groups:
+            logger.info(
+                "auto_transition_issues_new_to_ongoing updating group",
+                extra={
+                    "organization_id": organization_id,
+                    "most_recent_group_first_seen_seven_days_ago": most_recent_group_first_seen_seven_days_ago.id,
+                    "group_id": group.id,
+                },
+            )
         bulk_transition_group_to_ongoing(
             GroupStatus.UNRESOLVED,
             GroupSubStatus.NEW,
@@ -173,6 +196,7 @@ def auto_transition_issues_new_to_ongoing(
     max_retries=3,
     default_retry_delay=60,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry(on=(OperationalError,))
 @log_error_if_queue_has_items
@@ -220,6 +244,7 @@ def auto_transition_issues_regressed_to_ongoing(
     max_retries=3,
     default_retry_delay=60,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 @retry(on=(OperationalError,))
 @log_error_if_queue_has_items

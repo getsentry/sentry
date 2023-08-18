@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import responses
@@ -7,7 +10,7 @@ from sentry.testutils.cases import IntegrationTestCase
 
 
 class VstsIntegrationTestCase(IntegrationTestCase):
-    provider = VstsIntegrationProvider
+    provider = VstsIntegrationProvider()
 
     def setUp(self):
         super().setUp()
@@ -471,7 +474,7 @@ CREATE_SUBSCRIPTION = {
     "consumerInputs": {"url": "https://myservice/newreceiver"},
 }
 
-WORK_ITEM_UPDATED = {
+WORK_ITEM_UPDATED: dict[str, Any] = {
     "resourceContainers": {
         "project": {
             "id": "c0bf429a-c03c-4a99-9336-d45be74db5a6",
@@ -588,7 +591,7 @@ WORK_ITEM_UPDATED = {
 }
 
 
-WORK_ITEM_UNASSIGNED = {
+WORK_ITEM_UNASSIGNED: dict[str, Any] = {
     "resourceContainers": {
         "project": {
             "id": "c0bf429a-c03c-4a99-9336-d45be74db5a6",
@@ -699,7 +702,7 @@ WORK_ITEM_UNASSIGNED = {
     "publisherId": "tfs",
     "message": None,
 }
-WORK_ITEM_UPDATED_STATUS = {
+WORK_ITEM_UPDATED_STATUS: dict[str, Any] = {
     "resourceContainers": {
         "project": {
             "id": "c0bf429a-c03c-4a99-9336-d45be74db5a6",

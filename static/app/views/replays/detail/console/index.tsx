@@ -9,6 +9,7 @@ import {
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
 import ConsoleFilters from 'sentry/views/replays/detail/console/consoleFilters';
 import ConsoleLogRow from 'sentry/views/replays/detail/console/consoleLogRow';
@@ -33,6 +34,8 @@ const cellMeasurer = {
 };
 
 function Console({frames, startTimestampMs}: Props) {
+  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
+
   const filterProps = useConsoleFilters({frames: frames || []});
   const {expandPathsRef, searchTerm, logLevel, items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
@@ -67,11 +70,14 @@ function Console({frames, startTimestampMs}: Props) {
         rowIndex={index}
       >
         <ConsoleLogRow
-          frame={item}
-          currentTime={currentTime}
           currentHoverTime={currentHoverTime}
+          currentTime={currentTime}
           expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
+          frame={item}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
           index={index}
+          onClickTimestamp={onClickTimestamp}
           onDimensionChange={handleDimensionChange}
           startTimestampMs={startTimestampMs}
           style={style}

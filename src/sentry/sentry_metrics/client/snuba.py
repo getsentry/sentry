@@ -8,7 +8,7 @@ from django.core.cache import cache
 from sentry import quotas
 from sentry.sentry_metrics.client.base import GenericMetricsBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.testutils.cases import BaseMetricsTestCase
+from sentry.testutils.cases import BaseMetricsTestCase  # NOQA:S007
 
 
 def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optional[str]) -> str:

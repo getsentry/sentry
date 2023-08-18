@@ -47,6 +47,7 @@ TASK_OPTIONS = {
     "queue": "app_platform",
     "default_retry_delay": (60 * 5),  # Five minutes.
     "max_retries": 3,
+    "record_timing": True,
 }
 CONTROL_TASK_OPTIONS = {
     "queue": "app_platform.control",
@@ -94,7 +95,9 @@ def _webhook_event_data(event, group_id, project_id):
     return event_context
 
 
-@instrumented_task(name="sentry.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
+@instrumented_task(
+    name="sentry.tasks.sentry_apps.send_alert_event", silo_mode=SiloMode.REGION, **TASK_OPTIONS
+)
 @retry(**RETRY_OPTIONS)
 def send_alert_event(
     event: Event,

@@ -9,6 +9,7 @@ from sentry import features, http, options
 from sentry.datascrubbing import scrub_data
 from sentry.event_manager import EventManager
 from sentry.models import Project, ProjectOption
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.safe import safe_execute
@@ -37,6 +38,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.tasks.poll_recap_servers",
     queue="recap_servers",
+    silo_mode=SiloMode.REGION,
 )
 def poll_recap_servers(**kwargs):
     project_ids = (
@@ -52,6 +54,7 @@ def poll_recap_servers(**kwargs):
 @instrumented_task(
     name="sentry.tasks.poll_project_recap_server",
     queue="recap_servers",
+    silo_mode=SiloMode.REGION,
 )
 def poll_project_recap_server(project_id: int, **kwargs) -> None:
     try:

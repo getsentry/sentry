@@ -154,6 +154,6 @@ class IssuePlugin2GroupActionTest(TestCase):
         url = "/api/0/issues/%s/plugins/issuetrackingplugin2/create/" % group.id
         response = self.client.get(url, format="json")
         assert response.status_code == 400
-        assert response.data == {
+        assert response.json() == {
             "message": "Unable to create issues: there are " "no events associated with this group"
         }

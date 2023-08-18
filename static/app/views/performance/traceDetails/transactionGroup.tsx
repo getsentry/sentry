@@ -11,7 +11,7 @@ import {
   VerticalMark,
 } from 'sentry/components/events/interfaces/spans/utils';
 import {Organization} from 'sentry/types';
-import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 
 import TransactionBar from './transactionBar';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
@@ -28,9 +28,11 @@ type Props = ScrollbarManagerChildrenProps & {
   organization: Organization;
   renderedChildren: React.ReactNode[];
   traceInfo: TraceInfo;
-  transaction: TraceRoot | TraceFullDetailed;
+  transaction: TraceRoot | TraceFullDetailed | TraceError;
   barColor?: string;
+  isOrphanError?: boolean;
   measurements?: Map<number, VerticalMark>;
+  numOfOrphanErrors?: number;
 };
 
 type State = {
@@ -71,6 +73,8 @@ class TransactionGroup extends Component<Props, State> {
       onWheel,
       measurements,
       generateBounds,
+      numOfOrphanErrors,
+      isOrphanError,
     } = this.props;
     const {isExpanded} = this.state;
 
@@ -95,6 +99,8 @@ class TransactionGroup extends Component<Props, State> {
           addContentSpanBarRef={addContentSpanBarRef}
           removeContentSpanBarRef={removeContentSpanBarRef}
           onWheel={onWheel}
+          numOfOrphanErrors={numOfOrphanErrors}
+          isOrphanError={isOrphanError}
         />
         {isExpanded && renderedChildren}
       </Fragment>

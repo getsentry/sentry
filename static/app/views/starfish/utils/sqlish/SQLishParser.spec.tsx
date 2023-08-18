@@ -21,6 +21,11 @@ describe('SQLishParser', function () {
       'LIMIT $2', // PHP-style II
       'created >= %s', // Python-style
       'created >= $1', // Rails-style
+      '@@ to_tsquery', // Postgres full-text search
+      'flags & %s)', // Bitwise AND
+      'flags | %s)', // Bitwise OR
+      'flags ^ %s)', // Bitwise XOR
+      'flags ~ %s)', // Bitwise NOT
     ])('Parses %s', sql => {
       expect(() => {
         parser.parse(sql);
@@ -34,7 +39,7 @@ describe('SQLishParser', function () {
       expect(parser.parse('select ..')).toEqual([
         {
           type: 'Keyword',
-          content: 'select',
+          content: 'SELECT',
         },
         {
           type: 'Whitespace',
@@ -48,17 +53,19 @@ describe('SQLishParser', function () {
     });
 
     it('Detects whitespace between generic tokens and JOIN commands', () => {
-      expect(parser.parse('table1 INNER JOIN table2')).toEqual([
+      expect(parser.parse('sentry_users INNER JOIN sentry_messages')).toEqual([
         {
           type: 'GenericToken',
-          content: 'table1',
+          content: 'sentry_users',
         },
         {type: 'Whitespace', content: ' '},
-        {type: 'Keyword', content: 'INNER JOIN'},
+        {type: 'Keyword', content: 'INNER'},
+        {type: 'Whitespace', content: ' '},
+        {type: 'Keyword', content: 'JOIN'},
         {type: 'Whitespace', content: ' '},
         {
           type: 'GenericToken',
-          content: 'table2',
+          content: 'sentry_messages',
         },
       ]);
     });

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import Collection, List, Tuple
 
-from django.db import transaction
+from django.db import router, transaction
+from rest_framework import status
 from rest_framework.request import Request
 
 from sentry import roles
-from sentry.api.exceptions import SentryAPIException, status
+from sentry.api.exceptions import SentryAPIException
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.locks import locks
@@ -21,7 +22,6 @@ class InvalidTeam(SentryAPIException):
     message = "The team slug does not match a team in the organization"
 
 
-@transaction.atomic
 def save_team_assignments(
     organization_member: OrganizationMember,
     teams: List[Team] | None,
@@ -45,13 +45,16 @@ def save_team_assignments(
 
         new_assignments = [(team, team_role_map.get(team.slug, None)) for team in target_teams]
 
-        OrganizationMemberTeam.objects.filter(organizationmember=organization_member).delete()
-        OrganizationMemberTeam.objects.bulk_create(
-            [
-                OrganizationMemberTeam(organizationmember=organization_member, team=team, role=role)
-                for team, role in new_assignments
-            ]
-        )
+        with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
+            OrganizationMemberTeam.objects.filter(organizationmember=organization_member).delete()
+            OrganizationMemberTeam.objects.bulk_create(
+                [
+                    OrganizationMemberTeam(
+                        organizationmember=organization_member, team=team, role=role
+                    )
+                    for team, role in new_assignments
+                ]
+            )
 
 
 def can_set_team_role(access: Access, team: Team, new_role: TeamRole) -> bool:

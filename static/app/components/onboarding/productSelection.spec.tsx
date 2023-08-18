@@ -3,6 +3,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
+  platformProductAvailability,
   ProductSelection,
   ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
@@ -12,13 +13,18 @@ describe('Onboarding Product Selection', function () {
     const {router, routerContext} = initializeOrg({
       router: {
         location: {
-          query: {product: ['performance-monitoring', 'session-replay']},
+          query: {
+            product: [
+              ProductSolution.PERFORMANCE_MONITORING,
+              ProductSolution.SESSION_REPLAY,
+            ],
+          },
         },
         params: {},
       },
     });
 
-    render(<ProductSelection />, {
+    render(<ProductSelection platform="javascript-react" />, {
       context: routerContext,
     });
 
@@ -58,7 +64,7 @@ describe('Onboarding Product Selection', function () {
     await waitFor(() =>
       expect(router.replace).toHaveBeenCalledWith({
         pathname: undefined,
-        query: {product: ['session-replay']},
+        query: {product: [ProductSolution.SESSION_REPLAY]},
       })
     );
 
@@ -71,7 +77,7 @@ describe('Onboarding Product Selection', function () {
     await waitFor(() =>
       expect(router.replace).toHaveBeenCalledWith({
         pathname: undefined,
-        query: {product: ['performance-monitoring']},
+        query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
       })
     );
 
@@ -86,7 +92,12 @@ describe('Onboarding Product Selection', function () {
     const {routerContext} = initializeOrg({
       router: {
         location: {
-          query: {product: ['performance-monitoring', 'session-replay']},
+          query: {
+            product: [
+              ProductSolution.PERFORMANCE_MONITORING,
+              ProductSolution.SESSION_REPLAY,
+            ],
+          },
         },
         params: {},
       },
@@ -94,9 +105,16 @@ describe('Onboarding Product Selection', function () {
 
     const skipLazyLoader = jest.fn();
 
-    render(<ProductSelection lazyLoader skipLazyLoader={skipLazyLoader} />, {
-      context: routerContext,
-    });
+    render(
+      <ProductSelection
+        lazyLoader
+        skipLazyLoader={skipLazyLoader}
+        platform="javascript-react"
+      />,
+      {
+        context: routerContext,
+      }
+    );
 
     // Introduction
     expect(
@@ -119,7 +137,7 @@ describe('Onboarding Product Selection', function () {
     const {router, routerContext} = initializeOrg({
       router: {
         location: {
-          query: {product: ['session-replay']},
+          query: {product: [ProductSolution.SESSION_REPLAY]},
         },
         params: {},
       },
@@ -132,9 +150,15 @@ describe('Onboarding Product Selection', function () {
       },
     ];
 
-    render(<ProductSelection disabledProducts={disabledProducts} />, {
-      context: routerContext,
-    });
+    render(
+      <ProductSelection
+        disabledProducts={disabledProducts}
+        platform="javascript-react"
+      />,
+      {
+        context: routerContext,
+      }
+    );
 
     // Performance Monitoring shall be unchecked and disabled by default
     expect(screen.getByRole('checkbox', {name: 'Performance Monitoring'})).toBeDisabled();
@@ -149,5 +173,63 @@ describe('Onboarding Product Selection', function () {
 
     // Try to uncheck performance monitoring
     await waitFor(() => expect(router.push).not.toHaveBeenCalled());
+  });
+
+  it('does not render Session Replay', async function () {
+    platformProductAvailability['javascript-react'] = [
+      ProductSolution.PERFORMANCE_MONITORING,
+    ];
+
+    const {router, routerContext} = initializeOrg({
+      router: {
+        location: {
+          query: {product: [ProductSolution.SESSION_REPLAY]},
+        },
+        params: {},
+      },
+    });
+
+    render(<ProductSelection platform="javascript-react" />, {
+      context: routerContext,
+    });
+
+    expect(
+      screen.queryByRole('checkbox', {name: 'Session Replay'})
+    ).not.toBeInTheDocument();
+
+    // router.replace is called to remove session-replay from query
+    await waitFor(() =>
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: undefined,
+        query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
+      })
+    );
+  });
+
+  it('render Profiling', async function () {
+    const {router, routerContext} = initializeOrg({
+      router: {
+        location: {
+          query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
+        },
+        params: {},
+      },
+    });
+
+    render(<ProductSelection platform="python-django" />, {
+      context: routerContext,
+    });
+
+    expect(screen.getByRole('checkbox', {name: 'Profiling'})).toBeInTheDocument();
+
+    // router.replace is called to add profiling from query
+    await waitFor(() =>
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: undefined,
+        query: {
+          product: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+        },
+      })
+    );
   });
 });

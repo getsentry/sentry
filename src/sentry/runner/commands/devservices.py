@@ -449,7 +449,7 @@ def down(project: str, service: list[str]) -> None:
                 continue
             containers.append(container)
 
-        with ThreadPoolExecutor(max_workers=len(containers)) as executor:
+        with ThreadPoolExecutor(max_workers=len(containers) or 1) as executor:
             futures = []
             for container in containers:
                 futures.append(executor.submit(_down, container))

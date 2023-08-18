@@ -122,6 +122,20 @@ const performanceConfig: IssueCategoryConfigMapping = {
       },
     },
   },
+  [IssueType.PERFORMANCE_HTTP_OVERHEAD]: {
+    resources: {
+      description: t(
+        "HTTP/1.1 can cause overhead, with long request queue times in the browser due to max connection limits. In the Span Evidence above, we've identified the extent of the wait time and spans affected by request queueing. To learn more about how to fix HTTP Overhead, check out these resources:"
+      ),
+      links: [
+        {
+          text: t('Sentry Docs: HTTP/1.1 Overhead'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/http-overhead/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
   [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: {
     resources: {
       description: t(

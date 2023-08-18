@@ -171,6 +171,13 @@ class DatabaseBackedNotificationsService(NotificationsService):
     def get_many(self, *, filter: NotificationSettingFilterArgs) -> List[RpcNotificationSetting]:
         return self._FQ.get_many(filter)
 
+    def remove_notification_settings_for_organization(self, *, organization_id: int) -> None:
+        assert organization_id, "organization_id must be a positive integer"
+        NotificationSetting.objects.remove_for_organization(organization_id=organization_id)
+
+    def remove_notification_settings_for_project(self, *, project_id: int) -> None:
+        NotificationSetting.objects.remove_for_project(project_id=project_id)
+
     def serialize_many(
         self,
         *,

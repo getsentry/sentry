@@ -8,7 +8,9 @@ from uuid import uuid4
 
 from django.db import IntegrityError, models, router
 from django.utils import timezone
+from typing_extensions import Self
 
+from sentry.backup.scopes import RelocationScope
 from sentry.celery import SentryTask
 from sentry.db.models import BoundedPositiveIntegerField, Model
 from sentry.locks import locks
@@ -29,6 +31,7 @@ MULTI_BLOB_UPLOAD_CONCURRENCY = 8
 
 class AbstractFileBlob(Model):
     __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     path = models.TextField(null=True)
     size = BoundedPositiveIntegerField(null=True)
@@ -170,7 +173,7 @@ class AbstractFileBlob(Model):
             logger.debug("FileBlob.from_files.end")
 
     @classmethod
-    def from_file(cls, fileobj, logger=nooplogger):
+    def from_file(cls, fileobj, logger=nooplogger) -> Self:
         """
         Retrieve a single FileBlob instances for the given file.
         """

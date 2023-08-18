@@ -260,6 +260,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
         <AddIntegrationButton
           provider={provider}
           onAddIntegration={this.onInstall}
+          installStatus={this.installationStatus}
           analyticsParams={{
             view: 'integrations_directory_integration_detail',
             already_installed: this.installationStatus !== 'Not Installed',
@@ -337,14 +338,27 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
           {
             name: 'githubPRBot',
             type: 'boolean',
-            label: t('Enable Pull Request Bot'),
+            label: t('Enable Comments on Suspect Pull Requests'),
             help: t(
-              'Allow Sentry to comment on pull requests about issues impacting your app.'
+              'Allow Sentry to comment on recent pull requests suspected of causing issues.'
             ),
             disabled: !hasIntegration,
             disabledReason: t(
               'You must have a GitHub integration to enable this feature.'
             ),
+          },
+          {
+            name: 'githubOpenPRBot',
+            type: 'boolean',
+            label: t('Enable Comments on Open Pull Requests'),
+            help: t(
+              'Allow Sentry to comment on open pull requests to show recent error and performance issues for the code being changed.'
+            ),
+            disabled: !hasIntegration,
+            disabledReason: t(
+              'You must have a GitHub integration to enable this feature.'
+            ),
+            visible: ({features}) => features.includes('integrations-open-pr-comment'),
           },
         ],
       },
@@ -352,6 +366,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
     const initialData = {
       githubPRBot: organization.githubPRBot,
+      githubOpenPRBot: organization.githubOpenPRBot,
     };
 
     return (

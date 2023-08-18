@@ -37,6 +37,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert resp.data == serialize(self.alert_rule, serializer=DetailedAlertRuleSerializer())
 
 
+@region_silo_test(stable=True)
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
@@ -99,6 +100,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         )
 
 
+@region_silo_test(stable=True)
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     method = "delete"
 
@@ -112,7 +114,8 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         assert not AlertRule.objects_with_snapshots.filter(name=self.alert_rule.id).exists()
         assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
 
-        audit_log_entry = AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("ALERT_RULE_REMOVE"), target_object=self.alert_rule.id
-        )
-        assert len(audit_log_entry) == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_log_entry = AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("ALERT_RULE_REMOVE"), target_object=self.alert_rule.id
+            )
+            assert len(audit_log_entry) == 1

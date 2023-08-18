@@ -15,7 +15,7 @@ from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
 from sentry.ratelimits.cardinality import CardinalityLimiter
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
-from sentry.sentry_metrics.consumers.indexer.batch import invalid_metric_tags, valid_metric_name
+from sentry.sentry_metrics.consumers.indexer.batch import valid_metric_name
 from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MetricsBatchBuilder
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.indexer.limiters.cardinality import (
@@ -298,6 +298,7 @@ def __translated_payload(
     return payload
 
 
+@pytest.mark.django_db
 def test_process_messages() -> None:
     message_payloads = [counter_payload, distribution_payload, set_payload]
     message_batch = [
@@ -380,6 +381,7 @@ invalid_payloads = [
 ]
 
 
+@pytest.mark.django_db
 @pytest.mark.parametrize("invalid_payload, error_text, format_payload", invalid_payloads)
 def test_process_messages_invalid_messages(
     invalid_payload, error_text, format_payload, caplog
@@ -445,6 +447,7 @@ def test_process_messages_invalid_messages(
     assert error_text in caplog.text
 
 
+@pytest.mark.django_db
 def test_process_messages_rate_limited(caplog, settings) -> None:
     """
     Test handling of `None`-values coming from the indexer service, which
@@ -506,6 +509,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     assert "dropped_message" in caplog.text
 
 
+@pytest.mark.django_db
 def test_process_messages_cardinality_limited(
     caplog, settings, monkeypatch, set_sentry_option
 ) -> None:
@@ -560,17 +564,6 @@ def test_valid_metric_name() -> None:
     assert valid_metric_name("") is True
     assert valid_metric_name("blah") is True
     assert valid_metric_name("invalid" * 200) is False
-
-
-def test_invalid_metric_tags() -> None:
-    bad_tag = "invalid" * 200
-    tags = {"environment": "", "release": "good_tag"}
-    assert invalid_metric_tags(tags) == []
-    assert invalid_metric_tags(tags) == []
-    tags["release"] = bad_tag
-    assert invalid_metric_tags(tags) == [bad_tag]
-    tags["release"] = None
-    assert invalid_metric_tags(tags) == [None]
 
 
 def test_process_messages_is_pickleable():

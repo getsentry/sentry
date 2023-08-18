@@ -6,7 +6,6 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
-import Feature from 'sentry/components/acl/feature';
 import {AsyncComponentState} from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -97,7 +96,12 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
       ],
 
       ['inviteRequests', `/organizations/${organization.slug}/invite-requests/`],
-      ['missingMembers', `/organizations/${organization.slug}/missing-members/`],
+      [
+        'missingMembers',
+        `/organizations/${organization.slug}/missing-members/`,
+        {},
+        {allowError: error => error.status === 403},
+      ],
     ];
   }
 
@@ -327,18 +331,16 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
       </SearchWrapperWithFilter>
     );
 
-    const githubMissingMembers = missingMembers.filter(
+    const githubMissingMembers = missingMembers?.filter(
       integrationMissingMembers => integrationMissingMembers.integration === 'github'
     )[0];
 
     return (
       <Fragment>
-        <Feature organization={organization} features={['integrations-gh-invite']}>
-          <InviteBanner
-            missingMembers={githubMissingMembers}
-            onSendInvite={this.handleInviteMissingMember}
-          />
-        </Feature>
+        <InviteBanner
+          missingMembers={githubMissingMembers}
+          onSendInvite={this.handleInviteMissingMember}
+        />
         <ClassNames>
           {({css}) =>
             this.renderSearchInput({

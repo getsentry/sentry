@@ -40,19 +40,19 @@ function splitCrumbs({
         key="first"
         frames={firstFrame}
         startTimestampMs={startTimestampMs}
-        handleOnClick={onClick}
+        onClick={onClick}
       />,
       <SummarySegment
         key="summary"
         frames={summarizedFrames}
         startTimestampMs={startTimestampMs}
-        handleOnClick={onClick}
+        onClick={onClick}
       />,
       <SummarySegment
         key="last"
         frames={lastFrame}
         startTimestampMs={startTimestampMs}
-        handleOnClick={onClick}
+        onClick={onClick}
       />,
     ];
   }
@@ -62,21 +62,21 @@ function splitCrumbs({
       key={i}
       frames={[frame]}
       startTimestampMs={startTimestampMs}
-      handleOnClick={onClick}
+      onClick={onClick}
     />
   ));
 }
 
 function SummarySegment({
   frames,
-  handleOnClick,
+  onClick,
   startTimestampMs,
 }: {
   frames: ReplayFrame[];
-  handleOnClick: MaybeOnClickHandler;
+  onClick: MaybeOnClickHandler;
   startTimestampMs: number;
 }) {
-  const {handleMouseEnter, handleMouseLeave} = useCrumbHandlers(startTimestampMs);
+  const {onMouseEnter, onMouseLeave} = useCrumbHandlers();
 
   const summaryItems = (
     <ScrollingList>
@@ -84,9 +84,9 @@ function SummarySegment({
         <li key={i}>
           <BreadcrumbItem
             frame={frame}
-            onClick={handleOnClick}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
+            onClick={onClick}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
             startTimestampMs={startTimestampMs}
           />
         </li>
@@ -123,7 +123,7 @@ const Span = styled('span')`
 
 const HalfPaddingHovercard = styled(
   ({children, bodyClassName, ...props}: React.ComponentProps<typeof Hovercard>) => (
-    <Hovercard bodyClassName={bodyClassName || '' + ' half-padding'} {...props}>
+    <Hovercard bodyClassName={(bodyClassName ?? '') + ' half-padding'} {...props}>
       {children}
     </Hovercard>
   )

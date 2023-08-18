@@ -16,7 +16,7 @@ import withApi from 'sentry/utils/withApi';
 type Props = {
   api: Client;
   onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
-  orgId: string;
+  orgSlug: string;
   requestList: AccessRequest[];
 };
 
@@ -37,14 +37,14 @@ class OrganizationAccessRequests extends Component<Props, State> {
   };
 
   async handleAction({id, isApproved, successMessage, errorMessage}: HandleOpts) {
-    const {api, orgId, onRemoveAccessRequest} = this.props;
+    const {api, orgSlug, onRemoveAccessRequest} = this.props;
 
     this.setState(state => ({
       accessRequestBusy: {...state.accessRequestBusy, [id]: true},
     }));
 
     try {
-      await api.requestPromise(`/organizations/${orgId}/access-requests/${id}/`, {
+      await api.requestPromise(`/organizations/${orgSlug}/access-requests/${id}/`, {
         method: 'PUT',
         data: {isApproved},
       });

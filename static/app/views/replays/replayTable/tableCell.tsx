@@ -1,7 +1,11 @@
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import Avatar from 'sentry/components/avatar';
+import {Button} from 'sentry/components/button';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
@@ -10,26 +14,245 @@ import StringWalker from 'sentry/components/replays/walker/stringWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconCalendar, IconDelete, IconFire} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconCalendar, IconDelete, IconEllipsis, IconFire} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
 };
 
 export type ReferrerTableType = 'main' | 'dead-table' | 'errors-table' | 'rage-table';
+
+type EditType = 'set' | 'remove';
+
+function generateAction({
+  key,
+  value,
+  edit,
+  location,
+}: {
+  edit: EditType;
+  key: string;
+  location: Location<ReplayListLocationQuery>;
+  value: string;
+}) {
+  const search = new MutableSearch(decodeScalar(location.query.query) || '');
+
+  const modifiedQuery =
+    edit === 'set' ? search.setFilterValues(key, [value]) : search.removeFilter(key);
+
+  const onAction = () => {
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        query: modifiedQuery.formatString(),
+      },
+    });
+  };
+
+  return onAction;
+}
+
+function OSBrowserDropdownFilter({
+  type,
+  name,
+  version,
+}: {
+  name: string | null;
+  type: string;
+  version: string | null;
+}) {
+  const location = useLocation<ReplayListLocationQuery>();
+  return (
+    <DropdownMenu
+      items={[
+        ...(name
+          ? [
+              {
+                key: 'name',
+                label: tct('[type] name: [name]', {
+                  type: <b>{type}</b>,
+                  name: <b>{name}</b>,
+                }),
+                children: [
+                  {
+                    key: 'name_add',
+                    label: t('Add to filter'),
+                    onAction: generateAction({
+                      key: `${type}.name`,
+                      value: name ?? '',
+                      edit: 'set',
+                      location,
+                    }),
+                  },
+                  {
+                    key: 'name_exclude',
+                    label: t('Exclude from filter'),
+                    onAction: generateAction({
+                      key: `${type}.name`,
+                      value: name ?? '',
+                      edit: 'remove',
+                      location,
+                    }),
+                  },
+                ],
+              },
+            ]
+          : []),
+        ...(version
+          ? [
+              {
+                key: 'version',
+                label: tct('[type] version: [version]', {
+                  type: <b>{type}</b>,
+                  version: <b>{version}</b>,
+                }),
+                children: [
+                  {
+                    key: 'version_add',
+                    label: t('Add to filter'),
+                    onAction: generateAction({
+                      key: `${type}.version`,
+                      value: version ?? '',
+                      edit: 'set',
+                      location,
+                    }),
+                  },
+                  {
+                    key: 'version_exclude',
+                    label: t('Exclude from filter'),
+                    onAction: generateAction({
+                      key: `${type}.version`,
+                      value: version ?? '',
+                      edit: 'remove',
+                      location,
+                    }),
+                  },
+                ],
+              },
+            ]
+          : []),
+      ]}
+      usePortal
+      size="xs"
+      offset={4}
+      position="bottom"
+      preventOverflowOptions={{padding: 4}}
+      flipOptions={{
+        fallbackPlacements: ['top', 'right-start', 'right-end', 'left-start', 'left-end'],
+      }}
+      trigger={triggerProps => (
+        <ActionMenuTrigger
+          {...triggerProps}
+          translucentBorder
+          aria-label={t('Actions')}
+          icon={<IconEllipsis size="xs" />}
+          size="zero"
+        />
+      )}
+    />
+  );
+}
+
+function NumericDropdownFilter({
+  type,
+  val,
+  triggerOverlay,
+}: {
+  type: string;
+  val: number;
+  triggerOverlay?: boolean;
+}) {
+  const location = useLocation<ReplayListLocationQuery>();
+  return (
+    <DropdownMenu
+      items={[
+        {
+          key: 'add',
+          label: 'Add to filter',
+          onAction: generateAction({
+            key: type,
+            value: val.toString(),
+            edit: 'set',
+            location,
+          }),
+        },
+        {
+          key: 'greater',
+          label: 'Show values greater than',
+          onAction: generateAction({
+            key: type,
+            value: '>' + val.toString(),
+            edit: 'set',
+            location,
+          }),
+        },
+        {
+          key: 'less',
+          label: 'Show values less than',
+          onAction: generateAction({
+            key: type,
+            value: '<' + val.toString(),
+            edit: 'set',
+            location,
+          }),
+        },
+        {
+          key: 'exclude',
+          label: t('Exclude from filter'),
+          onAction: generateAction({
+            key: type,
+            value: val.toString(),
+            edit: 'remove',
+            location,
+          }),
+        },
+      ]}
+      usePortal
+      size="xs"
+      offset={4}
+      position="bottom"
+      preventOverflowOptions={{padding: 4}}
+      flipOptions={{
+        fallbackPlacements: ['top', 'right-start', 'right-end', 'left-start', 'left-end'],
+      }}
+      trigger={triggerProps =>
+        triggerOverlay ? (
+          <OverlayActionMenuTrigger
+            {...triggerProps}
+            translucentBorder
+            aria-label={t('Actions')}
+            icon={<IconEllipsis size="xs" />}
+            size="zero"
+          />
+        ) : (
+          <NumericActionMenuTrigger
+            {...triggerProps}
+            translucentBorder
+            aria-label={t('Actions')}
+            icon={<IconEllipsis size="xs" />}
+            size="zero"
+          />
+        )
+      }
+    />
+  );
+}
 
 function getUserBadgeUser(replay: Props['replay']) {
   return replay.is_archived
@@ -137,7 +360,9 @@ export function ReplayCell({
       {showUrl ? <StringWalker urls={replay.urls} /> : undefined}
       <Row gap={1}>
         <Row gap={0.5}>
+          {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
           {project ? <Avatar size={12} project={project} /> : null}
+          {project ? project.slug : null}
           <Link to={detailsTab} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}
           </Link>
@@ -231,11 +456,15 @@ export function OSCell({replay}: Props) {
   }
   return (
     <Item>
-      <ContextIcon
-        name={name ?? ''}
-        version={version && hasRoomForColumns ? version : undefined}
-        showVersion={false}
-      />
+      <Container>
+        <ContextIcon
+          name={name ?? ''}
+          version={version && hasRoomForColumns ? version : undefined}
+          showVersion={false}
+          showTooltip={false}
+        />
+        <OSBrowserDropdownFilter type="os" name={name} version={version} />
+      </Container>
     </Item>
   );
 }
@@ -250,11 +479,15 @@ export function BrowserCell({replay}: Props) {
   }
   return (
     <Item>
-      <ContextIcon
-        name={name ?? ''}
-        version={version && hasRoomForColumns ? version : undefined}
-        showVersion={false}
-      />
+      <Container>
+        <ContextIcon
+          name={name ?? ''}
+          version={version && hasRoomForColumns ? version : undefined}
+          showVersion={false}
+          showTooltip={false}
+        />
+        <OSBrowserDropdownFilter type="browser" name={name} version={version} />
+      </Container>
     </Item>
   );
 }
@@ -265,7 +498,10 @@ export function DurationCell({replay}: Props) {
   }
   return (
     <Item>
-      <Time>{formatTime(replay.duration.asMilliseconds())}</Time>
+      <Container>
+        <Time>{formatTime(replay.duration.asMilliseconds())}</Time>
+        <NumericDropdownFilter type="duration" val={replay.duration.asSeconds()} />
+      </Container>
     </Item>
   );
 }
@@ -276,11 +512,17 @@ export function RageClickCountCell({replay}: Props) {
   }
   return (
     <Item data-test-id="replay-table-count-rage-clicks">
-      {replay.count_rage_clicks ? (
-        <Count>{replay.count_rage_clicks}</Count>
-      ) : (
-        <Count>0</Count>
-      )}
+      <Container>
+        {replay.count_rage_clicks ? (
+          <DeadRageCount>{replay.count_rage_clicks}</DeadRageCount>
+        ) : (
+          <Count>0</Count>
+        )}
+        <NumericDropdownFilter
+          type="count_rage_clicks"
+          val={replay.count_rage_clicks ?? 0}
+        />
+      </Container>
     </Item>
   );
 }
@@ -291,11 +533,17 @@ export function DeadClickCountCell({replay}: Props) {
   }
   return (
     <Item data-test-id="replay-table-count-dead-clicks">
-      {replay.count_dead_clicks ? (
-        <Count>{replay.count_dead_clicks}</Count>
-      ) : (
-        <Count>0</Count>
-      )}
+      <Container>
+        {replay.count_dead_clicks ? (
+          <DeadRageCount>{replay.count_dead_clicks}</DeadRageCount>
+        ) : (
+          <Count>0</Count>
+        )}
+        <NumericDropdownFilter
+          type="count_dead_clicks"
+          val={replay.count_dead_clicks ?? 0}
+        />
+      </Container>
     </Item>
   );
 }
@@ -306,14 +554,17 @@ export function ErrorCountCell({replay}: Props) {
   }
   return (
     <Item data-test-id="replay-table-count-errors">
-      {replay.count_errors ? (
-        <ErrorCount>
-          <IconFire />
-          {replay.count_errors}
-        </ErrorCount>
-      ) : (
-        <Count>0</Count>
-      )}
+      <Container>
+        {replay.count_errors ? (
+          <ErrorCount>
+            <IconFire />
+            {replay.count_errors}
+          </ErrorCount>
+        ) : (
+          <Count>0</Count>
+        )}
+        <NumericDropdownFilter type="count_errors" val={replay.count_errors ?? 0} />
+      </Container>
     </Item>
   );
 }
@@ -325,12 +576,19 @@ export function ActivityCell({replay}: Props) {
   const scoreBarPalette = new Array(10).fill([CHART_PALETTE[0][0]]);
   return (
     <Item>
-      <ScoreBar
-        size={20}
-        score={replay?.activity ?? 1}
-        palette={scoreBarPalette}
-        radius={0}
-      />
+      <Container>
+        <ScoreBar
+          size={20}
+          score={replay?.activity ?? 1}
+          palette={scoreBarPalette}
+          radius={0}
+        />
+        <NumericDropdownFilter
+          type="activity"
+          val={replay?.activity ?? 0}
+          triggerOverlay
+        />
+      </Container>
     </Item>
   );
 }
@@ -345,6 +603,11 @@ const Item = styled('div')<{isArchived?: boolean}>`
 
 const Count = styled('span')`
   font-variant-numeric: tabular-nums;
+`;
+
+const DeadRageCount = styled(Count)`
+  display: flex;
+  width: 40px;
 `;
 
 const ErrorCount = styled(Count)`
@@ -366,4 +629,39 @@ const SpanOperationBreakdown = styled('div')`
   color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: right;
+`;
+
+const Container = styled('div')`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+`;
+
+const ActionMenuTrigger = styled(Button)`
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: ${space(0.75)};
+  left: -${space(0.75)};
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.1s;
+  &.focus-visible,
+  &[aria-expanded='true'],
+  ${Container}:hover & {
+    opacity: 1;
+  }
+`;
+
+const NumericActionMenuTrigger = styled(ActionMenuTrigger)`
+  left: 100%;
+  margin-left: ${space(0.75)};
+  z-index: 1;
+`;
+
+const OverlayActionMenuTrigger = styled(NumericActionMenuTrigger)`
+  right: 0%;
+  left: unset;
 `;

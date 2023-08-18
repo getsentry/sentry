@@ -1,8 +1,10 @@
 import logging
-from typing import Optional
+from typing import Optional, TypeVar
 
 from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
-from arroyo.types import Message, TPayload
+from arroyo.types import Message
+
+TPayload = TypeVar("TPayload")
 
 
 class LogExceptionStep(ProcessingStrategy[TPayload]):

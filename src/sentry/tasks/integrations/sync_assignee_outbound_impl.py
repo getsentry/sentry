@@ -4,6 +4,7 @@ from sentry import analytics, features
 from sentry.models import ExternalIssue, Integration, Organization, User
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 
 
@@ -12,6 +13,7 @@ from sentry.tasks.base import instrumented_task, retry
     queue="integrations",
     default_retry_delay=60 * 5,
     max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
 @retry(
     exclude=(

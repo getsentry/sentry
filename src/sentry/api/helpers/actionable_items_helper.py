@@ -69,6 +69,7 @@ errors_to_hide = [
     EventError.NATIVE_SIMULATOR_FRAME,
     EventError.NATIVE_UNKNOWN_IMAGE,
     EventError.NATIVE_SYMBOLICATOR_FAILED,
+    EventError.JS_SCRAPING_DISABLED,
 ]
 
 deprecated_event_errors = [

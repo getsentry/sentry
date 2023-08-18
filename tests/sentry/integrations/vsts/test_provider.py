@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 from time import time
+from typing import Any
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs
 
 import pytest
 import responses
+from django.forms import ChoiceField
 from django.http import HttpRequest
 
 from sentry.identity.vsts.provider import VSTSIdentityProvider, VSTSOAuth2CallbackView
@@ -11,7 +15,6 @@ from sentry.integrations.vsts.integration import AccountConfigView, AccountForm
 from sentry.models import Identity, IdentityProvider
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.utils.http import absolute_uri
 
 
 @control_silo_test(stable=True)
@@ -66,7 +69,7 @@ class TestAccountConfigView(TestCase):
         responses.reset()
         account_id = "1234567-8910"
         self.base_url = "http://sentry2.visualstudio.com/"
-        self.accounts = [
+        self.accounts: list[dict[str, Any]] = [
             {
                 "accountId": "1234567-89",
                 "NamespaceId": "00000000-0000-0000-0000-000000000000",
@@ -113,7 +116,7 @@ class TestAccountConfigView(TestCase):
     def test_dispatch(self):
         view = AccountConfigView()
         request = HttpRequest()
-        request.POST = {"account": "1234567-8910"}
+        request.POST.update({"account": "1234567-8910"})
 
         pipeline = Mock()
         pipeline.state = {
@@ -131,13 +134,16 @@ class TestAccountConfigView(TestCase):
     @responses.activate
     def test_get_accounts(self):
         view = AccountConfigView()
-        accounts = view.get_accounts("access-token", "user-id")
+        accounts = view.get_accounts("access-token", 123)
+        assert accounts is not None
         assert accounts["value"][0]["accountName"] == "sentry"
         assert accounts["value"][1]["accountName"] == "sentry2"
 
     def test_account_form(self):
         account_form = AccountForm(self.accounts)
-        assert account_form.fields["account"].choices == [
+        field = account_form.fields["account"]
+        assert isinstance(field, ChoiceField)
+        assert field.choices == [
             ("1234567-89", "sentry"),
             ("1234567-8910", "sentry2"),
         ]
@@ -194,17 +200,6 @@ class VstsIdentityProviderTest(TestCase):
             VSTSIdentityProvider, "get_oauth_client_secret", return_value=self.client_secret
         ):
             yield
-
-    def get_refresh_token_params(self):
-        refresh_token = "wertyui"
-        params = self.provider.get_refresh_token_params(refresh_token)
-        assert params == {
-            "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-            "client_assertion": self.client_secret,
-            "grant_type": "refresh_token",
-            "assertion": refresh_token,
-            "redirect_uri": absolute_uri(self.provider.oauth_redirect_url),
-        }
 
     @responses.activate
     def test_refresh_identity(self):

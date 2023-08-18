@@ -31,7 +31,8 @@ export function OverviewTimeline({monitorList}: Props) {
   const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
   const nowRef = useRef<Date>(new Date());
   const start = getStartFromTimeWindow(nowRef.current, timeWindow);
-  const {elementRef, width: timelineWidth} = useDimensions<HTMLDivElement>();
+  const elementRef = useRef<HTMLDivElement>(null);
+  const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
   const rollup = Math.floor(
     (timeWindowConfig[timeWindow].elapsedMinutes * 60) / timelineWidth
@@ -63,7 +64,7 @@ export function OverviewTimeline({monitorList}: Props) {
         <ResolutionSelector />
       </StickyResolutionSelector>
       <StickyGridLineTimeLabels>
-        <GridLineTimeLabels
+        <BorderlessGridLineTimeLabels
           timeWindow={timeWindow}
           end={nowRef.current}
           width={timelineWidth}
@@ -100,16 +101,21 @@ const MonitorListPanel = styled(Panel)`
 const StickyResolutionSelector = styled(Sticky)`
   z-index: 1;
   padding: ${space(1.5)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
   grid-column: 1/3;
   background: ${p => p.theme.background};
   border-top-left-radius: ${p => p.theme.panelBorderRadius};
+  box-shadow: 0 1px ${p => p.theme.translucentBorder};
 
   &[data-stuck] {
     border-radius: 0;
     border-left: 1px solid ${p => p.theme.border};
     margin-left: -1px;
   }
+`;
+
+// We don't need border here because it is already accomplished via box-shadow below
+const BorderlessGridLineTimeLabels = styled(GridLineTimeLabels)`
+  border: none;
 `;
 
 const StickyGridLineTimeLabels = styled(Sticky)`
@@ -119,6 +125,7 @@ const StickyGridLineTimeLabels = styled(Sticky)`
   z-index: 1;
   background: ${p => p.theme.background};
   border-top-right-radius: ${p => p.theme.panelBorderRadius};
+  box-shadow: 0 1px ${p => p.theme.translucentBorder};
 
   &[data-stuck] {
     border-radius: 0;

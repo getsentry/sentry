@@ -47,7 +47,7 @@ def check_broken(sentryapp: SentryApp, org_id: str):
         org = Organization.objects.get(id=org_id)
         if features.has("organizations:disable-sentryapps-on-broken", org):
             sentryapp._disable()
-            notify_disable(org, sentryapp.slug, redis_key)
+            notify_disable(org, sentryapp.name, redis_key, sentryapp.slug, sentryapp.webhook_url)
             buffer.clear()
 
         extra = {

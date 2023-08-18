@@ -3,7 +3,6 @@ from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
 from sentry.api.fields.avatar import AvatarField
-from sentry.api.serializers.rest_framework import ListField
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema
 from sentry.models import ApiScopes
@@ -85,7 +84,9 @@ class SentryAppSerializer(Serializer):
     isAlertable = serializers.BooleanField(required=False, default=False)
     overview = serializers.CharField(required=False, allow_null=True)
     verifyInstall = serializers.BooleanField(required=False, default=True)
-    allowedOrigins = ListField(child=serializers.CharField(max_length=255), required=False)
+    allowedOrigins = serializers.ListField(
+        child=serializers.CharField(max_length=255), required=False
+    )
     # Bounds chosen to match PositiveSmallIntegerField (https://docs.djangoproject.com/en/3.2/ref/models/fields/#positivesmallintegerfield)
     popularity = serializers.IntegerField(
         min_value=0,

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import namedtuple
 from enum import Enum
 
@@ -7,6 +9,7 @@ from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     ArrayField,
     FlexibleForeignKey,
@@ -30,6 +33,7 @@ from sentry.utils.retries import TimedRetryPolicy
 @region_silo_only_model
 class IncidentProject(Model):
     __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False)
     incident = FlexibleForeignKey("sentry.Incident")
@@ -43,6 +47,7 @@ class IncidentProject(Model):
 @region_silo_only_model
 class IncidentSeen(Model):
     __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     incident = FlexibleForeignKey("sentry.Incident")
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", db_index=False)
@@ -95,6 +100,10 @@ class IncidentManager(BaseManager):
     def clear_active_incident_cache(cls, instance, **kwargs):
         for project in instance.projects.all():
             cache.delete(cls._build_active_incident_cache_key(instance.alert_rule_id, project.id))
+            assert (
+                cache.get(cls._build_active_incident_cache_key(instance.alert_rule_id, project.id))
+                is None
+            )
 
     @classmethod
     def clear_active_incident_project_cache(cls, instance, **kwargs):
@@ -102,6 +111,14 @@ class IncidentManager(BaseManager):
             cls._build_active_incident_cache_key(
                 instance.incident.alert_rule_id, instance.project_id
             )
+        )
+        assert (
+            cache.get(
+                cls._build_active_incident_cache_key(
+                    instance.incident.alert_rule_id, instance.project_id
+                )
+            )
+            is None
         )
 
     @TimedRetryPolicy.wrap(timeout=5, exceptions=(IntegrityError,))
@@ -154,6 +171,7 @@ INCIDENT_STATUS = {
 @region_silo_only_model
 class Incident(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     objects = IncidentManager()
 
@@ -201,6 +219,7 @@ class Incident(Model):
 @region_silo_only_model
 class PendingIncidentSnapshot(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     incident = OneToOneCascadeDeletes("sentry.Incident", db_constraint=False)
     target_run_date = models.DateTimeField(db_index=True, default=timezone.now)
@@ -214,6 +233,7 @@ class PendingIncidentSnapshot(Model):
 @region_silo_only_model
 class IncidentSnapshot(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     incident = OneToOneCascadeDeletes("sentry.Incident", db_constraint=False)
     event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot", db_constraint=False)
@@ -229,6 +249,7 @@ class IncidentSnapshot(Model):
 @region_silo_only_model
 class TimeSeriesSnapshot(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     start = models.DateTimeField()
     end = models.DateTimeField()
@@ -251,14 +272,16 @@ class IncidentActivityType(Enum):
 @region_silo_only_model
 class IncidentActivity(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     incident = FlexibleForeignKey("sentry.Incident")
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
-    type = models.IntegerField()
+    type: models.Field[int | IncidentActivityType, int] = models.IntegerField()
     value = models.TextField(null=True)
     previous_value = models.TextField(null=True)
     comment = models.TextField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
+    notification_uuid = models.UUIDField("notification_uuid", null=True)
 
     class Meta:
         app_label = "sentry"
@@ -268,6 +291,7 @@ class IncidentActivity(Model):
 @region_silo_only_model
 class IncidentSubscription(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     incident = FlexibleForeignKey("sentry.Incident", db_index=False)
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
@@ -331,6 +355,7 @@ class AlertRuleManager(BaseManager):
     @classmethod
     def clear_subscription_cache(cls, instance, **kwargs):
         cache.delete(cls.__build_subscription_cache_key(instance.id))
+        assert cache.get(cls.__build_subscription_cache_key(instance.id)) is None
 
     @classmethod
     def clear_alert_rule_subscription_caches(cls, instance, **kwargs):
@@ -341,11 +366,16 @@ class AlertRuleManager(BaseManager):
             cache.delete_many(
                 cls.__build_subscription_cache_key(sub_id) for sub_id in subscription_ids
             )
+            assert all(
+                cache.get(cls.__build_subscription_cache_key(sub_id)) is None
+                for sub_id in subscription_ids
+            )
 
 
 @region_silo_only_model
 class AlertRuleExcludedProjects(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule", db_index=False)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
@@ -360,6 +390,7 @@ class AlertRuleExcludedProjects(Model):
 @region_silo_only_model
 class AlertRule(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     objects = AlertRuleManager()
     objects_with_snapshots = BaseManager()
@@ -440,15 +471,18 @@ class IncidentTriggerManager(BaseManager):
     @classmethod
     def clear_incident_cache(cls, instance, **kwargs):
         cache.delete(cls._build_cache_key(instance.id))
+        assert cache.get(cls._build_cache_key(instance.id)) is None
 
     @classmethod
     def clear_incident_trigger_cache(cls, instance, **kwargs):
         cache.delete(cls._build_cache_key(instance.incident_id))
+        assert cache.get(cls._build_cache_key(instance.incident_id)) is None
 
 
 @region_silo_only_model
 class IncidentTrigger(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     objects = IncidentTriggerManager()
 
@@ -486,15 +520,18 @@ class AlertRuleTriggerManager(BaseManager):
     @classmethod
     def clear_trigger_cache(cls, instance, **kwargs):
         cache.delete(cls._build_trigger_cache_key(instance.alert_rule_id))
+        assert cache.get(cls._build_trigger_cache_key(instance.alert_rule_id)) is None
 
     @classmethod
     def clear_alert_rule_trigger_cache(cls, instance, **kwargs):
         cache.delete(cls._build_trigger_cache_key(instance.id))
+        assert cache.get(cls._build_trigger_cache_key(instance.id)) is None
 
 
 @region_silo_only_model
 class AlertRuleTrigger(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule")
     label = models.TextField()
@@ -517,6 +554,7 @@ class AlertRuleTrigger(Model):
 @region_silo_only_model
 class AlertRuleTriggerExclusion(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger", related_name="exclusions")
     query_subscription = FlexibleForeignKey("sentry.QuerySubscription")
@@ -536,6 +574,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     """
 
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Global
 
     # Aliases from NotificationAction
     Type = ActionService
@@ -642,6 +681,7 @@ class AlertRuleActivityType(Enum):
 @region_silo_only_model
 class AlertRuleActivity(Model):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule")
     previous_alert_rule = FlexibleForeignKey(

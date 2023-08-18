@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from functools import cached_property
+from typing import Any, Iterable, List, Mapping, Tuple
+
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
@@ -120,166 +123,196 @@ def _resolve_last_org(session, user):
     return None
 
 
-def get_client_config(request=None):
+class _ClientConfig:
+    def __init__(self, request=None) -> None:
+        self.request = request
+        if request is not None:
+            self.user = getattr(request, "user", None) or AnonymousUser()
+            self.session = getattr(request, "session", None)
+        else:
+            self.user = None
+            self.session = None
+
+        self.last_org = _resolve_last_org(self.session, self.user)
+
+    @property
+    def last_org_slug(self) -> str | None:
+        if self.last_org is None:
+            return None
+        return self.last_org.slug
+
+    @cached_property
+    def customer_domain(self) -> Mapping[str, str] | None:
+        if self.request is None or not is_using_customer_domain(self.request):
+            return None
+        return {
+            "subdomain": self.request.subdomain,
+            "organizationUrl": generate_organization_url(self.request.subdomain),
+            "sentryUrl": options.get("system.url-prefix"),
+        }
+
+    @property
+    def enabled_features(self) -> Iterable[str]:
+        if features.has("organizations:create", actor=self.user):
+            yield "organizations:create"
+        if auth.has_user_registration():
+            yield "auth:register"
+        if self.customer_domain or (
+            self.last_org and features.has("organizations:customer-domains", self.last_org)
+        ):
+            yield "organizations:customer-domains"
+
+    @property
+    def needs_upgrade(self) -> bool:
+        return self.request is not None and is_active_superuser(self.request) and _needs_upgrade()
+
+    @cached_property
+    def public_dsn(self) -> str | None:
+        return _get_public_dsn()
+
+    @property
+    def messages(self):
+        if self.request is None:
+            return []
+        return get_messages(self.request)
+
+    @property
+    def language_code(self) -> str:
+        default_language_code = "en"
+        if self.request is None:
+            return default_language_code
+        return getattr(self.request, "LANGUAGE_CODE", default_language_code)
+
+    @property
+    def user_identity(self) -> Iterable[Tuple[str, Any]]:
+        if self.request is None:
+            return
+        yield "ip_address", self.request.META["REMOTE_ADDR"]
+        if self.user and self.user.is_authenticated:
+            yield "email", self.user.email
+            yield "id", self.user.id
+            yield "isStaff", self.user.is_staff
+            if self.user.name:
+                yield "name", self.user.name
+
+    @cached_property
+    def allow_list(self) -> List[str]:
+        if settings.SENTRY_FRONTEND_WHITELIST_URLS:
+            return settings.SENTRY_FRONTEND_WHITELIST_URLS
+        if settings.ALLOWED_HOSTS == ["*"]:
+            return []
+        return list(settings.ALLOWED_HOSTS)
+
+    def _is_superuser(self) -> bool:
+        # Note: This intentionally does not use the "active" superuser flag as
+        # the frontend should only ever use this flag as a hint that the user can be a superuser
+        # the API will always need to check for active superuser.
+        #
+        # This is needed in the case where you access a different org and get denied, but the UI
+        # can open the sudo dialog if you are an "inactive" superuser
+        return self.request is not None and self.user is not None and self.user.is_superuser
+
+    @property
+    def links(self) -> Iterable[Tuple[str, str]]:
+        organization_url = (
+            generate_organization_url(self.last_org_slug) if self.last_org_slug else None
+        )
+        yield "organizationUrl", organization_url
+        yield "regionUrl", generate_region_url() if self.last_org_slug else None
+        yield "sentryUrl", options.get("system.url-prefix")
+
+        if self._is_superuser() and superuser.ORG_ID is not None:
+            org_context = organization_service.get_organization_by_id(
+                id=superuser.ORG_ID, user_id=None
+            )
+            if org_context and org_context.organization:
+                yield "superuserUrl", generate_organization_url(org_context.organization.slug)
+
+    @cached_property
+    def user_details(self) -> Mapping[str, Any] | None:
+        if self.user is None or not self.user.is_authenticated:
+            return None
+
+        query_result = user_service.serialize_many(
+            filter={"user_ids": [self.user.id]},
+            serializer=UserSerializeType.SELF_DETAILED,
+            auth_context=AuthenticationContext(
+                auth=AuthenticatedToken.from_token(getattr(self.request, "auth", None)),
+                user=serialize_generic_user(self.user),
+            ),
+        )
+        if not query_result:
+            # this could be an empty result as the user could be deleted
+            return None
+
+        (user_details,) = query_result
+        user_details = json.loads(json.dumps(user_details))
+        if self._is_superuser():
+            user_details["isSuperuser"] = self.user.is_superuser
+        return user_details
+
+    def get_context(self) -> Mapping[str, Any]:
+        return {
+            "customerDomain": self.customer_domain,
+            "singleOrganization": settings.SENTRY_SINGLE_ORGANIZATION,
+            "supportEmail": get_support_mail(),
+            "urlPrefix": options.get("system.url-prefix"),
+            "version": _get_version_info(),
+            "features": list(self.enabled_features),
+            "distPrefix": get_frontend_dist_prefix(),
+            "needsUpgrade": self.needs_upgrade,
+            "dsn": self.public_dsn,
+            "statuspage": _get_statuspage(),
+            "messages": [{"message": msg.message, "level": msg.tags} for msg in self.messages],
+            "apmSampling": float(settings.SENTRY_FRONTEND_APM_SAMPLING or 0),
+            # Maintain isOnPremise key for backcompat (plugins?).
+            "isOnPremise": is_self_hosted(),
+            "isSelfHosted": is_self_hosted(),
+            "invitesEnabled": settings.SENTRY_ENABLE_INVITES,
+            "gravatarBaseUrl": settings.SENTRY_GRAVATAR_BASE_URL,
+            "termsUrl": settings.TERMS_URL,
+            "privacyUrl": settings.PRIVACY_URL,
+            # Note `lastOrganization` should not be expected to update throughout frontend app lifecycle
+            # It should only be used on a fresh browser nav to a path where an
+            # organization is not in context
+            "lastOrganization": self.last_org_slug,
+            "languageCode": self.language_code,
+            "userIdentity": dict(self.user_identity),
+            "csrfCookieName": settings.CSRF_COOKIE_NAME,
+            "superUserCookieName": superuser.COOKIE_NAME,
+            "superUserCookieDomain": superuser.COOKIE_DOMAIN,
+            "sentryConfig": {
+                "dsn": self.public_dsn,
+                # XXX: In the world of frontend / backend deploys being separated,
+                # this is likely incorrect, since the backend version may not
+                # match the frontend build version.
+                #
+                # This is likely to be removed sometime in the future.
+                "release": f"frontend@{settings.SENTRY_SDK_CONFIG['release']}",
+                "environment": settings.SENTRY_SDK_CONFIG["environment"],
+                # By default `ALLOWED_HOSTS` is [*], however the JS SDK does not support globbing
+                "whitelistUrls": self.allow_list,
+                "allowUrls": self.allow_list,
+                "tracePropagationTargets": settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS or [],
+            },
+            "demoMode": settings.DEMO_MODE,
+            "enableAnalytics": settings.ENABLE_ANALYTICS,
+            "validateSUForm": getattr(
+                settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False
+            ),
+            "disableU2FForSUForm": getattr(settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False),
+            "links": dict(self.links),
+            "user": self.user_details,
+            "isAuthenticated": self.user_details is not None,
+        }
+
+
+def get_client_config(request=None) -> Mapping[str, Any]:
     """
     Provides initial bootstrap data needed to boot the frontend application.
     """
-    if request is not None:
-        customer_domain = None
-        if is_using_customer_domain(request):
-            customer_domain = {
-                "subdomain": request.subdomain,
-                "organizationUrl": generate_organization_url(request.subdomain),
-                "sentryUrl": options.get("system.url-prefix"),
-            }
-        user = getattr(request, "user", None) or AnonymousUser()
-        messages = get_messages(request)
-        session = getattr(request, "session", None)
-        active_superuser = is_active_superuser(request)
-        language_code = getattr(request, "LANGUAGE_CODE", "en")
 
-        # User identity is used by the sentry SDK
-        user_identity = {"ip_address": request.META["REMOTE_ADDR"]}
-        if user and user.is_authenticated:
-            user_identity.update({"email": user.email, "id": user.id, "isStaff": user.is_staff})
-            if user.name:
-                user_identity["name"] = user.name
-    else:
-        customer_domain = None
-        user = None
-        user_identity = {}
-        messages = []
-        session = None
-        active_superuser = False
-        language_code = "en"
-
-    enabled_features = []
-    if features.has("organizations:create", actor=user):
-        enabled_features.append("organizations:create")
-    if auth.has_user_registration():
-        enabled_features.append("auth:register")
-
-    version_info = _get_version_info()
-
-    needs_upgrade = False
-
-    if active_superuser:
-        needs_upgrade = _needs_upgrade()
-
-    public_dsn = _get_public_dsn()
-
-    last_org_slug = None
-    last_org = _resolve_last_org(session, user)
-    if last_org:
-        last_org_slug = last_org.slug
-    if last_org is None:
-        _delete_activeorg(session)
-
-    inject_customer_domain_feature = bool(customer_domain)
-    if last_org is not None and features.has("organizations:customer-domains", last_org):
-        inject_customer_domain_feature = True
-    if inject_customer_domain_feature:
-        enabled_features.append("organizations:customer-domains")
-
-    context = {
-        "customerDomain": customer_domain,
-        "singleOrganization": settings.SENTRY_SINGLE_ORGANIZATION,
-        "supportEmail": get_support_mail(),
-        "urlPrefix": options.get("system.url-prefix"),
-        "version": version_info,
-        "features": enabled_features,
-        "distPrefix": get_frontend_dist_prefix(),
-        "needsUpgrade": needs_upgrade,
-        "dsn": public_dsn,
-        "statuspage": _get_statuspage(),
-        "messages": [{"message": msg.message, "level": msg.tags} for msg in messages],
-        "apmSampling": float(settings.SENTRY_FRONTEND_APM_SAMPLING or 0),
-        # Maintain isOnPremise key for backcompat (plugins?).
-        "isOnPremise": is_self_hosted(),
-        "isSelfHosted": is_self_hosted(),
-        "invitesEnabled": settings.SENTRY_ENABLE_INVITES,
-        "gravatarBaseUrl": settings.SENTRY_GRAVATAR_BASE_URL,
-        "termsUrl": settings.TERMS_URL,
-        "privacyUrl": settings.PRIVACY_URL,
-        # Note `lastOrganization` should not be expected to update throughout frontend app lifecycle
-        # It should only be used on a fresh browser nav to a path where an
-        # organization is not in context
-        "lastOrganization": last_org_slug,
-        "languageCode": language_code,
-        "userIdentity": user_identity,
-        "csrfCookieName": settings.CSRF_COOKIE_NAME,
-        "superUserCookieName": superuser.COOKIE_NAME,
-        "superUserCookieDomain": superuser.COOKIE_DOMAIN,
-        "sentryConfig": {
-            "dsn": public_dsn,
-            # XXX: In the world of frontend / backend deploys being separated,
-            # this is likely incorrect, since the backend version may not
-            # match the frontend build version.
-            #
-            # This is likely to be removed sometime in the future.
-            "release": f"frontend@{settings.SENTRY_SDK_CONFIG['release']}",
-            "environment": settings.SENTRY_SDK_CONFIG["environment"],
-            # By default `ALLOWED_HOSTS` is [*], however the JS SDK does not support globbing
-            "whitelistUrls": (
-                settings.SENTRY_FRONTEND_WHITELIST_URLS
-                if settings.SENTRY_FRONTEND_WHITELIST_URLS
-                else list("" if settings.ALLOWED_HOSTS == ["*"] else settings.ALLOWED_HOSTS)
-            ),
-            "allowUrls": (
-                settings.SENTRY_FRONTEND_WHITELIST_URLS
-                if settings.SENTRY_FRONTEND_WHITELIST_URLS
-                else list("" if settings.ALLOWED_HOSTS == ["*"] else settings.ALLOWED_HOSTS)
-            ),
-            "tracePropagationTargets": (
-                settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS
-                if settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS
-                else []
-            ),
-        },
-        "demoMode": settings.DEMO_MODE,
-        "enableAnalytics": settings.ENABLE_ANALYTICS,
-        "validateSUForm": getattr(settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False),
-        "disableU2FForSUForm": getattr(settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False),
-        "links": {
-            "organizationUrl": generate_organization_url(last_org_slug) if last_org_slug else None,
-            "regionUrl": generate_region_url() if last_org_slug else None,
-            "sentryUrl": options.get("system.url-prefix"),
-        },
-    }
-
-    user_details = None
-    if user and user.is_authenticated:
-        # Fetch the user, this could be an empty result as the user could be deleted.
-        user_details = user_service.serialize_many(
-            filter={"user_ids": [user.id]},
-            serializer=UserSerializeType.SELF_DETAILED,
-            auth_context=AuthenticationContext(
-                auth=AuthenticatedToken.from_token(getattr(request, "auth", None)),
-                user=serialize_generic_user(request.user),
-            ),
-        )
-
-    if user and user.is_authenticated and user_details:
-        context["isAuthenticated"] = True
-        context["user"] = json.loads(json.dumps(user_details[0]))
-
-        if request.user.is_superuser:
-            # Note: This intentionally does not use the "active" superuser flag as
-            # the frontend should only ever use this flag as a hint that the user can be a superuser
-            # the API will always need to check for active superuser.
-            #
-            # This is needed in the case where you access a different org and get denied, but the UI
-            # can open the sudo dialog if you are an "inactive" superuser
-            context["user"]["isSuperuser"] = request.user.is_superuser
-            if superuser.ORG_ID is not None:
-                org_context = organization_service.get_organization_by_id(
-                    id=superuser.ORG_ID, user_id=None
-                )
-                if org_context and org_context.organization:
-                    context["links"]["superuserUrl"] = generate_organization_url(
-                        org_context.organization.slug
-                    )
-    else:
-        context.update({"isAuthenticated": False, "user": None})
-
-    return context
+    config = _ClientConfig(request)
+    if request is not None and config.last_org is None:
+        _delete_activeorg(config.session)
+    return config.get_context()

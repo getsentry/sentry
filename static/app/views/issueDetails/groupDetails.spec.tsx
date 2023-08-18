@@ -1,5 +1,3 @@
-import {browserHistory} from 'react-router';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -227,24 +225,6 @@ describe('groupDetails', () => {
     );
 
     expect(await screen.findByText('environment: staging')).toBeInTheDocument();
-  });
-
-  /**
-   * This is legacy code that I'm not even sure still happens
-   */
-  it('redirects to new issue if params id !== id returned from API request', async function () {
-    MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/`,
-      body: {...group, id: 'new-id'},
-    });
-    createWrapper();
-    expect(screen.queryByText('Group Details Mock')).not.toBeInTheDocument();
-    await waitFor(() => {
-      expect(browserHistory.push).toHaveBeenCalledTimes(1);
-    });
-    expect(browserHistory.push).toHaveBeenCalledWith(
-      '/organizations/org-slug/issues/new-id/?foo=bar#hash'
-    );
   });
 
   it('renders issue event error', async function () {

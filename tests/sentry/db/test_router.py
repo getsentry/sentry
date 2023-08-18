@@ -1,5 +1,3 @@
-import os
-
 import pytest
 from django.contrib.auth.models import Permission
 from django.test import override_settings
@@ -8,10 +6,7 @@ from sentry.db.router import SiloRouter
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.testutils.cases import TestCase
-
-
-def use_split_dbs() -> bool:
-    return bool(os.environ.get("SENTRY_USE_SPLIT_DBS"))
+from sentry.testutils.hybrid_cloud import use_split_dbs
 
 
 class SiloRouterSimulatedTest(TestCase):

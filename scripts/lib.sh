@@ -94,10 +94,12 @@ install-py-dev() {
     # pip doesn't do well with swapping drop-ins
     pip uninstall -qqy uwsgi
 
+    pip-install -r requirements-dev-frozen.txt
+
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.
-    SENTRY_LIGHT_BUILD=1 pip-install -e '.[dev]'
+    SENTRY_LIGHT_BUILD=1 pip-install -e . --no-deps
 }
 
 setup-git-config() {
@@ -181,12 +183,13 @@ apply-migrations() {
     sentry upgrade --noinput
 }
 
-create-user() {
+create-superuser() {
     echo "--> Creating a superuser account"
     if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
         sentry createuser --superuser --email foo@tbd.com --no-password --no-input
     else
-        sentry createuser --superuser
+        sentry createuser --superuser --email admin@sentry.io --password admin
+        echo "Password is admin."
     fi
 }
 
@@ -203,8 +206,8 @@ bootstrap() {
     run-dependent-services
     create-db
     apply-migrations
-    create-user
-    # Load mocks requires a super user to exist, thus, we execute after create-user
+    create-superuser
+    # Load mocks requires a superuser
     bin/load-mocks
     build-platform-assets
     echo "--> Finished bootstrapping. Have a nice day."
@@ -235,7 +238,7 @@ reset-db() {
     drop-db
     create-db
     apply-migrations
-    create-user
+    create-superuser
     echo "Finished resetting database. To load mock data, run `./bin/load-mocks`"
 }
 

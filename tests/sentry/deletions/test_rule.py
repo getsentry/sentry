@@ -1,19 +1,14 @@
 from sentry.constants import ObjectStatus
-from sentry.models import (
-    GroupRuleStatus,
-    RegionScheduledDeletion,
-    Rule,
-    RuleActivity,
-    RuleActivityType,
-)
+from sentry.models import GroupRuleStatus, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TestCase
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
-class DeleteRuleTest(TestCase):
+class DeleteRuleTest(TestCase, HybridCloudTestMixin):
     def test_simple(self):
         project = self.create_project()
         rule = self.create_project_rule(project)
@@ -27,7 +22,7 @@ class DeleteRuleTest(TestCase):
         )
         rule_activity = RuleActivity.objects.create(rule=rule, type=RuleActivityType.CREATED.value)
 
-        RegionScheduledDeletion.schedule(rule, days=0)
+        self.ScheduledDeletion.schedule(instance=rule, days=0)
 
         with self.tasks():
             run_scheduled_deletions()

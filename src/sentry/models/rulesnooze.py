@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -33,6 +34,7 @@ class RuleSnooze(Model):
     """
 
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE", null=True)
     owner_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True)

@@ -16,6 +16,7 @@ from django.core.files.base import File as FileObj
 from django.db import models, router
 
 from sentry import options
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedBigIntegerField,
@@ -66,6 +67,7 @@ class ReleaseFile(Model):
     sha1(name '\x00\x00' dist.name) and must be unique per release.
     """
     __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField()
     # DEPRECATED

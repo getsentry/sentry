@@ -1,4 +1,4 @@
-import {CSSProperties, useCallback} from 'react';
+import {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import beautify from 'js-beautify';
@@ -8,48 +8,35 @@ import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/brea
 import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
-type Props = {
+interface Props extends ReturnType<typeof useCrumbHandlers> {
   currentHoverTime: number | undefined;
   currentTime: number;
   mutation: Extraction;
   startTimestampMs: number;
   style: CSSProperties;
-};
+}
 
 function DomMutationRow({
   currentHoverTime,
   currentTime,
+  onMouseEnter,
+  onMouseLeave,
   mutation,
+  onClickTimestamp,
   startTimestampMs,
   style,
 }: Props) {
-  const {html, frame: breadcrumb} = mutation;
+  const {html, frame} = mutation;
 
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
-
-  const onClickTimestamp = useCallback(
-    () => handleClick(breadcrumb),
-    [handleClick, breadcrumb]
-  );
-  const onMouseEnter = useCallback(
-    () => handleMouseEnter(breadcrumb),
-    [handleMouseEnter, breadcrumb]
-  );
-  const onMouseLeave = useCallback(
-    () => handleMouseLeave(breadcrumb),
-    [handleMouseLeave, breadcrumb]
-  );
-
-  const hasOccurred = currentTime >= breadcrumb.offsetMs;
+  const hasOccurred = currentTime >= frame.offsetMs;
   const isBeforeHover =
-    currentHoverTime === undefined || currentHoverTime >= breadcrumb.offsetMs;
+    currentHoverTime === undefined || currentHoverTime >= frame.offsetMs;
 
-  const {color, title, type} = getFrameDetails(breadcrumb);
+  const {color, title, type} = getFrameDetails(frame);
 
   return (
     <MutationListItem
@@ -59,8 +46,8 @@ function DomMutationRow({
         beforeHoverTime: currentHoverTime !== undefined && isBeforeHover,
         afterHoverTime: currentHoverTime !== undefined && !isBeforeHover,
       })}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      onMouseEnter={() => onMouseEnter(frame)}
+      onMouseLeave={() => onMouseLeave(frame)}
       style={style}
     >
       <IconWrapper color={color} hasOccurred={hasOccurred}>
@@ -70,13 +57,16 @@ function DomMutationRow({
         <Row>
           <Title hasOccurred={hasOccurred}>{title}</Title>
           <TimestampButton
-            onClick={onClickTimestamp}
+            onClick={event => {
+              event.stopPropagation();
+              onClickTimestamp(frame);
+            }}
             startTimestampMs={startTimestampMs}
-            timestampMs={breadcrumb.timestampMs}
+            timestampMs={frame.timestampMs}
           />
         </Row>
         {/* @ts-expect-error */}
-        <Selector>{breadcrumb.message ?? ''}</Selector>
+        <Selector>{frame.message ?? ''}</Selector>
         <CodeContainer>
           <CodeSnippet language="html" hideCopyButton>
             {beautify.html(html, {indent_size: 2})}

@@ -93,6 +93,8 @@ class _UserOptions(TypedDict):
 class UserSerializerResponseOptional(TypedDict, total=False):
     identities: List[_Identity]
     avatar: SerializedAvatarFields
+    authenticators: List[Any]  # TODO: find out what type this is
+    canReset2fa: bool
 
 
 class UserSerializerResponse(UserSerializerResponseOptional):

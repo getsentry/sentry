@@ -15,6 +15,7 @@ from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry.auth.authenticators import available_authenticators
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BaseModel,
@@ -69,6 +70,7 @@ class UserManager(BaseManager, DjangoUserManager):
 @control_silo_only_model
 class User(BaseModel, AbstractBaseUser):
     __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.User
 
     id = BoundedBigAutoField(primary_key=True)
     username = models.CharField(_("username"), max_length=128, unique=True)
@@ -355,16 +357,6 @@ class User(BaseModel, AbstractBaseUser):
         self.session_nonce = get_random_string(12)
         if request is not None:
             request.session["_nonce"] = self.session_nonce
-
-    def get_orgs(self):
-        from sentry.models import Organization
-
-        return Organization.objects.get_for_user_ids({self.id})
-
-    def get_projects(self):
-        from sentry.models import Project
-
-        return Project.objects.get_for_user_ids({self.id})
 
     def get_orgs_require_2fa(self):
         from sentry.models import Organization, OrganizationStatus

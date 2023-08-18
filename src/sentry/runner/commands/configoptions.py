@@ -2,46 +2,36 @@ import sys
 from typing import Any, Optional, Set
 
 import click
-from yaml import safe_dump, safe_load
+from yaml import safe_load
 
+from sentry.runner.commands.presenters.presenterdelegator import PresenterDelegator
 from sentry.runner.decorators import configuration, log_options
-
-# These messages are produced more than once and referenced in tests.
-# This is the reason they are constants.
-DRIFT_MSG = "[DRIFT] Option %s drifted and cannot be updated."
-DB_VALUE = "Value of option %s on DB:"
-CHANNEL_UPDATE_MSG = "[CHANNEL UPDATE] Option %s value unchanged. Last update channel updated."
-UPDATE_MSG = "[UPDATE] Option %s updated. Old value: \n%s\nNew value: \n%s"
-SET_MSG = "[SET] Option %s set to value: \n%s"
-UNSET_MSG = "[UNSET] Option %s unset."
 
 
 def _attempt_update(
-    key: str, value: Any, drifted_options: Set[str], dry_run: bool, hide_drift: bool
+    presenter_delegator: PresenterDelegator,
+    key: str,
+    value: Any,
+    drifted_options: Set[str],
+    dry_run: bool,
+    hide_drift: bool,
 ) -> None:
     """
     Updates the option if it is not drifted and if we are not in dry
     run mode.
     """
-    import logging
 
     from sentry import options
-
-    logger = logging.getLogger("sentry.options_automator")
 
     opt = options.lookup_key(key)
 
     db_value = options.get(key)
     db_value_to_print = "[REDACTED]" if opt.has_any_flag({options.FLAG_CREDENTIAL}) else db_value
     if key in drifted_options:
-        click.echo(DRIFT_MSG % key)
-        logger.error("Option %s drifted and cannot be updated.", key)
-        if not hide_drift:
-            click.echo(DB_VALUE % key)
-            # This is yaml instead of the python representation as the
-            # expected flow, in this case, is to use the output of this
-            # line to copy paste it in the config map.
-            click.echo(safe_dump(db_value_to_print))
+        if hide_drift:
+            presenter_delegator.drift(key, "")
+        else:
+            presenter_delegator.drift(key, db_value_to_print)
         return
 
     last_update_channel = options.get_last_update_channel(key)
@@ -59,20 +49,20 @@ def _attempt_update(
             # the DB and then change the default value.
             if not dry_run:
                 options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
-            click.echo(SET_MSG % (key, value))
+            presenter_delegator.set(key, value)
 
         elif last_update_channel != options.UpdateChannel.AUTOMATOR:
             if not dry_run:
                 options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
-            click.echo(CHANNEL_UPDATE_MSG % key)
+            presenter_delegator.channel_update(key)
         return
 
     if not dry_run:
         options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
     if last_update_channel is not None:
-        click.echo(UPDATE_MSG % (key, db_value, value))
+        presenter_delegator.update(key, db_value, value)
     else:
-        click.echo(SET_MSG % (key, value))
+        presenter_delegator.set(key, value)
 
 
 @click.group()
@@ -124,11 +114,7 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
     to apply changes is UpdateChannel.AUTOMATOR.
     """
 
-    import logging
-
     from sentry import options
-
-    logger = logging.getLogger("sentry.options_automator")
 
     ctx.obj["dry_run"] = dry_run
 
@@ -140,19 +126,15 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
 
     drifted_options = set()
     invalid_options = set()
+    presenter_delegator = PresenterDelegator()
+    ctx.obj["presenter_delegator"] = presenter_delegator
+
     for key, value in options_to_update.items():
         try:
             not_writable_reason = options.can_update(key, value, options.UpdateChannel.AUTOMATOR)
 
             if not_writable_reason and not_writable_reason != options.NotWritableReason.DRIFTED:
-                logger.error(
-                    "Option %s is invalid. and cannot be updated. Reason: %s",
-                    key,
-                    not_writable_reason.value,
-                )
-                click.echo(
-                    f"Invalid option. {key} cannot be updated. Reason {not_writable_reason.value}"
-                )
+                presenter_delegator.not_writable(key, not_writable_reason.value)
                 invalid_options.add(key)
             elif not_writable_reason == options.NotWritableReason.DRIFTED:
                 drifted_options.add(key)
@@ -160,15 +142,10 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
             opt = options.lookup_key(key)
             if not opt.type.test(value):
                 invalid_options.add(key)
-                logger.error(
-                    "Option %s has invalid type. got %s, expected %s.", key, type(value), opt.type
-                )
+                presenter_delegator.invalid_type(key, type(value), opt.type)
         except options.UnknownOption:
             invalid_options.add(key)
-            logger.error(
-                "Option %s is not registered. and cannot be updated.",
-                key,
-            )
+            presenter_delegator.unregistered(key)
 
     ctx.obj["invalid_options"] = invalid_options
     ctx.obj["drifted_options"] = drifted_options
@@ -187,6 +164,7 @@ def patch(ctx) -> None:
     from sentry.utils import metrics
 
     dry_run = bool(ctx.obj["dry_run"])
+    presenter_delegator = ctx.obj["presenter_delegator"]
     if dry_run:
         click.echo("!!! Dry-run flag on. No update will be performed.")
 
@@ -195,7 +173,12 @@ def patch(ctx) -> None:
         if key not in invalid_options:
             try:
                 _attempt_update(
-                    key, value, ctx.obj["drifted_options"], dry_run, bool(ctx.obj["hide_drift"])
+                    presenter_delegator,
+                    key,
+                    value,
+                    ctx.obj["drifted_options"],
+                    dry_run,
+                    bool(ctx.obj["hide_drift"]),
                 )
             except Exception:
                 metrics.incr(
@@ -204,17 +187,23 @@ def patch(ctx) -> None:
                     tags={"status": "update_failed"},
                     sample_rate=1.0,
                 )
+                presenter_delegator.flush()
                 raise
+
+    presenter_delegator.flush()
 
     if invalid_options:
         status = "update_failed"
         amount = 2
+        ret_val = 2
     elif ctx.obj["drifted_options"]:
         status = "drift"
         amount = 2
+        ret_val = 2
     else:
         status = "success"
         amount = 1
+        ret_val = 0
 
     metrics.incr(
         "options_automator.run",
@@ -222,6 +211,7 @@ def patch(ctx) -> None:
         tags={"status": status},
         sample_rate=1.0,
     )
+    exit(ret_val)
 
 
 @configoptions.command()
@@ -246,11 +236,13 @@ def sync(ctx):
     options_to_update = ctx.obj["options_to_update"]
     invalid_options = ctx.obj["invalid_options"]
     drift_found = bool(ctx.obj["drifted_options"])
+    presenter_delegator = ctx.obj["presenter_delegator"]
     for opt in all_options:
         if opt.name not in invalid_options:
             if opt.name in options_to_update:
                 try:
                     _attempt_update(
+                        presenter_delegator,
                         opt.name,
                         options_to_update[opt.name],
                         ctx.obj["drifted_options"],
@@ -264,6 +256,7 @@ def sync(ctx):
                         tags={"status": "update_failed"},
                         sample_rate=1.0,
                     )
+                    presenter_delegator.flush()
                     raise
             else:
                 if options.isset(opt.name):
@@ -278,21 +271,28 @@ def sync(ctx):
                                     tags={"status": "update_failed"},
                                     sample_rate=1.0,
                                 )
+                                presenter_delegator.flush()
                                 raise
-                        click.echo(UNSET_MSG % opt.name)
+
+                        presenter_delegator.unset(opt.name)
                     else:
-                        click.echo(DRIFT_MSG % opt.name)
+                        presenter_delegator.drift(opt.name, "")
                         drift_found = True
 
     if invalid_options:
         status = "update_failed"
         amount = 2
+        ret_val = 2
     elif drift_found:
         status = "drift"
         amount = 2
+        ret_val = 2
     else:
         status = "success"
         amount = 1
+        ret_val = 0
+
+    presenter_delegator.flush()
 
     metrics.incr(
         "options_automator.run",
@@ -300,3 +300,5 @@ def sync(ctx):
         tags={"status": status},
         sample_rate=1.0,
     )
+
+    exit(ret_val)

@@ -8,6 +8,9 @@ import {
 
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
+import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
+import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import useScrollToCurrentItem from 'sentry/views/replays/detail/breadcrumbs/useScrollToCurrentItem';
@@ -31,6 +34,10 @@ const cellMeasurer = {
 };
 
 function Breadcrumbs({frames, startTimestampMs}: Props) {
+  const {onClickTimestamp} = useCrumbHandlers();
+
+  const {setActiveTab} = useActiveReplayTab();
+
   const listRef = useRef<ReactVirtualizedList>(null);
   // Keep a reference of object paths that are expanded (via <ObjectInspector>)
   // by log row, so they they can be restored as the Console pane is scrolling.
@@ -75,6 +82,10 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
           startTimestampMs={startTimestampMs}
           style={style}
           expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
+          onClick={frame => {
+            onClickTimestamp(frame);
+            setActiveTab(getFrameDetails(frame).tabKey);
+          }}
           onDimensionChange={handleDimensionChange}
         />
       </CellMeasurer>
