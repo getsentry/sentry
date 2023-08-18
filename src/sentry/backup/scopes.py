@@ -1,8 +1,8 @@
-from enum import IntEnum, auto, unique
+from enum import Enum, auto, unique
 
 
 @unique
-class RelocationScope(IntEnum):
+class RelocationScope(Enum):
     """Attached to models to specify the scope of import/export operations they are allowed to participate in."""
 
     # A model that has been purposefully excluded from import/export functionality entirely.

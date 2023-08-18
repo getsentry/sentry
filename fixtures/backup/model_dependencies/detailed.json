@@ -2,15 +2,17 @@
   "nodestore.Node": {
     "foreign_keys": {},
     "model": "nodestore.Node",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "replays.ReplayRecordingSegment": {
     "foreign_keys": {},
     "model": "replays.ReplayRecordingSegment",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.Activity": {
@@ -29,8 +31,9 @@
       }
     },
     "model": "sentry.Activity",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.Actor": {
@@ -41,8 +44,9 @@
       }
     },
     "model": "sentry.Actor",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.AlertRule": {
@@ -61,8 +65,9 @@
       }
     },
     "model": "sentry.AlertRule",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.AlertRuleActivity": {
@@ -81,8 +86,9 @@
       }
     },
     "model": "sentry.AlertRuleActivity",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.AlertRuleExcludedProjects": {
@@ -97,8 +103,9 @@
       }
     },
     "model": "sentry.AlertRuleExcludedProjects",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.AlertRuleTrigger": {
@@ -109,8 +116,9 @@
       }
     },
     "model": "sentry.AlertRuleTrigger",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.AlertRuleTriggerAction": {
@@ -129,8 +137,9 @@
       }
     },
     "model": "sentry.AlertRuleTriggerAction",
+    "relocation_scope": "Global",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.AlertRuleTriggerExclusion": {
@@ -145,8 +154,9 @@
       }
     },
     "model": "sentry.AlertRuleTriggerExclusion",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ApiApplication": {
@@ -157,8 +167,9 @@
       }
     },
     "model": "sentry.ApiApplication",
+    "relocation_scope": "Global",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.ApiAuthorization": {
@@ -173,8 +184,9 @@
       }
     },
     "model": "sentry.ApiAuthorization",
+    "relocation_scope": "Global",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.ApiGrant": {
@@ -189,8 +201,9 @@
       }
     },
     "model": "sentry.ApiGrant",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.ApiKey": {
@@ -201,8 +214,9 @@
       }
     },
     "model": "sentry.ApiKey",
+    "relocation_scope": "Global",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.ApiToken": {
@@ -217,8 +231,9 @@
       }
     },
     "model": "sentry.ApiToken",
+    "relocation_scope": "Global",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.AppConnectBuild": {
@@ -229,8 +244,9 @@
       }
     },
     "model": "sentry.AppConnectBuild",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ArtifactBundle": {
@@ -245,8 +261,9 @@
       }
     },
     "model": "sentry.ArtifactBundle",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ArtifactBundleFlatFileIndex": {
@@ -261,8 +278,9 @@
       }
     },
     "model": "sentry.ArtifactBundleFlatFileIndex",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ArtifactBundleIndex": {
@@ -277,8 +295,9 @@
       }
     },
     "model": "sentry.ArtifactBundleIndex",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.AssistantActivity": {
@@ -289,8 +308,9 @@
       }
     },
     "model": "sentry.AssistantActivity",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.AuditLogEntry": {
@@ -313,8 +333,9 @@
       }
     },
     "model": "sentry.AuditLogEntry",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.AuthIdentity": {
@@ -329,8 +350,9 @@
       }
     },
     "model": "sentry.AuthIdentity",
+    "relocation_scope": "Organization",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.AuthProvider": {
@@ -341,8 +363,9 @@
       }
     },
     "model": "sentry.AuthProvider",
+    "relocation_scope": "Organization",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.AuthProviderDefaultTeams": {
@@ -357,8 +380,9 @@
       }
     },
     "model": "sentry.AuthProviderDefaultTeams",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.Authenticator": {
@@ -369,15 +393,17 @@
       }
     },
     "model": "sentry.Authenticator",
+    "relocation_scope": "User",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.Broadcast": {
     "foreign_keys": {},
     "model": "sentry.Broadcast",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.BroadcastSeen": {
@@ -392,8 +418,9 @@
       }
     },
     "model": "sentry.BroadcastSeen",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.Commit": {
@@ -412,8 +439,9 @@
       }
     },
     "model": "sentry.Commit",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.CommitAuthor": {
@@ -424,8 +452,9 @@
       }
     },
     "model": "sentry.CommitAuthor",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.CommitFileChange": {
@@ -440,22 +469,25 @@
       }
     },
     "model": "sentry.CommitFileChange",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ControlFile": {
     "foreign_keys": {},
     "model": "sentry.ControlFile",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.ControlFileBlob": {
     "foreign_keys": {},
     "model": "sentry.ControlFileBlob",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.ControlFileBlobIndex": {
@@ -470,8 +502,9 @@
       }
     },
     "model": "sentry.ControlFileBlobIndex",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.ControlFileBlobOwner": {
@@ -486,29 +519,33 @@
       }
     },
     "model": "sentry.ControlFileBlobOwner",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.ControlOption": {
     "foreign_keys": {},
     "model": "sentry.ControlOption",
+    "relocation_scope": "Global",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.ControlOutbox": {
     "foreign_keys": {},
     "model": "sentry.ControlOutbox",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.ControlTombstone": {
     "foreign_keys": {},
     "model": "sentry.ControlTombstone",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.Counter": {
@@ -519,8 +556,9 @@
       }
     },
     "model": "sentry.Counter",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.Dashboard": {
@@ -535,8 +573,9 @@
       }
     },
     "model": "sentry.Dashboard",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.DashboardProject": {
@@ -551,8 +590,9 @@
       }
     },
     "model": "sentry.DashboardProject",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.DashboardTombstone": {
@@ -563,8 +603,9 @@
       }
     },
     "model": "sentry.DashboardTombstone",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.DashboardWidget": {
@@ -575,8 +616,9 @@
       }
     },
     "model": "sentry.DashboardWidget",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.DashboardWidgetQuery": {
@@ -587,8 +629,9 @@
       }
     },
     "model": "sentry.DashboardWidgetQuery",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.DebugIdArtifactBundle": {
@@ -603,15 +646,17 @@
       }
     },
     "model": "sentry.DebugIdArtifactBundle",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.DeletedOrganization": {
     "foreign_keys": {},
     "model": "sentry.DeletedOrganization",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.DeletedProject": {
@@ -622,8 +667,9 @@
       }
     },
     "model": "sentry.DeletedProject",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.DeletedTeam": {
@@ -634,8 +680,9 @@
       }
     },
     "model": "sentry.DeletedTeam",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.Deploy": {
@@ -654,8 +701,9 @@
       }
     },
     "model": "sentry.Deploy",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.DiscoverSavedQuery": {
@@ -670,8 +718,9 @@
       }
     },
     "model": "sentry.DiscoverSavedQuery",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.DiscoverSavedQueryProject": {
@@ -686,8 +735,9 @@
       }
     },
     "model": "sentry.DiscoverSavedQueryProject",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.Distribution": {
@@ -702,15 +752,17 @@
       }
     },
     "model": "sentry.Distribution",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.DocIntegration": {
     "foreign_keys": {},
     "model": "sentry.DocIntegration",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.DocIntegrationAvatar": {
@@ -729,15 +781,17 @@
       }
     },
     "model": "sentry.DocIntegrationAvatar",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.Email": {
     "foreign_keys": {},
     "model": "sentry.Email",
+    "relocation_scope": "User",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.Environment": {
@@ -748,8 +802,9 @@
       }
     },
     "model": "sentry.Environment",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.EnvironmentProject": {
@@ -764,8 +819,9 @@
       }
     },
     "model": "sentry.EnvironmentProject",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.EventAttachment": {
@@ -784,8 +840,9 @@
       }
     },
     "model": "sentry.EventAttachment",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.EventProcessingIssue": {
@@ -800,8 +857,9 @@
       }
     },
     "model": "sentry.EventProcessingIssue",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.EventUser": {
@@ -812,8 +870,9 @@
       }
     },
     "model": "sentry.EventUser",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ExportedData": {
@@ -832,8 +891,9 @@
       }
     },
     "model": "sentry.ExportedData",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ExportedDataBlob": {
@@ -844,8 +904,9 @@
       }
     },
     "model": "sentry.ExportedDataBlob",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ExternalActor": {
@@ -872,8 +933,9 @@
       }
     },
     "model": "sentry.ExternalActor",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ExternalIssue": {
@@ -888,8 +950,9 @@
       }
     },
     "model": "sentry.ExternalIssue",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.FeatureAdoption": {
@@ -900,8 +963,9 @@
       }
     },
     "model": "sentry.FeatureAdoption",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.File": {
@@ -912,15 +976,17 @@
       }
     },
     "model": "sentry.File",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.FileBlob": {
     "foreign_keys": {},
     "model": "sentry.FileBlob",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.FileBlobIndex": {
@@ -935,8 +1001,9 @@
       }
     },
     "model": "sentry.FileBlobIndex",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.FileBlobOwner": {
@@ -951,8 +1018,9 @@
       }
     },
     "model": "sentry.FileBlobOwner",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.FlatFileIndexState": {
@@ -967,8 +1035,9 @@
       }
     },
     "model": "sentry.FlatFileIndexState",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.Group": {
@@ -983,8 +1052,9 @@
       }
     },
     "model": "sentry.Group",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupAssignee": {
@@ -1007,8 +1077,9 @@
       }
     },
     "model": "sentry.GroupAssignee",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupBookmark": {
@@ -1027,8 +1098,9 @@
       }
     },
     "model": "sentry.GroupBookmark",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupCommitResolution": {
@@ -1043,8 +1115,9 @@
       }
     },
     "model": "sentry.GroupCommitResolution",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupEmailThread": {
@@ -1059,8 +1132,9 @@
       }
     },
     "model": "sentry.GroupEmailThread",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupEnvironment": {
@@ -1079,8 +1153,9 @@
       }
     },
     "model": "sentry.GroupEnvironment",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupHash": {
@@ -1099,8 +1174,9 @@
       }
     },
     "model": "sentry.GroupHash",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupHistory": {
@@ -1127,8 +1203,9 @@
       }
     },
     "model": "sentry.GroupHistory",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupInbox": {
@@ -1147,8 +1224,9 @@
       }
     },
     "model": "sentry.GroupInbox",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupLink": {
@@ -1163,8 +1241,9 @@
       }
     },
     "model": "sentry.GroupLink",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupMeta": {
@@ -1175,8 +1254,9 @@
       }
     },
     "model": "sentry.GroupMeta",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupOwner": {
@@ -1203,8 +1283,9 @@
       }
     },
     "model": "sentry.GroupOwner",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupRedirect": {
@@ -1219,8 +1300,9 @@
       }
     },
     "model": "sentry.GroupRedirect",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupRelease": {
@@ -1239,8 +1321,9 @@
       }
     },
     "model": "sentry.GroupRelease",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupResolution": {
@@ -1255,8 +1338,9 @@
       }
     },
     "model": "sentry.GroupResolution",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupRuleStatus": {
@@ -1275,8 +1359,9 @@
       }
     },
     "model": "sentry.GroupRuleStatus",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupSeen": {
@@ -1295,8 +1380,9 @@
       }
     },
     "model": "sentry.GroupSeen",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupShare": {
@@ -1315,8 +1401,9 @@
       }
     },
     "model": "sentry.GroupShare",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupSnooze": {
@@ -1327,8 +1414,9 @@
       }
     },
     "model": "sentry.GroupSnooze",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupSubscription": {
@@ -1347,8 +1435,9 @@
       }
     },
     "model": "sentry.GroupSubscription",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.GroupTombstone": {
@@ -1359,8 +1448,9 @@
       }
     },
     "model": "sentry.GroupTombstone",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.Identity": {
@@ -1375,15 +1465,17 @@
       }
     },
     "model": "sentry.Identity",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.IdentityProvider": {
     "foreign_keys": {},
     "model": "sentry.IdentityProvider",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.Incident": {
@@ -1398,8 +1490,9 @@
       }
     },
     "model": "sentry.Incident",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.IncidentActivity": {
@@ -1414,8 +1507,9 @@
       }
     },
     "model": "sentry.IncidentActivity",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.IncidentProject": {
@@ -1430,8 +1524,9 @@
       }
     },
     "model": "sentry.IncidentProject",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.IncidentSeen": {
@@ -1446,8 +1541,9 @@
       }
     },
     "model": "sentry.IncidentSeen",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.IncidentSnapshot": {
@@ -1462,8 +1558,9 @@
       }
     },
     "model": "sentry.IncidentSnapshot",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.IncidentSubscription": {
@@ -1478,8 +1575,9 @@
       }
     },
     "model": "sentry.IncidentSubscription",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.IncidentTrigger": {
@@ -1494,15 +1592,17 @@
       }
     },
     "model": "sentry.IncidentTrigger",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.Integration": {
     "foreign_keys": {},
     "model": "sentry.Integration",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.IntegrationExternalProject": {
@@ -1513,15 +1613,17 @@
       }
     },
     "model": "sentry.IntegrationExternalProject",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.IntegrationFeature": {
     "foreign_keys": {},
     "model": "sentry.IntegrationFeature",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.LatestAppConnectBuildsCheck": {
@@ -1532,8 +1634,9 @@
       }
     },
     "model": "sentry.LatestAppConnectBuildsCheck",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.LatestRepoReleaseEnvironment": {
@@ -1560,8 +1663,9 @@
       }
     },
     "model": "sentry.LatestRepoReleaseEnvironment",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.LostPasswordHash": {
@@ -1572,15 +1676,17 @@
       }
     },
     "model": "sentry.LostPasswordHash",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.MetricsKeyIndexer": {
     "foreign_keys": {},
     "model": "sentry.MetricsKeyIndexer",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.Monitor": {
@@ -1595,8 +1701,9 @@
       }
     },
     "model": "sentry.Monitor",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.MonitorCheckIn": {
@@ -1619,8 +1726,9 @@
       }
     },
     "model": "sentry.MonitorCheckIn",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.MonitorEnvironment": {
@@ -1635,15 +1743,17 @@
       }
     },
     "model": "sentry.MonitorEnvironment",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.MonitorLocation": {
     "foreign_keys": {},
     "model": "sentry.MonitorLocation",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.NotificationAction": {
@@ -1662,8 +1772,9 @@
       }
     },
     "model": "sentry.NotificationAction",
+    "relocation_scope": "Global",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.NotificationActionProject": {
@@ -1678,8 +1789,9 @@
       }
     },
     "model": "sentry.NotificationActionProject",
+    "relocation_scope": "Global",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.NotificationSetting": {
@@ -1698,8 +1810,9 @@
       }
     },
     "model": "sentry.NotificationSetting",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.NotificationSettingOption": {
@@ -1714,8 +1827,9 @@
       }
     },
     "model": "sentry.NotificationSettingOption",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.NotificationSettingProvider": {
@@ -1730,15 +1844,17 @@
       }
     },
     "model": "sentry.NotificationSettingProvider",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.Option": {
     "foreign_keys": {},
     "model": "sentry.Option",
+    "relocation_scope": "Global",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.OrgAuthToken": {
@@ -1757,15 +1873,17 @@
       }
     },
     "model": "sentry.OrgAuthToken",
+    "relocation_scope": "Organization",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.Organization": {
     "foreign_keys": {},
     "model": "sentry.Organization",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.OrganizationAccessRequest": {
@@ -1784,8 +1902,9 @@
       }
     },
     "model": "sentry.OrganizationAccessRequest",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.OrganizationAvatar": {
@@ -1800,8 +1919,9 @@
       }
     },
     "model": "sentry.OrganizationAvatar",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.OrganizationIntegration": {
@@ -1816,8 +1936,9 @@
       }
     },
     "model": "sentry.OrganizationIntegration",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.OrganizationMapping": {
@@ -1828,8 +1949,9 @@
       }
     },
     "model": "sentry.OrganizationMapping",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.OrganizationMember": {
@@ -1848,8 +1970,9 @@
       }
     },
     "model": "sentry.OrganizationMember",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.OrganizationMemberMapping": {
@@ -1872,8 +1995,9 @@
       }
     },
     "model": "sentry.OrganizationMemberMapping",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.OrganizationMemberTeam": {
@@ -1888,8 +2012,9 @@
       }
     },
     "model": "sentry.OrganizationMemberTeam",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.OrganizationOnboardingTask": {
@@ -1908,8 +2033,9 @@
       }
     },
     "model": "sentry.OrganizationOnboardingTask",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.OrganizationOption": {
@@ -1920,8 +2046,9 @@
       }
     },
     "model": "sentry.OrganizationOption",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.PendingIncidentSnapshot": {
@@ -1932,8 +2059,9 @@
       }
     },
     "model": "sentry.PendingIncidentSnapshot",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.PerfStringIndexer": {
@@ -1944,8 +2072,9 @@
       }
     },
     "model": "sentry.PerfStringIndexer",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.PlatformExternalIssue": {
@@ -1960,8 +2089,9 @@
       }
     },
     "model": "sentry.PlatformExternalIssue",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ProcessingIssue": {
@@ -1972,8 +2102,9 @@
       }
     },
     "model": "sentry.ProcessingIssue",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ProguardArtifactRelease": {
@@ -1992,8 +2123,9 @@
       }
     },
     "model": "sentry.ProguardArtifactRelease",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.Project": {
@@ -2004,8 +2136,9 @@
       }
     },
     "model": "sentry.Project",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ProjectArtifactBundle": {
@@ -2024,8 +2157,9 @@
       }
     },
     "model": "sentry.ProjectArtifactBundle",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ProjectAvatar": {
@@ -2040,8 +2174,9 @@
       }
     },
     "model": "sentry.ProjectAvatar",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ProjectBookmark": {
@@ -2056,8 +2191,9 @@
       }
     },
     "model": "sentry.ProjectBookmark",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ProjectCodeOwners": {
@@ -2072,8 +2208,9 @@
       }
     },
     "model": "sentry.ProjectCodeOwners",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ProjectDebugFile": {
@@ -2088,8 +2225,9 @@
       }
     },
     "model": "sentry.ProjectDebugFile",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ProjectIntegration": {
@@ -2104,8 +2242,9 @@
       }
     },
     "model": "sentry.ProjectIntegration",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ProjectKey": {
@@ -2116,8 +2255,9 @@
       }
     },
     "model": "sentry.ProjectKey",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ProjectOption": {
@@ -2128,8 +2268,9 @@
       }
     },
     "model": "sentry.ProjectOption",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ProjectOwnership": {
@@ -2140,8 +2281,9 @@
       }
     },
     "model": "sentry.ProjectOwnership",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ProjectPlatform": {
@@ -2152,8 +2294,9 @@
       }
     },
     "model": "sentry.ProjectPlatform",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ProjectRedirect": {
@@ -2168,8 +2311,9 @@
       }
     },
     "model": "sentry.ProjectRedirect",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ProjectTeam": {
@@ -2184,8 +2328,9 @@
       }
     },
     "model": "sentry.ProjectTeam",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ProjectTransactionThreshold": {
@@ -2204,8 +2349,9 @@
       }
     },
     "model": "sentry.ProjectTransactionThreshold",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ProjectTransactionThresholdOverride": {
@@ -2224,8 +2370,9 @@
       }
     },
     "model": "sentry.ProjectTransactionThresholdOverride",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.PromptsActivity": {
@@ -2244,8 +2391,9 @@
       }
     },
     "model": "sentry.PromptsActivity",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.PullRequest": {
@@ -2264,8 +2412,9 @@
       }
     },
     "model": "sentry.PullRequest",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.PullRequestComment": {
@@ -2276,8 +2425,9 @@
       }
     },
     "model": "sentry.PullRequestComment",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.PullRequestCommit": {
@@ -2292,8 +2442,9 @@
       }
     },
     "model": "sentry.PullRequestCommit",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.QuerySubscription": {
@@ -2308,8 +2459,9 @@
       }
     },
     "model": "sentry.QuerySubscription",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.RawEvent": {
@@ -2320,8 +2472,9 @@
       }
     },
     "model": "sentry.RawEvent",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.RecentSearch": {
@@ -2336,43 +2489,49 @@
       }
     },
     "model": "sentry.RecentSearch",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.RegionOutbox": {
     "foreign_keys": {},
     "model": "sentry.RegionOutbox",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.RegionScheduledDeletion": {
     "foreign_keys": {},
     "model": "sentry.RegionScheduledDeletion",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.RegionTombstone": {
     "foreign_keys": {},
     "model": "sentry.RegionTombstone",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.Relay": {
     "foreign_keys": {},
     "model": "sentry.Relay",
+    "relocation_scope": "Global",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.RelayUsage": {
     "foreign_keys": {},
     "model": "sentry.RelayUsage",
+    "relocation_scope": "Global",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.Release": {
@@ -2391,8 +2550,9 @@
       }
     },
     "model": "sentry.Release",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ReleaseActivity": {
@@ -2403,8 +2563,9 @@
       }
     },
     "model": "sentry.ReleaseActivity",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ReleaseArtifactBundle": {
@@ -2419,8 +2580,9 @@
       }
     },
     "model": "sentry.ReleaseArtifactBundle",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ReleaseCommit": {
@@ -2443,8 +2605,9 @@
       }
     },
     "model": "sentry.ReleaseCommit",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ReleaseEnvironment": {
@@ -2467,8 +2630,9 @@
       }
     },
     "model": "sentry.ReleaseEnvironment",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ReleaseFile": {
@@ -2491,8 +2655,9 @@
       }
     },
     "model": "sentry.ReleaseFile",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ReleaseHeadCommit": {
@@ -2515,8 +2680,9 @@
       }
     },
     "model": "sentry.ReleaseHeadCommit",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ReleaseProject": {
@@ -2531,8 +2697,9 @@
       }
     },
     "model": "sentry.ReleaseProject",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ReleaseProjectEnvironment": {
@@ -2551,8 +2718,9 @@
       }
     },
     "model": "sentry.ReleaseProjectEnvironment",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.Repository": {
@@ -2567,8 +2735,9 @@
       }
     },
     "model": "sentry.Repository",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.RepositoryProjectPathConfig": {
@@ -2595,8 +2764,9 @@
       }
     },
     "model": "sentry.RepositoryProjectPathConfig",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ReprocessingReport": {
@@ -2607,8 +2777,9 @@
       }
     },
     "model": "sentry.ReprocessingReport",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.Rule": {
@@ -2627,8 +2798,9 @@
       }
     },
     "model": "sentry.Rule",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.RuleActivity": {
@@ -2643,8 +2815,9 @@
       }
     },
     "model": "sentry.RuleActivity",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.RuleFireHistory": {
@@ -2663,8 +2836,9 @@
       }
     },
     "model": "sentry.RuleFireHistory",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.RuleSnooze": {
@@ -2687,8 +2861,9 @@
       }
     },
     "model": "sentry.RuleSnooze",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.SavedSearch": {
@@ -2703,15 +2878,17 @@
       }
     },
     "model": "sentry.SavedSearch",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ScheduledDeletion": {
     "foreign_keys": {},
     "model": "sentry.ScheduledDeletion",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.SentryApp": {
@@ -2734,8 +2911,9 @@
       }
     },
     "model": "sentry.SentryApp",
+    "relocation_scope": "Global",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.SentryAppAvatar": {
@@ -2754,8 +2932,9 @@
       }
     },
     "model": "sentry.SentryAppAvatar",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.SentryAppComponent": {
@@ -2766,8 +2945,9 @@
       }
     },
     "model": "sentry.SentryAppComponent",
+    "relocation_scope": "Global",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.SentryAppInstallation": {
@@ -2790,8 +2970,9 @@
       }
     },
     "model": "sentry.SentryAppInstallation",
+    "relocation_scope": "Global",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.SentryAppInstallationForProvider": {
@@ -2806,8 +2987,9 @@
       }
     },
     "model": "sentry.SentryAppInstallationForProvider",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.SentryAppInstallationToken": {
@@ -2822,8 +3004,9 @@
       }
     },
     "model": "sentry.SentryAppInstallationToken",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.SentryFunction": {
@@ -2834,8 +3017,9 @@
       }
     },
     "model": "sentry.SentryFunction",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ServiceHook": {
@@ -2858,8 +3042,9 @@
       }
     },
     "model": "sentry.ServiceHook",
+    "relocation_scope": "Global",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.ServiceHookProject": {
@@ -2874,8 +3059,9 @@
       }
     },
     "model": "sentry.ServiceHookProject",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.SnubaQuery": {
@@ -2886,8 +3072,9 @@
       }
     },
     "model": "sentry.SnubaQuery",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.SnubaQueryEventType": {
@@ -2898,8 +3085,9 @@
       }
     },
     "model": "sentry.SnubaQueryEventType",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.StringIndexer": {
@@ -2910,8 +3098,9 @@
       }
     },
     "model": "sentry.StringIndexer",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.Team": {
@@ -2926,8 +3115,9 @@
       }
     },
     "model": "sentry.Team",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.TeamAvatar": {
@@ -2942,8 +3132,9 @@
       }
     },
     "model": "sentry.TeamAvatar",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.TeamKeyTransaction": {
@@ -2958,22 +3149,25 @@
       }
     },
     "model": "sentry.TeamKeyTransaction",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.TimeSeriesSnapshot": {
     "foreign_keys": {},
     "model": "sentry.TimeSeriesSnapshot",
+    "relocation_scope": "Organization",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.User": {
     "foreign_keys": {},
     "model": "sentry.User",
+    "relocation_scope": "User",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.UserAvatar": {
@@ -2992,8 +3186,9 @@
       }
     },
     "model": "sentry.UserAvatar",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.UserEmail": {
@@ -3004,8 +3199,9 @@
       }
     },
     "model": "sentry.UserEmail",
+    "relocation_scope": "User",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.UserIP": {
@@ -3016,8 +3212,9 @@
       }
     },
     "model": "sentry.UserIP",
+    "relocation_scope": "User",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.UserOption": {
@@ -3036,8 +3233,9 @@
       }
     },
     "model": "sentry.UserOption",
+    "relocation_scope": "User",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.UserPermission": {
@@ -3048,8 +3246,9 @@
       }
     },
     "model": "sentry.UserPermission",
+    "relocation_scope": "User",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.UserReport": {
@@ -3072,15 +3271,17 @@
       }
     },
     "model": "sentry.UserReport",
+    "relocation_scope": "Excluded",
     "silos": [
-      "REGION"
+      "Region"
     ]
   },
   "sentry.UserRole": {
     "foreign_keys": {},
     "model": "sentry.UserRole",
+    "relocation_scope": "User",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sentry.UserRoleUser": {
@@ -3095,22 +3296,25 @@
       }
     },
     "model": "sentry.UserRoleUser",
+    "relocation_scope": "User",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   },
   "sessions.Session": {
     "foreign_keys": {},
     "model": "sessions.Session",
+    "relocation_scope": "Excluded",
     "silos": [
-      "MONOLITH"
+      "Monolith"
     ]
   },
   "sites.Site": {
     "foreign_keys": {},
     "model": "sites.Site",
+    "relocation_scope": "Excluded",
     "silos": [
-      "MONOLITH"
+      "Monolith"
     ]
   },
   "social_auth.UserSocialAuth": {
@@ -3121,8 +3325,9 @@
       }
     },
     "model": "social_auth.UserSocialAuth",
+    "relocation_scope": "Excluded",
     "silos": [
-      "CONTROL"
+      "Control"
     ]
   }
 }
