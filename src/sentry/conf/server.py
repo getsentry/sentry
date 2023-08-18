@@ -1192,6 +1192,7 @@ PROCESSING_QUEUES = [
 TIMEDELTA_ALLOW_LIST = {
     "flush-buffers",
     "sync-options",
+    "sync-options-control",
     "schedule-digests",
 }
 
