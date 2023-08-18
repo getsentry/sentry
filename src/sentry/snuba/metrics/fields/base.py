@@ -39,6 +39,7 @@ from sentry.snuba.metrics.fields.snql import (
     abnormal_users,
     addition,
     all_sessions,
+    all_spans,
     all_transactions,
     all_users,
     anr_users,
@@ -54,6 +55,7 @@ from sentry.snuba.metrics.fields.snql import (
     failure_count_transaction,
     foreground_anr_users,
     histogram_snql_factory,
+    http_error_count_span,
     http_error_count_transaction,
     max_timestamp,
     min_timestamp,
@@ -71,7 +73,7 @@ from sentry.snuba.metrics.fields.snql import (
     uniq_if_column_snql,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri, is_private_mri
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI, SpanMRI, TransactionMRI
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
     GENERIC_OP_TO_SNUBA_FUNCTION,
@@ -1562,6 +1564,60 @@ DERIVED_METRICS = {
             metrics=[
                 TransactionMRI.HTTP_ERROR_COUNT.value,
                 TransactionMRI.ALL.value,
+            ],
+            unit="transactions",
+            snql=lambda http_error_count, tx_count, project_ids, org_id, metric_ids, alias=None: division_float(
+                http_error_count, tx_count, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SpanMRI.ALL.value,
+            metrics=[SpanMRI.SELF_TIME.value],
+            unit="spans",
+            snql=lambda project_ids, org_id, metric_ids, alias=None: all_spans(
+                metric_ids=metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SpanMRI.ALL_LIGHT.value,
+            metrics=[SpanMRI.SELF_TIME_LIGHT.value],
+            unit="spans",
+            snql=lambda project_ids, org_id, metric_ids, alias=None: all_spans(
+                metric_ids=metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SpanMRI.HTTP_ERROR_COUNT.value,
+            metrics=[SpanMRI.SELF_TIME.value],
+            unit="spans",
+            snql=lambda project_ids, org_id, metric_ids, alias=None: http_error_count_span(
+                org_id, metric_ids=metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SpanMRI.HTTP_ERROR_RATE.value,
+            metrics=[
+                SpanMRI.HTTP_ERROR_COUNT.value,
+                SpanMRI.ALL.value,
+            ],
+            unit="transactions",
+            snql=lambda http_error_count, tx_count, project_ids, org_id, metric_ids, alias=None: division_float(
+                http_error_count, tx_count, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SpanMRI.HTTP_ERROR_COUNT_LIGHT.value,
+            metrics=[SpanMRI.SELF_TIME_LIGHT.value],
+            unit="spans",
+            snql=lambda project_ids, org_id, metric_ids, alias=None: http_error_count_span(
+                org_id, metric_ids=metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SpanMRI.HTTP_ERROR_RATE_LIGHT.value,
+            metrics=[
+                SpanMRI.HTTP_ERROR_COUNT_LIGHT.value,
+                SpanMRI.ALL_LIGHT.value,
             ],
             unit="transactions",
             snql=lambda http_error_count, tx_count, project_ids, org_id, metric_ids, alias=None: division_float(

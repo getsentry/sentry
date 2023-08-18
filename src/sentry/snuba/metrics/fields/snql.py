@@ -15,6 +15,7 @@ from sentry.sentry_metrics.utils import (
 from sentry.snuba.metrics.fields.histogram import MAX_HISTOGRAM_BUCKET, zoom_histogram
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import (
+    SpanTagsKey,
     TransactionSatisfactionTagValue,
     TransactionStatusTagValue,
     TransactionTagsKey,
@@ -333,6 +334,55 @@ def http_error_count_transaction(org_id, metric_ids, alias=None):
                     UseCaseID.TRANSACTIONS,
                     org_id,
                     TransactionTagsKey.TRANSACTION_HTTP_STATUS_CODE.value,
+                )
+            ),
+            list(status for status in statuses if status is not None),
+        ],
+    )
+
+    return Function(
+        "countIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    base_condition,
+                    Function("in", [Column("metric_id"), list(metric_ids)]),
+                ],
+            ),
+        ],
+        alias,
+    )
+
+
+def all_spans(
+    metric_ids: Set[int],
+    alias: Optional[str] = None,
+):
+    return Function(
+        "countIf",
+        [
+            Column("value"),
+            Function("in", [Column("metric_id"), list(metric_ids)]),
+        ],
+        alias,
+    )
+
+
+def http_error_count_span(org_id, metric_ids, alias=None):
+    statuses = [
+        resolve_tag_value(UseCaseID.SPANS, org_id, status)
+        for status in constants.HTTP_SERVER_ERROR_STATUS
+    ]
+    base_condition = Function(
+        "in",
+        [
+            Column(
+                name=resolve_tag_key(
+                    UseCaseID.SPANS,
+                    org_id,
+                    SpanTagsKey.HTTP_STATUS_CODE.value,
                 )
             ),
             list(status for status in statuses if status is not None),
