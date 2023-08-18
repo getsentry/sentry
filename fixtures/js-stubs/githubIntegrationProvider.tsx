@@ -1,23 +1,27 @@
-export function GitHubIntegrationProvider(params = {}) {
+import {IntegrationProvider} from 'sentry/types';
+
+export function GitHubIntegrationProvider(
+  params: Partial<IntegrationProvider> = {}
+): IntegrationProvider {
   return {
     key: 'github',
     slug: 'github',
     name: 'GitHub',
     canAdd: true,
-    config: [],
-    externalIssues: [],
     features: [],
     setupDialog: {
       url: '/github-integration-setup-uri/',
       width: 100,
       height: 100,
     },
+    canDisable: true,
     metadata: {
       description: '*markdown* formatted _description_',
       features: [
         {
           description: '*markdown* feature description',
           featureGate: 'integrations-commits',
+          featureId: 3,
         },
       ],
       author: 'Morty',
