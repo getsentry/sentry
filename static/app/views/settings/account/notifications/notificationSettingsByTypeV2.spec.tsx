@@ -159,11 +159,11 @@ describe('NotificationSettingsByType', function () {
     expect(
       await screen.findByText('Receive notifications about your error quotas.')
     ).toBeInTheDocument();
-    expect(await screen.findByText('Errors')).toBeInTheDocument();
-    expect(await screen.findByText('Transactions')).toBeInTheDocument();
-    expect(await screen.findByText('Replays')).toBeInTheDocument();
-    expect(await screen.findByText('Attachments')).toBeInTheDocument();
-    expect(await screen.findByText('Spend Allocations')).toBeInTheDocument();
+    expect(screen.getByText('Errors')).toBeInTheDocument();
+    expect(screen.getByText('Transactions')).toBeInTheDocument();
+    expect(screen.getByText('Replays')).toBeInTheDocument();
+    expect(screen.getByText('Attachments')).toBeInTheDocument();
+    expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
   });
   it('adds a project override and removes it', async function () {
     renderComponent({});
