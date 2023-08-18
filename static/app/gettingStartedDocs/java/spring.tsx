@@ -341,20 +341,16 @@ authToken = "your-sentry-auth-token"
             mavenRepositorySpring5Link: (
               <ExternalLink
                 href={`https://central.sonatype.com/artifact/io.sentry/sentry-spring/${
-                  sourcePackageRegistries?.isLoading
-                    ? t('\u2026loading')
-                    : sourcePackageRegistries?.data?.['sentry.java.spring']?.version ??
-                      '6.27.0'
+                  sourcePackageRegistries?.data?.['sentry.java.spring']?.version ??
+                  '6.27.0'
                 }`}
               />
             ),
             mavenRepositorySpring6Link: (
               <ExternalLink
                 href={`https://central.sonatype.com/artifact/io.sentry/sentry-spring-jakarta/${
-                  sourcePackageRegistries?.isLoading
-                    ? t('\u2026loading')
-                    : sourcePackageRegistries?.data?.['sentry.java.spring.jakarta']
-                        ?.version ?? '6.27.0'
+                  sourcePackageRegistries?.data?.['sentry.java.spring.jakarta']
+                    ?.version ?? '6.27.0'
                 }`}
               />
             ),
