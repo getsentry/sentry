@@ -1,6 +1,8 @@
+import {SavedSearch} from 'sentry/types';
+
 import {Search} from './search';
 
-export function Searches(params = []) {
+export function Searches(params = []): SavedSearch[] {
   return [
     Search({
       name: 'Needs Triage',
