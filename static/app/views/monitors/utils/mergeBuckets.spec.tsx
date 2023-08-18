@@ -3,12 +3,18 @@ import {CheckInStatus} from 'sentry/views/monitors/types';
 
 import {mergeBuckets} from './mergeBuckets';
 
-type StatusCounts = [ok: number, missed: number, timeout: number, error: number];
+type StatusCounts = [
+  in_progress: number,
+  ok: number,
+  missed: number,
+  timeout: number,
+  error: number
+];
 
-function generateEnvMapping(name: string, counts: StatusCounts) {
-  const [ok, missed, timeout, error] = counts;
+export function generateEnvMapping(name: string, counts: StatusCounts) {
+  const [in_progress, ok, missed, timeout, error] = counts;
   return {
-    [name]: {ok, timeout, error, missed},
+    [name]: {in_progress, ok, missed, timeout, error},
   };
 }
 
@@ -20,7 +26,7 @@ function generateJobRun(envName: string, jobStatus: CheckInStatus) {
     CheckInStatus.ERROR,
     CheckInStatus.IN_PROGRESS,
   ];
-  const counts: StatusCounts = [0, 0, 0, 0];
+  const counts: StatusCounts = [0, 0, 0, 0, 0];
   counts[sortedStatuses.indexOf(jobStatus)] = 1;
   return generateEnvMapping(envName, counts);
 }
@@ -45,7 +51,7 @@ describe('mergeBuckets', function () {
         width: 8,
         roundedLeft: true,
         roundedRight: true,
-        envMapping: generateEnvMapping('prod', [7, 0, 0, 0]),
+        envMapping: generateEnvMapping('prod', [0, 7, 0, 0, 0]),
       },
     ];
 
@@ -71,7 +77,7 @@ describe('mergeBuckets', function () {
         width: 4,
         roundedLeft: true,
         roundedRight: false,
-        envMapping: generateEnvMapping('prod', [4, 0, 0, 0]),
+        envMapping: generateEnvMapping('prod', [0, 4, 0, 0, 0]),
       },
       {
         startTs: 5,
@@ -79,7 +85,7 @@ describe('mergeBuckets', function () {
         width: 4,
         roundedLeft: false,
         roundedRight: true,
-        envMapping: generateEnvMapping('prod', [0, 3, 1, 0]),
+        envMapping: generateEnvMapping('prod', [0, 0, 3, 1, 0]),
       },
     ];
 
@@ -105,7 +111,7 @@ describe('mergeBuckets', function () {
         width: 8,
         roundedLeft: true,
         roundedRight: true,
-        envMapping: generateEnvMapping('prod', [1, 2, 5, 0]),
+        envMapping: generateEnvMapping('prod', [0, 1, 2, 5, 0]),
       },
     ];
 
@@ -150,7 +156,7 @@ describe('mergeBuckets', function () {
         width: 4,
         roundedLeft: true,
         roundedRight: true,
-        envMapping: generateEnvMapping('dev', [1, 1, 1, 0]),
+        envMapping: generateEnvMapping('dev', [0, 1, 1, 1, 0]),
       },
     ];
 
