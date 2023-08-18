@@ -417,7 +417,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 occurrence = IssueOccurrence(
                     id=uuid.uuid4().hex,
                     resource_id=None,
-                    # todo get project id
                     project_id=project_id,
                     event_id=uuid.uuid4().hex,
                     fingerprint=[fingerprint_regression(qualifying_trend)],
