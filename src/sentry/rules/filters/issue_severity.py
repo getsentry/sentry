@@ -22,7 +22,7 @@ class IssueSeverityForm(forms.Form):
 
 
 class IssueSeverityFilter(EventFilter):
-    id = "sentry.rules.filters.issue_category.IssueSeverityFilter"
+    id = "sentry.rules.filters.issue_severity.IssueSeverityFilter"
     form_cls = IssueSeverityForm
     form_fields = {
         "value": {"type": "number", "placeholder": 0.5},
