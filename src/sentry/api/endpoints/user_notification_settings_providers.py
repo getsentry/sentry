@@ -3,6 +3,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.exceptions import ParameterValidationError
@@ -19,7 +20,8 @@ from sentry.notifications.validators import (
 
 
 @control_silo_endpoint
-class UserNotificationProvidersEndpoint(UserEndpoint):
+class UserNotificationSettingsProvidersEndpoint(UserEndpoint):
+    owner = ApiOwner.ISSUES
     # TODO(Steve): Make not private when we launch new system
     private = True
 
@@ -63,12 +65,12 @@ class UserNotificationProvidersEndpoint(UserEndpoint):
             for provider in allowed_providers:
                 value = (
                     NotificationSettingsOptionEnum.ALWAYS.value
-                    if provider in data["provider"]
+                    if provider in data["providers"]
                     else NotificationSettingsOptionEnum.NEVER.value
                 )
                 (
                     notification_setting_provider,
-                    created,
+                    _,
                 ) = NotificationSettingProvider.objects.update_or_create(
                     user_id=user.id,
                     scope_type=data["scope_type"],

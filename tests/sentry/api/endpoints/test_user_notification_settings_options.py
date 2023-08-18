@@ -10,12 +10,12 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-class UserNotificationOptionsBaseTest(APITestCase):
+class UserNotificationSettingsOptionsBaseTest(APITestCase):
     endpoint = "sentry-api-0-user-notification-options"
 
 
 @control_silo_test(stable=True)
-class UserNotificationOptionsGetTest(UserNotificationOptionsBaseTest):
+class UserNotificationSettingsOptionsGetTest(UserNotificationSettingsOptionsBaseTest):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
@@ -66,7 +66,7 @@ class UserNotificationOptionsGetTest(UserNotificationOptionsBaseTest):
 
 
 @control_silo_test(stable=True)
-class UserNotificationOptionsPutTest(UserNotificationOptionsBaseTest):
+class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBaseTest):
     method = "PUT"
 
     def setUp(self):
