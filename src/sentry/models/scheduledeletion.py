@@ -160,6 +160,6 @@ class RegionScheduledDeletion(BaseScheduledDeletion):
 
 
 def get_regional_scheduled_deletion(mode: SiloMode) -> Type[BaseScheduledDeletion]:
-    if mode == SiloMode.REGION:
+    if mode != SiloMode.CONTROL:
         return RegionScheduledDeletion
     return ScheduledDeletion
