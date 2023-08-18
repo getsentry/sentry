@@ -152,14 +152,18 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                 span_ids.append(middle)
             if top:
                 span_ids.append(top)
-        if len(span_ids) == 0:
-            return Response({"data": []})
+
+        if len(span_ids) > 0:
+            query = f"span_id:[{','.join(span_ids)}] {request.query_params.get('query')}"
+        else:
+            query = request.query_params.get("query")
 
         result = spans_indexed.query(
             selected_columns=["project", "transaction.id", column, "timestamp", "span_id"],
             orderby=["timestamp"],
             params=params,
-            query=f"span_id:[{','.join(span_ids)}] {request.query_params.get('query')}",
+            query=query,
+            limit=9,
             referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
         )
         return Response({"data": result["data"]})
