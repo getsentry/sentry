@@ -32,7 +32,7 @@ function renderMockRequests({
   });
 
   MockApiClient.addMockResponse({
-    url: 'https://release-registry.services.sentry.io/sdks',
+    url: `/${orgSlug}/sdks/`,
     body: {
       'sentry.java': {
         canonical: 'maven:io.sentry:sentry',

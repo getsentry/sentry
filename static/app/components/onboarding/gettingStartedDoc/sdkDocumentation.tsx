@@ -35,7 +35,7 @@ export function SdkDocumentation({
   organization,
   projectId,
 }: SdkDocumentationProps) {
-  const sourcePackageRegistries = useSourcePackageRegistries();
+  const sourcePackageRegistries = useSourcePackageRegistries(organization);
 
   const [module, setModule] = useState<null | {
     default: React.ComponentType<ModuleProps>;
