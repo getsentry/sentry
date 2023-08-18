@@ -181,4 +181,23 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
 
     expect(endpointMock).toHaveBeenCalledTimes(0);
   });
+
+  it('renders error state', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/incidents/`,
+      body: [],
+      statusCode: 500,
+    });
+
+    render(
+      <ProjectLatestAlerts
+        organization={organization}
+        projectSlug={project.slug}
+        location={router.location}
+        isProjectStabilized
+      />
+    );
+
+    expect(await screen.findByText('Unable to load latest alerts')).toBeInTheDocument();
+  });
 });

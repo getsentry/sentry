@@ -129,11 +129,11 @@ function ProjectLatestAlerts({
   );
 
   function renderAlertRules() {
-    const isLoading = unresolvedAlertsIsLoading || resolvedAlertsIsLoading;
     if (unresolvedAlertsIsError || resolvedAlertsIsError) {
       return <LoadingError message={t('Unable to load latest alerts')} />;
     }
 
+    const isLoading = unresolvedAlertsIsLoading || resolvedAlertsIsLoading;
     if (isLoading || (shouldLoadAlertRules && alertRulesLoading)) {
       return <Placeholder height={PLACEHOLDER_AND_EMPTY_HEIGHT} />;
     }
