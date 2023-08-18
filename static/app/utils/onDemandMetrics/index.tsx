@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from '@emotion/styled';
 
 import {ParseResult, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
@@ -113,7 +114,7 @@ export function hasOnDemandMetricWidgetFeature(organization: Organization) {
   );
 }
 
-export function OnDemandWarningIcon({msg = ''}: {msg?: string}) {
+export function OnDemandWarningIcon({msg}: {msg: React.ReactNode}) {
   return (
     <Tooltip title={msg}>
       <HoverableIconWarning color="gray300" />

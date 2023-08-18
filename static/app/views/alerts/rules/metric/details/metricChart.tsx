@@ -1,4 +1,4 @@
-import {PureComponent} from 'react';
+import {Fragment, PureComponent} from 'react';
 import {browserHistory, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
@@ -9,6 +9,7 @@ import momentTimezone from 'moment-timezone';
 
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -233,11 +234,19 @@ class MetricChart extends PureComponent<Props, State> {
         <StyledInlineContainer>
           <SectionHeading>{t('Summary')}</SectionHeading>
           {isOnDemandAlertWihtoutData ? (
-            <StyledSectionValue>
-              {t(
-                "This alert uses specific filters that we don't routinely collect metrics from so we don't have any historical data to show currently"
-              )}
-            </StyledSectionValue>
+            <Fragment>
+              <GuideAnchor
+                disabled={false}
+                target="empty_on_demand_chart"
+                position="right"
+              >
+                <StyledSectionValue>
+                  {t(
+                    "This alert uses specific filters that we don't routinely collect metrics from so we don't have any historical data to show currently"
+                  )}
+                </StyledSectionValue>
+              </GuideAnchor>
+            </Fragment>
           ) : (
             <StyledSectionValue>
               <ValueItem>

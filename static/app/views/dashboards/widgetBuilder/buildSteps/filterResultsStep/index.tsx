@@ -171,7 +171,14 @@ export function FilterResultsStep({
                   widgetQuery={query}
                 />
                 {hasOnDemandMetricWidgetFeature(organization) &&
-                  isOnDemandQueryString(query.conditions) && <OnDemandWarningIcon />}
+                  isOnDemandQueryString(query.conditions) && (
+                    <OnDemandWarningIcon
+                      msg={tct(
+                        'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
+                        {strong: <strong />}
+                      )}
+                    />
+                  )}
                 {!hideLegendAlias && (
                   <LegendAliasInput
                     type="text"
