@@ -3,8 +3,9 @@ from __future__ import annotations
 import abc
 import inspect
 import logging
-from typing import Any, Mapping, Protocol
+from typing import Any, Callable, Iterable, Mapping, Protocol, Type
 
+from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.http import (
     HttpRequest,
@@ -19,6 +20,7 @@ from django.template.context_processors import csrf
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
+from rest_framework.request import Request
 
 from sentry import options
 from sentry.api.utils import generate_organization_url, is_member_disabled_from_limit
@@ -37,6 +39,7 @@ from sentry.services.hybrid_cloud.organization import (
 )
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloLimit
+from sentry.silo.base import SiloMode
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import construct_link_with_query, is_valid_redirect
@@ -47,6 +50,70 @@ from sudo.views import redirect_to_sudo
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.ui")
+
+
+class ViewSiloLimit(SiloLimit):
+    def modify_endpoint_class(self, decorated_class: Type[View]) -> type:
+        dispatch_override = self.create_override(decorated_class.dispatch)
+        new_class = type(
+            decorated_class.__name__,
+            (decorated_class,),
+            {
+                "dispatch": dispatch_override,
+                "silo_limit": self,
+            },
+        )
+        new_class.__module__ = decorated_class.__module__
+        return new_class
+
+    def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
+        return self.create_override(decorated_method)
+
+    def handle_when_unavailable(
+        self,
+        original_method: Callable[..., Any],
+        current_mode: SiloMode,
+        available_modes: Iterable[SiloMode],
+    ) -> Callable[..., Any]:
+        def handle(obj: Any, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+            mode_str = ", ".join(str(m) for m in available_modes)
+            message = (
+                f"Received {request.method} request at {request.path!r} to server in "
+                f"{current_mode} mode. This endpoint is available only in: {mode_str}"
+            )
+            if settings.FAIL_ON_UNAVAILABLE_API_CALL:
+                raise self.AvailabilityError(message)
+            else:
+                logger.warning(message)
+                return HttpResponseNotFound()
+
+        return handle
+
+    def __call__(self, decorated_obj: Any) -> Any:
+        if isinstance(decorated_obj, type):
+            if not issubclass(decorated_obj, View):
+                raise ValueError("`@ViewSiloLimit` can decorate only View subclasses")
+            return self.modify_endpoint_class(decorated_obj)
+
+        if callable(decorated_obj):
+            return self.modify_endpoint_method(decorated_obj)
+
+        raise TypeError("`@ViewSiloLimit` must decorate a class or method")
+
+
+control_silo_view = ViewSiloLimit(SiloMode.CONTROL)
+"""
+Apply to frontend views that exist in CONTROL Silo
+If a request is received and the application is not in CONTROL/MONOLITH
+mode a 404 will be returned.
+"""
+
+region_silo_view = ViewSiloLimit(SiloMode.REGION)
+"""
+Apply to frontend views that exist in REGION Silo
+If a request is received and the application is not in REGION/MONOLITH
+mode a 404 will be returned.
+"""
 
 
 class _HasRespond(Protocol):
