@@ -201,7 +201,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
 
 
 @region_silo_test(stable=True)
-class OrganizationMetricsPermissionTest(APITestCase):
+class OrganizationSdks(APITestCase):
     endpoint = "sentry-api-0-organization-sdks"
 
     def setUp(self):

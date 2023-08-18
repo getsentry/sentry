@@ -100,7 +100,7 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
 
 @region_silo_endpoint
 class OrganizationSdksEndpoint(OrganizationEndpoint):
-    def get(self, _: Request, __) -> Response:
+    def get(self, request: Request, organization) -> Response:
         try:
             sdks = get_sdk_index()
 
