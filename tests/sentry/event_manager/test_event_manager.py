@@ -342,6 +342,44 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         mock_send_activity_notifications_delay.assert_called_once_with(activity.id)
 
+    @mock.patch("sentry.event_manager.plugin_is_regression")
+    def test_sets_regression_environment(self, plugin_is_regression):
+        plugin_is_regression.return_value = True
+        manager = EventManager(
+            make_event(
+                event_id="a" * 32,
+                checksum="a" * 32,
+                timestamp=time() - 50000,  # need to work around active_at
+            )
+        )
+        event = manager.save(self.project.id)
+
+        assert event.group is not None
+        group = event.group
+
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+
+        activity = Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+            data={"version": ""},
+        )
+
+        manager = EventManager(
+            make_event(
+                event_id="c" * 32, checksum="a" * 32, timestamp=time(), environment="staging"
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.group_id == group.id
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+
+        activity = Activity.objects.get(group=group, type=ActivityType.SET_REGRESSION.value)
+        assert activity.data["environment"] == "staging"
+
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_that_release_in_latest_activity_prior_to_regression_is_not_overridden(
