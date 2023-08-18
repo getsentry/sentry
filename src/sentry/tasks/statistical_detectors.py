@@ -3,23 +3,18 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 import sentry_sdk
 from django.utils import timezone
-from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
 from sentry.models.project import Project
 from sentry.snuba import functions
 from sentry.snuba.referrer import Referrer
 from sentry.statistical_detectors import redis
-from sentry.statistical_detectors.detector import (
-    TrendPayload,
-    TrendState,
-    TrendType,
-    compute_new_trend_states,
-)
+from sentry.statistical_detectors.detector import TrendPayload
+from sentry.statistical_detectors.processing import process_trend_payloads
 from sentry.tasks.base import instrumented_task
 from sentry.utils.iterators import chunked
 
@@ -119,43 +114,12 @@ def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) ->
             if not functions:
                 continue
 
-            regressed, improved = process_trend_payloads(client, project, functions)
+            regressed, improved = process_trend_payloads(project, functions, client=client)
             regressed_functions.extend(regressed)
             improved_functions.extend(improved)
 
     # TODO
     # do something with the regressed and improved functions
-
-
-def process_trend_payloads(
-    client: RedisCluster | StrictRedis,
-    project: Project,
-    payloads: List[TrendPayload],
-) -> Tuple[List[TrendPayload], List[TrendPayload]]:
-    regressed: List[TrendPayload] = []
-    improved: List[TrendPayload] = []
-
-    old_states = redis.fetch_states(project, payloads, client=client)
-
-    new_states: List[TrendState | None] = []
-
-    for state, payload in zip(old_states, payloads):
-        result = compute_new_trend_states(state, payload)
-        if result is None:
-            new_states.append(None)
-            continue
-
-        new_state, trend = result
-        new_states.append(new_state)
-
-        if trend == TrendType.Regressed:
-            regressed.append(payload)
-        elif trend == TrendType.Improved:
-            regressed.append(payload)
-
-    redis.update_states(project, new_states, payloads)
-
-    return regressed, improved
 
 
 def query_transactions(project_id: int) -> None:
