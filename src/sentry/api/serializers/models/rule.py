@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import List
 
-from django.db.models import Max, prefetch_related_objects
+from django.db.models import Max, Q, prefetch_related_objects
 from rest_framework import serializers
 
 from sentry.api.serializers import Serializer, register
@@ -15,6 +15,7 @@ from sentry.models import (
 )
 from sentry.models.actor import Actor
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.user.service import user_service
 
 
@@ -178,4 +179,19 @@ class RuleSerializer(Serializer):
         }
         if "last_triggered" in attrs:
             d["lastTriggered"] = attrs["last_triggered"]
+
+        rule_snooze = RuleSnooze.objects.filter(Q(user_id=user.id) | Q(user_id=None), rule=obj)
+        if rule_snooze.exists():
+            d["snooze"] = True
+            snooze = rule_snooze[0]
+            if user.id == snooze.owner_id:
+                created_by = "You"
+            else:
+                creator_name = user_service.get_user(snooze.owner_id).get_display_name()
+                created_by = creator_name
+            d["snoozeCreatedBy"] = created_by
+            d["snoozeForEveryone"] = snooze.user_id is None
+        else:
+            d["snooze"] = False
+
         return d
