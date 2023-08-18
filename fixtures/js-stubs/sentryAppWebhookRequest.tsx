@@ -1,4 +1,8 @@
-export function SentryAppWebhookRequest(params = {}) {
+import {SentryAppWebhookRequest as SentryAppWebhookRequestType} from 'sentry/types';
+
+export function SentryAppWebhookRequest(
+  params: Partial<SentryAppWebhookRequestType> = {}
+): SentryAppWebhookRequestType {
   return {
     webhookUrl: 'https://example.com/webhook',
     sentryAppSlug: 'sample-app',
