@@ -164,6 +164,8 @@ class Enhancements:
                 platform,
                 load_from_cache=load_stacktrace_from_cache,
             )
+            # This will help us differentiate when a transaction uses caching vs not
+            sentry_sdk.set_tag("stacktrace.loaded_from_cache", frames_changed)
             if frames_changed:
                 logger.info("The frames have been loaded from the cache. Skipping some work.")
                 return
