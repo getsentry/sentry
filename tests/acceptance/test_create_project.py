@@ -18,7 +18,8 @@ class CreateProjectTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
 
-        self.browser.click('[data-test-id="create-team"]')
+        self.browser.click(None, "//*[text()='Select a Team']")
+        self.browser.click('[data-test-id="create-team-option"]')
         self.browser.wait_until("[role='dialog']")
         input = self.browser.element('input[name="slug"]')
         input.send_keys("new-team")
