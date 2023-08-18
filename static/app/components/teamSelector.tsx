@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import {createFilter} from 'react-select';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -53,6 +53,12 @@ const CREATE_TEAM_VALUE = 'CREATE_TEAM_VALUE';
 const optionFilter = createFilter({
   stringify: option => `${option.label} ${option.value}`,
 });
+
+const filterOption = (canditate, input) =>
+  // Never filter out the create team option
+  canditate.data.value === CREATE_TEAM_VALUE || optionFilter(canditate, input);
+
+const getOptionValue = (option: TeamOption) => option.value;
 
 // Ensures that the svg icon is white when selected
 const unassignedSelectStyles: StylesConfig = {
@@ -127,7 +133,13 @@ type TeamOption = GeneralSelectValue & {
 };
 
 function TeamSelector(props: Props) {
-  const {allowCreate, includeUnassigned, styles, onChange, ...extraProps} = props;
+  const {
+    allowCreate,
+    includeUnassigned,
+    styles: stylesProp,
+    onChange,
+    ...extraProps
+  } = props;
   const {teamFilter, organization, project, multiple, value, useId} = props;
 
   const api = useApi();
@@ -139,17 +151,20 @@ function TeamSelector(props: Props) {
   const canCreateTeam = organization.access.includes('project:admin');
   const canAddTeam = organization.access.includes('project:write');
 
-  const createTeamOption = (team: Team): TeamOption => ({
-    value: useId ? team.id : team.slug,
-    label: `#${team.slug}`,
-    leadingItems: <IdBadge team={team} hideName />,
-    searchKey: team.slug,
-    actor: {
-      type: 'team',
-      id: team.id,
-      name: team.slug,
-    },
-  });
+  const createTeamOption = useCallback(
+    (team: Team): TeamOption => ({
+      value: useId ? team.id : team.slug,
+      label: `#${team.slug}`,
+      leadingItems: <IdBadge team={team} hideName />,
+      searchKey: team.slug,
+      actor: {
+        type: 'team',
+        id: team.id,
+        name: team.slug,
+      },
+    }),
+    [useId]
+  );
 
   /**
    * Closes the select menu by blurring input if possible since that seems to
@@ -169,100 +184,112 @@ function TeamSelector(props: Props) {
     }
   }
 
-  const createTeam = () =>
-    new Promise<TeamOption>(resolve => {
-      openCreateTeamModal({
-        organization,
-        onClose: async team => {
-          if (project) {
-            await handleAddTeamToProject(team);
-          }
-          resolve(createTeamOption(team));
-        },
-      });
-    });
+  const handleAddTeamToProject = useCallback(
+    async (team: Team) => {
+      if (!project) {
+        closeSelectMenu();
+        return;
+      }
 
-  const handleChange = (newValue: TeamOption | TeamOption[]) => {
-    if (multiple) {
-      const options = newValue as TeamOption[];
-      const shouldCreate = options.find(option => option.value === CREATE_TEAM_VALUE);
-      if (shouldCreate) {
-        createTeam().then(newTeamOption => {
-          onChange?.([
-            ...options.filter(option => option.value !== CREATE_TEAM_VALUE),
-            newTeamOption,
-          ]);
+      // Copy old value
+      const oldValue = multiple ? [...(value ?? [])] : {value};
+      // Optimistic update
+      onChange?.(createTeamOption(team));
+
+      try {
+        await addTeamToProject(api, organization.slug, project.slug, team);
+      } catch (err) {
+        // Unable to add team to project, revert select menu value
+        onChange?.(oldValue);
+      }
+
+      closeSelectMenu();
+    },
+    [api, createTeamOption, multiple, onChange, organization.slug, project, value]
+  );
+
+  const createTeam = useCallback(
+    () =>
+      new Promise<TeamOption>(resolve => {
+        openCreateTeamModal({
+          organization,
+          onClose: async team => {
+            if (project) {
+              await handleAddTeamToProject(team);
+            }
+            resolve(createTeamOption(team));
+          },
+        });
+      }),
+    [createTeamOption, handleAddTeamToProject, organization, project]
+  );
+
+  const handleChange = useCallback(
+    (newValue: TeamOption | TeamOption[]) => {
+      if (multiple) {
+        const options = newValue as TeamOption[];
+        const shouldCreate = options.find(option => option.value === CREATE_TEAM_VALUE);
+        if (shouldCreate) {
+          createTeam().then(newTeamOption => {
+            onChange?.([
+              ...options.filter(option => option.value !== CREATE_TEAM_VALUE),
+              newTeamOption,
+            ]);
+          });
+        } else {
+          onChange?.(options);
+        }
+        return;
+      }
+
+      const option = newValue as TeamOption;
+      if (option.value === CREATE_TEAM_VALUE) {
+        createTeam().then(newTramOption => {
+          onChange?.(newTramOption);
         });
       } else {
-        onChange?.(options);
+        onChange?.(option);
       }
-      return;
-    }
+    },
+    [createTeam, multiple, onChange]
+  );
 
-    const option = newValue as TeamOption;
-    if (option.value === CREATE_TEAM_VALUE) {
-      createTeam().then(newTramOption => {
-        onChange?.(newTramOption);
-      });
-    } else {
-      onChange?.(option);
-    }
-  };
+  const createTeamOutsideProjectOption = useCallback(
+    (team: Team): TeamOption => {
+      // If the option/team is currently selected, optimistically assume it is now a part of the project
+      if (value === (useId ? team.id : team.slug)) {
+        return createTeamOption(team);
+      }
 
-  async function handleAddTeamToProject(team: Team) {
-    if (!project) {
-      closeSelectMenu();
-      return;
-    }
-
-    // Copy old value
-    const oldValue = multiple ? [...(value ?? [])] : {value};
-    // Optimistic update
-    onChange?.(createTeamOption(team));
-
-    try {
-      await addTeamToProject(api, organization.slug, project.slug, team);
-    } catch (err) {
-      // Unable to add team to project, revert select menu value
-      onChange?.(oldValue);
-    }
-
-    closeSelectMenu();
-  }
-
-  function createTeamOutsideProjectOption(team: Team): TeamOption {
-    // If the option/team is currently selected, optimistically assume it is now a part of the project
-    if (value === (useId ? team.id : team.slug)) {
-      return createTeamOption(team);
-    }
-
-    return {
-      ...createTeamOption(team),
-      disabled: true,
-      label: `#${team.slug}`,
-      leadingItems: <IdBadge team={team} hideName />,
-      trailingItems: (
-        <Tooltip
-          title={
-            canAddTeam
-              ? t('Add %s to project', `#${team.slug}`)
-              : t('You do not have permission to add team to project.')
-          }
-          containerDisplayMode="flex"
-        >
-          <AddToProjectButton
-            size="zero"
-            borderless
-            disabled={!canAddTeam}
-            onClick={() => handleAddTeamToProject(team)}
-            icon={<IconAdd isCircled />}
-            aria-label={t('Add %s to project', `#${team.slug}`)}
-          />
-        </Tooltip>
-      ),
-      tooltip: t('%s is not a member of project', `#${team.slug}`),
-    };
-  }
+      return {
+        ...createTeamOption(team),
+        disabled: true,
+        label: `#${team.slug}`,
+        leadingItems: <IdBadge team={team} hideName />,
+        trailingItems: (
+          <Tooltip
+            title={
+              canAddTeam
+                ? t('Add %s to project', `#${team.slug}`)
+                : t('You do not have permission to add team to project.')
+            }
+            containerDisplayMode="flex"
+          >
+            <AddToProjectButton
+              size="zero"
+              borderless
+              disabled={!canAddTeam}
+              onClick={() => handleAddTeamToProject(team)}
+              icon={<IconAdd isCircled />}
+              aria-label={t('Add %s to project', `#${team.slug}`)}
+            />
+          </Tooltip>
+        ),
+        tooltip: t('%s is not a member of project', `#${team.slug}`),
+      };
+    },
+    [canAddTeam, createTeamOption, handleAddTeamToProject, useId, value]
+  );
 
   function getOptions() {
     const filteredTeams = teamFilter ? teams.filter(teamFilter) : teams;
@@ -300,21 +327,39 @@ function TeamSelector(props: Props) {
     ];
   }
 
+  const options = useMemo(getOptions, [
+    teamFilter,
+    teams,
+    canCreateTeam,
+    project,
+    allowCreate,
+    createTeamOption,
+    includeUnassigned,
+    createTeamOutsideProjectOption,
+  ]);
+
+  const handleInputCHange = useMemo(
+    () => debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION),
+    [onSearch]
+  );
+
+  const styles = useMemo(
+    () => ({
+      ...(includeUnassigned ? unassignedSelectStyles : {}),
+      ...(multiple ? {} : placeholderSelectStyles),
+      ...(stylesProp ?? {}),
+    }),
+    [includeUnassigned, multiple, stylesProp]
+  );
+
   return (
     <SelectControl
       ref={selectRef}
-      options={getOptions()}
-      onInputChange={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}
-      getOptionValue={option => option.searchKey}
-      filterOption={(canditate, input) =>
-        // Never filter out the create team option
-        canditate.data.value === CREATE_TEAM_VALUE || optionFilter(canditate, input)
-      }
-      styles={{
-        ...(includeUnassigned ? unassignedSelectStyles : {}),
-        ...(multiple ? {} : placeholderSelectStyles),
-        ...(styles ?? {}),
-      }}
+      options={options}
+      onInputChange={handleInputCHange}
+      getOptionValue={getOptionValue}
+      filterOption={filterOption}
+      styles={styles}
       isLoading={fetching}
       onChange={handleChange}
       {...extraProps}
