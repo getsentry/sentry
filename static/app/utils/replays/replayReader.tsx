@@ -257,7 +257,6 @@ export default class ReplayReader {
                 isDeadRageClick(frame as SlowClickFrame)))
         )
       ),
-      ...this._sortedSpanFrames.filter(frame => frame.op.startsWith('navigation.')),
       ...this._errors,
     ].sort(sortFrames)
   );
@@ -265,7 +264,7 @@ export default class ReplayReader {
   getPerfFrames = memoize(() =>
     [
       ...this._sortedBreadcrumbFrames.filter(frame =>
-        ['navigation', 'replay.init', 'ui.click'].includes(frame.category)
+        ['ui.click'].includes(frame.category)
       ),
       ...this._sortedSpanFrames.filter(
         frame =>

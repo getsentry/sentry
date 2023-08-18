@@ -8,6 +8,7 @@ import toPercent from 'sentry/utils/number/toPercent';
 import toPixels from 'sentry/utils/number/toPixels';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import useProjects from 'sentry/utils/useProjects';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import type useReplayPerfData from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 
@@ -89,11 +90,14 @@ function TraceRow({
   startTimestampMs: number;
   trace: TraceFullDetailed;
 }) {
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === trace.profile_id);
+
   return (
     <Fragment key={trace.event_id}>
       <TxnCell>
         <TxnLabel style={labelCSSPosition(indent)}>
-          <ProjectAvatar size={12} project={{slug: trace.project_slug}} />
+          <ProjectAvatar size={12} project={project} />
           <span>
             <strong>{trace['transaction.op']}</strong> {EMDASH} {trace.transaction}
           </span>
