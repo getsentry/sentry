@@ -11,7 +11,6 @@ class GroupCommitResolution(Model):
     When a Group is referenced via a commit, its association is stored here.
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     group_id = BoundedBigIntegerField()

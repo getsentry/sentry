@@ -33,7 +33,6 @@ class RuleSource(IntEnum):
 
 @region_silo_only_model
 class Rule(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     DEFAULT_CONDITION_MATCH = "all"  # any, all
@@ -121,7 +120,6 @@ class RuleActivityType(Enum):
 
 @region_silo_only_model
 class RuleActivity(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     rule = FlexibleForeignKey("sentry.Rule")

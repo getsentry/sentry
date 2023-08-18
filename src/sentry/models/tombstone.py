@@ -29,7 +29,6 @@ class TombstoneBase(Model):
         abstract = True
         unique_together = ("table_name", "object_identifier")
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     table_name = models.CharField(max_length=48, null=False)

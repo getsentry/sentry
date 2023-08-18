@@ -14,7 +14,6 @@ from sentry.db.models.fields.jsonfield import JSONField
 
 @region_silo_only_model
 class DashboardProject(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
@@ -32,7 +31,6 @@ class Dashboard(Model):
     A dashboard.
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     title = models.CharField(max_length=255)
@@ -81,7 +79,6 @@ class DashboardTombstone(Model):
     has been replaced or deleted for an organization.
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     slug = models.CharField(max_length=255)

@@ -197,7 +197,6 @@ class OrganizationMember(Model):
     be set to ownership.
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     objects = OrganizationMemberManager()

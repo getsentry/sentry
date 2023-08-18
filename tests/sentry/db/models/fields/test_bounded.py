@@ -14,7 +14,6 @@ from sentry.testutils.cases import TestCase
 # There's a good chance this model wont get created in the db, so avoid
 # assuming it exists in these tests.
 class DummyModel(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     foo = models.CharField(max_length=32)

@@ -11,7 +11,6 @@ from sentry.services.hybrid_cloud.user.service import user_service
 
 @region_silo_only_model
 class OrganizationAccessRequest(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     team = FlexibleForeignKey("sentry.Team")

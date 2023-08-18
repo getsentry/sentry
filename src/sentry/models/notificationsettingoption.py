@@ -8,7 +8,6 @@ from .notificationsettingbase import NotificationSettingBase
 
 @control_silo_only_model
 class NotificationSettingOption(NotificationSettingBase):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     class Meta:

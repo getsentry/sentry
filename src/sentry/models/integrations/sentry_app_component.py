@@ -7,7 +7,6 @@ from sentry.db.models.fields.jsonfield import JSONField
 
 @control_silo_only_model
 class SentryAppComponent(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Global
 
     uuid = UUIDField(unique=True, auto_add=True)

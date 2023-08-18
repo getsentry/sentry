@@ -17,7 +17,6 @@ class RecentSearch(Model):
     Searches run by users recently.
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization")

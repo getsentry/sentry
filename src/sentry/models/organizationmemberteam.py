@@ -21,7 +21,6 @@ class OrganizationMemberTeam(BaseModel):
     Identifies relationships between organization members and the teams they are on.
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     id = BoundedAutoField(primary_key=True)

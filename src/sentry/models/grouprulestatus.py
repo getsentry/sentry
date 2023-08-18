@@ -7,7 +7,6 @@ from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, 
 
 @region_silo_only_model
 class GroupRuleStatus(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     ACTIVE = 0

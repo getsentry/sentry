@@ -22,7 +22,6 @@ READ_CACHE_DURATION = 3600
 @region_silo_only_model
 class ProjectCodeOwners(Model):
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
     # no db constraint to prevent locks on the Project table
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)

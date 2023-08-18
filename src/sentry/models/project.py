@@ -212,7 +212,6 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     are the top level entry point for all data.
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     slug = models.SlugField(null=True)

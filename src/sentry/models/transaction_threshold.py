@@ -53,7 +53,6 @@ def _filter_and_cache(cls, cache_key, project_ids, organization_id, order_by, va
 
 @region_silo_only_model
 class ProjectTransactionThresholdOverride(DefaultFieldsModel):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     # max_length here is based on the maximum for transactions in relay
@@ -84,7 +83,6 @@ class ProjectTransactionThresholdOverride(DefaultFieldsModel):
 
 @region_silo_only_model
 class ProjectTransactionThreshold(DefaultFieldsModel):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project", unique=True, db_constraint=False)

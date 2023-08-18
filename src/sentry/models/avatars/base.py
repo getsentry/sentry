@@ -26,7 +26,6 @@ class AvatarBase(Model):
     avatar preferences/files. If extending this class, ensure the model has avatar_type.
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     ALLOWED_SIZES: ClassVar[tuple[int, ...]] = (20, 32, 36, 48, 52, 64, 80, 96, 120)

@@ -15,7 +15,6 @@ from sentry.utils.geo import geo_by_addr
 
 @control_silo_only_model
 class UserIP(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.User
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)

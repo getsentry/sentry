@@ -49,7 +49,6 @@ class IdentityProvider(Model):
     acme-org.onelogin.com.
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     type = models.CharField(max_length=64)
@@ -192,7 +191,6 @@ class Identity(Model):
     A verified link between a user and a third party identity.
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     idp = FlexibleForeignKey("sentry.IdentityProvider")

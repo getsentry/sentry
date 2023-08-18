@@ -13,7 +13,6 @@ from sentry.types.releaseactivity import CHOICES
 
 @region_silo_only_model
 class ReleaseActivity(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     release = FlexibleForeignKey("sentry.Release", db_index=True)

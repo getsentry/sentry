@@ -6,7 +6,6 @@ from sentry.models.files.abstractfileblobowner import AbstractFileBlobOwner
 
 @control_silo_only_model
 class ControlFileBlobOwner(AbstractFileBlobOwner):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     blob = FlexibleForeignKey("sentry.ControlFileBlob")

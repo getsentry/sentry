@@ -19,7 +19,6 @@ class SentryFunctionManager(BaseManager):
 
 @region_silo_only_model
 class SentryFunction(DefaultFieldsModel):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization")

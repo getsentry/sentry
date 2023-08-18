@@ -80,7 +80,6 @@ class DashboardWidgetQuery(Model):
     A query in a dashboard widget.
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     widget = FlexibleForeignKey("sentry.DashboardWidget")
@@ -116,7 +115,6 @@ class DashboardWidget(Model):
     A dashboard widget.
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     dashboard = FlexibleForeignKey("sentry.Dashboard")

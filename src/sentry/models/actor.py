@@ -102,7 +102,6 @@ def actor_type_to_string(type: int) -> str | None:
 
 @region_silo_only_model
 class Actor(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     type = models.PositiveSmallIntegerField(

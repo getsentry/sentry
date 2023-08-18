@@ -9,7 +9,6 @@ class LatestRepoReleaseEnvironment(Model):
     commits in the given repo.
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     repository_id = BoundedBigIntegerField()

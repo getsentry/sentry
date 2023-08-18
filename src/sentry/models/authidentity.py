@@ -11,7 +11,6 @@ from sentry.db.models.fields.jsonfield import JSONField
 
 @control_silo_only_model
 class AuthIdentity(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     # NOTE: not a fk to sentry user

@@ -15,7 +15,6 @@ class ApiAuthorization(Model, HasApiScopes):
     overall approved applications (vs individual tokens).
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Global
 
     # users can generate tokens without being application-bound

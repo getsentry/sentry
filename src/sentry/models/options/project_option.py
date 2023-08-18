@@ -145,7 +145,6 @@ class ProjectOption(Model):
     their key. e.g. key='myplugin:optname'
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project")

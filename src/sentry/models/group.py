@@ -475,7 +475,6 @@ class Group(Model):
     Aggregated message which summarizes a set of Events.
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")

@@ -23,7 +23,6 @@ from sentry.utils.retries import TimedRetryPolicy
 
 @region_silo_only_model
 class Deploy(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)

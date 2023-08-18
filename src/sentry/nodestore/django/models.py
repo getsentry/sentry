@@ -7,7 +7,6 @@ from sentry.db.models import BaseModel, region_silo_only_model, sane_repr
 
 @region_silo_only_model
 class Node(BaseModel):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     id = models.CharField(max_length=40, primary_key=True)

@@ -23,7 +23,6 @@ query_aggregation_to_snuba = {
 
 @region_silo_only_model
 class SnubaQuery(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     class Type(Enum):
@@ -52,7 +51,6 @@ class SnubaQuery(Model):
 
 @region_silo_only_model
 class SnubaQueryEventType(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     class EventType(Enum):
@@ -75,7 +73,6 @@ class SnubaQueryEventType(Model):
 
 @region_silo_only_model
 class QuerySubscription(DefaultFieldsModel):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     class Status(Enum):

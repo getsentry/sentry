@@ -186,7 +186,6 @@ class UserOption(Model):
         - unused
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.User
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)

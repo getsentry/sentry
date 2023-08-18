@@ -28,8 +28,6 @@ class BaseOption(Model):
     their key. e.g. key='myplugin:optname'
     """
 
-    __include_in_export__ = True
-
     # Subclasses should overwrite the relocation scope as appropriate.
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -49,7 +47,6 @@ class BaseOption(Model):
 
 @region_silo_only_model
 class Option(BaseOption):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Global
 
     class Meta:
@@ -61,7 +58,6 @@ class Option(BaseOption):
 
 @control_silo_only_model
 class ControlOption(BaseOption):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Global
 
     class Meta:

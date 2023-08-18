@@ -13,7 +13,6 @@ class ProjectPlatform(Model):
     Note: This model is used solely for analytics.
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     project_id = BoundedBigIntegerField()

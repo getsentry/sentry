@@ -39,7 +39,6 @@ class ApiApplicationStatus:
 
 @control_silo_only_model
 class ApiApplication(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Global
 
     client_id = models.CharField(max_length=64, unique=True, default=generate_token)

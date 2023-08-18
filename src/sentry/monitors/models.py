@@ -208,7 +208,6 @@ class ScheduleType:
 
 @region_silo_only_model
 class Monitor(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     guid = UUIDField(unique=True, auto_add=True)
@@ -358,7 +357,6 @@ def check_organization_monitor_limits(sender, instance, **kwargs):
 
 @region_silo_only_model
 class MonitorCheckIn(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     guid = UUIDField(unique=True, auto_add=True)
@@ -454,7 +452,6 @@ class MonitorCheckIn(Model):
 
 @region_silo_only_model
 class MonitorLocation(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     guid = UUIDField(unique=True, auto_add=True)
@@ -493,7 +490,6 @@ class MonitorEnvironmentManager(BaseManager):
 
 @region_silo_only_model
 class MonitorEnvironment(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     monitor = FlexibleForeignKey("sentry.Monitor")

@@ -165,7 +165,6 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
     An organization represents a group of individuals which maintain ownership of projects.
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
     name = models.CharField(max_length=64)
     slug: models.Field[str, str] = models.SlugField(unique=True)

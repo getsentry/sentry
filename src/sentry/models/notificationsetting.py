@@ -33,7 +33,6 @@ class NotificationSetting(Model):
     and the value is ("value").
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     @property

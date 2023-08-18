@@ -19,8 +19,6 @@ class OrganizationMemberMapping(Model):
     - map a user or an email to a specific organization to indicate an organization membership
     """
 
-    __include_in_export__ = False
-
     # This model is "autocreated" via an outbox write from the regional `Organization` it
     # references, so there is no need to explicitly include it in the export.
     __relocation_scope__ = RelocationScope.Excluded

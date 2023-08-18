@@ -180,7 +180,6 @@ class IntegrationFeatureManager(BaseManager):
 
 @control_silo_only_model
 class IntegrationFeature(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     objects = IntegrationFeatureManager()

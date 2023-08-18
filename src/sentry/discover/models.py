@@ -23,7 +23,6 @@ MAX_TEAM_KEY_TRANSACTIONS = 100
 
 @region_silo_only_model
 class DiscoverSavedQueryProject(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
@@ -41,7 +40,6 @@ class DiscoverSavedQuery(Model):
     A saved Discover query
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     projects = models.ManyToManyField("sentry.Project", through=DiscoverSavedQueryProject)
@@ -138,7 +136,6 @@ class TeamKeyTransactionModelManager(BaseManager):
 
 @region_silo_only_model
 class TeamKeyTransaction(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     # max_length here is based on the maximum for transactions in relay

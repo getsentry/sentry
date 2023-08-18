@@ -40,7 +40,6 @@ def format_scim_token_actor_name(actor):
 
 @control_silo_only_model
 class AuditLogEntry(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")

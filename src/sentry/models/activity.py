@@ -87,7 +87,6 @@ class ActivityManager(BaseManager):
 
 @region_silo_only_model
 class Activity(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")

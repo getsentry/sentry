@@ -152,7 +152,6 @@ class TriggerGenerator:
 
 @region_silo_only_model
 class NotificationActionProject(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Global
 
     project = FlexibleForeignKey("sentry.Project")
@@ -206,7 +205,6 @@ class NotificationAction(AbstractNotificationAction):
     Generic notification action model to programmatically route depending on the trigger (or source) for the notification
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Global
     __repr__ = sane_repr("id", "trigger_type", "service_type", "target_display")
 

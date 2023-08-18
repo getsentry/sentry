@@ -164,7 +164,6 @@ class GroupHistory(Model):
     - Issue Activity/Status over time breakdown (i.e. for each of the last 14 days, how many new, resolved, regressed, unignored, etc. issues were there?)
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     objects = GroupHistoryManager()

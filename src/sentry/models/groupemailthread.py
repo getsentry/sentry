@@ -20,7 +20,6 @@ class GroupEmailThread(Model):
     for email threading.
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     email = models.EmailField(max_length=75)

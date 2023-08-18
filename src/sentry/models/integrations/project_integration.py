@@ -11,7 +11,6 @@ class ProjectIntegration(Model):
      Project Integrations.
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")

@@ -17,7 +17,6 @@ if TYPE_CHECKING:
 
 @control_silo_only_model
 class LostPasswordHash(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, unique=True)

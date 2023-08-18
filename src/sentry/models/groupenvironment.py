@@ -9,7 +9,6 @@ from sentry.utils.cache import cache
 
 @region_silo_only_model
 class GroupEnvironment(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)

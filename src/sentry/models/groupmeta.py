@@ -92,7 +92,6 @@ class GroupMeta(Model):
     provided by plugins.
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group")

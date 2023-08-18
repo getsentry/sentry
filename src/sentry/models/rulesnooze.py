@@ -33,7 +33,6 @@ class RuleSnooze(Model):
     Null `user_id` value means snoozed for all users.
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE", null=True)
