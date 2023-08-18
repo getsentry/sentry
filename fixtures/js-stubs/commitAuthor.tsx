@@ -1,4 +1,6 @@
-export function CommitAuthor(params = {}) {
+import {User} from 'sentry/types';
+
+export function CommitAuthor(params: Partial<User> = {}): User {
   return {
     username: 'example@sentry.io',
     lastLogin: '2018-11-30T21:18:09.812Z',
@@ -9,6 +11,9 @@ export function CommitAuthor(params = {}) {
     isActive: true,
     has2fa: false,
     name: 'Foo Bar',
+    isAuthenticated: true,
+    isStaff: false,
+    ip_address: '',
     avatarUrl: 'https://example.com/avatar.png',
     dateJoined: '2018-02-26T23:57:43.766Z',
     emails: [
@@ -24,6 +29,21 @@ export function CommitAuthor(params = {}) {
     },
     hasPasswordAuth: true,
     email: 'example@sentry.io',
+    authenticators: [],
+    options: {
+      timezone: 'UTC',
+      stacktraceOrder: 1,
+      language: 'en',
+      clock24Hours: false,
+      defaultIssueEvent: 'recommended',
+      avatarType: 'gravatar',
+      theme: 'light',
+    },
+    permissions: new Set(),
+    canReset2fa: false,
+    experiments: [],
+    flags: {newsletter_consent_prompt: false},
+    identities: [],
     ...params,
   };
 }
