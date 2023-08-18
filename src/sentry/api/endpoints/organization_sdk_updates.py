@@ -9,7 +9,8 @@ from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
-from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_suggested_updates
+from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_sdk_index, get_suggested_updates
 from sentry.snuba import discover
 from sentry.utils.numbers import format_grouped_length
 
@@ -95,3 +96,20 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
             )
 
         return Response(serialize(result["data"], projects))
+
+
+@region_silo_endpoint
+class OrganizationSdksEndpoint(OrganizationEndpoint):
+    def get(self, _: Request, __) -> Response:
+        try:
+            sdks = get_sdk_index()
+
+            if len(sdks) == 0:
+                raise Exception("No SDKs found in index")
+
+            return Response(sdks)
+
+        except Exception as e:
+
+            sentry_sdk.capture_exception(e)
+            return Response({})
