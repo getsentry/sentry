@@ -350,7 +350,7 @@ def generate_incident_trigger_email_context(
 
     organization = incident.organization
     alert_link_params = {
-        "referrer": "alert_email",
+        "referrer": "metric_alert_email",
     }
     if notification_uuid:
         alert_link_params["notification_uuid"] = notification_uuid
