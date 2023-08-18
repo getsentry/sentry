@@ -52,6 +52,7 @@ const supportedStacktracePlatforms: PlatformKey[] = [
   'python',
   'ruby',
   'elixir',
+  'csharp',
 ];
 
 interface StacktraceLinkSetupProps {
