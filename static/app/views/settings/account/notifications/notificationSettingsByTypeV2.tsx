@@ -29,7 +29,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
-  notificationType: string;
+  notificationType: string; // TODO(steve)? type better
   organizations: Organization[];
 } & DeprecatedAsyncComponent['props'];
 
@@ -121,11 +121,13 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
       option => option.type === notificationType && option.scopeType === 'user'
     );
     // if no match, fall back to the
-    let defaultValue;
+    let defaultValue: string;
     if (!matchedOption) {
       if (defaultSettings) {
         defaultValue = defaultSettings.typeDefaults[notificationType];
-        // return {[notificationType]: defaultSettings.typeDefaults[notificationType]};
+      } else {
+        // should never happen
+        defaultValue = 'never';
       }
     } else {
       defaultValue = matchedOption.value;
@@ -275,10 +277,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     this.setState(state => {
       return {
         ...state,
-        notificationOptions: [
-        	...state.notificationOptions,
-        	notificationOption,
-        ],
+        notificationOptions: [...state.notificationOptions, notificationOption],
       };
     });
   };
