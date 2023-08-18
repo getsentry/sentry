@@ -48,6 +48,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       ['slack', t('Slack')],
       ['msteams', t('Microsoft Teams')],
     ],
+    help: t('Where personal notifications will be sent.'),
     multiple: true,
     onChange: val => {
       // This is a little hack to prevent this field from being empty.
