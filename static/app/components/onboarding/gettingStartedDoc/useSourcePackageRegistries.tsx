@@ -21,7 +21,7 @@ type ReleaseRegistrySdk = Record<
  */
 export function useSourcePackageRegistries(organization: Organization) {
   const releaseRegistrySdk = useApiQuery<ReleaseRegistrySdk>(
-    [`/${organization.slug}/sdks/`],
+    [`/organizations/${organization.slug}/sdks/`],
     {
       staleTime: Infinity,
     }
