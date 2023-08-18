@@ -1,9 +1,10 @@
+import {type Config as ConfigType} from 'sentry/types';
+
 import {User} from './user';
 
-export function Config(params = {}) {
+export function Config(params: Partial<ConfigType> = {}): ConfigType {
   return {
     theme: 'light',
-    defaultIssueEvent: 'recommended',
     user: User(),
     messages: [],
     languageCode: 'en',
@@ -45,7 +46,6 @@ export function Config(params = {}) {
     },
     distPrefix: '',
     apmSampling: 1,
-    dsn_requests: '',
     demoMode: false,
     customerDomain: {
       subdomain: 'foobar',
@@ -57,6 +57,9 @@ export function Config(params = {}) {
       organizationUrl: 'https://foobar.sentry.io',
       regionUrl: 'https://us.sentry.io',
     },
+    disableU2FForSUForm: false,
+    enableAnalytics: false,
+    validateSUForm: false,
     ...params,
   };
 }
