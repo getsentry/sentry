@@ -134,7 +134,10 @@ class SCIMDetailPatchTest(SCIMTestCase):
             "sentry.scim.team.update", tags={"organization": self.organization}
         )
 
+<<<<<<< HEAD
     @with_feature("app:enterprise-prevent-numeric-slugs")
+=======
+>>>>>>> 5bf8905b9b (finish team SCIM patch refactor and add test)
     def test_scim_team_details_patch_rename_team_invalid_slug(self):
         self.base_data["Operations"] = [
             {

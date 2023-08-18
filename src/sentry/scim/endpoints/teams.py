@@ -320,7 +320,10 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         )
         if not serializer.is_valid():
             raise serializers.ValidationError(serializer.errors)
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5bf8905b9b (finish team SCIM patch refactor and add test)
         team = serializer.save()
         self.create_audit_entry(
             request=request,
