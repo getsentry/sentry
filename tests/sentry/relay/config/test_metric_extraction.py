@@ -1,8 +1,6 @@
 from typing import Sequence
 from unittest.mock import ANY
 
-import pytest
-
 from sentry.incidents.models import AlertRule
 from sentry.models import (
     Dashboard,
@@ -353,7 +351,7 @@ def test_get_metric_extraction_config_alerts_and_widgets(default_project):
         }
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_get_metric_extraction_config_with_apdex(default_project):
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
         create_alert("apdex(10)", "transaction.duration:>=1000", default_project)
