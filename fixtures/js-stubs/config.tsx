@@ -1,17 +1,20 @@
+import {Config as ConfigType} from 'sentry/types';
+
 import {User} from './user';
 
-export function Config(params = {}) {
+export function Config(params: Partial<ConfigType> = {}): ConfigType {
   return {
     theme: 'light',
-    defaultIssueEvent: 'recommended',
     user: User(),
     messages: [],
     languageCode: 'en',
     csrfCookieName: 'csrf-test-cookie',
     superUserCookieName: 'su-test-cookie',
     superUserCookieDomain: '.sentry.io',
+    validateSUForm: true,
     features: new Set(),
     singleOrganization: false,
+    enableAnalytics: true,
     urlPrefix: 'https://sentry-jest-tests.example.com/',
     needsUpgrade: false,
     supportEmail: 'support@sentry.io',
@@ -44,8 +47,8 @@ export function Config(params = {}) {
       tracePropagationTargets: [],
     },
     distPrefix: '',
+    disableU2FForSUForm: false,
     apmSampling: 1,
-    dsn_requests: '',
     demoMode: false,
     customerDomain: {
       subdomain: 'foobar',
