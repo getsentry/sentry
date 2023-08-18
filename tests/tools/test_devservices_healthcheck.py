@@ -1,6 +1,15 @@
+import time
+from unittest import mock
+
 import pytest
 
 from tools.devservices_healthcheck import run_cmd
+
+
+@pytest.fixture(autouse=True)
+def no_sleep():
+    with mock.patch.object(time, "sleep"):
+        yield
 
 
 def test_cmd_run_fail():
@@ -10,7 +19,4 @@ def test_cmd_run_fail():
 
 
 def test_cmd_run_ok():
-    try:
-        run_cmd(["date"])
-    except Exception as exp:
-        assert False, f"run_cmd raised expcetion {exp}"
+    run_cmd(["date"])
