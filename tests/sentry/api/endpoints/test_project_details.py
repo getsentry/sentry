@@ -555,7 +555,10 @@ class ProjectUpdateTest(APITestCase):
             slug="1234",
             status_code=400,
         )
-        assert response.data["slug"][0] == "a"
+        assert response.data["slug"][0] == (
+            "Enter a valid slug consisting of lowercase letters, numbers, underscores or "
+            "hyphens. It cannot be entirely numeric."
+        )
 
     def test_reserved_slug(self):
         self.get_error_response(

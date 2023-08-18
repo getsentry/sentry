@@ -1,3 +1,4 @@
+from typing import Any, Dict
 from unittest.mock import patch
 
 from django.urls import reverse
@@ -83,7 +84,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
     def setUp(self):
         super().setUp()
         self.team = self.create_team(organization=self.organization)
-        self.base_data = {
+        self.base_data: Dict[str, Any] = {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
         }
         self.member_one = self.create_member(
