@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import Color from 'color';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
@@ -52,8 +53,8 @@ export const READABLE_YAXIS_LABELS: Readonly<Record<YAxis, string>> = {
 };
 
 export const CHART_TITLES: Readonly<Record<YAxis, string>> = {
-  [YAxis.WARM_START]: t('App Warm Start'),
-  [YAxis.COLD_START]: t('App Cold Start'),
+  [YAxis.WARM_START]: t('Warm Start'),
+  [YAxis.COLD_START]: t('Cold Start'),
   [YAxis.TTID]: t('Time To Initial Display'),
   [YAxis.TTFD]: t('Time To Full Display'),
   [YAxis.SLOW_FRAME_RATE]: t('Slow Frame Rate'),
@@ -69,9 +70,16 @@ export const OUTPUT_TYPE: Readonly<Record<YAxis, AggregationOutputType>> = {
   [YAxis.FROZEN_FRAME_RATE]: 'percentage',
 };
 
+const DEVICE_CLASS_BREAKDOWN_INDEX = {
+  high: 0,
+  medium: 1,
+  low: 2,
+};
+
 export function ScreensView({yAxes}: {yAxes: YAxis[]}) {
   const pageFilter = usePageFilters();
   const location = useLocation();
+
   const {data: releases, isLoading: isReleasesLoading} = useReleases();
 
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
@@ -110,8 +118,8 @@ export function ScreensView({yAxes}: {yAxes: YAxis[]}) {
     eventView: EventView.fromNewQueryWithPageFilters(
       {
         name: '',
-        fields: ['release', ...yAxisCols],
-        topEvents: '2',
+        fields: ['release', 'device.class', ...yAxisCols],
+        topEvents: '6',
         orderby: yAxisCols[0],
         yAxis: yAxisCols,
         query: queryString,
@@ -134,26 +142,47 @@ export function ScreensView({yAxes}: {yAxes: YAxis[]}) {
     return <LoadingContainer />;
   }
 
-  function renderCharts() {
-    const transformedSeries: {[yAxisName: string]: Series[]} = {};
-    yAxes.forEach(val => (transformedSeries[YAXIS_COLUMNS[val]] = []));
+  const transformedReleaseSeries: {
+    [yAxisName: string]: {
+      [releaseVersion: string]: {[deviceClass: string]: Series | undefined};
+    };
+  } = {};
+  yAxes.forEach(val => {
+    transformedReleaseSeries[YAXIS_COLUMNS[val]] = {};
+    if (primaryRelease) {
+      transformedReleaseSeries[YAXIS_COLUMNS[val]][primaryRelease] = {};
+    }
+    if (secondaryRelease) {
+      transformedReleaseSeries[YAXIS_COLUMNS[val]][secondaryRelease] = {};
+    }
+  });
 
+  function renderCharts() {
     if (defined(releaseSeries)) {
-      Object.keys(releaseSeries).forEach((release, index) => {
-        Object.keys(releaseSeries[release]).forEach(yAxis => {
-          const label = `${release}`;
-          if (yAxis in transformedSeries) {
-            transformedSeries[yAxis].push({
+      Object.keys(releaseSeries).forEach(seriesName => {
+        const [deviceClass, ...releaseArray] = seriesName.split(',');
+        const index = DEVICE_CLASS_BREAKDOWN_INDEX[deviceClass] ?? 3;
+        const release = releaseArray.join(',');
+        const isPrimary = release === primaryRelease;
+
+        Object.keys(releaseSeries[seriesName]).forEach(yAxis => {
+          const label = `${deviceClass}, ${release}`;
+          if (yAxis in transformedReleaseSeries) {
+            const data =
+              releaseSeries[seriesName][yAxis]?.data.map(datum => {
+                return {
+                  name: datum[0] * 1000,
+                  value: datum[1][0].count,
+                } as SeriesDataUnit;
+              }) ?? [];
+
+            transformedReleaseSeries[yAxis][release][deviceClass] = {
               seriesName: label,
-              color: CHART_PALETTE[1][index],
-              data:
-                releaseSeries[release][yAxis]?.data.map(datum => {
-                  return {
-                    name: datum[0] * 1000,
-                    value: datum[1][0].count,
-                  } as SeriesDataUnit;
-                }) ?? [],
-            });
+              color: isPrimary
+                ? CHART_PALETTE[5][index]
+                : Color(CHART_PALETTE[5][index]).lighten(0.5).string(),
+              data,
+            };
           }
         });
       });
@@ -166,8 +195,21 @@ export function ScreensView({yAxes}: {yAxes: YAxis[]}) {
             <ChartsContainerItem key={val}>
               <MiniChartPanel title={CHART_TITLES[val]}>
                 <Chart
-                  height={150}
-                  data={transformedSeries[yAxisCols[index]]}
+                  height={180}
+                  data={
+                    ['high', 'medium', 'low']
+                      .flatMap(deviceClass => {
+                        return [primaryRelease, secondaryRelease].map(r => {
+                          if (r) {
+                            return transformedReleaseSeries[yAxisCols[index]][r][
+                              deviceClass
+                            ];
+                          }
+                          return null;
+                        });
+                      })
+                      .filter(v => defined(v)) as Series[]
+                  }
                   loading={seriesIsLoading}
                   utc={false}
                   grid={{

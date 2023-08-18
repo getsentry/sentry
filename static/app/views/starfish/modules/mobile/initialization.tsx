@@ -40,7 +40,7 @@ export default function InitializationModule() {
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
                 </SearchContainerWithFilterAndMetrics>
-                <ScreensView yAxes={[YAxis.WARM_START, YAxis.COLD_START]} />
+                <ScreensView yAxes={[YAxis.COLD_START, YAxis.WARM_START]} />
               </StarfishPageFiltersContainer>
             </Layout.Main>
           </Layout.Body>
