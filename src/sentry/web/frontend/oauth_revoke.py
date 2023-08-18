@@ -59,7 +59,7 @@ class OAuthRevokeView(View):
     @method_decorator(never_cache)
     def post(self, request: HttpRequest) -> HttpResponse:
         """
-        Handles POST request to revoke an access_token or refresh_token.
+        Revokes an access_token or refresh_token per RFC 6749 specification.
         Will respond with errors aligned with RFC 6749 Section 5.2.
         https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
         """
