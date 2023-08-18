@@ -207,9 +207,10 @@ default_manager.add(events.IntegrationUpgradeAuditLogEvent())
 default_manager.add(events.IntegrationAddAuditLogEvent())
 default_manager.add(events.IntegrationEditAuditLogEvent())
 default_manager.add(events.IntegrationRemoveAuditLogEvent())
+default_manager.add(events.IntegrationDisabledAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
-        event_id=113,
+        event_id=114,
         name="SENTRY_APP_ADD",
         api_name="sentry-app.add",
         template="created sentry app {sentry_app}",

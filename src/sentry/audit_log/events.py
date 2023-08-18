@@ -252,6 +252,15 @@ class IntegrationRemoveAuditLogEvent(AuditLogEvent):
         )
 
 
+class IntegrationDisabledAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(event_id=113, name="INTEGRATION_DISABLED", api_name="integration.disable")
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        provider = audit_log_entry.data.get("provider") or ""
+        return f"disabled {provider} integration".format(**audit_log_entry.data)
+
+
 class InternalIntegrationAddAuditLogEvent(AuditLogEvent):
     def __init__(self):
         super().__init__(
@@ -273,4 +282,4 @@ class InternalIntegrationDisabledAuditLogEvent(AuditLogEvent):
 
     def render(self, audit_log_entry: AuditLogEntry):
         integration_name = audit_log_entry.data.get("name") or ""
-        return f"disabled internal integration {integration_name}"
+        return f"disabled internal integration {integration_name}".format(**audit_log_entry.data)

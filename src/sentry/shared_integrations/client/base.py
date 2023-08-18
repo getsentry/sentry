@@ -9,7 +9,7 @@ from django.core.cache import cache
 from requests import PreparedRequest, Request, Response
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
@@ -19,6 +19,7 @@ from sentry.models import Organization, OrganizationIntegration
 from sentry.models.integrations.utils import is_response_error, is_response_success
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils import json, metrics
+from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.hashlib import md5_text
 
 from ..exceptions import ApiConnectionResetError, ApiHostError, ApiTimeoutError
@@ -489,4 +490,10 @@ class BaseApiClient(TrackResponseMixin):
             )
             notify_disable(org, rpc_integration.provider, self._get_redis_key())
             buffer.clear()
+            create_system_audit_entry(
+                organization=org,
+                target_object=org.id,
+                event=audit_log.get_event_id("INTEGRATION_DISABLED"),
+                data={"provider": rpc_integration.provider},
+            )
         return
