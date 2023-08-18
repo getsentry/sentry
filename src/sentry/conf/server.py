@@ -1526,6 +1526,8 @@ SENTRY_FEATURES = {
     "organizations:issue-details-most-helpful-event": False,
     # Enable Issue details UI improvements related to highlighting the 'most helpful' event
     "organizations:issue-details-most-helpful-event-ui": False,
+    # Enables the creation of issue alerts based on severity
+    "organizations:issue-severity-alerts": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
