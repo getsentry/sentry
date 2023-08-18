@@ -54,6 +54,7 @@ class AuditLogEventRegisterTest(TestCase):
             "integration.add",
             "integration.edit",
             "integration.remove",
+            "integration.disable",
             "sentry-app.add",
             "sentry-app.remove",
             "sentry-app.install",
