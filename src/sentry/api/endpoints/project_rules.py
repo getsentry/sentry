@@ -27,11 +27,26 @@ def clean_rule_data(data):
         if datum.get("name"):
             del datum["name"]
 
-
 @receiver(pre_save, sender=Rule)
 def pre_save_rule(instance, sender, *args, **kwargs):
     clean_rule_data(instance.data.get("conditions", []))
     clean_rule_data(instance.data.get("actions", []))
+
+def find_duplicate_rule(rule_data, project):
+    matchers = [key for key in list(rule_data.keys()) if key not in ("name", "user_id")]
+    existing_rules = Rule.objects.filter(project=project, status=ObjectStatus.ACTIVE)
+    for existing_rule in existing_rules:
+        keys = 0
+        matches = 0
+        for matcher in matchers:
+            if existing_rule.data.get(matcher) and rule_data.get(matcher):
+                keys += 1
+                if existing_rule.data[matcher] == rule_data[matcher]:
+                    matches += 1
+
+        if keys == matches:
+            return existing_rule
+    return None
 
 
 @region_silo_endpoint
@@ -154,26 +169,17 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             "frequency": data.get("frequency"),
             "user_id": request.user.id,
         }
-        matchers = [key for key in list(kwargs.keys()) if key not in ("name", "user_id")]
-        existing_rules = Rule.objects.filter(project=project, status=0)
-        for existing_rule in existing_rules:
-            keys = 0
-            matches = 0
-            for matcher in matchers:
-                if existing_rule.data.get(matcher) and kwargs.get(matcher):
-                    keys += 1
-                    if existing_rule.data[matcher] == kwargs[matcher]:
-                        matches += 1
+        duplicate_rule = find_duplicate_rule(kwargs, project)
+        if duplicate_rule:
+            return Response(
+                {
+                    "name": [
+                        f"This rule is an exact duplicate of '{duplicate_rule.label}' in this project and may not be created.",
+                    ]
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-            if keys == matches:
-                return Response(
-                    {
-                        "name": [
-                            f"This rule is an exact duplicate of '{existing_rule.label}' in this project and may not be created.",
-                        ]
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
         owner = data.get("owner")
         if owner:
             try:

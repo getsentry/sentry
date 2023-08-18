@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import responses
 from freezegun import freeze_time
+from rest_framework import status
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils.channel import strip_channel_name
@@ -404,7 +405,55 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert_rule_from_payload(self.rule, payload)
 
-    @responses.activate
+    def test_update_duplicate_rule(self):
+        """Test that if you edit a rule such that it's now the exact duplicate of another rule in the same project
+        we do not allow it"""
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+            }
+        ]
+        actions = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+            }
+        ]
+        rule = self.create_project_rule(
+            project=self.project, action_match=actions, condition_match=conditions
+        )
+        conditions.append(
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
+                "interval": "1h",
+                "value": 100,
+                "comparisonType": "count",
+            }
+        )
+        rule2 = self.create_project_rule(
+            project=self.project, action_match=actions, condition_match=conditions
+        )
+        conditions.pop(1)
+        payload = {
+            "name": "hello world",
+            "actionMatch": "all",
+            "actions": actions,
+            "conditions": conditions,
+        }
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            rule2.id,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            **payload,
+        )
+        assert (
+            resp.data["name"][0]
+            == f"This rule is an exact duplicate of '{rule.label}' in this project and may not be created."
+        )
+
     def test_with_environment(self):
         payload = {
             "name": "hello world",
