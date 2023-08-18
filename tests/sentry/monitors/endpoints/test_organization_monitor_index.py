@@ -220,7 +220,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         }
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
 
-        assert str(response.data["slug"][0]) == (
+        assert response.data["slug"][0] == (
             "Enter a valid slug consisting of lowercase letters, numbers, underscores or "
             "hyphens. It cannot be entirely numeric."
         )

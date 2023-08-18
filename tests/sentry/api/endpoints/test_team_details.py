@@ -84,6 +84,13 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.name == "hello world"
         assert team.slug == "foobar"
 
+    def test_invalid_numeric_slug(self):
+        response = self.get_error_response(self.organization.slug, self.team.slug, slug="1234")
+        assert response.data["slug"][0] == (
+            "Enter a valid slug consisting of lowercase letters, numbers, underscores or "
+            "hyphens. It cannot be entirely numeric."
+        )
+
     def test_member_without_team_role(self):
         user = self.create_user("foo@example.com")
         team = self.create_team()
