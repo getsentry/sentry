@@ -53,10 +53,10 @@ def run_escalating_forecast() -> None:
                 return generate_forecasts_for_projects.delay(
                     project_ids=project_ids, forecast_for_ongoing=True
                 )
-
-            return generate_forecasts_for_projects.delay(
-                project_ids=project_ids, forecast_for_ongoing=False
-            )
+            else:
+                return generate_forecasts_for_projects.delay(
+                    project_ids=project_ids, forecast_for_ongoing=False
+                )
 
 
 @instrumented_task(
