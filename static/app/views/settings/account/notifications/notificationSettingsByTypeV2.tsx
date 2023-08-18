@@ -207,13 +207,20 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
   getProviderFields(): Field[] {
     const {notificationType} = this.props;
     const {organizationIntegrations} = this.state;
+    // get the choices but only the ones that are available to the user
+    const choices = (
+      NOTIFICATION_SETTING_FIELDS.provider.choices as [string, string][]
+    ).filter(([providerSlug]) => {
+      if (providerSlug === 'email') {
+        return true;
+      }
+      return organizationIntegrations.some(
+        organizationIntegration => organizationIntegration.provider.slug === providerSlug
+      );
+    });
+
     const defaultField = Object.assign({}, NOTIFICATION_SETTING_FIELDS.provider, {
-      choices: organizationIntegrations
-        .map(organizationIntegration => [
-          organizationIntegration.provider.slug,
-          organizationIntegration.provider.name,
-        ])
-        .concat([['email', 'Email']]),
+      choices,
       getData: data => {
         return {
           type: notificationType,
