@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT, TIMEOUT
+from sentry.monitors.logic.mark_failed import MonitorFailure, mark_failed
 from sentry.monitors.types import ClockPulseMessage
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -17,14 +18,7 @@ from sentry.utils import metrics, redis
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
-from .models import (
-    CheckInStatus,
-    MonitorCheckIn,
-    MonitorEnvironment,
-    MonitorFailure,
-    MonitorStatus,
-    MonitorType,
-)
+from .models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus, MonitorType
 
 logger = logging.getLogger("sentry")
 
@@ -234,7 +228,8 @@ def check_missing(current_datetime=None):
                 expected_time=expected_time,
                 monitor_config=monitor.get_validated_config(),
             )
-            monitor_environment.mark_failed(
+            mark_failed(
+                monitor_environment,
                 reason=MonitorFailure.MISSED_CHECKIN,
                 occurrence_context={
                     "expected_time": expected_time.strftime(SUBTITLE_DATETIME_FORMAT)
@@ -282,7 +277,8 @@ def check_timeout(current_datetime=None):
                 status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
             ).exists()
             if not has_newer_result:
-                monitor_environment.mark_failed(
+                mark_failed(
+                    monitor_environment,
                     reason=MonitorFailure.DURATION,
                     occurrence_context={
                         "duration": (checkin.monitor.config or {}).get("max_runtime") or TIMEOUT,

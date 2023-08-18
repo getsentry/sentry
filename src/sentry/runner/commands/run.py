@@ -540,7 +540,7 @@ def ingest_consumer(consumer_type, **options):
 
     from arroyo import configure_metrics
 
-    from sentry.ingest.consumer_v2.factory import get_ingest_consumer
+    from sentry.ingest.consumer.factory import get_ingest_consumer
     from sentry.utils import metrics
     from sentry.utils.arroyo import MetricsWrapper
 

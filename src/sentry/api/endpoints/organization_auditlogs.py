@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import ControlSiloOrganizationEndpoint
 from sentry.api.bases.organization import OrganizationAuditPermission
@@ -31,6 +32,7 @@ class AuditLogQueryParamSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class OrganizationAuditLogsEndpoint(ControlSiloOrganizationEndpoint):
+    owner = ApiOwner.ENTERPRISE
     permission_classes = (OrganizationAuditPermission,)
 
     def get(
