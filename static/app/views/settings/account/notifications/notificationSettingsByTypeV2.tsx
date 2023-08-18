@@ -275,10 +275,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     this.setState(state => {
       return {
         ...state,
-        notificationOptions: [
-        	...state.notificationOptions,
-        	notificationOption,
-        ],
+        notificationOptions: [...state.notificationOptions, notificationOption],
       };
     });
   };
