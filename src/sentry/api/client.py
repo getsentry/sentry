@@ -119,3 +119,6 @@ class ApiClient:
 
     def delete(self, *args, **kwargs):
         return self.request("DELETE", *args, **kwargs)
+
+
+client = ApiClient()

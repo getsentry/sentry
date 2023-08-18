@@ -58,6 +58,7 @@ for cmd in map(
         "sentry.runner.commands.sendmail.sendmail",
         "sentry.runner.commands.execfile.execfile",
         "sentry.runner.commands.files.files",
+        "sentry.runner.commands.flags.flags",
         "sentry.runner.commands.help.help",
         "sentry.runner.commands.init.init",
         "sentry.runner.commands.killswitches.killswitches",

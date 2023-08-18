@@ -6,7 +6,7 @@ from typing import Any
 import sentry_sdk
 from rest_framework.response import Response
 
-from sentry.api import ApiClient
+from sentry.api.client import ApiClient
 from sentry.shared_integrations.track_response import TrackResponseMixin
 from sentry.utils import metrics
 
