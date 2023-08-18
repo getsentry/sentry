@@ -1,6 +1,8 @@
 import {OrganizationIntegration} from 'sentry/types';
 
-export function JiraIntegration(params = {}): OrganizationIntegration {
+export function JiraIntegration(
+  params: Partial<OrganizationIntegration> = {}
+): OrganizationIntegration {
   return {
     domainName: 'jira.com/test-integration',
     icon: 'http://jira.example.com/integration_icon.png',
