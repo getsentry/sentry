@@ -445,8 +445,8 @@ def configure_sdk():
 
         def flush(
             self,
-            timeout,  # type: float
-            callback=None,  # type: Optional[Any]
+            timeout,
+            callback=None,
         ):
             # flush transports in case we received a kill signal
             # type: (...) -> None
