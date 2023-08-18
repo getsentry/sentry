@@ -72,10 +72,10 @@ def _requires_relay() -> None:
 
 @pytest.fixture(scope="session")
 def _requires_symbolicator() -> None:
-    from sentry import options
+    symbolicator_conf = settings.SENTRY_DEVSERVICES["symbolicator"](settings, {})
+    (port,) = symbolicator_conf["ports"].values()
 
-    parsed = urlparse(options.get("symbolicator.options", True)["url"])
-    if not _service_available(parsed.hostname, parsed.port):
+    if not _service_available("127.0.0.1", port):
         pytest.skip("requires symbolicator server running")
 
 
