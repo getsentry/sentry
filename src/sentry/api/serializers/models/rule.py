@@ -174,6 +174,7 @@ class RuleSerializer(Serializer):
             "createdBy": attrs.get("created_by", None),
             "environment": environment.name if environment is not None else None,
             "projects": [obj.project.slug],
+            "status": obj.status,
         }
         if "last_triggered" in attrs:
             d["lastTriggered"] = attrs["last_triggered"]
