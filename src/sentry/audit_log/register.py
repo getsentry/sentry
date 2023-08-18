@@ -203,14 +203,14 @@ default_manager.add(
 default_manager.add(events.ServiceHookAddAuditLogEvent())
 default_manager.add(events.ServiceHookEditAuditLogEvent())
 default_manager.add(events.ServiceHookRemoveAuditLogEvent())
+default_manager.add(events.IntegrationDisabledAuditLogEvent())
 default_manager.add(events.IntegrationUpgradeAuditLogEvent())
 default_manager.add(events.IntegrationAddAuditLogEvent())
 default_manager.add(events.IntegrationEditAuditLogEvent())
 default_manager.add(events.IntegrationRemoveAuditLogEvent())
-default_manager.add(events.IntegrationDisabledAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
-        event_id=114,
+        event_id=113,
         name="SENTRY_APP_ADD",
         api_name="sentry-app.add",
         template="created sentry app {sentry_app}",

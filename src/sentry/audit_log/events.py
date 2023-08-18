@@ -204,6 +204,15 @@ class ServiceHookRemoveAuditLogEvent(AuditLogEvent):
         return f'removed the service hook for "{truncatechars(full_url, 64)}"'
 
 
+class IntegrationDisabledAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(event_id=108, name="INTEGRATION_DISABLED", api_name="integration.disable")
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        provider = audit_log_entry.data.get("provider") or ""
+        return f"disabled {provider} integration".format(**audit_log_entry.data)
+
+
 class IntegrationUpgradeAuditLogEvent(AuditLogEvent):
     def __init__(self):
         super().__init__(event_id=109, name="INTEGRATION_UPGRADE", api_name="integration.upgrade")
@@ -250,15 +259,6 @@ class IntegrationRemoveAuditLogEvent(AuditLogEvent):
         return "disabled integration {integration} from project {project}".format(
             **audit_log_entry.data
         )
-
-
-class IntegrationDisabledAuditLogEvent(AuditLogEvent):
-    def __init__(self):
-        super().__init__(event_id=113, name="INTEGRATION_DISABLED", api_name="integration.disable")
-
-    def render(self, audit_log_entry: AuditLogEntry):
-        provider = audit_log_entry.data.get("provider") or ""
-        return f"disabled {provider} integration".format(**audit_log_entry.data)
 
 
 class InternalIntegrationAddAuditLogEvent(AuditLogEvent):
