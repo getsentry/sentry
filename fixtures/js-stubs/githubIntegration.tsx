@@ -1,6 +1,8 @@
 import {OrganizationIntegration} from 'sentry/types';
 
-export function GitHubIntegration(params = {}): OrganizationIntegration {
+export function GitHubIntegration(
+  params: Partial<OrganizationIntegration> = {}
+): OrganizationIntegration {
   return {
     domainName: 'github.com/test-integration',
     icon: 'http://example.com/integration_icon.png',
