@@ -15,6 +15,7 @@ from arroyo.types import BrokerValue, Commit, Message, Partition
 from django.conf import settings
 from django.db import router, transaction
 from django.utils.text import slugify
+from sentry_sdk.tracing import Span, Transaction
 
 from sentry import ratelimits
 from sentry.constants import ObjectStatus
@@ -123,6 +124,106 @@ def _ensure_monitor_with_config(
     return monitor
 
 
+def check_killswitch(
+    metric_kwargs: Dict,
+    project: Project,
+    monitor_slug: str,
+):
+    """
+    Enforce organization level monitor kll switch. Returns true if the
+    killswitch is enforced.
+    """
+    is_blocked = killswitch_matches_context(
+        "crons.organization.disable-check-in", {"organization_id": project.organization_id}
+    )
+    if is_blocked:
+        metrics.incr(
+            "monitors.checkin.dropped.blocked",
+            tags={**metric_kwargs},
+        )
+        logger.info(
+            "monitors.consumer.killswitch",
+            extra={"org_id": project.organization_id, "slug": monitor_slug},
+        )
+    return is_blocked
+
+
+def check_ratelimit(
+    metric_kwargs: Dict,
+    project: Project,
+    monitor_slug: str,
+    environment: str | None,
+):
+    """
+    Enforce check-in rate limits. Returns True if rate limit is enforced.
+    """
+    is_limited = ratelimits.is_limited(
+        f"monitor-checkins:{project.organization_id}:{monitor_slug}:{environment}",
+        limit=CHECKIN_QUOTA_LIMIT,
+        window=CHECKIN_QUOTA_WINDOW,
+    )
+    if is_limited:
+        metrics.incr(
+            "monitors.checkin.dropped.ratelimited",
+            tags={**metric_kwargs},
+        )
+        logger.info(
+            "monitors.consumer.rate_limited",
+            extra={
+                "organization_id": project.organization_id,
+                "slug": monitor_slug,
+                "environment": environment,
+            },
+        )
+    return is_limited
+
+
+def transform_checkin_uuid(
+    txn: Transaction | Span,
+    metric_kwargs: Dict,
+    monitor_slug: str,
+    check_in_id: str,
+):
+    """
+    Extracts the `UUID` object from the provided check_in_id. Failures will be logged.
+
+    Returns the UUID object and a boolean indicating if the provided GUID
+    signals usage of "the latest" check-in.
+
+    When the provided GUID is `0` use_latest_checkin will be True, indicating
+    that we should try and update the most recent check-in instead. A new UUID
+    will still be returned for use in the scanrio where there is no latest
+    check-in.
+    """
+    check_in_guid: uuid.UUID | None = None
+    try:
+        check_in_guid = uuid.UUID(check_in_id)
+    except ValueError:
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "failed_guid_validation"},
+        )
+        txn.set_tag("result", "failed_guid_validation")
+        logger.info(
+            "monitors.consumer.guid_validation_failed",
+            extra={"guid": check_in_id, "slug": monitor_slug},
+        )
+        return None, False
+
+    if check_in_guid is None:
+        return None, False
+
+    # When the UUID is empty we will default to looking for the most
+    # recent check-in which is not in a terminal state.
+    use_latest_checkin = check_in_guid.int == 0
+
+    # If the UUID is unset (zero value) generate a new UUID
+    if check_in_guid.int == 0:
+        check_in_guid = uuid.uuid4()
+
+    return check_in_guid, use_latest_checkin
+
+
 def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) -> None:
     # XXX: Relay does not attach a message type, to properly discriminate the
     # type we add it by default here. This can be removed once the message_type
@@ -155,8 +256,6 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
         environment = params.get("environment")
         project = Project.objects.get_from_cache(id=project_id)
 
-        ratelimit_key = f"{project.organization_id}:{monitor_slug}:{environment}"
-
         # Strip sdk version to reduce metric cardinality
         sdk_platform = source_sdk.split("/")[0] if source_sdk else "none"
 
@@ -165,36 +264,20 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
             "sdk_platform": sdk_platform,
         }
 
-        if killswitch_matches_context(
-            "crons.organization.disable-check-in", {"organization_id": project.organization_id}
-        ):
-            metrics.incr(
-                "monitors.checkin.dropped.blocked",
-                tags={**metric_kwargs},
-            )
-            logger.info(
-                "monitors.consumer.killswitch",
-                extra={"org_id": project.organization_id, "slug": monitor_slug},
-            )
+        if check_killswitch(metric_kwargs, project, monitor_slug):
             return
 
-        if ratelimits.is_limited(
-            f"monitor-checkins:{ratelimit_key}",
-            limit=CHECKIN_QUOTA_LIMIT,
-            window=CHECKIN_QUOTA_WINDOW,
-        ):
-            metrics.incr(
-                "monitors.checkin.dropped.ratelimited",
-                tags={**metric_kwargs},
-            )
-            logger.info(
-                "monitors.consumer.rate_limited",
-                extra={
-                    "organization_id": project.organization_id,
-                    "slug": monitor_slug,
-                    "environment": environment,
-                },
-            )
+        if check_ratelimit(metric_kwargs, project, monitor_slug, environment):
+            return
+
+        guid, use_latest_checkin = transform_checkin_uuid(
+            txn,
+            metric_kwargs,
+            monitor_slug,
+            params["check_in_id"],
+        )
+
+        if guid is None:
             return
 
         def update_existing_check_in(
@@ -279,84 +362,48 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
 
             return
 
-        try:
-            check_in_id = uuid.UUID(params["check_in_id"])
-        except ValueError:
-            metrics.incr(
-                "monitors.checkin.result",
-                tags={**metric_kwargs, "status": "failed_guid_validation"},
-            )
-            txn.set_tag("result", "failed_guid_validation")
-            logger.info(
-                "monitors.consumer.guid_validation_failed",
-                extra={"guid": params["check_in_id"], "slug": params["monitor_slug"]},
-            )
-            return
-
-        # When the UUID is empty we will default to looking for the most
-        # recent check-in which is not in a terminal state.
-        use_latest_checkin = check_in_id.int == 0
-
-        # If the UUID is unset (zero value) generate a new UUID
-        if check_in_id.int == 0:
-            guid = uuid.uuid4()
-        else:
-            guid = check_in_id
-
         lock = locks.get(f"checkin-creation:{guid.hex}", duration=2, name="checkin_creation")
         try:
             with lock.acquire(), transaction.atomic(router.db_for_write(Monitor)):
+                params["duration"] = (
+                    # Duration is specified in seconds from the client, it is
+                    # stored in the checkin model as milliseconds
+                    int(params["duration"] * 1000)
+                    if params.get("duration") is not None
+                    else None
+                )
+
+                monitor_config = params.pop("monitor_config", None)
+
+                validator = MonitorCheckInValidator(
+                    data=params,
+                    partial=True,
+                    context={
+                        "project": project,
+                    },
+                )
+
+                if not validator.is_valid():
+                    metrics.incr(
+                        "monitors.checkin.result",
+                        tags={**metric_kwargs, "status": "failed_checkin_validation"},
+                    )
+                    txn.set_tag("result", "failed_checkin_validation")
+                    logger.info(
+                        "monitors.consumer.checkin_validation_failed",
+                        extra={"guid": guid.hex, **params},
+                    )
+                    return
+
+                validated_params = validator.validated_data
+
                 try:
-                    monitor_config = params.pop("monitor_config", None)
-
-                    params["duration"] = (
-                        # Duration is specified in seconds from the client, it is
-                        # stored in the checkin model as milliseconds
-                        int(params["duration"] * 1000)
-                        if params.get("duration") is not None
-                        else None
-                    )
-
-                    validator = MonitorCheckInValidator(
-                        data=params,
-                        partial=True,
-                        context={
-                            "project": project,
-                        },
-                    )
-
-                    if not validator.is_valid():
-                        metrics.incr(
-                            "monitors.checkin.result",
-                            tags={**metric_kwargs, "status": "failed_checkin_validation"},
-                        )
-                        txn.set_tag("result", "failed_checkin_validation")
-                        logger.info(
-                            "monitors.consumer.checkin_validation_failed",
-                            extra={"guid": guid.hex, **params},
-                        )
-                        return
-
-                    validated_params = validator.validated_data
-
                     monitor = _ensure_monitor_with_config(
                         project,
                         monitor_slug,
                         params["monitor_slug"],
                         monitor_config,
                     )
-
-                    if not monitor:
-                        metrics.incr(
-                            "monitors.checkin.result",
-                            tags={**metric_kwargs, "status": "failed_validation"},
-                        )
-                        txn.set_tag("result", "failed_validation")
-                        logger.info(
-                            "monitors.consumer.monitor_validation_failed",
-                            extra={"guid": guid.hex, **params},
-                        )
-                        return
                 except MonitorLimitsExceeded:
                     metrics.incr(
                         "monitors.checkin.result",
@@ -366,6 +413,18 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                     logger.info(
                         "monitors.consumer.monitor_limit_exceeded",
                         extra={"guid": guid.hex, "project": project.id, "slug": monitor_slug},
+                    )
+                    return
+
+                if not monitor:
+                    metrics.incr(
+                        "monitors.checkin.result",
+                        tags={**metric_kwargs, "status": "failed_validation"},
+                    )
+                    txn.set_tag("result", "failed_validation")
+                    logger.info(
+                        "monitors.consumer.monitor_validation_failed",
+                        extra={"guid": guid.hex, **params},
                     )
                     return
 
@@ -420,7 +479,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                         )
                     else:
                         check_in = MonitorCheckIn.objects.select_for_update().get(
-                            guid=check_in_id,
+                            guid=guid,
                         )
 
                         if check_in.monitor_environment_id != monitor_environment.id:
@@ -435,7 +494,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                             logger.info(
                                 "monitors.consumer.monitor_environment_mismatch",
                                 extra={
-                                    "guid": check_in_id.hex,
+                                    "guid": guid.hex,
                                     "slug": monitor_slug,
                                     "organization_id": project.organization_id,
                                     "environment": monitor_environment.id,
