@@ -99,6 +99,10 @@ _POST_PROCESS_FORWARDER_OPTIONS = [
 ]
 
 
+_INGEST_SPANS_OPTIONS = multiprocessing_options(default_max_batch_size=100) + [
+    click.Option(["--output-topic", "output_topic"], type=str, default="snuba-spans"),
+]
+
 # consumer name -> consumer definition
 # XXX: default_topic is needed to lookup the schema even if the actual topic name has been
 # overridden. This is because the current topic override mechanism means the default topic name
@@ -173,7 +177,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "ingest-events": {
         "topic": settings.KAFKA_INGEST_EVENTS,
-        "strategy_factory": "sentry.ingest.consumer_v2.factory.IngestStrategyFactory",
+        "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
             "consumer_type": "events",
@@ -181,7 +185,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "ingest-attachments": {
         "topic": settings.KAFKA_INGEST_ATTACHMENTS,
-        "strategy_factory": "sentry.ingest.consumer_v2.factory.IngestStrategyFactory",
+        "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
             "consumer_type": "attachments",
@@ -189,7 +193,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "ingest-transactions": {
         "topic": settings.KAFKA_INGEST_TRANSACTIONS,
-        "strategy_factory": "sentry.ingest.consumer_v2.factory.IngestStrategyFactory",
+        "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
             "consumer_type": "transactions",
@@ -247,6 +251,11 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "synchronize_commit_log_topic_default": "snuba-commit-log",
         "synchronize_commit_group_default": "snuba-consumers",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
+    },
+    "ingest-spans": {
+        "click_options": _INGEST_SPANS_OPTIONS,
+        "topic": settings.KAFKA_INGEST_SPANS,
+        "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }

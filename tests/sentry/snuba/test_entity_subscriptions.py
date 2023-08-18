@@ -667,11 +667,12 @@ class GetEntitySubscriptionFromSnubaQueryTest(TestCase):
         ]
 
         for expected_entity_subscription, query_type, dataset, aggregate in cases:
-            snuba_query = SnubaQuery(
+            snuba_query = SnubaQuery.objects.create(
                 time_window=60,
                 type=query_type.value,
                 dataset=dataset.value,
                 aggregate=aggregate,
+                resolution=5,
             )
             assert isinstance(
                 get_entity_subscription_from_snuba_query(snuba_query, self.organization.id),
@@ -735,12 +736,13 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
         ]
 
         for expected_entity_key, query_type, dataset, aggregate, query in cases:
-            snuba_query = SnubaQuery(
+            snuba_query = SnubaQuery.objects.create(
                 time_window=60,
                 type=query_type.value,
                 dataset=dataset.value,
                 aggregate=aggregate,
                 query=query,
+                resolution=5,
             )
             assert expected_entity_key == get_entity_key_from_snuba_query(
                 snuba_query, self.organization.id, self.project.id

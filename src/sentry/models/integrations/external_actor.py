@@ -16,12 +16,13 @@ from sentry.types.integrations import ExternalProviders
 logger = logging.getLogger(__name__)
 
 
-# TODO(hybrid-cloud): This should probably be a control silo model. We'd need to replace the actor reference with a team_id and user_id
 @region_silo_only_model
 class ExternalActor(DefaultFieldsModel):
     __include_in_export__ = False
 
     actor = FlexibleForeignKey("sentry.Actor", db_index=True, on_delete=models.CASCADE)
+    team = FlexibleForeignKey("sentry.Team", null=True, db_index=True, on_delete=models.CASCADE)
+    user_id = HybridCloudForeignKey("sentry.User", null=True, db_index=True, on_delete="CASCADE")
     organization = FlexibleForeignKey("sentry.Organization")
     integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
     provider = BoundedPositiveIntegerField(
@@ -44,19 +45,24 @@ class ExternalActor(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_externalactor"
-        unique_together = (("organization", "provider", "external_name", "actor"),)
+        unique_together = (
+            ("organization", "provider", "external_name", "actor"),
+            ("organization", "provider", "external_name", "team_id"),
+            ("organization", "provider", "external_name", "user_id"),
+        )
 
     def delete(self, **kwargs):
         from sentry.services.hybrid_cloud.integration import integration_service
 
         integration = integration_service.get_integration(integration_id=self.integration_id)
-        install = integration.get_installation(organization_id=self.organization.id)
+        if integration:
+            install = integration.get_installation(organization_id=self.organization.id)
 
-        team = self.actor.resolve()
-        install.notify_remove_external_team(external_team=self, team=team)
-        notifications_service.remove_notification_settings_for_team(
-            team_id=team.id, provider=ExternalProviders(self.provider)
-        )
+            team = self.actor.resolve()
+            install.notify_remove_external_team(external_team=self, team=team)
+            notifications_service.remove_notification_settings_for_team(
+                team_id=team.id, provider=ExternalProviders(self.provider)
+            )
 
         return super().delete(**kwargs)
 
