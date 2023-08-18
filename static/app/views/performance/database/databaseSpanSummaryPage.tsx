@@ -41,6 +41,8 @@ import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage
 type Query = {
   endpoint: string;
   endpointMethod: string;
+  transaction: string;
+  transactionMethod: string;
   [QueryParameterNames.SORT]: string;
 };
 
@@ -53,7 +55,7 @@ function SpanSummaryPage({params}: Props) {
   const location = useLocation<Query>();
 
   const {groupId} = params;
-  const {endpoint, endpointMethod} = location.query;
+  const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
 
   const queryFilter: SpanSummaryQueryFilters = endpoint
     ? {transactionName: endpoint, 'transaction.method': endpointMethod}
@@ -219,8 +221,8 @@ function SpanSummaryPage({params}: Props) {
           <SampleList
             projectId={span[SpanMetricsFields.PROJECT_ID]}
             groupId={span[SpanMetricsFields.SPAN_GROUP]}
-            transactionName={endpoint}
-            transactionMethod={endpointMethod}
+            transactionName={transaction}
+            transactionMethod={transactionMethod}
           />
         </Layout.Main>
       </Layout.Body>
