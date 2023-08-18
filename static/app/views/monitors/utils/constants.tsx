@@ -1,4 +1,10 @@
-import {IconCheckmark, IconFire, IconPause, IconTimer, IconWarning} from 'sentry/icons';
+import {
+  IconCheckmark,
+  IconFire,
+  IconTimer,
+  IconUnsubscribed,
+  IconWarning,
+} from 'sentry/icons';
 import {Aliases} from 'sentry/utils/theme';
 import {StatsBucket} from 'sentry/views/monitors/components/overviewTimeline/types';
 import {CheckInStatus, MonitorStatus} from 'sentry/views/monitors/types';
@@ -36,7 +42,7 @@ export const statusIconColorMap: Record<
     color: 'subText',
   },
   disabled: {
-    icon: <IconPause color="subText" size="xs" />,
+    icon: <IconUnsubscribed color="subText" size="xs" />,
     color: 'subText',
   },
 };

@@ -172,7 +172,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 Condition(
                     lhs=Column(QUERY_HASH_KEY),
                     op=Op.EQ,
-                    rhs=spec.query_hash(),
+                    rhs=spec.query_hash,
                 ),
             ],
             limit=limit,
