@@ -162,21 +162,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             for matcher in matchers:
                 if existing_rule.data.get(matcher) and kwargs.get(matcher):
                     keys += 1
-                    if matcher in ("conditions", "actions"):
-                        # check if "name" is present and remove it before comparing
-                        existing_rule_copy = existing_rule.data[matcher].copy()
-                        new_rule_copy = kwargs[matcher].copy()
-                        for i in existing_rule_copy:
-                            if "name" in i.keys():
-                                del i["name"]
-                        for i in new_rule_copy:
-                            if "name" in i.keys():
-                                del i["name"]
-
-                        if existing_rule_copy == new_rule_copy:
-                            matches += 1
-
-                    elif existing_rule.data[matcher] == kwargs[matcher]:
+                    if existing_rule.data[matcher] == kwargs[matcher]:
                         matches += 1
 
             if keys == matches:
