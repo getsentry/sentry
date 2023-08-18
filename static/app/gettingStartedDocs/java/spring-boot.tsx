@@ -426,8 +426,18 @@ class PersonService {
 ];
 // Configuration End
 
-export function GettingStartedWithSpringBoot({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} introduction={introduction} {...props} />;
+export function GettingStartedWithSpringBoot({
+  dsn,
+  sourcePackageRegistries,
+  ...props
+}: ModuleProps) {
+  return (
+    <Layout
+      steps={steps({dsn, sourcePackageRegistries})}
+      introduction={introduction}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithSpringBoot;
