@@ -300,9 +300,9 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 **self.dsn_auth_headers,
             )
             assert resp.status_code == 400, resp.content
-            assert (
-                resp.data["slug"][0]
-                == "Invalid monitor slug. Must match the pattern [a-zA-Z0-9_-]+"
+            assert resp.data["slug"][0] == (
+                "Enter a valid slug consisting of lowercase letters, numbers, underscores or "
+                "hyphens. It cannot be entirely numeric."
             )
 
     @override_settings(MAX_MONITORS_PER_ORG=2)
