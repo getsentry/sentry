@@ -298,6 +298,7 @@ def __translated_payload(
     return payload
 
 
+@pytest.mark.django_db
 def test_process_messages() -> None:
     message_payloads = [counter_payload, distribution_payload, set_payload]
     message_batch = [
@@ -380,6 +381,7 @@ invalid_payloads = [
 ]
 
 
+@pytest.mark.django_db
 @pytest.mark.parametrize("invalid_payload, error_text, format_payload", invalid_payloads)
 def test_process_messages_invalid_messages(
     invalid_payload, error_text, format_payload, caplog
@@ -445,6 +447,7 @@ def test_process_messages_invalid_messages(
     assert error_text in caplog.text
 
 
+@pytest.mark.django_db
 def test_process_messages_rate_limited(caplog, settings) -> None:
     """
     Test handling of `None`-values coming from the indexer service, which
@@ -506,6 +509,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     assert "dropped_message" in caplog.text
 
 
+@pytest.mark.django_db
 def test_process_messages_cardinality_limited(
     caplog, settings, monkeypatch, set_sentry_option
 ) -> None:

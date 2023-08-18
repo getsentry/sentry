@@ -187,6 +187,7 @@ def _get_string_indexer_log_records(caplog):
     ]
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 @pytest.mark.parametrize(
     "should_index_tag_values, expected",
@@ -250,6 +251,7 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
     assert batch.extract_strings() == expected
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_extract_strings_with_multiple_use_case_ids():
     """
@@ -487,6 +489,7 @@ def test_extract_strings_with_multiple_use_case_ids_blocked():
     }
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_extract_strings_with_invalid_mri():
     """
@@ -589,6 +592,7 @@ def test_extract_strings_with_invalid_mri():
     }
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
     """
@@ -1904,6 +1908,7 @@ def test_one_org_limited(caplog, settings):
     ]
 
 
+@pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_cardinality_limiter(caplog, settings):
     """
