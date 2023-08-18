@@ -449,7 +449,6 @@ def configure_sdk():
             callback=None,
         ):
             # flush transports in case we received a kill signal
-            # type: (...) -> None
             if experimental_transport:
                 getattr(experimental_transport, "flush")(timeout, callback)
             if sentry4sentry_transport:
