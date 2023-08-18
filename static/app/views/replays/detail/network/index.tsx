@@ -178,10 +178,13 @@ function NetworkList({
       targetOffsetMs: currentTime,
       allowExact: true,
     });
-    const frameIndex = items.findIndex(spanFrame => frame === spanFrame);
-    // index needs to be at least 1 to be a valid index to jump to
-    const index = frameIndex < 1 ? 1 : frameIndex;
-    if (index > visibleRange[1]) {
+    let index = items.findIndex(spanFrame => frame === spanFrame);
+    // frameIndex is -1 at end of replay, so use last index
+    if (index === -1) {
+      index = items.length - 1;
+    }
+    // When Jump Down, ensures purple line is visible and index needs to be 1 to jump to top of network list
+    if (index > visibleRange[1] || index === 0) {
       setScrollToRow(index + 1);
     } else {
       setScrollToRow(index);
@@ -195,8 +198,8 @@ function NetworkList({
       allowExact: true,
     });
     const frameIndex = items.findIndex(spanFrame => frame === spanFrame);
-    // frameIndex is -1 when the page is loading or at end of time, so use currentTime
-    const index = frameIndex === -1 ? currentTime : frameIndex;
+    // frameIndex is -1 at end of replay, so use last index
+    const index = frameIndex === -1 ? items.length : frameIndex;
     return index;
   }
 
