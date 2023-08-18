@@ -87,16 +87,16 @@ class MonitorTaskCheckMissingTest(TestCase):
         assert monitor_environment.last_checkin == ts - timedelta(minutes=2)
 
         # Because our checkin was a minute ago we'll have produced a missed checkin
-        missed_check = MonitorCheckIn.objects.get(
+        missed_checkin = MonitorCheckIn.objects.get(
             monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
         )
-        assert missed_check.date_added == (
+        assert missed_checkin.date_added == (
             monitor_environment.last_checkin + timedelta(minutes=1)
         ).replace(second=0, microsecond=0)
-        assert missed_check.expected_time == (
+        assert missed_checkin.expected_time == (
             monitor_environment.last_checkin + timedelta(minutes=1)
         ).replace(second=0, microsecond=0)
-        assert missed_check.monitor_config == monitor.config
+        assert missed_checkin.monitor_config == monitor.config
 
     def test_missing_checkin_with_margin(self):
         org = self.create_organization()
