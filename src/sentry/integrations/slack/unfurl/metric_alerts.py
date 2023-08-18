@@ -145,7 +145,7 @@ customer_domain_metric_alerts_link_regex = re.compile(
     r"^https?\://(?P<org_slug>[^/]+?)\.(?#url_prefix)[^/]+/alerts/rules/details/(?P<alert_rule_id>\d+)"
 )
 
-handler: Handler = Handler(
+handler = Handler(
     fn=unfurl_metric_alerts,
     matcher=[metric_alerts_link_regex, customer_domain_metric_alerts_link_regex],
     arg_mapper=map_metric_alert_query_args,

@@ -1,7 +1,11 @@
+from __future__ import annotations
+
+from typing import Any
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode, urlparse
 
+import pytest
 import responses
 from django.urls import reverse
 from isodate import parse_datetime
@@ -9,7 +13,12 @@ from isodate import parse_datetime
 import sentry
 from sentry.api.utils import generate_organization_url
 from sentry.constants import ObjectStatus
-from sentry.integrations.github import API_ERRORS, MINIMUM_REQUESTS, GitHubIntegrationProvider
+from sentry.integrations.github import (
+    API_ERRORS,
+    MINIMUM_REQUESTS,
+    GitHubIntegrationProvider,
+    client,
+)
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
 from sentry.models import Integration, OrganizationIntegration, Project, Repository
 from sentry.plugins.base import plugins
@@ -87,11 +96,14 @@ class GitHubIntegrationTest(IntegrationTestCase):
         plugins.unregister(GitHubPlugin)
         super().tearDown()
 
+    @pytest.fixture(autouse=True)
+    def stub_get_jwt(self):
+        with mock.patch.object(client, "get_jwt", return_value="jwt_token_1"):
+            yield
+
     def _stub_github(self):
         """This stubs the calls related to a Github App"""
         self.gh_org = "Test-Organization"
-        sentry.integrations.github.integration.get_jwt = MagicMock(return_value="jwt_token_1")
-        sentry.integrations.github.client.get_jwt = MagicMock(return_value="jwt_token_1")
         pp = 1
 
         responses.add(
@@ -100,7 +112,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             json={"token": self.access_token, "expires_at": self.expires_at},
         )
 
-        repositories = {
+        repositories: dict[str, Any] = {
             "xyz": {
                 "full_name": "Test-Organization/xyz",
                 "default_branch": "master",

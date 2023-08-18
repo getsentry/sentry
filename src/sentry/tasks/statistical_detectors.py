@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
@@ -7,13 +8,16 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.models.project import Project
-from sentry.profiles.statistical_detectors import TrendPayload
 from sentry.snuba import functions
 from sentry.snuba.referrer import Referrer
+from sentry.statistical_detectors.detector import TrendPayload
 from sentry.tasks.base import instrumented_task
+from sentry.utils.iterators import chunked
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
+
+FUNCTIONS_PER_PROJECT = 100
 
 ITERATOR_CHUNK = 1_000
 
@@ -79,16 +83,19 @@ def detect_transaction_trends(project_ids: List[int], **kwargs) -> None:
 
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.detect_function_trends",
-    queue="performance.statistical_detector",
+    queue="profiling.statistical_detector",
     max_retries=0,
 )
 def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) -> None:
     if not options.get("statistical_detectors.enable"):
         return
 
-    for project in Project.objects.filter(id__in=project_ids):
+    projects_per_query = options.get("statistical_detectors.query.batch_size")
+    assert projects_per_query > 0
+
+    for projects in chunked(Project.objects.filter(id__in=project_ids), projects_per_query):
         try:
-            query_functions(project, start)
+            query_functions(projects, start)
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
@@ -97,14 +104,15 @@ def query_transactions(project_id: int) -> None:
     pass
 
 
-def query_functions(project: Project, start: datetime) -> List[TrendPayload]:
-    params = _get_function_query_params(project, start)
+def query_functions(projects: List[Project], start: datetime) -> Dict[int, List[TrendPayload]]:
+    params = _get_function_query_params(projects, start)
 
     # TODOs:
     # - format and return this for further processing
     # - handle any errors
-    results = functions.query(
+    query_results = functions.query(
         selected_columns=[
+            "project.id",
             "timestamp",
             "fingerprint",
             "count()",
@@ -112,26 +120,28 @@ def query_functions(project: Project, start: datetime) -> List[TrendPayload]:
         ],
         query="is_application:1",
         params=params,
-        orderby=["-count()"],
-        limit=100,
+        orderby=["project.id", "-count()"],
+        limit=FUNCTIONS_PER_PROJECT * len(projects),
         referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR.value,
         auto_aggregations=True,
         use_aggregate_conditions=True,
         transform_alias_to_input_format=True,
     )
 
-    return [
-        TrendPayload(
+    function_results = defaultdict(list)
+    for row in query_results["data"]:
+        payload = TrendPayload(
             group=row["fingerprint"],
             count=row["count()"],
-            p95=row["p95()"],
+            value=row["p95()"],
             timestamp=datetime.fromisoformat(row["timestamp"]),
         )
-        for row in results["data"]
-    ]
+        function_results[row["project.id"]].append(payload)
+
+    return function_results
 
 
-def _get_function_query_params(project: Project, start: datetime) -> Dict[str, Any]:
+def _get_function_query_params(projects: List[Project], start: datetime) -> Dict[str, Any]:
     # The functions dataset only supports 1 hour granularity.
     # So we always look back at the last full hour that just elapsed.
     # And since the timestamps are truncated to the start of the hour
@@ -142,7 +152,6 @@ def _get_function_query_params(project: Project, start: datetime) -> Dict[str, A
     return {
         "start": start,
         "end": start + timedelta(minutes=1),
-        "project_id": [project.id],
-        "project_objects": [project],
-        "organization_id": project.organization_id,
+        "project_id": [project.id for project in projects],
+        "project_objects": projects,
     }

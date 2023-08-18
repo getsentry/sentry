@@ -42,7 +42,7 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
-    GITHUB_PR_BOT_DEFAULT,
+    GITHUB_COMMENT_BOT_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
@@ -197,7 +197,7 @@ class ControlSiloOrganizationSerializer(Serializer):
 @register(Organization)
 class OrganizationSerializer(Serializer):
     def get_attrs(
-        self, item_list: Sequence[Organization], user: User
+        self, item_list: Sequence[Organization], user: User, **kwargs: Any
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
         avatars = {
             a.organization_id: a
@@ -241,7 +241,7 @@ class OrganizationSerializer(Serializer):
         }
 
     def serialize(
-        self, obj: Organization, attrs: Mapping[str, Any], user: User
+        self, obj: Organization, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> OrganizationSerializerResponse:
         from sentry import features
         from sentry.features.base import OrganizationFeature
@@ -317,7 +317,7 @@ class OrganizationSerializer(Serializer):
 
         has_auth_provider = attrs.get("auth_provider", None) is not None
 
-        return {
+        context = {
             "id": str(obj.id),
             "slug": obj.slug,
             "status": {"id": status.name.lower(), "name": status.label},
@@ -337,6 +337,13 @@ class OrganizationSerializer(Serializer):
             },
             "hasAuthProvider": has_auth_provider,
         }
+
+        if "access" in kwargs:
+            context["access"] = kwargs["access"].scopes
+            tasks_to_serialize = list(onboarding_tasks.fetch_onboarding_tasks(obj, user))
+            context["onboardingTasks"] = serialize(tasks_to_serialize, user)
+
+        return context
 
 
 class _OnboardingTasksAttrs(TypedDict):
@@ -417,6 +424,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     codecovAccess: bool
     aiSuggestedSolution: bool
     githubPRBot: bool
+    githubOpenPRBot: bool
     isDynamicallySampled: bool
 
 
@@ -433,11 +441,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         from sentry import experiments
 
-        tasks_to_serialize = list(onboarding_tasks.fetch_onboarding_tasks(obj, user))
-
         experiment_assignments = experiments.all(org=obj, actor=user)
 
-        context = cast(DetailedOrganizationSerializerResponse, super().serialize(obj, attrs, user))
+        context = cast(
+            DetailedOrganizationSerializerResponse,
+            super().serialize(obj, attrs, user, access=access),
+        )
         max_rate = quotas.get_maximum_quota(obj)
         context["experiments"] = experiment_assignments
         context["quota"] = {
@@ -522,7 +531,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "aiSuggestedSolution": bool(
                     obj.get_option("sentry:ai_suggested_solution", AI_SUGGESTED_SOLUTION)
                 ),
-                "githubPRBot": bool(obj.get_option("sentry:github_pr_bot", GITHUB_PR_BOT_DEFAULT)),
+                "githubPRBot": bool(
+                    obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)
+                ),
+                "githubOpenPRBot": bool(
+                    obj.get_option("sentry:github_open_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)
+                ),
             }
         )
 
@@ -530,14 +544,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         # serialize trusted relays info into their external form
         context["trustedRelays"] = [TrustedRelaySerializer(raw).data for raw in trusted_relays_raw]
 
-        context["access"] = access.scopes
         if access.role is not None:
             context["role"] = access.role  # Deprecated
             context["orgRole"] = access.role
         context["pendingAccessRequests"] = OrganizationAccessRequest.objects.filter(
             team__organization=obj
         ).count()
-        context["onboardingTasks"] = serialize(tasks_to_serialize, user)
         sample_rate = quotas.get_blended_sample_rate(organization_id=obj.id)  # type:ignore
         context["isDynamicallySampled"] = (
             features.has("organizations:dynamic-sampling", obj)

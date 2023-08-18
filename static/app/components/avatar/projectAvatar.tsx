@@ -5,6 +5,7 @@ import {AvatarProject} from 'sentry/types';
 
 type Props = {
   project: AvatarProject;
+  direction?: 'left' | 'right';
 } & BaseAvatar['props'];
 
 function ProjectAvatar({project, hasTooltip, tooltip, ...props}: Props) {

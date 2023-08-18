@@ -7,7 +7,6 @@ from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
-from sentry.models import PagerDutyService
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import (
@@ -261,19 +260,13 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
             org_integration = OrganizationIntegration.objects.get(
                 organization_id=self.organization.id, integration_id=integration.id
             )
-            pds = PagerDutyService.objects.create(
-                organization_integration_id=org_integration.id,
-                organization_id=self.organization.id,
-                integration_id=integration.id,
+            pds = org_integration.add_pagerduty_service(
                 integration_key="key1",
                 service_name="service1",
             )
-            pds2 = PagerDutyService.objects.create(
-                organization_integration_id=org_integration.id,
-                organization_id=self.organization.id,
-                integration_id=integration.id,
+            pds2 = org_integration.add_pagerduty_service(
                 integration_key="key2",
-                service_name="service2",
+                service_name="service1",
             )
 
         result = integration_service.get_organization_integration(
@@ -282,8 +275,8 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         )
         assert result
         assert result.config["pagerduty_services"] == [
-            pds.as_dict(),
-            pds2.as_dict(),
+            pds,
+            pds2,
         ]
 
     def test_get_organization_context(self):

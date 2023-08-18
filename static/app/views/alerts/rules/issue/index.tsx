@@ -347,7 +347,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         {
           id,
           label: CHANGE_ALERT_PLACEHOLDERS_LABELS[id],
-          name: 'A new issue is created',
         },
       ]);
     }
@@ -603,6 +602,14 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
           if (actionName === 'SlackNotifyServiceAction') {
             transaction.setTag(actionName, true);
           }
+          // to avoid storing inconsistent data in the db, don't pass the name fields
+          delete action.name;
+        }
+        for (const condition of rule.conditions) {
+          delete condition.name;
+        }
+        for (const filter of rule.filters) {
+          delete filter.name;
         }
         transaction.setData('actions', rule.actions);
       }

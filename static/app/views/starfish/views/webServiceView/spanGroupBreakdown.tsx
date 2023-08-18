@@ -14,6 +14,7 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
 import Chart from 'sentry/views/starfish/components/chart';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {
   DataDisplayType,
   DataRow,
@@ -46,6 +47,7 @@ export function SpanGroupBreakdown({
   onDisplayTypeChange,
 }: Props) {
   const organization = useOrganization();
+  const routingContext = useRoutingContext();
   const hasDropdownFeatureFlag = organization.features.includes(
     'starfish-wsv-chart-dropdown'
   );
@@ -90,7 +92,7 @@ export function SpanGroupBreakdown({
     let spansLink;
     const spansLinkQueryParams: Record<string, string | string[]> = {};
     if (event.seriesName === 'db') {
-      spansLink = `/starfish/database/`;
+      spansLink = `/${routingContext.baseURL}/database/`;
     } else if (event.seriesName === 'Other') {
       spansLinkQueryParams[SPAN_MODULE] = 'other';
       spansLinkQueryParams['!span.category'] = data
@@ -102,7 +104,9 @@ export function SpanGroupBreakdown({
     }
 
     if (!spansLink) {
-      spansLink = `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
+      spansLink = `/${routingContext.baseURL}/spans/?${qs.stringify(
+        spansLinkQueryParams
+      )}`;
     }
     browserHistory.push(spansLink);
   };

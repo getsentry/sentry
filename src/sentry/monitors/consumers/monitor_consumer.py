@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timedelta
-from typing import Dict, Literal, Mapping, Optional, TypedDict
+from typing import Dict, Mapping, Optional
 
 import msgpack
 import sentry_sdk
@@ -15,12 +15,12 @@ from arroyo.types import BrokerValue, Commit, Message, Partition
 from django.conf import settings
 from django.db import router, transaction
 from django.utils.text import slugify
-from typing_extensions import NotRequired
 
-from sentry import options, ratelimits
+from sentry import ratelimits
 from sentry.constants import ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models import Project
+from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.models import (
     MAX_SLUG_LENGTH,
     CheckInStatus,
@@ -32,7 +32,8 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
     MonitorType,
 )
-from sentry.monitors.tasks import check_missing, check_timeout
+from sentry.monitors.tasks import try_monitor_tasks_trigger
+from sentry.monitors.types import CheckinMessage, CheckinPayload, ClockPulseMessage
 from sentry.monitors.utils import (
     get_new_timeout_at,
     get_timeout_at,
@@ -41,7 +42,7 @@ from sentry.monitors.utils import (
     valid_duration,
 )
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
-from sentry.utils import json, metrics, redis
+from sentry.utils import json, metrics
 from sentry.utils.dates import to_datetime
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.manager import LockManager
@@ -53,41 +54,6 @@ logger = logging.getLogger(__name__)
 
 CHECKIN_QUOTA_LIMIT = 5
 CHECKIN_QUOTA_WINDOW = 60
-
-# This key is used to store he last timestamp that the tasks were triggered.
-MONITOR_TASKS_LAST_TRIGGERED_KEY = "sentry.monitors.last_tasks_ts"
-
-
-class CheckinMessage(TypedDict):
-    # TODO(epurkhiser): We should make this required and ensure the message
-    # produced by relay includes this message type
-    message_type: NotRequired[Literal["check_in"]]
-    payload: str
-    start_time: float
-    project_id: str
-    sdk: str
-
-
-class ClockPulseMessage(TypedDict):
-    message_type: Literal["clock_pulse"]
-
-
-class CheckinTrace(TypedDict):
-    trace_id: str
-
-
-class CheckinContexts(TypedDict):
-    trace: NotRequired[CheckinTrace]
-
-
-class CheckinPayload(TypedDict):
-    check_in_id: str
-    monitor_slug: str
-    status: str
-    environment: NotRequired[str]
-    duration: NotRequired[int]
-    monitor_config: NotRequired[Dict]
-    contexts: NotRequired[CheckinContexts]
 
 
 def _ensure_monitor_with_config(
@@ -157,85 +123,6 @@ def _ensure_monitor_with_config(
     return monitor
 
 
-def _dispatch_tasks(ts: datetime):
-    """
-    Dispatch monitor tasks triggered by the consumer clock.
-
-    These tasks are triggered via the consumer processing check-ins. This
-    allows the monitor tasks to be synchronized to any backlog of check-ins
-    that are being processed.
-
-    To ensure these tasks are always triggered there is an additional celery
-    beat task that produces a clock pulse message into the topic that can be
-    used to trigger these tasks when there is a low volume of check-ins. It is
-    however, preferred to have a high volume of check-ins, so we do not need to
-    rely on celery beat, which in some cases may fail to trigger (such as in
-    sentry.io, when we deploy we restart the celery beat worker and it will
-    skip any tasks it missed)
-    """
-    if not options.get("monitors.use_consumer_clock_task_triggers"):
-        return
-
-    check_missing.delay(current_datetime=ts)
-    check_timeout.delay(current_datetime=ts)
-
-
-def _try_monitor_tasks_trigger(ts: datetime):
-    """
-    Handles triggering the monitor tasks when we've rolled over the minute.
-    """
-    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-
-    # Trim the timestamp seconds off, these tasks are run once per minute and
-    # should have their timestamp clamped to the minute.
-    reference_datetime = ts.replace(second=0, microsecond=0)
-    reference_ts = int(reference_datetime.timestamp())
-
-    precheck_last_ts = redis_client.get(MONITOR_TASKS_LAST_TRIGGERED_KEY)
-    if precheck_last_ts is not None:
-        precheck_last_ts = int(precheck_last_ts)
-
-    # If we have the same or an older reference timestamp from the most recent
-    # tick there is nothing to do, we've already handled this tick.
-    #
-    # The scenario where the reference_ts is older is likely due to a partition
-    # being slightly behind another partition that we've already read from
-    if precheck_last_ts is not None and precheck_last_ts >= reference_ts:
-        return
-
-    # GETSET is atomic. This is critical to avoid another consumer also
-    # processing the same tick.
-    last_ts = redis_client.getset(MONITOR_TASKS_LAST_TRIGGERED_KEY, reference_ts)
-    if last_ts is not None:
-        last_ts = int(last_ts)
-
-    # Another consumer already handled the tick if the first LAST_TRIGGERED
-    # timestamp we got is different from the one we just got from the GETSET.
-    # Nothing needs to be done
-    if precheck_last_ts != last_ts:
-        return
-
-    # Track the delay from the true time, ideally this should be pretty
-    # close, but in the case of a backlog, this will be much higher
-    total_delay = datetime.now().timestamp() - reference_ts
-
-    logger.info(
-        "monitors.consumer.clock_tick",
-        extra={"reference_datetime": str(reference_datetime)},
-    )
-    metrics.gauge("monitors.task.clock_delay", total_delay, sample_rate=1.0)
-
-    # If more than exactly a minute has passed then we've skipped a
-    # task run, report that to sentry, it is a problem.
-    if last_ts is not None and reference_ts > last_ts + 60:
-        with sentry_sdk.push_scope() as scope:
-            scope.set_extra("last_ts", last_ts)
-            scope.set_extra("reference_ts", reference_ts)
-            sentry_sdk.capture_message("Monitor task dispatch minute skipped")
-
-    _dispatch_tasks(ts)
-
-
 def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) -> None:
     # XXX: Relay does not attach a message type, to properly discriminate the
     # type we add it by default here. This can be removed once the message_type
@@ -244,7 +131,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
         wrapper["message_type"] = "check_in"
 
     try:
-        _try_monitor_tasks_trigger(ts)
+        try_monitor_tasks_trigger(ts)
     except Exception:
         logger.exception("Failed to trigger monitor tasks", exc_info=True)
 
@@ -329,7 +216,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                 logger.info(
                     "monitors.consumer.guid_exists",
                     extra={
-                        "guid": existing_check_in.guid,
+                        "guid": existing_check_in.guid.hex,
                         "slug": existing_check_in.monitor.slug,
                         "payload_slug": monitor.slug,
                     },
@@ -345,7 +232,8 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                 logger.info(
                     "monitors.consumer.check_in_closed",
                     extra={
-                        "guid": existing_check_in.guid,
+                        "guid": existing_check_in.guid.hex,
+                        "slug": existing_check_in.monitor.slug,
                         "status": existing_check_in.status,
                         "updated_status": updated_status,
                     },
@@ -365,7 +253,11 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                 txn.set_tag("result", "failed_duration_check")
                 logger.info(
                     "monitors.consumer.invalid_implicit_duration",
-                    extra={"guid": existing_check_in.guid, "duration": updated_duration},
+                    extra={
+                        "guid": existing_check_in.guid.hex,
+                        "slug": existing_check_in.monitor.slug,
+                        "duration": updated_duration,
+                    },
                 )
                 return
 
@@ -411,7 +303,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
         else:
             guid = check_in_id
 
-        lock = locks.get(f"checkin-creation:{guid}", duration=2, name="checkin_creation")
+        lock = locks.get(f"checkin-creation:{guid.hex}", duration=2, name="checkin_creation")
         try:
             with lock.acquire(), transaction.atomic(router.db_for_write(Monitor)):
                 try:
@@ -441,7 +333,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                         txn.set_tag("result", "failed_checkin_validation")
                         logger.info(
                             "monitors.consumer.checkin_validation_failed",
-                            extra={"guid": guid, **params},
+                            extra={"guid": guid.hex, **params},
                         )
                         return
 
@@ -462,7 +354,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                         txn.set_tag("result", "failed_validation")
                         logger.info(
                             "monitors.consumer.monitor_validation_failed",
-                            extra={"guid": guid, **params},
+                            extra={"guid": guid.hex, **params},
                         )
                         return
                 except MonitorLimitsExceeded:
@@ -473,7 +365,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                     txn.set_tag("result", "failed_monitor_limits")
                     logger.info(
                         "monitors.consumer.monitor_limit_exceeded",
-                        extra={"guid": guid, "project": project.id, "slug": monitor_slug},
+                        extra={"guid": guid.hex, "project": project.id, "slug": monitor_slug},
                     )
                     return
 
@@ -490,7 +382,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                     logger.info(
                         "monitors.consumer.monitor_environment_limit_exceeded",
                         extra={
-                            "guid": guid,
+                            "guid": guid.hex,
                             "project": project.id,
                             "slug": monitor_slug,
                             "environment": environment,
@@ -506,7 +398,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                     logger.info(
                         "monitors.consumer.monitor_environment_validation_failed",
                         extra={
-                            "guid": guid,
+                            "guid": guid.hex,
                             "project": project.id,
                             "slug": monitor_slug,
                             "environment": environment,
@@ -543,7 +435,8 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                             logger.info(
                                 "monitors.consumer.monitor_environment_mismatch",
                                 extra={
-                                    "guid": check_in_id,
+                                    "guid": check_in_id.hex,
+                                    "slug": monitor_slug,
                                     "organization_id": project.organization_id,
                                     "environment": monitor_environment.id,
                                     "payload_environment": check_in.monitor_environment_id,
@@ -566,7 +459,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
 
                     expected_time = None
                     if monitor_environment.last_checkin:
-                        expected_time = monitor.get_next_scheduled_checkin(
+                        expected_time = monitor.get_next_expected_checkin(
                             monitor_environment.last_checkin
                         )
 
@@ -597,8 +490,10 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                         signal_first_checkin(project, monitor)
 
                 if check_in.status == CheckInStatus.ERROR:
-                    monitor_environment.mark_failed(
-                        start_time, occurrence_context={"trace_id": trace_id}
+                    mark_failed(
+                        monitor_environment,
+                        start_time,
+                        occurrence_context={"trace_id": trace_id},
                     )
                 else:
                     monitor_environment.mark_ok(check_in, start_time)
@@ -615,7 +510,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
             txn.set_tag("result", "failed_checkin_creation_lock")
             logger.info(
                 "monitors.consumer.lock_failed",
-                extra={"guid": guid},
+                extra={"guid": guid.hex, "slug": monitor_slug},
             )
         except Exception:
             # Skip this message and continue processing in the consumer.

@@ -252,9 +252,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         assert len(result) == 1
         self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
 
-        links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
-        )
+        links = requests.utils.parse_header_links(response["link"].rstrip(">").replace(">,<", ",<"))
         next_cursor = links[1]["cursor"]
 
         # Test Limit as 1, next page of previous request:
@@ -286,9 +284,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         assert result[1]["id"] == str(self.issue_rule.id)
         assert result[1]["type"] == "rule"
 
-        links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
-        )
+        links = requests.utils.parse_header_links(response["link"].rstrip(">").replace(">,<", ",<"))
         next_cursor = links[1]["cursor"]
         # Test Limit 2, next page of previous request:
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
@@ -303,9 +299,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         self.assert_alert_rule_serialized(self.other_alert_rule, result[0], skip_dates=True)
         self.assert_alert_rule_serialized(self.alert_rule, result[1], skip_dates=True)
 
-        links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
-        )
+        links = requests.utils.parse_header_links(response["link"].rstrip(">").replace(">,<", ",<"))
         next_cursor = links[1]["cursor"]
 
         # Test Limit 2, next page of previous request - should get no results since there are only 4 total:
@@ -343,9 +337,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         self.assert_alert_rule_serialized(self.three_alert_rule, result[0], skip_dates=True)
         self.assert_alert_rule_serialized(self.one_alert_rule, result[1], skip_dates=True)
 
-        links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
-        )
+        links = requests.utils.parse_header_links(response["link"].rstrip(">").replace(">,<", ",<"))
         next_cursor = links[1]["cursor"]
         assert next_cursor.split(":")[1] == "1"  # Assert offset is properly calculated.
 

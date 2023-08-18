@@ -8,6 +8,7 @@ from django.core.serializers import serialize
 from django.core.serializers.json import DjangoJSONEncoder
 
 from sentry.backup.dependencies import sorted_dependencies
+from sentry.backup.scopes import RelocationScope
 
 UTC_0 = timezone(timedelta(hours=0))
 
@@ -35,6 +36,10 @@ class OldExportConfig(NamedTuple):
     # option.
     excluded_models: set[str] = set()
 
+    # Old exports use "natural" foreign keys, which in practice only changes how foreign keys into
+    # `sentry.User` are represented.
+    use_natural_foreign_keys: bool = False
+
 
 def exports(dest, old_config: OldExportConfig, indent: int, printer=click.echo):
     """Exports core data for the Sentry installation."""
@@ -42,8 +47,22 @@ def exports(dest, old_config: OldExportConfig, indent: int, printer=click.echo):
     def yield_objects():
         # Collate the objects to be serialized.
         for model in sorted_dependencies():
+            # This is a bit confusing, but what it's saying is: any model that does not have
+            # `__relocation_scope__` set MUST be a non-Sentry model (we check this both in init-time
+            # testing and at runtime startup). We "deduce" a `RelocationScope` setting for this
+            # non-Sentry model based on the config the user passed in: if they set
+            # `old_config.include_non_sentry_models` to `True`, we set all deduced non-Sentry
+            # relocation scopes to `Global`. Otherwise, we just exclude them.
+            # print(f"Deduced rel scope for {model.__name__}: {inferred_relocation_scope.name}\n")
+            includable = old_config.include_non_sentry_models
+            if hasattr(model, "__relocation_scope__"):
+                # TODO(getsentry/team-ospo#166): Make this check more precise once we pipe the
+                # `scope` argument through.
+                if getattr(model, "__relocation_scope__") != RelocationScope.Excluded:
+                    includable = True
+
             if (
-                not getattr(model, "__include_in_export__", old_config.include_non_sentry_models)
+                not includable
                 or model.__name__.lower() in old_config.excluded_models
                 or model._meta.proxy
             ):
@@ -59,6 +78,6 @@ def exports(dest, old_config: OldExportConfig, indent: int, printer=click.echo):
         yield_objects(),
         indent=indent,
         stream=dest,
-        use_natural_foreign_keys=True,
+        use_natural_foreign_keys=old_config.use_natural_foreign_keys,
         cls=DatetimeSafeDjangoJSONEncoder,
     )

@@ -89,7 +89,7 @@ function OrganizationTeams({
       <SettingsPageHeader title={title} action={action} />
 
       <OrganizationAccessRequests
-        orgId={organization.slug}
+        orgSlug={organization.slug}
         requestList={requestList}
         onRemoveAccessRequest={onRemoveAccessRequest}
       />

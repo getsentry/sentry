@@ -1,7 +1,7 @@
+from datetime import timezone
 from unittest.mock import patch
 from urllib.parse import urlencode
 
-import pytz
 from django.db.models import F
 
 from fixtures.page_objects.base import BasePage
@@ -59,7 +59,7 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_with_data(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
         values = range(1, 100, 5)
 
         self.make_trend("improvement", [v for v in reversed(values)])

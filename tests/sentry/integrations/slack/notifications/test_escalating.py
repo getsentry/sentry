@@ -3,7 +3,7 @@ from unittest import mock
 import responses
 
 from sentry.models import Activity
-from sentry.notifications.notifications.activity import EscalatingActivityNotification
+from sentry.notifications.notifications.activity.escalating import EscalatingActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_attachment, send_notification
@@ -88,17 +88,17 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         event = self.store_event(
             data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
         )
-        event = event.for_group(event.groups[0])
+        group_event = event.for_group(event.groups[0])
 
         with self.tasks():
-            self.create_notification(event.group).send()
+            self.create_notification(group_event.group).send()
 
         attachment, text = get_attachment()
         assert text == "Issue marked as escalating"
         assert attachment["title"] == TEST_ISSUE_OCCURRENCE.issue_title
         assert (
             attachment["title_link"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=escalating_activity-slack"
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{group_event.group.id}/?referrer=escalating_activity-slack"
         )
         assert (
             attachment["text"]

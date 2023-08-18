@@ -81,6 +81,56 @@ class NormalizeInApptest(TestCase):
         assert frames[1]["in_app"] is False
         assert frames[2]["in_app"] is False
 
+    def test_detects_frame_mix_correctly_with_single_stacktrace(self):
+        # Each case is `(frame1_in_app, frame2_in_app, expected_result)`
+        cases = [
+            (True, True, "in-app-only"),
+            (True, False, "mixed"),
+            (False, False, "system-only"),
+        ]
+
+        for frame_0_in_app, frame_1_in_app, expected_frame_mix in cases:
+            event_data = make_event([make_stacktrace(frame_0_in_app, frame_1_in_app)])
+
+            normalize_stacktraces_for_grouping(event_data)
+
+            computed_frame_mix = event_data["metadata"]["in_app_frame_mix"]
+            assert (
+                computed_frame_mix == expected_frame_mix
+            ), f"Expected {expected_frame_mix}, got {computed_frame_mix} with `in_app` values {frame_0_in_app}, {frame_1_in_app}"
+
+    def test_detects_frame_mix_correctly_with_multiple_stacktraces(self):
+        # Each case is `(stacktrace1_in_app_values, stacktrace2_in_app_values, expected_result)`
+        cases = [
+            # Two in-app-only stacktrces
+            ((True, True), (True, True), "in-app-only"),
+            # One in-app-only stacktrace and one system-only stacktrace
+            ((True, True), (False, False), "mixed"),
+            # One mixed stacktrace and one in-app-only stacktrace
+            ((True, False), (True, True), "mixed"),
+            # One mixed stacktrace and one system-only stacktrace
+            ((True, False), (False, False), "mixed"),
+            # Two mixed stacktraces
+            ((True, False), (True, False), "mixed"),
+            # Two system-only stacktraces
+            ((False, False), (False, False), "system-only"),
+        ]
+
+        for stacktrace_0_mix, stacktrace_1_mix, expected_frame_mix in cases:
+            event_data = make_event(
+                [
+                    make_stacktrace(*stacktrace_0_mix),
+                    make_stacktrace(*stacktrace_1_mix),
+                ]
+            )
+
+            normalize_stacktraces_for_grouping(event_data)
+
+            frame_mix = event_data["metadata"]["in_app_frame_mix"]
+            assert (
+                frame_mix == expected_frame_mix
+            ), f"Expected {expected_frame_mix}, got {frame_mix} with stacktrace `in-app` values {stacktrace_0_mix}, {stacktrace_1_mix}"
+
 
 class MacOSInAppDetectionTest(TestCase):
     def test_macos_package_in_app_detection(self):

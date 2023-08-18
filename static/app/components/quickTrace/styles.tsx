@@ -56,9 +56,9 @@ export const EventNode = styled(Tag)`
   }
 `;
 
-export const TraceConnector = styled('div')`
+export const TraceConnector = styled('div')<{dashed?: boolean}>`
   width: ${space(1)};
-  border-top: 1px solid ${p => p.theme.textColor};
+  border-top: 1px ${p => (p.dashed ? 'dashed' : 'solid')} ${p => p.theme.textColor};
 `;
 
 /**

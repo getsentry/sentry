@@ -46,7 +46,7 @@ class JiraClientTest(TestCase):
         )
         self.integration.add_organization(self.organization, self.user)
         install = self.integration.get_installation(self.organization.id)
-        self.client = install.get_client()
+        self.jira_client = install.get_client()
 
     @responses.activate
     @mock.patch(
@@ -66,7 +66,7 @@ class JiraClientTest(TestCase):
             status=200,
             content_type="application/json",
         )
-        res = self.client.get_field_autocomplete("my_field", "abc")
+        res = self.jira_client.get_field_autocomplete("my_field", "abc")
         assert res == body
 
     @responses.activate
@@ -87,7 +87,7 @@ class JiraClientTest(TestCase):
             status=200,
             content_type="application/json",
         )
-        res = self.client.get_field_autocomplete("customfield_0123", "abc")
+        res = self.jira_client.get_field_autocomplete("customfield_0123", "abc")
         assert res == body
 
     @freeze_time("2023-01-01 01:01:01")
@@ -96,10 +96,10 @@ class JiraClientTest(TestCase):
         params = {"query": "1", "user": "me"}
         request = Request(
             method=method,
-            url=f"{self.client.base_url}{self.client.SERVER_INFO_URL}",
+            url=f"{self.jira_client.base_url}{self.jira_client.SERVER_INFO_URL}",
             params=params,
         ).prepare()
-        self.client.authorize_request(prepared_request=request)
+        self.jira_client.authorize_request(prepared_request=request)
 
         raw_jwt = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0c2VydmVyLmppcmEiLCJpYXQiOjE2NzI1MzQ4NjEsImV4cCI6MTY3MjUzNTE2MSwicXNoIjoiZGU5NTIwMTA2NDBhYjJjZmQyMDYyNzgxYjU0ZTk0Yjc4ZmNlMTY3MzEwMDZkYjdkZWVhZmZjZWI0MjVmZTI0MiJ9.tydfCeXBICtX_xtgsOEiDJFmVPo6MmaAh1Bojouprjc"
         assert request.headers["Authorization"] == f"JWT {raw_jwt}"
@@ -113,7 +113,7 @@ class JiraClientTest(TestCase):
             "iat": 1672534861,
             "iss": "testserver.jira",
             "qsh": get_query_hash(
-                uri=self.client.SERVER_INFO_URL, method=method, query_params=params
+                uri=self.jira_client.SERVER_INFO_URL, method=method, query_params=params
             ),
         }
 
@@ -133,7 +133,7 @@ class JiraClientTest(TestCase):
         responses.add(
             method=responses.GET,
             # Use regex to create responses both from proxy and integration
-            url=re.compile(rf"\S+{self.client.SERVER_INFO_URL}$"),
+            url=re.compile(rf"\S+{self.jira_client.SERVER_INFO_URL}$"),
             json={"ok": True},
             status=200,
         )

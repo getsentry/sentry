@@ -1,6 +1,9 @@
-from datetime import timedelta
-from unittest.mock import patch
+from datetime import datetime, timedelta
+from unittest import mock
 
+import msgpack
+from arroyo.backends.kafka import KafkaPayload
+from django.test import override_settings
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -13,37 +16,43 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.monitors.tasks import check_missing, check_timeout
+from sentry.monitors.tasks import (
+    check_missing,
+    check_timeout,
+    clock_pulse,
+    try_monitor_tasks_trigger,
+)
 from sentry.testutils.cases import TestCase
 
 
-class CheckMonitorsTest(TestCase):
-    def make_ref_time(self):
-        """
-        To accurately reflect the real usage of this task, we want the ref time
-        to be truncated down to a minute for our tests.
-        """
-        ts = timezone.now()
+def make_ref_time():
+    """
+    To accurately reflect the real usage of this task, we want the ref time
+    to be truncated down to a minute for our tests.
+    """
+    ts = timezone.now()
 
-        # Typically the task will not run exactly on the minute, but it will
-        # run very close, let's say for our test that it runs 12 seconds after
-        # the minute.
-        #
-        # This is testing that the task correctly clamps its reference time
-        # down to the minute.
-        task_run_ts = ts.replace(second=12, microsecond=0)
+    # Typically the task will not run exactly on the minute, but it will
+    # run very close, let's say for our test that it runs 12 seconds after
+    # the minute.
+    #
+    # This is testing that the task correctly clamps its reference time
+    # down to the minute.
+    task_run_ts = ts.replace(second=12, microsecond=0)
 
-        # We truncate down to the minute when we mark the next_checkin, do the
-        # same here.
-        next_checkin_ts = ts.replace(second=0, microsecond=0)
+    # We truncate down to the minute when we mark the next_checkin, do the
+    # same here.
+    trimmed_ts = ts.replace(second=0, microsecond=0)
 
-        return task_run_ts, next_checkin_ts
+    return task_run_ts, trimmed_ts
 
+
+class MonitorTaskCheckMissingTest(TestCase):
     def test_missing_checkin(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        task_run_ts, next_checkin_ts = self.make_ref_time()
+        task_run_ts, ts = make_ref_time()
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -56,39 +65,44 @@ class CheckMonitorsTest(TestCase):
                 "checkin_margin": None,
             },
         )
+
         # Expected check-in was a full minute ago.
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            last_checkin=next_checkin_ts - timedelta(minutes=2),
-            next_checkin=next_checkin_ts - timedelta(minutes=1),
-            next_checkin_latest=next_checkin_ts - timedelta(minutes=1),
+            last_checkin=ts - timedelta(minutes=2),
+            next_checkin=ts - timedelta(minutes=1),
+            next_checkin_latest=ts - timedelta(minutes=1),
             status=MonitorStatus.OK,
         )
 
         check_missing(task_run_ts)
 
-        assert MonitorEnvironment.objects.filter(
+        # Monitor status is updated
+        monitor_environment = MonitorEnvironment.objects.get(
             id=monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
-        ).exists()
+        )
+
+        # last_checkin was NOT updated. We only update this for real user check-ins.
+        assert monitor_environment.last_checkin == ts - timedelta(minutes=2)
 
         # Because our checkin was a minute ago we'll have produced a missed checkin
-        assert MonitorCheckIn.objects.filter(
+        missed_checkin = MonitorCheckIn.objects.get(
             monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
         )
-        missed_check = MonitorCheckIn.objects.get(
-            monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
-        )
-        assert missed_check.expected_time == (
+        assert missed_checkin.date_added == (
             monitor_environment.last_checkin + timedelta(minutes=1)
         ).replace(second=0, microsecond=0)
-        assert missed_check.monitor_config == monitor.config
+        assert missed_checkin.expected_time == (
+            monitor_environment.last_checkin + timedelta(minutes=1)
+        ).replace(second=0, microsecond=0)
+        assert missed_checkin.monitor_config == monitor.config
 
     def test_missing_checkin_with_margin(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        task_run_ts, next_checkin_ts = self.make_ref_time()
+        task_run_ts, ts = make_ref_time()
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -101,17 +115,21 @@ class CheckMonitorsTest(TestCase):
                 "checkin_margin": 5,
             },
         )
-        # Expected check-in was 12 minutes ago.
+
+        # Last check-in was 12 minutes ago.
+        #
+        # The expected checkin was 2 min ago, but has a 5 minute margin, so we
+        # still have 3 minutes to check in.
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            last_checkin=next_checkin_ts - timedelta(minutes=12),
-            next_checkin=next_checkin_ts - timedelta(minutes=2),
-            next_checkin_latest=next_checkin_ts + timedelta(minutes=3),
+            last_checkin=ts - timedelta(minutes=12),
+            next_checkin=ts - timedelta(minutes=2),
+            next_checkin_latest=ts + timedelta(minutes=3),
             status=MonitorStatus.OK,
         )
 
-        # No missed check-in generated as expected time was still within margin
+        # No missed check-in generated as we're still within the check-in margin
         check_missing(task_run_ts)
 
         assert not MonitorEnvironment.objects.filter(
@@ -124,9 +142,12 @@ class CheckMonitorsTest(TestCase):
         # Missed check-in generated as clock now exceeds expected time plus margin
         check_missing(task_run_ts + timedelta(minutes=4))
 
-        assert MonitorEnvironment.objects.filter(
+        monitor_environment = MonitorEnvironment.objects.get(
             id=monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
-        ).exists()
+        )
+
+        # last_checkin was NOT updated. We only update this for real user check-ins.
+        assert monitor_environment.last_checkin == ts - timedelta(minutes=12)
 
         assert MonitorCheckIn.objects.filter(
             monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
@@ -134,16 +155,30 @@ class CheckMonitorsTest(TestCase):
         missed_check = MonitorCheckIn.objects.get(
             monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
         )
+
+        # Missed checkins are back-dated to when the checkin was expected to
+        # happpen. In this case the expected_time is equal to the date_added.
+        assert missed_check.date_added == (
+            monitor_environment.last_checkin + timedelta(minutes=10)
+        ).replace(second=0, microsecond=0)
         assert missed_check.expected_time == (
             monitor_environment.last_checkin + timedelta(minutes=10)
         ).replace(second=0, microsecond=0)
+
         assert missed_check.monitor_config == monitor.config
+
+        # Monitor environment next_checkin values are updated correctly
+        monitor_environment_updated = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        assert (
+            monitor_environment_updated.next_checkin_latest
+            == monitor_environment_updated.next_checkin + timedelta(minutes=5)
+        )
 
     def assert_state_does_not_change_for_state(self, state):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        task_run_ts, next_checkin_ts = self.make_ref_time()
+        task_run_ts, ts = make_ref_time()
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -157,8 +192,8 @@ class CheckMonitorsTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            next_checkin=next_checkin_ts - timedelta(minutes=1),
-            next_checkin_latest=next_checkin_ts - timedelta(minutes=1),
+            next_checkin=ts - timedelta(minutes=1),
+            next_checkin_latest=ts - timedelta(minutes=1),
             status=MonitorStatus.ACTIVE,
         )
 
@@ -193,8 +228,8 @@ class CheckMonitorsTest(TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        task_run_ts, next_checkin_ts = self.make_ref_time()
-        last_checkin_ts = next_checkin_ts - timedelta(minutes=1)
+        task_run_ts, ts = make_ref_time()
+        last_checkin_ts = ts - timedelta(minutes=1)
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -207,8 +242,8 @@ class CheckMonitorsTest(TestCase):
             monitor=monitor,
             environment=self.environment,
             last_checkin=last_checkin_ts,
-            next_checkin=next_checkin_ts,
-            next_checkin_latest=next_checkin_ts,
+            next_checkin=ts,
+            next_checkin_latest=ts,
             status=MonitorStatus.OK,
         )
         # Last checkin was a minute ago
@@ -234,12 +269,67 @@ class CheckMonitorsTest(TestCase):
             monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
         ).exists()
 
+    @mock.patch("sentry.monitors.tasks.logger")
+    def test_missed_exception_handling(self, logger):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        task_run_ts, ts = make_ref_time()
+
+        exception_monitor = Monitor.objects.create(
+            organization_id=org.id,
+            project_id=project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule_type": ScheduleType.INTERVAL,
+                # XXX: Note the invalid schedule will cause an exception,
+                # typically the validator protects us against this
+                "schedule": [-2, "minute"],
+            },
+        )
+        MonitorEnvironment.objects.create(
+            monitor=exception_monitor,
+            environment=self.environment,
+            next_checkin=ts - timedelta(minutes=1),
+            next_checkin_latest=ts - timedelta(minutes=1),
+            status=MonitorStatus.OK,
+        )
+
+        monitor = Monitor.objects.create(
+            organization_id=org.id,
+            project_id=project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": "* * * * *"},
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=self.environment,
+            next_checkin=ts - timedelta(minutes=1),
+            next_checkin_latest=ts - timedelta(minutes=1),
+            status=MonitorStatus.OK,
+        )
+
+        check_missing(task_run_ts)
+
+        # Logged the exception
+        assert logger.exception.call_count == 1
+
+        # We still marked a monitor as missed
+        assert MonitorEnvironment.objects.filter(
+            id=monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
+        ).exists()
+        assert MonitorCheckIn.objects.filter(
+            monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
+        ).exists()
+
+
+class MonitorTaskCheckTimemoutTest(TestCase):
     def test_timeout_with_no_future_complete_checkin(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        task_run_ts, next_checkin_ts = self.make_ref_time()
-        check_in_24hr_ago = next_checkin_ts - timedelta(hours=24)
+        task_run_ts, ts = make_ref_time()
+        check_in_24hr_ago = ts - timedelta(hours=24)
 
         # Schedule is once a day
         monitor = Monitor.objects.create(
@@ -273,9 +363,9 @@ class CheckMonitorsTest(TestCase):
             monitor_environment=monitor_environment,
             project_id=project.id,
             status=CheckInStatus.IN_PROGRESS,
-            date_added=next_checkin_ts,
-            date_updated=next_checkin_ts,
-            timeout_at=next_checkin_ts + timedelta(minutes=30),
+            date_added=ts,
+            date_updated=ts,
+            timeout_at=ts + timedelta(minutes=30),
         )
 
         assert checkin1.date_added == checkin1.date_updated == check_in_24hr_ago
@@ -303,8 +393,8 @@ class CheckMonitorsTest(TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        task_run_ts, next_checkin_ts = self.make_ref_time()
-        check_in_24hr_ago = next_checkin_ts - timedelta(hours=24)
+        task_run_ts, ts = make_ref_time()
+        check_in_24hr_ago = ts - timedelta(hours=24)
 
         # Schedule is once a day
         monitor = Monitor.objects.create(
@@ -317,9 +407,9 @@ class CheckMonitorsTest(TestCase):
             monitor=monitor,
             environment=self.environment,
             # Next checkin is in the future, we just completed our last checkin
-            last_checkin=next_checkin_ts,
-            next_checkin=next_checkin_ts + timedelta(hours=24),
-            next_checkin_latest=next_checkin_ts + timedelta(hours=24),
+            last_checkin=ts,
+            next_checkin=ts + timedelta(hours=24),
+            next_checkin_latest=ts + timedelta(hours=24),
             status=MonitorStatus.OK,
         )
         # Checkin 24hr ago
@@ -337,9 +427,9 @@ class CheckMonitorsTest(TestCase):
             monitor_environment=monitor_environment,
             project_id=project.id,
             status=CheckInStatus.OK,
-            date_added=next_checkin_ts,
-            date_updated=next_checkin_ts,
-            timeout_at=next_checkin_ts + timedelta(minutes=30),
+            date_added=ts,
+            date_updated=ts,
+            timeout_at=ts + timedelta(minutes=30),
         )
 
         assert checkin1.date_added == checkin1.date_updated == check_in_24hr_ago
@@ -362,8 +452,8 @@ class CheckMonitorsTest(TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        task_run_ts, next_checkin_ts = self.make_ref_time()
-        check_in_24hr_ago = next_checkin_ts - timedelta(hours=24)
+        task_run_ts, ts = make_ref_time()
+        check_in_24hr_ago = ts - timedelta(hours=24)
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -375,8 +465,8 @@ class CheckMonitorsTest(TestCase):
             monitor=monitor,
             environment=self.environment,
             last_checkin=check_in_24hr_ago,
-            next_checkin=next_checkin_ts,
-            next_checkin_latest=next_checkin_ts,
+            next_checkin=ts,
+            next_checkin_latest=ts,
             status=MonitorStatus.OK,
         )
         checkin = MonitorCheckIn.objects.create(
@@ -384,12 +474,12 @@ class CheckMonitorsTest(TestCase):
             monitor_environment=monitor_environment,
             project_id=project.id,
             status=CheckInStatus.IN_PROGRESS,
-            date_added=next_checkin_ts,
-            date_updated=next_checkin_ts,
-            timeout_at=next_checkin_ts + timedelta(minutes=60),
+            date_added=ts,
+            date_updated=ts,
+            timeout_at=ts + timedelta(minutes=60),
         )
 
-        assert checkin.date_added == checkin.date_updated == next_checkin_ts
+        assert checkin.date_added == checkin.date_updated == ts
 
         # Running the check_monitors at 35 minutes does not mark the check-in as timed out, it's still allowed to be running
         check_timeout(task_run_ts + timedelta(minutes=35))
@@ -405,66 +495,13 @@ class CheckMonitorsTest(TestCase):
             id=monitor_environment.id, status=MonitorStatus.TIMEOUT
         ).exists()
 
-    @patch("sentry.monitors.tasks.logger")
-    def test_missed_exception_handling(self, logger):
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-
-        task_run_ts, next_checkin_ts = self.make_ref_time()
-
-        exception_monitor = Monitor.objects.create(
-            organization_id=org.id,
-            project_id=project.id,
-            type=MonitorType.CRON_JOB,
-            config={
-                "schedule_type": ScheduleType.INTERVAL,
-                # XXX: Note the invalid schedule will cause an exception,
-                # typically the validator protects us against this
-                "schedule": [-2, "minute"],
-            },
-        )
-        MonitorEnvironment.objects.create(
-            monitor=exception_monitor,
-            environment=self.environment,
-            next_checkin=next_checkin_ts - timedelta(minutes=1),
-            next_checkin_latest=next_checkin_ts - timedelta(minutes=1),
-            status=MonitorStatus.OK,
-        )
-
-        monitor = Monitor.objects.create(
-            organization_id=org.id,
-            project_id=project.id,
-            type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *"},
-        )
-        monitor_environment = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment=self.environment,
-            next_checkin=next_checkin_ts - timedelta(minutes=1),
-            next_checkin_latest=next_checkin_ts - timedelta(minutes=1),
-            status=MonitorStatus.OK,
-        )
-
-        check_missing(task_run_ts)
-
-        # Logged the exception
-        assert logger.exception.call_count == 1
-
-        # We still marked a monitor as missed
-        assert MonitorEnvironment.objects.filter(
-            id=monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
-        ).exists()
-        assert MonitorCheckIn.objects.filter(
-            monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
-        ).exists()
-
-    @patch("sentry.monitors.tasks.logger")
+    @mock.patch("sentry.monitors.tasks.logger")
     def test_timeout_exception_handling(self, logger):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        task_run_ts, next_checkin_ts = self.make_ref_time()
-        check_in_24hr_ago = next_checkin_ts - timedelta(hours=24)
+        task_run_ts, ts = make_ref_time()
+        check_in_24hr_ago = ts - timedelta(hours=24)
 
         # This monitor will cause failure
         exception_monitor = Monitor.objects.create(
@@ -481,9 +518,9 @@ class CheckMonitorsTest(TestCase):
         exception_monitor_environment = MonitorEnvironment.objects.create(
             monitor=exception_monitor,
             environment=self.environment,
-            last_checkin=next_checkin_ts,
-            next_checkin=next_checkin_ts + timedelta(hours=24),
-            next_checkin_latest=next_checkin_ts + timedelta(hours=24),
+            last_checkin=ts,
+            next_checkin=ts + timedelta(hours=24),
+            next_checkin_latest=ts + timedelta(hours=24),
             status=MonitorStatus.OK,
         )
         MonitorCheckIn.objects.create(
@@ -507,9 +544,9 @@ class CheckMonitorsTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            last_checkin=next_checkin_ts,
-            next_checkin=next_checkin_ts + timedelta(hours=24),
-            next_checkin_latest=next_checkin_ts + timedelta(hours=24),
+            last_checkin=ts,
+            next_checkin=ts + timedelta(hours=24),
+            next_checkin_latest=ts + timedelta(hours=24),
             status=MonitorStatus.OK,
         )
         checkin1 = MonitorCheckIn.objects.create(
@@ -526,9 +563,9 @@ class CheckMonitorsTest(TestCase):
             monitor_environment=monitor_environment,
             project_id=project.id,
             status=CheckInStatus.IN_PROGRESS,
-            date_added=next_checkin_ts,
-            date_updated=next_checkin_ts,
-            timeout_at=next_checkin_ts + timedelta(minutes=30),
+            date_added=ts,
+            date_updated=ts,
+            timeout_at=ts + timedelta(minutes=30),
         )
 
         assert checkin1.date_added == checkin1.date_updated == check_in_24hr_ago
@@ -547,3 +584,78 @@ class CheckMonitorsTest(TestCase):
         assert MonitorEnvironment.objects.filter(
             id=monitor_environment.id, status=MonitorStatus.TIMEOUT
         ).exists()
+
+
+class MonitorTaskClockPulseTest(TestCase):
+    @override_settings(KAFKA_INGEST_MONITORS="monitors-test-topic")
+    @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
+    @mock.patch("sentry.monitors.tasks._checkin_producer")
+    def test_clock_pulse(self, _checkin_producer):
+        clock_pulse()
+
+        assert _checkin_producer.produce.call_count == 1
+        assert _checkin_producer.produce.mock_calls[0] == mock.call(
+            mock.ANY,
+            KafkaPayload(
+                None,
+                msgpack.packb({"message_type": "clock_pulse"}),
+                [],
+            ),
+        )
+
+
+@mock.patch("sentry.monitors.tasks._dispatch_tasks")
+def test_monitor_task_trigger(dispatch_tasks):
+    now = datetime.now().replace(second=0, microsecond=0)
+
+    # First checkin triggers tasks
+    try_monitor_tasks_trigger(ts=now)
+    assert dispatch_tasks.call_count == 1
+
+    # 5 seconds later does NOT trigger the task
+    try_monitor_tasks_trigger(ts=now + timedelta(seconds=5))
+    assert dispatch_tasks.call_count == 1
+
+    # a minute later DOES trigger the task
+    try_monitor_tasks_trigger(ts=now + timedelta(minutes=1))
+    assert dispatch_tasks.call_count == 2
+
+    # Same time does NOT trigger the task
+    try_monitor_tasks_trigger(ts=now + timedelta(minutes=1))
+    assert dispatch_tasks.call_count == 2
+
+    # A skipped minute trigges the task AND captures an error
+    with mock.patch("sentry_sdk.capture_message") as capture_message:
+        assert capture_message.call_count == 0
+        try_monitor_tasks_trigger(ts=now + timedelta(minutes=3, seconds=5))
+        assert dispatch_tasks.call_count == 3
+        capture_message.assert_called_with("Monitor task dispatch minute skipped")
+
+
+@mock.patch("sentry.monitors.tasks._dispatch_tasks")
+def test_monitor_task_trigger_partition_desync(dispatch_tasks):
+    """
+    When consumer partitions are not completely synchronized we may read
+    timestamps in a non-monotonic order. In this scenario we want to make
+    sure we still only trigger once
+    """
+    now = datetime.now().replace(second=0, microsecond=0)
+
+    # First message with timestamp just after the minute bounardary
+    # triggers the task
+    try_monitor_tasks_trigger(ts=now + timedelta(seconds=1))
+    assert dispatch_tasks.call_count == 1
+
+    # Second message has a timestamp just before the minute boundary,
+    # should not trigger anything since we've already ticked ahead of this
+    try_monitor_tasks_trigger(ts=now - timedelta(seconds=1))
+    assert dispatch_tasks.call_count == 1
+
+    # Third message again just after the minute bounadry does NOT trigger
+    # the task, we've already ticked at that time.
+    try_monitor_tasks_trigger(ts=now + timedelta(seconds=1))
+    assert dispatch_tasks.call_count == 1
+
+    # Fourth message moves past a new minute boundary, tick
+    try_monitor_tasks_trigger(ts=now + timedelta(minutes=1, seconds=1))
+    assert dispatch_tasks.call_count == 2

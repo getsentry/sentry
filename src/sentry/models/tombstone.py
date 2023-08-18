@@ -5,6 +5,7 @@ from typing import Type
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     Model,
@@ -28,7 +29,7 @@ class TombstoneBase(Model):
         abstract = True
         unique_together = ("table_name", "object_identifier")
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     table_name = models.CharField(max_length=48, null=False)
     object_identifier = BoundedBigIntegerField(null=False)

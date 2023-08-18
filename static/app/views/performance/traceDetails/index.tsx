@@ -13,12 +13,17 @@ import EventView from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullDetailedQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
-import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
+import {
+  TraceFullDetailed,
+  TraceMeta,
+  TraceSplitResults,
+} from 'sentry/utils/performance/quickTrace/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import TraceDetailsContent from './content';
+import {getTraceSplitResults} from './utils';
 
 type Props = RouteComponentProps<{traceSlug: string}, {}> & {
   api: Client;
@@ -79,21 +84,29 @@ class TraceSummary extends Component<Props> {
       error: QueryError | null;
       isLoading: boolean;
       meta: TraceMeta | null;
-      traces: TraceFullDetailed[] | null;
-    }) => (
-      <TraceDetailsContent
-        location={location}
-        organization={organization}
-        params={params}
-        traceSlug={traceSlug}
-        traceEventView={this.getTraceEventView()}
-        dateSelected={dateSelected}
-        isLoading={isLoading}
-        error={error}
-        traces={traces}
-        meta={meta}
-      />
-    );
+      traces: (TraceFullDetailed[] | TraceSplitResults<TraceFullDetailed>) | null;
+    }) => {
+      const {transactions, orphanErrors} = getTraceSplitResults<TraceFullDetailed>(
+        traces ?? [],
+        organization
+      );
+
+      return (
+        <TraceDetailsContent
+          location={location}
+          organization={organization}
+          params={params}
+          traceSlug={traceSlug}
+          traceEventView={this.getTraceEventView()}
+          dateSelected={dateSelected}
+          isLoading={isLoading}
+          error={error}
+          orphanErrors={orphanErrors}
+          traces={transactions ?? (traces as TraceFullDetailed[])}
+          meta={meta}
+        />
+      );
+    };
 
     if (!dateSelected) {
       return content({

@@ -4,7 +4,6 @@ import responses
 from rest_framework import serializers, status
 
 from sentry.api.serializers.base import serialize
-from sentry.models.integrations.pagerduty_service import PagerDutyService
 from sentry.models.notificationaction import (
     ActionRegistration,
     ActionService,
@@ -339,14 +338,11 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         )
         assert "Did not recieve PagerDuty service id" in str(response.data["targetIdentifier"])
         with assume_test_silo_mode(SiloMode.CONTROL):
-            service = PagerDutyService.objects.create(
+            service = second_integration.organizationintegration_set.first().add_pagerduty_service(
                 service_name=service_name,
                 integration_key="abc",
-                organization_integration_id=second_integration.organizationintegration_set.first().id,
-                organization_id=self.organization.id,
-                integration_id=second_integration.id,
             )
-        data["targetIdentifier"] = service.id
+        data["targetIdentifier"] = service["id"]
         response = self.get_error_response(
             self.organization.slug,
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -355,22 +351,19 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         )
         assert "ensure Sentry has access" in str(response.data["targetIdentifier"])
         with assume_test_silo_mode(SiloMode.CONTROL):
-            service = PagerDutyService.objects.create(
+            service = integration.organizationintegration_set.first().add_pagerduty_service(
                 service_name=service_name,
                 integration_key="def",
-                organization_integration_id=integration.organizationintegration_set.first().id,
-                organization_id=self.organization.id,
-                integration_id=integration.id,
             )
-        data["targetIdentifier"] = service.id
+        data["targetIdentifier"] = service["id"]
         response = self.get_success_response(
             self.organization.slug,
             status_code=status.HTTP_201_CREATED,
             method="POST",
             **data,
         )
-        assert response.data["targetIdentifier"] == service.id
-        assert response.data["targetDisplay"] == service.service_name
+        assert response.data["targetIdentifier"] == service["id"]
+        assert response.data["targetDisplay"] == service["service_name"]
 
     @patch.dict(NotificationAction._registry, {})
     def test_post_simple(self):

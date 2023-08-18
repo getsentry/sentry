@@ -15,11 +15,13 @@ import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/te
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import {ModuleName, StarfishFunctions} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
+import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 interface Props {
   moduleName: ModuleName;
+  projectId: number;
   description?: string;
   endpoint?: string;
   endpointMethod?: string;
@@ -34,8 +36,10 @@ export function SpanDescriptionCell({
   moduleName,
   endpoint,
   endpointMethod,
+  projectId,
 }: Props) {
   const location = useLocation();
+  const routingContext = useRoutingContext();
 
   const hoverOverlayProps = useHoverOverlay('overlay', OVERLAY_OPTIONS);
 
@@ -45,11 +49,12 @@ export function SpanDescriptionCell({
 
   const queryString = {
     ...location.query,
+    project: projectId,
     endpoint,
     endpointMethod,
   };
 
-  const sort: string | undefined = queryString?.[QueryParameterNames.SORT];
+  const sort: string | undefined = queryString[QueryParameterNames.SORT];
 
   // the spans page uses time_spent_percentage(local), so to persist the sort upon navigation we need to replace
   if (sort?.includes(`${StarfishFunctions.TIME_SPENT_PERCENTAGE}()`)) {
@@ -76,9 +81,9 @@ export function SpanDescriptionCell({
         <OverflowEllipsisTextContainer>
           {group ? (
             <Link
-              to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${group}${
-                queryString ? `?${qs.stringify(queryString)}` : ''
-              }`}
+              to={`${routingContext.baseURL}/${
+                extractRoute(location) ?? 'spans'
+              }/span/${group}?${qs.stringify(queryString)}`}
             >
               {formattedDescription}
             </Link>

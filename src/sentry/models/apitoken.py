@@ -7,6 +7,7 @@ from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_str
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import SentryAppStatus
 from sentry.db.models import (
     BaseManager,
@@ -30,7 +31,7 @@ def generate_token():
 
 @control_silo_only_model
 class ApiToken(Model, HasApiScopes):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Global
 
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import timedelta
 from email.headerregistry import Address
 
@@ -42,7 +44,7 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
             )
         )
         nonmember_authors = CommitAuthor.objects.filter(organization_id=organization.id).exclude(
-            email__in=member_emails
+            Q(email__in=member_emails) | Q(external_id=None)
         )
 
         # currently for Github only
@@ -59,14 +61,19 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
             .order_by("-commit_count")
         )
 
-    def _get_shared_email_domain(self, organization):
+    def _get_shared_email_domain(self, organization) -> str | None:
         # if a member has user_email=None, then they have yet to accept an invite
         org_owners = organization.get_members_with_org_roles(
             roles=[roles.get_top_dog().id]
         ).exclude(Q(user_email=None) | Q(user_email=""))
 
-        def _get_email_domain(email: str) -> str:
-            return Address(addr_spec=email).domain
+        def _get_email_domain(email: str) -> str | None:
+            try:
+                domain = Address(addr_spec=email).domain
+            except Exception:
+                return None
+
+            return domain
 
         owner_email_domains = {_get_email_domain(owner.user_email) for owner in org_owners}
 
