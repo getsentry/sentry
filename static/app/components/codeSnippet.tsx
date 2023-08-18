@@ -13,6 +13,12 @@ interface CodeSnippetProps {
   language: string;
   className?: string;
   dark?: boolean;
+  /**
+   * Makes the text of the element and its sub-elements not selectable.
+   * Userful when loading parts of a code snippet, and
+   * we wish to avoid users copying them manually.
+   */
+  disableUserSelection?: boolean;
   filename?: string;
   hideCopyButton?: boolean;
   onCopy?: (copiedCode: string) => void;
@@ -31,6 +37,7 @@ export function CodeSnippet({
   onCopy,
   className,
   onSelectAndCopy,
+  disableUserSelection,
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
 
@@ -90,13 +97,14 @@ export function CodeSnippet({
       </Header>
 
       <pre className={`language-${String(language)}`}>
-        <code
+        <Code
           ref={ref}
           className={`language-${String(language)}`}
           onCopy={onSelectAndCopy}
+          disableUserSelection={disableUserSelection}
         >
           {children}
-        </code>
+        </Code>
       </pre>
     </Wrapper>
   );
@@ -158,4 +166,8 @@ const CopyButton = styled(Button)`
   &.focus-visible {
     opacity: 1;
   }
+`;
+
+const Code = styled('code')<{disableUserSelection?: boolean}>`
+  user-select: ${p => (p.disableUserSelection ? 'none' : 'auto')};
 `;

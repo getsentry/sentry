@@ -17,7 +17,7 @@ from sentry import analytics, features, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.debug_files.artifact_bundle_indexing import (
-    BundleMeta,
+    BundleManifest,
     mark_bundle_for_flat_file_indexing,
     update_artifact_bundle_index,
 )
@@ -763,15 +763,17 @@ class ArtifactBundlePostAssembler(PostAssembler):
             artifact_bundle, self.project_ids, self.release, self.dist
         )
 
-        bundle_meta = BundleMeta(
-            id=artifact_bundle.id,
-            # We give priority to the date last modified for total ordering.
-            timestamp=(artifact_bundle.date_last_modified or artifact_bundle.date_uploaded),
-        )
+        bundles_to_add = [BundleManifest.from_artifact_bundle(artifact_bundle, self.archive)]
 
         for identifier in identifiers:
             try:
-                update_artifact_bundle_index(bundle_meta, self.archive, identifier)
+                was_indexed = update_artifact_bundle_index(
+                    identifier, bundles_to_add=bundles_to_add
+                )
+                if not was_indexed:
+                    metrics.incr("artifact_bundle_flat_file_indexing.indexing.would_block")
+                    # NOTE: the `backfill_artifact_index_updates` will pick this up automatically,
+                    # no need to explicitly spawn any backfill task for this
             except Exception as e:
                 metrics.incr("artifact_bundle_flat_file_indexing.error_when_indexing")
                 sentry_sdk.capture_exception(e)

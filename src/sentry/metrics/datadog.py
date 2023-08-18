@@ -2,8 +2,7 @@ __all__ = ["DatadogMetricsBackend"]
 
 from typing import Any, Optional, Union
 
-from datadog import initialize
-from datadog.threadstats.base import ThreadStats
+from datadog import ThreadStats, initialize
 from datadog.util.hostname import get_hostname
 
 from sentry.utils.cache import memoize
@@ -18,7 +17,7 @@ class DatadogMetricsBackend(MetricsBackend):
         if "host" in kwargs:
             self.host = kwargs.pop("host")
         else:
-            self.host = get_hostname(hostname_from_config=True)
+            self.host = get_hostname()
         initialize(**kwargs)
         super().__init__(prefix=prefix)
 

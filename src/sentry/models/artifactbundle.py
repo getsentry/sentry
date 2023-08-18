@@ -4,9 +4,10 @@ import zipfile
 from enum import Enum
 from typing import IO, Callable, Dict, List, Mapping, Optional, Set, Tuple
 
+import sentry_sdk
 from django.conf import settings
 from django.db import models
-from django.db.models.signals import post_delete
+from django.db.models.signals import post_delete, pre_delete
 from django.utils import timezone
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
@@ -19,7 +20,7 @@ from sentry.db.models import (
     region_silo_only_model,
 )
 from sentry.nodestore.base import NodeStorage
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.services import LazyServiceWrapper
 
@@ -115,6 +116,16 @@ def delete_file_for_artifact_bundle(instance, **kwargs):
     instance.file.delete()
 
 
+def delete_bundle_from_index(instance, **kwargs):
+    from sentry.debug_files.artifact_bundle_indexing import remove_artifact_bundle_from_indexes
+
+    try:
+        remove_artifact_bundle_from_indexes(instance)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+
+
+pre_delete.connect(delete_bundle_from_index, sender=ArtifactBundle)
 post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
 
 indexstore = LazyServiceWrapper(
@@ -142,13 +153,21 @@ class ArtifactBundleFlatFileIndex(Model):
         app_label = "sentry"
         db_table = "sentry_artifactbundleflatfileindex"
 
-        index_together = (("project_id", "release_name", "dist_name"),)
+        unique_together = (("project_id", "release_name", "dist_name"),)
 
     def _indexstore_id(self) -> str:
         return f"bundle_index:{self.project_id}:{self.id}"
 
     def update_flat_file_index(self, data: str):
-        indexstore.set_bytes(self._indexstore_id(), data.encode())
+        encoded_data = data.encode()
+
+        metric_name = "debug_id_index" if self.dist_name == NULL_STRING else "url_index"
+        metrics.timing(
+            f"artifact_bundle_flat_file_indexing.{metric_name}.size_in_bytes",
+            value=len(encoded_data),
+        )
+
+        indexstore.set_bytes(self._indexstore_id(), encoded_data)
         self.update(date_added=timezone.now())
 
     def load_flat_file_index(self) -> Optional[bytes]:
@@ -168,18 +187,20 @@ class FlatFileIndexState(Model):
         app_label = "sentry"
         db_table = "sentry_flatfileindexstate"
 
+        unique_together = (("flat_file_index", "artifact_bundle"),)
+
     @staticmethod
-    def compare_state_and_set(
+    def mark_as_indexed(
         flat_file_index_id: int,
         artifact_bundle_id: int,
-        indexing_state: ArtifactBundleIndexingState,
-        new_indexing_state: ArtifactBundleIndexingState,
     ) -> bool:
         updated_rows = FlatFileIndexState.objects.filter(
             flat_file_index_id=flat_file_index_id,
             artifact_bundle_id=artifact_bundle_id,
-            indexing_state=indexing_state.value,
-        ).update(indexing_state=new_indexing_state.value, date_added=timezone.now())
+            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+        ).update(
+            indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value, date_added=timezone.now()
+        )
 
         # If we had one row being updated, it means that the cas operation succeeded.
         return updated_rows == 1
@@ -314,6 +335,9 @@ class ArtifactBundleArchive:
     def _build_memory_maps(self):
         files = self.manifest.get("files", {})
         for file_path, info in files.items():
+            url = info.get("url")
+            if not url:
+                continue
             # Building the map for debug_id lookup.
             headers = self.normalize_headers(info.get("headers", {}))
             if (debug_id := headers.get("debug-id")) is not None:
@@ -327,18 +351,18 @@ class ArtifactBundleArchive:
                 ):
                     self._entries_by_debug_id[(debug_id, source_file_type)] = (
                         file_path,
-                        info.get("url"),
+                        url,
                         info,
                     )
 
             # Building the map for url lookup.
-            self._entries_by_url[info.get("url")] = (file_path, info)
+            self._entries_by_url[url] = (file_path, info)
 
-    def get_all_urls(self):
-        return self._entries_by_url.keys()
+    def get_all_urls(self) -> List[str]:
+        return [url for url in self._entries_by_url.keys()]
 
-    def get_all_debug_ids(self):
-        return self._entries_by_debug_id.keys()
+    def get_all_debug_ids(self) -> List[str]:
+        return list({debug_id for debug_id, _ty in self._entries_by_debug_id.keys()})
 
     def has_debug_ids(self):
         return len(self._entries_by_debug_id) > 0
