@@ -5,6 +5,7 @@ import threading
 
 from django.conf import settings
 from django.db import connections, transaction
+from django.db.transaction import Atomic, get_connection
 
 from sentry.silo import SiloMode
 from sentry.utils.env import in_test_environment
@@ -99,3 +100,10 @@ def in_test_assert_no_transaction(msg: str):
         assert not hybrid_cloud.simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
             connection=conn
         ), msg
+
+
+@contextlib.contextmanager
+def enforce_constraints(transaction: Atomic):
+    with transaction:
+        yield
+        get_connection(transaction.using).check_constraints()
