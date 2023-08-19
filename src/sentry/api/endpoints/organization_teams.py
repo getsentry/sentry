@@ -2,6 +2,7 @@ from typing import List
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from django.utils.translation import gettext_lazy as _
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
@@ -50,11 +51,16 @@ class OrganizationTeamsPermission(OrganizationPermission):
 class TeamPostSerializer(serializers.Serializer, PreventNumericSlugMixin):
     name = serializers.CharField(max_length=64, required=False, allow_null=True, allow_blank=True)
     slug = serializers.RegexField(
-        DEFAULT_SLUG_PATTERN,
+        r"^[a-z0-9_\-]+$",
         max_length=50,
         required=False,
         allow_null=True,
-        error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
+        error_messages={
+            "invalid": _(
+                "Enter a valid slug consisting of lowercase letters, "
+                "numbers, underscores or hyphens."
+            )
+        },
     )
     idp_provisioned = serializers.BooleanField(required=False, default=False)
 
