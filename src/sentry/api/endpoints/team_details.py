@@ -19,20 +19,13 @@ from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.models import RegionScheduledDeletion, Team, TeamStatus
 
 
-<<<<<<< HEAD
 class TeamSerializer(CamelSnakeModelSerializer, PreventNumericSlugMixin):
-=======
-class TeamSerializer(CamelSnakeModelSerializer):
-<<<<<<< HEAD
->>>>>>> 4147f5857b (change pattern on serializer)
     slug = serializers.RegexField(
         DEFAULT_SLUG_PATTERN,
         max_length=50,
         error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
     )
-=======
-    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
->>>>>>> 77d257c019 (Revert to monitor + slugify_instance changes)
+
     org_role = serializers.ChoiceField(
         choices=tuple(list(roles.get_choices()) + [("")]),
         default="",

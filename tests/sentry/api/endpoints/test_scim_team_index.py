@@ -9,15 +9,9 @@ from sentry.testutils.cases import SCIMTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
-CREATE_TEAM_POST_DATA = {
-    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-    "displayName": "Test SCIMv2",
-    "members": [],
-}
-
 
 @region_silo_test(stable=True)
-class SCIMGroupIndexTests(SCIMTestCase):
+class SCIMIndexListTest(SCIMTestCase):
     def test_group_index_empty(self):
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
         response = self.client.get(f"{url}?startIndex=1&count=100")
@@ -30,35 +24,6 @@ class SCIMGroupIndexTests(SCIMTestCase):
         }
         assert response.status_code == 200, response.content
         assert response.data == correct_get_data
-
-    @patch("sentry.scim.endpoints.teams.metrics")
-    @override_settings(SENTRY_REGION="na")
-    def test_scim_team_index_create(self, mock_metrics):
-        url = reverse(
-            "sentry-api-0-organization-scim-team-index",
-            args=[self.organization.slug],
-        )
-        with receivers_raise_on_send():
-            response = self.client.post(url, CREATE_TEAM_POST_DATA)
-        assert response.status_code == 201, response.content
-
-        team_id = response.data["id"]
-        assert response.data == {
-            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-            "id": team_id,
-            "displayName": "Test SCIMv2",
-            "members": [],
-            "meta": {"resourceType": "Group"},
-        }
-
-        assert Team.objects.filter(id=team_id).exists()
-        assert Team.objects.get(id=team_id).slug == "test-scimv2"
-        assert Team.objects.get(id=team_id).name == "Test SCIMv2"
-        assert Team.objects.get(id=team_id).idp_provisioned
-        assert len(Team.objects.get(id=team_id).member_set) == 0
-        mock_metrics.incr.assert_called_with(
-            "sentry.scim.team.provision",
-        )
 
     def test_scim_team_index_populated(self):
         team = self.create_team(organization=self.organization)
@@ -242,5 +207,3 @@ class SCIMGroupIndexTests(SCIMTestCase):
             "Enter a valid slug consisting of lowercase letters, numbers, underscores or "
             "hyphens. It cannot be entirely numeric."
         )
-        response = self.client.post(url, CREATE_TEAM_POST_DATA)
-        assert response.status_code == 409, response.content
