@@ -11,8 +11,8 @@ from sentry.db.models import (
     Model,
     control_silo_only_model,
     region_silo_only_model,
+    sane_repr,
 )
-from sentry.models import sane_repr
 from sentry.silo import SiloMode
 
 
