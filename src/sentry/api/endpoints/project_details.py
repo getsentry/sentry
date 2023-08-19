@@ -99,7 +99,11 @@ class ProjectMemberSerializer(serializers.Serializer):
 
 class ProjectAdminSerializer(ProjectMemberSerializer, PreventNumericSlugMixin):
     name = serializers.CharField(max_length=200)
-    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
+    slug = serializers.RegexField(
+        DEFAULT_SLUG_PATTERN,
+        max_length=50,
+        error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
+    )
     team = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
     digestsMinDelay = serializers.IntegerField(min_value=60, max_value=3600)
     digestsMaxDelay = serializers.IntegerField(min_value=60, max_value=3600)
