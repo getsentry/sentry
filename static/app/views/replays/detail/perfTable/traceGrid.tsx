@@ -1,9 +1,12 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import TextOverflow from 'sentry/components/textOverflow';
+import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
+import {Project} from 'sentry/types';
 import toPercent from 'sentry/utils/number/toPercent';
 import toPixels from 'sentry/utils/number/toPixels';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
@@ -22,51 +25,22 @@ interface Props {
 
 export default function TraceGrid({tracesFlattened}: Props) {
   const traces = tracesFlattened.map(flattened => flattened.trace);
-  const startTimestampMs = Math.min(...traces.map(trace => trace.start_timestamp)) * 1000;
-  const endTimestampMs = Math.max(
-    ...traces.map(trace => trace.start_timestamp * 1000 + trace['transaction.duration'])
-  );
 
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
-  const [dividerPosition, setDividerPosition] = useState(containerWidth);
-  const {isHeld, onDoubleClick, onMouseDown, size} = useResizableDrawer({
-    direction: 'left',
-    initialSize: containerWidth / 2,
-    min: 100,
-    onResize: useCallback(
-      newSize => setDividerPosition(Math.min(newSize, containerWidth)),
-      [containerWidth]
-    ),
-  });
-
-  useEffect(() => {
-    if (size === 0) {
-      setDividerPosition(containerWidth / 2);
-    }
-  }, [size, setDividerPosition, containerWidth]);
-  const left = toPixels(dividerPosition);
 
   return (
     <TwoColumns>
       <GrabberContainer ref={elementRef}>
-        <TxnGrid style={{gridTemplateColumns: `${left} 1fr`}}>
-          {tracesFlattened.map(flattened => (
-            <TraceRow
-              endTimestampMs={endTimestampMs}
-              indent={flattened.indent}
-              key={flattened.trace.event_id + '_name'}
-              startTimestampMs={startTimestampMs}
-              trace={flattened.trace}
-            />
-          ))}
-        </TxnGrid>
-        <Grabber
-          data-is-held={isHeld}
-          onDoubleClick={onDoubleClick}
-          onMouseDown={onMouseDown}
-          style={{left}}
-        />
+        {containerWidth ? (
+          <TraceDynamicColumns
+            containerWidth={containerWidth}
+            traces={traces}
+            tracesFlattened={tracesFlattened}
+          />
+        ) : (
+          <div />
+        )}
       </GrabberContainer>
       <TxnList>
         {tracesFlattened.map(flattened => (
@@ -76,6 +50,44 @@ export default function TraceGrid({tracesFlattened}: Props) {
         ))}
       </TxnList>
     </TwoColumns>
+  );
+}
+
+function TraceDynamicColumns({containerWidth, traces, tracesFlattened}) {
+  const startTimestampMs = Math.min(...traces.map(trace => trace.start_timestamp)) * 1000;
+  const endTimestampMs = Math.max(
+    ...traces.map(trace => trace.start_timestamp * 1000 + trace['transaction.duration'])
+  );
+
+  const {isHeld, onDoubleClick, onMouseDown, size} = useResizableDrawer({
+    direction: 'left',
+    initialSize: containerWidth / 2,
+    min: 100,
+    onResize: () => {},
+  });
+  const left = toPixels(Math.min(size, containerWidth));
+
+  return (
+    <Fragment>
+      <TxnGrid style={{gridTemplateColumns: `${left} calc(100% - ${left})`}}>
+        {tracesFlattened.map(flattened => (
+          <TraceRow
+            endTimestampMs={endTimestampMs}
+            indent={flattened.indent}
+            key={flattened.trace.event_id + '_name'}
+            startTimestampMs={startTimestampMs}
+            trace={flattened.trace}
+          />
+        ))}
+      </TxnGrid>
+
+      <Grabber
+        data-is-held={isHeld}
+        onDoubleClick={onDoubleClick}
+        onMouseDown={onMouseDown}
+        style={{left}}
+      />
+    </Fragment>
   );
 }
 
@@ -91,16 +103,18 @@ function TraceRow({
   trace: TraceFullDetailed;
 }) {
   const {projects} = useProjects();
-  const project = projects.find(p => p.id === trace.profile_id);
+  const project = projects.find(p => p.id === String(trace.project_id));
 
   return (
     <Fragment key={trace.event_id}>
       <TxnCell>
         <TxnLabel style={labelCSSPosition(indent)}>
-          <ProjectAvatar size={12} project={project} />
-          <span>
-            <strong>{trace['transaction.op']}</strong> {EMDASH} {trace.transaction}
-          </span>
+          <ProjectAvatar size={12} project={project as Project} />
+          <strong>{trace['transaction.op']}</strong>
+          <span>{EMDASH}</span>
+          <Tooltip title={trace.transaction}>
+            <TextOverflow>{trace.transaction}</TextOverflow>
+          </Tooltip>
         </TxnLabel>
       </TxnCell>
       <TxnCell>
@@ -208,7 +222,7 @@ const TxnCell = styled('div')`
 
 const TxnLabel = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
 
   align-items: center;
   white-space: nowrap;
