@@ -228,6 +228,9 @@ class OutboxBase(Model):
     # the largest back off effectively applies to the entire 'shard' key.
     scheduled_for = models.DateTimeField(null=False, default=THE_PAST)
 
+    # Initial creation date for the outbox which should not be modified. Used for lag time calculation.
+    date_added = models.DateTimeField(null=False, default=timezone.now, editable=False)
+
     def last_delay(self) -> datetime.timedelta:
         return max(self.scheduled_for - self.scheduled_from, datetime.timedelta(seconds=1))
 
