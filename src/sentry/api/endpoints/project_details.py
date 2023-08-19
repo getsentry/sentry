@@ -12,7 +12,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE, DEFAULT_SLUG_PATTERN, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -94,11 +94,7 @@ class ProjectMemberSerializer(serializers.Serializer):
 
 class ProjectAdminSerializer(ProjectMemberSerializer):
     name = serializers.CharField(max_length=200)
-    slug = serializers.RegexField(
-        DEFAULT_SLUG_PATTERN,
-        max_length=50,
-        error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
-    )
+    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
     team = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
     digestsMinDelay = serializers.IntegerField(min_value=60, max_value=3600)
     digestsMaxDelay = serializers.IntegerField(min_value=60, max_value=3600)

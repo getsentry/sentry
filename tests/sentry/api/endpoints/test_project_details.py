@@ -548,18 +548,6 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         assert project.slug != new_project.slug
 
-    def test_invalid_numeric_slug(self):
-        response = self.get_error_response(
-            self.org_slug,
-            self.proj_slug,
-            slug="1234",
-            status_code=400,
-        )
-        assert response.data["slug"][0] == (
-            "Enter a valid slug consisting of lowercase letters, numbers, underscores or "
-            "hyphens. It cannot be entirely numeric."
-        )
-
     def test_reserved_slug(self):
         self.get_error_response(
             self.org_slug,

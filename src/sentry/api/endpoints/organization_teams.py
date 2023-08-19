@@ -2,6 +2,7 @@ from typing import List
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from django.utils.translation import gettext_lazy as _
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
@@ -9,7 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE, DEFAULT_SLUG_PATTERN, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -45,11 +46,16 @@ class OrganizationTeamsPermission(OrganizationPermission):
 class TeamPostSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=False, allow_null=True, allow_blank=True)
     slug = serializers.RegexField(
-        DEFAULT_SLUG_PATTERN,
+        r"^[a-z0-9_\-]+$",
         max_length=50,
         required=False,
         allow_null=True,
-        error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
+        error_messages={
+            "invalid": _(
+                "Enter a valid slug consisting of lowercase letters, "
+                "numbers, underscores or hyphens."
+            )
+        },
     )
     idp_provisioned = serializers.BooleanField(required=False, default=False)
 

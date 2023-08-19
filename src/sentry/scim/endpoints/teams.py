@@ -318,16 +318,15 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             data={"name": new_name, "slug": slugify(new_name)},
             partial=True,
         )
-        if not serializer.is_valid():
-            raise serializers.ValidationError(serializer.errors)
-        team = serializer.save()
-        self.create_audit_entry(
-            request=request,
-            organization=team.organization,
-            target_object=team.id,
-            event=audit_log.get_event_id("TEAM_EDIT"),
-            data=team.get_audit_log_data(),
-        )
+        if serializer.is_valid():
+            team = serializer.save()
+            self.create_audit_entry(
+                request=request,
+                organization=team.organization,
+                target_object=team.id,
+                event=audit_log.get_event_id("TEAM_EDIT"),
+                data=team.get_audit_log_data(),
+            )
 
     @extend_schema(
         operation_id="Update a Team's Attributes",
