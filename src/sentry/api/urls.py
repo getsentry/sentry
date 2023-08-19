@@ -362,6 +362,7 @@ from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
 )
+from .endpoints.organization_project_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
     OrganizationProjectsEndpoint,
@@ -400,7 +401,6 @@ from .endpoints.organization_sentry_function_details import (
 )
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
-from .endpoints.organization_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
