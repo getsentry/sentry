@@ -88,12 +88,26 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.slug == "my-monitor"
 
-        # Validate error cases jsut to be safe
+        # Validate error cases just to be safe
         self.get_error_response(
             self.organization.slug, monitor.slug, method="PUT", status_code=400, **{"slug": ""}
         )
         self.get_error_response(
             self.organization.slug, monitor.slug, method="PUT", status_code=400, **{"slug": None}
+        )
+
+    def test_invalid_numeric_slug(self):
+        monitor = self._create_monitor()
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"slug": "1234"},
+        )
+        assert resp.data["slug"][0] == (
+            "Enter a valid slug consisting of lowercase letters, numbers, underscores or "
+            "hyphens. It cannot be entirely numeric."
         )
 
     def test_slug_exists(self):
