@@ -16,7 +16,7 @@ import {
 export interface ReplayTraceRow {
   durationMs: number;
   frameOpOrCategory: string | undefined;
-  lcpFrame: undefined | LargestContentfulPaintFrame;
+  lcpFrames: LargestContentfulPaintFrame[];
   offsetMs: number;
   paintFrames: PaintFrame[];
   replayFrame: ReplayFrame;
@@ -46,7 +46,7 @@ export default function useReplayPerfData({replay}: Props) {
 
   const {
     state: {didInit: _didInit, errors: errors, isFetching: isFetching, traces = []},
-    eventView,
+    eventView: _eventView,
   } = useTransactionData();
 
   useFetchTransactions();
@@ -56,59 +56,42 @@ export default function useReplayPerfData({replay}: Props) {
       return;
     }
 
-    // Clone the list because we're going to mutate it
-    const frames = [...replay.getPerfFrames()];
+    const frames = replay.getPerfFrames();
 
-    const rows: ReplayTraceRow[] = [];
+    const rows = frames.map((thisFrame, i): ReplayTraceRow => {
+      const nextFrame = frames[i + 1] as ReplayFrame | undefined;
 
-    while (frames.length) {
-      const thisFrame = frames.shift()!;
+      const isWithinThisAndNextFrame = (frame: ReplayFrame) => {
+        return (
+          frame.timestampMs > thisFrame.timestampMs &&
+          (nextFrame === undefined || frame.timestampMs < nextFrame.timestampMs)
+        );
+      };
 
-      const relatedOps = ['largest-contentful-paint', 'paint'];
-      const relatedFrames: ReplayFrame[] = [];
-      for (const frame of frames) {
-        if (relatedOps.includes(getFrameOpOrCategory(frame))) {
-          relatedFrames.push(frame);
-        } else {
-          break;
-        }
-      }
-      for (let i = relatedFrames.length; i > 0; i--) {
-        frames.shift();
-      }
-
-      const lcpFrame: undefined | LargestContentfulPaintFrame = relatedFrames.find(
-        frame => getFrameOpOrCategory(frame) === 'largest-contentful-paint'
-      ) as undefined | LargestContentfulPaintFrame;
-      const paintFrames = relatedFrames.filter(
-        frame => getFrameOpOrCategory(frame) === 'paint'
-      ) as PaintFrame[];
-
-      const nextFrame = frames[0];
+      const lcpFrames = replay.getLPCFrames().filter(isWithinThisAndNextFrame);
+      const paintFrames = replay.getPaintFrames().filter(isWithinThisAndNextFrame);
 
       const tracesAfterThis = traces.filter(
-        trace => trace.start_timestamp * 1000 >= thisFrame.timestampMs
+        trace => trace.timestamp * 1000 >= thisFrame.timestampMs
       );
 
       const relatedTraces = nextFrame
-        ? tracesAfterThis.filter(
-            trace => trace.start_timestamp * 1000 < nextFrame.timestampMs
-          )
+        ? tracesAfterThis.filter(trace => trace.timestamp * 1000 < nextFrame.timestampMs)
         : tracesAfterThis;
       const tracesFlattened = mapTraces(0, relatedTraces);
 
-      rows.push({
+      return {
         durationMs: nextFrame ? nextFrame.timestampMs - thisFrame.timestampMs : 0,
         frameOpOrCategory: getFrameOpOrCategory(thisFrame),
-        lcpFrame,
+        lcpFrames,
         offsetMs: thisFrame.offsetMs,
         paintFrames,
         replayFrame: thisFrame,
         timestampMs: thisFrame.timestampMs,
         traces: relatedTraces,
         tracesFlattened,
-      });
-    }
+      };
+    });
 
     setData(rows);
   }, [replay, traces]);
@@ -116,7 +99,6 @@ export default function useReplayPerfData({replay}: Props) {
   return {
     data,
     errors,
-    eventView,
     isFetching,
   };
 }

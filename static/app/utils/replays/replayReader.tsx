@@ -29,6 +29,8 @@ import {
   BreadcrumbCategories,
   isDeadClick,
   isDeadRageClick,
+  isLCPFrame,
+  isPaintFrame,
 } from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
@@ -263,16 +265,14 @@ export default class ReplayReader {
 
   getPerfFrames = memoize(() =>
     [
-      ...this._sortedBreadcrumbFrames.filter(frame =>
-        ['ui.click'].includes(frame.category)
-      ),
-      ...this._sortedSpanFrames.filter(
-        frame =>
-          ['largest-contentful-paint', 'paint'].includes(frame.op) ||
-          frame.op.startsWith('navigation.')
-      ),
+      ...this._sortedBreadcrumbFrames.filter(frame => frame.category === 'ui.click'),
+      ...this._sortedSpanFrames.filter(frame => frame.op.startsWith('navigation.')),
     ].sort(sortFrames)
   );
+
+  getLPCFrames = memoize(() => this._sortedSpanFrames.filter(isLCPFrame));
+
+  getPaintFrames = memoize(() => this._sortedSpanFrames.filter(isPaintFrame));
 
   getSDKOptions = () => this._optionFrame;
 

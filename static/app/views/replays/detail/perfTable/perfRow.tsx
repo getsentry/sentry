@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconRefresh} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type EventView from 'sentry/utils/discover/eventView';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
@@ -18,7 +18,6 @@ import {OnDimensionChange} from 'sentry/views/replays/detail/useVirtualListDimen
 interface Props {
   currentHoverTime: number | undefined;
   currentTime: number;
-  eventView: EventView | null;
   startTimestampMs: number;
   style: CSSProperties;
   traceRow: ReplayTraceRow;
@@ -28,14 +27,13 @@ interface Props {
 export default function PerfRow({
   currentHoverTime,
   currentTime,
-  eventView: _eventView,
   startTimestampMs,
   style,
   traceRow,
 }: Props) {
-  const {lcpFrame, replayFrame: frame, paintFrames, tracesFlattened} = traceRow;
+  const {lcpFrames, replayFrame: frame, paintFrames, tracesFlattened} = traceRow;
   const {color, description, title, type} = getFrameDetails(frame);
-  const lcp = lcpFrame ? getFrameDetails(lcpFrame) : null;
+  const lcp = lcpFrames.length ? getFrameDetails(lcpFrames[0]) : null;
 
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
@@ -70,7 +68,9 @@ export default function PerfRow({
           </IconWrapper>
           <Vertical style={{flexGrow: 1}}>
             <Title hasOccurred={hasOccurred}>{title}</Title>
-            {description}
+            <Description title={description} showOnlyOnOverflow>
+              {description}
+            </Description>
           </Vertical>
           <IconLabel>
             {lcp ? (
@@ -111,6 +111,7 @@ const PerfListItem = styled('div')`
 const Vertical = styled('div')`
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 `;
 
 const Horizontal = styled('div')`
@@ -129,6 +130,14 @@ const Title = styled('span')<{hasOccurred?: boolean}>`
   line-height: ${p => p.theme.text.lineHeightBody};
   text-transform: capitalize;
   ${p => p.theme.overflowEllipsis};
+`;
+
+const Description = styled(Tooltip)`
+  ${p => p.theme.overflowEllipsis};
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.subText};
 `;
 
 const IconLabel = styled('span')`

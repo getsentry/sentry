@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import toPercent from 'sentry/utils/number/toPercent';
@@ -112,9 +110,7 @@ function TraceRow({
           <ProjectAvatar size={12} project={project as Project} />
           <strong>{trace['transaction.op']}</strong>
           <span>{EMDASH}</span>
-          <Tooltip title={trace.transaction}>
-            <TextOverflow>{trace.transaction}</TextOverflow>
-          </Tooltip>
+          <span>{trace.transaction}</span>
         </TxnLabel>
       </TxnCell>
       <TxnCell>

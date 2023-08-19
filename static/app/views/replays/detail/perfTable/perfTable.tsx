@@ -9,21 +9,17 @@ import {
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import EventView from 'sentry/utils/discover/eventView';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import PerfFilters from 'sentry/views/replays/detail/perfTable/perfFilters';
 import PerfRow from 'sentry/views/replays/detail/perfTable/perfRow';
 import usePerfFilters from 'sentry/views/replays/detail/perfTable/usePerfFilters';
-import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
+import type useReplayPerfData from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 interface Props {
-  perfData: {
-    data: ReplayTraceRow[];
-    eventView: EventView | null;
-  };
+  perfData: ReturnType<typeof useReplayPerfData>;
 }
 
 const cellMeasurer = {
@@ -49,8 +45,6 @@ export default function PerfTable({perfData}: Props) {
     deps,
   });
 
-  // const maxVisibleDuration = getMaxVisibleDuration(items);
-
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const traceRow = items[index];
 
@@ -65,8 +59,6 @@ export default function PerfTable({perfData}: Props) {
         <PerfRow
           currentHoverTime={currentHoverTime}
           currentTime={currentTime}
-          eventView={perfData.eventView}
-          // onDimensionChange={handleDimensionChange}
           startTimestampMs={startTimestampMs}
           style={style}
           traceRow={traceRow}
