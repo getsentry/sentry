@@ -109,8 +109,7 @@ def retryable_pull(client: docker.DockerClient, image: str, max_attempts: int = 
     # See https://github.com/docker/docker-py/issues/2101 for more information
     while True:
         try:
-            # We want to make sure we pull linux/amd64 images.
-            client.images.pull(image, platform="linux/amd64")
+            client.images.pull(image)
         except APIError:
             if current_attempt + 1 >= max_attempts:
                 raise
