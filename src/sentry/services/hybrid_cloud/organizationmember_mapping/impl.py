@@ -28,7 +28,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         organization_id: int,
         organizationmember_id: int,
         mapping: RpcOrganizationMemberMappingUpdate,
-    ) -> Optional[RpcOrganizationMemberMapping]:
+    ) -> RpcOrganizationMemberMapping:
         def apply_update(existing: OrganizationMemberMapping) -> None:
             adding_user = existing.user_id is None and mapping.user_id is not None
             existing.role = mapping.role
@@ -68,15 +68,18 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             # Stale user id, which will happen if a cascading deletion on the user has not reached the region.
             # This is "safe" since the upsert here should be a no-op.
             if "fk_auth_user" in str(e):
-                return None
+                if "inviter_id" in str(e):
+                    mapping.inviter_id = None
+                else:
+                    mapping.user_id = None
+            else:
+                existing = self._find_organization_member(
+                    organization_id=organization_id,
+                    organizationmember_id=organizationmember_id,
+                )
 
-            existing = self._find_organization_member(
-                organization_id=organization_id,
-                organizationmember_id=organizationmember_id,
-            )
-
-            if existing is None:
-                raise e
+                if existing is None:
+                    raise e
 
             with outbox_context(
                 transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
