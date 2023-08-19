@@ -106,4 +106,4 @@ def in_test_assert_no_transaction(msg: str):
 def enforce_constraints(transaction: Atomic):
     with transaction:
         yield
-        get_connection(transaction.using).check_constraints()
+        get_connection(transaction.using or "default").check_constraints()
