@@ -30,7 +30,10 @@ class OrganizationIndexDocs(APIDocsTestCase):
             str(project_two.id): "new-two",
         }
 
+<<<<<<< HEAD
     @with_feature("app:enterprise-prevent-numeric-slugs")
+=======
+>>>>>>> 753da24c38 (rename files)
     def test_invalid_numeric_slug(self):
         invalid_slugs = {**self.slugs, self.project_two.id: "1234"}
         response = self.get_error_response(
