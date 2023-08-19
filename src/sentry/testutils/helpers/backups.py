@@ -46,7 +46,6 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
-from sentry.models.environment import EnvironmentProject
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.project_integration import ProjectIntegration
@@ -133,8 +132,8 @@ def clear_database(*, reset_pks: bool = False):
         with transaction.atomic(using="default"):
             reversed = reversed_dependencies()
             for model in reversed:
-                # For some reason, the tables for `SentryApp*` models don't get deleted properly here
-                # when using `model.objects.all().delete()`, so we have to call out to Postgres
+                # For some reason, the tables for `SentryApp*` models don't get deleted properly
+                # here when using `model.objects.all().delete()`, so we have to call out to Postgres
                 # manually.
                 connection = connections[router.db_for_write(SentryApp)]
                 with connection.cursor() as cursor:
@@ -285,20 +284,19 @@ class BackupTestCase(TransactionTestCase):
             },
         )
 
-        # Project*
-        project = self.create_project()
-        self.create_project_key(project)
-        self.create_project_bookmark(project=project, user=owner)
-        project = self.create_project()
-        ProjectOwnership.objects.create(
-            project=project, raw='{"hello":"hello"}', schema={"hello": "hello"}
-        )
-        ProjectRedirect.record(project, f"project_slug_in_{slug}")
-
         # Team
         team = self.create_team(name=f"test_team_in_{slug}", organization=org)
         self.create_team_membership(user=owner, team=team)
         OrganizationAccessRequest.objects.create(member=invited, team=team)
+
+        # Project*
+        project = self.create_project(name=f"project-{slug}", teams=[team])
+        self.create_project_key(project)
+        self.create_project_bookmark(project=project, user=owner)
+        ProjectOwnership.objects.create(
+            project=project, raw='{"hello":"hello"}', schema={"hello": "hello"}
+        )
+        ProjectRedirect.record(project, f"project_slug_in_{slug}")
 
         # Integration*
         integration = Integration.objects.create(
@@ -318,8 +316,7 @@ class BackupTestCase(TransactionTestCase):
         self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
 
         # Environment*
-        env = self.create_environment()
-        EnvironmentProject.objects.create(project=project, environment=env, is_hidden=False)
+        self.create_environment(project=project)
 
         # Monitor
         Monitor.objects.create(
@@ -330,12 +327,18 @@ class BackupTestCase(TransactionTestCase):
         )
 
         # AlertRule*
-        alert = self.create_alert_rule(include_all_projects=True, excluded_projects=[project])
-        trigger = self.create_alert_rule_trigger(alert_rule=alert, excluded_projects=[self.project])
+        other_project = self.create_project(name=f"other-project-{slug}", teams=[team])
+        alert = self.create_alert_rule(
+            organization=org,
+            projects=[project],
+            include_all_projects=True,
+            excluded_projects=[other_project],
+        )
+        trigger = self.create_alert_rule_trigger(alert_rule=alert, excluded_projects=[project])
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         # Incident*
-        incident = self.create_incident()
+        incident = self.create_incident(org, [project])
         IncidentActivity.objects.create(
             incident=incident,
             type=1,
@@ -395,7 +398,7 @@ class BackupTestCase(TransactionTestCase):
         # misc
         Counter.increment(project, 1)
         self.create_repo(
-            project=self.project,
+            project=project,
             name="getsentry/getsentry",
             provider="integrations:github",
             integration_id=integration.id,
