@@ -210,6 +210,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
         }
         response = self.get_success_response(self.organization.slug, **data)
+
         assert response.data["slug"] == "my-monitor"
 
     @with_feature("app:enterprise-prevent-numeric-slugs")
