@@ -172,15 +172,14 @@ def query_using_optimized_search(
     can_scalar_sort = can_scalar_sort_subquery(sort or "started_at")
     can_scalar_search, has_varying_condition = can_scalar_search_subquery(search_filters)
 
-    # TODO: Remove `not has_varying_condition` conditional check when (or if...) sub-queries become
-    # a supported feature in Snuba.
-    if can_scalar_sort and can_scalar_search and not has_varying_condition:
+    if can_scalar_sort and can_scalar_search:
         query = make_simple_scalar_query(
             search_filters=search_filters,
             sort=sort,
             project_ids=project_ids,
             period_start=period_start,
             period_stop=period_stop,
+            has_varying_condition=has_varying_condition,
         )
         referrer = "replays.query.browse_subquery"
     else:
@@ -238,9 +237,18 @@ def make_simple_scalar_query(
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
+    has_varying_condition: bool,
 ) -> Query:
     orderby = _sort_to_orderby(scalar_sort_config, sort)
-    where: list[Condition] = handle_search_filters(scalar_search_config, search_filters)
+
+    if has_varying_condition:
+        group_by = [Column("replay_id")]
+        having = handle_search_filters(scalar_search_config, search_filters)
+        where = []
+    else:
+        group_by = []
+        having = []
+        where = handle_search_filters(scalar_search_config, search_filters)
 
     return Query(
         match=Entity("replays"),
@@ -249,10 +257,11 @@ def make_simple_scalar_query(
             Condition(Column("project_id"), Op.IN, project_ids),
             Condition(Column("timestamp"), Op.LT, period_stop),
             Condition(Column("timestamp"), Op.GTE, period_start),
-            Condition(Column("segment_id"), Op.EQ, 0),
             *where,
         ],
+        having=having,
         orderby=orderby,
+        groupby=group_by,
         granularity=Granularity(3600),
     )
 
