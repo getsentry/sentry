@@ -243,14 +243,12 @@ def make_simple_scalar_query(
 
     if has_varying_condition:
         group_by = [Column("replay_id")]
-        having = handle_search_filters(scalar_search_config, search_filters)
-        where = []
+        where = handle_search_filters(scalar_search_config, search_filters)
 
         # Because we're grouping we have to wrap our ordering key in an aggregate condition.
         orderby = [OrderBy(Function("any", parameters=[orderby[0].exp]), orderby[0].direction)]
     else:
         group_by = []
-        having = []
         where = handle_search_filters(scalar_search_config, search_filters)
 
         # Because we're not grouping we have to filter by segment_id to remove duplicate
@@ -269,7 +267,6 @@ def make_simple_scalar_query(
             Condition(Column("timestamp"), Op.GTE, period_start),
             *where,
         ],
-        having=having,
         orderby=orderby,
         groupby=group_by,
         granularity=Granularity(3600),
