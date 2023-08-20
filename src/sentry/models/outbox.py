@@ -31,6 +31,7 @@ from sentry.db.models import (
 )
 from sentry.db.postgres.transactions import (
     django_test_transaction_water_mark,
+    enforce_constraints,
     in_test_assert_no_transaction,
 )
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
@@ -501,7 +502,7 @@ _outbox_context = OutboxContext()
 @contextlib.contextmanager
 def outbox_context(
     inner: Atomic | None = None, flush: bool | None = None
-) -> Generator[None, None, None]:
+) -> Generator[Atomic | None, None, None]:
     # If we don't specify our flush, use the outer specified override
     if flush is None:
         flush = _outbox_context.flushing_enabled
@@ -515,16 +516,16 @@ def outbox_context(
 
     if inner:
         assert inner.using is not None
-        with unguarded_write(using=inner.using), inner:
+        with unguarded_write(using=inner.using), enforce_constraints(inner):
             _outbox_context.flushing_enabled = flush
             try:
-                yield
+                yield inner
             finally:
                 _outbox_context.flushing_enabled = original
     else:
         _outbox_context.flushing_enabled = flush
         try:
-            yield
+            yield None
         finally:
             _outbox_context.flushing_enabled = original
 

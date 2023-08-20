@@ -35,7 +35,7 @@ class OrganizationMemberMappingService(RpcService):
         organization_id: int,
         organizationmember_id: int,
         mapping: RpcOrganizationMemberMappingUpdate,
-    ) -> Optional[RpcOrganizationMemberMapping]:
+    ) -> RpcOrganizationMemberMapping:
         pass
 
     def upsert_with_organization_member(

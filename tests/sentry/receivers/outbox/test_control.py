@@ -36,27 +36,43 @@ class ProcessControlOutboxTest(TestCase):
     def test_process_user_updates(self, mock_maybe_process):
         mock_maybe_process.return_value = User(id=1, is_active=True)
         process_user_updates(object_identifier=self.identifier, region_name=_TEST_REGION.name)
-        mock_maybe_process.assert_called_with(User, self.identifier)
+        mock_maybe_process.assert_called_with(User, self.identifier, region_name=_TEST_REGION.name)
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
     def test_process_integration_updatess(self, mock_maybe_process):
-        process_integration_updates(object_identifier=self.identifier)
-        mock_maybe_process.assert_called_with(Integration, self.identifier)
+        process_integration_updates(
+            object_identifier=self.identifier, region_name=_TEST_REGION.name
+        )
+        mock_maybe_process.assert_called_with(
+            Integration, self.identifier, region_name=_TEST_REGION.name
+        )
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
     def test_process_api_application_updates(self, mock_maybe_process):
-        process_api_application_updates(object_identifier=self.identifier)
-        mock_maybe_process.assert_called_with(ApiApplication, self.identifier)
+        process_api_application_updates(
+            object_identifier=self.identifier, region_name=_TEST_REGION.name
+        )
+        mock_maybe_process.assert_called_with(
+            ApiApplication, self.identifier, region_name=_TEST_REGION.name
+        )
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
     def test_process_sentry_app_installation_updates(self, mock_maybe_process):
-        process_sentry_app_installation_updates(object_identifier=self.identifier)
-        mock_maybe_process.assert_called_with(SentryAppInstallation, self.identifier)
+        process_sentry_app_installation_updates(
+            object_identifier=self.identifier, region_name=_TEST_REGION.name
+        )
+        mock_maybe_process.assert_called_with(
+            SentryAppInstallation, self.identifier, region_name=_TEST_REGION.name
+        )
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
     def test_process_organization_integration_update(self, mock_maybe_process):
-        process_organization_integration_update(object_identifier=self.identifier)
-        mock_maybe_process.assert_called_with(OrganizationIntegration, self.identifier)
+        process_organization_integration_update(
+            object_identifier=self.identifier, region_name=_TEST_REGION.name
+        )
+        mock_maybe_process.assert_called_with(
+            OrganizationIntegration, self.identifier, region_name=_TEST_REGION.name
+        )
 
     @responses.activate
     def test_process_async_webhooks_success(self):

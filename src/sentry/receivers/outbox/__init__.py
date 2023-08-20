@@ -51,7 +51,12 @@ from __future__ import annotations
 
 from typing import Any, Protocol, Type, TypeVar
 
-from sentry.services.hybrid_cloud.tombstone import RpcTombstone, tombstone_service
+from sentry.services.hybrid_cloud.tombstone import (
+    RpcTombstone,
+    control_tombstone_service,
+    region_tombstone_service,
+)
+from sentry.silo import SiloMode
 
 
 class ModelLike(Protocol):
@@ -61,10 +66,18 @@ class ModelLike(Protocol):
 T = TypeVar("T", bound=ModelLike)
 
 
-def maybe_process_tombstone(model: Type[T], object_identifier: int) -> T | None:
+def maybe_process_tombstone(
+    model: Type[T], object_identifier: int, region_name: str | None = None
+) -> T | None:
     if instance := model.objects.filter(id=object_identifier).last():
         return instance
 
     tombstone = RpcTombstone(table_name=model._meta.db_table, identifier=object_identifier)
-    tombstone_service.record_remote_tombstone(tombstone=tombstone)
+    # tombstones sent from control must have a region name, and monolith needs to provide a region_name
+    if region_name or SiloMode.get_current_mode() == SiloMode.CONTROL:
+        region_tombstone_service.record_remote_tombstone(
+            region_name=region_name, tombstone=tombstone
+        )
+    else:
+        control_tombstone_service.record_remote_tombstone(tombstone=tombstone)
     return None
