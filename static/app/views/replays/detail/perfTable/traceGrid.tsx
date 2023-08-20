@@ -10,126 +10,115 @@ import toPixels from 'sentry/utils/number/toPixels';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useProjects from 'sentry/utils/useProjects';
-import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import type useReplayPerfData from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
+import ResizeableContainer from 'sentry/views/replays/detail/perfTable/resizeableContainer';
+import type {FlattenedTrace} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
+import useVirtualScrolling from 'sentry/views/replays/detail/perfTable/useVirtualScrolling';
 
 const EMDASH = '\u2013';
 
 interface Props {
-  tracesFlattened: ReturnType<
-    typeof useReplayPerfData
-  >['data'][number]['tracesFlattened'][number];
+  flattenedTrace: FlattenedTrace;
 }
 
-export default function TraceGrid({tracesFlattened}: Props) {
-  const traces = tracesFlattened.map(flattened => flattened.trace);
+export default function TraceGrid({flattenedTrace}: Props) {
+  const measureRef = useRef<HTMLDivElement>(null);
+  const {width} = useDimensions<HTMLDivElement>({elementRef: measureRef});
 
-  const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const scrollableWindowRef = useRef<HTMLDivElement>(null);
+  const scrollableContentRef = useRef<HTMLDivElement>(null);
+  const {offsetX, reset: resetScrollPosition} = useVirtualScrolling({
+    windowRef: scrollableWindowRef,
+    contentRef: scrollableContentRef,
+  });
+
+  const hasSize = width > 0;
 
   return (
     <TwoColumns>
-      <GrabberContainer ref={elementRef}>
-        {containerWidth ? (
-          <TraceDynamicColumns
-            containerWidth={containerWidth}
-            traces={traces}
-            tracesFlattened={tracesFlattened}
-          />
-        ) : (
-          <div />
-        )}
-      </GrabberContainer>
-      <TxnList>
-        {tracesFlattened.map(flattened => (
-          <TxnCell key={flattened.trace.event_id + '_duration'}>
-            <TxnDuration>{flattened.trace['transaction.duration']}ms</TxnDuration>
-          </TxnCell>
-        ))}
-      </TxnList>
+      <Relative ref={measureRef}>
+        {hasSize ? (
+          <ResizeableContainer
+            containerWidth={width}
+            min={100}
+            max={width - 100}
+            onResize={resetScrollPosition}
+          >
+            <OverflowHidden ref={scrollableWindowRef}>
+              <TxnList
+                ref={scrollableContentRef}
+                style={{
+                  transform: `translate(${toPixels(offsetX)}, 0)`,
+                  minWidth: 'max-content',
+                }}
+              >
+                <SpanNameList flattenedTrace={flattenedTrace} />
+              </TxnList>
+            </OverflowHidden>
+            <OverflowHidden>
+              <TxnList>
+                <SpanDurations flattenedTrace={flattenedTrace} />
+              </TxnList>
+            </OverflowHidden>
+          </ResizeableContainer>
+        ) : null}
+      </Relative>
     </TwoColumns>
   );
 }
 
-function TraceDynamicColumns({containerWidth, traces, tracesFlattened}) {
+function SpanNameList({flattenedTrace}: {flattenedTrace: FlattenedTrace}) {
+  const {projects} = useProjects();
+
+  return (
+    <Fragment>
+      {flattenedTrace.map(flattened => {
+        const project = projects.find(p => p.id === String(flattened.trace.project_id));
+
+        const labelStyle = {
+          paddingLeft: `calc(${space(2)} * ${flattened.indent})`,
+        };
+
+        return (
+          <TxnCell key={flattened.trace.event_id + '_name'}>
+            <TxnLabel style={labelStyle}>
+              <ProjectAvatar size={12} project={project as Project} />
+              <strong>{flattened.trace['transaction.op']}</strong>
+              <span>{EMDASH}</span>
+              <span>{flattened.trace.transaction}</span>
+            </TxnLabel>
+          </TxnCell>
+        );
+      })}
+    </Fragment>
+  );
+}
+
+function SpanDurations({flattenedTrace}: {flattenedTrace: FlattenedTrace}) {
+  const traces = flattenedTrace.map(flattened => flattened.trace);
   const startTimestampMs = Math.min(...traces.map(trace => trace.start_timestamp)) * 1000;
   const endTimestampMs = Math.max(
     ...traces.map(trace => trace.start_timestamp * 1000 + trace['transaction.duration'])
   );
 
-  const {isHeld, onDoubleClick, onMouseDown, size} = useResizableDrawer({
-    direction: 'left',
-    initialSize: containerWidth / 2,
-    min: 100,
-    onResize: () => {},
-  });
-  const left = toPixels(Math.min(size, containerWidth));
-
   return (
     <Fragment>
-      <TxnGrid style={{gridTemplateColumns: `${left} calc(100% - ${left})`}}>
-        {tracesFlattened.map(flattened => (
-          <TraceRow
-            endTimestampMs={endTimestampMs}
-            indent={flattened.indent}
-            key={flattened.trace.event_id + '_name'}
-            startTimestampMs={startTimestampMs}
-            trace={flattened.trace}
-          />
-        ))}
-      </TxnGrid>
-
-      <Grabber
-        data-is-held={isHeld}
-        onDoubleClick={onDoubleClick}
-        onMouseDown={onMouseDown}
-        style={{left}}
-      />
+      {flattenedTrace.map(flattened => (
+        <TwoColumns key={flattened.trace.event_id + '_duration'}>
+          <TxnCell>
+            <TxnDurationBar
+              style={{
+                ...barCSSPosition(startTimestampMs, endTimestampMs, flattened.trace),
+                background: pickBarColor(flattened.trace.transaction['transaction.op']),
+              }}
+            />
+          </TxnCell>
+          <TxnCell>
+            <TxnDuration>{flattened.trace['transaction.duration']}ms</TxnDuration>
+          </TxnCell>
+        </TwoColumns>
+      ))}
     </Fragment>
   );
-}
-
-function TraceRow({
-  endTimestampMs,
-  indent,
-  startTimestampMs,
-  trace,
-}: {
-  endTimestampMs: number;
-  indent: number;
-  startTimestampMs: number;
-  trace: TraceFullDetailed;
-}) {
-  const {projects} = useProjects();
-  const project = projects.find(p => p.id === String(trace.project_id));
-
-  return (
-    <Fragment key={trace.event_id}>
-      <TxnCell>
-        <TxnLabel style={labelCSSPosition(indent)}>
-          <ProjectAvatar size={12} project={project as Project} />
-          <strong>{trace['transaction.op']}</strong>
-          <span>{EMDASH}</span>
-          <span>{trace.transaction}</span>
-        </TxnLabel>
-      </TxnCell>
-      <TxnCell>
-        <TxnDurationBar
-          style={{
-            ...barCSSPosition(startTimestampMs, endTimestampMs, trace),
-            background: pickBarColor(trace.transaction['transaction.op']),
-          }}
-        />
-      </TxnCell>
-    </Fragment>
-  );
-}
-
-function labelCSSPosition(indent: number) {
-  return {
-    paddingLeft: `calc(${space(2)} * ${indent})`,
-    transform: 'translate(0px, 0)',
-  };
 }
 
 function barCSSPosition(
@@ -150,52 +139,11 @@ const TwoColumns = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
 `;
-
-const GrabberContainer = styled('div')`
+const Relative = styled('div')`
   position: relative;
 `;
-
-const Grabber = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 6px;
-  transform: translate(-3px, 0);
-  z-index: ${p => p.theme.zIndex.initial};
-
-  cursor: grab;
-  cursor: col-resize;
-
-  &:after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 2.5px;
-    height: 100%;
-    width: 1px;
-    transform: translate(-0.5px, 0);
-    z-index: ${p => p.theme.zIndex.initial};
-    background: ${p => p.theme.border};
-  }
-  &:hover:after,
-  &[data-is-held='true']:after {
-    left: 1.5px;
-    width: 3px;
-    background: ${p => p.theme.black};
-  }
-`;
-
-const TxnGrid = styled('div')`
-  display: grid;
-
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
-
-  /* 6n === 2 cols * 2 every 2nd row */
-  & > :nth-child(4n + 1),
-  & > :nth-child(4n + 2) {
-    background: ${p => p.theme.backgroundTertiary};
-  }
+const OverflowHidden = styled('div')`
+  overflow: hidden;
 `;
 
 const TxnList = styled('div')`
@@ -233,9 +181,11 @@ const TxnDuration = styled('div')`
 
 const TxnDurationBar = styled('div')`
   position: absolute;
+  content: '';
   top: 50%;
   transform: translate(0, -50%);
-  height: calc(100% - ${space(1.5)});
+  height: ${space(1.5)};
+  margin-block: ${space(0.25)};
   user-select: none;
   min-width: 1px;
 `;

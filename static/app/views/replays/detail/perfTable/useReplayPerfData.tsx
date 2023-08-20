@@ -13,8 +13,16 @@ import {
   useTransactionData,
 } from 'sentry/views/replays/detail/trace/replayTransactionContext';
 
+interface IndentedTraceDetailed {
+  indent: number;
+  trace: TraceFullDetailed;
+}
+
+export type FlattenedTrace = IndentedTraceDetailed[];
+
 export interface ReplayTraceRow {
   durationMs: number;
+  flattenedTraces: FlattenedTrace[];
   frameOpOrCategory: string | undefined;
   lcpFrames: LargestContentfulPaintFrame[];
   offsetMs: number;
@@ -22,7 +30,6 @@ export interface ReplayTraceRow {
   replayFrame: ReplayFrame;
   timestampMs: number;
   traces: TraceFullDetailed[];
-  tracesFlattened: Array<{indent: number; trace: TraceFullDetailed}[]>;
 }
 
 interface Props {
@@ -78,7 +85,7 @@ export default function useReplayPerfData({replay}: Props) {
       const relatedTraces = nextFrame
         ? tracesAfterThis.filter(trace => trace.timestamp * 1000 < nextFrame.timestampMs)
         : tracesAfterThis;
-      const tracesFlattened = relatedTraces.map(trace => mapTraces(0, [trace]));
+      const flattenedTraces = relatedTraces.map(trace => mapTraces(0, [trace]));
 
       return {
         durationMs: nextFrame ? nextFrame.timestampMs - thisFrame.timestampMs : 0,
@@ -89,7 +96,7 @@ export default function useReplayPerfData({replay}: Props) {
         replayFrame: thisFrame,
         timestampMs: thisFrame.timestampMs,
         traces: relatedTraces,
-        tracesFlattened,
+        flattenedTraces,
       };
     });
 

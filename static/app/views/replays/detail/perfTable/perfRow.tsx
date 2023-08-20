@@ -31,7 +31,7 @@ export default function PerfRow({
   style,
   traceRow,
 }: Props) {
-  const {lcpFrames, replayFrame: frame, paintFrames, tracesFlattened} = traceRow;
+  const {lcpFrames, replayFrame: frame, paintFrames, flattenedTraces} = traceRow;
   const {color, description, title, type} = getFrameDetails(frame);
   const lcp = lcpFrames.length ? getFrameDetails(lcpFrames[0]) : null;
 
@@ -94,8 +94,8 @@ export default function PerfRow({
             timestampMs={frame.timestampMs}
           />
         </Horizontal>
-        {tracesFlattened.map((traces, i) => (
-          <TraceGrid key={i} tracesFlattened={traces} />
+        {flattenedTraces.map((flatTrace, i) => (
+          <TraceGrid key={i} flattenedTrace={flatTrace} />
         ))}
       </Vertical>
     </PerfListItem>
