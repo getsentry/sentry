@@ -6,6 +6,7 @@ import {space} from 'sentry/styles/space';
 const FiltersGrid = styled('div')`
   display: grid;
   gap: ${space(1)};
+  flex-grow: 1;
   grid-template-columns:
     repeat(${p => Children.toArray(p.children).length - 1}, max-content)
     1fr;

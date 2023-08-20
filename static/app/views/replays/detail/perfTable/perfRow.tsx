@@ -94,7 +94,9 @@ export default function PerfRow({
             timestampMs={frame.timestampMs}
           />
         </Horizontal>
-        <TraceGrid tracesFlattened={tracesFlattened} />
+        {tracesFlattened.map((traces, i) => (
+          <TraceGrid key={i} tracesFlattened={traces} />
+        ))}
       </Vertical>
     </PerfListItem>
   );

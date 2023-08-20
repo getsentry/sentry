@@ -9,6 +9,7 @@ import {
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
+import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import PerfFilters from 'sentry/views/replays/detail/perfTable/perfFilters';
@@ -69,7 +70,9 @@ export default function PerfTable({perfData}: Props) {
 
   return (
     <FluidHeight>
-      <PerfFilters traceRows={traceRows} {...filterProps} />
+      <FilterLoadingIndicator isLoading={perfData.isFetching}>
+        <PerfFilters traceRows={traceRows} {...filterProps} />
+      </FilterLoadingIndicator>
       <TabItemContainer>
         {traceRows ? (
           <AutoSizer onResize={updateList}>

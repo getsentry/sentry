@@ -22,7 +22,7 @@ export interface ReplayTraceRow {
   replayFrame: ReplayFrame;
   timestampMs: number;
   traces: TraceFullDetailed[];
-  tracesFlattened: {indent: number; trace: TraceFullDetailed}[];
+  tracesFlattened: Array<{indent: number; trace: TraceFullDetailed}[]>;
 }
 
 interface Props {
@@ -78,7 +78,7 @@ export default function useReplayPerfData({replay}: Props) {
       const relatedTraces = nextFrame
         ? tracesAfterThis.filter(trace => trace.timestamp * 1000 < nextFrame.timestampMs)
         : tracesAfterThis;
-      const tracesFlattened = mapTraces(0, relatedTraces);
+      const tracesFlattened = relatedTraces.map(trace => mapTraces(0, [trace]));
 
       return {
         durationMs: nextFrame ? nextFrame.timestampMs - thisFrame.timestampMs : 0,

@@ -265,7 +265,15 @@ export default class ReplayReader {
 
   getPerfFrames = memoize(() =>
     [
-      ...this._sortedBreadcrumbFrames.filter(frame => frame.category === 'ui.click'),
+      ...removeDuplicateClicks(
+        this._sortedBreadcrumbFrames.filter(
+          frame =>
+            frame.category === 'ui.click' ||
+            (frame.category === 'ui.slowClickDetected' &&
+              (isDeadClick(frame as SlowClickFrame) ||
+                isDeadRageClick(frame as SlowClickFrame)))
+        )
+      ),
       ...this._sortedSpanFrames.filter(frame => frame.op.startsWith('navigation.')),
     ].sort(sortFrames)
   );

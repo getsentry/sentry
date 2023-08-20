@@ -18,7 +18,7 @@ const EMDASH = '\u2013';
 interface Props {
   tracesFlattened: ReturnType<
     typeof useReplayPerfData
-  >['data'][number]['tracesFlattened'];
+  >['data'][number]['tracesFlattened'][number];
 }
 
 export default function TraceGrid({tracesFlattened}: Props) {

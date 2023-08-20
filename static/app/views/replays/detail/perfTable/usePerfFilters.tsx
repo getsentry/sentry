@@ -36,6 +36,7 @@ type Return = {
 
 const TYPE_TO_LABEL: Record<string, string> = {
   'ui.click': 'User Click',
+  'ui.slowClickDetected': 'Rage & Dead Click',
   'navigation.back_forward': 'Navigate Back/Forward',
   'navigation.navigate': 'Page Load',
   'navigation.push': 'Navigation',
