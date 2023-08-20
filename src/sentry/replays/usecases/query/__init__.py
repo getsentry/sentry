@@ -245,10 +245,20 @@ def make_simple_scalar_query(
         group_by = [Column("replay_id")]
         having = handle_search_filters(scalar_search_config, search_filters)
         where = []
+
+        # Because we're grouping we have to wrap our ordering key in an aggregate condition.
+        orderby = [OrderBy(Function("any", parameters=[orderby[0].exp]), orderby[0].direction)]
     else:
         group_by = []
         having = []
         where = handle_search_filters(scalar_search_config, search_filters)
+
+        # Because we're not grouping we have to filter by segment_id to remove duplicate
+        # replay_ids.
+        #
+        # NOTE: This could still return duplicates if the segment_id has not been de-duplicated by
+        # ClickHouse. This is current production behavior and we have not received any reports.
+        where.append(Condition(Column("segment_id"), Op.EQ, 0))
 
     return Query(
         match=Entity("replays"),
