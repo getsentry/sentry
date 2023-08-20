@@ -26,7 +26,7 @@ export default function TraceGrid({flattenedTrace}: Props) {
 
   const scrollableWindowRef = useRef<HTMLDivElement>(null);
   const scrollableContentRef = useRef<HTMLDivElement>(null);
-  const {offsetX, reset: resetScrollPosition} = useVirtualScrolling({
+  const {offsetX, reclamp: adjustScrollPosition} = useVirtualScrolling({
     windowRef: scrollableWindowRef,
     contentRef: scrollableContentRef,
   });
@@ -41,7 +41,7 @@ export default function TraceGrid({flattenedTrace}: Props) {
             containerWidth={width}
             min={100}
             max={width - 100}
-            onResize={resetScrollPosition}
+            onResize={adjustScrollPosition}
           >
             <OverflowHidden ref={scrollableWindowRef}>
               <TxnList
