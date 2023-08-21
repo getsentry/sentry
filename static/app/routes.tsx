@@ -1756,6 +1756,23 @@ function buildRoutes() {
     </Fragment>
   );
 
+  const funnelRoutes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Route
+          path="/funnel/"
+          component={withDomainRequired(make(() => import('sentry/views/funnel')))}
+          key="orgless-funnel-route"
+        />
+      )}
+      <Route
+        path="/organizations/:orgId/funnel/"
+        component={withDomainRedirect(make(() => import('sentry/views/funnel/')))}
+        key="org-funnel"
+      />
+    </Fragment>
+  );
+
   const userFeedbackRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -2171,6 +2188,7 @@ function buildRoutes() {
       {discoverRoutes}
       {performanceRoutes}
       {starfishRoutes}
+      {funnelRoutes}
       {profilingRoutes}
       {gettingStartedRoutes}
       {adminManageRoutes}
