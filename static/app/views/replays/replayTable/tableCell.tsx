@@ -274,6 +274,7 @@ function getUserBadgeUser(replay: Props['replay']) {
 }
 
 export function ReplayCell({
+  className,
   eventView,
   organization,
   referrer,
