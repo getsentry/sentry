@@ -1,4 +1,7 @@
+import inspect
 from typing import Any, Dict, List, Literal, Mapping, Set, Tuple, TypedDict
+
+from more_itertools import take
 
 from sentry.api.api_owners import ApiOwner
 from sentry.apidocs.api_ownership_allowlist_dont_modify import API_OWNERSHIP_ALLOWLIST_DONT_MODIFY
@@ -69,11 +72,64 @@ def __get_explicit_endpoints() -> List[Tuple[str, str, str, Any]]:
     ]
 
 
-def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
-
-    filtered = []
+def codemod_publish_status(endpoints):
+    class_methods = {}
     for (path, path_regex, method, callback) in endpoints:
+        view_class = callback.view_class
+        if view_class not in class_methods and view_class.publish_status == []:
+            class_methods[view_class] = []
+        class_methods[view_class].append(method)
 
+    # Not doing a full loop to just generate a few examples
+    for (key, value) in take(5, class_methods.items()):
+        if len(value) > 0:
+            # Read file and find the location you want to add the param to
+            class_name = key.__name__
+            file_path = inspect.getfile(key)
+            # print("file_path", file_path)
+            file_to_read = open(file_path)
+            current_line = file_to_read.readline()
+            previous_lines = [current_line]
+            while f"class {class_name}" not in current_line:
+                current_line = file_to_read.readline()
+                previous_lines.append(current_line)
+
+            next_lines = file_to_read.readlines()
+            file_to_read.close()
+
+            # Prepare what you want to write
+            content = "    publish_status = [\n"
+
+            for method in value:
+                if key.public and method in key.public:
+                    content = (
+                        content + '        {"' + method + '"' + ": ApiPublishStatus.PUBLIC},\n"
+                    )
+                elif hasattr(key, "private") and key.private:
+                    content = (
+                        content + '        {"' + method + '"' + ": ApiPublishStatus.PRIVATE},\n"
+                    )
+                else:
+                    content = (
+                        content + '        {"' + method + '"' + ": ApiPublishStatus.UNKNOWN},\n"
+                    )
+            content = content + "    ]\n"
+
+            # Write new content to file
+            file_to_write = open(file_path, "w")
+            file_to_write.writelines("from sentry.api.api_publish_status import ApiPublishStatus\n")
+            file_to_write.writelines(previous_lines)
+            file_to_write.writelines(content)
+            file_to_write.writelines(next_lines)
+
+            file_to_write.truncate()
+            file_to_write.close()
+
+
+def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
+    filtered = []
+    codemod_publish_status(endpoints)
+    for (path, path_regex, method, callback) in endpoints:
         if callback.view_class.owner == ApiOwner.UNOWNED:
             if path not in API_OWNERSHIP_ALLOWLIST_DONT_MODIFY:
                 raise SentryApiBuildError(

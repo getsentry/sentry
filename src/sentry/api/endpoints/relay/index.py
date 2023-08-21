@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import SuperuserPermission
@@ -12,6 +13,9 @@ from sentry.models import Relay
 
 @region_silo_endpoint
 class RelayIndexEndpoint(Endpoint):
+    publish_status = [
+        {"GET": ApiPublishStatus.UNKNOWN},
+    ]
     permission_classes = (SuperuserPermission,)
     owner = ApiOwner.OWNERS_INGEST
 

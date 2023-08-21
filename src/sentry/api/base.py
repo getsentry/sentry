@@ -24,6 +24,7 @@ from sentry_sdk import Scope
 
 from sentry import analytics, options, tsdb
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
@@ -155,6 +156,7 @@ class Endpoint(APIView):
 
     public: Optional[HTTP_METHODS_SET] = None
     owner: ApiOwner = ApiOwner.UNOWNED
+    publish_status: [{HTTP_METHODS_SET: ApiPublishStatus}] = []
 
     rate_limits: RateLimitConfig | dict[
         str, dict[RateLimitCategory, RateLimit]
