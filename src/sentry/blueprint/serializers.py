@@ -12,34 +12,6 @@ from sentry.models.rule import Rule
 from sentry.models.user import User
 
 
-@register(AlertTemplate)
-class AlertTemplateSerializer(Serializer):
-    def serialize(self, obj: AlertTemplate, attrs: Any, user: User, **kwargs):
-        all_conditions = [
-            dict(list(o.items()) + [("name", _generate_rule_label(obj.project, obj, o))])
-            for o in obj.issue_alert_data.get("conditions", [])
-        ]
-        issue_alert_data = {
-            # conditions pertain to criteria that can trigger an alert
-            "conditions": list(filter(lambda condition: not _is_filter(condition), all_conditions)),
-            # filters are not new conditions but are the subset of conditions that pertain to event attributes
-            "filters": list(filter(lambda condition: _is_filter(condition), all_conditions)),
-            "actionMatch": obj.issue_alert_data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH,
-            "filterMatch": obj.issue_alert_data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH,
-            "frequency": obj.issue_alert_data.get("frequency") or Rule.DEFAULT_FREQUENCY,
-        }
-
-        return {
-            "id": str(obj.id),
-            "name": obj.name,
-            "organization_id": obj.organization_id,
-            # TODO(Leander): Use get_attrs
-            "issue_alert_ids": [ia.id for ia in obj.issue_alerts],
-            "issue_alert_data": issue_alert_data,
-            "procedure": serialize(obj.procedure),
-        }
-
-
 @register(AlertProcedure)
 class AlertProcedureSerializer(Serializer):
     def serialize(self, obj: AlertProcedure, attrs: Any, user: User, **kwargs):
@@ -73,6 +45,10 @@ class AlertProcedureSerializer(Serializer):
 
 
 class IncomingAlertProcedureSerializer(CamelSnakeModelSerializer):
+    """
+    context: organization, project, procedure_id
+    """
+
     label = serializers.CharField(max_length=255)
     is_manual = serializers.BooleanField(default=False)
     issue_alert_actions = serializers.ListField(
@@ -104,3 +80,107 @@ class IncomingAlertProcedureSerializer(CamelSnakeModelSerializer):
             organization_id=self.context["organization"].id,
             **validated_data,
         )
+
+
+@register(AlertTemplate)
+class AlertTemplateSerializer(Serializer):
+    def serialize(self, obj: AlertTemplate, attrs: Any, user: User, **kwargs):
+        # XXX: Hack to avoid unravelling the project dependency :(
+        project = Project.objects.filter(organization=obj.organization).first()
+
+        all_conditions = [
+            dict(list(o.items()) + [("name", _generate_rule_label(project, obj, o))])
+            for o in obj.issue_alert_data.get("conditions", [])
+        ]
+        issue_alert_data = {
+            # conditions pertain to criteria that can trigger an alert
+            "conditions": list(filter(lambda condition: not _is_filter(condition), all_conditions)),
+            # filters are not new conditions but are the subset of conditions that pertain to event attributes
+            "filters": list(filter(lambda condition: _is_filter(condition), all_conditions)),
+            "actionMatch": obj.issue_alert_data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH,
+            "filterMatch": obj.issue_alert_data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH,
+            "frequency": obj.issue_alert_data.get("frequency") or Rule.DEFAULT_FREQUENCY,
+        }
+
+        return {
+            "id": str(obj.id),
+            "name": obj.name,
+            "organization_id": obj.organization_id,
+            # TODO(Leander): Use get_attrs
+            "issue_alert_ids": [ia.id for ia in obj.issue_alerts.all()],
+            "issue_alert_data": issue_alert_data,
+            "procedure": serialize(obj.procedure),
+        }
+
+
+class IncomingAlertTemplateSerializer(CamelSnakeModelSerializer):
+    """
+    context: organization, project, procedure_id, template_id,
+    """
+
+    name = serializers.CharField(max_length=128)
+    issue_alerts = serializers.ListField(child=serializers.IntegerField(), required=False)
+    issue_alert_data = serializers.JSONField()
+
+    class Meta:
+        model = AlertProcedure
+        fields = ["label", "is_manual", "issue_alert_actions"]
+
+    def validate_name(self, incoming_name: str):
+        existing_id = self.context.get("template_id")
+        template_qs = AlertTemplate.objects.filter(
+            organization_id=self.context["organization"].id, name=incoming_name
+        )
+        if existing_id:
+            template_qs = template_qs.exclude(id=existing_id)
+        if template_qs.exists():
+            raise serializers.ValidationError(detail="Choose a better name nerd, that one's taken.")
+        return incoming_name
+
+    def validate_issue_alerts(self, incoming_issue_alerts):
+        issue_alerts = Rule.objects.filter(
+            id__in=incoming_issue_alerts, organization_id=self.context["organization"].id
+        )
+        if len(issue_alerts) != len(incoming_issue_alerts):
+            raise serializers.ValidationError(
+                detail="Not all provided issue alerts are available to this organization."
+            )
+        return incoming_issue_alerts
+
+    def validate_issue_alert_data(self, incoming_issue_alert_data):
+        # TODO(Leander): Figure out how to validate all the fields here
+        # actionMatch, filterMatch, actions, conditions, frequency
+        return incoming_issue_alert_data
+
+    def create(self, validated_data):
+        procedure_id = self.context.get("procedure_id")
+
+        if not procedure_id:
+            name = validated_data["name"]
+            procedure_data = {
+                "name": f"[Procedure from Template] {name}",
+                "issue_alert_actions": validate_actions["issue_alert_data"]["actions"],
+            }
+            serializer = IncomingAlertProcedureSerializer(
+                data=procedure_data,
+                context={
+                    "organization": self.context["organization"],
+                    "project": self.context["organization"],
+                },
+            )
+            if serializer.is_valid(raise_exception=True):
+                ap = serializer.save()
+                procedure_id = ap.id
+
+        issue_alerts = validated_data.pop("issue_alerts", [])
+
+        at = AlertTemplate.objects.create(
+            organization_id=self.context["organization"].id,
+            procedure_id=procedure_id,
+            **validated_data,
+        )
+
+        if len(issue_alerts) > 0:
+            Rule.objects.filter(id__in=issue_alerts).update(template_id=at.id)
+
+        return at
