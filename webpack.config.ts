@@ -13,6 +13,8 @@ import webpack from 'webpack';
 import {Configuration as DevServerConfig} from 'webpack-dev-server';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
+const {StatsWriterPlugin} = require('webpack-stats-plugin');
+
 import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
 import LastBuiltPlugin from './build-utils/last-built-plugin';
 import SentryInstrumentation from './build-utils/sentry-instrumentation';
@@ -408,6 +410,11 @@ const appConfig: Configuration = {
             ]
           : []),
       ],
+    }),
+
+    // Generates stats to src/sentry/static/sentry/dist/stats.json
+    new StatsWriterPlugin({
+      fields: ['assetsByChunkName', 'assets', 'modules', 'entrypoints'],
     }),
   ],
 
