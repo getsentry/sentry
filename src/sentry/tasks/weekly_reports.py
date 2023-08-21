@@ -277,6 +277,9 @@ def project_event_counts_for_organization(ctx):
 
     for dat in data:
         project_id = dat["project_id"]
+        # Project no longer in organization, but events still exist
+        if project_id not in ctx.projects:
+            continue
         project_ctx = ctx.projects[project_id]
         total = dat["total"]
         timestamp = int(to_timestamp(parse_snuba_datetime(dat["time"])))
