@@ -8,7 +8,7 @@ import {OmniArea} from './types';
  *
  * Each regsitered area will appear as a heading within the omni-search modal.
  */
-export function useOmniActions(areas: OmniArea[]) {
+export function useOmniAreas(areas: OmniArea[]) {
   const {registerAreas} = useOmniSearchConfiguration();
 
   useEffect(() => registerAreas(areas));
