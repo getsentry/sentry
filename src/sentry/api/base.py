@@ -22,7 +22,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from sentry_sdk import Scope
 
-from sentry import analytics, options, tsdb
+from sentry import analytics, features, options, tsdb
 from sentry.api.api_owners import ApiOwner
 from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
@@ -84,11 +84,29 @@ logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
 
-DEFAULT_SLUG_PATTERN = r"^(?![0-9]+$)[a-z0-9_\-]+$"
+DEFAULT_SLUG_PATTERN = (
+    r"^(?![0-9]+$)[a-z0-9_\-]+$"
+    if features.has("app:enterprise-prevent-numeric-slugs")
+    else r"^[a-z0-9_\-]+$"
+)
+
+
+def ORG_SLUG_PATTERN():
+    if features.has("app:enterprise-prevent-numeric-slugs"):
+        return r"^(?![0-9]+$)[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$"
+    return r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$"
+
+
 DEFAULT_SLUG_ERROR_MESSAGE = _(
     "Enter a valid slug consisting of lowercase letters, numbers, underscores or hyphens. "
     "It cannot be entirely numeric."
 )
+
+# ORG_SLUG_PATTERN = (
+#     r"^(?![0-9]+$)[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$"
+#     if features.has("app:enterprise-prevent-numeric-slugs")
+#     else r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$"
+# )
 
 
 def allow_cors_options(func):

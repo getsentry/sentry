@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta
 from typing import (
     TYPE_CHECKING,
@@ -23,6 +24,7 @@ from sentry_relay.exceptions import RelayError
 from typing_extensions import TypedDict
 
 from sentry import features, onboarding_tasks, quotas, roles
+from sentry.api.base import ORG_SLUG_PATTERN
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
 from sentry.api.serializers.models.role import (
@@ -108,7 +110,7 @@ class BaseOrganizationSerializer(serializers.Serializer):
     # [a-zA-Z0-9-]* - The slug can contain letters, numbers, and dashes
     # (?<!-)        - Negative lookbehind to ensure the slug does not end with a dash
     slug = serializers.RegexField(
-        r"^(?![0-9]+$)[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$",
+        ORG_SLUG_PATTERN(),
         max_length=50,
         error_messages={
             "invalid": _(
@@ -140,6 +142,10 @@ class BaseOrganizationSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 f'The slug "{value}" should not contain any whitespace.'
             )
+        print(value)
+        print(ORG_SLUG_PATTERN())
+        print(re.findall(ORG_SLUG_PATTERN(), value))
+        breakpoint()
         return value
 
 
