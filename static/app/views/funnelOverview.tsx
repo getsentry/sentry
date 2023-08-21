@@ -48,7 +48,11 @@ export default function FunnelOverview() {
           <h3>{funnelData?.funnel.name}</h3>
           <div>Total Starts: {funnelData.totalStarts}</div>
           <div>Total Completions: {funnelData.totalCompletions}</div>
-          <div>Rate: {(100 * funnelData.totalCompletions) / funnelData.totalStarts} </div>
+          {funnelData.totalStarts > 0 ? (
+            <div>
+              Rate: {(100 * funnelData.totalCompletions) / funnelData.totalStarts}{' '}
+            </div>
+          ) : null}
         </FunnelInfo>
       ) : null}
     </Wrapper>

@@ -31,19 +31,21 @@ export default function Funnel() {
   console.log({funnels});
   return (
     <Wrapper>
-      <h1>Funnel</h1>
-      <LinkButton
-        to={`/organizations/${organization.slug}/funnel/create/`}
-        priority="primary"
-      >
-        New Funnel
-      </LinkButton>
-      <Panel>
+      <Header>
+        <h2>Funnel</h2>
+        <LinkButton
+          to={`/organizations/${organization.slug}/funnel/create/`}
+          priority="primary"
+        >
+          New Funnel
+        </LinkButton>
+      </Header>
+      <StyledPanel>
         <PanelHeader>Funnel Name</PanelHeader>
         {funnels?.map(funnel => (
           <FunnelItem key={funnel.id} funnel={funnel} organization={organization} />
         ))}
-      </Panel>
+      </StyledPanel>
     </Wrapper>
   );
 }
@@ -52,8 +54,11 @@ const Wrapper = styled('div')`
   padding: ${space(3)};
 `;
 
-const TableHeader = styled('div')`
+const StyledPanel = styled(Panel)`
+  margin-top: ${space(2)};
+`;
+
+const Header = styled('div')`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
 `;
