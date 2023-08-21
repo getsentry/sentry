@@ -105,7 +105,7 @@ const TextContainer = styled('div')`
   }
 `;
 
-const SubText = styled('div')<{}>`
+const SubText = styled('div')`
   display: flex;
   color: ${p => p.theme.subText};
   line-height: ${p => p.theme.fontSizeMedium};
