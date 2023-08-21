@@ -573,15 +573,25 @@ const appConfig: Configuration = {
               return acc;
             }
 
+            const seenReasonModule = new Set();
+
             acc.push({
               name: module.name,
               size: module.size,
               moduleType: module.moduleType,
               ...(module.chunks && {chunks: module.chunks}),
               ...(module.reasons && {
-                reasons: module.reasons.map(reason => ({
-                  module: reason.module,
-                })),
+                reasons: module.reasons.reduce((reasonAcc, reason) => {
+                  if (seenReasonModule.has(reason.module)) {
+                    return reasonAcc;
+                  }
+
+                  reasonAcc.push({
+                    module: reason.module,
+                  });
+                  seenReasonModule.add(reason.module);
+                  return reasonAcc;
+                }, [] as Array<Pick<webpack.StatsModuleReason, 'module'>>),
               }),
             });
 
