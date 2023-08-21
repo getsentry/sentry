@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import subprocess
 import time
 
@@ -29,16 +28,12 @@ def main() -> None:
         "docker",
         "exec",
         "sentry_kafka",
-        "kafka-topics",
-        "--zookeeper",
-        # TODO: sentry_zookeeper:2181 doesn't work in CI, but 127.0.0.1 doesn't work locally
-        "127.0.0.1:2181",
-        "--list",
+        "rpk",
+        "topic",
+        "list",
     ]
 
-    healthchecks = [postgres_healthcheck]
-    if os.getenv("NEED_KAFKA") == "true":
-        healthchecks.append(kafka_healthcheck)
+    healthchecks = [postgres_healthcheck, kafka_healthcheck]
 
     for check in healthchecks:
         run_cmd(check)

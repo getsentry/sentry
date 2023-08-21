@@ -2560,34 +2560,20 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "entrypoint": "/cdc/postgres-entrypoint.sh" if settings.SENTRY_USE_CDC_DEV else None,
         }
     ),
-    "zookeeper": lambda settings, options: (
-        {
-            # On Apple arm64, we upgrade to version 6.x to allow zookeeper to run properly on Apple's arm64
-            # See details https://github.com/confluentinc/kafka-images/issues/80#issuecomment-855511438
-            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-zookeeper:6.2.0",
-            "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
-            "volumes": {"zookeeper_6": {"bind": "/var/lib/zookeeper/data"}},
-            "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
-        }
-    ),
     "kafka": lambda settings, options: (
         {
-            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:6.2.0",
+            "image": "redpandadata/redpanda:v22.3.23",
             "ports": {"9092/tcp": 9092},
-            "environment": {
-                "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
-                "KAFKA_LISTENERS": "INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092",
-                "KAFKA_ADVERTISED_LISTENERS": "INTERNAL://{containers[kafka][name]}:9093,EXTERNAL://{containers[kafka]"
-                "[ports][9092/tcp][0]}:{containers[kafka][ports][9092/tcp][1]}",
-                "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
-                "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
-                "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
-                "KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS": "1",
-                "KAFKA_LOG_RETENTION_HOURS": "24",
-                "KAFKA_MESSAGE_MAX_BYTES": "50000000",
-                "KAFKA_MAX_REQUEST_SIZE": "50000000",
-            },
-            "volumes": {"kafka_6": {"bind": "/var/lib/kafka/data"}},
+            "command": [
+                "redpanda",
+                "start",
+                "--kafka-addr",
+                "internal://0.0.0.0:9093,external://0.0.0.0:9092",
+                "--advertise-kafka-addr",
+                "internal://sentry_kafka:9093,external://127.0.0.1:9092",
+                "--mode",
+                "dev-container",
+            ],
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
             or settings.SENTRY_USE_RELAY
             or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS
