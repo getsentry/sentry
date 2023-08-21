@@ -1,10 +1,9 @@
 import {MenuItemProps} from 'sentry/components/dropdownMenu';
 
-type ActionKey = string;
+type UnregisterCallback = () => void;
 
 export interface OmniSearchConfig {
-  registerActions: (actions: OmniAction[]) => void;
-  unregisterActions: (keys: Array<OmniAction | ActionKey>) => void;
+  registerActions: (actions: OmniAction[]) => UnregisterCallback;
 }
 
 export interface OmniSearchStore {

@@ -7,11 +7,7 @@ import {OmniAction} from './types';
  * Register contextual actions into the omni-search interface
  */
 export function useOmniActions(actions: OmniAction[]) {
-  const {registerActions, unregisterActions} = useOmniSearchConfiguration();
+  const {registerActions} = useOmniSearchConfiguration();
 
-  useEffect(() => {
-    registerActions(actions);
-
-    return () => unregisterActions(actions);
-  });
+  useEffect(() => registerActions(actions));
 }

@@ -10,28 +10,22 @@ interface OmniSearchProviderProps {
 export function OmniSearchProvider({children}: OmniSearchProviderProps) {
   const [actions, setActions] = useState<OmniAction[]>([]);
 
-  const registerActions = useCallback(
-    (newActions: OmniAction[]) =>
-      setActions(currentActions => {
-        const keys = newActions.map(a => a.key);
-        return currentActions.filter(a => !keys.includes(a.key)).concat(newActions);
-      }),
-    []
-  );
+  const registerActions = useCallback((newActions: OmniAction[]) => {
+    const keys = newActions.map(a => a.key);
 
-  const unregisterActions = useCallback((actionOrKeyList: Array<OmniAction | string>) => {
-    const keys = actionOrKeyList.map(actionOrKey =>
-      typeof actionOrKey === 'string' ? actionOrKey : actionOrKey.key
-    );
-    setActions(currentActions => currentActions.filter(a => !keys.includes(a.key)));
+    setActions(currentActions => {
+      return currentActions.filter(a => !keys.includes(a.key)).concat(newActions);
+    });
+
+    return () =>
+      setActions(currentActions => currentActions.filter(a => !keys.includes(a.key)));
   }, []);
 
   const configContext = useMemo<OmniSearchConfig>(
     () => ({
       registerActions,
-      unregisterActions,
     }),
-    [registerActions, unregisterActions]
+    [registerActions]
   );
 
   const storeContext = useMemo<OmniSearchStore>(
@@ -40,8 +34,6 @@ export function OmniSearchProvider({children}: OmniSearchProviderProps) {
     }),
     [actions]
   );
-
-  console.log(storeContext);
 
   return (
     <OmniConfigContext.Provider value={configContext}>
