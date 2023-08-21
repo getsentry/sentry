@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from sentry import features
 from sentry.api.fields.actor import ActorField
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
 from sentry.models import Environment
 from sentry.rules import rules
@@ -69,13 +70,13 @@ class RuleNodeField(serializers.Field):
         return data
 
 
-class RuleSetSerializer(serializers.Serializer):
+class RuleSetSerializer(CamelSnakeSerializer):
     conditions = serializers.ListField(child=RuleNodeField(type="condition/event"), required=False)
     filters = serializers.ListField(child=RuleNodeField(type="filter/event"), required=False)
-    actionMatch = serializers.ChoiceField(
-        choices=(("all", "all"), ("any", "any"), ("none", "none"))
+    action_match = serializers.ChoiceField(
+        choices=(("all", "all"), ("any", "any"), ("none", "none")),
     )
-    filterMatch = serializers.ChoiceField(
+    filter_match = serializers.ChoiceField(
         choices=(("all", "all"), ("any", "any"), ("none", "none")), required=False
     )
     frequency = serializers.IntegerField(min_value=5, max_value=60 * 24 * 30)
@@ -84,7 +85,7 @@ class RuleSetSerializer(serializers.Serializer):
         # ensure that if filters are passed in that a filterMatch is also supplied
         filters = attrs.get("filters")
         if filters:
-            filter_match = attrs.get("filterMatch")
+            filter_match = attrs.get("filter_match")
             if not filter_match:
                 raise serializers.ValidationError(
                     {
@@ -108,7 +109,7 @@ class RuleSetSerializer(serializers.Serializer):
                 )
 
         # ensure that if a user has alert-filters enabled, they do not use a 'none' match on conditions
-        if project_has_filters and attrs.get("actionMatch") == "none":
+        if project_has_filters and attrs.get("action_match") == "none":
             raise serializers.ValidationError(
                 {
                     "conditions": "The 'none' match on conditions is outdated and no longer supported."
@@ -165,10 +166,10 @@ class RuleSerializer(RuleSetSerializer):
             rule.environment_id = int(environment) if environment else environment
         if self.validated_data.get("name"):
             rule.label = self.validated_data["name"]
-        if self.validated_data.get("actionMatch"):
-            rule.data["action_match"] = self.validated_data["actionMatch"]
-        if self.validated_data.get("filterMatch"):
-            rule.data["filter_match"] = self.validated_data["filterMatch"]
+        if self.validated_data.get("action_match"):
+            rule.data["action_match"] = self.validated_data["action_match"]
+        if self.validated_data.get("filter_match"):
+            rule.data["filter_match"] = self.validated_data["filter_match"]
         if self.validated_data.get("actions") is not None:
             rule.data["actions"] = self.validated_data["actions"]
         if self.validated_data.get("conditions") is not None:

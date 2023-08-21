@@ -5,7 +5,11 @@ from rest_framework import serializers
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.rule import _generate_rule_label, _is_filter
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.api.serializers.rest_framework.rule import RuleNodeField, validate_actions
+from sentry.api.serializers.rest_framework.rule import (
+    RuleNodeField,
+    RuleSetSerializer,
+    validate_actions,
+)
 from sentry.blueprint.models import AlertProcedure, AlertTemplate
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -101,13 +105,14 @@ class AlertTemplateSerializer(Serializer):
             "filterMatch": obj.issue_alert_data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH,
             "frequency": obj.issue_alert_data.get("frequency") or Rule.DEFAULT_FREQUENCY,
         }
+        rules = Rule.objects.filter(template_id=obj.id)
 
         return {
             "id": str(obj.id),
             "name": obj.name,
             "organization_id": obj.organization_id,
             # TODO(Leander): Use get_attrs
-            "issue_alert_ids": [ia.id for ia in obj.issue_alerts.all()],
+            "issue_alert_ids": [r.id for r in rules],
             "issue_alert_data": issue_alert_data,
             "procedure": serialize(obj.procedure),
         }
@@ -120,11 +125,14 @@ class IncomingAlertTemplateSerializer(CamelSnakeModelSerializer):
 
     name = serializers.CharField(max_length=128)
     issue_alerts = serializers.ListField(child=serializers.IntegerField(), required=False)
-    issue_alert_data = serializers.JSONField()
+    issue_alert_data = RuleSetSerializer(partial=True)
+    issue_alert_actions = serializers.ListField(
+        child=RuleNodeField(type="action/event"), required=False
+    )
 
     class Meta:
         model = AlertProcedure
-        fields = ["label", "is_manual", "issue_alert_actions"]
+        fields = ["name", "issue_alerts", "issue_alert_data", "issue_alert_actions"]
 
     def validate_name(self, incoming_name: str):
         existing_id = self.context.get("template_id")
@@ -139,7 +147,7 @@ class IncomingAlertTemplateSerializer(CamelSnakeModelSerializer):
 
     def validate_issue_alerts(self, incoming_issue_alerts):
         issue_alerts = Rule.objects.filter(
-            id__in=incoming_issue_alerts, organization_id=self.context["organization"].id
+            id__in=incoming_issue_alerts, project__organization_id=self.context["organization"].id
         )
         if len(issue_alerts) != len(incoming_issue_alerts):
             raise serializers.ValidationError(
@@ -147,39 +155,45 @@ class IncomingAlertTemplateSerializer(CamelSnakeModelSerializer):
             )
         return incoming_issue_alerts
 
-    def validate_issue_alert_data(self, incoming_issue_alert_data):
-        # TODO(Leander): Figure out how to validate all the fields here
-        # actionMatch, filterMatch, actions, conditions, frequency
-        return incoming_issue_alert_data
+    def validate(self, attrs):
+        procedure_id = self.context.get("procedure_id")
+        actions = attrs.get("issue_alert_actions")
+        if not procedure_id and not actions:
+            raise serializers.ValidationError(
+                detail="Requires procedure_id or actions to be specified"
+            )
+        return validate_actions(attrs)
+
+    def _create_alert_procedure(self, validated_data) -> AlertProcedure:
+        name = validated_data["name"]
+        issue_alert_actions = validated_data.pop("issue_alert_actions", [])
+        procedure_data = {
+            "label": f"[Procedure from Template] {name}",
+            "issue_alert_actions": issue_alert_actions,
+        }
+        serializer = IncomingAlertProcedureSerializer(
+            data=procedure_data,
+            context={
+                "organization": self.context["organization"],
+                "project": self.context["project"],
+            },
+        )
+        if serializer.is_valid(raise_exception=True):
+            ap = serializer.save()
+            return ap
 
     def create(self, validated_data):
         procedure_id = self.context.get("procedure_id")
-
         if not procedure_id:
-            name = validated_data["name"]
-            procedure_data = {
-                "name": f"[Procedure from Template] {name}",
-                "issue_alert_actions": validate_actions["issue_alert_data"]["actions"],
-            }
-            serializer = IncomingAlertProcedureSerializer(
-                data=procedure_data,
-                context={
-                    "organization": self.context["organization"],
-                    "project": self.context["organization"],
-                },
-            )
-            if serializer.is_valid(raise_exception=True):
-                ap = serializer.save()
-                procedure_id = ap.id
+            ap = self._create_alert_procedure(validated_data=validated_data)
+            procedure_id = ap.id
 
         issue_alerts = validated_data.pop("issue_alerts", [])
-
         at = AlertTemplate.objects.create(
             organization_id=self.context["organization"].id,
             procedure_id=procedure_id,
             **validated_data,
         )
-
         if len(issue_alerts) > 0:
             Rule.objects.filter(id__in=issue_alerts).update(template_id=at.id)
 

@@ -5,4 +5,3 @@ from sentry.api.bases.organization import OrganizationEndpoint
 @region_silo_endpoint
 class BlueprintEndpoint(OrganizationEndpoint):
     permission_classes = ()
-    pass

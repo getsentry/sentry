@@ -26,14 +26,14 @@ class AlertTemplateManager(BaseManager):
             if template:
                 rule.update(template_id=template.id)
                 return template
-            at, created = AlertTemplate.objects.get_or_create(
+            template, created = AlertTemplate.objects.get_or_create(
                 name=f"[Template] {rule.label}",
                 organization_id=organization_id,
                 procedure=procedure,
                 issue_alert_data=rule.data,
             )
             rule.update(template_id=template.id)
-            return at
+            return template
 
 
 @region_silo_only_model

@@ -31,9 +31,15 @@ class OrganizationAlertTemplateIndexEndpoint(BlueprintEndpoint):
                 serialize(at, request.user, AlertTemplateSerializer()),
                 status=status.HTTP_202_ACCEPTED,
             )
+        procedure_id = request.data.get("procedure")
 
         serializer = IncomingAlertTemplateSerializer(
-            data=request.data, context={"organization": organization, "project": project}
+            data=request.data,
+            context={
+                "organization": organization,
+                "project": project,
+                "procedure_id": procedure_id,
+            },
         )
         if serializer.is_valid():
             ap = serializer.save()
