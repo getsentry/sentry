@@ -1387,6 +1387,36 @@ function buildRoutes() {
     </Fragment>
   );
 
+  const userChildRoutes = (
+    <Fragment>
+      <IndexRoute component={make(() => import('sentry/views/user/list'))} />
+      <Route
+        path=":userId/"
+        component={make(() => import('sentry/views/user/details'))}
+      />
+    </Fragment>
+  );
+  const userRoutes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Route
+          path="/user/"
+          component={withDomainRequired(make(() => import('sentry/views/user/index')))}
+          key="orgless-user-details-route"
+        >
+          {userChildRoutes}
+        </Route>
+      )}
+      <Route
+        path="/organizations/:orgId/user/"
+        component={withDomainRedirect(make(() => import('sentry/views/user/index')))}
+        key="org-user-details"
+      >
+        {userChildRoutes}
+      </Route>
+    </Fragment>
+  );
+
   const releasesChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
     return (
       <Fragment>
@@ -2165,6 +2195,7 @@ function buildRoutes() {
       {alertRoutes}
       {cronsRoutes}
       {replayRoutes}
+      {userRoutes}
       {releasesRoutes}
       {activityRoutes}
       {statsRoutes}
