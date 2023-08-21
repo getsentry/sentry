@@ -153,6 +153,7 @@
     "react-sparklines": "1.7.0",
     "react-virtualized": "^9.22.3",
     "reflux": "0.4.1",
+    "rollup-plugin-visualizer": "^5.9.2",
     "screenfull": "^6.0.2",
     "scroll-to-element": "^2.0.0",
     "sprintf-js": "1.0.3",
@@ -163,6 +164,7 @@
     "u2f-api": "1.0.10",
     "url-loader": "^4.1.0",
     "webpack": "5.87.0",
+    "webpack-bundle-analyzer": "^4.9.0",
     "webpack-cli": "5.1.4",
     "webpack-remove-empty-scripts": "^1.0.3",
     "zxcvbn": "^4.4.2"

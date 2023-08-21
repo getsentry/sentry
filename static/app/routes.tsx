@@ -1395,6 +1395,9 @@ function buildRoutes() {
           path=":release/"
           component={make(() => import('sentry/views/releases/detail'))}
         >
+          <Route path="bundle/">
+            <IndexRoute component={make(() => import('sentry/views/bundleAnalyzer'))} />
+          </Route>
           <IndexRoute
             component={make(() => import('sentry/views/releases/detail/overview'))}
           />
