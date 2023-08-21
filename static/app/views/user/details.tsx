@@ -80,7 +80,11 @@ function UserDetails({params: {userId}}: Props) {
                 <PageFilterBar condensed>
                   <ProjectPageFilter resetParamsOnChange={['cursor']} />
                   <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
-                  <DatePageFilter alignDropdown="left" resetParamsOnChange={['cursor']} />
+                  <DatePageFilter
+                    defaultPeriod="7d"
+                    alignDropdown="left"
+                    resetParamsOnChange={['cursor']}
+                  />
                 </PageFilterBar>
               </FilterBar>
               <Widgets>
