@@ -64,6 +64,10 @@ function ReleaseHeader({
       ),
       to: `files-changed/`,
     },
+    {
+      title: t('Browser Details'),
+      to: `browser/`,
+    },
   ];
 
   const getTabUrl = (path: string) => ({

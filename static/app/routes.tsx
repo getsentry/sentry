@@ -1410,6 +1410,12 @@ function buildRoutes() {
               () => import('sentry/views/releases/detail/commitsAndFiles/filesChanged')
             )}
           />
+          <Route
+            path="browser/"
+            component={make(
+              () => import('sentry/views/releases/detail/overview/browser')
+            )}
+          />
           {forCustomerDomain ? null : (
             <Fragment>
               <Redirect
