@@ -6,8 +6,11 @@ from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
+from sentry.integrations.discord.message_builder.base.flags import DiscordMessageFlags
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.webhooks.command import DiscordCommandHandler
+from sentry.integrations.discord.webhooks.handler import DiscordInteractionHandlerError
 from sentry.integrations.discord.webhooks.message_component import DiscordMessageComponentHandler
 from sentry.web.decorators import transaction_start
 
@@ -53,7 +56,20 @@ class DiscordInteractionsEndpoint(Endpoint):
                     "integrations.discord.message_interaction",
                     custom_id=discord_request.get_component_custom_id(),
                 )
-                return DiscordMessageComponentHandler(discord_request).handle()
+                try:
+                    return DiscordMessageComponentHandler(discord_request).handle()
+                except DiscordInteractionHandlerError:
+                    message = DiscordMessageBuilder(
+                        content="We can no longer find that issue. It may have been deleted.",
+                        flags=DiscordMessageFlags().set_ephemeral(),
+                    )
+                    return Response(
+                        {
+                            "type": DiscordResponseTypes.MESSAGE,
+                            "data": message.build(),
+                        },
+                        status=200,
+                    )
 
         except DiscordRequestError as e:
             return self.respond(status=e.status)

@@ -17,7 +17,10 @@ from sentry.integrations.discord.message_builder.base.component.select_menu impo
 )
 from sentry.integrations.discord.message_builder.base.flags import DiscordMessageFlags
 from sentry.integrations.discord.requests.base import DiscordRequest
-from sentry.integrations.discord.webhooks.handler import DiscordInteractionHandler
+from sentry.integrations.discord.webhooks.handler import (
+    DiscordInteractionHandler,
+    DiscordInteractionHandlerError,
+)
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.grouphistory import STATUS_TO_STRING_LOOKUP, GroupHistoryStatus
@@ -55,7 +58,10 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
         self.user: RpcUser
         # Everything after the colon is the group id in a custom_id
         self.group_id: str = self.custom_id.split(":")[1]
-        self.group: Group = Group.objects.get(id=self.group_id)
+        try:
+            self.group: Group = Group.objects.get(id=self.group_id)
+        except Group.DoesNotExist:
+            raise DiscordInteractionHandlerError()
 
     def handle(self) -> Response:
         logging_data = self.request.logging_data

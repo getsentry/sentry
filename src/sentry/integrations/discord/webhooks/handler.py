@@ -9,6 +9,12 @@ from sentry.integrations.discord.requests.base import DiscordRequest
 from .types import DiscordResponseTypes
 
 
+class DiscordInteractionHandlerError(Exception):
+    """
+    Something went wrong while handling a Discord interaction.
+    """
+
+
 class DiscordInteractionHandler:
     """
     Abstract class defining the shared interface of interaction handlers,
