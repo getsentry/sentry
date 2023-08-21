@@ -597,6 +597,7 @@ const Item = styled('div')<{isArchived?: boolean}>`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+  padding: ${space(1.5)};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
 `;
 

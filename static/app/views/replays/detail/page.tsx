@@ -38,7 +38,7 @@ function Page({
   const title = replayRecord
     ? `${replayRecord.id} — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
-  const displayName = replayRecord.user.display_name || t('Unknown User');
+  const displayName = replayRecord?.user.display_name || t('Unknown User');
 
   const header = (
     <Header>
