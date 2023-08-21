@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {SectionHeading} from 'sentry/components/charts/styles';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -43,18 +44,36 @@ export default function FunnelOverview() {
           <DatePageFilter alignDropdown="left" />
         </PageFilterBar>
       </PageFiltersContainer>
-      {funnelData ? (
-        <FunnelInfo>
-          <h3>{funnelData?.funnel.name}</h3>
-          <div>Total Starts: {funnelData.totalStarts}</div>
-          <div>Total Completions: {funnelData.totalCompletions}</div>
-          {funnelData.totalStarts > 0 ? (
-            <div>
-              Rate: {(100 * funnelData.totalCompletions) / funnelData.totalStarts}{' '}
-            </div>
+      <Title>{funnelData?.funnel.name}</Title>
+      <ContentWrapper>
+        <div>Errors go here</div>
+        <div>
+          {funnelData ? (
+            <FunnelInfo>
+              <div>
+                <SectionHeading>Total Starts</SectionHeading>
+                <div>{funnelData.totalStarts}</div>
+              </div>
+              <div>
+                <SectionHeading>Total Completions</SectionHeading>
+                <div>{funnelData.totalCompletions}</div>
+              </div>
+              {funnelData.totalStarts > 0 ? (
+                <div>
+                  <SectionHeading>Completion Rate</SectionHeading>
+                  <div>
+                    {(
+                      (100 * funnelData.totalCompletions) /
+                      funnelData.totalStarts
+                    ).toFixed(2)}
+                    %
+                  </div>
+                </div>
+              ) : null}
+            </FunnelInfo>
           ) : null}
-        </FunnelInfo>
-      ) : null}
+        </div>
+      </ContentWrapper>
     </Wrapper>
   );
 }
@@ -64,5 +83,15 @@ const Wrapper = styled('div')`
 `;
 
 const FunnelInfo = styled('div')`
+  margin-top: ${space(3)};
+`;
+
+const ContentWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: 4fr 1fr;
+  grid-gap: ${space(3)};
+`;
+
+const Title = styled('h3')`
   margin-top: ${space(3)};
 `;

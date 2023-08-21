@@ -28,11 +28,10 @@ export default function Funnel() {
       staleTime: Infinity,
     }
   );
-  console.log({funnels});
   return (
     <Wrapper>
       <Header>
-        <h2>Funnel</h2>
+        <h2>Funnel</h2>x
         <LinkButton
           to={`/organizations/${organization.slug}/funnel/create/`}
           priority="primary"
