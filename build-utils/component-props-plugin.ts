@@ -21,8 +21,6 @@ class ComponentPropsPlugin extends SignedFileGenerator<string> {
   }
 
   generateData(files: string[]) {
-    console.log({files});
-
     const parserOptions = {
       // skipPropsWithoutDoc: true,
       shouldExtractLiteralValuesFromEnum: true,
@@ -44,7 +42,20 @@ class ComponentPropsPlugin extends SignedFileGenerator<string> {
       parserOptions
     );
 
-    const types = files.flatMap(file => tsConfigParser.parse(file));
+    const staticPrefix = path.join(__dirname, '..', 'static');
+    const filePaths = files.map(file => path.join(staticPrefix, file));
+    const types = tsConfigParser.parse(filePaths);
+
+    types.forEach(type => {
+      // @ts-ignore
+      delete type.description;
+      delete type.tags;
+      Object.keys(type.props).forEach(key => {
+        delete type.props[key].declarations;
+        // @ts-ignore
+        delete type.props[key].description;
+      });
+    });
 
     return Promise.resolve(JSON.stringify(types));
   }
@@ -57,9 +68,30 @@ class ComponentPropsPlugin extends SignedFileGenerator<string> {
       // ${signingToken}
       //
       // This script contains a list of components and their typescript props to be
-      // imported by our ui component library. Used to generate Knobs
+      // imported by our ui component library. Used to generate Knobs.
 
-      const ComponentProps: string[] = ${data}
+      type IProps = {
+        declarations: {
+          fileName: string;
+          name: string;
+        }[];
+        defaultValue: any;
+        // description: string;
+        name: string;
+        required: boolean;
+        type: {name: string};
+      };
+
+      type IModule = {
+        // description: string,
+        displayName: string;
+        // tags: Record<string, unknown>,
+        filePath: string;
+        methods: unknown[];
+        props: Record<string, IProps>;
+      };
+
+      const ComponentProps: IModule[] = ${data}
 
       export {ComponentProps}
     `;

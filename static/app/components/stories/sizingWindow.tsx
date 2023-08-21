@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {space} from 'sentry/styles/space';
+
 const SizingWindow = styled('div')`
   width: 100%;
   display: flex;
@@ -27,6 +29,9 @@ const SizingWindow = styled('div')`
 
   border: 1px solid ${p => p.theme.yellow400};
   border-radius: ${p => p.theme.borderRadius};
+
+  resize: both;
+  padding: ${space(2)};
 `;
 
 export default SizingWindow;

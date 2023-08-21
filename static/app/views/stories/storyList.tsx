@@ -120,8 +120,17 @@ const FolderName = styled('summary')`
 
   color: inherit;
   &:hover {
-    background: ${p => p.theme.blue100};
     color: inherit;
+  }
+  &:hover:before {
+    background: ${p => p.theme.blue100};
+    content: '';
+    left: -100%;
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: -1;
+    bottom: 0;
   }
 `;
 
@@ -131,7 +140,16 @@ const FolderLink = styled(Link)`
 
   color: inherit;
   &:hover {
-    background: ${p => p.theme.blue100};
     color: inherit;
+  }
+  &:hover:before {
+    background: ${p => p.theme.blue100};
+    content: '';
+    left: -100%;
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: -1;
+    bottom: 0;
   }
 `;

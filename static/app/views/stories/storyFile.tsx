@@ -1,6 +1,9 @@
 import {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from 'sentry/components/button';
+import TextOverflow from 'sentry/components/textOverflow';
+import {IconGithub} from 'sentry/icons';
 import useStoriesLoader from 'sentry/views/stories/useStoriesLoader';
 
 interface Props extends ComponentProps<'div'> {
@@ -13,9 +16,38 @@ export default function StoryFile({filename, style}: Props) {
   const {default: DefaultExport, ...otherExports} = module;
   const otherEntries = Object.entries(otherExports);
 
+  console.log({module, otherEntries});
+
+  const githubViewUrl = `https://github.com/getsentry/sentry/blob/master/static/${filename}`;
+  const githubEditUrl = `https://github.com/getsentry/sentry/edit/master/static/${filename}`;
+
   return (
     <FlexColumn style={style}>
-      <h2>{filename}</h2>
+      <FlexRow style={{justifyContent: 'space-between'}}>
+        <Header>
+          <TextOverflow>{filename}</TextOverflow>
+        </Header>
+        <FlexRow>
+          <LinkButton
+            href={githubViewUrl}
+            external
+            icon={<IconGithub />}
+            size="sm"
+            aria-label="View on GitHub"
+          >
+            View
+          </LinkButton>
+          <LinkButton
+            href={githubEditUrl}
+            external
+            icon={<IconGithub />}
+            size="sm"
+            aria-label="View on GitHub"
+          >
+            Edit
+          </LinkButton>
+        </FlexRow>
+      </FlexRow>
       {DefaultExport ? <DefaultExport /> : null}
       {otherEntries.map(([field, Component]) => (
         <Component key={field} />
@@ -24,8 +56,18 @@ export default function StoryFile({filename, style}: Props) {
   );
 }
 
+const FlexRow = styled('div')`
+  display: flex;
+  flex-direction: row;
+  flex-flow: wrap;
+  gap: var(--stories-grid-space);
+`;
 const FlexColumn = styled('div')`
   display: flex;
   flex-direction: column;
   gap: var(--stories-grid-space);
+`;
+
+const Header = styled('h2')`
+  margin: 0;
 `;

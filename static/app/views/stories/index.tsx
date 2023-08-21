@@ -45,6 +45,7 @@ const Layout = styled('div')`
 const StyledPanel = styled(Panel)`
   margin: 0;
   padding: var(--stories-grid-space);
+  overflow: hidden;
 
   /* TODO: See about this */
   /* display: flex; */
