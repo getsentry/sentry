@@ -1,7 +1,14 @@
 import {useCallback, useMemo, useState} from 'react';
+import omit from 'lodash/omit';
 
 import {OmniConfigContext, OmniSearchStoreContext} from './context';
-import {OmniAction, OmniSearchConfig, OmniSearchStore} from './types';
+import {
+  OmniAction,
+  OmniArea,
+  OmniAreaMap,
+  OmniSearchConfig,
+  OmniSearchStore,
+} from './types';
 
 interface OmniSearchProviderProps {
   children: React.ReactNode;
@@ -9,6 +16,7 @@ interface OmniSearchProviderProps {
 
 export function OmniSearchProvider({children}: OmniSearchProviderProps) {
   const [actions, setActions] = useState<OmniAction[]>([]);
+  const [areas, setAreaMap] = useState<OmniAreaMap>({});
 
   const registerActions = useCallback((newActions: OmniAction[]) => {
     const keys = newActions.map(a => a.key);
@@ -21,18 +29,31 @@ export function OmniSearchProvider({children}: OmniSearchProviderProps) {
       setActions(currentActions => currentActions.filter(a => !keys.includes(a.key)));
   }, []);
 
+  const registerAreas = useCallback((newAreas: OmniArea[]) => {
+    const keys = newAreas.map(a => a.key);
+
+    setAreaMap(currentAreaMap => ({
+      ...currentAreaMap,
+      ...Object.fromEntries(newAreas.map(area => [area.key, area])),
+    }));
+
+    return () => setAreaMap(currentAreas => omit(currentAreas, keys));
+  }, []);
+
   const configContext = useMemo<OmniSearchConfig>(
     () => ({
       registerActions,
+      registerAreas,
     }),
-    [registerActions]
+    [registerActions, registerAreas]
   );
 
   const storeContext = useMemo<OmniSearchStore>(
     () => ({
       actions,
+      areas,
     }),
-    [actions]
+    [actions, areas]
   );
 
   return (
