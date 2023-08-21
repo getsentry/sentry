@@ -102,7 +102,7 @@ export function ReplayWidget({userId}: Props) {
   }
 
   if (fetchError) {
-    return 'Error';
+    return <div>Error fetching replays</div>;
   }
 
   return (
