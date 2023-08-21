@@ -16,6 +16,7 @@ import {DebugMeta} from './interfaces/debugMeta';
 import {Exception} from './interfaces/exception';
 import {Generic} from './interfaces/generic';
 import {Message} from './interfaces/message';
+import {Nel} from './interfaces/nel';
 import {SpanEvidenceSection} from './interfaces/performance/spanEvidence';
 import {Request} from './interfaces/request';
 import {Spans} from './interfaces/spans';
@@ -80,6 +81,9 @@ function EventEntryContent({
 
     case EntryType.CSP:
       return <Csp event={event} data={entry.data} />;
+
+    case EntryType.NEL:
+      return <Nel event={event} data={entry.data} />;
 
     case EntryType.EXPECTCT:
     case EntryType.EXPECTSTAPLE:
