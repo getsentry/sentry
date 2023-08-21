@@ -578,6 +578,11 @@ const appConfig: Configuration = {
               size: module.size,
               moduleType: module.moduleType,
               ...(module.chunks && {chunks: module.chunks}),
+              ...(module.reasons && {
+                reasons: module.reasons.map(reason => ({
+                  module: reason.module,
+                })),
+              }),
             });
 
             return acc;
