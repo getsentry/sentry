@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import CommitLink from 'sentry/components/commitLink';
 import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
+import {AnimatedResolution} from 'sentry/components/resolutionBox/animatedResolution';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
-import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -19,6 +19,7 @@ import {
 } from 'sentry/types';
 
 type Props = {
+  newlyResolved: boolean;
   projectId: string;
   // TODO(ts): This should be a union type `IgnoredStatusDetails | ResolvedStatusDetails`
   statusDetails: ResolvedStatusDetails;
@@ -107,12 +108,18 @@ function renderReason(
   return t('This issue has been marked as resolved.');
 }
 
-function ResolutionBox({statusDetails, projectId, activities = []}: Props) {
+function ResolutionBox({
+  statusDetails,
+  projectId,
+  newlyResolved,
+  activities = [],
+}: Props) {
   return (
     <BannerContainer priority="default">
       <BannerSummary>
-        <StyledIconCheckmark color="successText" />
-        <span>{renderReason(statusDetails, projectId, activities)}</span>
+        <AnimatedResolution animate={newlyResolved}>
+          {renderReason(statusDetails, projectId, activities)}
+        </AnimatedResolution>
       </BannerSummary>
     </BannerContainer>
   );
@@ -122,17 +129,6 @@ const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.gray300};
   margin-left: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const StyledIconCheckmark = styled(IconCheckmark)`
-  /* override margin defined in BannerSummary */
-  margin-top: 0 !important;
-  align-self: center;
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin-top: ${space(0.5)} !important;
-    align-self: flex-start;
-  }
 `;
 
 export default ResolutionBox;

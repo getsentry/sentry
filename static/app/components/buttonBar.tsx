@@ -1,4 +1,4 @@
-import {Children, cloneElement, isValidElement} from 'react';
+import {Children, cloneElement, forwardRef, isValidElement} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -14,42 +14,38 @@ type ButtonBarProps = {
   merged?: boolean;
 };
 
-function ButtonBar({
-  children,
-  className,
-  active,
-  merged = false,
-  gap = 0,
-}: ButtonBarProps) {
-  const shouldCheckActive = typeof active !== 'undefined';
-  return (
-    <ButtonGrid merged={merged} gap={gap} className={className}>
-      {!shouldCheckActive
-        ? children
-        : Children.map(children, child => {
-            if (!isValidElement(child)) {
-              return child;
-            }
+const ButtonBar = forwardRef<HTMLDivElement, ButtonBarProps>(
+  ({children, className, active, merged = false, gap = 0, ...props}, ref) => {
+    const shouldCheckActive = typeof active !== 'undefined';
+    return (
+      <ButtonGrid merged={merged} gap={gap} className={className} {...props} ref={ref}>
+        {!shouldCheckActive
+          ? children
+          : Children.map(children, child => {
+              if (!isValidElement(child)) {
+                return child;
+              }
 
-            const {props: childProps, ...childWithoutProps} = child;
+              const {props: childProps, ...childWithoutProps} = child;
 
-            // We do not want to pass `barId` to <Button>`
-            const {barId, ...props} = childProps;
-            const isActive = active === barId;
+              // We do not want to pass `barId` to <Button>`
+              const {barId, ...restChildProps} = childProps;
+              const isActive = active === barId;
 
-            // This ["primary"] could be customizable with a prop,
-            // but let's just enforce one "active" type for now
-            const priority = isActive ? 'primary' : childProps.priority || 'default';
+              // This ["primary"] could be customizable with a prop,
+              // but let's just enforce one "active" type for now
+              const priority = isActive ? 'primary' : childProps.priority || 'default';
 
-            return cloneElement(childWithoutProps as React.ReactElement, {
-              ...props,
-              className: classNames(className, {active: isActive}),
-              priority,
-            });
-          })}
-    </ButtonGrid>
-  );
-}
+              return cloneElement(childWithoutProps as React.ReactElement, {
+                ...restChildProps,
+                className: classNames(className, {active: isActive}),
+                priority,
+              });
+            })}
+      </ButtonGrid>
+    );
+  }
+);
 
 const MergedStyles = () => css`
   /* Raised buttons show borders on both sides. Useful to create pill bars */

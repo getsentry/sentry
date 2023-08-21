@@ -1,5 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useHover, usePress} from '@react-aria/interactions';
+import {motion, Variants} from 'framer-motion';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
@@ -22,6 +24,31 @@ import {
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatVersion, isSemverRelease} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ErrorGremlinBody} from 'sentry/views/issueDetails/actions/resolve/errorGremlinBody';
+
+const peekingGremlinVariants: Variants = {
+  hidden: {
+    x: 40,
+    y: 0,
+    rotate: 20,
+    scale: 0,
+    transition: {
+      duration: 0.3,
+    },
+  },
+  shown: () => {
+    const x = 40 + (Math.random() - 0.5) * 50;
+    return {
+      x: [40, x, x],
+      y: [0, 0, -18],
+      rotate: 20,
+      scale: 1,
+      transition: {
+        duration: 0.6,
+      },
+    };
+  },
+};
 
 function SetupReleasesPrompt() {
   return (
@@ -83,6 +110,8 @@ function ResolveActions({
   onUpdate,
 }: ResolveActionsProps) {
   const organization = useOrganization();
+  const {isHovered, hoverProps} = useHover({});
+  const {isPressed, pressProps} = usePress({});
 
   function handleCommitResolution(statusDetails: ResolvedStatusDetails) {
     onUpdate({
@@ -274,37 +303,50 @@ function ResolveActions({
   }
 
   return (
-    <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
-      <ButtonBar merged>
-        <ResolveButton
-          priority={priority}
-          size={size}
-          title={t("We'll nag you with a notification if another event is seen.")}
-          tooltipProps={{delay: 1000, disabled}}
-          onClick={() =>
-            openConfirmModal({
-              bypass: !shouldConfirm,
-              onConfirm: () =>
-                onUpdate({
-                  status: GroupStatus.RESOLVED,
-                  statusDetails: {},
-                  substatus: null,
-                }),
-              message: confirmMessage,
-              confirmText: confirmLabel,
-            })
-          }
-          disabled={disabled}
-        >
-          {t('Resolve')}
-        </ResolveButton>
-        {renderDropdownMenu()}
-      </ButtonBar>
-    </Tooltip>
+    <div style={{position: 'relative'}}>
+      <PeekingErrorGremlin
+        variants={peekingGremlinVariants}
+        initial="hidden"
+        animate={isHovered && !isPressed ? 'shown' : 'hidden'}
+      >
+        <ErrorGremlinBody />
+      </PeekingErrorGremlin>
+      <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
+        <ButtonBar merged {...hoverProps} {...pressProps}>
+          <ResolveButton
+            priority={priority}
+            size={size}
+            title={t("We'll nag you with a notification if another event is seen.")}
+            tooltipProps={{delay: 2000, disabled}}
+            onClick={() =>
+              openConfirmModal({
+                bypass: !shouldConfirm,
+                onConfirm: () =>
+                  onUpdate({
+                    status: GroupStatus.RESOLVED,
+                    statusDetails: {},
+                    substatus: null,
+                  }),
+                message: confirmMessage,
+                confirmText: confirmLabel,
+              })
+            }
+            disabled={disabled}
+          >
+            {t('Resolve')}
+          </ResolveButton>
+          {renderDropdownMenu()}
+        </ButtonBar>
+      </Tooltip>
+    </div>
   );
 }
 
 export default ResolveActions;
+
+const PeekingErrorGremlin = styled(motion.div)`
+  position: absolute;
+`;
 
 const ResolveButton = styled(Button)<{priority?: 'primary'}>`
   box-shadow: none;

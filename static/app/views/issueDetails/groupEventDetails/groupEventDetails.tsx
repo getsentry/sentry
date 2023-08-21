@@ -14,7 +14,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MutedBox from 'sentry/components/mutedBox';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
-import ResolutionBox from 'sentry/components/resolutionBox';
+import ResolutionBox from 'sentry/components/resolutionBox/resolutionBox';
 import {space} from 'sentry/styles/space';
 import {
   Group,
@@ -85,6 +85,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   const environments = useEnvironmentsFromUrl();
   const prevEnvironment = usePrevious(environments);
   const prevEvent = usePrevious(event);
+  const prevGroupStatus = usePrevious(group.status);
 
   // load the data
   useEffect(() => {
@@ -160,6 +161,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
             statusDetails={group.statusDetails}
             activities={group.activity}
             projectId={project.id}
+            newlyResolved={prevGroupStatus === 'unresolved'}
           />
         </GroupStatusBannerWrapper>
       );
@@ -253,6 +255,8 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
 const StyledLayoutBody = styled(Layout.Body)`
   /* Makes the borders align correctly */
   padding: 0 !important;
+  gap: 0 !important;
+
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     align-content: stretch;
   }
@@ -276,11 +280,13 @@ const StyledLayoutMain = styled(Layout.Main)`
 `;
 
 const StyledLayoutSide = styled(Layout.Side)`
-  padding: ${space(3)} ${space(2)} ${space(3)};
+  background: ${p => p.theme.background};
+  padding: ${space(3)} ${space(2)};
+  z-index: 2;
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     padding-right: ${space(4)};
-    padding-left: 0;
+    padding-left: ${space(2)};
   }
 `;
 
