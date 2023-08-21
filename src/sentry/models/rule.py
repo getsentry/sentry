@@ -55,6 +55,7 @@ class Rule(Model):
         choices=RuleSource.as_choices(),
     )
     owner = FlexibleForeignKey("sentry.Actor", null=True, on_delete=models.SET_NULL)
+    template = FlexibleForeignKey("sentry.AlertTemplate", null=True, on_delete=models.SET_NULL)
 
     date_added = models.DateTimeField(default=timezone.now)
 

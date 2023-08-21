@@ -8,23 +8,11 @@ from sentry.db.models.manager.base import BaseManager
 logger = logging.getLogger(__name__)
 
 
-@region_silo_only_model
-class AlertTemplateIssueAlert(Model):
-    __include_in_export__ = True
-
-    rule = FlexibleForeignKey("sentry.Rule")
-    template = FlexibleForeignKey("sentry.AlertTemplate")
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alerttemplateissuealert"
-
-
 class AlertTemplateManager(BaseManager):
     def create_from_issue_alert(self, organization_id: int, rule_id: int):
         from sentry.models.rule import Rule
 
-        rule = Rule.objects.get(rule_id=rule_id, project__organization_id=organization_id)
+        rule = Rule.objects.get(id=rule_id, project__organization_id=organization_id)
         with transaction.atomic(router.db_for_write(Rule)):
             procedure = AlertProcedure.objects.create_from_issue_alert(
                 organization_id=organization_id, rule_id=rule_id
@@ -32,20 +20,20 @@ class AlertTemplateManager(BaseManager):
             template = AlertTemplate.objects.filter(
                 organization_id=organization_id,
                 procedure=procedure,
-                issue_alerts_data=rule.data,
+                issue_alert_data=rule.data,
             ).first()
 
             if template:
-                AlertTemplateIssueAlert.objects.create(rule_id=rule.id, template_id=template.id)
+                rule.update(template_id=template.id)
                 return template
-
-            return AlertTemplate.objects.get_or_create(
+            at, created = AlertTemplate.objects.get_or_create(
                 name=f"[Template] {rule.label}",
                 organization_id=organization_id,
                 procedure=procedure,
-                issue_alerts__id=rule.id,
-                issue_alerts_data=rule.data,
+                issue_alert_data=rule.data,
             )
+            rule.update(template_id=template.id)
+            return at
 
 
 @region_silo_only_model
@@ -54,7 +42,6 @@ class AlertTemplate(Model):
 
     organization = FlexibleForeignKey("sentry.Organization")
     name = models.CharField(max_length=128)
-    issue_alerts = models.ManyToManyField("sentry.Rule", through=AlertTemplateIssueAlert)
     issue_alert_data = JSONField(default={})
     procedure = FlexibleForeignKey("sentry.AlertProcedure")
 
@@ -72,6 +59,7 @@ class AlertProcedureManager(BaseManager):
 
         rule = Rule.objects.get(id=rule_id, project__organization_id=organization_id)
         existing_procedure = AlertProcedure.objects.filter(
+            label=f"[Procedure] {rule.label}",
             organization_id=organization_id,
             is_manual=False,
             issue_alert_actions=rule.data.get("actions", {}),
