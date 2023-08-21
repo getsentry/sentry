@@ -70,7 +70,7 @@ class AlertProcedureManager(BaseManager):
     def create_from_issue_alert(self, organization_id: int, rule_id: int):
         from sentry.models.rule import Rule
 
-        rule = Rule.objects.get(rule_id=rule_id, project__organization_id=organization_id)
+        rule = Rule.objects.get(id=rule_id, project__organization_id=organization_id)
         existing_procedure = AlertProcedure.objects.filter(
             organization_id=organization_id,
             is_manual=False,
