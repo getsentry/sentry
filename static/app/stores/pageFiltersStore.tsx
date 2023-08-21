@@ -90,6 +90,7 @@ const storeConfig: PageFiltersStoreDefinition = {
    */
   onInitializeUrlState(newSelection, pinned, persist = true) {
     this._isReady = true;
+    console.log({newSelection, pinned, persist});
 
     this.selection = newSelection;
     this.pinnedFilters = pinned;

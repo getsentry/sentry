@@ -31,6 +31,7 @@ function BaseProjectPageFilterTrigger(
   }: ProjectPageFilterTriggerProps,
   forwardedRef: React.ForwardedRef<HTMLButtonElement>
 ) {
+  console.log({ready});
   const isMemberProjectsSelected = memberProjects.every(p =>
     value.includes(parseInt(p.id, 10))
   );
