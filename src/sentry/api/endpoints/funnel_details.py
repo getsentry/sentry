@@ -13,6 +13,29 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import json
 
 
+def get_issues_from_user(user, dataset, query, snuba_params, params):
+    return dataset.query(
+        selected_columns=["issue"],
+        query=f"user:{user} AND {query}",
+        params=params,
+        snuba_params=snuba_params,
+        equations=[],
+        orderby="",
+        offset=0,
+        limit=50,
+        auto_fields=True,
+        auto_aggregations=True,
+        use_aggregate_conditions=True,
+        allow_metric_aggregates=False,
+        transform_alias_to_input_format=True,
+        # Whether the flag is enabled or not, regardless of the referrer
+        has_metrics=False,
+        use_metrics_layer=False,
+        on_demand_metrics_enabled=False,
+        referrer=Referrer.API_ORGANIZATION_EVENTS_V2.value,
+    )
+
+
 class FunnelDetailsEndpoint(OrganizationEventsV2EndpointBase):
     def get(self, request, organization, funnel_slug):
 
@@ -77,8 +100,10 @@ class FunnelDetailsEndpoint(OrganizationEventsV2EndpointBase):
 
         total_starts = 0
         total_completions = 0
+        issues = set()
         for user, min_start_time in min_start_time_per_user.items():
             total_starts += 1
+            issues.add(get_issues_from_user(user, dataset, query, snuba_params, params))
             if user in max_end_time_per_user:
                 if max_end_time_per_user[user] > min_start_time:
                     total_completions += 1
