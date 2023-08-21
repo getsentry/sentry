@@ -9,6 +9,7 @@ from django.db.models import Q, QuerySet
 from django.utils import timezone
 
 from sentry import analytics
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     ArrayField,
     BaseManager,
@@ -48,7 +49,7 @@ class IdentityProvider(Model):
     acme-org.onelogin.com.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     type = models.CharField(max_length=64)
     config = JSONField()
@@ -190,7 +191,7 @@ class Identity(Model):
     A verified link between a user and a third party identity.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     idp = FlexibleForeignKey("sentry.IdentityProvider")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)

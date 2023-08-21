@@ -1,4 +1,6 @@
-export function GroupStats(params = {}) {
+import {GroupStats as GroupStatsType} from 'sentry/types';
+
+export function GroupStats(params: Partial<GroupStatsType> = {}): GroupStatsType {
   return {
     count: '327482',
     firstSeen: '2019-04-05T19:44:05.963Z',
@@ -15,6 +17,7 @@ export function GroupStats(params = {}) {
       ],
     },
     userCount: 35097,
+    filtered: null,
     ...params,
   };
 }

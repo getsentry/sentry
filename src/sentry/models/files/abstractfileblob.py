@@ -10,6 +10,7 @@ from django.db import IntegrityError, models, router
 from django.utils import timezone
 from typing_extensions import Self
 
+from sentry.backup.scopes import RelocationScope
 from sentry.celery import SentryTask
 from sentry.db.models import BoundedPositiveIntegerField, Model
 from sentry.locks import locks
@@ -29,7 +30,7 @@ MULTI_BLOB_UPLOAD_CONCURRENCY = 8
 
 
 class AbstractFileBlob(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     path = models.TextField(null=True)
     size = BoundedPositiveIntegerField(null=True)

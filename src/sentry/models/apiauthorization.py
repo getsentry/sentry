@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
 from sentry.models.apiscopes import HasApiScopes
 
@@ -14,7 +15,7 @@ class ApiAuthorization(Model, HasApiScopes):
     overall approved applications (vs individual tokens).
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Global
 
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
