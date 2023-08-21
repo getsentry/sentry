@@ -1,10 +1,16 @@
 from django.core.exceptions import ValidationError
+<<<<<<< HEAD
 from django.core.validators import validate_slug
+=======
+>>>>>>> c47f753806 (ref(api): Move sentry slug validator to helper file)
 from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+<<<<<<< HEAD
 from sentry import features
+=======
+>>>>>>> c47f753806 (ref(api): Move sentry slug validator to helper file)
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ConflictError
@@ -31,10 +37,14 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
         for project_id, slug in slugs.items():
             slug = slug.lower()
             try:
+<<<<<<< HEAD
                 if features.has("app:enterprise-prevent-numeric-slugs"):
                     validate_sentry_slug(slug)
                 else:
                     validate_slug(slug)
+=======
+                validate_sentry_slug(slug)
+>>>>>>> c47f753806 (ref(api): Move sentry slug validator to helper file)
             except ValidationError:
                 return Response({"detail": 'Invalid slug "%s".' % slug}, status=400)
             slugs[project_id] = slug
