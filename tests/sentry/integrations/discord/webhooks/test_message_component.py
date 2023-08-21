@@ -13,6 +13,7 @@ from sentry.integrations.discord.requests.base import (
 from sentry.integrations.discord.webhooks.message_component import (
     ARCHIVE_UNTIL_ESCALATES,
     ASSIGNEE_UPDATED,
+    ISSUE_DOES_NOT_EXIST,
     MARKED_ONGOING,
     NO_IDENTITY,
     NOT_IN_ORG,
@@ -208,3 +209,12 @@ class DiscordMessageComponentInteractionTest(APITestCase):
             }
         )
         assert self.get_message_content(response) == ARCHIVE_UNTIL_ESCALATES
+
+    def test_issue_does_not_exist(self):
+        response = self.send_interaction(
+            {
+                "component_type": DiscordMessageComponentTypes.BUTTON,
+                "custom_id": f"{CustomIds.ARCHIVE}:1234567890",
+            }
+        )
+        assert self.get_message_content(response) == ISSUE_DOES_NOT_EXIST
