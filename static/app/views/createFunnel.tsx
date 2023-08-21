@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
@@ -12,6 +13,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {space} from 'sentry/styles/space';
+import {Funnel} from 'sentry/types/funnel';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -100,6 +102,12 @@ export default function CreateFunnel() {
         model={form}
         apiMethod="POST"
         apiEndpoint={`/organizations/${organization.slug}/funnel/`}
+        onSubmitSuccess={(funnel: Funnel) => {
+          // redirect to funnel
+          browserHistory.push(
+            `/organizations/${organization.slug}/funnel/${funnel.slug}/`
+          );
+        }}
       >
         <JsonForm title="Create Funnel" fields={fields} />
       </Form>

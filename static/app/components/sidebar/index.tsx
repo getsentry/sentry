@@ -28,6 +28,7 @@ import {
   IconTelescope,
   IconTimer,
 } from 'sentry/icons';
+import {IconGraphLine} from 'sentry/icons/iconGraphLine';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
@@ -270,6 +271,16 @@ function Sidebar({location, organization}: Props) {
     />
   );
 
+  const funnel = hasOrganization && (
+    <SidebarItem
+      {...sidebarItemProps}
+      icon={<IconGraphLine />}
+      label={t('Funnel')}
+      to={`/organizations/${organization.slug}/funnel/`}
+      id="funnel"
+    />
+  );
+
   const alerts = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
@@ -401,6 +412,7 @@ function Sidebar({location, organization}: Props) {
                 {dashboards}
                 {releases}
                 {userFeedback}
+                {funnel}
               </SidebarSection>
 
               <SidebarSection>

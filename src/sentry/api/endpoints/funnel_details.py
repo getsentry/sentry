@@ -4,6 +4,8 @@ from rest_framework import serializers, status
 
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.funnel import FunnelSerializer
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.api.utils import InvalidParams
 from sentry.models.funnel import Funnel
@@ -82,5 +84,10 @@ class FunnelDetailsEndpoint(OrganizationEventsV2EndpointBase):
                     total_completions += 1
 
         return self.respond(
-            {"totalStarts": total_starts, "totalCompletions": total_completions}, status=200
+            {
+                "totalStarts": total_starts,
+                "totalCompletions": total_completions,
+                "funnel": serialize(funnel, request.user, serializer=FunnelSerializer()),
+            },
+            status=200,
         )
