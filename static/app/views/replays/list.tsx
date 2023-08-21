@@ -8,14 +8,9 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useOrganization from 'sentry/utils/useOrganization';
-import ReplaysFilters from 'sentry/views/replays/list/filters';
-import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
-import ReplaysErroneousDeadRageCards from 'sentry/views/replays/list/replaysErroneousDeadRageCards';
-import ReplaysList from 'sentry/views/replays/list/replaysList';
-import ReplaysSearch from 'sentry/views/replays/list/search';
+import ListContent from 'sentry/views/replays/list/listContent';
 
 const ReplayListPageHeaderHook = HookOrDefault({
   hookName: 'component:replay-list-page-header',
@@ -25,10 +20,6 @@ const ReplayListPageHeaderHook = HookOrDefault({
 function ReplaysListContainer() {
   useReplayPageview('replay.list-time-spent');
   const organization = useOrganization();
-
-  const hasSessionReplay = organization.features.includes('session-replay');
-  const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
-  const showOnboarding = !hasSessionReplay || !hasSentOneReplay;
 
   return (
     <SentryDocumentTitle title={`Session Replay — ${organization.slug}`}>
@@ -50,21 +41,7 @@ function ReplaysListContainer() {
           <Layout.Main fullWidth>
             <LayoutGap>
               <ReplayListPageHeaderHook />
-              {fetching ? null : showOnboarding ? (
-                <Fragment>
-                  <ReplaysFilters>
-                    <ReplaysSearch />
-                  </ReplaysFilters>
-                  <ReplayOnboardingPanel />
-                </Fragment>
-              ) : (
-                <Fragment>
-                  <ReplaysFilters />
-                  <ReplaysErroneousDeadRageCards />
-                  <ReplaysSearch />
-                  <ReplaysList />
-                </Fragment>
-              )}
+              <ListContent />
             </LayoutGap>
           </Layout.Main>
         </Layout.Body>
