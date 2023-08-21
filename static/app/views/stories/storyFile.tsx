@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/button';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconGithub} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 import useStoriesLoader from 'sentry/views/stories/useStoriesLoader';
 
 interface Props extends ComponentProps<'div'> {
@@ -16,8 +17,6 @@ export default function StoryFile({filename, style}: Props) {
   const {default: DefaultExport, ...otherExports} = module;
   const otherEntries = Object.entries(otherExports);
 
-  console.log({module, otherEntries});
-
   const githubViewUrl = `https://github.com/getsentry/sentry/blob/master/static/${filename}`;
   const githubEditUrl = `https://github.com/getsentry/sentry/edit/master/static/${filename}`;
 
@@ -27,12 +26,12 @@ export default function StoryFile({filename, style}: Props) {
         <Header>
           <TextOverflow>{filename}</TextOverflow>
         </Header>
-        <FlexRow>
+        <FlexRow style={{gap: space(1)}}>
           <LinkButton
             href={githubViewUrl}
             external
             icon={<IconGithub />}
-            size="sm"
+            size="xs"
             aria-label="View on GitHub"
           >
             View
@@ -41,13 +40,14 @@ export default function StoryFile({filename, style}: Props) {
             href={githubEditUrl}
             external
             icon={<IconGithub />}
-            size="sm"
+            size="xs"
             aria-label="View on GitHub"
           >
             Edit
           </LinkButton>
         </FlexRow>
       </FlexRow>
+
       {DefaultExport ? <DefaultExport /> : null}
       {otherEntries.map(([field, Component]) => (
         <Component key={field} />
@@ -59,8 +59,9 @@ export default function StoryFile({filename, style}: Props) {
 const FlexRow = styled('div')`
   display: flex;
   flex-direction: row;
-  flex-flow: wrap;
+  flex-wrap: wrap;
   gap: var(--stories-grid-space);
+  align-content: flex-start;
 `;
 const FlexColumn = styled('div')`
   display: flex;

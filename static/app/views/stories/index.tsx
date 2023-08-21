@@ -29,7 +29,7 @@ export default function Stories({
 }
 
 const Layout = styled('div')`
-  --stories-grid-space: ${space(1)};
+  --stories-grid-space: ${space(2)};
 
   display: grid;
   grid-template:
@@ -45,7 +45,8 @@ const Layout = styled('div')`
 const StyledPanel = styled(Panel)`
   margin: 0;
   padding: var(--stories-grid-space);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: scroll;
 
   /* TODO: See about this */
   /* display: flex; */

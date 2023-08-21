@@ -7,7 +7,7 @@ export default function ThemeSwitcher() {
   const [theme, setTheme] = useState(() => ConfigStore.get('theme'));
 
   const isDark = theme === 'dark';
-  const label = isDark ? 'Use Light Mode' : 'Use Dark Mode';
+  const label = isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode';
   const handleClick = useCallback(() => {
     ConfigStore.set('theme', isDark ? 'light' : 'dark');
   }, [isDark]);
@@ -24,7 +24,7 @@ export default function ThemeSwitcher() {
   });
 
   return (
-    <Button size="sm" onClick={handleClick}>
+    <Button size="xs" onClick={handleClick}>
       {label}
     </Button>
   );

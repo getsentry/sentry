@@ -372,7 +372,7 @@ const appConfig: Configuration = {
      */
     new ListFilesPlugin({
       cwd: staticPrefix,
-      pattern: 'app/components/**/*.stories.tsx',
+      pattern: ['app/components/**/*.stories.tsx', 'app/icons/**/*.stories.tsx'],
       output: path.join(
         staticPrefix,
         'app',
