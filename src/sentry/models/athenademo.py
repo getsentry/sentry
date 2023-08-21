@@ -12,7 +12,7 @@ class AthenaDemo(Model):
     AthenaDemo represents a fake model that Athena is using for demo purposes only
     """
 
-    __relocation_scope__ = RelocationScope.User
+    __relocation_scope__ = RelocationScope.Excluded
 
     email = CIEmailField(_("email address"), unique=True, max_length=75)
     date_added = models.DateTimeField(default=timezone.now)
@@ -21,4 +21,4 @@ class AthenaDemo(Model):
         app_label = "sentry"
         db_table = "sentry_athena_demo"
 
-    __repr__ = sane_repr("athena_demo")
+    __repr__ = sane_repr("email")

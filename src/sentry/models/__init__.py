@@ -9,6 +9,7 @@ from .apitoken import *  # NOQA
 from .appconnectbuilds import *  # NOQA
 from .artifactbundle import *  # NOQA
 from .assistant import *  # NOQA
+from .athenademo import *  # NOQA
 from .auditlogentry import *  # NOQA
 from .authenticator import *  # NOQA
 from .authidentity import *  # NOQA
