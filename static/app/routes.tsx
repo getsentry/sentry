@@ -1767,7 +1767,7 @@ function buildRoutes() {
       )}
       <Route
         path="/organizations/:orgId/funnel/"
-        component={withDomainRedirect(make(() => import('sentry/views/funnel/')))}
+        component={withDomainRedirect(make(() => import('sentry/views/funnel')))}
         key="org-funnel"
       />
     </Fragment>

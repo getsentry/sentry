@@ -251,6 +251,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         def data_fn(offset, limit):
+            print("data_fn", params, snuba_params, self.get_field_list(organization, request))
+            print("query", request.GET.get("query"))
             return dataset.query(
                 selected_columns=self.get_field_list(organization, request),
                 query=request.GET.get("query"),
