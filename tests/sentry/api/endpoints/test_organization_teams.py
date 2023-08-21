@@ -2,6 +2,7 @@ from functools import cached_property
 
 from django.urls import reverse
 
+from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 from sentry.models.projectteam import ProjectTeam
 from sentry.testutils.cases import APITestCase
@@ -253,10 +254,7 @@ class OrganizationTeamsCreateTest(APITestCase):
         response = self.get_error_response(
             self.organization.slug, name="hello word", slug="1234", status_code=400
         )
-        assert response.data["slug"][0] == (
-            "Enter a valid slug consisting of lowercase letters, numbers, underscores or "
-            "hyphens. It cannot be entirely numeric."
-        )
+        assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
     def test_generated_slug_not_entirely_numeric(self):
         response = self.get_success_response(self.organization.slug, name="1234", status_code=201)
