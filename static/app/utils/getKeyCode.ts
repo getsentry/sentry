@@ -42,7 +42,6 @@ const keyNameCodeMapping = {
   num_subtract: 109,
   num_decimal: 110,
   num_divide: 111,
-  '⇪': 20,
   ',': 188,
   '.': 190,
   '/': 191,
@@ -59,23 +58,19 @@ const keyNameCodeMapping = {
 // Modifier Keys
 const modifierNameKeyCodeMapping = {
   // shiftKey
-  '⇧': 16,
   shift: 16,
   // altKey
-  '⌥': 18,
   alt: 18,
   option: 18,
   // ctrlKey
-  '⌃': 17,
   ctrl: 17,
   control: 17,
   // metaKey
-  '⌘': 91,
   cmd: 91,
   command: 91,
 };
 
 export const getKeyCode = (x: string): number =>
-  keyNameCodeMapping[x.toLowerCase()] ||
-  modifierNameKeyCodeMapping[x.toLowerCase()] ||
+  keyNameCodeMapping[x.toLowerCase()] ??
+  modifierNameKeyCodeMapping[x.toLowerCase()] ??
   x.toUpperCase().charCodeAt(0);
