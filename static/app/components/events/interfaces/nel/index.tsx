@@ -14,7 +14,6 @@ function getView(view: View, data: Record<any, any>, meta: Record<any, any>) {
   switch (view) {
     case 'report':
       const viewData = data.body;
-      viewData.user_agent = data.user_agent;
       viewData.url = data.url;
 
       return (
