@@ -414,7 +414,170 @@ const appConfig: Configuration = {
 
     // Generates stats to src/sentry/static/sentry/dist/stats.json
     new StatsWriterPlugin({
-      fields: ['assetsByChunkName', 'assets', 'modules', 'entrypoints'],
+      stats: {
+        hash: true,
+        builtAt: true,
+        assets: true,
+        chunks: true,
+        modules: true,
+      },
+      transform(data: webpack.StatsCompilation) {
+        const finalData: Record<string, any> = {
+          hash: data.hash,
+          builtAt: data.builtAt,
+        };
+        // Based on https://github.com/relative-ci/bundle-stats/tree/master/packages/plugin-webpack-filter
+        // # The MIT License
+        // Copyright 2019 Viorel Cojocaru, contributors
+        //
+        // Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+        // and associated documentation files (the 'Software'), to deal in the Software without restriction, including
+        // without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+        // of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+        // conditions:
+        //
+        // The above copyright notice and this permission notice shall be included in all copies or substantial
+        // portions of the Software.
+        //
+        // THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+        // TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+        // THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+        // CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+        // DEALINGS IN THE SOFTWARE.
+        // {
+        //   "chunkNames": [], // The chunks this asset contains
+        //   "chunks": [10, 6], // The chunk IDs this asset contains
+        //   "comparedForEmit": false, // Indicates whether or not the asset was compared with the same file on the output file system
+        //   "emitted": true, // Indicates whether or not the asset made it to the `output` directory
+        //   "name": "10.web.js", // The `output` filename
+        //   "size": 1058, // The size of the file in bytes
+        //   "info": {
+        //     "immutable": true, // A flag telling whether the asset can be long term cached (contains a hash)
+        //     "size": 1058, // The size in bytes, only becomes available after asset has been emitted
+        //     "development": true, // A flag telling whether the asset is only used for development and doesn't count towards user-facing assets
+        //     "hotModuleReplacement": true, // A flag telling whether the asset ships data for updating an existing application (HMR)
+        //     "sourceFilename": "originalfile.js", // sourceFilename when asset was created from a source file (potentially transformed)
+        //     "javascriptModule": true // true, when asset is javascript and an ESM
+        //   }
+        // }
+        if (data.assets) {
+          finalData.assets = data.assets.reduce((acc, asset) => {
+            if (asset.name && !/.map$/.test(asset.name)) {
+              acc.push({
+                name: asset.name,
+                size: asset.size,
+              });
+            }
+            return acc;
+          }, [] as Array<Pick<webpack.StatsAsset, 'name' | 'size'>>);
+        }
+
+        // {
+        //   "entry": true, // Indicates whether or not the chunk contains the webpack runtime
+        //   "files": [
+        //     // An array of filename strings that contain this chunk
+        //   ],
+        //   "filteredModules": 0, // See the description in the [top-level structure](#structure) above
+        //   "id": 0, // The ID of this chunk
+        //   "initial": true, // Indicates whether this chunk is loaded on initial page load or [on demand](/guides/lazy-loading)
+        //   "modules": [
+        //     // A list of [module objects](#module-objects)
+        //     "web.js?h=11593e3b3ac85436984a"
+        //   ],
+        //   "names": [
+        //     // An list of chunk names contained within this chunk
+        //   ],
+        //   "origins": [
+        //     {
+        //       "loc": "", // Lines of code that generated this chunk
+        //       "module": "(webpack)\\test\\browsertest\\lib\\index.web.js", // Path to the module
+        //       "moduleId": 0, // The ID of the module
+        //       "moduleIdentifier": "(webpack)\\test\\browsertest\\lib\\index.web.js", // Path to the module
+        //       "moduleName": "./lib/index.web.js", // Relative path to the module
+        //       "name": "main", // The name of the chunk
+        //       "reasons": [
+        //         // A list of the same `reasons` found in [module objects](#module-objects)
+        //       ]
+        //     }
+        //   ],
+        //   "parents": [], // Parent chunk IDs
+        //   "rendered": true, // Indicates whether or not the chunk went through Code Generation
+        //   "size": 188057 // Chunk size in bytes
+        // }
+        if (data.chunks) {
+          finalData.chunks = data.chunks.reduce((acc, chunk) => {
+            if (!chunk.id) {
+              return acc;
+            }
+
+            acc.push({
+              entry: chunk.entry,
+              id: chunk.id,
+              size: chunk.size,
+              initial: chunk.initial,
+              ...(chunk.files && {files: chunk.files}),
+              ...(chunk.names && {names: chunk.names}),
+            });
+            return acc;
+          }, [] as Array<Pick<webpack.StatsChunk, 'entry' | 'id' | 'initial' | 'files' | 'names' | 'size'>>);
+        }
+
+        // {
+        //   "assets": [
+        //     // A list of [asset objects](#asset-objects)
+        //   ],
+        //   "built": true, // Indicates that the module went through [Loaders](/concepts/loaders), Parsing, and Code Generation
+        //   "cacheable": true, // Whether or not this module is cacheable
+        //   "chunks": [
+        //     // IDs of chunks that contain this module
+        //   ],
+        //   "errors": 0, // Number of errors when resolving or processing the module
+        //   "failed": false, // Whether or not compilation failed on this module
+        //   "id": 0, // The ID of the module (analogous to [`module.id`](/api/module-variables/#moduleid-commonjs))
+        //   "identifier": "(webpack)\\test\\browsertest\\lib\\index.web.js", // A unique ID used internally
+        //   "name": "./lib/index.web.js", // Path to the actual file
+        //   "optional": false, // All requests to this module are with `try... catch` blocks (irrelevant with ESM)
+        //   "prefetched": false, // Indicates whether or not the module was [prefetched](/plugins/prefetch-plugin)
+        //   "profile": {
+        //     // Module specific compilation stats corresponding to the [`--profile` flag](/api/cli/#profiling) (in milliseconds)
+        //     "building": 73, // Loading and parsing
+        //     "dependencies": 242, // Building dependencies
+        //     "factory": 11 // Resolving dependencies
+        //   },
+        //   "reasons": [
+        //     {
+        //       "loc": "33:24-93", // Lines of code that caused the module to be included
+        //       "module": "./lib/index.web.js", // Relative path to the module based on [context](/configuration/entry-context/#context)
+        //       "moduleId": 0, // The ID of the module
+        //       "moduleIdentifier": "(webpack)\\test\\browsertest\\lib\\index.web.js", // Path to the module
+        //       "moduleName": "./lib/index.web.js", // A more readable name for the module (used for "pretty-printing")
+        //       "type": "require.context", // The [type of request](/api/module-methods) used
+        //       "userRequest": "../../cases" // Raw string used for the `import` or `require` request
+        //     }
+        //   ],
+        //   "size": 3593, // Estimated size of the module in bytes
+        //   "source": "// Should not break it...\r\nif(typeof...", // The stringified raw source
+        //   "warnings": 0 // Number of warnings when resolving or processing the module
+        // }
+        if (data.modules) {
+          finalData.modules = data.modules.reduce((acc, module) => {
+            if (!module.name) {
+              return acc;
+            }
+
+            acc.push({
+              name: module.name,
+              size: module.size,
+              moduleType: module.moduleType,
+              ...(module.chunks && {chunks: module.chunks}),
+            });
+
+            return acc;
+          }, [] as Array<Pick<webpack.StatsModule, 'name' | 'chunks' | 'size' | 'moduleType'>>);
+        }
+
+        return JSON.stringify(finalData, null, 2);
+      },
     }),
   ],
 
