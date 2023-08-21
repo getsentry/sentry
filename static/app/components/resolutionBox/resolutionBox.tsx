@@ -18,6 +18,8 @@ import {
   ResolvedStatusDetails,
 } from 'sentry/types';
 
+import {ErrorGemlin} from './errorGremlin';
+
 type Props = {
   projectId: string;
   // TODO(ts): This should be a union type `IgnoredStatusDetails | ResolvedStatusDetails`
@@ -113,6 +115,7 @@ function ResolutionBox({statusDetails, projectId, activities = []}: Props) {
       <BannerSummary>
         <StyledIconCheckmark color="successText" />
         <span>{renderReason(statusDetails, projectId, activities)}</span>
+        <ErrorGemlin />
       </BannerSummary>
     </BannerContainer>
   );

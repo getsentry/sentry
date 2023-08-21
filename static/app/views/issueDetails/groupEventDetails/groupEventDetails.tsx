@@ -14,7 +14,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MutedBox from 'sentry/components/mutedBox';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
-import ResolutionBox from 'sentry/components/resolutionBox';
+import ResolutionBox from 'sentry/components/resolutionBox/resolutionBox';
 import {space} from 'sentry/styles/space';
 import {
   Group,
