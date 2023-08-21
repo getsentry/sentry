@@ -16,7 +16,6 @@ import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPan
 import ReplaysErroneousDeadRageCards from 'sentry/views/replays/list/replaysErroneousDeadRageCards';
 import ReplaysList from 'sentry/views/replays/list/replaysList';
 import ReplaysSearch from 'sentry/views/replays/list/search';
-import TrialEndingBanner from 'sentry/views/replays/list/trialEndingBanner';
 
 const ReplayListPageHeaderHook = HookOrDefault({
   hookName: 'component:replay-list-page-header',
@@ -25,13 +24,14 @@ const ReplayListPageHeaderHook = HookOrDefault({
 
 function ReplaysListContainer() {
   useReplayPageview('replay.list-time-spent');
-  const {slug: orgSlug} = useOrganization();
+  const organization = useOrganization();
 
   const hasSessionReplay = false; // organization.features.includes('session-replay');
   const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
   const showOnboarding = !hasSessionReplay || !hasSentOneReplay;
+
   return (
-    <SentryDocumentTitle title={`Session Replay — ${orgSlug}`}>
+    <SentryDocumentTitle title={`Session Replay — ${organization.slug}`}>
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
@@ -49,10 +49,7 @@ function ReplaysListContainer() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <LayoutGap>
-              <ReplayListPageHeaderHook>
-                {/* <TrialEndingBanner trialEndDate={new Date('2023-08-31')} /> */}
-                <TrialEndingBanner trialEndDate={new Date('2023-08-20')} />
-              </ReplayListPageHeaderHook>
+              <ReplayListPageHeaderHook />
               {fetching ? null : showOnboarding ? (
                 <Fragment>
                   <ReplaysFilters>
