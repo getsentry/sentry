@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import time
 
@@ -33,7 +34,9 @@ def main() -> None:
         "list",
     ]
 
-    healthchecks = [postgres_healthcheck, kafka_healthcheck]
+    healthchecks = [postgres_healthcheck]
+    if os.getenv("NEED_KAFKA") == "true":
+        healthchecks.append(kafka_healthcheck)
 
     for check in healthchecks:
         run_cmd(check)
