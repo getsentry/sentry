@@ -168,7 +168,8 @@ from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.event_reprocessable import EventReprocessableEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
-from .endpoints.funnel_index import FunnelIndex
+from .endpoints.funnel_details import FunnelDetailsEndpoint
+from .endpoints.funnel_index import FunnelIndexEndpoint
 from .endpoints.group_activities import GroupActivitiesEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
@@ -960,8 +961,13 @@ ORGANIZATION_URLS = [
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/funnel/$",
-        FunnelIndex.as_view(),
+        FunnelIndexEndpoint.as_view(),
         name="sentry-api-0-organization-funnel",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/funnel/(?P<funnel_slug>[^\/]+)/$",
+        FunnelDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-funnel-details",
     ),
     # Data Export
     re_path(

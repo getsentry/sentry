@@ -9,23 +9,28 @@ import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import useRouter from 'sentry/utils/useRouter';
 
-export default function Funnel() {
+interface FunnelResponse {
+  totalCompletions: number;
+  totalStarts: number;
+}
+
+export default function FunnelOverview() {
   const organization = useOrganization();
-  const {selection} = usePageFilters();
+  const router = useRouter();
   const location = useLocation();
-  // useApiQuery<any>(
-  //   [
-  //     `/organizations/${organization.slug}/funnel/`,
-  //     {
-  //       query: location.query,
-  //     },
-  //   ],
-  //   {
-  //     staleTime: Infinity,
-  //   }
-  // );
+  const {data: funnelData} = useApiQuery<FunnelResponse>(
+    [
+      `/organizations/${organization.slug}/funnel/${router.params.funnelSlug}/`,
+      {
+        query: location.query,
+      },
+    ],
+    {
+      staleTime: Infinity,
+    }
+  );
   return (
     <Wrapper>
       <h1>Funnel</h1>
@@ -36,7 +41,13 @@ export default function Funnel() {
           <DatePageFilter alignDropdown="left" />
         </PageFilterBar>
       </PageFiltersContainer>
-      Hi
+      {funnelData ? (
+        <div>
+          <div>Total Starts: {funnelData.totalStarts}</div>
+          <div>Total Completions: {funnelData.totalCompletions}</div>
+          <div>Rate: {(100 * funnelData.totalCompletions) / funnelData.totalStarts} </div>
+        </div>
+      ) : null}
     </Wrapper>
   );
 }

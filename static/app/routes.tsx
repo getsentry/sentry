@@ -1756,20 +1756,27 @@ function buildRoutes() {
     </Fragment>
   );
 
+  const funnelChildRoutes = (
+    <Fragment>
+      <Route path="create/" component={make(() => import('sentry/views/createFunnel'))} />
+      <Route
+        path=":funnelSlug/"
+        component={make(() => import('sentry/views/funnelOverview'))}
+      />
+      <IndexRoute component={make(() => import('sentry/views/funnel'))} />
+    </Fragment>
+  );
+
   const funnelRoutes = (
     <Fragment>
       {usingCustomerDomain && (
-        <Route
-          path="/funnel/"
-          component={withDomainRequired(make(() => import('sentry/views/funnel')))}
-          key="orgless-funnel-route"
-        />
+        <Route path="/funnel/" key="orgless-funnel-route">
+          {funnelChildRoutes}
+        </Route>
       )}
-      <Route
-        path="/organizations/:orgId/funnel/"
-        component={withDomainRedirect(make(() => import('sentry/views/funnel')))}
-        key="org-funnel"
-      />
+      <Route path="/organizations/:orgId/funnel/" key="org-funnel">
+        {funnelChildRoutes}
+      </Route>
     </Fragment>
   );
 

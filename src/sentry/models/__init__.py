@@ -36,6 +36,7 @@ from .eventerror import *  # NOQA
 from .eventuser import *  # NOQA
 from .featureadoption import *  # NOQA
 from .files import *  # NOQA
+from .funnel import *  # NOQA
 from .group import *  # NOQA
 from .groupassignee import *  # NOQA
 from .groupbookmark import *  # NOQA
