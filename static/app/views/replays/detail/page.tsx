@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
 import DeleteButton from 'sentry/components/replays/header/deleteButton';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
 import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
@@ -37,6 +38,7 @@ function Page({
   const title = replayRecord
     ? `${replayRecord.id} — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
+  const displayName = replayRecord.user.display_name || t('Unknown User');
 
   const header = (
     <Header>
@@ -55,7 +57,17 @@ function Page({
           avatarSize={32}
           displayName={
             <Layout.Title>
-              {replayRecord.user.display_name || t('Unknown User')}
+              {replayRecord.user.id ? (
+                <Link
+                  to={`/organizations/${orgSlug}/user/${
+                    replayRecord.user.id
+                  }/?name=${encodeURIComponent(displayName)}`}
+                >
+                  {displayName}
+                </Link>
+              ) : (
+                displayName
+              )}
             </Layout.Title>
           }
           user={{
