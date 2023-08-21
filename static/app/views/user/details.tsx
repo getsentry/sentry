@@ -19,6 +19,7 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {ReplayWidget} from './widgets/replays';
+import {UserTimeline} from './timeline';
 // import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = RouteComponentProps<{userId: string}, {}, any, {name: string}>;
@@ -74,8 +75,8 @@ function UserDetails({params: {userId}}: Props) {
       <FullViewport>
         {header}
         <PageFiltersContainer>
-          <Layout.Body>
-            <Layout.Main fullWidth>
+          <Body>
+            <Main fullWidth>
               <FilterBar>
                 <PageFilterBar condensed>
                   <ProjectPageFilter resetParamsOnChange={['cursor']} />
@@ -94,13 +95,25 @@ function UserDetails({params: {userId}}: Props) {
                 <div>placeholder</div>
                 <div>placeholder</div>
               </Widgets>
-            </Layout.Main>
-          </Layout.Body>
+
+              <UserTimeline userId={userId} />
+            </Main>
+          </Body>
         </PageFiltersContainer>
       </FullViewport>
     </SentryDocumentTitle>
   );
 }
+
+const Main = styled(Layout.Main)`
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+const Body = styled(Layout.Body)`
+  overflow: hidden;
+`;
 
 const Header = styled(Layout.Header)`
   gap: ${space(1)};
