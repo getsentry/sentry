@@ -177,7 +177,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "ingest-events": {
         "topic": settings.KAFKA_INGEST_EVENTS,
-        "strategy_factory": "sentry.ingest.consumer_v2.factory.IngestStrategyFactory",
+        "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
             "consumer_type": "events",
@@ -185,7 +185,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "ingest-attachments": {
         "topic": settings.KAFKA_INGEST_ATTACHMENTS,
-        "strategy_factory": "sentry.ingest.consumer_v2.factory.IngestStrategyFactory",
+        "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
             "consumer_type": "attachments",
@@ -193,7 +193,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "ingest-transactions": {
         "topic": settings.KAFKA_INGEST_TRANSACTIONS,
-        "strategy_factory": "sentry.ingest.consumer_v2.factory.IngestStrategyFactory",
+        "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
             "consumer_type": "transactions",

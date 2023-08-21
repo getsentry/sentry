@@ -4,6 +4,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -23,7 +24,7 @@ class ApiKeyStatus:
 
 @control_silo_only_model
 class ApiKey(Model, HasApiScopes):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Global
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
     label = models.CharField(max_length=64, blank=True, default="Default")

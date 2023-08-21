@@ -5,6 +5,16 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test(stable=True)
 class ProjectManagerTest(TestCase):
+    def test_get_for_user_ids(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        team = self.create_team(organization=org)
+        self.create_team_membership(team, user=user)
+        project = self.create_project(teams=[team], name="name")
+
+        projects = Project.objects.get_for_user_ids({user.id})
+        assert list(projects) == [project]
+
     def test_get_for_user(self):
         user = self.create_user("foo@example.com")
         org = self.create_organization()

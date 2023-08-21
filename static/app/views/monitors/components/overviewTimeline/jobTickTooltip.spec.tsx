@@ -1,6 +1,8 @@
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
+import {getFormat} from 'sentry/utils/dates';
 import {JobTickTooltip} from 'sentry/views/monitors/components/overviewTimeline/jobTickTooltip';
+import {TimeWindowOptions} from 'sentry/views/monitors/components/overviewTimeline/types';
 
 type StatusCounts = [ok: number, missed: number, timeout: number, error: number];
 
@@ -10,6 +12,13 @@ export function generateEnvMapping(name: string, counts: StatusCounts) {
     [name]: {ok, missed, timeout, error},
   };
 }
+
+const tickConfig: TimeWindowOptions = {
+  dateLabelFormat: getFormat({timeOnly: true, seconds: true}),
+  elapsedMinutes: 60,
+  timeMarkerInterval: 10,
+  dateTimeProps: {timeOnly: true},
+};
 
 describe('JobTickTooltip', function () {
   it('renders tooltip representing single job run', function () {
@@ -25,7 +34,9 @@ describe('JobTickTooltip', function () {
       width: 4,
     };
 
-    render(<JobTickTooltip jobTick={jobTick} timeWindow="1h" forceVisible />);
+    render(
+      <JobTickTooltip jobTick={jobTick} timeWindowConfig={tickConfig} forceVisible />
+    );
 
     // Skip the header row
     const statusRow = screen.getAllByRole('row')[1];
@@ -48,7 +59,9 @@ describe('JobTickTooltip', function () {
       width: 4,
     };
 
-    render(<JobTickTooltip jobTick={jobTick} timeWindow="1h" forceVisible />);
+    render(
+      <JobTickTooltip jobTick={jobTick} timeWindowConfig={tickConfig} forceVisible />
+    );
 
     const okayRow = screen.getAllByRole('row')[1];
     expect(within(okayRow).getByText('Okay')).toBeInTheDocument();
@@ -86,7 +99,9 @@ describe('JobTickTooltip', function () {
       width: 4,
     };
 
-    render(<JobTickTooltip jobTick={jobTick} timeWindow="1h" forceVisible />);
+    render(
+      <JobTickTooltip jobTick={jobTick} timeWindowConfig={tickConfig} forceVisible />
+    );
 
     const missedProdRow = screen.getAllByRole('row')[1];
     expect(within(missedProdRow).getByText('Missed')).toBeInTheDocument();

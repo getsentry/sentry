@@ -21,9 +21,10 @@ const introduction = (
 
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+}: Partial<
+  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
+> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t('Install the SDK via Gradle, Maven, or SBT:'),
@@ -33,6 +34,7 @@ export const steps = ({
         configurations: [
           {
             language: 'groovy',
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: (
               <p>
                 {tct('For Gradle, add to your [code:build.gradle] file:', {
@@ -48,12 +50,17 @@ repositories {
 
 // Add Sentry's SDK as a dependency.
 dependencies {
-    implementation 'io.sentry:sentry:6.27.0'
+    implementation 'io.sentry:sentry:${
+      sourcePackageRegistries?.isLoading
+        ? t('\u2026loading')
+        : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.27.0'
+    }'
 }
           `,
           },
           {
             language: 'groovy',
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: t(
               'To upload your source code to Sentry so it can be shown in stack traces, use our Gradle plugin.'
             ),
@@ -65,7 +72,12 @@ buildscript {
 }
 
 plugins {
-  id "io.sentry.jvm.gradle" version "3.11.1"
+  id "io.sentry.jvm.gradle" version "${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
+        '3.11.1'
+  }"
 }
 
 sentry {
@@ -87,6 +99,7 @@ sentry {
         configurations: [
           {
             language: 'xml',
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: (
               <p>
                 {tct('For Maven, add to your [code:pom.xml] file:', {code: <code />})}
@@ -96,12 +109,17 @@ sentry {
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry</artifactId>
-  <version>6.27.0</version>
+  <version>${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.27.0'
+  }</version>
 </dependency>
             `,
           },
           {
             language: 'xml',
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: t(
               'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
             ),
@@ -111,7 +129,11 @@ sentry {
     <plugin>
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
-      <version>0.0.3</version>
+      <version>${
+        sourcePackageRegistries?.isLoading
+          ? t('\u2026loading')
+          : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.3'
+      }</version>
       <configuration>
       <!-- for showing output of sentry-cli -->
       <debugSentryCli>true</debugSentryCli>
@@ -154,7 +176,12 @@ sentry {
           {
             description: <p>{tct('For [strong:SBT]:', {strong: <strong />})}</p>,
             language: 'scala',
-            code: `libraryDependencies += "io.sentry" % "sentry" % "6.27.0"`,
+            partialLoading: sourcePackageRegistries?.isLoading,
+            code: `libraryDependencies += "io.sentry" % "sentry" % "${
+              sourcePackageRegistries?.isLoading
+                ? t('\u2026loading')
+                : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.27.0'
+            }"`,
           },
         ],
       },
@@ -276,8 +303,18 @@ transaction.finish();
 ];
 // Configuration End
 
-export function GettingStartedWithJava({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} introduction={introduction} {...props} />;
+export function GettingStartedWithJava({
+  dsn,
+  sourcePackageRegistries,
+  ...props
+}: ModuleProps) {
+  return (
+    <Layout
+      steps={steps({dsn, sourcePackageRegistries})}
+      introduction={introduction}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithJava;
