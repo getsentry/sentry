@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
 
 from sentry import analytics
 from sentry.api.paginator import OffsetPaginator
@@ -28,7 +28,7 @@ from sentry.services.hybrid_cloud.integration.serial import (
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
 if TYPE_CHECKING:
@@ -345,7 +345,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         incident_id: int,
         organization: RpcOrganizationSummary,
         new_status: int,
-        incident_attachment: Mapping[str, Any],
+        incident_attachment_json: str,
         metric_value: Optional[str] = None,
     ) -> None:
         sentry_app = SentryApp.objects.get(id=sentry_app_id)
@@ -375,7 +375,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             resource="metric_alert",
             action=INCIDENT_STATUS[IncidentStatus(new_status)].lower(),
             install=install,
-            data=incident_attachment,
+            data=json.loads(incident_attachment_json),
         )
 
         # Can raise errors if client returns >= 400

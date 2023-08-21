@@ -64,6 +64,8 @@ from .latestappconnectbuildscheck import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .lostpasswordhash import *  # NOQA
 from .notificationsetting import *  # NOQA
+from .notificationsettingoption import *  # NOQA
+from .notificationsettingprovider import *  # NOQA
 from .options import *  # NOQA
 from .organization import *  # NOQA
 from .organizationaccessrequest import *  # NOQA

@@ -1,4 +1,4 @@
-from sentry.models import ActorTuple, GroupAssignee, Repository, Team, User, UserAvatar, UserEmail
+from sentry.models import ActorTuple, GroupAssignee, Repository, Team, User, UserAvatar
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
 from sentry.models.projectownership import ProjectOwnership
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
@@ -13,7 +13,7 @@ def actor_key(actor):
     return actor.id
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectOwnershipTestCase(TestCase):
     def setUp(self):
         self.user2 = self.create_user("bar@localhost", username="bar")
@@ -321,7 +321,7 @@ class ProjectOwnershipTestCase(TestCase):
             name="example",
             integration_id=self.integration.id,
         )
-        self.second_email = UserEmail.objects.create(
+        self.second_email = self.create_useremail(
             user=self.user2, email="hb@mysecondemail.com", is_verified=True
         )
         self.commit_author = self.create_commit_author(

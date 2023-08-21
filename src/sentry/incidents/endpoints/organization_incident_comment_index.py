@@ -6,7 +6,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.list import ListField
 from sentry.api.serializers.rest_framework.mentions import (
     MentionsMixin,
     extract_user_ids_from_mentions,
@@ -17,7 +16,7 @@ from sentry.incidents.models import IncidentActivityType
 
 class CommentSerializer(serializers.Serializer, MentionsMixin):
     comment = serializers.CharField(required=True)
-    mentions = ListField(child=ActorField(), required=False)
+    mentions = serializers.ListField(child=ActorField(), required=False)
     external_id = serializers.CharField(allow_null=True, required=False)
 
 

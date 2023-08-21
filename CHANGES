@@ -1,3 +1,45 @@
+23.8.0
+------
+
+### Notify on Disabled Integration  (ongoing)
+
+https://www.notion.so/sentry/Tech-Spec-Notify-on-Disabled-Integration-Spec-e7ea0f86ccd6419cb3e564067cf4a2ef?pvs=4
+
+By: @chloeho7 (#54734, #54655, #54589, #54640, #54466, #54348, #54339, #53522, #54234)
+
+### Notification Analytics Milestone 2 (ongoing)
+
+By: @scttcper (#54744)
+
+### Various fixes & improvements
+
+- (fix): user creation for self-hosted clean installs (#54776) by @hubertdeng123
+- fix(replays): remove replay from desktop and mobile projects (#54749) by @michellewzhang
+- ref: add mypy stubs for django-csp (#54786) by @asottile-sentry
+- chore(hybrid-cloud): Update OrganizationAuditLogsEndpoint to be a control silo endpoint (#54755) by @dashed
+- fix: ensure PYTEST_DEBUG_TEMPROOT exists (#54725) by @joshuarli
+- ref(replays): Update replay pages to show project name (#54728) by @c298lee
+- chore(codeowners): Update codeowners with project creation files (#54774) by @schew2381
+- feat(commit-context): Do not create if older than 1 year (#54624) by @NisanthanNanthakumar
+- feat(backup): Support foreign key remapping (#54610) by @azaslavsky
+- feat(tracing-without-performance): Replay compatibility and ui improvements. (#54700) by @Abdkhan14
+- fix(crons): Add border back to non-sticky timeline header (#54770) by @davidenwang
+- ref: upgrade datadog to a typed version (#54758) by @asottile-sentry
+- ref(crons): Remove temp_task_dispatcher (#54768) by @evanpurkhiser
+- fix(metrics-layer): Add xfailing metrics layer sort test (#54712) by @wmak
+- ref(query-builder): Cleanup query_framework code (#54586) by @wmak
+- ref(statistical-detectors): Clean up statistical detectors calculation (#54694) by @Zylphrex
+- fix(crons): Add className parameter to timeline components (#54769) by @davidenwang
+- ref(ui): Enhance Carousel component (#54747) by @evanpurkhiser
+- Feat/opt automator add region (#54631) by @kneeyo1
+- sample-event: try synchronous kafka producing (#54748) by @JoshFerge
+- ref(alerts): Don't pass "name" field (#54739) by @ceorourke
+- chore(issues): Cleanup apply_rule logs and add some more for regressions (#54455) by @snigdhas
+- feat(crons): Implement fallback clock pulse task (#54647) by @evanpurkhiser
+- fix(actionable-items): Add scraping as hidden error (#54648) by @roggenkemper
+
+_Plus 424 more_
+
 23.7.2
 ------
 

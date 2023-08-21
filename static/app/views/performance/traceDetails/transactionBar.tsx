@@ -1,4 +1,5 @@
 import {Component, createRef, Fragment} from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -14,6 +15,7 @@ import {
   VerticalMark,
 } from 'sentry/components/events/interfaces/spans/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import Link from 'sentry/components/links/link';
 import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {
   Row,
@@ -44,18 +46,24 @@ import {
 import {
   getDurationDisplay,
   getHumanDuration,
-  toPercent,
 } from 'sentry/components/performance/waterfall/utils';
+import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
-import {isTraceFullDetailed} from 'sentry/utils/performance/quickTrace/utils';
+import toPercent from 'sentry/utils/number/toPercent';
+import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import {
+  isTraceError,
+  isTraceRoot,
+  isTraceTransaction,
+} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
 
 import {ProjectBadgeContainer} from './styles';
 import TransactionDetail from './transactionDetail';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
+import {shortenErrorTitle} from './utils';
 
 const MARGIN_LEFT = 0;
 
@@ -75,9 +83,12 @@ type Props = {
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   toggleExpandedState: () => void;
   traceInfo: TraceInfo;
-  transaction: TraceRoot | TraceFullDetailed;
+  transaction: TraceRoot | TraceFullDetailed | TraceError;
   barColor?: string;
+  isOrphanError?: boolean;
   measurements?: Map<number, VerticalMark>;
+  numOfOrphanErrors?: number;
+  traceHasSingleOrphanError?: boolean;
 };
 
 type State = {
@@ -118,7 +129,12 @@ class TransactionBar extends Component<Props, State> {
 
   toggleDisplayDetail = () => {
     const {transaction} = this.props;
-    if (isTraceFullDetailed(transaction)) {
+
+    if (isTraceError(transaction)) {
+      return;
+    }
+
+    if (isTraceTransaction<TraceFullDetailed>(transaction)) {
       this.setState(state => ({
         showDetail: !state.showDetail,
       }));
@@ -186,10 +202,11 @@ class TransactionBar extends Component<Props, State> {
   renderConnector(hasToggle: boolean) {
     const {continuingDepths, isExpanded, isOrphan, isLast, transaction} = this.props;
 
-    const {generation} = transaction;
-    const eventId = isTraceFullDetailed(transaction)
-      ? transaction.event_id
-      : transaction.traceSlug;
+    const {generation = 0} = transaction;
+    const eventId =
+      isTraceTransaction<TraceFullDetailed>(transaction) || isTraceError(transaction)
+        ? transaction.event_id
+        : transaction.traceSlug;
 
     if (generation === 0) {
       if (hasToggle) {
@@ -247,11 +264,14 @@ class TransactionBar extends Component<Props, State> {
   }
 
   renderToggle(errored: boolean) {
-    const {isExpanded, transaction, toggleExpandedState} = this.props;
-    const {children, generation} = transaction;
+    const {isExpanded, transaction, toggleExpandedState, numOfOrphanErrors} = this.props;
     const left = this.getCurrentOffset();
 
-    if (children.length <= 0) {
+    const hasOrphanErrors = numOfOrphanErrors && numOfOrphanErrors > 0;
+    const childrenLength =
+      (!isTraceError(transaction) && transaction.children?.length) || 0;
+    const generation = transaction.generation || 0;
+    if (childrenLength <= 0 && !hasOrphanErrors) {
       return (
         <TreeToggleContainer style={{left: `${left}px`}}>
           {this.renderConnector(false)}
@@ -278,7 +298,7 @@ class TransactionBar extends Component<Props, State> {
             toggleExpandedState();
           }}
         >
-          <Count value={children.length} />
+          <Count value={childrenLength + (numOfOrphanErrors ?? 0)} />
           {!isRoot && (
             <div>
               <TreeToggleIcon direction={isExpanded ? 'up' : 'down'} />
@@ -294,28 +314,44 @@ class TransactionBar extends Component<Props, State> {
     const {organization, transaction, addContentSpanBarRef, removeContentSpanBarRef} =
       this.props;
     const left = this.getCurrentOffset();
-    const errored = isTraceFullDetailed(transaction)
-      ? transaction.errors.length + transaction.performance_issues.length > 0
+    const errored = isTraceTransaction<TraceFullDetailed>(transaction)
+      ? transaction.errors &&
+        transaction.errors.length + transaction.performance_issues.length > 0
       : false;
 
-    const content = isTraceFullDetailed(transaction) ? (
+    const projectBadge = (isTraceTransaction<TraceFullDetailed>(transaction) ||
+      isTraceError(transaction)) && (
+      <Projects orgId={organization.slug} slugs={[transaction.project_slug]}>
+        {({projects}) => {
+          const project = projects.find(p => p.slug === transaction.project_slug);
+          return (
+            <ProjectBadgeContainer>
+              <Tooltip title={transaction.project_slug}>
+                <ProjectBadge
+                  project={project ? project : {slug: transaction.project_slug}}
+                  avatarSize={16}
+                  hideName
+                />
+              </Tooltip>
+            </ProjectBadgeContainer>
+          );
+        }}
+      </Projects>
+    );
+
+    const content = isTraceError(transaction) ? (
       <Fragment>
-        <Projects orgId={organization.slug} slugs={[transaction.project_slug]}>
-          {({projects}) => {
-            const project = projects.find(p => p.slug === transaction.project_slug);
-            return (
-              <ProjectBadgeContainer>
-                <Tooltip title={transaction.project_slug}>
-                  <ProjectBadge
-                    project={project ? project : {slug: transaction.project_slug}}
-                    avatarSize={16}
-                    hideName
-                  />
-                </Tooltip>
-              </ProjectBadgeContainer>
-            );
-          }}
-        </Projects>
+        {projectBadge}
+        <RowTitleContent errored>
+          <ErrorLink to={generateIssueEventTarget(transaction, organization)}>
+            <strong>{'Unknown \u2014 '}</strong>
+            {shortenErrorTitle(transaction.title)}
+          </ErrorLink>
+        </RowTitleContent>
+      </Fragment>
+    ) : isTraceTransaction<TraceFullDetailed>(transaction) ? (
+      <Fragment>
+        {projectBadge}
         <RowTitleContent errored={errored}>
           <strong>
             {transaction['transaction.op']}
@@ -431,7 +467,8 @@ class TransactionBar extends Component<Props, State> {
     const {transaction} = this.props;
 
     if (
-      !isTraceFullDetailed(transaction) ||
+      isTraceRoot(transaction) ||
+      isTraceError(transaction) ||
       !(transaction.errors.length + transaction.performance_issues.length)
     ) {
       return null;
@@ -441,20 +478,30 @@ class TransactionBar extends Component<Props, State> {
   }
 
   renderRectangle() {
+    if (this.props.traceHasSingleOrphanError) {
+      return null;
+    }
+
     const {transaction, traceInfo, barColor} = this.props;
     const {showDetail} = this.state;
 
     // Use 1 as the difference in the case that startTimestamp === endTimestamp
     const delta = Math.abs(traceInfo.endTimestamp - traceInfo.startTimestamp) || 1;
-    const startPosition = Math.abs(
-      transaction.start_timestamp - traceInfo.startTimestamp
-    );
+    const start_timestamp = isTraceError(transaction)
+      ? transaction.timestamp
+      : transaction.start_timestamp;
+
+    if (!(start_timestamp && transaction.timestamp)) {
+      return null;
+    }
+
+    const startPosition = Math.abs(start_timestamp - traceInfo.startTimestamp);
     const startPercentage = startPosition / delta;
-    const duration = Math.abs(transaction.timestamp - transaction.start_timestamp);
+    const duration = Math.abs(transaction.timestamp - start_timestamp);
     const widthPercentage = duration / delta;
 
     return (
-      <RowRectangle
+      <StyledRowRectangle
         style={{
           backgroundColor: barColor,
           left: `min(${toPercent(startPercentage || 0)}, calc(100% - 1px))`,
@@ -462,22 +509,29 @@ class TransactionBar extends Component<Props, State> {
         }}
       >
         {this.renderPerformanceIssues()}
-        <DurationPill
-          durationDisplay={getDurationDisplay({
-            left: startPercentage,
-            width: widthPercentage,
-          })}
-          showDetail={showDetail}
-        >
-          {getHumanDuration(duration)}
-        </DurationPill>
-      </RowRectangle>
+        {isTraceError(transaction) ? (
+          <ErrorBadge />
+        ) : (
+          <Fragment>
+            {this.renderErrorBadge()}
+            <DurationPill
+              durationDisplay={getDurationDisplay({
+                left: startPercentage,
+                width: widthPercentage,
+              })}
+              showDetail={showDetail}
+            >
+              {getHumanDuration(duration)}
+            </DurationPill>
+          </Fragment>
+        )}
+      </StyledRowRectangle>
     );
   }
 
   renderPerformanceIssues() {
     const {transaction, barColor} = this.props;
-    if (!isTraceFullDetailed(transaction)) {
+    if (isTraceError(transaction) || isTraceRoot(transaction)) {
       return null;
     }
 
@@ -534,7 +588,6 @@ class TransactionBar extends Component<Props, State> {
         </RowCell>
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
-          {this.renderErrorBadge()}
         </DividerContainer>
         <RowCell
           data-test-id="transaction-row-duration"
@@ -543,6 +596,7 @@ class TransactionBar extends Component<Props, State> {
           style={{
             width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
             paddingTop: 0,
+            overflow: 'visible',
           }}
           showDetail={showDetail}
           onClick={this.toggleDisplayDetail}
@@ -572,7 +626,7 @@ class TransactionBar extends Component<Props, State> {
     const {location, organization, isVisible, transaction} = this.props;
     const {showDetail} = this.state;
 
-    if (!isTraceFullDetailed(transaction)) {
+    if (isTraceError(transaction) || isTraceRoot(transaction)) {
       return null;
     }
 
@@ -593,13 +647,14 @@ class TransactionBar extends Component<Props, State> {
   render() {
     const {isVisible, transaction} = this.props;
     const {showDetail} = this.state;
-
     return (
-      <Row
+      <StyledRow
         ref={this.transactionRowDOMRef}
         visible={isVisible}
         showBorder={showDetail}
-        cursor={isTraceFullDetailed(transaction) ? 'pointer' : 'default'}
+        cursor={
+          isTraceTransaction<TraceFullDetailed>(transaction) ? 'pointer' : 'default'
+        }
       >
         <ScrollbarManager.Consumer>
           {scrollbarManagerChildrenProps => (
@@ -614,7 +669,7 @@ class TransactionBar extends Component<Props, State> {
           )}
         </ScrollbarManager.Consumer>
         {this.renderDetail()}
-      </Row>
+      </StyledRow>
     );
   }
 }
@@ -624,3 +679,19 @@ function getOffset(generation) {
 }
 
 export default TransactionBar;
+
+const StyledRow = styled(Row)`
+  &,
+  ${RowCellContainer} {
+    overflow: visible;
+  }
+`;
+
+const ErrorLink = styled(Link)`
+  color: ${p => p.theme.error};
+`;
+
+const StyledRowRectangle = styled(RowRectangle)`
+  display: flex;
+  align-items: center;
+`;

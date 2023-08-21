@@ -4,7 +4,12 @@ import {PlatformKey, replayPlatforms} from 'sentry/data/platformCategories';
 import {PlatformIntegration, Project} from 'sentry/types';
 
 export function generateDocKeys(platform: PlatformKey): string[] {
-  return ['1-install', '2-configure'].map(key => `${platform}-replay-onboarding-${key}`);
+  const platformKey = platform.startsWith('javascript')
+    ? platform
+    : 'javascript-' + platform;
+  return ['1-install', '2-configure'].map(
+    key => `${platformKey}-replay-onboarding-${key}`
+  );
 }
 
 export function isPlatformSupported(platform: undefined | PlatformIntegration) {

@@ -1,18 +1,25 @@
 from __future__ import annotations
 
 import base64
+import logging
 import os
 import zlib
+from hashlib import md5
 from typing import Any, Sequence
 
 import msgpack
 import sentry_sdk
+from django.core.cache import cache
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
 
 from sentry import projectoptions
 from sentry.grouping.component import GroupingComponent
+from sentry.stacktraces.functions import set_in_app
+from sentry.utils import metrics
+from sentry.utils.hashlib import hash_value
+from sentry.utils.safe import get_path, set_path
 from sentry.utils.strings import unescape_string
 
 from .actions import Action, FlagAction, VarAction
@@ -25,6 +32,9 @@ from .matchers import (
     Match,
     create_match_frame,
 )
+
+DATADOG_KEY = "save_event.stacktrace"
+logger = logging.getLogger(__name__)
 
 # Grammar is defined in EBNF syntax.
 enhancements_grammar = Grammar(
@@ -131,25 +141,41 @@ class Enhancements:
         frames: Sequence[dict[str, Any]],
         platform: str,
         exception_data: dict[str, Any],
-        rule=None,
+        extra_fingerprint: str = "",
     ) -> None:
-        """This applies the frame modifications to the frames itself. This
-        does not affect grouping.
-        """
+        """This applies the frame modifications to the frames itself. This does not affect grouping."""
         in_memory_cache: dict[str, str] = {}
 
+        # Matching frames are used for matching rules
         match_frames = [create_match_frame(frame, platform) for frame in frames]
+        # The extra fingerprint mostly makes sense during test execution when two different group configs
+        # can share the same set of rules and bases
+        stacktrace_fingerprint = _generate_stacktrace_fingerprint(
+            match_frames, exception_data, f"{extra_fingerprint}.{self.dumps()}", platform
+        )
+        # The most expensive part of creating groups is applying the rules to frames (next code block)
+        cache_key = f"stacktrace_hash.{stacktrace_fingerprint}"
+        use_cache = bool(stacktrace_fingerprint)
+        if use_cache:
+            # XXX: Add support to only allow certain orgs
+            org_can_use_cache = False  # For now, disabled by default
+            frames_changed = _update_frames_from_cached_values(
+                frames, cache_key, platform, load_from_cache=org_can_use_cache
+            )
+            if frames_changed:
+                logger.info("The frames have been loaded from the cache. Skipping some work.")
+                return
 
-        with sentry_sdk.start_span(
-            op="stacktrace_processing",
-            description="apply_rules_to_frames",
-        ):
+        with sentry_sdk.start_span(op="stacktrace_processing", description="apply_rules_to_frames"):
             for rule in self._modifier_rules:
                 for idx, action in rule.get_matching_frame_actions(
                     match_frames, platform, exception_data, in_memory_cache
                 ):
                     # Both frames and match_frames are updated
                     action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
+
+        if use_cache:
+            _cache_changed_frame_values(frames, cache_key, platform)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
         in_memory_cache: dict[str, str] = {}
@@ -472,6 +498,152 @@ class EnhancementsVisitor(NodeVisitor):
     def visit_quoted_ident(self, node, children):
         # leading ! are used to indicate negation. make sure they don't appear.
         return node.match.groups()[0].lstrip("!")
+
+
+def _update_frames_from_cached_values(
+    frames: Sequence[dict[str, Any]], cache_key: str, platform: str, load_from_cache: bool = False
+) -> bool:
+    """
+    This will update the frames of the stacktrace if it's been cached.
+    Set load_from_cache to True to actually change the frames.
+    Returns if the merged has correctly happened.
+    """
+    frames_changed = False
+    # XXX: Test the fallback value
+    with metrics.timer(
+        f"{DATADOG_KEY}.cache.get.timer",
+    ):
+        changed_frames_values = cache.get(cache_key, {})
+
+    # This helps tracking changes in the hit/miss ratio of the cache
+    metrics.incr(
+        f"{DATADOG_KEY}.cache.get",
+        tags={
+            "success": bool(changed_frames_values),
+            "platform": platform,
+            "loading_from_cache": load_from_cache,
+        },
+    )
+    if changed_frames_values and load_from_cache:
+        try:
+            for frame, changed_frame_values in zip(frames, changed_frames_values):
+                if changed_frame_values.get("in_app") is not None:
+                    set_in_app(frame, changed_frame_values["in_app"])
+                    frames_changed = True
+                if changed_frame_values.get("category") is not None:
+                    set_path(frame, "data", "category", value=changed_frame_values["category"])
+                    frames_changed = True
+
+            if frames_changed:
+                logger.info("We have merged the cached stacktrace to the incoming one.")
+        except Exception as error:
+            logger.exception(
+                "We have failed to update the stacktrace from the cache. Not aborting execution.",
+                extra={"platform": platform},
+            )
+            # We want tests to fail to prevent breaking the caching system without noticing
+            if os.environ.get("PYTEST_CURRENT_TEST"):
+                raise error
+
+    metrics.incr(
+        f"{DATADOG_KEY}.merged_cached_values",
+        tags={
+            "success": frames_changed,
+            "platform": platform,
+            "loading_from_cache": load_from_cache,
+        },
+    )
+    return frames_changed
+
+
+def _cache_changed_frame_values(
+    frames: Sequence[dict[str, Any]], cache_key: str, platform: str
+) -> None:
+    """Store in the cache the values which have been modified for each frame."""
+    caching_succeeded = False
+    # Check that some other event has not already populated the cache
+    if cache.get(cache_key):
+        return
+
+    try:
+        # XXX: A follow up PR will be required to make sure that only a whitelisted set of parameters
+        # are allowed to be modified in apply_modifications_to_frame, thus, not falling out of date with this
+        changed_frames_values = [
+            {
+                "in_app": frame.get("in_app"),  # Based on FlagAction
+                "category": get_path(frame, "data", "category"),  # Based on VarAction's
+            }
+            for frame in frames
+        ]
+        cache.set(cache_key, changed_frames_values)
+        caching_succeeded = True
+    except Exception:
+        logger.exception("Failed to store changed frames in cache", extra={"platform": platform})
+
+    metrics.incr(
+        f"{DATADOG_KEY}.cache.set",
+        tags={"success": caching_succeeded, "platform": platform},
+    )
+
+
+def _generate_stacktrace_fingerprint(
+    stacktrace_match_frames: Sequence[dict[str, Any]],
+    stacktrace_container: dict[str, Any],
+    enhancements_dumps: str,
+    platform: str,
+) -> str:
+    """Create a fingerprint for the stacktrace. Empty string if unsuccesful."""
+    stacktrace_fingerprint = ""
+    try:
+        stacktrace_frames_fingerprint = _generate_match_frames_fingerprint(stacktrace_match_frames)
+        stacktrace_type_value = _generate_stacktrace_container_fingerprint(stacktrace_container)
+        # Hash of the three components involved for fingerprinting a stacktrace
+        stacktrace_hash = md5()
+        hash_value(
+            stacktrace_hash,
+            (stacktrace_frames_fingerprint, stacktrace_type_value, enhancements_dumps),
+        )
+
+        stacktrace_fingerprint = stacktrace_hash.hexdigest()
+    except Exception as error:
+        # This will create an error in Sentry to help us evaluate why it failed
+        logger.exception(
+            "Stacktrace hashing failure. Investigate and fix.", extra={"platform": platform}
+        )
+        # We want tests to fail to prevent breaking the caching system without noticing
+        if os.environ.get("PYTEST_CURRENT_TEST"):
+            raise error
+
+    # This will help us calculate the success ratio for fingerprint calculation
+    metrics.incr(
+        f"{DATADOG_KEY}.fingerprint",
+        tags={
+            "hashing_failure": stacktrace_fingerprint == "",
+            "platform": platform,
+        },
+    )
+    return stacktrace_fingerprint
+
+
+def _generate_stacktrace_container_fingerprint(stacktrace_container: dict[str, Any]) -> str:
+    stacktrace_type_value = ""
+    if stacktrace_container:
+        cont_type = stacktrace_container.get("type", "")
+        cont_value = stacktrace_container.get("value", "")
+        stacktrace_type_value = f"{cont_type}.{cont_value}"
+
+    return stacktrace_type_value
+
+
+def _generate_match_frames_fingerprint(match_frames: Sequence[dict[str, Any]]) -> str:
+    """Fingerprint representing the stacktrace frames. Raises error if it fails."""
+    stacktrace_hash = md5()
+    for match_frame in match_frames:
+        # We create the hash based on the match_frame since it does not
+        # contain values like the `vars` which is not necessary for grouping
+        hash_value(stacktrace_hash, match_frame)
+
+    return stacktrace_hash.hexdigest()
 
 
 def _load_configs():

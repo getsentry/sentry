@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import namedtuple
 from enum import Enum
 
@@ -254,11 +256,12 @@ class IncidentActivity(Model):
 
     incident = FlexibleForeignKey("sentry.Incident")
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
-    type = models.IntegerField()
+    type: models.Field[int | IncidentActivityType, int] = models.IntegerField()
     value = models.TextField(null=True)
     previous_value = models.TextField(null=True)
     comment = models.TextField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
+    notification_uuid = models.UUIDField("notification_uuid", null=True)
 
     class Meta:
         app_label = "sentry"

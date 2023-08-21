@@ -5,7 +5,6 @@ from hashlib import sha1
 from io import BytesIO
 from uuid import uuid4
 
-import pytz
 from django.core.files.base import ContentFile
 from django.urls import reverse
 from freezegun import freeze_time
@@ -461,10 +460,10 @@ class ArtifactLookupTest(APITestCase):
         for days_before, expected_date_added, debug_id in (
             (
                 2,
-                datetime.now(tz=pytz.UTC) - timedelta(days=2),
+                datetime.now(tz=timezone.utc) - timedelta(days=2),
                 "2432d9ad-fe87-4f77-938d-50cc9b2b2e2a",
             ),
-            (35, datetime.now(tz=pytz.UTC), "ef88bc3e-d334-4809-9723-5c5dbc8bd4e9"),
+            (35, datetime.now(tz=timezone.utc), "ef88bc3e-d334-4809-9723-5c5dbc8bd4e9"),
         ):
             file_zip = make_compressed_zip_file(
                 {
@@ -480,7 +479,7 @@ class ArtifactLookupTest(APITestCase):
             )
             file = make_file("bundle_c.zip", file_zip)
             bundle_id = uuid4()
-            date_added = datetime.now(tz=pytz.UTC) - timedelta(days=days_before)
+            date_added = datetime.now(tz=timezone.utc) - timedelta(days=days_before)
 
             artifact_bundle = ArtifactBundle.objects.create(
                 organization_id=self.organization.id,
@@ -544,14 +543,14 @@ class ArtifactLookupTest(APITestCase):
         for days_before, expected_date_added, release in (
             (
                 2,
-                datetime.now(tz=pytz.UTC) - timedelta(days=2),
+                datetime.now(tz=timezone.utc) - timedelta(days=2),
                 self.create_release(version="1.0"),
             ),
-            (35, datetime.now(tz=pytz.UTC), self.create_release(version="2.0")),
+            (35, datetime.now(tz=timezone.utc), self.create_release(version="2.0")),
         ):
             dist = release.add_dist("android")
             bundle_id = uuid4()
-            date_added = datetime.now(tz=pytz.UTC) - timedelta(days=days_before)
+            date_added = datetime.now(tz=timezone.utc) - timedelta(days=days_before)
 
             artifact_bundle = ArtifactBundle.objects.create(
                 organization_id=self.organization.id,

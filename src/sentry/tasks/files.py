@@ -115,6 +115,10 @@ def copy_file_to_control_and_update_model(
 ):
     from sentry.models.files import ControlFile, File
 
+    if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+        # We can only run this task in monolith mode.
+        return
+
     lock = f"copy-file-lock-{model_name}:{model_id}"
 
     with locks.get(lock, duration=60, name="copy-file-lock").acquire():

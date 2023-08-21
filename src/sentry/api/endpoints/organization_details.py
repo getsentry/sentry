@@ -1,13 +1,12 @@
 import logging
 from copy import copy
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from django.db import IntegrityError, models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
-from django.utils import timezone
-from pytz import UTC
+from django.utils import timezone as django_timezone
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
@@ -24,7 +23,6 @@ from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
     TrustedRelaySerializer,
 )
-from sentry.api.serializers.rest_framework import ListField
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.integrations.utils.codecov import has_codecov_integration
@@ -135,7 +133,13 @@ ORG_OPTIONS = (
         "githubPRBot",
         "sentry:github_pr_bot",
         bool,
-        org_serializers.GITHUB_PR_BOT_DEFAULT,
+        org_serializers.GITHUB_COMMENT_BOT_DEFAULT,
+    ),
+    (
+        "githubOpenPRBot",
+        "sentry:github_open_pr_bot",
+        bool,
+        org_serializers.GITHUB_COMMENT_BOT_DEFAULT,
     ),
 )
 
@@ -166,8 +170,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     enhancedPrivacy = serializers.BooleanField(required=False)
     dataScrubber = serializers.BooleanField(required=False)
     dataScrubberDefaults = serializers.BooleanField(required=False)
-    sensitiveFields = ListField(child=serializers.CharField(), required=False)
-    safeFields = ListField(child=serializers.CharField(), required=False)
+    sensitiveFields = serializers.ListField(child=serializers.CharField(), required=False)
+    safeFields = serializers.ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.IntegerField(
         min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False
     )
@@ -180,10 +184,11 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     aiSuggestedSolution = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
+    githubOpenPRBot = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
-    trustedRelays = ListField(child=TrustedRelaySerializer(), required=False)
+    trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
@@ -296,7 +301,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return attrs
 
     def save_trusted_relays(self, incoming, changed_data, organization):
-        timestamp_now = datetime.utcnow().replace(tzinfo=UTC).isoformat()
+        timestamp_now = datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
         option_key = "sentry:trusted-relays"
         try:
             # get what we already have
@@ -484,12 +489,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :param string detailed: Specify '0' to retrieve details without projects and teams.
         :auth: required
         """
-        is_detailed = request.GET.get("detailed", "1") != "0"
-        serializer = (
-            org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams
-            if is_detailed
-            else org_serializers.DetailedOrganizationSerializer
-        )
+
+        serializer = org_serializers.OrganizationSerializer
+        if request.access.has_scope("org:read"):
+            is_detailed = request.GET.get("detailed", "1") != "0"
+
+            serializer = org_serializers.DetailedOrganizationSerializer
+            if is_detailed:
+                serializer = org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams
+
         context = serialize(organization, request.user, serializer(), access=request.access)
 
         return self.respond(context)
@@ -702,7 +710,7 @@ def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs):
         "username": username,
         "user_ip_address": user_ip_address,
         "deletion_datetime": deletion_datetime,
-        "eta": timezone.now() + timedelta(seconds=countdown),
+        "eta": django_timezone.now() + timedelta(seconds=countdown),
         "url": url,
     }
 

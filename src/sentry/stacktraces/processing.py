@@ -273,15 +273,31 @@ def _has_system_frames(frames):
     return bool(system_frames) and len(frames) != system_frames
 
 
-def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> None:
+def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> str:
     """
-    Ensures consistent values of in_app across a stacktrace.
+    Ensures consistent values of in_app across a stacktrace. Returns a classification of the
+    stacktrace as either "in-app-only", "system-only", or "mixed", for use in metrics.
     """
+    has_in_app_frames = False
+    has_system_frames = False
+
     # Default to false in all cases where processors or grouping enhancers
     # have not yet set in_app.
     for frame in stacktrace:
         if frame.get("in_app") is None:
             set_in_app(frame, False)
+
+        if frame.get("in_app"):
+            has_in_app_frames = True
+        else:
+            has_system_frames = True
+
+    if has_in_app_frames and has_system_frames:
+        return "mixed"
+    elif has_in_app_frames:
+        return "in-app-only"
+    else:
+        return "system-only"
 
 
 def normalize_stacktraces_for_grouping(data, grouping_config=None) -> None:
@@ -320,15 +336,30 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None) -> None:
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
         with sentry_sdk.start_span(op=op, description="apply_modifications_to_frame"):
-            for frames, exception_data in zip(stacktrace_frames, stacktrace_containers):
+            for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
+                # This call has a caching mechanism when the same stacktrace and rules are used
                 grouping_config.enhancements.apply_modifications_to_frame(
-                    frames, platform, exception_data
+                    frames, platform, stacktrace_container, extra_fingerprint=grouping_config.id
                 )
 
-    # normalize in-app
+    # normalize `in_app` values, noting and storing the event's mix of in-app and system frames, so
+    # we can track the mix with a metric in cases where this event creates a new group
     with sentry_sdk.start_span(op=op, description="normalize_in_app_stacktraces"):
+        frame_mixes = {"mixed": 0, "in-app-only": 0, "system-only": 0}
+
         for frames in stacktrace_frames:
-            _normalize_in_app(frames)
+            stacktrace_frame_mix = _normalize_in_app(frames)
+            frame_mixes[stacktrace_frame_mix] += 1
+
+        event_metadata = data.get("metadata") or {}
+        event_metadata["in_app_frame_mix"] = (
+            "in-app-only"
+            if frame_mixes["in-app-only"] == len(stacktrace_frames)
+            else "system-only"
+            if frame_mixes["system-only"] == len(stacktrace_frames)
+            else "mixed"
+        )
+        data["metadata"] = event_metadata
 
 
 def _update_frame(frame: dict[str, Any], platform: Optional[str]) -> None:

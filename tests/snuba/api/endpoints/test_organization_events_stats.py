@@ -1,12 +1,11 @@
 import uuid
-from datetime import timedelta
+from datetime import timedelta, timezone
 from unittest import mock
 from uuid import uuid4
 
 import pytest
 from dateutil.parser import parse as parse_date
 from django.urls import reverse
-from pytz import utc
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
@@ -99,7 +98,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc),
+            self.day_ago.replace(tzinfo=timezone.utc),
         )
         assert group_info is not None
         self.store_search_issue(
@@ -107,14 +106,14 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc) + timedelta(hours=1, minutes=1),
+            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(hours=1, minutes=1),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc) + timedelta(hours=1, minutes=2),
+            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(hours=1, minutes=2),
         )
         with self.feature(
             [
@@ -142,7 +141,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc) + timedelta(minutes=1),
+            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(minutes=1),
         )
         assert group_info is not None
         self.store_search_issue(
@@ -150,14 +149,14 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc) + timedelta(minutes=1),
+            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(minutes=1),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc) + timedelta(minutes=2),
+            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(minutes=2),
         )
         with self.feature(
             [
@@ -842,7 +841,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=utc)
+        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
         # Don't quantize short time periods
         self.do_request(
             data={"statsPeriod": "1h", "query": "", "interval": "30m", "yAxis": "count()"},

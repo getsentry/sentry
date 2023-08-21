@@ -28,7 +28,7 @@ import {
   TraceError,
   TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
-import {parseQuickTrace} from 'sentry/utils/performance/quickTrace/utils';
+import {isTraceError, parseQuickTrace} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
 
 const FRONTEND_PLATFORMS: string[] = [...frontend, ...mobile];
@@ -78,13 +78,28 @@ export default function QuickTrace({
   transactionDest,
 }: QuickTraceProps) {
   let parsedQuickTrace;
+  const noTrace = <Fragment>{'\u2014'}</Fragment>;
   try {
-    parsedQuickTrace = parseQuickTrace(quickTrace, event, organization);
+    if (quickTrace.orphanErrors && quickTrace.orphanErrors.length > 0) {
+      const orphanError = quickTrace.orphanErrors.find(e => e.event_id === event.id);
+
+      if (!orphanError) {
+        return noTrace;
+      }
+
+      parsedQuickTrace = {
+        current: orphanError,
+      };
+    } else {
+      parsedQuickTrace = parseQuickTrace(quickTrace, event, organization);
+    }
   } catch (error) {
-    return <Fragment>{'\u2014'}</Fragment>;
+    return noTrace;
   }
 
-  const traceLength = quickTrace.trace && quickTrace.trace.length;
+  const traceLength =
+    (quickTrace.trace && quickTrace.trace.length) ||
+    (quickTrace.orphanErrors && quickTrace.orphanErrors.length);
   const {root, ancestors, parent, children, descendants, current} = parsedQuickTrace;
 
   const nodes: React.ReactNode[] = [];
@@ -154,6 +169,7 @@ export default function QuickTrace({
       anchor={anchor}
       nodeKey="current"
       errorDest={errorDest}
+      isOrphanErrorNode={traceLength === 1 && isTraceError(current)}
       transactionDest={transactionDest}
     />
   );
@@ -203,7 +219,7 @@ export default function QuickTrace({
     nodes.push(currentNode);
   }
 
-  if (children.length) {
+  if (children?.length) {
     nodes.push(<TraceConnector key="children-connector" />);
     nodes.push(
       <EventNodeSelector
@@ -273,6 +289,7 @@ type EventNodeSelectorProps = {
   organization: OrganizationSummary;
   text: React.ReactNode;
   transactionDest: TransactionDestination;
+  isOrphanErrorNode?: boolean;
   numEvents?: number;
 };
 
@@ -286,6 +303,7 @@ function EventNodeSelector({
   anchor,
   errorDest,
   transactionDest,
+  isOrphanErrorNode,
   numEvents = 5,
 }: EventNodeSelectorProps) {
   let errors: TraceError[] = events.flatMap(event => event.errors ?? []);
@@ -297,7 +315,7 @@ function EventNodeSelector({
 
   const hasErrors = errors.length > 0 || perfIssues.length > 0;
 
-  if (hasErrors) {
+  if (hasErrors || isOrphanErrorNode) {
     type = nodeKey === 'current' ? 'error' : 'warning';
     text = (
       <ErrorNodeContent>
@@ -305,6 +323,14 @@ function EventNodeSelector({
         {text}
       </ErrorNodeContent>
     );
+
+    if (isOrphanErrorNode) {
+      return (
+        <EventNode type={type} data-test-id="event-node">
+          {text}
+        </EventNode>
+      );
+    }
   }
 
   const isError = currentEvent.hasOwnProperty('groupID') && currentEvent.groupID !== null;
@@ -595,7 +621,7 @@ class MissingServiceNode extends Component<MissingServiceProps, MissingServiceSt
         : `https://docs.sentry.io/platforms/${docPlatform}/performance/connect-services`;
     return (
       <Fragment>
-        {connectorSide === 'left' && <TraceConnector />}
+        {connectorSide === 'left' && <TraceConnector dashed />}
         <DropdownContainer>
           <DropdownLink
             caret={false}
@@ -618,7 +644,7 @@ class MissingServiceNode extends Component<MissingServiceProps, MissingServiceSt
             </DropdownItem>
           </DropdownLink>
         </DropdownContainer>
-        {connectorSide === 'right' && <TraceConnector />}
+        {connectorSide === 'right' && <TraceConnector dashed />}
       </Fragment>
     );
   }

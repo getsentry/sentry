@@ -6,7 +6,7 @@ from rest_framework import serializers
 
 from sentry import features
 from sentry.api.issue_search import parse_search_query
-from sentry.api.serializers.rest_framework import CamelSnakeSerializer, ListField
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
@@ -304,8 +304,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
     id = serializers.CharField(required=False)
     title = serializers.CharField(required=False, max_length=255)
     widgets = DashboardWidgetSerializer(many=True, required=False)
-    projects = ListField(child=serializers.IntegerField(), required=False, default=[])
-    environment = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    projects = serializers.ListField(child=serializers.IntegerField(), required=False, default=[])
+    environment = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True
+    )
     period = serializers.CharField(required=False, allow_null=True)
     start = serializers.DateTimeField(required=False, allow_null=True)
     end = serializers.DateTimeField(required=False, allow_null=True)

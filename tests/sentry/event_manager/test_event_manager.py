@@ -2461,6 +2461,34 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             },
         )
 
+    def test_new_group_metrics_logging_with_frame_mix(self) -> None:
+        with patch("sentry.event_manager.metrics.incr") as mock_metrics_incr:
+            manager = EventManager(make_event(platform="javascript"))
+            manager.normalize()
+            # IRL, `normalize_stacktraces_for_grouping` adds frame mix metadata to the event, but we
+            # can't mock that because it's imported inside its calling function to avoid circular imports
+            manager._data["metadata"] = {"in_app_frame_mix": "in-app-only"}
+            manager.save(self.project.id)
+
+            mock_metrics_incr.assert_any_call(
+                "grouping.in_app_frame_mix",
+                sample_rate=1.0,
+                tags={
+                    "platform": "javascript",
+                    "frame_mix": "in-app-only",
+                },
+            )
+
+    def test_new_group_metrics_logging_without_frame_mix(self) -> None:
+        with patch("sentry.event_manager.metrics.incr") as mock_metrics_incr:
+            manager = EventManager(make_event(platform="javascript"))
+            event = manager.save(self.project.id)
+
+            assert event.get_event_metadata().get("in_app_frame_mix") is None
+
+            metrics_logged = [call.args[0] for call in mock_metrics_incr.mock_calls]
+            assert "grouping.in_app_frame_mix" not in metrics_logged
+
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
     def setUp(self):

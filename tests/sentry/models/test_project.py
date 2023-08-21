@@ -330,7 +330,7 @@ class ProjectTest(APITestCase, TestCase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class CopyProjectSettingsTest(TestCase):
     def setUp(self):
         super().setUp()
