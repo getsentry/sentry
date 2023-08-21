@@ -12,6 +12,7 @@ import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalModal from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
+import {useGlobalOmniActions} from 'sentry/components/omniSearch/globalOmniActions';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
 import AlertStore from 'sentry/stores/alertStore';
 import ConfigStore from 'sentry/stores/configStore';
@@ -44,6 +45,8 @@ function App({children, params}: Props) {
 
   const api = useApi();
   const config = useLegacyStore(ConfigStore);
+
+  useGlobalOmniActions();
 
   // Command palette global-shortcut
   useHotkeys(

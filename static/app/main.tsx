@@ -12,6 +12,7 @@ import {
 } from 'sentry/utils/queryClient';
 import {RouteContext} from 'sentry/views/routeContext';
 
+import {OmniSearchProvider} from './components/omniSearch/provider';
 import RouteAnalyticsContextProvider from './views/routeAnalyticsContextProvider';
 /**
  * Renders our compatibility RouteContext.Provider. This will go away with
@@ -34,10 +35,12 @@ function Main() {
     <ThemeAndStyleProvider>
       <QueryClientProvider client={queryClient}>
         <OnboardingContextProvider>
-          {ConfigStore.get('demoMode') && <DemoHeader />}
-          <Router history={browserHistory} render={renderRouter}>
-            {routes()}
-          </Router>
+          <OmniSearchProvider>
+            {ConfigStore.get('demoMode') && <DemoHeader />}
+            <Router history={browserHistory} render={renderRouter}>
+              {routes()}
+            </Router>
+          </OmniSearchProvider>
         </OnboardingContextProvider>
       </QueryClientProvider>
     </ThemeAndStyleProvider>
