@@ -1,3 +1,4 @@
+.direnv/
 .env
 .cache/
 .code-workspace
