@@ -203,6 +203,43 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         assert project_ctx.existing_issue_count == 0
         assert project_ctx.all_issue_count == 2
 
+    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    def test_transferred_project(self, message_builder):
+        self.login_as(user=self.user)
+
+        now = django_timezone.now()
+        three_days_ago = now - timedelta(days=3)
+
+        project = self.create_project(
+            organization=self.organization, teams=[self.team], name="new-project"
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": three_days_ago,
+                "key_id": 1,
+            },
+            num_times=2,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": three_days_ago,
+                "key_id": 1,
+            },
+            num_times=2,
+        )
+        project.transfer_to(organization=self.create_organization())
+
+        prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+        assert message_builder.call_count == 1
+
     @with_feature("organizations:escalating-issues")
     def test_organization_project_issue_substatus_summaries(self):
         self.login_as(user=self.user)
