@@ -44,6 +44,8 @@ UNRESOLVED = "The issue has been unresolved."
 MARKED_ONGOING = "The issue has been marked as ongoing."
 ARCHIVE_UNTIL_ESCALATES = "The issue will be archived until it escalates."
 
+ISSUE_DOES_NOT_EXIST = "That issue no longer exists. It may have been deleted."
+
 
 class DiscordMessageComponentHandler(DiscordInteractionHandler):
     """
@@ -61,7 +63,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
         try:
             self.group: Group = Group.objects.get(id=self.group_id)
         except Group.DoesNotExist:
-            raise DiscordInteractionHandlerError()
+            raise DiscordInteractionHandlerError(ISSUE_DOES_NOT_EXIST)
 
     def handle(self) -> Response:
         logging_data = self.request.logging_data

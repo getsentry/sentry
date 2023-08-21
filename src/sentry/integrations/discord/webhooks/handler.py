@@ -14,6 +14,10 @@ class DiscordInteractionHandlerError(Exception):
     Something went wrong while handling a Discord interaction.
     """
 
+    def __init__(self, message: str) -> None:
+        self.message = message
+        super().__init__()
+
 
 class DiscordInteractionHandler:
     """

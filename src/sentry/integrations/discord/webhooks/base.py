@@ -58,9 +58,9 @@ class DiscordInteractionsEndpoint(Endpoint):
                 )
                 try:
                     return DiscordMessageComponentHandler(discord_request).handle()
-                except DiscordInteractionHandlerError:
+                except DiscordInteractionHandlerError as error:
                     message = DiscordMessageBuilder(
-                        content="We can no longer find that issue. It may have been deleted.",
+                        content=error.message,
                         flags=DiscordMessageFlags().set_ephemeral(),
                     )
                     return Response(
