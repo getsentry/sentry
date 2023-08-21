@@ -416,15 +416,20 @@ const appConfig: Configuration = {
     new StatsWriterPlugin({
       stats: {
         hash: true,
-        builtAt: true,
         assets: true,
         chunks: true,
         modules: true,
+        env: true,
+        entrypoints: true,
       },
       transform(data: webpack.StatsCompilation) {
+        data.namedChunkGroups;
         const finalData: Record<string, any> = {
+          version: data.version,
           hash: data.hash,
-          builtAt: data.builtAt,
+          entrypoints: data.entrypoints,
+          env: data.env,
+          assetsByChunkName: data.assetsByChunkName,
         };
         // Based on https://github.com/relative-ci/bundle-stats/tree/master/packages/plugin-webpack-filter
         // # The MIT License
@@ -466,10 +471,12 @@ const appConfig: Configuration = {
               acc.push({
                 name: asset.name,
                 size: asset.size,
+                info: asset.info,
+                ...(asset.chunks && {chunks: asset.chunks}),
               });
             }
             return acc;
-          }, [] as Array<Pick<webpack.StatsAsset, 'name' | 'size'>>);
+          }, [] as Array<Pick<webpack.StatsAsset, 'name' | 'size' | 'info' | 'chunks'>>);
         }
 
         // {
@@ -515,11 +522,12 @@ const appConfig: Configuration = {
               id: chunk.id,
               size: chunk.size,
               initial: chunk.initial,
-              ...(chunk.files && {files: chunk.files}),
-              ...(chunk.names && {names: chunk.names}),
+              files: chunk.files,
+              names: chunk.names,
+              modules: chunk.modules,
             });
             return acc;
-          }, [] as Array<Pick<webpack.StatsChunk, 'entry' | 'id' | 'initial' | 'files' | 'names' | 'size'>>);
+          }, [] as Array<Pick<webpack.StatsChunk, 'entry' | 'id' | 'initial' | 'files' | 'names' | 'size' | 'modules'>>);
         }
 
         // {
