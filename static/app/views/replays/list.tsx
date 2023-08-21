@@ -26,7 +26,7 @@ function ReplaysListContainer() {
   useReplayPageview('replay.list-time-spent');
   const organization = useOrganization();
 
-  const hasSessionReplay = false; // organization.features.includes('session-replay');
+  const hasSessionReplay = organization.features.includes('session-replay');
   const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
   const showOnboarding = !hasSessionReplay || !hasSentOneReplay;
 
