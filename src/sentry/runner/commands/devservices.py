@@ -387,7 +387,7 @@ def _start_service(
         pass
 
     if container is not None:
-        if not recreate:
+        if not recreate and container.status == "running":
             click.secho(
                 f"> Container '{options['name']}' is already running, doing nothing", fg="yellow"
             )
