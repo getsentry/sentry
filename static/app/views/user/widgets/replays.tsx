@@ -6,6 +6,7 @@ import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
+import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {t} from 'sentry/locale';
@@ -135,11 +136,13 @@ export function ReplayWidget({userId}: Props) {
                       </Row>
                       <Row gap={0.5}>
                         <IconCalendar color="gray300" size="xs" />
-                        <TimeSince date={replay.started_at} />
+                        <TextOverflow>
+                          <TimeSince date={replay.started_at} />
+                        </TextOverflow>
                       </Row>
                     </SubRow>
                   </Cols>
-                  <DurationCell key={`${replay.id}-duration`} replay={replay} />
+                  <SmallDurationCell key={`${replay.id}-duration`} replay={replay} />
                   <SmallActivityCell key={`${replay.id}-activity`} replay={replay} />
                 </Fragment>
               );
@@ -188,6 +191,10 @@ const Title = styled('div')`
 `;
 
 const SmallOSCell = styled(OSCell)`
+  padding: 0;
+`;
+
+const SmallDurationCell = styled(DurationCell)`
   padding: 0;
 `;
 

@@ -33,6 +33,7 @@ import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/repla
 
 type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
+  className?: string;
 };
 
 export type ReferrerTableType = 'main' | 'dead-table' | 'errors-table' | 'rage-table';
@@ -340,7 +341,7 @@ export function ReplayCell({
 
   if (replay.is_archived) {
     return (
-      <Item isArchived={replay.is_archived}>
+      <Item className={className} isArchived={replay.is_archived}>
         <Row gap={1}>
           <StyledIconDelete color="gray500" size="md" />
           <div>
@@ -376,7 +377,7 @@ export function ReplayCell({
   );
 
   return (
-    <Item>
+    <Item className={className}>
       <UserBadgeFullWidth
         avatarSize={24}
         displayName={
@@ -430,7 +431,7 @@ export function TransactionCell({
   const location = useLocation();
 
   if (replay.is_archived) {
-    return <Item isArchived />;
+    return <Item className={className} isArchived />;
   }
   const hasTxEvent = 'txEvent' in replay;
   const txDuration = hasTxEvent ? replay.txEvent?.['transaction.duration'] : undefined;
@@ -446,16 +447,16 @@ export function TransactionCell({
   ) : null;
 }
 
-export function OSCell({replay}: Props) {
+export function OSCell({className, replay}: Props) {
   const {name, version} = replay.os ?? {};
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
   if (replay.is_archived) {
-    return <Item isArchived />;
+    return <Item className={className} isArchived />;
   }
   return (
-    <Item>
+    <Item className={className}>
       <Container>
         <ContextIcon
           name={name ?? ''}
@@ -469,16 +470,16 @@ export function OSCell({replay}: Props) {
   );
 }
 
-export function BrowserCell({replay}: Props) {
+export function BrowserCell({className, replay}: Props) {
   const {name, version} = replay.browser ?? {};
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
   if (replay.is_archived) {
-    return <Item isArchived />;
+    return <Item className={className} isArchived />;
   }
   return (
-    <Item>
+    <Item className={className}>
       <Container>
         <ContextIcon
           name={name ?? ''}
@@ -492,12 +493,12 @@ export function BrowserCell({replay}: Props) {
   );
 }
 
-export function DurationCell({replay}: Props) {
+export function DurationCell({className, replay}: Props) {
   if (replay.is_archived) {
-    return <Item isArchived />;
+    return <Item className={className} isArchived />;
   }
   return (
-    <Item>
+    <Item className={className}>
       <Container>
         <Time>{formatTime(replay.duration.asMilliseconds())}</Time>
         <NumericDropdownFilter type="duration" val={replay.duration.asSeconds()} />
@@ -506,12 +507,12 @@ export function DurationCell({replay}: Props) {
   );
 }
 
-export function RageClickCountCell({replay}: Props) {
+export function RageClickCountCell({className, replay}: Props) {
   if (replay.is_archived) {
-    return <Item isArchived />;
+    return <Item className={className} isArchived />;
   }
   return (
-    <Item data-test-id="replay-table-count-rage-clicks">
+    <Item className={className} data-test-id="replay-table-count-rage-clicks">
       <Container>
         {replay.count_rage_clicks ? (
           <DeadRageCount>{replay.count_rage_clicks}</DeadRageCount>
@@ -527,12 +528,12 @@ export function RageClickCountCell({replay}: Props) {
   );
 }
 
-export function DeadClickCountCell({replay}: Props) {
+export function DeadClickCountCell({className, replay}: Props) {
   if (replay.is_archived) {
-    return <Item isArchived />;
+    return <Item className={className} isArchived />;
   }
   return (
-    <Item data-test-id="replay-table-count-dead-clicks">
+    <Item className={className} data-test-id="replay-table-count-dead-clicks">
       <Container>
         {replay.count_dead_clicks ? (
           <DeadRageCount>{replay.count_dead_clicks}</DeadRageCount>
@@ -548,12 +549,12 @@ export function DeadClickCountCell({replay}: Props) {
   );
 }
 
-export function ErrorCountCell({replay}: Props) {
+export function ErrorCountCell({className, replay}: Props) {
   if (replay.is_archived) {
-    return <Item isArchived />;
+    return <Item className={className} isArchived />;
   }
   return (
-    <Item data-test-id="replay-table-count-errors">
+    <Item className={className} data-test-id="replay-table-count-errors">
       <Container>
         {replay.count_errors ? (
           <ErrorCount>
@@ -569,13 +570,13 @@ export function ErrorCountCell({replay}: Props) {
   );
 }
 
-export function ActivityCell({replay}: Props) {
+export function ActivityCell({className, replay}: Props) {
   if (replay.is_archived) {
-    return <Item isArchived />;
+    return <Item className={className} isArchived />;
   }
   const scoreBarPalette = new Array(10).fill([CHART_PALETTE[0][0]]);
   return (
-    <Item>
+    <Item className={className}>
       <Container>
         <ScoreBar
           size={20}
