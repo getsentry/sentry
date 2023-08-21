@@ -13,9 +13,13 @@ type View = 'report' | 'raw' | 'help';
 function getView(view: View, data: Record<any, any>, meta: Record<any, any>) {
   switch (view) {
     case 'report':
+      const viewData = data.body;
+      viewData.user_agent = data.user_agent;
+      viewData.url = data.url;
+
       return (
         <KeyValueList
-          data={Object.entries(data).map(([key, value]) => {
+          data={Object.entries(viewData).map(([key, value]) => {
             return {
               key,
               subject: key,
@@ -46,14 +50,13 @@ export function Nel({data, event}: Props) {
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.NEL);
   const meta = event._meta?.entries?.[entryIndex]?.data;
 
-  const cleanData =
-    data.original_policy !== 'string'
-      ? data
-      : {
-          ...data,
-          // Hide the report-uri since this is redundant and silly
-          original_policy: data.original_policy.replace(/(;\s+)?report-uri [^;]+/, ''),
-        };
+  const viewData = {...data};
+  viewData.body = {...data.body};
+  if (view === 'report') {
+    delete viewData.age;
+    delete viewData.body.sampling_fraction;
+    delete viewData.ty;
+  }
 
   const actions = (
     <SegmentedControl aria-label={t('View')} size="xs" value={view} onChange={setView}>
@@ -65,7 +68,7 @@ export function Nel({data, event}: Props) {
 
   return (
     <EventDataSection type="nel" title={t('NEL Report')} actions={actions}>
-      {getView(view, cleanData, meta)}
+      {getView(view, viewData, meta)}
     </EventDataSection>
   );
 }
