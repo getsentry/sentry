@@ -26,6 +26,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
+  ActivityCell,
   BrowserCell,
   DurationCell,
   OSCell,
@@ -96,7 +97,7 @@ export function ReplayWidget({userId}: Props) {
   });
 
   if (isFetching) {
-    return <Placeholder />;
+    return <Placeholder height="232px" />;
   }
 
   if (fetchError) {
@@ -105,7 +106,7 @@ export function ReplayWidget({userId}: Props) {
 
   return (
     <ReplayPanel>
-      <PanelHeader hasButtons>{t('Recent Replays')}</PanelHeader>
+      <PanelHeader>{t('Recent Replays')}</PanelHeader>
       <div>
         {!replays?.length ? (
           t('No replays created')
@@ -127,7 +128,7 @@ export function ReplayWidget({userId}: Props) {
                         {getShortEventId(replay.id)}
                       </Link>
                     </Title>
-                    <Row gap={1}>
+                    <SubRow gap={1}>
                       <Row gap={0.5}>
                         {project ? <Avatar size={12} project={project} /> : null}
                         {project ? project.slug : null}
@@ -136,9 +137,10 @@ export function ReplayWidget({userId}: Props) {
                         <IconCalendar color="gray300" size="xs" />
                         <TimeSince date={replay.started_at} />
                       </Row>
-                    </Row>
+                    </SubRow>
                   </Cols>
                   <DurationCell key={`${replay.id}-duration`} replay={replay} />
+                  <SmallActivityCell key={`${replay.id}-activity`} replay={replay} />
                 </Fragment>
               );
             })}
@@ -152,8 +154,8 @@ export function ReplayWidget({userId}: Props) {
 const Table = styled('div')`
   display: grid;
   overflow: hidden;
-  gap: ${space(1)};
-  grid-template-columns: auto max-content;
+  gap: ${space(1.5)};
+  grid-template-columns: auto max-content max-content;
   align-items: center;
   padding: ${space(1)} ${space(2)};
 `;
@@ -172,6 +174,10 @@ const Row = styled('div')<{gap: ValidSize; minWidth?: number}>`
   ${p => (p.minWidth ? `min-width: ${p.minWidth}px;` : '')}
 `;
 
+const SubRow = styled(Row)`
+  color: ${p => p.theme.gray300};
+`;
+
 const ReplayPanel = styled(Panel)`
   overflow: hidden;
 `;
@@ -186,5 +192,9 @@ const SmallOSCell = styled(OSCell)`
 `;
 
 const SmallBrowserCell = styled(BrowserCell)`
+  padding: 0;
+`;
+
+const SmallActivityCell = styled(ActivityCell)`
   padding: 0;
 `;
