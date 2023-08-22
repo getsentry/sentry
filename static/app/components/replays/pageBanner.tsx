@@ -1,38 +1,47 @@
-import {CSSProperties} from 'react';
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
-
-import newFeatureImage from 'sentry-images/spot/alerts-new-feature-banner.svg';
 
 import {Button} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
-import {IconBroadcast, IconClose} from 'sentry/icons';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface Props {
-  description: React.ReactNode;
-  heading: React.ReactNode;
-  button?: React.ReactNode;
+  description: ReactNode;
+  heading: ReactNode;
+  icon: ReactNode;
+  image: any;
+  title: ReactNode;
+  button?: ReactNode;
   onDismiss?: () => void;
 }
 
-export function ReplayNewFeatureBanner({heading, description, button, onDismiss}: Props) {
+export default function PageBanner({
+  button,
+  description,
+  heading,
+  icon,
+  image,
+  onDismiss,
+  title,
+}: Props) {
   return (
     <Wrapper>
       {onDismiss && (
         <CloseButton
           onClick={onDismiss}
           icon={<IconClose size="xs" />}
-          aria-label={t('Feature banner close')}
+          aria-label={t('Hide')}
           size="xs"
         />
       )}
-      <Background />
+      <Background image={image} />
       <Stack>
-        <SubText uppercase fontWeight={500}>
-          <IconBroadcast />
-          <span>{t('Whats New')}</span>
-        </SubText>
+        <TypeText>
+          {icon}
+          {title}
+        </TypeText>
         <TextContainer>
           <h4>{heading}</h4>
           <SubText>{description}</SubText>
@@ -49,6 +58,7 @@ const Wrapper = styled(Panel)`
   min-height: 100px;
   justify-content: space-between;
   align-items: center;
+  margin: 0;
 `;
 
 const CloseButton = styled(Button)`
@@ -62,7 +72,7 @@ const CloseButton = styled(Button)`
   z-index: 1;
 `;
 
-const Background = styled('div')`
+const Background = styled('div')<{image: any}>`
   display: flex;
   justify-self: flex-end;
   position: absolute;
@@ -70,8 +80,9 @@ const Background = styled('div')`
   right: 0px;
   height: 100%;
   width: 50%;
+  /* Prevent the image from going behind the text, keep text readable */
   max-width: 500px;
-  background-image: url(${newFeatureImage});
+  background-image: url(${p => p.image});
   background-repeat: no-repeat;
   background-size: cover;
 `;
@@ -94,17 +105,16 @@ const TextContainer = styled('div')`
   }
 `;
 
-const SubText = styled('div')<{
-  fontSize?: 'sm';
-  fontWeight?: CSSProperties['fontWeight'];
-  uppercase?: boolean;
-}>`
+const SubText = styled('div')`
   display: flex;
-  text-transform: ${p => (p.uppercase ? 'uppercase' : undefined)};
   color: ${p => p.theme.subText};
   line-height: ${p => p.theme.fontSizeMedium};
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.fontWeight};
   align-items: center;
   gap: ${space(0.5)};
+`;
+
+const TypeText = styled(SubText)`
+  text-transform: uppercase;
+  font-weight: 500;
 `;
