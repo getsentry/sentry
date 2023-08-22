@@ -102,16 +102,13 @@ function ProjectKeyCredentials({
       {showNel && (
         <FieldGroup
           label={t('NEL Endpoint')}
-          help={tct(
-            'Use this endpoint to upload [link], for example with Electron, Crashpad or Breakpad.',
-            {
-              link: (
-                <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Network_Error_Logging">
-                  Network Error Logging reports
-                </ExternalLink>
-              ),
-            }
-          )}
+          help={tct('Use this endpoint to upload [link].', {
+            link: (
+              <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Network_Error_Logging">
+                Network Error Logging reports
+              </ExternalLink>
+            ),
+          })}
           inline={false}
           flexibleControlStateSize
         >
