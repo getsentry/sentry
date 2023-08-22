@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment} from 'react';
 import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -25,10 +25,9 @@ interface Props {
 
 export function UserTimeline({userId}: Props) {
   const location = useLocation();
-  const infiniteRef = useRef<HTMLDivElement|null>(null);
-  const replayResults = useFetchReplays({userId, infiniteRef});
-  const errorResults = useFetchErrors({userId, infiniteRef, limit: 100});
-  const transactionResults = useFetchTransactions({userId, infiniteRef, limit: 100});
+  const replayResults = useFetchReplays({userId});
+  const errorResults = useFetchErrors({userId, limit: 100});
+  const transactionResults = useFetchTransactions({userId, limit: 100});
   const organization = useOrganization();
   const theme = useTheme();
 
@@ -162,7 +161,6 @@ export function UserTimeline({userId}: Props) {
               })}
             </Fragment>
           ))}
-          <InfinitePlaceholder ref={infiniteRef} />
         </Timeline>
       </TimelineScrollWrapper>
     </TimelinePanel>
@@ -177,14 +175,6 @@ const Day = styled('div')`
   padding: ${space(1)};
   z-index: 2;
 `;
-
-const InfinitePlaceholder = styled('div')`
-  position: absolute;
-  height: 200px;
-  bottom: 0;
-  width: 100%;
-  pointer-events: none;
-`
 
 interface TimelineEventProps {
   children: React.ReactNode;
