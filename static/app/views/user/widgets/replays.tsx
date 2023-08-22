@@ -97,59 +97,57 @@ export function ReplayWidget({userId}: Props) {
     perPage: 3,
   });
 
-  if (isFetching) {
-    return <Placeholder height="232px" />;
-  }
-
-  if (fetchError) {
-    return <div>Error fetching replays</div>;
-  }
-
   return (
     <ReplayPanel>
       <PanelHeader>{t('Recent Replays')}</PanelHeader>
-      <div>
-        {!replays?.length ? (
-          t('No replays created')
-        ) : (
-          <Table>
-            {replays.map(replay => {
-              const project = projectsHash[replay.project_id];
+      {isFetching ? (
+        <Placeholder height="189px" />
+      ) : fetchError ? (
+        <div>Error fetching replays</div>
+      ) : (
+        <div>
+          {!replays?.length ? (
+            t('No replays created')
+          ) : (
+            <Table>
+              {replays.map(replay => {
+                const project = projectsHash[replay.project_id];
 
-              return (
-                <Fragment key={replay.id}>
-                  <Cols key={`${replay.id}-replay`}>
-                    <Title>
-                      <SmallOSCell key={`${replay.id}-os`} replay={replay} />
-                      <SmallBrowserCell key="browser" replay={replay} />
+                return (
+                  <Fragment key={replay.id}>
+                    <Cols key={`${replay.id}-replay`}>
+                      <Title>
+                        <SmallOSCell key={`${replay.id}-os`} replay={replay} />
+                        <SmallBrowserCell key="browser" replay={replay} />
 
-                      <Link
-                        to={`/organizations/${organization.slug}/replays/${replay.id}/`}
-                      >
-                        {getShortEventId(replay.id)}
-                      </Link>
-                    </Title>
-                    <SubRow gap={1}>
-                      <Row gap={0.5}>
-                        {project ? <Avatar size={12} project={project} /> : null}
-                        {project ? project.slug : null}
-                      </Row>
-                      <Row gap={0.5}>
-                        <IconCalendar color="gray300" size="xs" />
-                        <TextOverflow>
-                          <TimeSince date={replay.started_at} />
-                        </TextOverflow>
-                      </Row>
-                    </SubRow>
-                  </Cols>
-                  <SmallDurationCell key={`${replay.id}-duration`} replay={replay} />
-                  <SmallActivityCell key={`${replay.id}-activity`} replay={replay} />
-                </Fragment>
-              );
-            })}
-          </Table>
-        )}
-      </div>
+                        <Link
+                          to={`/organizations/${organization.slug}/replays/${replay.id}/`}
+                        >
+                          {getShortEventId(replay.id)}
+                        </Link>
+                      </Title>
+                      <SubRow gap={1}>
+                        <Row gap={0.5}>
+                          {project ? <Avatar size={12} project={project} /> : null}
+                          {project ? project.slug : null}
+                        </Row>
+                        <Row gap={0.5}>
+                          <IconCalendar color="gray300" size="xs" />
+                          <TextOverflow>
+                            <TimeSince date={replay.started_at} />
+                          </TextOverflow>
+                        </Row>
+                      </SubRow>
+                    </Cols>
+                    <SmallDurationCell key={`${replay.id}-duration`} replay={replay} />
+                    <SmallActivityCell key={`${replay.id}-activity`} replay={replay} />
+                  </Fragment>
+                );
+              })}
+            </Table>
+          )}
+        </div>
+      )}
     </ReplayPanel>
   );
 }
@@ -182,6 +180,7 @@ const SubRow = styled(Row)`
 `;
 
 const ReplayPanel = styled(Panel)`
+  flex: 1;
   overflow: hidden;
 `;
 

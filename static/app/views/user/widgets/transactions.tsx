@@ -73,17 +73,14 @@ export function TransactionWidget({userId}: Props) {
     limit: 3,
   });
 
-  if (isLoading) {
-    return <Placeholder height="232px" />;
-  }
-
-  if (error) {
-    return <LoadingError />;
-  }
-
   return (
     <TransactionPanel>
       <PanelHeader>{t('Recent Transactions')}</PanelHeader>
+      {isLoading ? (
+        <Placeholder height="189px" />
+      ) : error ? (
+        <LoadingError />
+      ) : (
       <div>
         {!data?.data.length ? (
           <EmptyTable>{t('No transaction data')}</EmptyTable>
@@ -122,6 +119,7 @@ export function TransactionWidget({userId}: Props) {
           </Table>
         )}
       </div>
+    )}
     </TransactionPanel>
   );
 }

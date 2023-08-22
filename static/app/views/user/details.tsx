@@ -112,6 +112,7 @@ const Main = styled(Layout.Main)`
   flex-direction: column;
   overflow: hidden;
   height: 100%;
+  width: 100%;
 `;
 
 const Body = styled(Layout.Body)`
@@ -142,6 +143,7 @@ const Widgets = styled('section')`
   gap: ${space(2)};
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
+  width: 100%;
 `;
 
 const FullViewport = styled('div')`
