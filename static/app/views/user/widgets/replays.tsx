@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Avatar from 'sentry/components/avatar';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+// import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
@@ -38,6 +38,8 @@ import {
 // import ReplayTable from 'sentry/views/replays/replayTable';
 // import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
+
+import {ReplayPlayer} from './replayPlayer';
 
 interface Props {
   userId: string;
@@ -94,63 +96,71 @@ export function ReplayWidget({userId}: Props) {
     eventView,
     location,
     organization,
-    perPage: 3,
+    perPage: 4,
   });
 
   return (
     <ReplayPanel>
-      <PanelHeader>{t('Recent Replays')}</PanelHeader>
       {isFetching ? (
         <Placeholder height="189px" />
       ) : fetchError ? (
         <div>Error fetching replays</div>
       ) : (
-        <div>
+        <ReplayLayout>
           {!replays?.length ? (
             t('No replays created')
           ) : (
-            <Table>
-              {replays.map(replay => {
-                const project = projectsHash[replay.project_id];
+            <Fragment>
+              <ReplayPlayer replaySlug={replays[0].id} />
+              <Table>
+                {replays.slice(1).map(replay => {
+                  const project = projectsHash[replay.project_id];
 
-                return (
-                  <Fragment key={replay.id}>
-                    <Cols key={`${replay.id}-replay`}>
-                      <Title>
-                        <SmallOSCell key={`${replay.id}-os`} replay={replay} />
-                        <SmallBrowserCell key="browser" replay={replay} />
+                  return (
+                    <Fragment key={replay.id}>
+                      <Cols key={`${replay.id}-replay`}>
+                        <Title>
+                          <SmallOSCell key={`${replay.id}-os`} replay={replay} />
+                          <SmallBrowserCell key="browser" replay={replay} />
 
-                        <Link
-                          to={`/organizations/${organization.slug}/replays/${replay.id}/`}
-                        >
-                          {getShortEventId(replay.id)}
-                        </Link>
-                      </Title>
-                      <SubRow gap={1}>
-                        <Row gap={0.5}>
-                          {project ? <Avatar size={12} project={project} /> : null}
-                          {project ? project.slug : null}
-                        </Row>
-                        <Row gap={0.5}>
-                          <IconCalendar color="gray300" size="xs" />
-                          <TextOverflow>
-                            <TimeSince date={replay.started_at} />
-                          </TextOverflow>
-                        </Row>
-                      </SubRow>
-                    </Cols>
-                    <SmallDurationCell key={`${replay.id}-duration`} replay={replay} />
-                    <SmallActivityCell key={`${replay.id}-activity`} replay={replay} />
-                  </Fragment>
-                );
-              })}
-            </Table>
+                          <Link
+                            to={`/organizations/${organization.slug}/replays/${replay.id}/`}
+                          >
+                            {getShortEventId(replay.id)}
+                          </Link>
+                        </Title>
+                        <SubRow gap={1}>
+                          <Row gap={0.5}>
+                            {project ? <Avatar size={12} project={project} /> : null}
+                            {project ? project.slug : null}
+                          </Row>
+                          <Row gap={0.5}>
+                            <IconCalendar color="gray300" size="xs" />
+                            <TextOverflow>
+                              <TimeSince date={replay.started_at} />
+                            </TextOverflow>
+                          </Row>
+                        </SubRow>
+                      </Cols>
+                      <SmallDurationCell key={`${replay.id}-duration`} replay={replay} />
+                      <SmallActivityCell key={`${replay.id}-activity`} replay={replay} />
+                    </Fragment>
+                  );
+                })}
+              </Table>
+            </Fragment>
           )}
-        </div>
+        </ReplayLayout>
       )}
     </ReplayPanel>
   );
 }
+
+const ReplayLayout = styled('div')`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+`;
 
 const Table = styled('div')`
   display: grid;
@@ -159,6 +169,7 @@ const Table = styled('div')`
   grid-template-columns: auto max-content max-content;
   align-items: center;
   padding: ${space(1)} ${space(2)};
+  flex-shrink: 0;
 `;
 
 const Cols = styled('div')`
