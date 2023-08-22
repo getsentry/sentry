@@ -2,16 +2,17 @@ from typing import Any
 
 from rest_framework import serializers
 
+from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.rule import _generate_rule_label, _is_filter
-from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.api.serializers.rest_framework.base import ModelSerializer
 from sentry.api.serializers.rest_framework.rule import (
     RuleNodeField,
     RuleSetSerializer,
     validate_actions,
 )
 from sentry.blueprint.models import AlertProcedure, AlertTemplate
-from sentry.models.actor import actor_type_to_string
+from sentry.models.actor import ACTOR_TYPES
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.user import User
@@ -37,11 +38,16 @@ class AlertProcedureSerializer(Serializer):
             except serializers.ValidationError:
                 # Integrations can be deleted and we don't want to fail to load the rule
                 pass
-        owner_text = f"{actor_type_to_string(obj.owner.type)}:{obj.owner_id}" if obj.owner else None
+
+        owner_value = None
+        if obj.owner_id and obj.owner.type == ACTOR_TYPES["team"]:
+            owner_value = f"team:{obj.owner.team_id}"
+        if obj.owner_id and obj.owner.type == ACTOR_TYPES["user"]:
+            owner_value = f"user:{obj.owner.user_id}"
         return {
             "id": str(obj.id),
             # TODO(Leander): Use a better serializer or expand
-            "owner": owner_text,
+            "owner": owner_value,
             "templates": [{"id": t.id, "name": t.name} for t in templates],
             "label": obj.label,
             "organization_id": obj.organization_id,
@@ -50,12 +56,13 @@ class AlertProcedureSerializer(Serializer):
         }
 
 
-class IncomingAlertProcedureSerializer(CamelSnakeModelSerializer):
+class IncomingAlertProcedureSerializer(ModelSerializer):
     """
     context: organization, project, procedure_id
     """
 
     label = serializers.CharField(max_length=255)
+    owner = ActorField(required=False, allow_null=True)
     is_manual = serializers.BooleanField(default=False)
     issue_alert_actions = serializers.ListField(
         child=RuleNodeField(type="action/event"), required=False
@@ -63,7 +70,12 @@ class IncomingAlertProcedureSerializer(CamelSnakeModelSerializer):
 
     class Meta:
         model = AlertProcedure
-        fields = ["label", "is_manual", "issue_alert_actions"]
+        fields = [
+            "label",
+            "owner",
+            "is_manual",
+            "issue_alert_actions",
+        ]
 
     def validate_label(self, incoming_label: str):
         existing_id = self.context.get("procedure_id")
@@ -77,6 +89,9 @@ class IncomingAlertProcedureSerializer(CamelSnakeModelSerializer):
                 detail="Choose a better label nerd, that one's taken."
             )
         return incoming_label
+
+    def validate_owner(self, owner):
+        return owner.resolve_to_actor()
 
     def validate(self, attrs):
         return validate_actions(attrs)
@@ -108,10 +123,15 @@ class AlertTemplateSerializer(Serializer):
             "frequency": obj.issue_alert_data.get("frequency") or Rule.DEFAULT_FREQUENCY,
         }
         rules = Rule.objects.filter(template_id=obj.id)
-        owner_text = f"{actor_type_to_string(obj.owner.type)}:{obj.owner_id}" if obj.owner else None
+        owner_value = None
+        if obj.owner_id and obj.owner.type == ACTOR_TYPES["team"]:
+            owner_value = f"team:{obj.owner.team_id}"
+        if obj.owner_id and obj.owner.type == ACTOR_TYPES["user"]:
+            owner_value = f"user:{obj.owner.user_id}"
+
         return {
             "id": str(obj.id),
-            "owner": owner_text,
+            "owner": owner_value,
             "name": obj.name,
             "organization_id": obj.organization_id,
             # TODO(Leander): Use get_attrs
@@ -121,12 +141,13 @@ class AlertTemplateSerializer(Serializer):
         }
 
 
-class IncomingAlertTemplateSerializer(CamelSnakeModelSerializer):
+class IncomingAlertTemplateSerializer(ModelSerializer):
     """
     context: organization, project, procedure_id, template_id,
     """
 
     name = serializers.CharField(max_length=128)
+    owner = ActorField(required=False, allow_null=True)
     issue_alerts = serializers.ListField(child=serializers.IntegerField(), required=False)
     issue_alert_data = RuleSetSerializer(partial=True)
     issue_alert_actions = serializers.ListField(
@@ -135,7 +156,13 @@ class IncomingAlertTemplateSerializer(CamelSnakeModelSerializer):
 
     class Meta:
         model = AlertProcedure
-        fields = ["name", "issue_alerts", "issue_alert_data", "issue_alert_actions"]
+        fields = [
+            "name",
+            "owner",
+            "issue_alerts",
+            "issue_alert_data",
+            "issue_alert_actions",
+        ]
 
     def validate_name(self, incoming_name: str):
         existing_id = self.context.get("template_id")
@@ -158,13 +185,10 @@ class IncomingAlertTemplateSerializer(CamelSnakeModelSerializer):
             )
         return incoming_issue_alerts
 
+    def validate_owner(self, owner):
+        return owner.resolve_to_actor()
+
     def validate(self, attrs):
-        procedure_id = self.context.get("procedure_id")
-        actions = attrs.get("issue_alert_actions")
-        if not procedure_id and not actions:
-            raise serializers.ValidationError(
-                detail="Requires procedure_id or actions to be specified"
-            )
         return validate_actions(attrs)
 
     def _create_alert_procedure(self, validated_data) -> AlertProcedure:
@@ -187,7 +211,7 @@ class IncomingAlertTemplateSerializer(CamelSnakeModelSerializer):
 
     def create(self, validated_data):
         procedure_id = self.context.get("procedure_id")
-        if not procedure_id:
+        if validated_data.get("issue_alert_actions"):
             ap = self._create_alert_procedure(validated_data=validated_data)
             procedure_id = ap.id
 

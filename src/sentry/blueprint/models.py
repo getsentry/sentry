@@ -33,8 +33,8 @@ class AlertTemplate(Model):
     __include_in_export__ = True
 
     owner = FlexibleForeignKey("sentry.Actor", null=True, on_delete=models.SET_NULL)
+    procedure = FlexibleForeignKey("sentry.AlertProcedure", null=True, on_delete=models.SET_NULL)
     organization = FlexibleForeignKey("sentry.Organization")
-    procedure = FlexibleForeignKey("sentry.AlertProcedure")
     name = models.CharField(max_length=128)
     issue_alert_data = JSONField(default={})
 
