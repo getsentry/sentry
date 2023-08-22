@@ -83,8 +83,9 @@ function HotkeysLabel({value, forcePlatform}: Props) {
 
 export default HotkeysLabel;
 
-const Key = styled('span')`
+const Key = styled('kbd')`
   font-size: ${p => p.theme.fontSizeMedium};
+  font-family: ${p => p.theme.text.family};
 `;
 
 const HotkeysContainer = styled('div')`
@@ -92,8 +93,5 @@ const HotkeysContainer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-
-  > * {
-    margin-right: ${space(0.5)};
-  }
+  gap: ${space(0.5)};
 `;
