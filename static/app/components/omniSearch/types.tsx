@@ -53,14 +53,14 @@ export interface OmniSearchStore {
 
 export interface OmniAction extends MenuItemProps {
   /**
+   * The global hotkey used to trigger the action. This uses the same format
+   * as useHotkey.
+   */
+  actionHotkey?: string;
+  /**
    * Icon to render in the leadingItems of the menu item.
    */
   actionIcon?: React.ComponentType<SVGIconProps>;
-  /**
-   * The global shortcut used to trigger the action. This uses the same format
-   * as useHotkey.
-   */
-  actionShortcut?: string;
   /**
    * The actionType will cause actions to be grouped together by action type.
    * Useful for example if you have multiple copy actions you want to visually

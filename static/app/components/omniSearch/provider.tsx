@@ -63,14 +63,14 @@ export function OmniSearchProvider({children}: OmniSearchProviderProps) {
 
   useHotkeys(
     actions
-      .filter(action => action.actionShortcut !== undefined)
+      .filter(action => action.actionHotkey !== undefined)
       .map<Hotkey>(action => {
         function callback() {
           action.onAction?.(action.key);
           // TODO handle `to`
         }
 
-        return {callback, match: action.actionShortcut!};
+        return {callback, match: action.actionHotkey!};
       }),
     [actions]
   );

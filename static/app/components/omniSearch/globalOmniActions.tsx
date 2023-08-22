@@ -120,7 +120,7 @@ export function useGlobalOmniActions() {
       areaKey: 'other',
       label: theme === 'light' ? t('Switch to Dark Mode') : t('Switch to Light Mode'),
       actionIcon: IconDiamond,
-      actionShortcut: 'cmd+shift+l',
+      actionHotkey: 'cmd+shift+l',
       onAction: () => ConfigStore.set('theme', theme === 'dark' ? 'light' : 'dark'),
     },
     {
@@ -130,7 +130,7 @@ export function useGlobalOmniActions() {
       actionIcon: props => (
         <IconChevron {...props} direction={sidebarCollapsed ? 'right' : 'left'} />
       ),
-      actionShortcut: '[',
+      actionHotkey: '[',
       onAction: sidebarCollapsed
         ? PreferenceStore.showSidebar
         : PreferenceStore.hideSidebar,
