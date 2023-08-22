@@ -24,7 +24,7 @@ const COLUMNS: {
   },
   {field: 'element', label: t('Path')},
 
-  {field: 'startTimestamp', label: t('Timestamp')},
+  {field: 'timestamp', label: t('Timestamp')},
 ];
 
 export const COLUMN_COUNT = COLUMNS.length;

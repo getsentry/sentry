@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SpanFrame} from 'sentry/utils/replays/types';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import useUrlParams from 'sentry/utils/useUrlParams';
 import AccessibilityDetailsContent from 'sentry/views/replays/detail/accessibility/details/content';
 import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
 

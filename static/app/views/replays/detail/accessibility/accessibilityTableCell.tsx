@@ -9,11 +9,7 @@ import {
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {Tooltip} from 'sentry/components/tooltip';
 import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import {
-  getFrameMethod,
-  getFrameStatus,
-  getResponseBodySize,
-} from 'sentry/utils/replays/resourceFrame';
+import {getFramePath, getFrameType} from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import useSortAccessibility from 'sentry/views/replays/detail/accessibility/useSortAccessibility';
@@ -58,9 +54,8 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
     const {getParamValue} = useUrlParams('n_detail_row', '');
     const isSelected = getParamValue() === String(dataIndex);
 
-    const method = getFrameMethod(frame);
-    const statusCode = getFrameStatus(frame);
-    const size = getResponseBodySize(frame);
+    const type = getFrameType(frame);
+    const path = getFramePath(frame);
 
     const hasOccurred = currentTime >= frame.offsetMs;
     const isBeforeHover =
@@ -106,23 +101,23 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
     const renderFns = [
       () => (
         <Cell {...columnProps}>
-          <Text>{method ? method : 'GET'}</Text>
+          <Text>{type ? type : 'unknown'}</Text>
         </Cell>
       ),
       () => (
         <Cell {...columnProps}>
-          <Text>{typeof statusCode === 'number' ? statusCode : EMPTY_CELL}</Text>
+          <Text>{path ? path : EMPTY_CELL}</Text>
         </Cell>
       ),
       () => (
         <Cell {...columnProps}>
           <Tooltip
-            title={frame.description}
+            title={frame.timestamp}
             isHoverable
             showOnlyOnOverflow
             overlayStyle={{maxWidth: '500px !important'}}
           >
-            <Text>{frame.description || EMPTY_CELL}</Text>
+            <Text>{frame.timestamp || EMPTY_CELL}</Text>
           </Tooltip>
         </Cell>
       ),
@@ -131,18 +126,6 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
           <Tooltip title={operationName(frame.op)} isHoverable showOnlyOnOverflow>
             <Text>{operationName(frame.op)}</Text>
           </Tooltip>
-        </Cell>
-      ),
-      () => (
-        <Cell {...columnProps} numeric>
-          <Text>
-            {size === undefined ? EMPTY_CELL : <FileSize base={10} bytes={size} />}
-          </Text>
-        </Cell>
-      ),
-      () => (
-        <Cell {...columnProps} numeric>
-          <Text>{`${(frame.endTimestampMs - frame.timestampMs).toFixed(2)}ms`}</Text>
         </Cell>
       ),
       () => (
