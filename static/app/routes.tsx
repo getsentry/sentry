@@ -1260,11 +1260,11 @@ function buildRoutes() {
         </Route>
         <Route
           path="templates/"
-          component={make(() => import('sentry/views/alerts/list/templates'))}
+          component={make(() => import('sentry/views/alerts/blueprints/templates'))}
         />
         <Route
           path="procedures/"
-          component={make(() => import('sentry/views/alerts/list/procedures'))}
+          component={make(() => import('sentry/views/alerts/blueprints/procedures'))}
         />
         <Route
           path=":alertId/"

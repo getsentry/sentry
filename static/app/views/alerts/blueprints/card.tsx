@@ -1,61 +1,38 @@
 import styled from '@emotion/styled';
 
 import Card from 'sentry/components/card';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import {IconEllipsis} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useTeams} from 'sentry/utils/useTeams';
-import AlertProcedureSummary from 'sentry/views/alerts/list/procedures/summary';
-import {UnassignedBadge} from 'sentry/views/alerts/list/util';
+import {UnassignedBadge} from 'sentry/views/alerts/blueprints/util';
 
-import type {Procedure} from './index';
+export interface AlertBlueprintCardProps {
+  actions: MenuItemProps[];
+  owner: string | null;
+  title: string;
+  subtitle?: string;
+}
 
-function AlertProcedureCard({procedure}: {procedure: Procedure}) {
-  const {label, owner} = procedure;
+function AlertBlueprintCard({
+  owner,
+  title,
+  subtitle = 'This is the content of the subtitle',
+  actions,
+  children,
+}: React.PropsWithChildren<AlertBlueprintCardProps>) {
   const {teams} = useTeams();
-
-  const actions: MenuItemProps[] = [
-    {
-      key: 'edit',
-      label: t('Edit'),
-      // to: editLink,
-    },
-    {
-      key: 'duplicate',
-      label: t('Duplicate'),
-      // to: duplicateLink,
-    },
-    {
-      key: 'delete',
-      label: t('Delete'),
-      priority: 'danger',
-      onAction: () => {
-        openConfirmModal({
-          onConfirm: () => {},
-          header: <h5>{t('Delete Alert Procedure?')}</h5>,
-          message: tct(
-            "Are you sure you want to delete '[label]'? All it's associated data will be removed. Alerts/Templates which use this procedure will not be affected.",
-            {label}
-          ),
-          confirmText: t('Delete Alert Procedure'),
-          priority: 'danger',
-        });
-      },
-    },
-  ];
 
   const ownerId = owner && owner.split(':')[1];
   const ownerTeam = teams.find(team => team.id === ownerId);
 
   return (
     <StyledCard interactive>
-      <Title>{label}</Title>
-      <Subtitle>This is the content of a subtitle</Subtitle>
+      <Title>{title}</Title>
+      <Subtitle>{subtitle}</Subtitle>
       <BadgeArea>
-        {/* TODO(Leander): Use the real team */}
         {ownerTeam ? <TeamBadge team={ownerTeam} /> : <UnassignedBadge />}
         <StyledDropdown
           items={actions}
@@ -68,9 +45,7 @@ function AlertProcedureCard({procedure}: {procedure: Procedure}) {
           }}
         />
       </BadgeArea>
-      <Summary>
-        <AlertProcedureSummary procedure={procedure} />
-      </Summary>
+      <Summary>{children}</Summary>
     </StyledCard>
   );
 }
@@ -111,4 +86,4 @@ const StyledDropdown = styled(DropdownMenu)`
   margin-left: 1rem;
 `;
 
-export default AlertProcedureCard;
+export default AlertBlueprintCard;

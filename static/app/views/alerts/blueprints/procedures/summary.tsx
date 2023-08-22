@@ -3,13 +3,12 @@ import styled from '@emotion/styled';
 
 import {IconArrow, IconFire} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import AccordionRow from 'sentry/views/alerts/list/procedures/accordionRow';
-import {getActionIcon} from 'sentry/views/alerts/list/util';
+import AccordionRow from 'sentry/views/alerts/blueprints/accordionRow';
+import {AlertProcedure} from 'sentry/views/alerts/blueprints/types';
+import {getActionIcon} from 'sentry/views/alerts/blueprints/util';
 import {TextAction} from 'sentry/views/alerts/rules/issue/details/textRule';
 
-import type {Procedure} from './index';
-
-function AlertProcedureSummary({procedure}: {procedure: Procedure}) {
+function AlertProcedureSummary({procedure}: {procedure: AlertProcedure}) {
   const {issue_alert_actions: actions = []} = procedure;
   const titleComponent = (
     <ActionTitle>
