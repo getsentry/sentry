@@ -3,17 +3,50 @@ import { FetchOptions } from "./types";
 import {ReplayListLocationQuery} from 'sentry/views/replays/types';
 import useOrganization from "sentry/utils/useOrganization";
 import useProjects from "sentry/utils/useProjects";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { decodeScalar } from "sentry/utils/queryString";
 import { MutableSearch } from "sentry/utils/tokenizeSearch";
 import EventView from "sentry/utils/discover/eventView";
-import useReplayList from "sentry/utils/replays/hooks/useReplayList";
+import useReplayList, { Result } from "sentry/utils/replays/hooks/useReplayList";
 
-export function useFetchReplays({userId, limit = 5}: FetchOptions) {
+interface State {
+  isInfiniteFetching: boolean;
+  timestamp: null | number;
+  results: null | Result
+}
+
+export function useFetchReplays({userId, infiniteRef, limit = 5}: FetchOptions) {
   const location = useLocation<ReplayListLocationQuery>();
   const organization = useOrganization();
   const {projects} = useProjects();
   const projectsHash = new Map(projects.map(project => [`${project.id}`, project]));
+  const observer = useRef<null | IntersectionObserver>(null);
+  const state = useState<State>({
+    isInfiniteFetching: false,
+    timestamp: null,
+    results: null,
+  });
+
+  useEffect(() => {
+    if (infiniteRef && infiniteRef.current && !observer.current) {
+      console.log('replays, useEffect observing', observer.current);
+
+      observer.current = new IntersectionObserver(
+          (entries) => {
+          const first = entries[0];
+          if (first.isIntersecting) {
+          // Do fetch
+          console.log('useFetchReplays inf loading hit');
+          }
+          })
+      observer.current.observe(infiniteRef.current);
+    }
+
+    return () => {
+    console.log('replays useEffect cleanup', infiniteRef?.current, observer.current)
+    }
+  })
+
 
   const eventView = useMemo(() => {
     const query = decodeScalar(location.query.query, '');
@@ -57,6 +90,12 @@ export function useFetchReplays({userId, limit = 5}: FetchOptions) {
     organization,
     perPage: limit,
   });
+
+
+  if (!results.isFetching) {
+  
+  }
+
 
   return {
     ...results,
