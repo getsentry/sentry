@@ -1,13 +1,16 @@
-import {CSSProperties} from '@emotion/serialize';
+import ModulesTreemap from 'sentry/views/bundleAnalyzer/components/ModulesTreemap';
+import {getViewerData} from 'sentry/views/bundleAnalyzer/utils/analyzer';
 
+import {store} from './store';
+
+const bundleStats = require('../../../../src/sentry/static/sentry/dist/stats.json');
+
+const chartData = getViewerData(bundleStats);
+
+store.defaultSize = `parsedSize`;
+store.setModules(chartData);
+store.setEntrypoints([null]);
 function BundleAnalyzer() {
-  const style: CSSProperties = {
-    padding: '20px',
-    width: '100%',
-    height: '1000px',
-  };
-
-  return <iframe style={style as any} src="http://127.0.0.1:8888/" />;
+  return <ModulesTreemap />;
 }
-
 export default BundleAnalyzer;

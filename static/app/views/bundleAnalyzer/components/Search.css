@@ -1,0 +1,28 @@
+.container {
+  font: var(--main-font);
+  white-space: nowrap;
+}
+
+.label {
+  font-weight: bold;
+  margin-bottom: 7px;
+}
+
+.row {
+  display: flex;
+}
+
+.input {
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  display: block;
+  flex: 1;
+  padding: 5px;
+}
+
+.clear {
+  flex: 0 0 auto;
+  line-height: 1;
+  margin-left: 3px;
+  padding: 5px 8px 7px;
+}

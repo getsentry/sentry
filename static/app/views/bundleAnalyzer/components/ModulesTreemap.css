@@ -1,0 +1,55 @@
+.container {
+  align-items: stretch;
+  display: flex;
+  height: 100%;
+  position: relative;
+  width: 100%;
+}
+
+.map {
+  flex: 1;
+}
+
+.sidebarGroup {
+  font: var(--main-font);
+  margin-bottom: 20px;
+}
+
+.showOption {
+  margin-top: 5px;
+}
+
+.activeSize {
+  font-weight: bold;
+}
+
+.foundModulesInfo {
+  display: flex;
+  font: var(--main-font);
+  margin: 8px 0 0;
+}
+
+.foundModulesInfoItem + .foundModulesInfoItem {
+  margin-left: 15px;
+}
+
+.foundModulesContainer {
+  margin-top: 15px;
+  max-height: 600px;
+  overflow: auto;
+}
+
+.foundModulesChunk + .foundModulesChunk {
+  margin-top: 15px;
+}
+
+.foundModulesChunkName {
+  cursor: pointer;
+  font: var(--main-font);
+  font-weight: bold;
+  margin-bottom: 7px;
+}
+
+.foundModulesList {
+  margin-left: 7px;
+}

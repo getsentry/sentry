@@ -1,0 +1,14 @@
+.container {
+  font: var(--main-font);
+  white-space: nowrap;
+}
+
+.label {
+  font-weight: bold;
+  font-size: 11px;
+  margin-bottom: 7px;
+}
+
+.item + .item {
+  margin-left: 5px;
+}

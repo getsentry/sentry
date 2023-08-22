@@ -92,6 +92,7 @@
 
     "esModuleInterop": true,
     "experimentalDecorators": true,
+    "useDefineForClassFields": true,
     "resolveJsonModule": true,
 
     "baseUrl": "../",

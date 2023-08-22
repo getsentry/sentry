@@ -1,0 +1,19 @@
+.item {
+  cursor: pointer;
+  margin: 0;
+  padding: 8px 14px;
+  user-select: none;
+}
+
+.item:hover {
+  background: #ffefd7;
+}
+
+.disabled {
+  cursor: default;
+  color: gray;
+}
+
+.item.disabled:hover {
+  background: transparent;
+}

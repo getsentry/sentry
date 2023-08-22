@@ -24,7 +24,8 @@ const config: TransformOptions = {
   plugins: [
     '@emotion/babel-plugin',
     '@babel/plugin-transform-runtime',
-    '@babel/plugin-proposal-class-properties',
+    ['@babel/plugin-proposal-decorators', {version: 'legacy'}],
+    ['@babel/plugin-proposal-class-properties', {loose: true}],
   ],
   env: {
     production: {

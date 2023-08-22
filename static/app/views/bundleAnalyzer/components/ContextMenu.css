@@ -1,0 +1,18 @@
+.container {
+  font: var(--main-font);
+  position: absolute;
+  padding: 0;
+  border-radius: 4px;
+  background: #fff;
+  border: 1px solid #aaa;
+  list-style: none;
+  opacity: 1;
+  white-space: nowrap;
+  visibility: visible;
+  transition: opacity .2s ease, visibility .2s ease;
+}
+
+.hidden {
+  opacity: 0;
+  visibility: hidden;
+}

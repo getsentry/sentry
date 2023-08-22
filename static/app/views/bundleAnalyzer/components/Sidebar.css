@@ -1,0 +1,83 @@
+@value toggleTime: 200ms;
+
+.container {
+  background: #fff;
+  border: none;
+  border-right: 1px solid #aaa;
+  box-sizing: border-box;
+  max-width: calc(50% - 10px);
+  opacity: 0.95;
+  z-index: 1;
+}
+
+.container:not(.hidden) {
+  min-width: 200px;
+}
+
+.container:not(.pinned) {
+  bottom: 0;
+  position: absolute;
+  top: 0;
+  transition: transform toggleTime ease;
+}
+
+.container.pinned {
+  position: relative;
+}
+
+.container.left {
+  left: 0;
+}
+
+.container.left.hidden {
+  transform: translateX(calc(-100% + 7px));
+}
+
+.content {
+  box-sizing: border-box;
+  height: 100%;
+  overflow-y: auto;
+  padding: 25px 20px 20px;
+  width: 100%;
+}
+
+.empty.pinned .content {
+  padding: 0;
+}
+
+.pinButton,
+.toggleButton {
+  cursor: pointer;
+  height: 26px;
+  line-height: 0;
+  position: absolute;
+  top: 10px;
+  width: 27px;
+}
+
+.pinButton {
+  right: 47px;
+}
+
+.toggleButton {
+  padding-left: 6px;
+  right: 15px;
+}
+
+.hidden .toggleButton {
+  right: -35px;
+  transition: transform .2s ease;
+}
+
+.hidden .toggleButton:hover {
+  transform: translateX(4px);
+}
+
+.resizer {
+  bottom: 0;
+  cursor: col-resize;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 7px;
+}
