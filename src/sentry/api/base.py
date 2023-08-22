@@ -91,12 +91,6 @@ DEFAULT_SLUG_ERROR_MESSAGE = _(
     "It cannot be entirely numeric."
 )
 
-# ORG_SLUG_PATTERN = (
-#     r"^(?![0-9]+$)[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$"
-#     if features.has("app:enterprise-prevent-numeric-slugs")
-#     else r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$"
-# )
-
 
 def allow_cors_options(func):
     """
