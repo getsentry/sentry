@@ -17,7 +17,7 @@ class AlertTemplateManager(BaseManager):
             procedure = AlertProcedure.objects.create_from_issue_alert(
                 organization_id=organization_id, rule_id=rule_id
             )
-            template = AlertTemplate.objects.get_or_create(
+            template, _created = AlertTemplate.objects.get_or_create(
                 name=f"[Template from Alert] {rule.label}",
                 organization_id=organization_id,
                 procedure=procedure,
@@ -51,13 +51,14 @@ class AlertProcedureManager(BaseManager):
         from sentry.models.rule import Rule
 
         rule = Rule.objects.get(id=rule_id, project__organization_id=organization_id)
-        return AlertProcedure.objects.get_or_create(
+        procedure, _created = AlertProcedure.objects.get_or_create(
             label=f"[Procedure from Alert] {rule.label}",
             organization_id=organization_id,
             is_manual=False,
             issue_alert_actions=rule.data.get("actions", {}),
             owner=rule.owner,
-        ).first()
+        )
+        return procedure
 
 
 @region_silo_only_model

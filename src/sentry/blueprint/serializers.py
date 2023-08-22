@@ -64,9 +64,7 @@ class IncomingAlertProcedureSerializer(ModelSerializer):
     label = serializers.CharField(max_length=255)
     owner = ActorField(required=False, allow_null=True)
     is_manual = serializers.BooleanField(default=False)
-    issue_alert_actions = serializers.ListField(
-        child=RuleNodeField(type="action/event"), required=False
-    )
+    issue_alert_actions = serializers.ListField(child=RuleNodeField(type="action/event"))
 
     class Meta:
         model = AlertProcedure
