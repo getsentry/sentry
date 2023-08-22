@@ -64,7 +64,7 @@ export default function FunnelOverview() {
             </PanelHeader>
             <PanelBody>
               {listissues?.length ? (
-                <ul>{listissues}</ul>
+                <ul>to fill in</ul>
               ) : (
                 <StyledEmptyStateWarning>No Related Issues</StyledEmptyStateWarning>
               )}

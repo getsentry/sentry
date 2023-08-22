@@ -1,18 +1,19 @@
+from collections import defaultdict
+
 from django.utils.text import slugify
 from iniconfig import ParseError
 from rest_framework import serializers, status
-from collections import defaultdict
 
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
-from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
-from sentry.api.serializers.models.group import GroupSerializerSnuba
-
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.funnel import FunnelSerializer
+from sentry.api.serializers.models.group import GroupSerializerSnuba
+from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.api.utils import InvalidParams
 from sentry.models.funnel import Funnel
+from sentry.models.group import Group
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json
 
@@ -20,8 +21,8 @@ from sentry.utils import json
 def get_issues_from_users(users, dataset, query, snuba_params, params):
     userquery = " OR ".join([f"user:{user}" for user in users])
     print(userquery)
-    ret =  dataset.query(
-        selected_columns=["issue", "timestamp","user"],
+    ret = dataset.query(
+        selected_columns=["issue", "timestamp", "user"],
         query=f"{userquery} AND ({query})",
         params=params,
         snuba_params=snuba_params,
@@ -40,13 +41,19 @@ def get_issues_from_users(users, dataset, query, snuba_params, params):
         on_demand_metrics_enabled=False,
         referrer=Referrer.API_ORGANIZATION_EVENTS_V2.value,
     )["data"]
-    print(ret)
-    retdict = defaultdict(set)
+
+    # get all the group ids and fetch from Postgres
+    group_ids = [issue["issue.id"] for issue in ret]
+    groups = Group.objects.filter(id__in=group_ids)
+
+    users_by_issue = defaultdict(set)
+    issues_by_id = {}
     for issue in ret:
-        retdict[issue["issue.id"]].add(issue["user"])
+        users_by_issue[str(issue["issue.id"])].add(issue["user"])
+        issues_by_id[str(issue["issue.id"])] = groups.get(id=issue["issue.id"])
 
+    return users_by_issue, issues_by_id
 
-    return retdict
 
 class FunnelDetailsEndpoint(OrganizationEventsV2EndpointBase):
     def get(self, request, organization, funnel_slug):
@@ -74,7 +81,6 @@ class FunnelDetailsEndpoint(OrganizationEventsV2EndpointBase):
 
         dataset = self.get_dataset(request)
         query = f"transaction:{starting_transaction} OR transaction:{ending_transaction}"
-        print("params", params, "snuba_params", snuba_params)
         response = dataset.query(
             selected_columns=["user", "transaction", "timestamp"],
             query=query,
@@ -119,10 +125,12 @@ class FunnelDetailsEndpoint(OrganizationEventsV2EndpointBase):
                     total_completions += 1
 
         allusers = [*min_start_time_per_user.keys(), *max_end_time_per_user.keys()]
-        userissues = get_issues_from_users(allusers, dataset, query, snuba_params, params)
-        print(userissues)
+        users_by_issue_id, issues_by_id = get_issues_from_users(
+            allusers, dataset, query, snuba_params, params
+        )
+        print(users_by_issue_id)
         retissues = {}
-        for issue, users in userissues.items():
+        for issue, users in users_by_issue_id.items():
             starts = 0
             completes = 0
             for user in users:
@@ -134,26 +142,31 @@ class FunnelDetailsEndpoint(OrganizationEventsV2EndpointBase):
             print(issue, starts, completes)
             retissues[issue] = {"starts": starts, "completes": completes}
 
-
-        print(retissues)
-        issueids = [issue for issue in retissues.keys()]
-
         issues = serialize(
-            userissues.keys(),
+            list(issues_by_id.values()),
             request.user,
             serializer=GroupSerializerSnuba(
                 organization_id=organization.id,
                 project_ids=request.GET.getlist("project"),
-            )
+            ),
         )
-
+        print("issues", issues, retissues)
+        issues_with_data = []
+        for issue in issues:
+            if issue["id"] in retissues:
+                data = {
+                    "starts": retissues[issue["id"]]["starts"],
+                    "completes": retissues[issue["id"]]["completes"],
+                    "issue": issue,
+                }
+                issues_with_data.append(data)
 
         return self.respond(
             {
                 "totalStarts": total_starts,
                 "totalCompletions": total_completions,
                 "funnel": serialize(funnel, request.user, serializer=FunnelSerializer()),
-                "issues": issues
+                "issues": issues_with_data,
             },
             status=200,
         )
