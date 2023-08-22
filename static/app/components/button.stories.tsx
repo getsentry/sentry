@@ -1,16 +1,52 @@
 import {Button} from 'sentry/components/button';
 import Matrix from 'sentry/components/stories/matrix';
+import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
+import {describe} from 'sentry/components/stories/story';
 import {IconDelete} from 'sentry/icons';
-import SideBySide from 'sentry/views/stories/sideBySide';
 
-export default function Main() {
-  return (
-    <SizingWindow>
-      <Button priority="default">Default Button</Button>
-    </SizingWindow>
+export default describe('Button', story => {
+  story('default', () => <Button priority="default">Default Button</Button>);
+
+  story('Size', () =>
+    ['md' as const, 'sm' as const, 'xs' as const, 'zero' as const].map(size => (
+      <Button key={size} size={size}>
+        {size}
+      </Button>
+    ))
   );
-}
+
+  story('Priority', () =>
+    ['default' as const, 'primary' as const, 'danger' as const, 'link' as const].map(
+      priority => (
+        <Button key={priority} priority={priority}>
+          {priority}
+        </Button>
+      )
+    )
+  );
+
+  story('Props', () => (
+    <Matrix
+      component={Button}
+      propMatrix={{
+        children: ['Save', undefined],
+        icon: [undefined, <IconDelete key="" />],
+        priority: ['default', 'primary', 'danger', 'link'],
+        size: ['md', 'sm', 'xs', 'zero'],
+        borderless: [false, true],
+      }}
+    />
+  ));
+});
+
+// export default function Main() {
+//   return (
+//     <SizingWindow>
+//       <Button priority="default">Default Button</Button>
+//     </SizingWindow>
+//   );
+// }
 
 export function Priority() {
   return (

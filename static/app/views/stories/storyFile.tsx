@@ -48,7 +48,7 @@ export default function StoryFile({filename, style}: Props) {
         </FlexRow>
       </FlexRow>
 
-      {DefaultExport ? <DefaultExport /> : null}
+      <div>{DefaultExport ? <DefaultExport /> : null}</div>
       {otherEntries.map(([field, Component]) => (
         <Component key={field} />
       ))}

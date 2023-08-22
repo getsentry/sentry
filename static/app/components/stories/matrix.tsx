@@ -36,11 +36,15 @@ export default function Matrix({component, propMatrix}: Props) {
   const Component = component;
   const items = hasChildren
     ? renderList.map(({children, ...props}) => (
-        <Component key={props} {...props}>
-          {children}
-        </Component>
+        <SizingWindow key={JSON.stringify(props)}>
+          <Component {...props}>{children}</Component>
+        </SizingWindow>
       ))
-    : renderList.map(props => <Component key={props} {...props} />);
+    : renderList.map(props => (
+        <SizingWindow key={JSON.stringify(props)}>
+          <Component {...props} />
+        </SizingWindow>
+      ));
 
   return (
     <div>
@@ -49,15 +53,14 @@ export default function Matrix({component, propMatrix}: Props) {
           <li key={key}>{key}</li>
         ))}
       </ul>
-      <SizingWindow>
-        <Grid
-          style={{
-            gridTemplateColumns: `repeat(${values2.length}, max-content)`,
-          }}
-        >
-          {items}
-        </Grid>
-      </SizingWindow>
+
+      <Grid
+        style={{
+          gridTemplateColumns: `repeat(${values2.length}, max-content)`,
+        }}
+      >
+        {items}
+      </Grid>
     </div>
   );
 }
