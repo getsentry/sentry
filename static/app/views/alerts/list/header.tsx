@@ -14,7 +14,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
-  activeTab: 'stream' | 'rules';
+  activeTab: 'stream' | 'rules' | 'templates' | 'procedures';
   router: InjectedRouter;
 };
 
@@ -82,6 +82,20 @@ function AlertHeader({router, activeTab}: Props) {
         <li className={activeTab === 'stream' ? 'active' : ''}>
           <GlobalSelectionLink to={`/organizations/${organization.slug}/alerts/`}>
             {t('History')}
+          </GlobalSelectionLink>
+        </li>
+        <li className={activeTab === 'templates' ? 'active' : ''}>
+          <GlobalSelectionLink
+            to={`/organizations/${organization.slug}/alerts/templates/`}
+          >
+            {t('Templates')}
+          </GlobalSelectionLink>
+        </li>
+        <li className={activeTab === 'procedures' ? 'active' : ''}>
+          <GlobalSelectionLink
+            to={`/organizations/${organization.slug}/alerts/procedures/`}
+          >
+            {t('Procedures')}
           </GlobalSelectionLink>
         </li>
       </Layout.HeaderNavTabs>

@@ -1259,6 +1259,14 @@ function buildRoutes() {
           />
         </Route>
         <Route
+          path="templates/"
+          component={make(() => import('sentry/views/alerts/list/templates'))}
+        />
+        <Route
+          path="procedures/"
+          component={make(() => import('sentry/views/alerts/list/procedures'))}
+        />
+        <Route
           path=":alertId/"
           component={make(() => import('sentry/views/alerts/incidentRedirect'))}
         />
