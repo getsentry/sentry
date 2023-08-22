@@ -161,6 +161,7 @@ const Wrapper = styled('div')<WrapperProps>`
   display: flex;
   flex-shrink: 0;
   justify-content: ${p => (p.direction === 'right' ? 'flex-end' : 'flex-start')};
+  align-items: center;
   ${p =>
     p.consistentWidth && `width: ${p.size + (p.max - 1) * getOverlapWidth(p.size)}px;`};
 

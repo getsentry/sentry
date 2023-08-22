@@ -172,7 +172,7 @@ export function UserTimeline({userId}: Props) {
     if (!acc.has(day)) {
       acc.set(day, []);
     }
-    const arr = acc.get(day);
+    const arr = acc.get(day) ?? [];
     arr.push(result);
     acc.set(day, arr);
     return acc;
@@ -191,7 +191,9 @@ export function UserTimeline({userId}: Props) {
                     key={results.id}
                     timestamp={results.timestamp}
                     project={results.project}
+                    // @ts-expect-error
                     speed={results.speed}
+                    // @ts-expect-error
                     type={results.type}
                   >
                     {results.content}
@@ -410,7 +412,7 @@ function useFetchEvents<T extends FetchEventsResponse>({
         fields,
         projects: [],
         query: conditions.formatString(),
-        orderby: ['-timestamp', 'message'],
+        orderby: '-timestamp',
       },
       location
     );
