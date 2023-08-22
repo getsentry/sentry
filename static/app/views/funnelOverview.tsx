@@ -2,12 +2,10 @@ import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import Footer from 'sentry/components/footer';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {space} from 'sentry/styles/space';
 import {Funnel} from 'sentry/types/funnel';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -52,9 +50,26 @@ export default function FunnelOverview() {
       />
       <h2>Funnel {funnelData?.funnel.name}</h2>
       <ContentWrapper>
-        <IssueList>
-          {listissues?.length ? <ul>{listissues}</ul> : <div>No Issues</div>}
-        </IssueList>
+        <IssueListWrapper>
+          <IssueList>
+            <PanelHeader>
+              <div>
+                <GridHeader>Issue</GridHeader>
+              </div>
+              <div>
+                <GridHeader>Events</GridHeader>
+              </div>
+            </PanelHeader>
+            <PanelBody>
+              {listissues?.length ? (
+                <ul>{listissues}</ul>
+              ) : (
+                <StyledEmptyStateWarning>No Related Issues</StyledEmptyStateWarning>
+              )}
+              <Grid />
+            </PanelBody>
+          </IssueList>
+        </IssueListWrapper>
         <div>
           {funnelData ? (
             <FunnelInfo>
@@ -105,7 +120,31 @@ const ContentWrapper = styled('div')`
   height: 100%;
 `;
 
-const IssueList = styled('div')`
-  padding: ${space(3)};
+const IssueList = styled(Panel)`
+  margin: ${space(2)};
+`;
+
+const IssueListWrapper = styled('div')`
   border: 1px solid ${p => p.theme.gray200};
+`;
+
+const GridHeader = styled('h5')`
+  color: ${p => p.theme.gray300};
+  font-size: 11px;
+  margin-bottom: ${space(0.5)};
+  text-transform: uppercase;
+`;
+
+const Grid = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${space(2)};
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 100%;
 `;
