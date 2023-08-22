@@ -6,6 +6,7 @@ from django.urls import reverse
 from sentry.models import Team
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import SCIMTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -235,6 +236,7 @@ class SCIMIndexCreateTest(SCIMTestCase):
         )
         assert response.data["detail"] == "A team with this slug already exists."
 
+    @with_feature("app:enterprise-prevent-numeric-slugs")
     def test_scim_team_invalid_numeric_slug(self):
         invalid_post_data = {**self.post_data, "displayName": "1234"}
         response = self.get_error_response(
