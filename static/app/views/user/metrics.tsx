@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
-import {IconFire, IconPlay, IconSpan} from 'sentry/icons';
+import {IconFire, IconSpan} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -11,7 +11,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-// import useProjects from "sentry/utils/useProjects";
 
 interface Props {
   userId: string;
@@ -49,9 +48,6 @@ export function Metrics({userId}: Props) {
           transactionData?.data?.length ? transactionData.data[0]['count()'] : 0
         )}
       </Box>
-      <Box>
-        <IconPlay size="md" />0
-      </Box>
     </Fragment>
   );
 }
@@ -74,8 +70,6 @@ const RedBox = styled(Box)`
 function useFetchErrorCount({userId}: {userId: string}) {
   const location = useLocation();
   const organization = useOrganization();
-  // const {projects} = useProjects();
-  // const projectsHash = Object.fromEntries(projects.map(project => [project.id, project]));
 
   const eventView = useMemo(() => {
     const query = decodeScalar(location.query.query, '');
@@ -109,8 +103,6 @@ function useFetchErrorCount({userId}: {userId: string}) {
 function useFetchTransactionCount({userId}: {userId: string}) {
   const location = useLocation();
   const organization = useOrganization();
-  // const {projects} = useProjects();
-  // const projectsHash = Object.fromEntries(projects.map(project => [project.id, project]));
 
   const eventView = useMemo(() => {
     const query = decodeScalar(location.query.query, '');
