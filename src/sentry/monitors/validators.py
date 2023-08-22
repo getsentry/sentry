@@ -5,7 +5,11 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE, DEFAULT_SLUG_PATTERN
+from sentry.api.base import (
+    DEFAULT_SLUG_ERROR_MESSAGE,
+    DEFAULT_SLUG_PATTERN,
+    PreventNumericSlugMixin,
+)
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
@@ -194,7 +198,7 @@ class ConfigValidator(serializers.Serializer):
         return attrs
 
 
-class MonitorValidator(CamelSnakeSerializer):
+class MonitorValidator(CamelSnakeSerializer, PreventNumericSlugMixin):
     project = ProjectField(scope="project:read")
     name = serializers.CharField(max_length=128)
     slug = serializers.RegexField(
@@ -228,7 +232,7 @@ class MonitorValidator(CamelSnakeSerializer):
             slug=value, organization_id=self.context["organization"].id
         ).exists():
             raise ValidationError(f'The slug "{value}" is already in use.')
-
+        value = super().validate_slug(value)
         return value
 
     def update(self, instance, validated_data):

@@ -1,9 +1,11 @@
 import pytest
 
+from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import ObjectStatus
 from sentry.models import Environment, RegionScheduledDeletion, Rule, RuleActivity, RuleActivityType
 from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.testutils.cases import MonitorTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -96,6 +98,7 @@ class UpdateMonitorTest(MonitorTestCase):
             self.organization.slug, monitor.slug, method="PUT", status_code=400, **{"slug": None}
         )
 
+    @with_feature("app:enterprise-prevent-numeric-slugs")
     def test_invalid_numeric_slug(self):
         monitor = self._create_monitor()
         resp = self.get_error_response(
@@ -105,10 +108,7 @@ class UpdateMonitorTest(MonitorTestCase):
             status_code=400,
             **{"slug": "1234"},
         )
-        assert resp.data["slug"][0] == (
-            "Enter a valid slug consisting of lowercase letters, numbers, underscores or "
-            "hyphens. It cannot be entirely numeric."
-        )
+        assert resp.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
     def test_slug_exists(self):
         self._create_monitor(slug="my-test-monitor")

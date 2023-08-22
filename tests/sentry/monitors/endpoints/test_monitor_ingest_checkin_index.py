@@ -9,6 +9,7 @@ from django.test.utils import override_settings
 from django.urls import reverse
 from freezegun import freeze_time
 
+from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.constants import TIMEOUT
@@ -300,10 +301,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 **self.dsn_auth_headers,
             )
             assert resp.status_code == 400, resp.content
-            assert resp.data["slug"][0] == (
-                "Enter a valid slug consisting of lowercase letters, numbers, underscores or "
-                "hyphens. It cannot be entirely numeric."
-            )
+            assert resp.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
     @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_creation_over_limit(self):
