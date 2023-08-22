@@ -57,6 +57,11 @@ export interface OmniAction extends MenuItemProps {
    */
   actionIcon?: React.ComponentType<SVGIconProps>;
   /**
+   * The global shortcut used to trigger the action. This uses the same format
+   * as useHotkey.
+   */
+  actionShortcut?: string;
+  /**
    * The actionType will cause actions to be grouped together by action type.
    * Useful for example if you have multiple copy actions you want to visually
    * represent in a single group.

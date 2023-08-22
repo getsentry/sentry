@@ -1,5 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 
+import {Hotkey, useHotkeys} from 'sentry/utils/useHotkeys';
+
 import {OmniConfigContext, OmniSearchStoreContext} from './context';
 import {OmniAction, OmniArea, OmniSearchConfig, OmniSearchStore} from './types';
 
@@ -57,6 +59,20 @@ export function OmniSearchProvider({children}: OmniSearchProviderProps) {
       areaPriority,
     }),
     [actions, areas, areaPriority]
+  );
+
+  useHotkeys(
+    actions
+      .filter(action => action.actionShortcut !== undefined)
+      .map<Hotkey>(action => {
+        function callback() {
+          action.onAction?.(action.key);
+          // TODO handle `to`
+        }
+
+        return {callback, match: action.actionShortcut!};
+      }),
+    [actions]
   );
 
   return (

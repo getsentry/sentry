@@ -20,7 +20,7 @@ const isKeyPressed = (key: string, evt: KeyboardEvent): boolean => {
   }
 };
 
-type Hotkey = {
+export type Hotkey = {
   /**
    * The callback triggered when the matching key is pressed
    */
