@@ -17,6 +17,7 @@ import {space} from 'sentry/styles/space';
 // import {useApiQuery} from 'sentry/utils/queryClient';
 // import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import {ErrorWidget} from 'sentry/views/user/widgets/errors';
 
 import {ReplayWidget} from './widgets/replays';
 import {TransactionWidget} from './widgets/transactions';
@@ -93,7 +94,7 @@ function UserDetails({params: {userId}}: Props) {
                 {/* Add widgets here */}
                 <ReplayWidget userId={userId} />
                 <TransactionWidget userId={userId} />
-                <div>placeholder</div>
+                <ErrorWidget userId={userId} />
                 <div>placeholder</div>
               </Widgets>
 

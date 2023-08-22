@@ -25,7 +25,7 @@ interface Props {
   userId: string;
 }
 
-export function TransactionWidget({userId}: Props) {
+export function ErrorWidget({userId}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -34,7 +34,7 @@ export function TransactionWidget({userId}: Props) {
   const eventView = useMemo(() => {
     const query = decodeScalar(location.query.query, '');
     const conditions = new MutableSearch(query);
-    conditions.addFilterValue('event.type', 'transaction');
+    conditions.addFilterValue('event.type', 'error');
     conditions.addFilterValue('user.id', userId);
 
     return EventView.fromNewQueryWithLocation(
@@ -43,24 +43,19 @@ export function TransactionWidget({userId}: Props) {
         name: '',
         version: 2,
         fields: [
-          'id',
-          'timestamp',
+          'issue.id',
+          'title',
           'project_id',
-          'transaction.duration',
-          'team_key_transaction',
-          'transaction',
-          'tpm()',
-          'p75(measurements.fcp)',
-          'p75(measurements.lcp)',
-          'p75(measurements.fid)',
-          'p75(measurements.cls)',
-          'count_unique(user)',
-          'count_miserable(user)',
-          'user_misery()',
+          'count()',
+          'platform.name',
+          'message',
+          'issue',
+          'max(timestamp)',
+          'error.type',
         ],
         projects: [],
         query: conditions.formatString(),
-        orderby: decodeScalar(location.query.sort, '-timestamp'),
+        orderby: decodeScalar(location.query.sort, '-issue.id'),
       },
       location
     );
@@ -83,25 +78,28 @@ export function TransactionWidget({userId}: Props) {
 
   return (
     <TransactionPanel>
-      <PanelHeader>{t('Recent Transactions')}</PanelHeader>
+      <PanelHeader>{t('Recent Errors')}</PanelHeader>
       <div>
         {!data?.data.length ? (
-          <EmptyTable>{t('No transaction data')}</EmptyTable>
+          <EmptyTable>{t('No error data')}</EmptyTable>
         ) : (
           <Table>
             {data.data.map(dataRow => {
+              const issueId = dataRow['issue.id'];
               const project = projectsHash[dataRow.project_id];
-              const link = `/performance/summary/?${qs.stringify({
+              const link = `/issues/${issueId}/events/?${qs.stringify({
                 project: dataRow.project_id,
-                transaction: dataRow.transaction,
                 query: `user.id:${userId}`,
               })}`;
+              const eventType = dataRow['error.type'][0];
 
               return (
-                <Fragment key={dataRow.id}>
-                  <Cols key={`${dataRow.id}-data`}>
+                <Fragment key={issueId}>
+                  <Cols key={`${issueId}-data`}>
                     <Title>
-                      <Link to={link}>{dataRow.transaction}</Link>
+                      <Link to={link}>
+                        {dataRow.issue} {eventType}
+                      </Link>
                     </Title>
                     <SubRow gap={1}>
                       <Row gap={0.5}>
@@ -111,7 +109,7 @@ export function TransactionWidget({userId}: Props) {
                       <Row gap={0.5}>
                         <IconCalendar color="gray300" size="xs" />
                         <TextOverflow>
-                          <TimeSince date={dataRow.timestamp} />
+                          <TimeSince date={dataRow['max(timestamp)']} />
                         </TextOverflow>
                       </Row>
                     </SubRow>
