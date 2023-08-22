@@ -15,9 +15,10 @@ import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {useFetchErrors, useFetchTransactions} from '../useFetchEvents';
+import {useFetchReplays} from '../useFetchReplays';
+
 import {Liner} from './liner';
-import { useFetchReplays } from '../useFetchReplays';
-import { useFetchErrors, useFetchTransactions } from '../useFetchEvents';
 
 interface Props {
   userId: string;

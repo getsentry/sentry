@@ -1,13 +1,14 @@
-import {useApiQuery} from 'sentry/utils/queryClient';
-import { useLocation } from "sentry/utils/useLocation";
-import { FetchEventsResponse, FetchOptions, FetchTransactionResponse } from "./types";
-import {ReplayListLocationQuery} from 'sentry/views/replays/types';
-import useOrganization from "sentry/utils/useOrganization";
-import { useMemo } from "react";
-import { decodeScalar } from "sentry/utils/queryString";
-import { MutableSearch } from "sentry/utils/tokenizeSearch";
-import EventView from "sentry/utils/discover/eventView";
+import {useMemo} from 'react';
 
+import EventView from 'sentry/utils/discover/eventView';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {ReplayListLocationQuery} from 'sentry/views/replays/types';
+
+import {FetchEventsResponse, FetchOptions, FetchTransactionResponse} from './types';
 
 export function useFetchErrors(options: FetchOptions) {
   return useFetchEvents<FetchEventsResponse>({...options, type: 'error'});
@@ -46,7 +47,7 @@ export function useFetchEvents<T extends FetchEventsResponse>({
     // sort: -timestamp
     // statsPeriod: 7d
 
-      const fields = [
+    const fields = [
       'message',
       'timestamp',
       'event.type',

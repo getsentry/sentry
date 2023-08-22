@@ -1,8 +1,8 @@
-import { RefObject } from "react";
+import {RefObject} from 'react';
 
 export interface FetchOptions {
   userId: string;
-  infiniteRef?: RefObject<HTMLDivElement|null> | null;
+  infiniteRef?: RefObject<HTMLDivElement | null> | null;
   limit?: number;
 }
 
@@ -37,4 +37,3 @@ export interface FetchTransactionResponse {
   data: TransactionEvent[];
   meta: any;
 }
-
