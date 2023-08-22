@@ -604,6 +604,13 @@ function buildRoutes() {
           () => import('sentry/views/settings/project/projectUserFeedback')
         )}
       />
+      <Route
+        path="nel/"
+        name={t('Network Error Logging')}
+        component={make(
+          () => import('sentry/views/settings/project/networkErrorLogging')
+        )}
+      />
       <Redirect from="csp/" to="security-headers/" />
       <Route path="security-headers/" name={t('Security Headers')}>
         <IndexRoute
