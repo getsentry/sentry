@@ -9,6 +9,11 @@ export interface OmniSearchConfig {
    */
   registerActions: (actions: OmniAction[]) => UnregisterCallback;
   /**
+   * Register the area priority stack. This is controlled by the OmniSearchArea
+   * context provider
+   */
+  registerAreaPriority: (areaPriority: string[]) => UnregisterCallback;
+  /**
    * Used to register an "Area" within the omni search. You can group an
    * OmniAction into an area by specifying the `areaKey` on the OmniAction.
    */
@@ -17,6 +22,11 @@ export interface OmniSearchConfig {
 
 export interface OmniArea {
   key: string;
+  /**
+   * Indicates this area has high contextual relevancy to the user. This is
+   * used when an area is prioritized via the areaPriority list.
+   */
+  focused?: boolean;
   /**
    * Leaving label blank will cause actions to be grouped, but will not
    */
@@ -32,7 +42,17 @@ export type OmniAreaMap = Record<string, OmniArea>;
  * The datastructure representing the state of the OmniSearch
  */
 export interface OmniSearchStore {
+  /**
+   * Registered actions
+   */
   actions: OmniAction[];
+  /**
+   * Represents the order priority of areas by area key.
+   */
+  areaPriority: string[];
+  /**
+   * Mapping of active OmniArea's
+   */
   areas: OmniAreaMap;
 }
 
