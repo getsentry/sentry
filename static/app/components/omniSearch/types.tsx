@@ -1,4 +1,5 @@
 import {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
 
 type UnregisterCallback = () => void;
 
@@ -36,6 +37,10 @@ export interface OmniSearchStore {
 }
 
 export interface OmniAction extends MenuItemProps {
+  /**
+   * Icon to render in the leadingItems of the menu item.
+   */
+  actionIcon?: React.ComponentType<SVGIconProps>;
   /**
    * The actionType will cause actions to be grouped together by action type.
    * Useful for example if you have multiple copy actions you want to visually
