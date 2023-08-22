@@ -19,6 +19,7 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {ReplayWidget} from './widgets/replays';
+import {TransactionWidget} from './widgets/transactions';
 import {UserTimeline} from './timeline';
 // import useOrganization from 'sentry/utils/useOrganization';
 
@@ -91,7 +92,7 @@ function UserDetails({params: {userId}}: Props) {
               <Widgets>
                 {/* Add widgets here */}
                 <ReplayWidget userId={userId} />
-                <div>placeholder</div>
+                <TransactionWidget userId={userId} />
                 <div>placeholder</div>
                 <div>placeholder</div>
               </Widgets>
