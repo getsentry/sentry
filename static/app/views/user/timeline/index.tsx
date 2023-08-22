@@ -45,7 +45,7 @@ export function UserTimeline({userId}: Props) {
           <Link to={`/organizations/${organization.slug}/replays/${replay.id}/`}>
             {getShortEventId(replay.id)}
           </Link>{' '}
-          ({formatTime(replay.duration)})
+          ({formatTime(Number(replay.duration))})
         </div>
       ),
       type: 'replay',
@@ -58,7 +58,7 @@ export function UserTimeline({userId}: Props) {
         <div>
           {event.type === 'error' ? 'Error: ' : ''}
           <Link to={`/organizations/${organization.slug}/replays/${event.id}/`}>
-            {event.title}
+            {event.message}
           </Link>{' '}
         </div>
       ),
@@ -217,9 +217,8 @@ function useFetchEvents({userId, limit = 5}: {userId: string; limit?: number}) {
         name: '',
         version: 2,
         fields: [
-          'title',
+          'message',
           'timestamp',
-          'transaction.duration',
           'event.type',
           'project.id',
           'os.name',
@@ -238,17 +237,21 @@ function useFetchEvents({userId, limit = 5}: {userId: string; limit?: number}) {
   const payload = eventView.getEventsAPIPayload(location);
   payload.per_page = limit;
 
-  const results = useApiQuery([
-    `/organizations/${organization.slug}/events/`,
-    {
-      query: {
-        ...payload,
-        queryReferrer: 'issueReplays',
+  const results = useApiQuery(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          ...payload,
+          queryReferrer: 'issueReplays',
+        },
       },
-    },
-  ]);
+    ],
+    {staleTime: 0}
+  );
 
   return {
+    // @ts-expect-error
     events: results.data?.data,
     isFetching: results.isLoading,
     fetchError: results.error,

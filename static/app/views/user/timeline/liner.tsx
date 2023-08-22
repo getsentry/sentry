@@ -10,7 +10,7 @@ export function Liner({size = 10, lineSize = 1}: Props) {
     '--halfSize': `${size / 2}px`,
     '--line': `${lineSize}px`,
     '--halfLine': `${lineSize / 2}px`,
-  };
+  } as any;
   return (
     <Wrapper style={css}>
       <Line style={css} />

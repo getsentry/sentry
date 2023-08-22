@@ -342,7 +342,7 @@ export function ReplayCell({
 
   if (replay.is_archived) {
     return (
-      <Item className={className} isArchived={replay.is_archived}>
+      <ArchivedItem className={className}>
         <Row gap={1}>
           <StyledIconDelete color="gray500" size="md" />
           <div>
@@ -353,7 +353,7 @@ export function ReplayCell({
             </Row>
           </div>
         </Row>
-      </Item>
+      </ArchivedItem>
     );
   }
 
@@ -426,13 +426,14 @@ const MainLink = styled(Link)`
 `;
 
 export function TransactionCell({
+  className,
   organization,
   replay,
 }: Props & {organization: Organization}) {
   const location = useLocation();
 
   if (replay.is_archived) {
-    return <Item className={className} isArchived />;
+    return <ArchivedItem className={className} />;
   }
   const hasTxEvent = 'txEvent' in replay;
   const txDuration = hasTxEvent ? replay.txEvent?.['transaction.duration'] : undefined;
@@ -454,7 +455,7 @@ export function OSCell({className, replay}: Props) {
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
   if (replay.is_archived) {
-    return <Item className={className} isArchived />;
+    return <ArchivedItem className={className} />;
   }
   return (
     <Item className={className}>
@@ -477,7 +478,7 @@ export function BrowserCell({className, replay}: Props) {
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
   if (replay.is_archived) {
-    return <Item className={className} isArchived />;
+    return <ArchivedItem className={className} />;
   }
   return (
     <Item className={className}>
@@ -496,7 +497,7 @@ export function BrowserCell({className, replay}: Props) {
 
 export function DurationCell({className, replay}: Props) {
   if (replay.is_archived) {
-    return <Item className={className} isArchived />;
+    return <ArchivedItem className={className} />;
   }
   return (
     <Item className={className}>
@@ -510,7 +511,7 @@ export function DurationCell({className, replay}: Props) {
 
 export function RageClickCountCell({className, replay}: Props) {
   if (replay.is_archived) {
-    return <Item className={className} isArchived />;
+    return <ArchivedItem className={className} />;
   }
   return (
     <Item className={className} data-test-id="replay-table-count-rage-clicks">
@@ -531,7 +532,7 @@ export function RageClickCountCell({className, replay}: Props) {
 
 export function DeadClickCountCell({className, replay}: Props) {
   if (replay.is_archived) {
-    return <Item className={className} isArchived />;
+    return <ArchivedItem className={className} />;
   }
   return (
     <Item className={className} data-test-id="replay-table-count-dead-clicks">
@@ -552,7 +553,7 @@ export function DeadClickCountCell({className, replay}: Props) {
 
 export function ErrorCountCell({className, replay}: Props) {
   if (replay.is_archived) {
-    return <Item className={className} isArchived />;
+    return <ArchivedItem className={className} />;
   }
   return (
     <Item className={className} data-test-id="replay-table-count-errors">
@@ -573,7 +574,7 @@ export function ErrorCountCell({className, replay}: Props) {
 
 export function ActivityCell({className, replay}: Props) {
   if (replay.is_archived) {
-    return <Item className={className} isArchived />;
+    return <ArchivedItem className={className} />;
   }
   const scoreBarPalette = new Array(10).fill([CHART_PALETTE[0][0]]);
   return (
@@ -595,12 +596,15 @@ export function ActivityCell({className, replay}: Props) {
   );
 }
 
-const Item = styled('div')<{isArchived?: boolean}>`
+const Item = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
   padding: ${space(1.5)};
-  ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
+`;
+
+const ArchivedItem = styled(Item)`
+  opacity: 0.5;
 `;
 
 const Count = styled('span')`
