@@ -33,7 +33,7 @@ def get_issues_from_user(user, dataset, query, snuba_params, params):
         use_metrics_layer=False,
         on_demand_metrics_enabled=False,
         referrer=Referrer.API_ORGANIZATION_EVENTS_V2.value,
-    )
+    )["data"]
 
 
 class FunnelDetailsEndpoint(OrganizationEventsV2EndpointBase):
@@ -100,19 +100,23 @@ class FunnelDetailsEndpoint(OrganizationEventsV2EndpointBase):
 
         total_starts = 0
         total_completions = 0
-        issues = set()
+        issues = []
         for user, min_start_time in min_start_time_per_user.items():
             total_starts += 1
-            issues.add(get_issues_from_user(user, dataset, query, snuba_params, params))
+            userissues = get_issues_from_user(user, dataset, query, snuba_params, params)
+            if userissues:
+                issues += [str(userissues[0])]
             if user in max_end_time_per_user:
                 if max_end_time_per_user[user] > min_start_time:
                     total_completions += 1
 
+        print(issues)
         return self.respond(
             {
                 "totalStarts": total_starts,
                 "totalCompletions": total_completions,
                 "funnel": serialize(funnel, request.user, serializer=FunnelSerializer()),
+                "issues": issues,
             },
             status=200,
         )
