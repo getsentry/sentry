@@ -2,6 +2,8 @@ import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
 import type {FieldKind} from 'sentry/utils/fields';
 
+import type {MetaContainer} from '../components/events/meta/metaContainer';
+
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
 import type {Commit, PullRequest, Repository} from './integrations';
@@ -719,7 +721,7 @@ export type KeyValueListDataItem = {
   actionButton?: React.ReactNode;
   isContextData?: boolean;
   isMultiValue?: boolean;
-  meta?: Meta;
+  meta?: MetaContainer;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
   value?: React.ReactNode;

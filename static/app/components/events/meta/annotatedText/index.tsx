@@ -1,3 +1,4 @@
+import {Meta} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -8,7 +9,7 @@ import {AnnotatedTextValue} from './annotatedTextValue';
 type Props = {
   value: React.ReactNode;
   className?: string;
-  meta?: Record<any, any>;
+  meta?: Partial<Meta>;
 };
 
 export function AnnotatedText({value, meta, className, ...props}: Props) {

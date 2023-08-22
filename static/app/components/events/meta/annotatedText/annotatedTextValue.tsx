@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
-import {Organization, Project} from 'sentry/types';
+import {Meta, Organization, Project} from 'sentry/types';
 
 import {Redaction} from './redaction';
 import {getTooltipText} from './utils';
@@ -9,7 +9,7 @@ import {ValueElement} from './valueElement';
 
 type Props = {
   value: React.ReactNode;
-  meta?: Record<any, any>;
+  meta?: Partial<Meta>;
   organization?: Organization;
   project?: Project;
 };
@@ -23,7 +23,11 @@ export function AnnotatedTextValue({value, meta, organization, project}: Props) 
             return (
               <Tooltip
                 skipWrapper
-                title={getTooltipText({rule_id: chunk.rule_id, remark: chunk.remark})}
+                title={getTooltipText({
+                  rule_id: chunk.rule_id,
+                  remark: chunk.remark,
+                  meta,
+                })}
                 key={index}
               >
                 <Redaction>{chunk.text}</Redaction>
@@ -45,6 +49,7 @@ export function AnnotatedTextValue({value, meta, organization, project}: Props) 
           remark: meta.rem[0][1],
           organization,
           project,
+          meta,
         })}
         isHoverable
       >

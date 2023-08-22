@@ -1,7 +1,6 @@
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {t} from 'sentry/locale';
-import {Frame} from 'sentry/types';
+import {Frame, Meta} from 'sentry/types';
 
 type Props = {
   frame: Frame;
@@ -20,7 +19,7 @@ export function FunctionName({
   ...props
 }: Props) {
   const getValueOutput = ():
-    | {meta: ReturnType<typeof getMeta>; value: Frame['function']}
+    | {meta: Meta | undefined; value: Frame['function']}
     | undefined => {
     if (hasHiddenDetails && showCompleteFunctionName && frame.rawFunction) {
       return {

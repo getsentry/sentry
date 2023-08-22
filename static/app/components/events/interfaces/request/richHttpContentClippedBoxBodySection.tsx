@@ -2,6 +2,7 @@ import ClippedBox from 'sentry/components/clippedBox';
 import ContextData from 'sentry/components/contextData';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import type {MetaContainer} from 'sentry/components/events/meta/metaContainer';
 import {t} from 'sentry/locale';
 import {EntryRequest} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -11,7 +12,7 @@ import getTransformedData from './getTransformedData';
 type Props = {
   data: EntryRequest['data']['data'];
   inferredContentType: EntryRequest['data']['inferredContentType'];
-  meta?: Record<any, any>;
+  meta?: MetaContainer;
 };
 
 export function RichHttpContentClippedBoxBodySection({
@@ -30,6 +31,8 @@ export function RichHttpContentClippedBoxBodySection({
           <ContextData
             data-test-id="rich-http-content-body-context-data"
             data={data}
+            meta={meta}
+            withAnnotatedText
             preserveQuotes
           />
         );

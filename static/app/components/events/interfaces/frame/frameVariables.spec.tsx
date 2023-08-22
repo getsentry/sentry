@@ -3,6 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {FrameVariables} from 'sentry/components/events/interfaces/frame/frameVariables';
+import {castAsMetaContainer} from 'sentry/components/events/meta/metaContainer';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 describe('Frame Variables', function () {
@@ -32,7 +33,7 @@ describe('Frame Variables', function () {
             "'tags'": null,
           },
         }}
-        meta={{
+        meta={castAsMetaContainer({
           "'client'": {
             '': {
               rem: [['project:0', 's', 0, 0]],
@@ -61,7 +62,7 @@ describe('Frame Variables', function () {
               ],
             },
           },
-        }}
+        })}
       />,
       {organization, router, context: routerContext}
     );

@@ -2,8 +2,6 @@ import isEmpty from 'lodash/isEmpty';
 import isNull from 'lodash/isNull';
 import memoize from 'lodash/memoize';
 
-import {Meta} from 'sentry/types';
-
 const GET_META = Symbol('GET_META');
 const IS_PROXY = Symbol('IS_PROXY');
 
@@ -82,14 +80,3 @@ export const withMeta = memoize(function withMeta<T>(event: T): T {
   // https://github.com/microsoft/TypeScript/issues/20846
   return new Proxy(event, new MetaProxy((event as any)._meta)) as T;
 });
-
-export function getMeta<T extends {}>(
-  obj: T | undefined,
-  prop: Extract<keyof T, string>
-): Meta | undefined {
-  if (!obj || typeof obj[GET_META] !== 'function') {
-    return undefined;
-  }
-
-  return obj[GET_META](prop);
-}

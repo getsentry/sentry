@@ -2,6 +2,7 @@ import {Fragment, isValidElement} from 'react';
 
 import ContextData from 'sentry/components/contextData';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {getMeta} from 'sentry/components/events/meta/metaContainer';
 import {KeyValueListData} from 'sentry/types';
 
 export interface ValueProps
@@ -34,7 +35,7 @@ export function Value({subjectIcon, meta, raw, isContextData, value = null}: Val
 
   return (
     <pre className="val-string">
-      <AnnotatedText value={dataValue} meta={meta} />
+      <AnnotatedText value={dataValue} meta={getMeta(meta)} />
       {subjectIcon}
     </pre>
   );
