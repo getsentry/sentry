@@ -103,16 +103,21 @@ export default function BundleDetails() {
         ));
       }
       case BundleType.PACKAGES: {
-        return packageModules.map(module => (
-          <Fragment
-            key={`module-${module.name}-${
-              module?.chunks[0] ? module?.chunks[0] : '_sentry_no_chunk'
-            }-${module?.reasons[0] ? module?.reasons[0].module : '_sentry_no_reason'}`}
-          >
-            <div>{module.name}</div>
-            <div>{formatBytesBase2(module.size)}</div>
-          </Fragment>
-        ));
+        return packageModules.map(module => {
+          const npmPackageName = getNpmPackageFromNodeModules(module.name);
+          return (
+            <Fragment
+              key={`module-${module.name}-${
+                module?.chunks[0] ? module?.chunks[0] : '_sentry_no_chunk'
+              }-${module?.reasons[0] ? module?.reasons[0].module : '_sentry_no_reason'}`}
+            >
+              <ExternalLink href={`https://www.npmjs.com/package/${npmPackageName}`}>
+                {module.name.replace('../node_modules/', '')}
+              </ExternalLink>
+              <div>{formatBytesBase2(module.size)}</div>
+            </Fragment>
+          );
+        });
       }
       default: {
         throw new Error('Invalid bundle type');
@@ -155,6 +160,27 @@ export default function BundleDetails() {
       </Layout.Main>
     </Layout.Body>
   );
+}
+
+function getNpmPackageFromNodeModules(name: string): string {
+  const path = name.replace('../node_modules/', '');
+  const pathComponents = path.split('/');
+
+  for (let i = pathComponents.length - 1; i >= 0; i--) {
+    if (pathComponents[i] === 'node_modules') {
+      const maybePackageName = pathComponents[i + 1];
+
+      if (maybePackageName.startsWith('@')) {
+        return maybePackageName + pathComponents[i + 2];
+      }
+      return maybePackageName;
+    }
+  }
+
+  if (pathComponents[0].startsWith('@')) {
+    return pathComponents[0] + pathComponents[1];
+  }
+  return pathComponents[0];
 }
 
 const StyledCard = styled(Card)`
