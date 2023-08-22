@@ -8,6 +8,7 @@ from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import Authenticator, Organization, OrganizationMember, OrganizationStatus
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
@@ -122,7 +123,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         self.get_error_response(status_code=400, **data)
 
     def test_slugs(self):
-        valid_slugs = ["santry", "downtown-canada", "foo123", "CaNaDa"]
+        valid_slugs = ["santry", "downtown-canada", "1234", "CaNaDa"]
         for input_slug in valid_slugs:
             self.organization.refresh_from_db()
             response = self.get_success_response(name=input_slug, slug=input_slug)
@@ -138,7 +139,8 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
             self.get_error_response(name="name", slug="canada-", status_code=400)
             self.get_error_response(name="name", slug="-canada", status_code=400)
             self.get_error_response(name="name", slug="----", status_code=400)
-            self.get_error_response(name="name", slug="1234", status_code=400)
+            with self.feature("app:enterprise-prevent-numeric-slugs"):
+                self.get_error_response(name="name", slug="1234", status_code=400)
 
     def test_without_slug(self):
         response = self.get_success_response(name="hello world")
@@ -147,6 +149,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         org = Organization.objects.get(id=organization_id)
         assert org.slug == "hello-world"
 
+    @with_feature("app:enterprise-prevent-numeric-slugs")
     def test_generated_slug_not_entirely_numeric(self):
         response = self.get_success_response(name="1234")
 
@@ -189,6 +192,11 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         response = self.get_success_response(name="CaNaDa")
         org = Organization.objects.get(id=response.data["id"])
         assert org.slug == "canada"
+        assert org_slug_pattern.match(org.slug)
+
+        response = self.get_success_response(name="1234")
+        org = Organization.objects.get(id=response.data["id"])
+        assert org.slug == "1234"
         assert org_slug_pattern.match(org.slug)
 
     def test_required_terms_with_terms_url(self):
