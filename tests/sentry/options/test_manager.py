@@ -9,6 +9,7 @@ from django.test import override_settings
 from sentry.options.manager import (
     DEFAULT_FLAGS,
     FLAG_ADMIN_MODIFIABLE,
+    FLAG_ALLOW_EMPTY,
     FLAG_AUTOMATOR_MODIFIABLE,
     FLAG_CREDENTIAL,
     FLAG_IMMUTABLE,
@@ -120,6 +121,14 @@ class OptionsManagerTest(TestCase):
 
         with pytest.raises(ValueError):
             self.manager.register("bad_flags", flags=FLAG_REQUIRED | FLAG_AUTOMATOR_MODIFIABLE)
+
+    def test_feature_flag_dynamics(self):
+        value = self.manager.get("features:organizations:quacking")
+        assert value == ""
+
+        key = self.manager.lookup_key("features:organizations:quacking")
+        assert key.flags & FLAG_AUTOMATOR_MODIFIABLE == FLAG_AUTOMATOR_MODIFIABLE
+        assert key.flags & FLAG_ALLOW_EMPTY == FLAG_ALLOW_EMPTY
 
     def test_coerce(self):
         self.manager.register("some-int", type=Int)
