@@ -275,9 +275,9 @@ function Sidebar({location, organization}: Props) {
     <SidebarItem
       {...sidebarItemProps}
       icon={<IconGraphLine />}
-      label={t('Funnel')}
+      label={t('Funnels')}
       to={`/organizations/${organization.slug}/funnel/`}
-      id="funnel"
+      id="funnels"
     />
   );
 

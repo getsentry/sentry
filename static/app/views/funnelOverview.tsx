@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
 
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import Footer from 'sentry/components/footer';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
@@ -39,17 +41,20 @@ export default function FunnelOverview() {
 
   return (
     <Wrapper>
-      <h1>Funnel</h1>
-      <PageFiltersContainer>
-        <PageFilterBar condensed>
-          <ProjectPageFilter />
-          <EnvironmentPageFilter />
-          <DatePageFilter alignDropdown="left" />
-        </PageFilterBar>
-      </PageFiltersContainer>
-      <Title>{funnelData?.funnel.name}</Title>
+      <Breadcrumbs
+        crumbs={[
+          {
+            label: 'Funnels',
+            to: `/organizations/${organization.slug}/funnel/`,
+          },
+          {label: funnelData?.funnel.name},
+        ]}
+      />
+      <h2>Funnel {funnelData?.funnel.name}</h2>
       <ContentWrapper>
-        <ul>{listissues}</ul>
+        <IssueList>
+          {listissues?.length ? <ul>{listissues}</ul> : <div>No Issues</div>}
+        </IssueList>
         <div>
           {funnelData ? (
             <FunnelInfo>
@@ -81,20 +86,26 @@ export default function FunnelOverview() {
   );
 }
 
-const Wrapper = styled('div')`
-  padding: ${space(3)};
+const Wrapper = styled('main')`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 `;
 
 const FunnelInfo = styled('div')`
-  margin-top: ${space(3)};
+  border-top: 1px solid ${p => p.theme.gray200};
+  padding: ${space(3)};
 `;
 
 const ContentWrapper = styled('div')`
+  flex-grow: 1;
   display: grid;
   grid-template-columns: 4fr 1fr;
-  grid-gap: ${space(3)};
+  background-color: ${p => p.theme.white};
+  height: 100%;
 `;
 
-const Title = styled('h3')`
-  margin-top: ${space(3)};
+const IssueList = styled('div')`
+  padding: ${space(3)};
+  border: 1px solid ${p => p.theme.gray200};
 `;
