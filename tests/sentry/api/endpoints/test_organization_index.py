@@ -123,7 +123,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         self.get_error_response(status_code=400, **data)
 
     def test_slugs(self):
-        valid_slugs = ["santry", "downtown-canada", "foo123", "CaNaDa"]
+        valid_slugs = ["santry", "downtown-canada", "1234", "CaNaDa"]
         for input_slug in valid_slugs:
             self.organization.refresh_from_db()
             response = self.get_success_response(name=input_slug, slug=input_slug)
