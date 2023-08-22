@@ -9,9 +9,11 @@ import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingTriangle from 'sentry/components/loadingTriangle';
+import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Sidebar from 'sentry/components/sidebar';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import ConfigStore from 'sentry/stores/configStore';
@@ -24,6 +26,7 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganizations from 'sentry/utils/withOrganizations';
 
 import {OrganizationContext} from './organizationContext';
@@ -51,6 +54,20 @@ type State = {
   errorType?: string | null;
   hooks?: React.ReactNode[];
 };
+
+function RegisterOmniActions({organization}: {organization: Organization}) {
+  useOmniActions([
+    {
+      key: 'nav-org-settings',
+      areaKey: 'navigate',
+      label: t('%s Settings', organization.name),
+      actionIcon: props => <IconArrow {...props} direction="right" />,
+      to: normalizeUrl('/settings/organization/'),
+    },
+  ]);
+
+  return null;
+}
 
 class OrganizationContextContainer extends Component<Props, State> {
   static getDerivedStateFromProps(props: Readonly<Props>, prevState: State): State {
@@ -308,9 +325,12 @@ class OrganizationContextContainer extends Component<Props, State> {
   }
 
   renderBody() {
+    const {organization} = this.state;
+
     return (
       <SentryDocumentTitle noSuffix title={this.getTitle()}>
-        <OrganizationContext.Provider value={this.state.organization}>
+        {organization && <RegisterOmniActions organization={organization} />}
+        <OrganizationContext.Provider value={organization}>
           <div className="app">
             {this.state.hooks}
             {this.renderSidebar()}
