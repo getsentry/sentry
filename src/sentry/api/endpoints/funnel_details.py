@@ -91,3 +91,8 @@ class FunnelDetailsEndpoint(OrganizationEventsV2EndpointBase):
             },
             status=200,
         )
+
+    def delete(self, request, organization, funnel_slug):
+        funnel = Funnel.objects.get(slug=funnel_slug)
+        funnel.delete()
+        return self.respond(status=204)

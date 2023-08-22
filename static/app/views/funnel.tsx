@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
@@ -13,6 +14,7 @@ import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {space} from 'sentry/styles/space';
 import type {Funnel as FunnelType} from 'sentry/types/funnel';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -22,10 +24,11 @@ import TableView from 'sentry/views/discover/table/tableView';
 export default function Funnel() {
   const organization = useOrganization();
   const location = useLocation();
-  const {data: funnels} = useApiQuery<FunnelType[]>(
+  const api = useApi();
+  const {data: funnels, refetch} = useApiQuery<FunnelType[]>(
     [`/organizations/${organization.slug}/funnel/`],
     {
-      staleTime: Infinity,
+      staleTime: 0,
     }
   );
   return (
@@ -40,10 +43,27 @@ export default function Funnel() {
         </LinkButton>
       </Header>
       <StyledPanel>
-        <PanelHeader>Funnel Name</PanelHeader>
-        {funnels?.map(funnel => (
-          <FunnelItem key={funnel.id} funnel={funnel} organization={organization} />
-        ))}
+        {funnels?.length ? (
+          <Fragment>
+            <PanelHeader>Funnel Name</PanelHeader>
+            {funnels?.map(funnel => (
+              <FunnelItem
+                key={funnel.id}
+                funnel={funnel}
+                organization={organization}
+                onDelete={async (funnelSlug: string) => {
+                  await api.requestPromise(
+                    `/organizations/${organization.slug}/funnel/${funnelSlug}/`,
+                    {
+                      method: 'DELETE',
+                    }
+                  );
+                  refetch();
+                }}
+              />
+            ))}
+          </Fragment>
+        ) : null}
       </StyledPanel>
     </Wrapper>
   );
