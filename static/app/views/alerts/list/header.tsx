@@ -4,6 +4,7 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
+import FeatureBadge from 'sentry/components/featureBadge';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -89,6 +90,7 @@ function AlertHeader({router, activeTab}: Props) {
             to={`/organizations/${organization.slug}/alerts/templates/`}
           >
             {t('Templates')}
+            <FeatureBadge type="new" />
           </GlobalSelectionLink>
         </li>
         <li className={activeTab === 'procedures' ? 'active' : ''}>
@@ -96,6 +98,7 @@ function AlertHeader({router, activeTab}: Props) {
             to={`/organizations/${organization.slug}/alerts/procedures/`}
           >
             {t('Procedures')}
+            <FeatureBadge type="new" />
           </GlobalSelectionLink>
         </li>
       </Layout.HeaderNavTabs>

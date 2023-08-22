@@ -21,7 +21,7 @@ export interface Procedure {
   issue_alert_actions: IssueAlertRuleAction[];
   label: string;
   organization_id: number;
-  owner: string;
+  owner: string | null;
   // [type]:[identifer]
   templates: number[];
 }
@@ -45,9 +45,9 @@ function AlertProcedureList() {
             ) : (
               <ProcedureItemContainer>
                 {procedures.map(p => (
-                  <ProcudureItem key={p.id}>
+                  <ProcedureItem key={p.id}>
                     <AlertProcedureCard procedure={p} />
-                  </ProcudureItem>
+                  </ProcedureItem>
                 ))}
               </ProcedureItemContainer>
             )}
@@ -67,8 +67,6 @@ const ProcedureItemContainer = styled('div')`
   }
 `;
 
-const ProcudureItem = styled('div')`
-  margin: ${space(1)} 0;
-`;
+const ProcedureItem = styled('div')``;
 
 export default AlertProcedureList;

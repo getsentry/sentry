@@ -4,18 +4,20 @@ import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
-import {IconEllipsis} from 'sentry/icons';
+import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useTeams} from 'sentry/utils/useTeams';
-import AlertProcedureSummary from 'sentry/views/alerts/list/procedures/summary';
 import {UnassignedBadge} from 'sentry/views/alerts/list/util';
 
-import type {Procedure} from './index';
+import type {Template} from './index';
 
-function AlertProcedureCard({procedure}: {procedure: Procedure}) {
-  const {label, owner} = procedure;
+function AlertTemplateCard({template}: {template: Template}) {
   const {teams} = useTeams();
+
+  const {name, owner} = template;
+  const ownerId = owner && owner.split(':')[1];
+  const ownerTeam = teams.find(team => team.id === ownerId);
 
   const actions: MenuItemProps[] = [
     {
@@ -47,12 +49,9 @@ function AlertProcedureCard({procedure}: {procedure: Procedure}) {
     },
   ];
 
-  const ownerId = owner && owner.split(':')[1];
-  const ownerTeam = teams.find(team => team.id === ownerId);
-
   return (
     <StyledCard interactive>
-      <Title>{label}</Title>
+      <Title>{name}</Title>
       <Subtitle>This is the content of a subtitle</Subtitle>
       <BadgeArea>
         {/* TODO(Leander): Use the real team */}
@@ -68,9 +67,7 @@ function AlertProcedureCard({procedure}: {procedure: Procedure}) {
           }}
         />
       </BadgeArea>
-      <Summary>
-        <AlertProcedureSummary procedure={procedure} />
-      </Summary>
+      <Summary>test</Summary>
     </StyledCard>
   );
 }
@@ -111,4 +108,4 @@ const StyledDropdown = styled(DropdownMenu)`
   margin-left: 1rem;
 `;
 
-export default AlertProcedureCard;
+export default AlertTemplateCard;

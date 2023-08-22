@@ -1,5 +1,9 @@
-import {IconGeneric, IconMail, IconSad, IconSentry} from 'sentry/icons';
+import styled from '@emotion/styled';
+
+import {IconGeneric, IconMail, IconSad, IconSentry, IconUser} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {space} from 'sentry/styles/space';
 import {IssueAlertRuleAction} from 'sentry/types/alerts';
 
 const STATIC_RULE_ICONS = new Set([
@@ -53,3 +57,23 @@ export function getActionIcon(action: IssueAlertRuleAction): React.ReactNode {
   }
   return <IconSad />;
 }
+
+export function UnassignedBadge() {
+  return (
+    <StyledBadge>
+      <StyledIconUser size="md" />
+      {t('Unassigned')}
+    </StyledBadge>
+  );
+}
+
+const StyledBadge = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledIconUser = styled(IconUser)`
+  margin-left: ${space(0.25)};
+  margin-right: ${space(1)};
+  color: ${p => p.theme.gray400};
+`;
