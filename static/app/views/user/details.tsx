@@ -92,13 +92,15 @@ function UserDetails({params: {userId}}: Props) {
               </FilterBar>
               <Widgets>
                 {/* Add widgets here */}
-                <ReplayWidget userId={userId} />
                 <TransactionWidget userId={userId} />
                 <ErrorWidget userId={userId} />
                 <div>placeholder</div>
               </Widgets>
 
-              <UserTimeline userId={userId} />
+              <LargeWidgets>
+                <UserTimeline userId={userId} />
+                <ReplayWidget userId={userId} />
+              </LargeWidgets>
             </Main>
           </Body>
         </PageFiltersContainer>
@@ -144,6 +146,10 @@ const Widgets = styled('section')`
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   width: 100%;
+`;
+
+const LargeWidgets = styled(Widgets)`
+  overflow: hidden;
 `;
 
 const FullViewport = styled('div')`

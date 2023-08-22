@@ -58,10 +58,11 @@ const Wrapper = styled('div')`
   --size: var(--size);
   position: relative;
   width: var(--size);
+  flex-shrink: 0;
 `;
 
 const Line = styled('div')`
-  background-color: ${p => p.theme.gray400};
+  background-color: ${p => p.theme.gray200};
   width: var(--line);
   position: absolute;
   left: calc(50% - calc(var(--line) / 2));

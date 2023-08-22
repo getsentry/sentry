@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -8,6 +8,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import {formatTime} from 'sentry/components/replays/utils';
+import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -127,11 +128,13 @@ export function UserTimeline({userId}: Props) {
         id: event.id,
         content: (
           <TransactionContent>
-            <Link
-              to={`/organizations/${organization.slug}/performance/${event.project}:${event.id}/`}
-            >
-              {event.message}
-            </Link>{' '}
+            <TextOverflow>
+              <Link
+                to={`/organizations/${organization.slug}/performance/${event.project}:${event.id}/`}
+              >
+                {event.message}
+              </Link>
+            </TextOverflow>
             <span style={css}>{duration}ms</span>
             {spanOperationRelativeBreakdownRenderer(event, {
               location,
@@ -162,30 +165,55 @@ export function UserTimeline({userId}: Props) {
     })),
   ].sort((a, b) => +a.timestamp - +b.timestamp);
 
+  const groupedByDay = allResults.reduce((acc, result) => {
+    const day = new Date(result.timestamp).toLocaleDateString('en-US', {
+      dateStyle: 'long',
+    });
+    if (!acc.has(day)) {
+      acc.set(day, []);
+    }
+    const arr = acc.get(day);
+    arr.push(result);
+    acc.set(day, arr);
+    return acc;
+  }, new Map<string, typeof allResults>());
+
   return (
     <TimelinePanel>
       <TimelineScrollWrapper>
         <Timeline>
-          {allResults.map(results => {
-            return (
-              <TimelineEvent
-                key={results.id}
-                timestamp={results.timestamp}
-                project={results.project}
-                // @ts-expect-error
-                speed={results.speed}
-                // @ts-expect-error
-                type={results.type}
-              >
-                {results.content}
-              </TimelineEvent>
-            );
-          })}
+          {Object.entries(Object.fromEntries(groupedByDay)).map(([day, dayResults]) => (
+            <Fragment key={day}>
+              <Day>{day}</Day>
+              {dayResults.map(results => {
+                return (
+                  <TimelineEvent
+                    key={results.id}
+                    timestamp={results.timestamp}
+                    project={results.project}
+                    speed={results.speed}
+                    type={results.type}
+                  >
+                    {results.content}
+                  </TimelineEvent>
+                );
+              })}
+            </Fragment>
+          ))}
         </Timeline>
       </TimelineScrollWrapper>
     </TimelinePanel>
   );
 }
+const Day = styled('div')`
+  color: ${p => p.theme.subText};
+  font-weight: bold;
+  position: sticky;
+  top: 0;
+  background: ${p => p.theme.surface400};
+  padding: ${space(1)};
+  z-index: 2;
+`;
 
 interface TimelineEventProps {
   children: React.ReactNode;
@@ -218,13 +246,15 @@ function UnstyledTimelineEvent({
           <Avatar round project={project} />
           {children}
         </EventContent>
-        <Timestamp>{timestamp.toISOString()}</Timestamp>
+        <Timestamp>{formatTimestamp(timestamp)}</Timestamp>
       </EventWrapper>
     </div>
   );
 }
 
-const Timeline = styled('div')``;
+const Timeline = styled('div')`
+  position: relative;
+`;
 
 const TimelinePanel = styled(Panel)`
   flex: 1;
@@ -235,7 +265,7 @@ const EventContent = styled('div')`
   display: flex;
   gap: ${space(1)};
   flex: 1;
-  padding: ${space(2)} 0;
+  padding: ${space(1.5)} 0;
 `;
 const EventWrapper = styled('div')`
   flex: 1;
@@ -320,7 +350,7 @@ function useFetchReplays({userId, limit = 5}: FetchOptions) {
 const Timestamp = styled('span')`
   color: ${p => p.theme.gray300};
   font-family: ${p => p.theme.text.familyMono};
-  font-size: 0.85rem;
+  font-size: 0.7rem;
 `;
 
 function useFetchErrors(options: FetchOptions) {
@@ -380,7 +410,7 @@ function useFetchEvents<T extends FetchEventsResponse>({
         fields,
         projects: [],
         query: conditions.formatString(),
-        orderby: decodeScalar(location.query.sort, '-timestamp'),
+        orderby: ['-timestamp', 'message'],
       },
       location
     );
@@ -388,6 +418,7 @@ function useFetchEvents<T extends FetchEventsResponse>({
 
   const payload = eventView.getEventsAPIPayload(location);
   payload.per_page = limit;
+  payload.sort = ['-timestamp', 'message'];
 
   const results = useApiQuery<T>(
     [
@@ -399,7 +430,7 @@ function useFetchEvents<T extends FetchEventsResponse>({
         },
       },
     ],
-    {staleTime: 0}
+    {staleTime: 0, retry: false}
   );
 
   return {
@@ -421,3 +452,7 @@ function useFetchEvents<T extends FetchEventsResponse>({
 // sort: -timestamp
 // statsPeriod: 7d
 //
+
+function formatTimestamp(date: Date) {
+  return `${date.toLocaleTimeString('en-US', {hour12: false})}`;
+}
