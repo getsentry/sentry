@@ -81,45 +81,45 @@ export function TransactionWidget({userId}: Props) {
       ) : error ? (
         <LoadingError />
       ) : (
-      <div>
-        {!data?.data.length ? (
-          <EmptyTable>{t('No transaction data')}</EmptyTable>
-        ) : (
-          <Table>
-            {data.data.map(dataRow => {
-              const project = projectsHash[dataRow.project_id];
-              const link = `/performance/summary/?${qs.stringify({
-                project: dataRow.project_id,
-                transaction: dataRow.transaction,
-                query: `user.id:${userId}`,
-              })}`;
+        <div>
+          {!data?.data.length ? (
+            <EmptyTable>{t('No transaction data')}</EmptyTable>
+          ) : (
+            <Table>
+              {data.data.map(dataRow => {
+                const project = projectsHash[dataRow.project_id];
+                const link = `/performance/summary/?${qs.stringify({
+                  project: dataRow.project_id,
+                  transaction: dataRow.transaction,
+                  query: `user.id:${userId}`,
+                })}`;
 
-              return (
-                <Fragment key={dataRow.id}>
-                  <Cols key={`${dataRow.id}-data`}>
-                    <Title>
-                      <Link to={link}>{dataRow.transaction}</Link>
-                    </Title>
-                    <SubRow gap={1}>
-                      <Row gap={0.5}>
-                        {project ? <Avatar size={12} project={project} /> : null}
-                        {project ? project.slug : null}
-                      </Row>
-                      <Row gap={0.5}>
-                        <IconCalendar color="gray300" size="xs" />
-                        <TextOverflow>
-                          <TimeSince date={dataRow.timestamp} />
-                        </TextOverflow>
-                      </Row>
-                    </SubRow>
-                  </Cols>
-                </Fragment>
-              );
-            })}
-          </Table>
-        )}
-      </div>
-    )}
+                return (
+                  <Fragment key={dataRow.id}>
+                    <Cols key={`${dataRow.id}-data`}>
+                      <Title>
+                        <Link to={link}>{dataRow.transaction}</Link>
+                      </Title>
+                      <SubRow gap={1}>
+                        <Row gap={0.5}>
+                          {project ? <Avatar size={12} project={project} /> : null}
+                          {project ? project.slug : null}
+                        </Row>
+                        <Row gap={0.5}>
+                          <IconCalendar color="gray300" size="xs" />
+                          <TextOverflow>
+                            <TimeSince date={dataRow.timestamp} />
+                          </TextOverflow>
+                        </Row>
+                      </SubRow>
+                    </Cols>
+                  </Fragment>
+                );
+              })}
+            </Table>
+          )}
+        </div>
+      )}
     </TransactionPanel>
   );
 }
