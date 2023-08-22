@@ -5,6 +5,9 @@ from collections import defaultdict
 
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
+from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
+from sentry.api.serializers.models.group import GroupSerializerSnuba
+
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.funnel import FunnelSerializer
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
@@ -38,9 +41,9 @@ def get_issues_from_users(users, dataset, query, snuba_params, params):
         referrer=Referrer.API_ORGANIZATION_EVENTS_V2.value,
     )["data"]
     print(ret)
-    retdict = defaultdict(list)
+    retdict = defaultdict(set)
     for issue in ret:
-        retdict[issue["issue.id"]] += [issue["user"]]
+        retdict[issue["issue.id"]].add(issue["user"])
 
 
     return retdict
@@ -133,13 +136,24 @@ class FunnelDetailsEndpoint(OrganizationEventsV2EndpointBase):
 
 
         print(retissues)
+        issueids = [issue for issue in retissues.keys()]
+
+        issues = serialize(
+            userissues.keys(),
+            request.user,
+            serializer=GroupSerializerSnuba(
+                organization_id=organization.id,
+                project_ids=request.GET.getlist("project"),
+            )
+        )
+
 
         return self.respond(
             {
                 "totalStarts": total_starts,
                 "totalCompletions": total_completions,
-                "funnel": serialize(funnel, request.user, serializer=FunnelSerializer())
-              #  "issues": userissues.,
+                "funnel": serialize(funnel, request.user, serializer=FunnelSerializer()),
+                "issues": issues
             },
             status=200,
         )
