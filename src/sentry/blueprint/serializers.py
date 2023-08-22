@@ -11,6 +11,7 @@ from sentry.api.serializers.rest_framework.rule import (
     validate_actions,
 )
 from sentry.blueprint.models import AlertProcedure, AlertTemplate
+from sentry.models.actor import actor_type_to_string
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.user import User
@@ -36,10 +37,11 @@ class AlertProcedureSerializer(Serializer):
             except serializers.ValidationError:
                 # Integrations can be deleted and we don't want to fail to load the rule
                 pass
-
+        owner_text = f"{actor_type_to_string(obj.owner.type)}:{obj.owner_id}" if obj.owner else None
         return {
             "id": str(obj.id),
             # TODO(Leander): Use a better serializer or expand
+            "owner": owner_text,
             "templates": [{"id": t.id, "name": t.name} for t in templates],
             "label": obj.label,
             "organization_id": obj.organization_id,
@@ -106,9 +108,10 @@ class AlertTemplateSerializer(Serializer):
             "frequency": obj.issue_alert_data.get("frequency") or Rule.DEFAULT_FREQUENCY,
         }
         rules = Rule.objects.filter(template_id=obj.id)
-
+        owner_text = f"{actor_type_to_string(obj.owner.type)}:{obj.owner_id}" if obj.owner else None
         return {
             "id": str(obj.id),
+            "owner": owner_text,
             "name": obj.name,
             "organization_id": obj.organization_id,
             # TODO(Leander): Use get_attrs
