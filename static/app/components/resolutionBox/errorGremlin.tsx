@@ -1,21 +1,30 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 type ErrorGemlinProps = {};
 
-const ANIMATION_DURATION = '700ms';
+const ANIMATION_DURATION = '500ms';
 
 export function ErrorGemlin(props: ErrorGemlinProps) {
+  const [phase, setPhase] = useState('running');
+
   return (
     <AnimatedSvg
       xmlns="http://www.w3.org/2000/svg"
-      width={60}
-      height={80}
+      width={65}
       shapeRendering="geometricPrecision"
       textRendering="geometricPrecision"
-      viewBox="0 0 60 80"
+      viewBox="0 -35 60 110"
+      className={phase}
       {...props}
     >
-      <g id="gremlin">
+      <g
+        id="gremlin"
+        onAnimationEnd={() => {
+          setPhase(phase === 'running' ? 'jumping' : 'running');
+        }}
+      >
         <g id="right-arm">
           <polyline
             points="116.2624,20.005 109.7105,27.3815 103.9094,22.5728 104.9186,21.4037 100.2651,17.0929 99.4013,18.4721 99.6615,19.5195 97.9384,22.6531 100.9509,24.4724 109.8549,30.0042 116.371,21.7757"
@@ -43,20 +52,12 @@ export function ErrorGemlin(props: ErrorGemlinProps) {
           id="right-leg"
         />
         <path
+          id="left-leg"
           d="M 31.4,47.6 C 31.4,47.6,31.8,59.4,31.8,59.4 C 31.8,59.4,31.8,59.4,31.8,59.4 C 31.8,59.4,31.6,73,31.6,73 C 30.7,73.5,29.4,74.1,29,75.1 C 29,75.1,30.7,76.8,35.1,75.9 C 35.1,75.9,33.7,59.4,33.7,59.4 L 32.5,47.5 C 32.2,47,31.6,47,31.4,47.6 Z"
           fill="#ece8f0"
           stroke="#2f1d4a"
           strokeLinecap="round"
           strokeLinejoin="round"
-          id="left-leg"
-        />
-        <path
-          d="m 37.326084,47.211357 c 0,0 -6.14464,10.077366 -6.14464,10.077366 0,0 0,0 0,0 0,0 -6.37526,10.09192 -6.37526,10.09192 -1.01405,-0.443253 -2.17506,-0.37183 -3.46834,0.291108 0,0 -0.37185,1.88321 4.72087,4.036431 0,0 7.62849,-14.355362 7.62849,-14.355362 l 4.62692,-9.664766 c -0.0351,-0.553808 -0.45073,-0.87142 -0.98804,-0.476697 z"
-          fill="#ece8f0"
-          stroke="#2f1d4a"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          id="left-leg"
         />
         <g id="gremlin-body">
           <path
@@ -99,98 +100,181 @@ export function ErrorGemlin(props: ErrorGemlinProps) {
   );
 }
 
-const AnimatedSvg = styled('svg')`
-  #gremlin {
-    animation: bounce ${ANIMATION_DURATION} ease-out infinite;
-  }
-
-  @keyframes bounce {
-    0%,
-    25% 50%,
-    75% 100% {
-      transform: translateY(0);
-    }
-    12.5%,
-    62.5% {
-      transform: translateY(5px);
-    }
-    37.5%,
-    87.5% {
-      transform: translateY(-5px);
-    }
-  }
+const AnimatedSvg = styled(motion.svg)`
+  position: absolute;
+  bottom: 0;
+  left: 30px;
 
   #left-arm {
-    animation: rotate-left-arm infinite ${ANIMATION_DURATION};
+    transition: all 500ms ease-out;
     transform-origin: 39px 37px;
   }
 
-  @keyframes rotate-left-arm {
-    0%,
-    100% {
-      transform: rotate(0);
-    }
-    50% {
-      transform: rotate(90deg);
-    }
-  }
-
   #right-arm {
-    animation: rotate-right-arm infinite ${ANIMATION_DURATION};
+    transition: all 500ms ease-out;
     transform-origin: 28px 37px;
-  }
-
-  @keyframes rotate-right-arm {
-    0%,
-    100% {
-      transform: rotate(0);
-    }
-    50% {
-      transform: rotate(-90deg);
-    }
   }
 
   #right-leg {
     transform-origin: 32px 47.5px;
     transform: rotate(0);
-    animation: right-leg-flex linear infinite ${ANIMATION_DURATION};
   }
 
   #left-leg {
     transform-origin: 32px 47.5px;
     transform: translateX(5px) rotate(35deg);
-    animation: left-leg-flex linear infinite ${ANIMATION_DURATION};
   }
 
-  @keyframes right-leg-flex {
-    0%,
-    100% {
-      transform: rotate(0);
-      d: path(
-        'm 31.4,47.6 c 0,0 0.4,11.8 0.4,11.8 -0,0.3 0.2,0.7 0.7,0.8 0,0 13.7,2.3 13.7,2.3 0.1,0.9 0.9,2.4 1.7,2.9 0,0 1.8,-0.9 1.8,-5.9 0,0 -15.8,-1.5 -15.8,-1.5 l -1.4,-10.6 c -0.3,-0.4 -0.9,-0.5 -1.1,0.1 z'
-      );
+  @keyframes move {
+    0% {
+      opacity: 0;
+      left: calc(100% - 50px);
     }
-    50% {
-      transform: rotate(35deg);
-      d: path(
-        'M 31.4,47.6 C 31.4,47.6,31.8,59.4,31.8,59.4 C 31.8,59.4,31.8,59.4,31.8,59.4 C 31.8,59.4,31.6,73,31.6,73 C 30.7,73.5,29.4,74.1,29,75.1 C 29,75.1,30.7,76.8,35.1,75.9 C 35.1,75.9,33.7,59.4,33.7,59.4 L 32.5,47.5 C 32.2,47,31.6,47,31.4,47.6 Z'
-      );
+    10% {
+      opacity: 1;
+    }
+    100% {
+      left: 30px;
     }
   }
 
-  @keyframes left-leg-flex {
-    0%,
-    100% {
-      transform: translateX(5px) rotate(35deg);
-      d: path(
-        'M 31.4,47.6 C 31.4,47.6,31.8,59.4,31.8,59.4 C 31.8,59.4,31.8,59.4,31.8,59.4 C 31.8,59.4,31.6,73,31.6,73 C 30.7,73.5,29.4,74.1,29,75.1 C 29,75.1,30.7,76.8,35.1,75.9 C 35.1,75.9,33.7,59.4,33.7,59.4 L 32.5,47.5 C 32.2,47,31.6,47,31.4,47.6 Z'
-      );
+  &.jumping {
+    animation: jump 1s;
+    animation-timing-function: ease-in-out;
+
+    #gremlin {
+      transform-origin: 33px 39px;
+      animation: gremlin-rotate 1s ease-out;
     }
-    50% {
-      transform: translateX(5px) rotate(-10deg);
-      d: path(
-        'm 31.4,47.6 c 0,0 0.4,11.8 0.4,11.8 -0,0.3 0.2,0.7 0.7,0.8 0,0 13.7,2.3 13.7,2.3 0.1,0.9 0.9,2.4 1.7,2.9 0,0 1.8,-0.9 1.8,-5.9 0,0 -15.8,-1.5 -15.8,-1.5 l -1.4,-10.6 c -0.3,-0.4 -0.9,-0.5 -1.1,0.1 z'
-      );
+
+    #left-arm {
+      transform: rotate(50deg);
+    }
+
+    #right-arm {
+      transform: rotate(-50deg);
+    }
+
+    @keyframes jump {
+      0% {
+        left: 30px;
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-40px);
+        left: 5px;
+      }
+      100% {
+        transform: translateY(20px);
+        left: 0px;
+      }
+    }
+
+    @keyframes gremlin-rotate {
+      0% {
+      }
+      50% {
+        transform: rotate(30deg);
+      }
+      100% {
+        transform: rotate(30deg);
+      }
+    }
+  }
+
+  &.running {
+    animation: move 2s;
+    animation-timing-function: cubic-bezier(0.43, 0.79, 0.24, 1.02);
+
+    #gremlin {
+      animation: bounce ${ANIMATION_DURATION} ease-out;
+      animation-iteration-count: 2;
+    }
+
+    @keyframes bounce {
+      0%,
+      25%,
+      50%,
+      75%,
+      100% {
+        transform: translateY(0);
+      }
+      12.5%,
+      62.5% {
+        transform: translateY(5px);
+      }
+      37.5%,
+      87.5% {
+        transform: translateY(-5px);
+      }
+    }
+
+    #left-arm {
+      animation: rotate-left-arm infinite ${ANIMATION_DURATION};
+    }
+
+    @keyframes rotate-left-arm {
+      0%,
+      100% {
+        transform: rotate(0);
+      }
+      50% {
+        transform: rotate(90deg);
+      }
+    }
+
+    #right-arm {
+      animation: rotate-right-arm infinite ${ANIMATION_DURATION};
+    }
+
+    @keyframes rotate-right-arm {
+      0%,
+      100% {
+        transform: rotate(0);
+      }
+      50% {
+        transform: rotate(-90deg);
+      }
+    }
+
+    #right-leg {
+      animation: right-leg-flex linear infinite ${ANIMATION_DURATION};
+    }
+
+    #left-leg {
+      animation: left-leg-flex linear infinite ${ANIMATION_DURATION};
+    }
+
+    @keyframes right-leg-flex {
+      0%,
+      100% {
+        transform: rotate(0);
+        d: path(
+          'm 31.4,47.6 c 0,0 0.4,11.8 0.4,11.8 -0,0.3 0.2,0.7 0.7,0.8 0,0 13.7,2.3 13.7,2.3 0.1,0.9 0.9,2.4 1.7,2.9 0,0 1.8,-0.9 1.8,-5.9 0,0 -15.8,-1.5 -15.8,-1.5 l -1.4,-10.6 c -0.3,-0.4 -0.9,-0.5 -1.1,0.1 z'
+        );
+      }
+      50% {
+        transform: rotate(35deg);
+        d: path(
+          'M 31.4,47.6 C 31.4,47.6,31.8,59.4,31.8,59.4 C 31.8,59.4,31.8,59.4,31.8,59.4 C 31.8,59.4,31.6,73,31.6,73 C 30.7,73.5,29.4,74.1,29,75.1 C 29,75.1,30.7,76.8,35.1,75.9 C 35.1,75.9,33.7,59.4,33.7,59.4 L 32.5,47.5 C 32.2,47,31.6,47,31.4,47.6 Z'
+        );
+      }
+    }
+
+    @keyframes left-leg-flex {
+      0%,
+      100% {
+        transform: translateX(5px) rotate(35deg);
+        d: path(
+          'M 31.4,47.6 C 31.4,47.6,31.8,59.4,31.8,59.4 C 31.8,59.4,31.8,59.4,31.8,59.4 C 31.8,59.4,31.6,73,31.6,73 C 30.7,73.5,29.4,74.1,29,75.1 C 29,75.1,30.7,76.8,35.1,75.9 C 35.1,75.9,33.7,59.4,33.7,59.4 L 32.5,47.5 C 32.2,47,31.6,47,31.4,47.6 Z'
+        );
+      }
+      50% {
+        transform: translateX(5px) rotate(-10deg);
+        d: path(
+          'm 31.4,47.6 c 0,0 0.4,11.8 0.4,11.8 -0,0.3 0.2,0.7 0.7,0.8 0,0 13.7,2.3 13.7,2.3 0.1,0.9 0.9,2.4 1.7,2.9 0,0 1.8,-0.9 1.8,-5.9 0,0 -15.8,-1.5 -15.8,-1.5 l -1.4,-10.6 c -0.3,-0.4 -0.9,-0.5 -1.1,0.1 z'
+        );
+      }
     }
   }
 `;

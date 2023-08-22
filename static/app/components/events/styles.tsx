@@ -40,6 +40,7 @@ function getColors({priority, theme}: BannerProps & {theme: Theme}) {
 }
 
 export const BannerContainer = styled('div')<BannerProps>`
+  position: relative;
   font-size: ${p => p.theme.fontSizeMedium};
   background: ${p => getColors(p).background};
   border-top: 1px solid ${p => getColors(p).border};
@@ -51,7 +52,7 @@ export const BannerContainer = styled('div')<BannerProps>`
   }
 `;
 
-export const BannerSummary = styled('p')`
+export const BannerSummary = styled('div')`
   display: flex;
   align-items: flex-start;
   margin-bottom: 0;
