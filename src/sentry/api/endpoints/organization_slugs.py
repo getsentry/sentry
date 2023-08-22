@@ -1,21 +1,16 @@
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
+from django.core.validators import validate_slug
 from django.db import IntegrityError, router, transaction
-from django.utils.regex_helper import _lazy_re_compile
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE, DEFAULT_SLUG_PATTERN, region_silo_endpoint
+from sentry import features
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ConflictError
+from sentry.api.helpers.slugs import validate_sentry_slug
 from sentry.models import Project
 from sentry.utils.snowflake import MaxSnowflakeRetryError
-
-_validate_sentry_slug = RegexValidator(
-    _lazy_re_compile(DEFAULT_SLUG_PATTERN),
-    DEFAULT_SLUG_ERROR_MESSAGE,
-    "invalid",
-)
 
 
 @region_silo_endpoint
@@ -36,7 +31,10 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
         for project_id, slug in slugs.items():
             slug = slug.lower()
             try:
-                _validate_sentry_slug(slug)
+                if features.has("app:enterprise-prevent-numeric-slugs"):
+                    validate_sentry_slug(slug)
+                else:
+                    validate_slug(slug)
             except ValidationError:
                 return Response({"detail": 'Invalid slug "%s".' % slug}, status=400)
             slugs[project_id] = slug
