@@ -1,8 +1,11 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import {Link} from 'react-router';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Avatar from 'sentry/components/avatar';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import {formatTime} from 'sentry/components/replays/utils';
 import {space} from 'sentry/styles/space';
@@ -56,21 +59,20 @@ export function UserTimeline({userId}: Props) {
       id: event.id,
       content: (
         <div>
-          {event.type === 'error' ? 'Error: ' : ''}
+          {event['event.type'] === 'error' ? 'Error: ' : ''}
           <Link to={`/organizations/${organization.slug}/replays/${event.id}/`}>
             {event.message}
           </Link>{' '}
         </div>
       ),
       timestamp: new Date(event.timestamp),
-      type: event.type,
+      type: event['event.type'],
       project: replayResults.projects.get(`${event['project.id']}`),
     })),
   ].sort((a, b) => b.timestamp - a.timestamp);
 
   return (
-    <Fragment>
-      Timeline
+    <TimelinePanel>
       <TimelineScrollWrapper>
         <Timeline>
           {allResults.map(results => {
@@ -87,7 +89,7 @@ export function UserTimeline({userId}: Props) {
           })}
         </Timeline>
       </TimelineScrollWrapper>
-    </Fragment>
+    </TimelinePanel>
   );
 }
 
@@ -95,7 +97,7 @@ interface TimelineEventProps {
   children: React.ReactNode;
   project: any;
   timestamp: Date;
-  type: 'replay' | 'error' | 'transaction';
+  type: 'replay' | 'error' | 'transaction' | 'default';
   className?: string;
 }
 
@@ -104,10 +106,17 @@ function UnstyledTimelineEvent({
   children,
   timestamp,
   project,
+  type,
 }: TimelineEventProps) {
+  const theme = useTheme();
+  const isError = type === 'error';
+  const style = {
+    '--background': `${isError ? theme.red100 : 'inherit'}`,
+  } as any;
+
   return (
-    <div className={className}>
-      <Liner />
+    <div style={style} className={className}>
+      <Liner type={type} />
       <EventWrapper>
         <EventContent>{children}</EventContent>
         <Avatar round project={project} />
@@ -116,6 +125,11 @@ function UnstyledTimelineEvent({
     </div>
   );
 }
+
+const TimelinePanel = styled(Panel)`
+  flex: 1;
+  overflow: auto;
+`;
 
 const EventContent = styled('div')`
   flex: 1;
@@ -132,12 +146,10 @@ const EventWrapper = styled('div')`
 const TimelineEvent = styled(UnstyledTimelineEvent)`
   display: flex;
   gap: ${space(2)};
+  background-color: var(--background);
 `;
 
-const TimelineScrollWrapper = styled('div')`
-  flex: 1;
-  overflow: auto;
-`;
+const TimelineScrollWrapper = styled(PanelBody)``;
 
 const Timeline = styled('div')``;
 

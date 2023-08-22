@@ -111,9 +111,11 @@ const Main = styled(Layout.Main)`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  height: 100%;
 `;
 
 const Body = styled(Layout.Body)`
+  display: flex !important;
   overflow: hidden;
 `;
 
