@@ -209,6 +209,11 @@ class OptionsManager:
         try:
             return self.registry[key]
         except KeyError:
+            if key.startswith("features:"):
+                logger.debug(f"Generating feature flag option definition for {key}")
+                return self.make_key(
+                    key, lambda: "", Any, FLAG_AUTOMATOR_MODIFIABLE | FLAG_ALLOW_EMPTY, 0, 0, None
+                )
 
             # HACK: Historically, Options were used for random ad hoc things.
             # Fortunately, they all share the same prefix, 'sentry:', so

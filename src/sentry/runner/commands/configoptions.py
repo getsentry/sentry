@@ -6,6 +6,7 @@ from yaml import safe_load
 
 from sentry.runner.commands.presenters.presenterdelegator import PresenterDelegator
 from sentry.runner.decorators import configuration, log_options
+from sentry.utils import json
 
 
 def _attempt_update(
@@ -121,8 +122,8 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
     with open(file) if file is not None else sys.stdin as stream:
         options_to_update = safe_load(stream)
 
+    feature_flags = options_to_update.get("features", [])
     options_to_update = options_to_update["options"]
-    ctx.obj["options_to_update"] = options_to_update
 
     drifted_options = set()
     invalid_options = set()
@@ -147,6 +148,27 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
             invalid_options.add(key)
             presenter_delegator.unregistered(key)
 
+    # Feature flags are different than other options
+    # The keys are prefixed with features: and the values are JSON blobs
+    # that are parsed by getsentry
+    for feature_name, feature_config in feature_flags.items():
+        key = f"features:{feature_name}"
+        value = json.dumps(feature_config)
+        try:
+            not_writable_reason = options.can_update(key, value, options.UpdateChannel.AUTOMATOR)
+
+            if not_writable_reason and not_writable_reason != options.NotWritableReason.DRIFTED:
+                presenter_delegator.not_writable(key, not_writable_reason.value)
+                invalid_options.add(key)
+            elif not_writable_reason == options.NotWritableReason.DRIFTED:
+                drifted_options.add(key)
+
+            options_to_update[key] = value
+        except options.UnknownOption:
+            invalid_options.add(key)
+            presenter_delegator.unregistered(key)
+
+    ctx.obj["options_to_update"] = options_to_update
     ctx.obj["invalid_options"] = invalid_options
     ctx.obj["drifted_options"] = drifted_options
     ctx.obj["hide_drift"] = hide_drift
