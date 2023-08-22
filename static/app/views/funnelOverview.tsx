@@ -39,16 +39,18 @@ export default function FunnelOverview() {
 
   return (
     <Wrapper>
-      <Breadcrumbs
-        crumbs={[
-          {
-            label: 'Funnels',
-            to: `/organizations/${organization.slug}/funnel/`,
-          },
-          {label: funnelData?.funnel.name},
-        ]}
-      />
-      <h2>Funnel {funnelData?.funnel.name}</h2>
+      <HeaderWrapper>
+        <Breadcrumbs
+          crumbs={[
+            {
+              label: 'Funnels',
+              to: `/organizations/${organization.slug}/funnel/`,
+            },
+            {label: funnelData?.funnel.name},
+          ]}
+        />
+        <h2>Funnel {funnelData?.funnel.name}</h2>
+      </HeaderWrapper>
       <ContentWrapper>
         <IssueListWrapper>
           <IssueList>
@@ -147,4 +149,8 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   justify-content: center;
   flex-direction: column;
   width: 100%;
+`;
+
+const HeaderWrapper = styled('div')`
+  padding: ${space(3)};
 `;
