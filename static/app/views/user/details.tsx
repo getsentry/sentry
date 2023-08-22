@@ -21,6 +21,7 @@ import {ErrorWidget} from 'sentry/views/user/widgets/errors';
 
 import {ReplayWidget} from './widgets/replays';
 import {TransactionWidget} from './widgets/transactions';
+import {Metrics} from './metrics';
 import {UserTimeline} from './timeline';
 // import useOrganization from 'sentry/utils/useOrganization';
 
@@ -48,7 +49,7 @@ function UserDetails({params: {userId}}: Props) {
 
   const header = (
     <Header>
-      <Layout.HeaderContent>
+      <HeaderContent>
         <UserBadge
           avatarSize={32}
           displayName={<Layout.Title>{name || t('Unknown User')}</Layout.Title>}
@@ -62,12 +63,10 @@ function UserDetails({params: {userId}}: Props) {
           }}
           displayEmail=""
         />
-      </Layout.HeaderContent>
+      </HeaderContent>
 
       <ButtonActionsWrapper>
-        <div>:fire: 1</div>
-        <div>:fire: 1</div>
-        <div>:fire: 1</div>
+        <Metrics userId={userId} />
       </ButtonActionsWrapper>
     </Header>
   );
@@ -124,16 +123,21 @@ const Body = styled(Layout.Body)`
 
 const Header = styled(Layout.Header)`
   gap: ${space(1)};
-  padding-bottom: ${space(1.5)};
+  padding: ${space(2)} ${space(4)} !important;
+`;
+const HeaderContent = styled(Layout.HeaderContent)`
+  margin: 0;
 `;
 
 const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   flex-direction: row;
   justify-content: flex-end;
-  gap: ${space(1)};
+  align-items: center;
+  gap: ${space(2)};
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     margin-bottom: 0;
   }
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const FilterBar = styled('div')`
