@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
 import {IconFire, IconPlay, IconSpan} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -39,17 +40,17 @@ export function Metrics({userId}: Props) {
   return (
     <Fragment>
       <RedBox>
-        <RedFire size="lg" />
+        <RedFire size="md" />
         {errorData?.data?.length ? errorData.data[0]['count()'] : 0}
       </RedBox>
       <Box>
-        <IconSpan size="lg" />
+        <IconSpan size="md" />
         {formatAbbreviatedNumber(
           transactionData?.data?.length ? transactionData.data[0]['count()'] : 0
         )}
       </Box>
       <Box>
-        <IconPlay size="lg" />0
+        <IconPlay size="md" />0
       </Box>
     </Fragment>
   );
@@ -58,9 +59,11 @@ export function Metrics({userId}: Props) {
 const RedFire = styled(IconFire)`
   color: ${p => p.theme.error};
 `;
+
 const Box = styled('div')`
   display: flex;
   align-items: center;
+  gap: ${space(0.25)};
 `;
 
 const RedBox = styled(Box)`
