@@ -1613,6 +1613,7 @@ SENTRY_FEATURES = {
     "organizations:session-replay-slack-new-issue": False,
     "organizations:session-replay-issue-emails": False,
     "organizations:session-replay-weekly-email": False,
+    "organizations:session-replay-trial-ended-banner": False,
     "organizations:session-replay-trace-table": False,
     # Enable optimized serach feature.
     "organizations:session-replay-optimized-search": False,
