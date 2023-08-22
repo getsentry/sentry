@@ -62,6 +62,12 @@ class OrganizationRoleSelect extends Component<Props> {
                     {name}
                     <TextBlock noMargin>
                       <div className="help-block">{desc}</div>
+                      {isRetired && (
+                        <div className="help-block">
+                          (This role is retired. Consider picking a different role, or
+                          using team roles instead.)
+                        </div>
+                      )}
                     </TextBlock>
                   </div>
                 </Label>
