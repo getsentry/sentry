@@ -53,11 +53,13 @@ export const lightColors = {
   green300: '#2BA185',
   green200: 'rgba(43, 161, 133, 0.55)',
   green100: 'rgba(43, 161, 133, 0.13)',
+  green100_a: '#e7f3ef',
 
   yellow400: '#E5A500',
   yellow300: '#F5B000',
   yellow200: 'rgba(245, 176, 0, 0.55)',
   yellow100: 'rgba(245, 176, 0, 0.08)',
+  yellow100_a: '#fef9ef',
 
   red400: '#DF3338',
   red300: '#F55459',
@@ -119,11 +121,13 @@ export const darkColors = {
   green300: '#1D876E',
   green200: 'rgba(29, 135, 110, 0.3)',
   green100: 'rgba(29, 135, 110, 0.14)',
+  green100_a: 'rgba(29, 135, 110, 0.14)',
 
   yellow400: '#E5A500',
   yellow300: '#B28000',
   yellow200: 'rgba(178, 128, 0, 0.25)',
   yellow100: 'rgba(178, 128, 0, 0.1)',
+  yellow100_a: 'rgba(178, 128, 0, 0.1)',
 
   red400: '#F87277',
   red300: '#E12D33',
