@@ -10,6 +10,7 @@ from sentry.constants import ObjectStatus
 from sentry.models import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils.cases import MonitorTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -209,6 +210,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         response = self.get_success_response(self.organization.slug, **data)
         assert response.data["slug"] == "my-monitor"
 
+    @with_feature("app:enterprise-prevent-numeric-slugs")
     def test_generated_slug_not_entirely_numeric(self):
         data = {
             "project": self.project.slug,
