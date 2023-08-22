@@ -15,6 +15,7 @@ function getView(view: View, data: Record<any, any>, meta: Record<any, any>) {
     case 'report':
       const viewData = data.body;
       viewData.url = data.url;
+      viewData.elapsed_time = viewData.elapsed_time + ' ms';
 
       return (
         <KeyValueList
