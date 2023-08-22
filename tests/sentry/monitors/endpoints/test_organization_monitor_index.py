@@ -14,8 +14,6 @@ from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
-
 
 @region_silo_test(stable=True)
 class ListOrganizationMonitorsTest(MonitorTestCase):
