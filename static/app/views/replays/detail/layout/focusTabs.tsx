@@ -29,6 +29,7 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
       </Fragment>
     ) : null,
     [TabKey.DOM]: t('DOM Events'),
+    [TabKey.A11Y]: t('Accessibility'),
     [TabKey.MEMORY]: t('Memory'),
   };
 }
