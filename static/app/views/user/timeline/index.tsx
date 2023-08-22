@@ -163,7 +163,7 @@ export function UserTimeline({userId}: Props) {
       type: event['event.type'],
       project: replayResults.projects.get(`${event['project.id']}`),
     })),
-  ].sort((a, b) => +a.timestamp - +b.timestamp);
+  ].sort((a, b) => +b.timestamp - +a.timestamp);
 
   const groupedByDay = allResults.reduce((acc, result) => {
     const day = new Date(result.timestamp).toLocaleDateString('en-US', {
