@@ -21,6 +21,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
+import Tamagotchi from 'sentry/icons/tamagotchi/tamagotchi';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
@@ -319,6 +320,7 @@ class ProjectDetail extends DeprecatedAsyncView<Props, State> {
                 )}
               </Layout.Main>
               <Layout.Side>
+                <Tamagotchi />
                 <ProjectTeamAccess organization={organization} project={project} />
                 <Feature features={['incidents']} organization={organization}>
                   <ProjectLatestAlerts
