@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -10,58 +10,17 @@ import Placeholder from 'sentry/components/placeholder';
 import {formatTime} from 'sentry/components/replays/utils';
 import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
-import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
-import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 import {Liner} from './liner';
+import { useFetchReplays } from '../useFetchReplays';
+import { useFetchErrors, useFetchTransactions } from '../useFetchEvents';
 
 interface Props {
   userId: string;
-}
-
-interface FetchOptions {
-  userId: string;
-  limit?: number;
-}
-
-interface ErrorEvent {
-  'browser.name': string | null;
-  'browser.version': string | null;
-  'event.type': 'transaction' | 'error' | 'default';
-  id: string;
-  message: string;
-  'os.name': string | null;
-  'os.version': string | null;
-  project: string;
-  'project.id': string;
-  timestamp: string;
-}
-interface FetchEventsResponse {
-  data: ErrorEvent[];
-  meta: any;
-}
-
-interface TransactionEvent extends ErrorEvent {
-  'span_ops_breakdown.relative': string;
-  'spans.browser': number | null;
-  'spans.db': number | null;
-  'spans.http': number | null;
-  'spans.resource': number | null;
-  'spans.ui': number | null;
-  'transaction.duration': number | null;
-}
-interface FetchTransactionResponse {
-  data: TransactionEvent[];
-  meta: any;
 }
 
 export function UserTimeline({userId}: Props) {
@@ -294,166 +253,11 @@ const TransactionContent = styled('div')`
   align-items: center;
 `;
 
-function useFetchReplays({userId, limit = 5}: FetchOptions) {
-  const location = useLocation<ReplayListLocationQuery>();
-  const organization = useOrganization();
-  const {projects} = useProjects();
-  const projectsHash = new Map(projects.map(project => [`${project.id}`, project]));
-
-  const eventView = useMemo(() => {
-    const query = decodeScalar(location.query.query, '');
-    const conditions = new MutableSearch(query);
-    conditions.addFilterValue('user.id', userId);
-
-    return EventView.fromNewQueryWithLocation(
-      {
-        id: '',
-        name: '',
-        version: 2,
-        fields: [
-          'activity',
-          'browser.name',
-          'browser.version',
-          'count_dead_clicks',
-          'count_errors',
-          'count_rage_clicks',
-          'duration',
-          'finished_at',
-          'id',
-          'is_archived',
-          'os.name',
-          'os.version',
-          'project_id',
-          'started_at',
-          'urls',
-          'user',
-        ],
-        projects: [],
-        query: conditions.formatString(),
-        orderby: decodeScalar(location.query.sort, '-started_at'),
-      },
-      location
-    );
-  }, [location, userId]);
-
-  const results = useReplayList({
-    eventView,
-    location,
-    organization,
-    perPage: limit,
-  });
-
-  return {
-    ...results,
-    projects: projectsHash,
-  };
-}
-
 const Timestamp = styled('span')`
   color: ${p => p.theme.gray300};
   font-family: ${p => p.theme.text.familyMono};
   font-size: 0.7rem;
 `;
-
-function useFetchErrors(options: FetchOptions) {
-  return useFetchEvents<FetchEventsResponse>({...options, type: 'error'});
-}
-
-function useFetchTransactions(options: FetchOptions) {
-  return useFetchEvents<FetchTransactionResponse>({...options, type: 'transaction'});
-}
-
-function useFetchEvents<T extends FetchEventsResponse>({
-  userId,
-  type,
-  limit = 5,
-}: {
-  type: 'error' | 'transaction';
-  userId: string;
-  limit?: number;
-}) {
-  const location = useLocation<ReplayListLocationQuery>();
-  const organization = useOrganization();
-
-  const eventView = useMemo(() => {
-    const query = decodeScalar(location.query.query, '');
-    const conditions = new MutableSearch(query);
-    conditions.addFilterValue('user.id', userId);
-    conditions.addFilterValue('event.type', type);
-
-    const fields = [
-      'message',
-      'timestamp',
-      'event.type',
-      'project.id',
-      'project',
-      'os.name',
-      'os.version',
-      'browser.name',
-      'browser.version',
-    ];
-
-    if (type === 'transaction') {
-      fields.push('transaction.duration');
-      fields.push('span_ops_breakdown.relative');
-      fields.push('spans.browser');
-      fields.push('spans.db');
-      fields.push('spans.http');
-      fields.push('spans.resource');
-      fields.push('spans.ui');
-      fields.push('transaction.duration');
-    }
-
-    return EventView.fromNewQueryWithLocation(
-      {
-        id: '',
-        name: '',
-        version: 2,
-        fields,
-        projects: [],
-        query: conditions.formatString(),
-        orderby: '-timestamp',
-      },
-      location
-    );
-  }, [location, userId, type]);
-
-  const payload = eventView.getEventsAPIPayload(location);
-  payload.per_page = limit;
-  payload.sort = ['-timestamp', 'message'];
-
-  const results = useApiQuery<T>(
-    [
-      `/organizations/${organization.slug}/events/`,
-      {
-        query: {
-          ...payload,
-          queryReferrer: 'issueReplays',
-        },
-      },
-    ],
-    {staleTime: 0, retry: false}
-  );
-
-  return {
-    events: results.data?.data,
-    isFetching: results.isLoading,
-    fetchError: results.error,
-    eventView,
-  };
-}
-//
-// field: title
-// field: event.type
-// field: project.id
-// field: timestamp
-// per_page: 50
-// project: 11276
-// query: user.email%3Abilly%40sentry.io
-// referrer: api.discover.query-table
-// sort: -timestamp
-// statsPeriod: 7d
-//
 
 function formatTimestamp(date: Date) {
   return `${date.toLocaleTimeString('en-US', {hour12: false})}`;

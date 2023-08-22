@@ -17,7 +17,7 @@ type Options = {
 
 type State = Awaited<ReturnType<typeof fetchReplayList>> & {isFetching: boolean};
 
-type Result = State;
+export type Result = State;
 
 function useReplayList({
   eventView,
