@@ -16,6 +16,7 @@ type Props = {
   showDsn?: boolean;
   showDsnPublic?: boolean;
   showMinidump?: boolean;
+  showNel?: boolean;
   showProjectId?: boolean;
   showPublicKey?: boolean;
   showSecretKey?: boolean;
@@ -29,6 +30,7 @@ function ProjectKeyCredentials({
   showDsn = true,
   showDsnPublic = true,
   showMinidump = true,
+  showNel = true,
   showProjectId = false,
   showPublicKey = false,
   showSecretKey = false,
@@ -92,6 +94,31 @@ function ProjectKeyCredentials({
             {getDynamicText({
               value: data.dsn.secret,
               fixed: '__DSN_DEPRECATED__',
+            })}
+          </TextCopyInput>
+        </FieldGroup>
+      )}
+
+      {showNel && (
+        <FieldGroup
+          label={t('NEL Endpoint')}
+          help={tct(
+            'Use this endpoint to upload [link], for example with Electron, Crashpad or Breakpad.',
+            {
+              link: (
+                <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Network_Error_Logging">
+                  Network Error Logging reports
+                </ExternalLink>
+              ),
+            }
+          )}
+          inline={false}
+          flexibleControlStateSize
+        >
+          <TextCopyInput aria-label={t('NEL Endpoint URL')}>
+            {getDynamicText({
+              value: data.dsn.nel,
+              fixed: '__MINIDUMP_ENDPOINT__',
             })}
           </TextCopyInput>
         </FieldGroup>

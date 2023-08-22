@@ -85,6 +85,7 @@ class ProjectKeySerializer(Serializer):
                 "csp": obj.csp_endpoint,
                 "security": obj.security_endpoint,
                 "minidump": obj.minidump_endpoint,
+                "nel": obj.nel_endpoint,
                 "unreal": obj.unreal_endpoint,
                 "cdn": obj.js_sdk_loader_cdn_url,
             },
