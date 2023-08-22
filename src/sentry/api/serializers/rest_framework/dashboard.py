@@ -236,6 +236,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
     title = serializers.CharField(required=False, max_length=255)
+    thresholds = serializers.JSONField(required=False)
     description = serializers.CharField(
         required=False, max_length=255, allow_null=True, allow_blank=True
     )
@@ -296,6 +297,14 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
                 raise serializers.ValidationError(
                     {"displayType": "displayType is required during creation."}
                 )
+        if data.get("thresholds"):
+            for key in data.get("thresholds"):
+                if key not in ["unit", "intermediate", "extreme"]:
+                    raise serializers.ValidationError(
+                        {
+                            "thresholds": "thresholds can only contain intermediate, extreme and unit as keys"
+                        }
+                    )
         return data
 
 
@@ -445,6 +454,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             display_type=widget_data["display_type"],
             title=widget_data["title"],
             description=widget_data.get("description", None),
+            thresholds=widget_data.get("thresholds", None),
             interval=widget_data.get("interval", "5m"),
             widget_type=widget_data.get("widget_type", DashboardWidgetTypes.DISCOVER),
             order=order,
@@ -472,6 +482,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         prev_layout = widget.detail.get("layout") if widget.detail else None
         widget.title = data.get("title", widget.title)
         widget.description = data.get("description", widget.description)
+        widget.thresholds = data.get("thresholds", widget.thresholds)
         widget.display_type = data.get("display_type", widget.display_type)
         widget.interval = data.get("interval", widget.interval)
         widget.widget_type = data.get("widget_type", widget.widget_type)
