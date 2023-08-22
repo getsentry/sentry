@@ -112,42 +112,50 @@ export function ReplayWidget({userId}: Props) {
           ) : (
             <Fragment>
               <ReplayPlayer replaySlug={replays[0].id} />
-              <Table>
-                {replays.slice(1).map(replay => {
-                  const project = projectsHash[replay.project_id];
+              <TableWrapper>
+                <Table>
+                  {replays.slice(1).map(replay => {
+                    const project = projectsHash[replay.project_id];
 
-                  return (
-                    <Fragment key={replay.id}>
-                      <Cols key={`${replay.id}-replay`}>
-                        <Title>
-                          <SmallOSCell key={`${replay.id}-os`} replay={replay} />
-                          <SmallBrowserCell key="browser" replay={replay} />
+                    return (
+                      <Fragment key={replay.id}>
+                        <Cols key={`${replay.id}-replay`}>
+                          <Title>
+                            <SmallOSCell key={`${replay.id}-os`} replay={replay} />
+                            <SmallBrowserCell key="browser" replay={replay} />
 
-                          <Link
-                            to={`/organizations/${organization.slug}/replays/${replay.id}/`}
-                          >
-                            {getShortEventId(replay.id)}
-                          </Link>
-                        </Title>
-                        <SubRow gap={1}>
-                          <Row gap={0.5}>
-                            {project ? <Avatar size={12} project={project} /> : null}
-                            {project ? project.slug : null}
-                          </Row>
-                          <Row gap={0.5}>
-                            <IconCalendar color="gray300" size="xs" />
-                            <TextOverflow>
-                              <TimeSince date={replay.started_at} />
-                            </TextOverflow>
-                          </Row>
-                        </SubRow>
-                      </Cols>
-                      <SmallDurationCell key={`${replay.id}-duration`} replay={replay} />
-                      <SmallActivityCell key={`${replay.id}-activity`} replay={replay} />
-                    </Fragment>
-                  );
-                })}
-              </Table>
+                            <Link
+                              to={`/organizations/${organization.slug}/replays/${replay.id}/`}
+                            >
+                              {getShortEventId(replay.id)}
+                            </Link>
+                          </Title>
+                          <SubRow gap={1}>
+                            <Row gap={0.5}>
+                              {project ? <Avatar size={12} project={project} /> : null}
+                              {project ? project.slug : null}
+                            </Row>
+                            <Row gap={0.5}>
+                              <IconCalendar color="gray300" size="xs" />
+                              <TextOverflow>
+                                <TimeSince date={replay.started_at} />
+                              </TextOverflow>
+                            </Row>
+                          </SubRow>
+                        </Cols>
+                        <SmallDurationCell
+                          key={`${replay.id}-duration`}
+                          replay={replay}
+                        />
+                        <SmallActivityCell
+                          key={`${replay.id}-activity`}
+                          replay={replay}
+                        />
+                      </Fragment>
+                    );
+                  })}
+                </Table>
+              </TableWrapper>
             </Fragment>
           )}
         </ReplayLayout>
@@ -162,6 +170,10 @@ const ReplayLayout = styled('div')`
   height: 100%;
 `;
 
+const TableWrapper = styled('div')`
+  flex-shrink: 0;
+  overflow: auto;
+`;
 const Table = styled('div')`
   display: grid;
   overflow: hidden;
