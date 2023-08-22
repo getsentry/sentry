@@ -365,7 +365,7 @@ function Sidebar({location, organization}: Props) {
       id="settings"
     />
   );
-  const useMagenta = true || organization?.features.includes('magenta');
+  const useMagenta = organization?.features.includes('magenta');
 
   return (
     <SidebarWrapper
