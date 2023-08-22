@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import Card from 'sentry/components/card';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
@@ -49,7 +50,7 @@ const inAppModules = modules
   .filter(
     m =>
       m.moduleType.startsWith('javascript') &&
-      m.name.startsWith('./') &&
+      m.name.startsWith('./app') &&
       !m.name.endsWith('namespace object')
   )
   .sort((a, b) => b.size - a.size);
@@ -89,7 +90,14 @@ export default function BundleDetails() {
               module?.chunks[0] ? module?.chunks[0] : '_sentry_no_chunk'
             }-${module?.reasons[0] ? module?.reasons[0].module : '_sentry_no_reason'}`}
           >
-            <div>{module.name}</div>
+            <ExternalLink
+              href={`https://github.com/getsentry/sentry/blob/master/static/${module.name.replace(
+                './',
+                ''
+              )}`}
+            >
+              {module.name}
+            </ExternalLink>
             <div>{formatBytesBase2(module.size)}</div>
           </Fragment>
         ));
