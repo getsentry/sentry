@@ -22,7 +22,7 @@ def get_issues_from_users(users, dataset, query, snuba_params, params):
     userquery = " OR ".join([f"user:{user}" for user in users])
     print(userquery)
     ret = dataset.query(
-        selected_columns=["issue", "timestamp", "user"],
+        selected_columns=["issue", "timestamp", "user", "count()"],
         query=f"{userquery} AND ({query})",
         params=params,
         snuba_params=snuba_params,
@@ -145,7 +145,7 @@ class FunnelDetailsEndpoint(OrganizationEventsV2EndpointBase):
         issues = serialize(
             list(issues_by_id.values()),
             request.user,
-            serializer=GroupSerializerSnuba(
+            serializer=StreamGroupSerializerSnuba(
                 organization_id=organization.id,
                 project_ids=request.GET.getlist("project"),
             ),
@@ -160,7 +160,7 @@ class FunnelDetailsEndpoint(OrganizationEventsV2EndpointBase):
                     "issue": issue,
                 }
                 issues_with_data.append(data)
-
+        print(issues_with_data)
         return self.respond(
             {
                 "totalStarts": total_starts,

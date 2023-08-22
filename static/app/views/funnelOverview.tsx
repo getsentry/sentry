@@ -1,21 +1,34 @@
+import {Fragment, useCallback, useMemo, useRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Location, Query} from 'history';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
+import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
+import checkboxToggle from 'sentry/components/stream/group';
+import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import {Activity, BaseGroup, Group, GroupStats} from 'sentry/types';
 import {Funnel} from 'sentry/types/funnel';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import {TagAndMessageWrapper} from 'sentry/views/issueDetails/unhandledTag';
 
 interface FunnelResponse {
   funnel: Funnel;
-  issues: any[];
+  issues: {completes: number; issue: Group; starts: number}[];
   totalCompletions: number;
   totalStarts: number;
 }
@@ -35,7 +48,42 @@ export default function FunnelOverview() {
       staleTime: Infinity,
     }
   );
-  const listissues = funnelData?.issues.map(issue => <li key={issue}>{issue}</li>);
+  const {data: eventsCount} = useApiQuery<GroupStats[]>(
+    [
+      `/organizations/${organization.slug}/issues-stats/`,
+      {
+        query: {
+          groups:
+            funnelData?.issues
+              .map(({issue}) => {
+                return issue.id;
+              })
+              .join(',') ?? '',
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+    }
+  );
+
+  const listIssues = funnelData?.issues.map(({starts, completes, issue}) => (
+    <Wrapper key={issue.id}>
+      <div data-test-id="event-issue-header">
+        <EventOrGroupHeader data={issue} />
+        <EventOrGroupExtraDetails data={issue} />
+        <StyledTagAndMessageWrapper size="normal">
+          {issue.message && <Message>{issue.message}</Message>}
+        </StyledTagAndMessageWrapper>
+      </div>
+      <EventCountsWrapper>{((100 * completes) / starts).toFixed(2)}%</EventCountsWrapper>
+      <EventCountsWrapper>{starts}</EventCountsWrapper>
+      <EventCountsWrapper>{completes}</EventCountsWrapper>
+      <EventCountsWrapper>
+        {eventsCount?.find(({id}) => id === issue.id)?.count}
+      </EventCountsWrapper>
+    </Wrapper>
+  ));
 
   return (
     <Wrapper>
@@ -58,13 +106,16 @@ export default function FunnelOverview() {
               <div>
                 <GridHeader>Issue</GridHeader>
               </div>
+              <GridHeader>Completion Rate</GridHeader>
+              <GridHeader>Starts</GridHeader>
+              <GridHeader>Completes</GridHeader>
               <div>
                 <GridHeader>Events</GridHeader>
               </div>
             </PanelHeader>
             <PanelBody>
-              {listissues?.length ? (
-                <ul>to fill in</ul>
+              {listIssues?.length ? (
+                <StyledPanelItem>{listIssues}</StyledPanelItem>
               ) : (
                 <StyledEmptyStateWarning>No Related Issues</StyledEmptyStateWarning>
               )}
@@ -153,4 +204,71 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
 
 const HeaderWrapper = styled('div')`
   padding: ${space(3)};
+`;
+const truncateStyles = css`
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+const StyledPanelItem = styled(PanelItem)`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const Title = styled('div')`
+  display: inline-flex;
+  margin-bottom: ${space(0.25)};
+  & em {
+    font-size: ${p => p.theme.fontSizeMedium};
+    font-style: normal;
+    font-weight: 300;
+    color: ${p => p.theme.subText};
+  }
+`;
+
+const TitleWrapper = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  display: flex;
+  gap: ${space(0.5)};
+  min-width: 200px;
+`;
+const MessageWrapper = styled('span')`
+  ${p => p.theme.overflowEllipsis};
+  color: ${p => p.theme.textColor};
+`;
+
+const EventCountsWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-self: center;
+  width: 60px;
+  margin: 0 ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    width: 80px;
+  }
+`;
+
+const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
+  'margin: 0 0 5px;
+  line-height: 1.2;
+`;
+
+const Message = styled('div')`
+  ${truncateStyles};
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const LocationWrapper = styled('div')`
+  ${truncateStyles};
+ 'margin: 0 0 5px';
+  direction: rtl;
+  text-align: left;
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+  span {
+    direction: ltr;
+  }
 `;
