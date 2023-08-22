@@ -34,11 +34,6 @@ export interface OmniArea {
 }
 
 /**
- * Maps the area key to the OmniArea object
- */
-export type OmniAreaMap = Record<string, OmniArea>;
-
-/**
  * The datastructure representing the state of the OmniSearch
  */
 export interface OmniSearchStore {
@@ -51,9 +46,9 @@ export interface OmniSearchStore {
    */
   areaPriority: string[];
   /**
-   * Mapping of active OmniArea's
+   * List of areas available in the omni-search
    */
-  areas: OmniAreaMap;
+  areas: OmniArea[];
 }
 
 export interface OmniAction extends MenuItemProps {

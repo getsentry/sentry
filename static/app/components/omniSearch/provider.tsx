@@ -1,14 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
-import omit from 'lodash/omit';
 
 import {OmniConfigContext, OmniSearchStoreContext} from './context';
-import {
-  OmniAction,
-  OmniArea,
-  OmniAreaMap,
-  OmniSearchConfig,
-  OmniSearchStore,
-} from './types';
+import {OmniAction, OmniArea, OmniSearchConfig, OmniSearchStore} from './types';
 
 interface OmniSearchProviderProps {
   children: React.ReactNode;
@@ -17,7 +10,7 @@ interface OmniSearchProviderProps {
 export function OmniSearchProvider({children}: OmniSearchProviderProps) {
   const [actions, setActions] = useState<OmniAction[]>([]);
 
-  const [areas, setAreaMap] = useState<OmniAreaMap>({});
+  const [areas, setAreas] = useState<OmniArea[]>([]);
   const [areaPriority, setAreaPriority] = useState<string[]>([]);
 
   const registerActions = useCallback((newActions: OmniAction[]) => {
@@ -34,12 +27,12 @@ export function OmniSearchProvider({children}: OmniSearchProviderProps) {
   const registerAreas = useCallback((newAreas: OmniArea[]) => {
     const keys = newAreas.map(a => a.key);
 
-    setAreaMap(currentAreaMap => ({
-      ...currentAreaMap,
-      ...Object.fromEntries(newAreas.map(area => [area.key, area])),
-    }));
+    setAreas(currentAreas => {
+      return currentAreas.filter(a => !keys.includes(a.key)).concat(newAreas);
+    });
 
-    return () => setAreaMap(currentAreas => omit(currentAreas, keys));
+    return () =>
+      setAreas(currentAreas => currentAreas.filter(a => !keys.includes(a.key)));
   }, []);
 
   const registerAreaPriority = useCallback((newPriority: string[]) => {
