@@ -176,7 +176,7 @@ export function getTitle(
     case EventOrGroupType.DEFAULT:
       return {
         title: customTitle ?? metadata.title ?? '',
-        subtitle: '',
+        subtitle: metadata.uri ?? '',
         treeLabel: undefined,
       };
     case EventOrGroupType.TRANSACTION:
