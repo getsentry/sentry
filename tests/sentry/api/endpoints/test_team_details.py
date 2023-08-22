@@ -84,6 +84,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.name == "hello world"
         assert team.slug == "foobar"
 
+    @with_feature("app:enterprise-prevent-numeric-slugs")
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(self.organization.slug, self.team.slug, slug="1234")
         assert response.data["slug"][0] == (

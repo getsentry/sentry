@@ -5,7 +5,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features, roles
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE, DEFAULT_SLUG_PATTERN, region_silo_endpoint
+from sentry.api.base import (
+    DEFAULT_SLUG_ERROR_MESSAGE,
+    DEFAULT_SLUG_PATTERN,
+    PreventNumericSlugMixin,
+    region_silo_endpoint,
+)
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
@@ -14,7 +19,7 @@ from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.models import RegionScheduledDeletion, Team, TeamStatus
 
 
-class TeamSerializer(CamelSnakeModelSerializer):
+class TeamSerializer(CamelSnakeModelSerializer, PreventNumericSlugMixin):
     slug = serializers.RegexField(
         DEFAULT_SLUG_PATTERN,
         max_length=50,
@@ -35,6 +40,7 @@ class TeamSerializer(CamelSnakeModelSerializer):
         )
         if qs.exists():
             raise serializers.ValidationError(f'The slug "{value}" is already in use.')
+        super().validate_slug(value)
         return value
 
     def validate_org_role(self, value):
