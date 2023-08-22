@@ -15,6 +15,7 @@ import useRouter from 'sentry/utils/useRouter';
 
 interface FunnelResponse {
   funnel: Funnel;
+  issues: any[];
   totalCompletions: number;
   totalStarts: number;
 }
@@ -34,6 +35,8 @@ export default function FunnelOverview() {
       staleTime: Infinity,
     }
   );
+  const listissues = funnelData?.issues.map(issue => <li key={issue}>{issue}</li>);
+
   return (
     <Wrapper>
       <h1>Funnel</h1>
@@ -46,7 +49,7 @@ export default function FunnelOverview() {
       </PageFiltersContainer>
       <Title>{funnelData?.funnel.name}</Title>
       <ContentWrapper>
-        <div>Errors go here</div>
+        <ul>{listissues}</ul>
         <div>
           {funnelData ? (
             <FunnelInfo>
