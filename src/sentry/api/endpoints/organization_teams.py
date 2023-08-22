@@ -9,7 +9,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE, DEFAULT_SLUG_PATTERN, region_silo_endpoint
+from sentry.api.base import (
+    DEFAULT_SLUG_ERROR_MESSAGE,
+    DEFAULT_SLUG_PATTERN,
+    PreventNumericSlugMixin,
+    region_silo_endpoint,
+)
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -42,7 +47,7 @@ class OrganizationTeamsPermission(OrganizationPermission):
     }
 
 
-class TeamPostSerializer(serializers.Serializer):
+class TeamPostSerializer(serializers.Serializer, PreventNumericSlugMixin):
     name = serializers.CharField(max_length=64, required=False, allow_null=True, allow_blank=True)
     slug = serializers.RegexField(
         DEFAULT_SLUG_PATTERN,

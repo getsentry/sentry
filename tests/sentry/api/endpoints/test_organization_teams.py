@@ -6,6 +6,7 @@ from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 from sentry.models.projectteam import ProjectTeam
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import get_provider_string
 
@@ -250,6 +251,7 @@ class OrganizationTeamsCreateTest(APITestCase):
             self.organization.slug, name="x" * 65, slug="xxxxxxx", status_code=400
         )
 
+    @with_feature("app:enterprise-prevent-numeric-slugs")
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(
             self.organization.slug, name="hello word", slug="1234", status_code=400
@@ -259,4 +261,11 @@ class OrganizationTeamsCreateTest(APITestCase):
     def test_generated_slug_not_entirely_numeric(self):
         response = self.get_success_response(self.organization.slug, name="1234", status_code=201)
         team = Team.objects.get(id=response.data["id"])
-        assert team.slug.startswith("1234" + "-")
+        assert team.slug == "1234"
+
+        with self.feature("app:enterprise-prevent-numeric-slugs"):
+            response = self.get_success_response(
+                self.organization.slug, name="1234", status_code=201
+            )
+            team = Team.objects.get(id=response.data["id"])
+            assert team.slug.startswith("1234" + "-")
