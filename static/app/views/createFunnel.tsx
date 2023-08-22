@@ -3,33 +3,23 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import {Field} from 'sentry/components/forms/types';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {space} from 'sentry/styles/space';
 import {Funnel} from 'sentry/types/funnel';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 export default function CreateFunnel() {
   const [form] = useState(() => new FormModel({}));
   const organization = useOrganization();
-  const {selection} = usePageFilters();
-  const location = useLocation();
-  const {data, isLoading} = useApiQuery<any>(
+  const {data} = useApiQuery<any>(
     [
       `/organizations/${organization.slug}/events/`,
       {
         query: {
-          ...location.query,
           field: ['transaction', 'count()', 'project', 'project.id'],
         },
       },
@@ -91,13 +81,6 @@ export default function CreateFunnel() {
   return (
     <Wrapper>
       <h1>Create Funnel</h1>
-      <PageFiltersContainer>
-        <PageFilterBar condensed>
-          <ProjectPageFilter />
-          <EnvironmentPageFilter />
-          <DatePageFilter alignDropdown="left" />
-        </PageFilterBar>
-      </PageFiltersContainer>
       <Form
         model={form}
         apiMethod="POST"

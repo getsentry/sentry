@@ -34,7 +34,7 @@ export default function Funnel() {
   return (
     <Wrapper>
       <Header>
-        <h2>Funnel</h2>x
+        <h2>Funnel</h2>
         <LinkButton
           to={`/organizations/${organization.slug}/funnel/create/`}
           priority="primary"
