@@ -27,6 +27,11 @@ type Hotkey = {
   callback: (e: KeyboardEvent) => void;
   /**
    * Defines the matching shortcuts.
+   *
+   * Multiple shortcuts may be passed as a list.
+   *
+   * The format for shorcuts is `<modifiers>+<key>` For example `shift+t` or
+   * `command+shift+t`.
    */
   match: string[] | string;
   /**
