@@ -12,7 +12,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE, DEFAULT_SLUG_PATTERN, region_silo_endpoint
+from sentry.api.base import (
+    DEFAULT_SLUG_ERROR_MESSAGE,
+    DEFAULT_SLUG_PATTERN,
+    PreventNumericSlugMixin,
+    region_silo_endpoint,
+)
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -92,7 +97,7 @@ class ProjectMemberSerializer(serializers.Serializer):
     isSubscribed = serializers.BooleanField()
 
 
-class ProjectAdminSerializer(ProjectMemberSerializer):
+class ProjectAdminSerializer(ProjectMemberSerializer, PreventNumericSlugMixin):
     name = serializers.CharField(max_length=200)
     slug = serializers.RegexField(
         DEFAULT_SLUG_PATTERN,
@@ -171,7 +176,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             )
         return value
 
-    def validate_slug(self, slug):
+    def validate_slug(self, slug: str) -> str:
         if slug in RESERVED_PROJECT_SLUGS:
             raise serializers.ValidationError(f'The slug "{slug}" is reserved and not allowed.')
         project = self.context["project"]
@@ -184,6 +189,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(
                 "Another project (%s) is already using that slug" % other.name
             )
+        slug = super().validate_slug(slug)
         return slug
 
     def validate_relayPiiConfig(self, value):

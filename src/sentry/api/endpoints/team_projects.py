@@ -11,6 +11,7 @@ from sentry.api.base import (
     DEFAULT_SLUG_ERROR_MESSAGE,
     DEFAULT_SLUG_PATTERN,
     EnvironmentMixin,
+    PreventNumericSlugMixin,
     region_silo_endpoint,
 )
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
@@ -30,7 +31,7 @@ from sentry.utils.snowflake import MaxSnowflakeRetryError
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
 
 
-class ProjectPostSerializer(serializers.Serializer):
+class ProjectPostSerializer(serializers.Serializer, PreventNumericSlugMixin):
     name = serializers.CharField(max_length=50, required=True)
     slug = serializers.RegexField(
         DEFAULT_SLUG_PATTERN,

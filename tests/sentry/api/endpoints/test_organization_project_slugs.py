@@ -1,5 +1,6 @@
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.models.project import Project
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -29,6 +30,7 @@ class OrganizationIndexDocs(APIDocsTestCase):
             str(project_two.id): "new-two",
         }
 
+    @with_feature("app:enterprise-prevent-numeric-slugs")
     def test_invalid_numeric_slug(self):
         invalid_slugs = {**self.slugs, self.project_two.id: "1234"}
         response = self.get_error_response(

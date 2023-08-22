@@ -1,3 +1,4 @@
+from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.models import Project, Rule
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import APITestCase
@@ -61,6 +62,7 @@ class TeamProjectsCreateTest(APITestCase):
         assert project.platform == "python"
         assert project.teams.first() == self.team
 
+    @with_feature("app:enterprise-prevent-numeric-slugs")
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(
             self.organization.slug,
@@ -70,11 +72,9 @@ class TeamProjectsCreateTest(APITestCase):
             status_code=400,
         )
 
-        assert response.data["slug"][0] == (
-            "Enter a valid slug consisting of lowercase "
-            "letters, numbers, underscores or hyphens. It cannot be entirely numeric."
-        )
+        assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
+    @with_feature("app:enterprise-prevent-numeric-slugs")
     def test_generated_slug_not_entirely_numeric(self):
         response = self.get_success_response(
             self.organization.slug,
