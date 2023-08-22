@@ -7,6 +7,7 @@ import tamagotchiMeh from 'sentry-images/tamagotchi/meh.gif';
 import tamagotchiSad from 'sentry-images/tamagotchi/sad.gif';
 
 import {t} from 'sentry/locale';
+import {useReleases} from 'sentry/views/starfish/queries/useReleases';
 
 function Tamagotchi() {
   const [currentScore, setCurrentScore] = useState(0);
@@ -57,9 +58,17 @@ function Tamagotchi() {
     setCurrentStageName(tamagotchiStages[currentScore].stageName);
   };
 
+  const release = useReleases();
+
   return (
     <TamagotchiWrapper>
       <h3>{t('Tamagotchi Status: ')}</h3>
+
+      {release?.data?.length === 0 ? (
+        <h3>{t('no releases ')}</h3>
+      ) : (
+        <h3>{t('releases')}</h3>
+      )}
       <h4>{currentStageName}</h4>
       <img height={200} alt="tamagotchi" src={currentStage} />
       <Wrapper>
