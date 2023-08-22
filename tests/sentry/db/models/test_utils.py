@@ -1,6 +1,7 @@
 from sentry.db.models.utils import slugify_instance
 from sentry.models import Organization
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class SlugifyInstanceTest(TestCase):
@@ -26,6 +27,7 @@ class SlugifyInstanceTest(TestCase):
         slugify_instance(org, org.name, max_length=2)
         assert org.slug == "ma"
 
+    @with_feature("app:enterprise-prevent-numeric-slugs")
     def test_appends_to_entirely_numeric(self):
         org = Organization(name="1234")
         slugify_instance(org, org.name)
