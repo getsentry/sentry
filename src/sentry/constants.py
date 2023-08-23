@@ -703,8 +703,8 @@ HEALTH_CHECK_GLOBS = [
 ]
 
 
-# https://w3c.github.io/network-error-logging/#predefined-network-error-types
 NEL_CULPRITS = {
+    # https://w3c.github.io/network-error-logging/#predefined-network-error-types
     "dns.unreachable": "DNS server is unreachable",
     "dns.name_not_resolved": "DNS server responded but is unable to resolve the address",
     "dns.failed": "Request to the DNS server failed due to reasons not covered by previous errors",
@@ -734,4 +734,20 @@ NEL_CULPRITS = {
     "http.failed": "The connection failed due to errors in HTTP protocol not covered by previous errors",
     "abandoned": "User aborted the resource fetch before it is complete",
     "unknown": "error type is unknown",
+    # Chromium-specific errors, not documented in the spec
+    # https://chromium.googlesource.com/chromium/src/+/HEAD/net/network_error_logging/network_error_logging_service.cc
+    "dns.protocol": "ERR_DNS_MALFORMED_RESPONSE",
+    "dns.server": "ERR_DNS_SERVER_FAILED",
+    "tls.unrecognized_name_alert": "ERR_SSL_UNRECOGNIZED_NAME_ALERT",
+    "h2.ping_failed": "ERR_HTTP2_PING_FAILED",
+    "h2.protocol.error": "ERR_HTTP2_PROTOCOL_ERROR",
+    "h3.protocol.error": "ERR_QUIC_PROTOCOL_ERROR",
+    "http.response.invalid.empty": "ERR_EMPTY_RESPONSE",
+    "http.response.invalid.content_length_mismatch": "ERR_CONTENT_LENGTH_MISMATCH",
+    "http.response.invalid.incomplete_chunked_encoding": "ERR_INCOMPLETE_CHUNKED_ENCODING",
+    "http.response.invalid.invalid_chunked_encoding": "ERR_INVALID_CHUNKED_ENCODING",
+    "http.request.range_not_satisfiable": "ERR_REQUEST_RANGE_NOT_SATISFIABLE",
+    "http.response.headers.truncated": "ERR_RESPONSE_HEADERS_TRUNCATED",
+    "http.response.headers.multiple_content_disposition": "ERR_RESPONSE_HEADERS_MULTIPLE_CONTENT_DISPOSITION",
+    "http.response.headers.multiple_content_length": "ERR_RESPONSE_HEADERS_MULTIPLE_CONTENT_LENGTH",
 }
