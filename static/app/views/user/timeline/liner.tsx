@@ -9,7 +9,7 @@ interface Props {
   lineSize?: number;
   size?: number;
 }
-export function Liner({type, size = 10, lineSize = 1, speed}: Props) {
+export function Liner({type, size = 14, lineSize = 1, speed}: Props) {
   const theme = useTheme();
 
   const css = {
@@ -21,7 +21,7 @@ export function Liner({type, size = 10, lineSize = 1, speed}: Props) {
   } as any;
 
   if (type === 'error') {
-    css['--color'] = theme.red400;
+    css['--color'] = theme.red300;
     css['--invertColor'] = theme.red100_a;
   }
 
@@ -37,7 +37,7 @@ export function Liner({type, size = 10, lineSize = 1, speed}: Props) {
     css['--color'] = theme.yellow300;
     css['--invertColor'] = theme.yellow100_a;
   } else if (speed === 'slow') {
-    css['--color'] = theme.red400;
+    css['--color'] = theme.red300;
     css['--invertColor'] = theme.red100_a;
   }
 

@@ -81,7 +81,7 @@ export function UserTimeline({userId}: Props) {
       } else if (speed === 'mid') {
         css.color = theme.yellow300;
       } else if (speed === 'slow') {
-        css.color = theme.red400;
+        css.color = theme.red300;
       }
 
       return {
@@ -112,11 +112,13 @@ export function UserTimeline({userId}: Props) {
     ...(errorResults.events || []).map(event => ({
       id: event.id,
       content: (
-        <div>
-          <Link to={`/organizations/${organization.slug}/replays/${event.id}/`}>
+        <TextOverflow>
+          <Link
+            to={`/organizations/${organization.slug}/issues/${event['issue.id']}/events/${event.id}/`}
+          >
             {event.message}
           </Link>{' '}
-        </div>
+        </TextOverflow>
       ),
       speed: null,
       timestamp: new Date(event.timestamp),
@@ -204,11 +206,11 @@ function UnstyledTimelineEvent({
     <div style={style} className={className}>
       <Liner type={type} speed={speed} />
       <EventWrapper>
+        <Timestamp>{formatTimestamp(timestamp)}</Timestamp>
         <EventContent>
           <Avatar round project={project} />
           {children}
         </EventContent>
-        <Timestamp>{formatTimestamp(timestamp)}</Timestamp>
       </EventWrapper>
     </div>
   );
@@ -228,6 +230,7 @@ const EventContent = styled('div')`
   gap: ${space(1)};
   flex: 1;
   padding: ${space(1.5)} 0;
+  overflow: hidden;
 `;
 const EventWrapper = styled('div')`
   flex: 1;
@@ -235,11 +238,12 @@ const EventWrapper = styled('div')`
   gap: ${space(1)};
   align-items: center;
   flex-shrink: 0;
+  overflow: hidden;
 `;
 
 const TimelineEvent = styled(UnstyledTimelineEvent)`
   display: flex;
-  gap: ${space(2)};
+  gap: ${space(1.5)};
   background-color: var(--background);
   padding: 0 ${space(1.5)};
 `;
