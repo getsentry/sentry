@@ -18,25 +18,32 @@ from sentry.replays.usecases.ingest.decode import decode_recording_message
 
 
 class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def create_with_partitions(
+    def __init__(
         self,
         max_batch_row_count: int,
         max_batch_size_in_bytes: int,
         max_batch_time_in_seconds: int,
+    ) -> None:
+        self.max_batch_row_count = max_batch_row_count
+        self.max_batch_size_in_bytes = max_batch_size_in_bytes
+        self.max_batch_time_in_seconds = max_batch_time_in_seconds
+
+    def create_with_partitions(
+        self,
         commit: CommitOffsets,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         return BatchedRecordingProcessingStrategy(
-            max_batch_row_count=max_batch_row_count,
-            max_batch_size_in_bytes=max_batch_size_in_bytes,
-            max_batch_time_in_seconds=max_batch_time_in_seconds,
-            next_step=commit,
+            max_batch_row_count=self.max_batch_row_count,
+            max_batch_size_in_bytes=self.max_batch_size_in_bytes,
+            max_batch_time_in_seconds=self.max_batch_time_in_seconds,
+            next_step=CommitOffsets(commit),
         )
 
 
 class BatchedRecordingProcessingStrategy(BatchedFileStorageProcessingStrategy):
     def submit(self, message: Message[KafkaPayload]) -> None:
-        assert not self.__closed
+        assert not self._closed
 
         recording_segment = decode_recording_message(message.payload.value)
 
@@ -57,12 +64,14 @@ class BatchedRecordingProcessingStrategy(BatchedFileStorageProcessingStrategy):
         #
         # There's no guarantee that this event is unique or that it will commit so any side-effect
         # we produce must tolerate duplicates.
-        recording_billing_outcome(message)
-        replay_click_post_processor(message, transaction)
+        recording_billing_outcome(recording_segment)
+        replay_click_post_processor(recording_segment, transaction)
 
-        self.__append_to_batch(
-            key=f"{recording_segment['replay_id']}{recording_segment['segment_id']}",
-            message=recording_segment["payload"],
+        self.append_to_batch(
+            {
+                "key": f"{recording_segment['replay_id']}{recording_segment['segment_id']}",
+                "message": recording_segment["payload"],
+            }
         )
 
         self.next_step.submit(message)

@@ -16,7 +16,7 @@ from sentry.models.files.utils import get_storage
 
 def download_blob(filename: str) -> bytes:
     storage = get_storage(_make_storage_options())
-    return storage.get(filename)
+    return storage.open(filename)
 
 
 def download_blob_range(filename: str, start: int, end: int) -> bytes:
@@ -28,9 +28,12 @@ def download_blob_range(filename: str, start: int, end: int) -> bytes:
     if isinstance(storage, (GoogleCloudStorage, S3Boto3Storage)):
         return storage.read_range(filename, start, end)
     else:
-        file_io = io.BytesIO(storage.read(filename))
+        blob = storage.open(filename)
+        file_io = io.BytesIO(blob.read())
         file_io.seek(start)
-        return file_io.read((end - start) + 1)
+        file_part_bytes = file_io.read((end - start) + 1)
+        blob.close()
+        return file_part_bytes
 
 
 def upload_blob(filename: str, file_data: io.BytesIO) -> None:

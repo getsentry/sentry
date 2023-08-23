@@ -21,22 +21,22 @@ class BatchedFileStorageProcessingStrategy(ProcessingStrategy[KafkaPayload]):
         self,
         max_batch_size_in_bytes: int,
         max_batch_time_in_seconds: int,
-        max_message_count: int,
+        max_batch_row_count: int,
         next_step: ProcessingStrategy[KafkaPayload],
     ) -> None:
         self.max_batch_size_in_bytes = max_batch_size_in_bytes
         self.max_batch_time_in_seconds = max_batch_time_in_seconds
-        self.max_message_count = max_message_count
+        self.max_batch_row_count = max_batch_row_count
         self.next_step = next_step
 
         self.__initialize_new_batch()
-        self.__closed = False
+        self._closed = False
 
     def submit(self, message: Message[KafkaPayload]) -> None:
-        assert not self.__closed
+        assert not self._closed
 
         # Deserialize and push into the buffer.
-        self.__append_to_batch(msgpack.unpackb(message.payload.value))
+        self.append_to_batch(msgpack.unpackb(message.payload.value))
 
         # The next-step accepts the raw message value.  As of writing, the next-step is assumed to
         # be the commit-step (a no-op).
@@ -72,14 +72,14 @@ class BatchedFileStorageProcessingStrategy(ProcessingStrategy[KafkaPayload]):
             self.next_step.join(timeout=timeout)
 
     def close(self) -> None:
-        self.__closed = True
+        self._closed = True
 
     def terminate(self) -> None:
         self.__initialize_new_batch()
-        self.__closed = True
+        self._closed = True
         self.next_step.terminate()
 
-    def __append_to_batch(self, file_part: FilePart) -> None:
+    def append_to_batch(self, file_part: FilePart) -> None:
         self.__batch.append(file_part)
         self.__batch_size_in_bytes += len(file_part["message"])
 
@@ -95,7 +95,7 @@ class BatchedFileStorageProcessingStrategy(ProcessingStrategy[KafkaPayload]):
     @property
     def has_exceeded_max_message_count(self) -> bool:
         """Return "True" if we have accumulated the configured number of messages."""
-        return len(self.__batch) >= self.max_message_count
+        return len(self.__batch) >= self.max_batch_row_count
 
     @property
     def has_exceeded_batch_byte_size(self) -> bool:
