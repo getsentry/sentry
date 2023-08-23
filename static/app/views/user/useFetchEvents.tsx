@@ -68,6 +68,8 @@ export function useFetchEvents<T extends FetchEventsResponse>({
       fields.push('spans.resource');
       fields.push('spans.ui');
       fields.push('transaction.duration');
+    } else {
+      fields.push('issue.id');
     }
 
     return EventView.fromNewQueryWithLocation(
