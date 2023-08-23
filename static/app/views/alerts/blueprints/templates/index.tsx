@@ -80,7 +80,7 @@ function AlertTemplateList() {
       {
         key: 'edit',
         label: t('Edit'),
-        to: `/organization/${organization.slug}/alerts/templates/${id}/`,
+        to: `/organizations/${organization.slug}/alerts/templates/${id}/`,
       },
       {
         key: 'delete',
@@ -130,7 +130,7 @@ function AlertTemplateList() {
                       priority="primary"
                       icon={<IconAdd isCircled size="md" />}
                       aria-label="Create Alert Template"
-                      href={`/organization/${organization.slug}/alerts/templates/new/`}
+                      href={`/organizations/${organization.slug}/alerts/templates/new/`}
                     />
                   }
                 />

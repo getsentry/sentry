@@ -1,11 +1,8 @@
-import {Fragment} from 'react';
-
-import * as Layout from 'sentry/components/layouts/thirds';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import AlertBlueprintEditorForm from 'sentry/views/alerts/blueprints/form';
 import {AlertProcedure} from 'sentry/views/alerts/blueprints/types';
 
 function AlertProcedureEditor() {
@@ -13,26 +10,18 @@ function AlertProcedureEditor() {
   const router = useRouter();
   const {procedureId = 'new'} = router.params;
 
-  const {data: procedure = {} as AlertProcedure, isLoading} = useApiQuery<AlertProcedure>(
+  const {data: procedure = {} as AlertProcedure} = useApiQuery<AlertProcedure>(
     [`/organizations/${organization.slug}/alert-procedures/${procedureId}/`],
-    {staleTime: 0}
+    {staleTime: 0, enabled: procedureId !== 'new'}
   );
-
-  const pageTitle =
-    procedureId === 'new' && !isLoading
-      ? 'New Alert Procedure'
-      : `Editing '${procedure.label}'`;
-
   return (
-    <Fragment>
-      <SentryDocumentTitle title={t('Alert Procedure')} orgSlug={organization.slug} />
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Layout.Title>{pageTitle}</Layout.Title>
-        </Layout.HeaderContent>
-      </Layout.Header>
-      <Layout.Body>testing</Layout.Body>
-    </Fragment>
+    <AlertBlueprintEditorForm
+      type="procedure"
+      procedure={procedure}
+      identifier={procedureId}
+      help={t('Setup a standard series of actions for Sentry to run for you')}
+      onSubmit={() => {}}
+    />
   );
 }
 

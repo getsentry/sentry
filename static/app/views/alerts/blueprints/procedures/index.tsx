@@ -80,7 +80,7 @@ function AlertProcedureList() {
       {
         key: 'edit',
         label: t('Edit'),
-        to: `/organization/${organization.slug}/alerts/procedures/${id}/`,
+        to: `/organizations/${organization.slug}/alerts/procedures/${id}/`,
       },
       {
         key: 'delete',
@@ -130,7 +130,7 @@ function AlertProcedureList() {
                       priority="primary"
                       icon={<IconAdd isCircled size="md" />}
                       aria-label="Create Alert Procedure"
-                      href={`/organization/${organization.slug}/alerts/procedures/new/`}
+                      href={`/organizations/${organization.slug}/alerts/procedures/new/`}
                     />
                   }
                 />

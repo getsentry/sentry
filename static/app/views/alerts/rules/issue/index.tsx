@@ -145,12 +145,14 @@ type Props = {
   onChangeTitle?: (data: string) => void;
 } & RouteComponentProps<RouteParams, {}>;
 
+export interface IssueAlertRuleConfig {
+  actions: IssueAlertRuleActionTemplate[];
+  conditions: IssueAlertRuleConditionTemplate[];
+  filters: IssueAlertRuleConditionTemplate[];
+}
+
 type State = DeprecatedAsyncView['state'] & {
-  configs: {
-    actions: IssueAlertRuleActionTemplate[];
-    conditions: IssueAlertRuleConditionTemplate[];
-    filters: IssueAlertRuleConditionTemplate[];
-  } | null;
+  configs: IssueAlertRuleConfig | null;
   detailedError: null | {
     [key: string]: string[];
   };
