@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {t} from 'sentry/locale';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 
-import {OmniSection} from '../types';
+import {OmniAction, OmniSection} from '../types';
 import {useOmniSearchState} from '../useOmniState';
 
 import {OmniResults} from './results';
@@ -16,7 +16,7 @@ export const OnmniSearchInputContext = createContext<
 function OmniSearchModal() {
   const searchState = useOmniSearchState();
   const [search, setSearch] = useState('');
-  const fuse = useRef<Fuse<any>>();
+  const fuse = useRef<Fuse<OmniAction>>();
 
   useEffect(() => {
     async function initializeFuse() {

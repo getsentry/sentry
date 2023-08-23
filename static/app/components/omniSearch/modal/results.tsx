@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 import {useListBox, useListBoxSection, useOption} from '@react-aria/listbox';
 import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
-import {useTreeState} from '@react-stately/tree';
+import {TreeProps, TreeState, useTreeState} from '@react-stately/tree';
+import {Node} from '@react-types/shared';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -12,7 +13,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 
-import {OmniSection} from '../types';
+import {OmniAction, OmniSection} from '../types';
 
 import {OnmniSearchInputContext} from './index';
 /**
@@ -52,7 +53,7 @@ function OmniResults({results}: OmniResultsProps) {
       {results.map(({key: sectionKey, ...section}) => (
         <Section key={sectionKey} title={section.label}>
           {section.actions.map(({key: actionKey, ...action}) => (
-            <Item key={actionKey} {...action}>
+            <Item<OmniAction> key={actionKey} {...action}>
               {action.label}
             </Item>
           ))}
@@ -62,7 +63,7 @@ function OmniResults({results}: OmniResultsProps) {
   );
 }
 
-function OmniResultsList(props) {
+function OmniResultsList(props: TreeProps<OmniSection>) {
   const setSearch = useContext(OnmniSearchInputContext);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -139,7 +140,12 @@ function OmniResultsList(props) {
   );
 }
 
-function OmniResultSection({section, state}) {
+interface OmniResultSectionProps {
+  section: Node<OmniSection>;
+  state: TreeState<OmniSection>;
+}
+
+function OmniResultSection({section, state}: OmniResultSectionProps) {
   const {itemProps, headingProps, groupProps} = useListBoxSection({
     heading: section.rendered,
     'aria-label': section['aria-label'],
@@ -159,8 +165,13 @@ function OmniResultSection({section, state}) {
   );
 }
 
-function OmniResultOption({item, state}) {
-  const {actionIcon: Icon, actionHotkey} = item.props;
+interface OmniResultOptionProps {
+  item: Node<OmniSection>;
+  state: TreeState<OmniSection>;
+}
+
+function OmniResultOption({item, state}: OmniResultOptionProps) {
+  const {actionIcon: Icon, actionHotkey} = item.props as OmniAction;
   const optionRef = useRef<HTMLLIElement>(null);
   const {optionProps, isFocused, isPressed, isSelected, isDisabled} = useOption(
     {key: item.key},
