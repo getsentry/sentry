@@ -106,18 +106,20 @@ class AlertTemplateSerializer(Serializer):
     def serialize(self, obj: AlertTemplate, attrs: Any, user: User, **kwargs):
         # XXX: Hack to avoid unravelling the project dependency :(
         project = Project.objects.filter(organization=obj.organization).first()
-
+        conditions_and_filters = obj.issue_alert_data.get(
+            "conditions", []
+        ) + obj.issue_alert_data.get("filters", [])
         all_conditions = [
             dict(list(o.items()) + [("name", _generate_rule_label(project, obj, o))])
-            for o in obj.issue_alert_data.get("conditions", [])
+            for o in conditions_and_filters
         ]
         issue_alert_data = {
             # conditions pertain to criteria that can trigger an alert
             "conditions": list(filter(lambda condition: not _is_filter(condition), all_conditions)),
             # filters are not new conditions but are the subset of conditions that pertain to event attributes
             "filters": list(filter(lambda condition: _is_filter(condition), all_conditions)),
-            "actionMatch": obj.issue_alert_data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH,
-            "filterMatch": obj.issue_alert_data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH,
+            "actionMatch": obj.issue_alert_data.get("actionMatch") or Rule.DEFAULT_CONDITION_MATCH,
+            "filterMatch": obj.issue_alert_data.get("filterMatch") or Rule.DEFAULT_FILTER_MATCH,
             "frequency": obj.issue_alert_data.get("frequency") or Rule.DEFAULT_FREQUENCY,
         }
         rules = Rule.objects.filter(template_id=obj.id)
@@ -133,7 +135,7 @@ class AlertTemplateSerializer(Serializer):
             "name": obj.name,
             "organization_id": obj.organization_id,
             # TODO(Leander): Use get_attrs
-            "issue_alert_ids": [r.id for r in rules],
+            "issue_alerts": [{"id": r.id, "name": r.label, "project": r.project_id} for r in rules],
             "issue_alert_data": issue_alert_data,
             "procedure": serialize(obj.procedure),
         }

@@ -9,7 +9,7 @@ export interface AlertTemplate {
     filterMatch: 'all' | 'any' | 'none';
     filters: IssueAlertRuleCondition[];
   };
-  issue_alert_ids: number[];
+  issue_alerts: {id: number; name: string; project: number}[];
   name: string;
   organization_id: number;
   owner: string | null;
@@ -23,6 +23,5 @@ export interface AlertProcedure {
   label: string;
   organization_id: number;
   owner: string | null;
-  // [type]:[identifer]
-  templates: number[];
+  templates: {id: number; name: string}[];
 }

@@ -29,7 +29,7 @@ function AlertBlueprintCard({
   const ownerTeam = teams.find(team => team.id === ownerId);
 
   return (
-    <StyledCard interactive>
+    <StyledCard>
       <Title>{title}</Title>
       <Subtitle>{subtitle}</Subtitle>
       <BadgeArea>
@@ -56,6 +56,15 @@ const StyledCard = styled(Card)`
   display: grid;
   grid-column-gap: ${space(2)};
   grid-template: 1fr 1fr auto / 1fr auto;
+  &:focus,
+  &:hover {
+    box-shadow: 0px 0px 0px 6px rgba(209, 202, 216, 0.2);
+    outline: none;
+  }
+
+  &:active {
+    box-shadow: 0px 0px 0px 6px rgba(209, 202, 216, 0.5);
+  }
 `;
 
 const Title = styled('div')`

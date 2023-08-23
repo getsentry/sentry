@@ -12,6 +12,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import AlertBlueprintCard from 'sentry/views/alerts/blueprints/card';
+import AlertTemplateSummary from 'sentry/views/alerts/blueprints/templates/summary';
 import {AlertTemplate} from 'sentry/views/alerts/blueprints/types';
 
 import AlertHeader from '../../list/header';
@@ -40,7 +41,7 @@ function AlertTemplateList() {
                       actions={getActionsForTemplate(tmpl)}
                       owner={tmpl.owner}
                     >
-                      test
+                      <AlertTemplateSummary template={tmpl} />
                     </AlertBlueprintCard>
                   </TemplateItem>
                 ))}

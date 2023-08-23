@@ -40,13 +40,12 @@ function AccordionRow({disabled = false, disableBody, body, title}: AccordionRow
 
   return (
     <AccordionContent>
-      <Title onClick={toggleDetails} disabled={disabled}>
-        <TitlePropWrapper>{title}</TitlePropWrapper>
+      <AccordionTitle onClick={toggleDetails} disabled={disabled}>
+        <AccordionTitleWrapper>{title}</AccordionTitleWrapper>
         <IconWrapper>
           {!disabled && <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />}
         </IconWrapper>
-      </Title>
-
+      </AccordionTitle>
       <motion.div
         initial="collapsed"
         animate={disabled || disableBody ? undefined : animationState}
@@ -59,7 +58,7 @@ function AccordionRow({disabled = false, disableBody, body, title}: AccordionRow
           collapsed: {height: 0, overflow: 'hidden', transition: {duration}},
         }}
       >
-        {body}
+        <AccordionBodyWrapper>{body}</AccordionBodyWrapper>
       </motion.div>
     </AccordionContent>
   );
@@ -71,12 +70,12 @@ const AccordionContent = styled('div')`
   width: 100%;
 `;
 
-const Title = styled('div')<{disabled: boolean}>`
+const AccordionTitle = styled('div')<{disabled: boolean}>`
   width: 100%;
   display: grid;
   grid-template-columns: 1fr 20px;
   gap: 1.5rem;
-  margin: 0.75rem 0;
+  margin: 0.75rem 0 0 0;
   align-items: center;
   cursor: ${props => (props.disabled ? 'auto' : 'pointer')};
 `;
@@ -86,8 +85,12 @@ const IconWrapper = styled('div')`
   line-height: 0;
 `;
 
-const TitlePropWrapper = styled('div')`
+const AccordionTitleWrapper = styled('div')`
   grid-column: 2 3;
+`;
+
+const AccordionBodyWrapper = styled('div')`
+  margin: 0.75rem 0 0 0;
 `;
 
 export default AccordionRow;
