@@ -35,11 +35,12 @@ type Return = {
 };
 
 const FILTERS = {
-  type: (item: SpanFrame, types: string[]) =>
-    types.length === 0 || types.includes(item.op),
+  type: (item: unknown, types: string[]) => types.length === 0 || types.includes(item.op),
 
-  searchTerm: (item: SpanFrame, searchTerm: string) =>
-    JSON.stringify(item.description).toLowerCase().includes(searchTerm),
+  searchTerm: (item: unknown, searchTerm: string) => {
+    console.log(item);
+    return JSON.stringify(item?.description).toLowerCase().includes(searchTerm);
+  },
 };
 
 function useAccessibilityFilters({accessibilityFrames}: Options): Return {
@@ -47,7 +48,7 @@ function useAccessibilityFilters({accessibilityFrames}: Options): Return {
 
   // const method = useMemo(() => decodeList(query.f_n_method), [query.f_n_method]);
   const type = useMemo(() => decodeList(query.f_n_type), [query.f_n_type]);
-  const searchTerm = decodeScalar(query.f_n_search, '').toLowerCase();
+  const searchTerm = decodeScalar(query.f_n_search, '')?.toLowerCase();
 
   // Need to clear Accessibility Details URL params when we filter, otherwise you can
   // get into a state where it is trying to load details for a non fetch/xhr

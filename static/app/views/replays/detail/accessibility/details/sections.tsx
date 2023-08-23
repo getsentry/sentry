@@ -27,9 +27,8 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
 
   const data = {
     [t('Type')]: item.id,
-    [t('Help')]: item.description,
-    [t('Help URL')]: 'TODO',
-    [t('Status')]: 'TODO',
+    [t('Help')]: <a href={item.helpUrl}>{item.description}</a>,
+    [t('Impact')]: item.impact,
     [t('Path')]: item.element,
 
     [t('Timestamp')]: (
