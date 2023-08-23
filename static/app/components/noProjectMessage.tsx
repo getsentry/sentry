@@ -26,6 +26,7 @@ function NoProjectMessage({
 }: Props) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const {teams, initiallyLoaded: teamsLoaded} = useTeams();
+  const isTeamMember = teams.some(team => team.isMember);
 
   const orgSlug = organization.slug;
   const {canCreateProject} = useProjectCreationAccess({organization, teams});
@@ -39,7 +40,7 @@ function NoProjectMessage({
       ? !!projects?.some(p => p.hasAccess)
       : !!projects?.some(p => p.isMember && p.hasAccess);
 
-  if (hasProjectAccess || !projectsLoaded || !teamsLoaded) {
+  if (isTeamMember && (hasProjectAccess || !projectsLoaded || !teamsLoaded)) {
     return <Fragment>{children}</Fragment>;
   }
 
