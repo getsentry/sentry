@@ -59,7 +59,10 @@ function OmniSearchModal() {
         return {
           key: area.key,
           label: area.key === focusedArea?.key ? null : area.label,
-          actions: searchResults?.filter(a => a.areaKey === area.key) ?? [],
+          actions:
+            searchResults
+              ?.filter(a => a.areaKey === area.key)
+              .sort((a, b) => a.actionType?.localeCompare(b.actionType ?? '') ?? 0) ?? [],
         };
       })
       .filter(area => area.actions?.length);
