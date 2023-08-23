@@ -24,6 +24,31 @@ function useCrumbHandlers() {
 
   const onMouseEnter = useCallback(
     (frame: ReplayFrame) => {
+      if (frame.element) {
+        try {
+          const div = document.createElement('div');
+          div.innerHTML = frame.element!;
+          const element = div.firstChild;
+
+          const selector: string[] = [];
+          for (const attr of element!.attributes) {
+            selector.push(`[${attr.name}="${attr.value}"]`);
+          }
+
+          console.log('highlighing', {frame, element, selector});
+
+          clearAllHighlights();
+          highlight({
+            selector: selector.join(''),
+            annotation: frame.id,
+            // spotlight: true,
+          });
+        } catch (error) {
+          console.error(error);
+        }
+        return;
+      }
+
       // this debounces the mouseEnter callback in unison with mouseLeave
       // we ensure the pointer remains over the target element before dispatching state events in order to minimize unnecessary renders
       // this helps during scrolling or mouse move events which would otherwise fire in rapid succession slowing down our app
@@ -49,6 +74,8 @@ function useCrumbHandlers() {
 
   const onMouseLeave = useCallback(
     (frame: ReplayFrame) => {
+      console.log('leaving', {frame});
+
       // if there is a mouseEnter callback queued and we're leaving it we can just cancel the timeout
       if (mouseEnterCallback.current.id === frame) {
         if (mouseEnterCallback.current.timeoutId) {

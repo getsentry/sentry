@@ -30,8 +30,9 @@ type RootElem = null | HTMLDivElement;
 
 // See also: Highlight in static/app/views/replays/types.tsx
 type HighlightParams = {
-  nodeId: number;
   annotation?: string;
+  nodeId?: number;
+  selector?: string;
   spotlight?: boolean;
 };
 
@@ -257,14 +258,18 @@ export function Provider({
     setFFSpeed(0);
   };
 
-  const highlight = useCallback(({nodeId, annotation, spotlight}: HighlightParams) => {
-    const replayer = replayerRef.current;
-    if (!replayer) {
-      return;
-    }
+  const highlight = useCallback(
+    ({nodeId, selector, annotation, spotlight}: HighlightParams) => {
+      const replayer = replayerRef.current;
+      console.log('has replayer ref?', replayer);
+      if (!replayer) {
+        return;
+      }
 
-    highlightNode({replayer, nodeId, annotation, spotlight});
-  }, []);
+      highlightNode({replayer, nodeId, selector, annotation, spotlight});
+    },
+    []
+  );
 
   const clearAllHighlightsCallback = useCallback(() => {
     const replayer = replayerRef.current;
