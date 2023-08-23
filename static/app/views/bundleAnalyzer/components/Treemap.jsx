@@ -240,7 +240,7 @@ export default class Treemap extends Component {
   render() {
     return (
       <div
-        style={{width: '1000px', height: '500px'}}
+        style={{width: '100%', height: 'calc(100vh - 300px)'}}
         {...this.props}
         ref={this.saveNodeRef}
       />
