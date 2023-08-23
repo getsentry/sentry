@@ -4,19 +4,12 @@ import styled from '@emotion/styled';
 import Avatar from 'sentry/components/avatar';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
-// import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {t} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
-// import {browserHistory} from 'react-router';
-// import styled from '@emotion/styled';
-// import {Location} from 'history';
-// import Pagination from 'sentry/components/pagination';
-// import {t, tct} from 'sentry/locale';
-// import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -32,20 +25,18 @@ import {
   DurationCell,
   OSCell,
 } from 'sentry/views/replays/replayTable/tableCell';
-// import usePageFilters from 'sentry/utils/usePageFilters';
-// import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
-// import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
-// import ReplayTable from 'sentry/views/replays/replayTable';
-// import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 import {ReplayPlayer} from './replayPlayer';
+import { UserParams } from '../types';
 
-interface Props {
-  userId: string;
-}
+type Props = Partial<UserParams>;
 
-export function ReplayWidget({userId}: Props) {
+export function ReplayWidget({userKey, userValue}: Props) {
+  if (!userKey || !userValue) {
+    return null;
+  }
+
   const location = useLocation<ReplayListLocationQuery>();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -54,7 +45,7 @@ export function ReplayWidget({userId}: Props) {
   const eventView = useMemo(() => {
     const query = decodeScalar(location.query.query, '');
     const conditions = new MutableSearch(query);
-    conditions.addFilterValue('user.id', userId);
+    conditions.addFilterValue(`user.${userKey}`, userValue);
 
     return EventView.fromNewQueryWithLocation(
       {
@@ -85,7 +76,7 @@ export function ReplayWidget({userId}: Props) {
       },
       location
     );
-  }, [location, userId]);
+  }, [location, userKey, userValue]);
 
   const {
     replays,
@@ -121,9 +112,6 @@ export function ReplayWidget({userId}: Props) {
                       <Fragment key={replay.id}>
                         <Cols key={`${replay.id}-replay`}>
                           <Title>
-                            <SmallOSCell key={`${replay.id}-os`} replay={replay} />
-                            <SmallBrowserCell key="browser" replay={replay} />
-
                             <Link
                               to={`/organizations/${organization.slug}/replays/${replay.id}/`}
                             >
@@ -131,6 +119,11 @@ export function ReplayWidget({userId}: Props) {
                             </Link>
                           </Title>
                           <SubRow gap={1}>
+                            <Row gap={0.5}>
+                              <SmallOSCell key={`${replay.id}-os`} replay={replay} />
+                              <SmallBrowserCell key="browser" replay={replay} />
+                            </Row>
+
                             <Row gap={0.5}>
                               {project ? <Avatar size={12} project={project} /> : null}
                               {project ? project.slug : null}

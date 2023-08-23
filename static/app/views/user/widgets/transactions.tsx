@@ -26,12 +26,16 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {BrowserCell, OSCell} from 'sentry/views/replays/replayTable/tableCell';
+import { UserParams } from '../types';
 
-interface Props {
-  userId: string;
-}
+type Props = Partial<UserParams>;
 
-export function TransactionWidget({userId}: Props) {
+export function TransactionWidget({userKey, userValue}: Props) {
+  if (!userKey || !userValue) {
+    return null;
+  }
+
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -41,7 +45,7 @@ export function TransactionWidget({userId}: Props) {
     const query = decodeScalar(location.query.query, '');
     const conditions = new MutableSearch(query);
     conditions.addFilterValue('event.type', 'transaction');
-    conditions.addFilterValue('user.id', userId);
+    conditions.addFilterValue(`user.${userKey}`, userValue);
 
     return EventView.fromNewQueryWithLocation(
       {
@@ -59,6 +63,10 @@ export function TransactionWidget({userId}: Props) {
           'count_miserable(user)',
           'user_misery()',
           'count()',
+          'browser.name',
+          'browser.version',
+          'os.name',
+          'os.version',
         ],
         projects: [],
         query: conditions.formatString(),
@@ -66,7 +74,7 @@ export function TransactionWidget({userId}: Props) {
       },
       location
     );
-  }, [location, userId]);
+  }, [location, userKey, userValue]);
 
   const {isLoading, data, error} = useDiscoverQuery({
     eventView,
@@ -96,7 +104,7 @@ export function TransactionWidget({userId}: Props) {
                 const link = `/performance/summary/?${qs.stringify({
                   project: dataRow.project_id,
                   transaction: dataRow.transaction,
-                  query: `user.id:${userId}`,
+                  query: `user.${userKey}:${userValue}`,
                 })}`;
                 const duration = Number(dataRow['p95(transaction.duration)']);
                 const failureRate = Number(dataRow['failure_rate()']);
@@ -108,6 +116,28 @@ export function TransactionWidget({userId}: Props) {
                         <Link to={link}>{dataRow.transaction}</Link>
                       </Title>
                       <SubRow gap={1}>
+                        <Row gap={0.5}>
+                          <SmallOSCell
+                            replay={
+                              {
+                                os: {
+                                  name: dataRow['os.name'],
+                                  version: dataRow['os.version'],
+                                },
+                              } as any
+                            }
+                          />
+                          <SmallBrowserCell
+                            replay={
+                              {
+                                browser: {
+                                  name: dataRow['browser.name'],
+                                  version: dataRow['browser.version'],
+                                },
+                              } as any
+                            }
+                          />
+                        </Row>
                         <Row gap={0.5}>
                           {project ? <Avatar size={12} project={project} /> : null}
                           {project ? project.slug : null}
@@ -208,4 +238,12 @@ const StyledDuration = styled(Duration)<{ms?: number}>`
       : p.ms <= 5000
       ? `color: ${p.theme.yellow300};`
       : `color: ${p.theme.red300};`)}
+`;
+
+const SmallOSCell = styled(OSCell)`
+  padding: 0;
+`;
+
+const SmallBrowserCell = styled(BrowserCell)`
+  padding: 0;
 `;
