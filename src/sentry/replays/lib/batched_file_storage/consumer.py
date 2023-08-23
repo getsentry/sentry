@@ -4,20 +4,16 @@ This could be implemented as its own consumer process or it can be inherited by 
 consumer process.  If you're re-using this class for your own consumer be sure to override and
 follow the directions in the submit function.
 """
+from __future__ import annotations
+
 import time
-from typing import List, Optional, cast
 
 import msgpack
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message
 
-from sentry.replays.lib.batched_file_storage.create import (
-    FilePart,
-    RawFilePart,
-    create_new_batch,
-    process_raw_file_part,
-)
+from sentry.replays.lib.batched_file_storage.create import FilePart, create_new_batch
 
 
 class BatchedFileStorageProcessingStrategy(ProcessingStrategy[KafkaPayload]):
@@ -39,13 +35,8 @@ class BatchedFileStorageProcessingStrategy(ProcessingStrategy[KafkaPayload]):
     def submit(self, message: Message[KafkaPayload]) -> None:
         assert not self.__closed
 
-        # This line is for example purposes only.  We assume the message is msgpack encoded
-        # dictionary of message and key.  Those are the only two fields necessary to make a batch
-        # item.
-        raw_file_part = cast(RawFilePart, msgpack.unpackb(message.payload.value))
-
-        # The submit step does nothing.  We just push the message into the buffer.
-        self.__append_to_batch(key=raw_file_part["key"], message=raw_file_part["message"])
+        # Deserialize and push into the buffer.
+        self.__append_to_batch(msgpack.unpackb(message.payload.value))
 
         # The next-step accepts the raw message value.  As of writing, the next-step is assumed to
         # be the commit-step (a no-op).
@@ -71,7 +62,7 @@ class BatchedFileStorageProcessingStrategy(ProcessingStrategy[KafkaPayload]):
         if committed:
             self.next_step.poll()
 
-    def join(self, timeout: Optional[float] = None) -> None:
+    def join(self, timeout: float | None = None) -> None:
         committed = self.commit(force=True)
 
         # Only commit the offsets if we've flushed the buffer. This should always be true. This is
@@ -88,13 +79,12 @@ class BatchedFileStorageProcessingStrategy(ProcessingStrategy[KafkaPayload]):
         self.__closed = True
         self.next_step.terminate()
 
-    def __append_to_batch(self, key: str, message: bytes) -> None:
-        file_part = process_raw_file_part({"key": key, "message": message})
+    def __append_to_batch(self, file_part: FilePart) -> None:
         self.__batch.append(file_part)
         self.__batch_size_in_bytes += len(file_part["message"])
 
     def __initialize_new_batch(self) -> None:
-        self.__batch: List[FilePart] = []
+        self.__batch: list[FilePart] = []
         self.__batch_size_in_bytes: int = 0
         self.__batch_next_commit_time: int = self.__new_batch_next_commit_time()
 

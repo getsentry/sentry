@@ -1,3 +1,7 @@
+"""Batched recording-segment consumer implementation.
+
+This is an example of how a batched file consumer can be implemented for pre-existing consumers.
+"""
 import random
 from typing import Mapping
 
