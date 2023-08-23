@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
@@ -56,35 +56,74 @@ function AlertBlueprintEditorForm({
     {staleTime: 0}
   );
 
+  const [nodeData, setNodeData] = useState<any>({
+    actions: procedure?.issue_alert_actions ?? [],
+    filters: template?.issue_alert_data?.filters ?? [],
+    conditions: template?.issue_alert_data?.conditions ?? [],
+  });
+
+  useEffect(() => {
+    setNodeData(nd => ({
+      ...nd,
+      ...{
+        actions: procedure?.issue_alert_actions ?? [],
+        filters: template?.issue_alert_data?.filters ?? [],
+        conditions: template?.issue_alert_data?.conditions ?? [],
+      },
+    }));
+  }, [template, procedure]);
+
   const typeText = capitalize(type);
 
   const pageTitle = identifier === 'new' ? `New ${typeText}` : `Editing ${typeText}`;
+
+  function handleNodeUpdate(
+    keyType: 'conditions' | 'actions' | 'filters',
+    action: 'add' | 'change' | 'delete',
+    {ruleIndex, prop, val}: any
+  ) {
+    const records = [...nodeData[keyType]] ?? [];
+    switch (action) {
+      case 'add':
+        const config = configs?.[type]?.find(c => c.id === val.id);
+        records.push({
+          id: val.id,
+          sentryAppInstallationUuid: val.sentryAppInstallationUuid,
+          ...(config?.formFields ?? {}),
+        });
+        setNodeData({...nodeData, [keyType]: records});
+        break;
+      case 'change':
+        records[ruleIndex][prop] = val;
+        setNodeData({...nodeData, [keyType]: records});
+        break;
+      case 'delete':
+        records.splice(ruleIndex, 1);
+        setNodeData({...nodeData, [keyType]: records});
+        break;
+      default:
+        return;
+    }
+  }
 
   function renderNodeList() {
     return type === 'procedure' ? (
       <RuleNodeList
         nodes={configs?.actions ?? null}
         selectType="grouped"
-        items={procedure?.issue_alert_actions ?? []}
+        items={nodeData?.actions ?? []}
         placeholder={t('Add action...')}
         organization={organization}
         project={project}
         ownership={ownership}
         disabled={false}
-        onPropertyChange={() => {}}
-        onAddRow={() => {}}
         onResetRow={() => {}}
-        onDeleteRow={() => {}}
-        error={() => {}}
-        // onPropertyChange={this.handleChangeActionProperty}
-        // onAddRow={this.handleAddAction}
-        // onResetRow={this.handleResetAction}
-        // onDeleteRow={this.handleDeleteAction}
-        // error={
-        //   this.hasError('actions') && (
-        //     <StyledAlert type="error">{detailedError?.actions[0]}</StyledAlert>
-        //   )
-        // }
+        error={null}
+        onPropertyChange={(ruleIndex, prop, val) =>
+          handleNodeUpdate('actions', 'change', {ruleIndex, prop, val})
+        }
+        onAddRow={val => handleNodeUpdate('actions', 'add', {val})}
+        onDeleteRow={ruleIndex => handleNodeUpdate('actions', 'delete', {ruleIndex})}
       />
     ) : (
       <Fragment>
@@ -99,61 +138,35 @@ function AlertBlueprintEditorForm({
                 : condition
             ) ?? null
           }
-          items={template?.issue_alert_data?.conditions ?? []}
+          items={nodeData?.conditions ?? []}
           selectType="grouped"
           placeholder={t('Add triggers...')}
-          onPropertyChange={() => {}} // )handleChangeFilterProperty}
-          onAddRow={() => {}} // )handleAddFilter}
-          onResetRow={() => {}} // )handleResetFilter}
-          onDeleteRow={() => {}} // )handleDeleteFilter}
+          onResetRow={() => {}}
           organization={organization}
           project={project}
           disabled={false}
-          error={() => {}}
-          // error={
-          //   this.hasError('conditions') && (
-          //     <StyledAlert type="error">
-          //       {detailedError?.conditions[0]}
-          //       {(detailedError?.conditions[0] || '').startsWith(
-          //         'You may not exceed'
-          //       ) && (
-          //         <Fragment>
-          //           {' '}
-          //           <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/#alert-limits">
-          //             {t('View Docs')}
-          //           </ExternalLink>
-          //         </Fragment>
-          //       )}
-          //     </StyledAlert>
-          //   )
-          // // // }
-          // // incompatibleRules={incompatibleConditions}
-          // // incompatibleBanner={
-          // //   incompatibleFilters === null && incompatibleConditions !== null
-          // //     ? incompatibleConditions.at(-1)
-          // //     : null
-          // }
+          error={null}
+          onPropertyChange={(ruleIndex, prop, val) =>
+            handleNodeUpdate('conditions', 'change', {ruleIndex, prop, val})
+          }
+          onAddRow={val => handleNodeUpdate('conditions', 'add', {val})}
+          onDeleteRow={ruleIndex => handleNodeUpdate('conditions', 'delete', {ruleIndex})}
         />
 
         <RuleNodeList
           nodes={configs?.filters ?? null}
-          items={template?.issue_alert_data?.filters ?? []}
+          items={nodeData?.filters ?? []}
           placeholder={t('Add filters...')}
-          onPropertyChange={() => {}} // )handleChangeFilterProperty}
-          onAddRow={() => {}} // )handleAddFilter}
-          onResetRow={() => {}} // )handleResetFilter}
-          onDeleteRow={() => {}} // )handleDeleteFilter}
           organization={organization}
           project={project}
           disabled={false}
-          error={() => {}}
-          // error={
-          //     this.hasError('filters') && (
-          //       <StyledAlert type="error">{detailedError?.filters[0]}</StyledAlert>
-          //     )
-          //   }
-          //   incompatibleRules={incompatibleFilters}
-          //   incompatibleBanner={incompatibleFilters ? incompatibleFilters.at(-1) : null}
+          error={null}
+          onPropertyChange={(ruleIndex, prop, val) =>
+            handleNodeUpdate('filters', 'change', {ruleIndex, prop, val})
+          }
+          onAddRow={val => handleNodeUpdate('filters', 'add', {val})}
+          onDeleteRow={ruleIndex => handleNodeUpdate('filters', 'delete', {ruleIndex})}
+          onResetRow={() => {}}
         />
       </Fragment>
     );
@@ -208,18 +221,30 @@ function AlertBlueprintEditorForm({
                   name={`${type}-name`}
                   placeholder={t('Enter %s name', type)}
                   autoComplete="off"
+                  onChange={e => setNodeData({...nodeData, name: e.target.value})}
                 />
-                <TeamField organization={organization} onChange={() => {}} />
+                <TeamField
+                  organization={organization}
+                  onChange={opt =>
+                    setNodeData({...nodeData, owner: `team:${opt.actor.id}`})
+                  }
+                />
                 <DescriptionField
                   name="description"
                   placeholder={t('(optional) Here is a description for this %s...', type)}
+                  onChange={e => setNodeData({...nodeData, description: e.target.value})}
                 />
               </EditorDetails>
               <EditorControls>
                 <LinkButton to={`/organizations/${organization.slug}/alerts/${type}/`}>
                   {t('Cancel')}
                 </LinkButton>
-                <Button priority="primary" onClick={() => onSubmit({})}>
+                <Button
+                  priority="primary"
+                  onClick={() => {
+                    onSubmit(nodeData);
+                  }}
+                >
                   {t('Save %s', typeText)}
                 </Button>
               </EditorControls>
