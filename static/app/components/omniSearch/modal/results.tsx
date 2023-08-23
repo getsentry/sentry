@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useContext, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useListBox, useListBoxSection, useOption} from '@react-aria/listbox';
-import {isMac} from '@react-aria/utils';
+import {isMac, mergeRefs} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import {TreeProps, TreeState, useTreeState} from '@react-stately/tree';
 import {Node} from '@react-types/shared';
@@ -176,6 +176,13 @@ interface OmniResultOptionProps {
   state: TreeState<OmniSection>;
 }
 
+function scrollIntoView(el: HTMLElement | null) {
+  console.log('scrolling');
+  console.log(el);
+
+  el?.scrollIntoView({block: 'nearest'});
+}
+
 function OmniResultOption({item, state}: OmniResultOptionProps) {
   const {actionIcon: Icon, actionHotkey} = item.props as OmniAction;
   const optionRef = useRef<HTMLLIElement>(null);
@@ -193,7 +200,7 @@ function OmniResultOption({item, state}: OmniResultOptionProps) {
 
   return (
     <MenuListItem
-      ref={optionRef}
+      ref={isFocused ? mergeRefs(optionRef, scrollIntoView) : optionRef}
       disabled={isDisabled}
       isFocused={isFocused}
       isSelected={isSelected}
