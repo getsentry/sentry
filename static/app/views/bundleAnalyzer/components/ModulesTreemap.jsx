@@ -8,7 +8,6 @@ import {Label} from 'sentry/components/editableText';
 import Input from 'sentry/components/input';
 
 import {BundleContext} from '../bundleContextProvider';
-import localStorage from '../localStorage';
 import {store} from '../store';
 import {isChunkParsed, walkModules} from '../utils';
 
@@ -217,15 +216,6 @@ export default class ModulesTreemap extends Component {
     );
   };
 
-  handleConcatenatedModulesContentToggle = flag => {
-    store.showConcatenatedModulesContent = flag;
-    if (flag) {
-      localStorage.setItem('showConcatenatedModulesContent', true);
-    } else {
-      localStorage.removeItem('showConcatenatedModulesContent');
-    }
-  };
-
   handleChunkContextMenuHide = () => {
     this.setState({
       showChunkContextMenu: false,
@@ -259,10 +249,6 @@ export default class ModulesTreemap extends Component {
 
   handleSizeSwitch = sizeSwitchItem => {
     store.selectedSize = sizeSwitchItem.prop;
-  };
-
-  handleQueryChange = query => {
-    store.searchQuery = query;
   };
 
   handleSelectedChunksChange = selectedChunks => {
@@ -381,9 +367,6 @@ export default class ModulesTreemap extends Component {
                       checked={context.concatToggle}
                       onChange={() => {
                         context.setConcatToggle(!context.concatToggle);
-                        this.handleConcatenatedModulesContentToggle(
-                          !context.concatToggle
-                        );
                       }}
                     />
                   </div>

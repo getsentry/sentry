@@ -1,6 +1,5 @@
 import {computed, observable} from 'mobx';
 
-import localStorage from './localStorage';
 import {isChunkParsed, walkModules} from './utils';
 
 export class Store {
@@ -9,20 +8,8 @@ export class Store {
 
   @observable.ref allChunks;
   @observable.shallow selectedChunks;
-  @observable searchQuery = '';
   @observable defaultSize;
   @observable selectedSize;
-  @observable showConcatenatedModulesContent =
-    localStorage.getItem('showConcatenatedModulesContent') === true;
-
-  // constructor() {
-  //   observable.ref(this, 'allChunks');
-  //   observable.shallow(this, 'selectedChunks');
-  //   observable(this, 'searchQuery');
-  //   observable(this, 'defaultSize');
-  //   observable(this, 'selectedSize');
-  //   observable(this, 'showConcatenatedModulesContent');
-  // }
 
   setModules(modules) {
     walkModules(modules, module => {
@@ -68,20 +55,6 @@ export class Store {
       (totalSize, chunk) => totalSize + (chunk[this.activeSize] || 0),
       0
     );
-  }
-
-  @computed get searchQueryRegexp() {
-    const query = this.searchQuery.trim();
-
-    if (!query) {
-      return null;
-    }
-
-    try {
-      return new RegExp(query, 'iu');
-    } catch (err) {
-      return null;
-    }
   }
 
   @computed get isSearching() {
@@ -162,6 +135,7 @@ export class Store {
         result = true;
         return false;
       }
+      return undefined;
     });
 
     return result;

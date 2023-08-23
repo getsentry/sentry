@@ -58,8 +58,8 @@ export default class Tooltip extends Component {
 
   getStyle() {
     return {
-      left: this.state.left,
-      top: this.state.top,
+      left: this.state.left - 200,
+      top: this.state.top - 180,
     };
   }
 
