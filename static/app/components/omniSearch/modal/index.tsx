@@ -1,5 +1,6 @@
 import {createContext, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import sortBy from 'lodash/sortBy';
 
 import {t} from 'sentry/locale';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
@@ -60,10 +61,10 @@ function OmniSearchModal() {
         return {
           key: area.key,
           label: area.key === focusedArea?.key ? null : area.label,
-          actions:
-            searchResults
-              ?.filter(a => a.areaKey === area.key)
-              .sort((a, b) => a.actionType?.localeCompare(b.actionType ?? '') ?? 0) ?? [],
+          actions: sortBy(
+            searchResults?.filter(a => a.areaKey === area.key) ?? [],
+            action => action.actionType
+          ),
         };
       })
       .filter(area => area.actions?.length);
