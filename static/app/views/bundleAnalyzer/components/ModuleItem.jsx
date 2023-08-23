@@ -1,7 +1,7 @@
 import {Component} from 'react';
 import cls from 'classnames';
 import escapeRegExp from 'escape-string-regexp';
-import filesize from 'filesize';
+import {filesize} from 'filesize';
 import escape from 'lodash.escape';
 
 import s from './ModuleItem.css';
@@ -87,7 +87,11 @@ export default class ModuleItem extends Component {
         onMouseLeave={this.handleMouseLeave}
       >
         <span dangerouslySetInnerHTML={{__html: this.titleHtml}} />
-        {showSize && [' (', <strong>{filesize(module[showSize])}</strong>, ')']}
+        {showSize && [
+          ' (',
+          <strong key={module[size]}>{filesize(module[showSize])}</strong>,
+          ')',
+        ]}
       </div>
     );
   }

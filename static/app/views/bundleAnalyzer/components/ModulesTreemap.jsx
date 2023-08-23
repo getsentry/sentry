@@ -3,17 +3,20 @@ import {filesize} from 'filesize';
 import {computed} from 'mobx';
 import {observer} from 'mobx-react';
 
+import Checkbox from 'sentry/components/checkbox';
+import {Label} from 'sentry/components/editableText';
+import Input from 'sentry/components/input';
+
+import {BundleContext} from '../bundleContextProvider';
 import localStorage from '../localStorage';
 import {store} from '../store';
-import {isChunkParsed} from '../utils';
+import {isChunkParsed, walkModules} from '../utils';
 
-import Checkbox from './Checkbox';
 import CheckboxList from './CheckboxList';
 import ContextMenu from './ContextMenu';
 import Dropdown from './Dropdown';
 import ModulesList from './ModulesList';
 import s from './ModulesTreemap.css';
-import Search from './Search';
 import Sidebar from './Sidebar';
 import Switcher from './Switcher';
 import Tooltip from './Tooltip';
@@ -29,11 +32,6 @@ const DEFAULT_DROPDOWN_SELECTION = 'Select an entrypoint';
 
 @observer
 export default class ModulesTreemap extends Component {
-  mouseCoords = {
-    x: 0,
-    y: 0,
-  };
-
   state = {
     selectedChunk: null,
     selectedMouseCoords: {x: 0, y: 0},
@@ -51,115 +49,94 @@ export default class ModulesTreemap extends Component {
     document.removeEventListener('mousemove', this.handleMouseMove, true);
   }
 
-  render() {
-    const {
-      selectedChunk,
-      selectedMouseCoords,
-      sidebarPinned,
-      showChunkContextMenu,
-      showTooltip,
-      tooltipContent,
-    } = this.state;
+  mouseCoords = {
+    x: 0,
+    y: 0,
+  };
 
-    return (
-      <div className={s.container}>
-        <Sidebar
-          pinned={sidebarPinned}
-          onToggle={this.handleSidebarToggle}
-          onPinStateChange={this.handleSidebarPinStateChange}
-          onResize={this.handleSidebarResize}
-        >
-          <div className={s.sidebarGroup}>
-            <Switcher
-              label="Treemap sizes"
-              items={this.sizeSwitchItems}
-              activeItem={this.activeSizeItem}
-              onSwitch={this.handleSizeSwitch}
-            />
-            {store.hasConcatenatedModules && (
-              <div className={s.showOption}>
-                <Checkbox
-                  checked={store.showConcatenatedModulesContent}
-                  onChange={this.handleConcatenatedModulesContentToggle}
-                >
-                  {`Show content of concatenated modules${
-                    store.activeSize === 'statSize' ? '' : ' (inaccurate)'
-                  }`}
-                </Checkbox>
-              </div>
-            )}
-          </div>
-          <div className={s.sidebarGroup}>
-            <Dropdown
-              label="Filter to initial chunks"
-              defaultOption={DEFAULT_DROPDOWN_SELECTION}
-              options={store.entrypoints}
-              onSelectionChange={this.handleSelectionChange}
-            />
-          </div>
-          <div className={s.sidebarGroup}>
-            <Search
-              label="Search modules"
-              query={store.searchQuery}
-              autofocus
-              onQueryChange={this.handleQueryChange}
-            />
-            <div className={s.foundModulesInfo}>{this.foundModulesInfo}</div>
-            {store.isSearching && store.hasFoundModules && (
-              <div className={s.foundModulesContainer}>
-                {store.foundModulesByChunk.map(({chunk, modules}) => (
-                  <div key={chunk.cid} className={s.foundModulesChunk}>
-                    <div
-                      className={s.foundModulesChunkName}
-                      onClick={() => this.treemap.zoomToGroup(chunk)}
-                    >
-                      {chunk.label}
-                    </div>
-                    <ModulesList
-                      className={s.foundModulesList}
-                      modules={modules}
-                      showSize={store.activeSize}
-                      highlightedText={store.searchQueryRegexp}
-                      isModuleVisible={this.isModuleVisible}
-                      onModuleClick={this.handleFoundModuleClick}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          {this.chunkItems.length > 1 && (
-            <div className={s.sidebarGroup}>
-              <CheckboxList
-                label="Show chunks"
-                items={this.chunkItems}
-                checkedItems={store.selectedChunks}
-                renderLabel={this.renderChunkItemLabel}
-                onChange={this.handleSelectedChunksChange}
-              />
-            </div>
-          )}
-        </Sidebar>
-        <Treemap
-          ref={this.saveTreemapRef}
-          className={s.map}
-          data={store.visibleChunks}
-          highlightGroups={this.highlightedModules}
-          weightProp={store.activeSize}
-          onMouseLeave={this.handleMouseLeaveTreemap}
-          onGroupHover={this.handleTreemapGroupHover}
-          onGroupSecondaryClick={this.handleTreemapGroupSecondaryClick}
-          onResize={this.handleResize}
-        />
-        <Tooltip visible={showTooltip}>{tooltipContent}</Tooltip>
-        <ContextMenu
-          visible={showChunkContextMenu}
-          chunk={selectedChunk}
-          coords={selectedMouseCoords}
-          onHide={this.handleChunkContextMenuHide}
-        />
-      </div>
+  getSearchQueryRegex(searchQuery) {
+    const query = searchQuery.trim();
+
+    if (!query) {
+      return null;
+    }
+
+    try {
+      return new RegExp(query, 'iu');
+    } catch (err) {
+      return null;
+    }
+  }
+
+  @computed foundModulesByChunk(searchQuery) {
+    const searchQueryRegex = this.getSearchQueryRegex(searchQuery);
+    const isSearching = !!searchQueryRegex;
+    if (!isSearching) {
+      return [];
+    }
+
+    const query = searchQueryRegex;
+
+    return store.visibleChunks
+      .map(chunk => {
+        let foundGroups = [];
+
+        walkModules(chunk.groups, module => {
+          let weight = 0;
+
+          /**
+           * Splitting found modules/directories into groups:
+           *
+           * 1) Module with matched label (weight = 4)
+           * 2) Directory with matched label (weight = 3)
+           * 3) Module with matched path (weight = 2)
+           * 4) Directory with matched path (weight = 1)
+           */
+          if (query.test(module.label)) {
+            weight += 3;
+          } else if (module.path && query.test(module.path)) {
+            weight++;
+          }
+
+          if (!weight) {
+            return;
+          }
+
+          if (!module.groups) {
+            weight += 1;
+          }
+
+          const foundModules = (foundGroups[weight - 1] = foundGroups[weight - 1] || []);
+          foundModules.push(module);
+        });
+
+        const {activeSize} = this;
+
+        // Filtering out missing groups
+        foundGroups = foundGroups.filter(Boolean).reverse();
+        // Sorting each group by active size
+        foundGroups.forEach(modules =>
+          modules.sort((m1, m2) => m2[activeSize] - m1[activeSize])
+        );
+
+        return {
+          chunk,
+          modules: [].concat(...foundGroups),
+        };
+      })
+      .filter(result => result.modules.length > 0)
+      .sort((c1, c2) => c1.modules.length - c2.modules.length);
+  }
+
+  foundModules(searchQuery) {
+    return this.foundModulesByChunk(searchQuery).reduce(
+      (arr, chunk) => arr.concat(chunk.modules),
+      []
     );
+  }
+
+  hasFoundModules(searchQuery) {
+    return this.foundModules(searchQuery).length > 0;
   }
 
   renderModuleSize(module, sizeType) {
@@ -180,7 +157,7 @@ export default class ModulesTreemap extends Component {
     const label = isAllItem ? 'All' : item.label;
     const size = isAllItem ? store.totalChunksSize : item[store.activeSize];
 
-    return [`${label} (`, <strong>{filesize(size)}</strong>, ')'];
+    return [`${label} (`, <strong key={size}>{filesize(size)}</strong>, ')'];
   };
 
   @computed get sizeSwitchItems() {
@@ -216,10 +193,10 @@ export default class ModulesTreemap extends Component {
 
     if (store.hasFoundModules) {
       return [
-        <div className={s.foundModulesInfoItem}>
+        <div className={s.foundModulesInfoItem} key={store.foundModules.length}>
           Count: <strong>{store.foundModules.length}</strong>
         </div>,
-        <div className={s.foundModulesInfoItem}>
+        <div className={s.foundModulesInfoItem} key={store.foundModulesSize}>
           Total size: <strong>{filesize(store.foundModulesSize)}</strong>
         </div>,
       ];
@@ -367,6 +344,123 @@ export default class ModulesTreemap extends Component {
           </div>
         )}
       </div>
+    );
+  }
+
+  render() {
+    const {
+      selectedChunk,
+      selectedMouseCoords,
+      sidebarPinned,
+      showChunkContextMenu,
+      showTooltip,
+      tooltipContent,
+    } = this.state;
+
+    return (
+      <BundleContext.Consumer>
+        {context => (
+          <div className={s.container}>
+            <Sidebar
+              pinned={sidebarPinned}
+              onToggle={this.handleSidebarToggle}
+              onPinStateChange={this.handleSidebarPinStateChange}
+              onResize={this.handleSidebarResize}
+            >
+              <div className={s.sidebarGroup}>
+                <Switcher
+                  label="Treemap sizes"
+                  items={this.sizeSwitchItems}
+                  activeItem={this.activeSizeItem}
+                  onSwitch={this.handleSizeSwitch}
+                />
+                {store.hasConcatenatedModules && (
+                  <div className={s.showOption}>
+                    <Label>Show concatenated modules</Label>
+                    <Checkbox
+                      checked={context.concatToggle}
+                      onChange={() => {
+                        context.setConcatToggle(!context.concatToggle);
+                        this.handleConcatenatedModulesContentToggle(
+                          !context.concatToggle
+                        );
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+              <div className={s.sidebarGroup}>
+                <Dropdown
+                  label="Filter to initial chunks"
+                  defaultOption={DEFAULT_DROPDOWN_SELECTION}
+                  options={store.entrypoints}
+                  onSelectionChange={this.handleSelectionChange}
+                />
+              </div>
+              <div className={s.sidebarGroup}>
+                <Input
+                  placeholder="Search Modules"
+                  onChange={e => {
+                    context.setSearch(e.target.value);
+                  }}
+                />
+                <div className={s.foundModulesInfo}>{this.foundModulesInfo}</div>
+                {context.isSearching && this.hasFoundModules(context.search) && (
+                  <div className={s.foundModulesContainer}>
+                    {this.foundModulesByChunk(context.search).map(({chunk, modules}) => (
+                      <div key={chunk.cid} className={s.foundModulesChunk}>
+                        <div
+                          className={s.foundModulesChunkName}
+                          onClick={() => this.treemap.zoomToGroup(chunk)}
+                        >
+                          {chunk.label}
+                        </div>
+                        <ModulesList
+                          className={s.foundModulesList}
+                          modules={modules}
+                          showSize={store.activeSize}
+                          highlightedText={this.getSearchQueryRegex(context.search)}
+                          isModuleVisible={this.isModuleVisible}
+                          onModuleClick={this.handleFoundModuleClick}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {this.chunkItems.length > 1 && (
+                <div className={s.sidebarGroup}>
+                  <CheckboxList
+                    label="Show chunks"
+                    items={this.chunkItems}
+                    checkedItems={store.selectedChunks}
+                    renderLabel={this.renderChunkItemLabel}
+                    onChange={this.handleSelectedChunksChange}
+                  />
+                </div>
+              )}
+            </Sidebar>
+            <Treemap
+              ref={this.saveTreemapRef}
+              className={s.map}
+              data={store.visibleChunks}
+              highlightGroups={this.highlightedModules}
+              weightProp={store.activeSize}
+              onMouseLeave={this.handleMouseLeaveTreemap}
+              onGroupHover={this.handleTreemapGroupHover}
+              onGroupSecondaryClick={this.handleTreemapGroupSecondaryClick}
+              onResize={this.handleResize}
+            />
+            <Tooltip visible={showTooltip}>{tooltipContent}</Tooltip>
+            <ContextMenu
+              visible={showChunkContextMenu}
+              chunk={selectedChunk}
+              coords={selectedMouseCoords}
+              onHide={this.handleChunkContextMenuHide}
+            />
+          </div>
+        )}
+      </BundleContext.Consumer>
     );
   }
 }

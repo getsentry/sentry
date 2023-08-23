@@ -2106,7 +2106,7 @@ const Highlight = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
 `;
 
-const SearchInput = styled(
+export const SearchInput = styled(
   getDynamicComponent<typeof TextareaAutosize>({
     value: TextareaAutosize,
     fixed: 'textarea',

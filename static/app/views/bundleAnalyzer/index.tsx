@@ -1,3 +1,4 @@
+import {BundleContextProvider} from 'sentry/views/bundleAnalyzer/bundleContextProvider';
 import ModulesTreemap from 'sentry/views/bundleAnalyzer/components/ModulesTreemap';
 import {getViewerData} from 'sentry/views/bundleAnalyzer/utils/analyzer';
 
@@ -11,6 +12,10 @@ store.defaultSize = `parsedSize`;
 store.setModules(chartData);
 store.setEntrypoints([null]);
 function BundleAnalyzer() {
-  return <ModulesTreemap />;
+  return (
+    <BundleContextProvider>
+      <ModulesTreemap />
+    </BundleContextProvider>
+  );
 }
 export default BundleAnalyzer;
