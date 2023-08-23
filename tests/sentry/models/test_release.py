@@ -8,6 +8,7 @@ from freezegun import freeze_time
 
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
+from sentry.bundle_stats.web_stats_schema import WebStats
 from sentry.dynamic_sampling import ProjectBoostedReleases
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
@@ -40,7 +41,9 @@ from sentry.testutils.cases import SetRefsTestCase, TestCase, TransactionTestCas
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import region_silo_test
+from sentry.utils import json
 from sentry.utils.strings import truncatechars
+from tests.sentry.bundle_stats.test_web_stats_schema import SAMPLE_WEB_STATS
 
 
 @pytest.mark.parametrize(
@@ -1388,3 +1391,18 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
                 assert mock_task.mock_calls == [
                     mock_call(project_id=project.id, trigger="releaseproject.post_save")
                 ]
+
+
+@region_silo_test(stable=True)
+class WebStatsSaveTest(TestCase):
+    def test_save_retrieve_web_stats(self):
+        org = self.create_organization()
+        release = self.create_release(organization=org, version="1abcdef")
+        web_stats = WebStats.parse(json.loads(SAMPLE_WEB_STATS))
+        assert release.get_web_stats() is None
+
+        release.add_web_stats(web_stats)
+        release.save()
+
+        fetched_release = Release.objects.get(id=release.id)
+        assert fetched_release.get_web_stats() == web_stats
