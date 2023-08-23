@@ -53,6 +53,10 @@ export interface OmniSearchStore {
 
 export interface OmniAction extends MenuItemProps {
   /**
+   * Specify the area (by key name) the action belongs to
+   */
+  areaKey: string;
+  /**
    * The global hotkey used to trigger the action. This uses the same format
    * as useHotkey.
    */
@@ -67,10 +71,6 @@ export interface OmniAction extends MenuItemProps {
    * represent in a single group.
    */
   actionType?: string;
-  /**
-   * Specfiy the area (by key name) the action belongs to
-   */
-  areaKey?: string;
 }
 
 export interface OmniSection {
