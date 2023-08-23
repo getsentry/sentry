@@ -112,12 +112,12 @@ export default function FunnelOverview() {
       </HeaderWrapper>
 
       <SearchContainer>
-        <PageFiltersContainer />
-        <PageFilterBar />
-        <StyledPageFilterBar>
-          <EnvironmentPageFilter />
-          <DatePageFilter />
-        </StyledPageFilterBar>
+        <PageFiltersContainer>
+          <StyledPageFilterBar>
+            <EnvironmentPageFilter />
+            <DatePageFilter />
+          </StyledPageFilterBar>
+        </PageFiltersContainer>
       </SearchContainer>
 
       <ContentWrapper>
@@ -220,6 +220,7 @@ const IssueListWrapper = styled('div')`
   background-color: ${p => p.theme.white};
   height: min-content;
   border-left: 1px solid ${p => p.theme.gray200};
+  border-bottom: 1px solid ${p => p.theme.gray200};
 `;
 
 const GridHeader = styled('h5')`
@@ -235,6 +236,9 @@ const WrapGroup = styled('div')`
   grid-template-columns: 4fr 1fr 1fr 1fr 1fr;
   grid-template-areas: 'issue completionRate starts completes events';
   border-bottom: 1px solid ${p => p.theme.gray200};
+  &:last-child {
+    border-bottom: none;
+  }
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`

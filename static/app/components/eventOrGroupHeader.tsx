@@ -221,7 +221,7 @@ const GroupLevel = styled(ErrorLevel)<{level: Level; addMargin?: boolean}>`
   width: 9px;
   height: 15px;
   border-radius: 0 3px 3px 0;
-  ${p => p.addMargin && 'margin-top: 2px'};
+  ${p => p.addMargin && 'margin-top: 3px'};
 `;
 
 const TitleWithLink = styled(GlobalSelectionLink)`
