@@ -3,12 +3,15 @@ import styled from '@emotion/styled';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {removeFilterMaskedEntries} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {AvatarUser, Meta} from 'sentry/types';
 import {EventUser} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import useOrganization from 'sentry/utils/useOrganization';
+import {getUserDetailsUrl} from 'sentry/views/user/util';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import Item from './item';
@@ -29,6 +32,7 @@ type Props = ContextItemProps<EventUser, 'user'>;
 
 export function ContextSummaryUser({data, meta}: Props) {
   const user = removeFilterMaskedEntries(data);
+  const organization = useOrganization();
 
   if (Object.keys(user).length === 0) {
     return <ContextSummaryNoSummary title={t('Unknown User')} />;
@@ -99,11 +103,14 @@ export function ContextSummaryUser({data, meta}: Props) {
     'unknown'
   );
 
+  const userDetailsUrl = getUserDetailsUrl(organization.slug, user);
+  const displayName = <AnnotatedText value={userTitle.value} meta={userTitle.meta} />;
+
   return (
     <Item icon={icon}>
       {userTitle && (
         <h3 data-test-id="user-title">
-          <AnnotatedText value={userTitle.value} meta={userTitle.meta} />
+          {userDetailsUrl ? <Link to={userDetailsUrl}>{displayName}</Link> : displayName}
         </h3>
       )}
       {defined(user.id) && user.id !== userTitle?.value
