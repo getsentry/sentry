@@ -7,13 +7,14 @@ import {openSudo} from 'sentry/actionCreators/modal';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
+import {makeIconWithArrow} from 'sentry/components/iconWithArrow';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingTriangle from 'sentry/components/loadingTriangle';
 import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Sidebar from 'sentry/components/sidebar';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
-import {IconArrow} from 'sentry/icons';
+import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import ConfigStore from 'sentry/stores/configStore';
@@ -61,7 +62,8 @@ function RegisterOmniActions({organization}: {organization: Organization}) {
       key: 'nav-org-settings',
       areaKey: 'navigate',
       label: t('%s Settings', organization.name),
-      actionIcon: props => <IconArrow {...props} direction="right" />,
+      actionIcon: makeIconWithArrow(IconSettings),
+      actionType: 'settings',
       to: normalizeUrl('/settings/organization/'),
     },
   ]);

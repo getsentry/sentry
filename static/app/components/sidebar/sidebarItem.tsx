@@ -19,6 +19,7 @@ import localStorage from 'sentry/utils/localStorage';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
+import {makeIconWithArrow} from '../iconWithArrow';
 import {useOmniActions} from '../omniSearch/useOmniActions';
 
 import {SidebarOrientation} from './types';
@@ -165,9 +166,10 @@ function SidebarItem({
     ? null
     : {
         key: `sidebar-${id}`,
+        areaKey: 'navigate',
         label: t('Go to %s', labelString),
         actionType: 'sidebar',
-        actionIcon: Icon,
+        actionIcon: makeIconWithArrow(Icon),
         to,
       };
 

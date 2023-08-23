@@ -1,7 +1,7 @@
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import {makeIconWithArrow} from 'sentry/components/iconWithArrow';
 import {
   IconAdd,
-  IconArrow,
   IconBroadcast,
   IconChevron,
   IconDashboard,
@@ -10,6 +10,7 @@ import {
   IconDocs,
   IconGithub,
   IconProject,
+  IconSettings,
   IconSiren,
   IconTimer,
   IconUser,
@@ -84,7 +85,8 @@ export function useGlobalOmniActions() {
       key: 'nav-account-settings',
       areaKey: 'navigate',
       label: t('Account Settings'),
-      actionIcon: props => <IconArrow {...props} direction="right" />,
+      actionType: 'settings',
+      actionIcon: makeIconWithArrow(IconSettings),
       to: normalizeUrl('/settings/account/'),
     },
     {
