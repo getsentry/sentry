@@ -19,6 +19,7 @@ from sentry_relay.processing import parse_release
 
 from sentry import features
 from sentry.backup.scopes import RelocationScope
+from sentry.bundle_stats.web_stats_schema import WebStats
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER, ObjectStatus
 from sentry.db.models import (
     ArrayField,
@@ -548,6 +549,16 @@ class Release(Model):
                 name="sentry_release_version_btree",
             )
         ]
+
+    def add_web_stats(self, web_stats: WebStats):
+        self.data = self.data or {}
+        self.data["web_stats"] = web_stats.as_dict()
+
+    def get_web_stats(self) -> Optional[WebStats]:
+        web_stats_obj = self.data.get("web_stats", None) if self.data else None
+        if web_stats_obj:
+            return WebStats.parse(web_stats_obj)
+        return None
 
     __repr__ = sane_repr("organization_id", "version")
 
