@@ -375,7 +375,7 @@ export function Actions(props: Props) {
             key: 'issue-archive-escalating',
             areaKey: 'issue',
             label: t('Archive Until Escalating'),
-            actionType: 'archive',
+            actionType: '1-archive',
             actionIcon: IconArchive,
             actionHotkey: 'shift+a',
             onAction: () => onArchive(ARCHIVE_UNTIL_ESCALATING),
@@ -384,7 +384,7 @@ export function Actions(props: Props) {
             key: 'issue-archive-forever',
             areaKey: 'issue',
             label: t('Archive Forever'),
-            actionType: 'archive',
+            actionType: '1-archive',
             actionIcon: IconArchive,
             actionHotkey: 'cmd+shift+a',
             onAction: () => onArchive(ARCHIVE_FOREVER),
@@ -398,7 +398,7 @@ export function Actions(props: Props) {
             key: 'issue-unresolve',
             areaKey: 'issue',
             label: t('Unresolve Issue'),
-            actionType: 'resolve',
+            actionType: '0-resolve',
             actionIcon: IconArchive,
             actionHotkey: 'shift+r',
             onAction: () =>
@@ -414,7 +414,7 @@ export function Actions(props: Props) {
             key: 'issue-resolve',
             areaKey: 'issue',
             label: t('Resolve Issue'),
-            actionType: 'resolve',
+            actionType: '0-resolve',
             actionIcon: IconCheckmark,
             actionHotkey: 'shift+r',
             onAction: () =>
@@ -429,7 +429,7 @@ export function Actions(props: Props) {
             areaKey: 'issue',
             label: t('Resolve Issue in next release'),
             hidden: !hasRelease,
-            actionType: 'resolve',
+            actionType: '0-resolve',
             actionIcon: IconCheckmark,
             actionHotkey: 'shift+n',
             onAction: () =>
@@ -444,7 +444,7 @@ export function Actions(props: Props) {
             areaKey: 'issue',
             label: t('Resolve Issue in current release'),
             hidden: !hasRelease,
-            actionType: 'resolve',
+            actionType: '0-resolve',
             actionIcon: IconCheckmark,
             actionHotkey: 'shift+u',
             onAction: () =>
