@@ -5,10 +5,11 @@ const DEFAULT_HIGHLIGHT_COLOR = 'rgba(168, 196, 236, 0.75)';
 const highlightsByNodeId: Map<number, {canvas: HTMLCanvasElement}> = new Map();
 
 interface AddHighlightParams {
-  nodeId: number;
   replayer: Replayer;
   annotation?: string;
   color?: string;
+  nodeId?: number;
+  selector?: string;
   spotlight?: boolean;
 }
 
@@ -56,6 +57,7 @@ export function removeHighlightedNode({replayer, nodeId}: RemoveHighlightParams)
 export function highlightNode({
   replayer,
   nodeId,
+  selector,
   annotation = '',
   color,
   spotlight,
@@ -63,7 +65,12 @@ export function highlightNode({
   // @ts-expect-error mouseTail is private
   const {mouseTail, wrapper} = replayer;
   const mirror = replayer.getMirror();
-  const node = mirror.getNode(nodeId);
+  const node = nodeId
+    ? mirror.getNode(nodeId)
+    : replayer.iframe.contentDocument?.body.querySelector(selector);
+  // const node = mirror.getNode(nodeId);
+
+  console.log('found node to highlight', node);
 
   // TODO(replays): There is some sort of race condition here when you "rewind" a replay,
   // mirror will be empty and highlight does not get added because node is null
