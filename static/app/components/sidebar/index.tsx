@@ -366,6 +366,15 @@ function Sidebar({location, organization}: Props) {
     />
   );
   const useMagenta = organization?.features.includes('magenta');
+  useEffect(
+    function () {
+      const body = document.body;
+      body.style.fontFamily = useMagenta
+        ? 'Comic Sans MS'
+        : 'Rubik, Avenir Next, Helvetica Neue, sans-serif';
+    },
+    [useMagenta]
+  );
 
   return (
     <SidebarWrapper
