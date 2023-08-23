@@ -1562,6 +1562,16 @@ function buildRoutes() {
       >
         {discoverChildRoutes}
       </Route>
+      <Route
+        path="/aggregate-spans/"
+        component={withDomainRedirect(make(() => import('sentry/views/discover')))}
+        key="org-discover-route"
+      >
+        <Route
+          path=":eventSlug/"
+          component={make(() => import('sentry/views/discover/aggregateSpans'))}
+        />
+      </Route>
     </Fragment>
   );
 
