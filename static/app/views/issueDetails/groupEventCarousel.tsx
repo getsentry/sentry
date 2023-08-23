@@ -296,6 +296,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
     {
       key: 'issue-next-event',
       label: t('Go to Recommended Event'),
+      areaKey: 'issue',
       actionType: 'event-navigate',
       actionIcon: IconStar,
       to: normalizeUrl(
@@ -307,6 +308,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
     {
       key: 'issue-oldest-event',
       label: t('Go to Oldest Event'),
+      areaKey: 'issue',
       actionType: 'event-navigate',
       actionIcon: IconPrevious,
       actionHotkey: 'shift+[',
@@ -317,6 +319,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
     {
       key: 'issue-latest-event',
       label: t('Go to Latest Event'),
+      areaKey: 'issue',
       actionType: 'event-navigate',
       actionIcon: IconNext,
       actionHotkey: 'shift+]',
