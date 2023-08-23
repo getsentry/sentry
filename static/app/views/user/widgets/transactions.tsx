@@ -27,15 +27,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {BrowserCell, OSCell} from 'sentry/views/replays/replayTable/tableCell';
-import { UserParams } from '../types';
 
-type Props = Partial<UserParams>;
+import {UserParams} from '../types';
+
+type Props = UserParams;
 
 export function TransactionWidget({userKey, userValue}: Props) {
-  if (!userKey || !userValue) {
-    return null;
-  }
-
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();

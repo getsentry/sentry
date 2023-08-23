@@ -11,7 +11,7 @@ import {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 import {FetchOptions} from './types';
 
-export function useFetchReplays({userId, limit = 5}: FetchOptions) {
+export function useFetchReplays({userKey, userValue, limit = 5}: FetchOptions) {
   const location = useLocation<ReplayListLocationQuery>();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -20,7 +20,7 @@ export function useFetchReplays({userId, limit = 5}: FetchOptions) {
   const eventView = useMemo(() => {
     const query = decodeScalar(location.query.query, '');
     const conditions = new MutableSearch(query);
-    conditions.addFilterValue('user.id', userId);
+    conditions.addFilterValue(`user.${userKey}`, userValue);
 
     return EventView.fromNewQueryWithLocation(
       {
@@ -51,7 +51,7 @@ export function useFetchReplays({userId, limit = 5}: FetchOptions) {
       },
       location
     );
-  }, [location, userId]);
+  }, [location, userKey, userValue]);
 
   const results = useReplayList({
     eventView,

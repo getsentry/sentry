@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import DeleteButton from 'sentry/components/replays/header/deleteButton';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
 import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
@@ -17,6 +16,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
+import {renderUserDetailsLink} from 'sentry/views/user/util';
 
 type Props = {
   children: ReactNode;
@@ -57,17 +57,8 @@ function Page({
           avatarSize={32}
           displayName={
             <Layout.Title>
-              {replayRecord.user.id ? (
-                <Link
-                  to={`/organizations/${orgSlug}/user/${
-                    replayRecord.user.id
-                  }/?name=${encodeURIComponent(displayName)}`}
-                >
-                  {displayName}
-                </Link>
-              ) : (
-                displayName
-              )}
+              {displayName}
+              {renderUserDetailsLink(orgSlug, replayRecord?.user)}
             </Layout.Title>
           }
           user={{

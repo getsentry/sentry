@@ -27,16 +27,13 @@ import {
 } from 'sentry/views/replays/replayTable/tableCell';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
-import {ReplayPlayer} from './replayPlayer';
-import { UserParams } from '../types';
+import {UserParams} from '../types';
 
-type Props = Partial<UserParams>;
+import {ReplayPlayer} from './replayPlayer';
+
+type Props = UserParams;
 
 export function ReplayWidget({userKey, userValue}: Props) {
-  if (!userKey || !userValue) {
-    return null;
-  }
-
   const location = useLocation<ReplayListLocationQuery>();
   const organization = useOrganization();
   const {projects} = useProjects();

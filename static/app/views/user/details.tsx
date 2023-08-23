@@ -1,4 +1,3 @@
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -8,44 +7,33 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
-// import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-// import ConfigStore from 'sentry/stores/configStore';
-// import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-// import {useApiQuery} from 'sentry/utils/queryClient';
-// import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
 import {ErrorWidget} from 'sentry/views/user/widgets/errors';
 
 import {ReplayWidget} from './widgets/replays';
 import {TransactionWidget} from './widgets/transactions';
 import {Metrics} from './metrics';
 import {UserTimeline} from './timeline';
-// import useOrganization from 'sentry/utils/useOrganization';
+import {useUserParams} from './useUserParams';
 
-type Props = RouteComponentProps<{userId: string}, {}, any, {name: string}>;
+function UserDetails() {
+  const {name, userKey, userValue} = useUserParams();
 
-// type FetchReplaysResponse = {};
-
-function UserDetails({params: {userId}}: Props) {
-  // const config = useLegacyStore(ConfigStore);
-  const location = useLocation();
-  const name = location.query.name;
-  // const organization = useOrganization();
-  // const {slug: orgSlug} = organization;
   const title = 'User Profile';
 
-  // const {
-  //   isLoading,
-  //   isError,
-  //   data: projects,
-  //   refetch,
-  // } = useApiQuery<FetchReplaysResponse>(['/replays/', {query: {orgSlug}}], {
-  //   retry: false,
-  //   staleTime: 0,
-  // });
+  if (!userKey || !userValue) {
+    return (
+      <SentryDocumentTitle title={title}>
+        <FullViewport>
+          <Header>
+            <HeaderContent>Invalid User</HeaderContent>
+          </Header>
+        </FullViewport>
+      </SentryDocumentTitle>
+    );
+  }
 
   const header = (
     <Header>
@@ -56,17 +44,14 @@ function UserDetails({params: {userId}}: Props) {
           user={{
             // @ts-expect-error
             name: name || '',
-            // email: user.email || '',
-            // username: user.username || '',
-            // ip_address: user.ip || '',
-            id: userId || '',
+            [userKey as string]: userValue,
           }}
           displayEmail=""
         />
       </HeaderContent>
 
       <ButtonActionsWrapper>
-        <Metrics userId={userId} />
+        <Metrics userKey={userKey} userValue={userValue} />
       </ButtonActionsWrapper>
     </Header>
   );
@@ -91,14 +76,14 @@ function UserDetails({params: {userId}}: Props) {
               </FilterBar>
               <Widgets>
                 {/* Add widgets here */}
-                <ErrorWidget userId={userId} />
-                <TransactionWidget userId={userId} />
+                <ErrorWidget userKey={userKey} userValue={userValue} />
+                <TransactionWidget userKey={userKey} userValue={userValue} />
                 <div>placeholder</div>
               </Widgets>
 
               <LargeWidgets>
-                <UserTimeline userId={userId} />
-                <ReplayWidget userId={userId} />
+                <UserTimeline userKey={userKey} userValue={userValue} />
+                <ReplayWidget userKey={userKey} userValue={userValue} />
               </LargeWidgets>
             </Main>
           </Body>

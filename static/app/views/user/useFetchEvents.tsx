@@ -8,7 +8,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
-import {FetchEventsResponse, FetchOptions, FetchTransactionResponse} from './types';
+import {
+  FetchEventsResponse,
+  FetchOptions,
+  FetchTransactionResponse,
+  UserParams,
+} from './types';
 
 export function useFetchErrors(options: FetchOptions) {
   return useFetchEvents<FetchEventsResponse>({...options, type: 'error'});
@@ -19,12 +24,12 @@ export function useFetchTransactions(options: FetchOptions) {
 }
 
 export function useFetchEvents<T extends FetchEventsResponse>({
-  userId,
+  userKey,
+  userValue,
   type,
   limit = 5,
-}: {
+}: UserParams & {
   type: 'error' | 'transaction';
-  userId: string;
   limit?: number;
 }) {
   const location = useLocation<ReplayListLocationQuery>();
@@ -33,7 +38,7 @@ export function useFetchEvents<T extends FetchEventsResponse>({
   const eventView = useMemo(() => {
     const query = decodeScalar(location.query.query, '');
     const conditions = new MutableSearch(query);
-    conditions.addFilterValue('user.id', userId);
+    conditions.addFilterValue(`user.${userKey}`, userValue);
     conditions.addFilterValue('event.type', type);
 
     // field: title
@@ -84,7 +89,7 @@ export function useFetchEvents<T extends FetchEventsResponse>({
       },
       location
     );
-  }, [location, userId, type]);
+  }, [location, userKey, userValue, type]);
 
   const payload = eventView.getEventsAPIPayload(location);
   payload.per_page = limit;

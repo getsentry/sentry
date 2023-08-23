@@ -1389,11 +1389,7 @@ function buildRoutes() {
 
   const userChildRoutes = (
     <Fragment>
-      <IndexRoute component={make(() => import('sentry/views/user/list'))} />
-      <Route
-        path=":userId/"
-        component={make(() => import('sentry/views/user/details'))}
-      />
+      <IndexRoute component={make(() => import('sentry/views/user/details'))} />
     </Fragment>
   );
   const userRoutes = (

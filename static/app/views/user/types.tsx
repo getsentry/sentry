@@ -1,7 +1,6 @@
 import {RefObject} from 'react';
 
-export interface FetchOptions {
-  userId: string;
+export interface FetchOptions extends UserParams {
   infiniteRef?: RefObject<HTMLDivElement | null> | null;
   limit?: number;
 }
@@ -36,4 +35,8 @@ export interface TransactionEvent extends ErrorEvent {
 export interface FetchTransactionResponse {
   data: TransactionEvent[];
   meta: any;
+}
+export interface UserParams {
+  userKey: string;
+  userValue: string;
 }

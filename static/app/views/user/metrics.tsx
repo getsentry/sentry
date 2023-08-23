@@ -12,21 +12,21 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface Props {
-  userId: string;
-}
+import {UserParams} from './types';
 
-export function Metrics({userId}: Props) {
+type Props = UserParams;
+
+export function Metrics({userKey, userValue}: Props) {
   const {
     isLoading: isErrorLoading,
     data: errorData,
     error: errorError,
-  } = useFetchErrorCount({userId});
+  } = useFetchErrorCount({userKey, userValue});
   const {
     isLoading: isTransactionLoading,
     data: transactionData,
     error: transactionError,
-  } = useFetchTransactionCount({userId});
+  } = useFetchTransactionCount({userKey, userValue});
 
   if (isErrorLoading || isTransactionLoading) {
     return <Placeholder height="20px" />;
@@ -67,7 +67,7 @@ const RedBox = styled(Box)`
   font-weight: bold;
 `;
 
-function useFetchErrorCount({userId}: {userId: string}) {
+function useFetchErrorCount({userKey, userValue}: UserParams) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -75,7 +75,7 @@ function useFetchErrorCount({userId}: {userId: string}) {
     const query = decodeScalar(location.query.query, '');
     const conditions = new MutableSearch(query);
     conditions.addFilterValue('event.type', 'error');
-    conditions.addFilterValue('user.id', userId);
+    conditions.addFilterValue(`user.${userKey}`, userValue);
 
     return EventView.fromNewQueryWithLocation(
       {
@@ -90,7 +90,7 @@ function useFetchErrorCount({userId}: {userId: string}) {
       },
       location
     );
-  }, [location, userId]);
+  }, [location, userKey, userValue]);
 
   return useDiscoverQuery({
     eventView,
@@ -100,7 +100,7 @@ function useFetchErrorCount({userId}: {userId: string}) {
   });
 }
 
-function useFetchTransactionCount({userId}: {userId: string}) {
+function useFetchTransactionCount({userKey, userValue}: UserParams) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -108,7 +108,7 @@ function useFetchTransactionCount({userId}: {userId: string}) {
     const query = decodeScalar(location.query.query, '');
     const conditions = new MutableSearch(query);
     conditions.addFilterValue('event.type', 'transaction');
-    conditions.addFilterValue('user.id', userId);
+    conditions.addFilterValue(`user.${userKey}`, userValue);
 
     return EventView.fromNewQueryWithLocation(
       {
@@ -123,7 +123,7 @@ function useFetchTransactionCount({userId}: {userId: string}) {
       },
       location
     );
-  }, [location, userId]);
+  }, [location, userKey, userValue]);
 
   return useDiscoverQuery({
     eventView,

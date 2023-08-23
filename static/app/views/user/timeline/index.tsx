@@ -15,20 +15,19 @@ import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {UserParams} from '../types';
 import {useFetchErrors, useFetchTransactions} from '../useFetchEvents';
 import {useFetchReplays} from '../useFetchReplays';
 
 import {Liner} from './liner';
 
-interface Props {
-  userId: string;
-}
+type Props = UserParams;
 
-export function UserTimeline({userId}: Props) {
+export function UserTimeline({userKey, userValue}: Props) {
   const location = useLocation();
-  const replayResults = useFetchReplays({userId});
-  const errorResults = useFetchErrors({userId, limit: 100});
-  const transactionResults = useFetchTransactions({userId, limit: 100});
+  const replayResults = useFetchReplays({userKey, userValue});
+  const errorResults = useFetchErrors({userKey, userValue, limit: 100});
+  const transactionResults = useFetchTransactions({userKey, userValue, limit: 100});
   const organization = useOrganization();
   const theme = useTheme();
 

@@ -1,6 +1,5 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
 
 import Avatar from 'sentry/components/avatar';
 import Link from 'sentry/components/links/link';
@@ -24,11 +23,11 @@ import useProjects from 'sentry/utils/useProjects';
 import {BrowserCell, OSCell} from 'sentry/views/replays/replayTable/tableCell';
 import Count from 'sentry/components/count';
 
-interface Props {
-  userId: string;
-}
+import {UserParams} from '../types';
 
-export function ErrorWidget({userId}: Props) {
+type Props = UserParams;
+
+export function ErrorWidget({userKey, userValue}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -38,7 +37,7 @@ export function ErrorWidget({userId}: Props) {
     const query = decodeScalar(location.query.query, '');
     const conditions = new MutableSearch(query);
     conditions.addFilterValue('event.type', 'error');
-    conditions.addFilterValue('user.id', userId);
+    conditions.addFilterValue(`user.${userKey}`, userValue);
 
     return EventView.fromNewQueryWithLocation(
       {
@@ -66,7 +65,7 @@ export function ErrorWidget({userId}: Props) {
       },
       location
     );
-  }, [location, userId]);
+  }, [location, userKey, userValue]);
 
   const {isLoading, data, error} = useDiscoverQuery({
     eventView,
@@ -90,10 +89,7 @@ export function ErrorWidget({userId}: Props) {
             {data.data.map(dataRow => {
               const issueId = dataRow['issue.id'];
               const project = projectsHash[dataRow.project_id];
-              const link = `/issues/${issueId}/events/${dataRow.id}/?${qs.stringify({
-                project: dataRow.project_id,
-                query: `user.id:${userId}`,
-              })}`;
+              const link = `/issues/${issueId}/events/${dataRow.id}/`;
 
               return (
                 <Fragment key={issueId}>
