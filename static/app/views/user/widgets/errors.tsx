@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import Avatar from 'sentry/components/avatar';
+import Count from 'sentry/components/count';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
@@ -10,11 +11,12 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar} from 'sentry/icons/iconCalendar';
+import {IconClock} from 'sentry/icons/iconClock';
 import {t} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {NumberContainer} from 'sentry/utils/discover/styles';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -50,12 +52,12 @@ export function ErrorWidget({userId}: Props) {
           'platform.name',
           'message',
           'issue',
-          'max(timestamp)',
+          'last_seen()',
           'error.type',
         ],
         projects: [],
         query: conditions.formatString(),
-        orderby: decodeScalar(location.query.sort, '-issue.id'),
+        orderby: decodeScalar(location.query.sort, '-last_seen'),
       },
       location
     );
@@ -80,7 +82,11 @@ export function ErrorWidget({userId}: Props) {
     <TransactionPanel>
       <PanelHeader>{t('Recent Errors')}</PanelHeader>
       <div>
-        {!data?.data.length ? (
+        {isLoading ? (
+          <Placeholder height="189px" />
+        ) : error ? (
+          <LoadingError />
+        ) : !data?.data.length ? (
           <EmptyTable>{t('No error data')}</EmptyTable>
         ) : (
           <Table>
@@ -91,15 +97,13 @@ export function ErrorWidget({userId}: Props) {
                 project: dataRow.project_id,
                 query: `user.id:${userId}`,
               })}`;
-              const eventType = dataRow['error.type'][0];
 
               return (
                 <Fragment key={issueId}>
                   <Cols key={`${issueId}-data`}>
                     <Title>
-                      <Link to={link}>
-                        {dataRow.issue} {eventType}
-                      </Link>
+                      <Link to={link}>{dataRow.issue}</Link>
+                      <div>{dataRow.title}</div>
                     </Title>
                     <SubRow gap={1}>
                       <Row gap={0.5}>
@@ -107,12 +111,17 @@ export function ErrorWidget({userId}: Props) {
                         {project ? project.slug : null}
                       </Row>
                       <Row gap={0.5}>
-                        <IconCalendar color="gray300" size="xs" />
+                        <IconClock color="gray300" size="xs" />
                         <TextOverflow>
-                          <TimeSince date={dataRow['max(timestamp)']} />
+                          <TimeSince date={dataRow['last_seen()']} />
                         </TextOverflow>
                       </Row>
                     </SubRow>
+                  </Cols>
+                  <Cols>
+                    <NumberContainer>
+                      <Count value={dataRow['count()']} /> events
+                    </NumberContainer>
                   </Cols>
                 </Fragment>
               );
@@ -128,8 +137,8 @@ const Table = styled('div')`
   display: grid;
   overflow: hidden;
   gap: ${space(1.5)};
-  grid-template-columns: auto;
-  grid-template-columns: 1fr;
+  grid-column-gap: ${space(3)};
+  grid-template-columns: auto 1fr;
   align-items: center;
   padding: ${space(1)} ${space(2)};
 `;
@@ -161,6 +170,11 @@ const TransactionPanel = styled(Panel)`
 `;
 
 const Title = styled('div')`
-  display: flex;
-  gap: ${space(0.25)};
+  display: grid;
+  grid-template-columns: max-content auto;
+  gap: ${space(1)};
+
+  div {
+    ${p => p.theme.overflowEllipsis};
+  }
 `;

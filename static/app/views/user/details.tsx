@@ -91,8 +91,8 @@ function UserDetails({params: {userId}}: Props) {
               </FilterBar>
               <Widgets>
                 {/* Add widgets here */}
-                <TransactionWidget userId={userId} />
                 <ErrorWidget userId={userId} />
+                <TransactionWidget userId={userId} />
                 <div>placeholder</div>
               </Widgets>
 

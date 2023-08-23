@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import Avatar from 'sentry/components/avatar';
+import Duration from 'sentry/components/duration';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
@@ -10,11 +11,13 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar} from 'sentry/icons/iconCalendar';
+import {IconClock} from 'sentry/icons/iconClock';
 import {t} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {NumberContainer} from 'sentry/utils/discover/styles';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -43,24 +46,20 @@ export function TransactionWidget({userId}: Props) {
         name: '',
         version: 2,
         fields: [
-          'id',
-          'timestamp',
           'project_id',
-          'transaction.duration',
-          'team_key_transaction',
+          'last_seen()',
           'transaction',
+          'failure_count()',
           'tpm()',
-          'p75(measurements.fcp)',
-          'p75(measurements.lcp)',
-          'p75(measurements.fid)',
-          'p75(measurements.cls)',
           'count_unique(user)',
+          'p95(transaction.duration)',
           'count_miserable(user)',
           'user_misery()',
+          'count()',
         ],
         projects: [],
         query: conditions.formatString(),
-        orderby: decodeScalar(location.query.sort, '-timestamp'),
+        orderby: decodeScalar(location.query.sort, '-p95_transaction_duration'),
       },
       location
     );
@@ -73,9 +72,12 @@ export function TransactionWidget({userId}: Props) {
     limit: 3,
   });
 
+  const miseryRenderer =
+    data?.meta && getFieldRenderer('user_misery()', data.meta, false);
+
   return (
     <TransactionPanel>
-      <PanelHeader>{t('Recent Transactions')}</PanelHeader>
+      <PanelHeader>{t('Slowest Transactions (p95)')}</PanelHeader>
       {isLoading ? (
         <Placeholder height="189px" />
       ) : error ? (
@@ -93,6 +95,7 @@ export function TransactionWidget({userId}: Props) {
                   transaction: dataRow.transaction,
                   query: `user.id:${userId}`,
                 })}`;
+                const duration = Number(dataRow['p95(transaction.duration)']);
 
                 return (
                   <Fragment key={dataRow.id}>
@@ -106,12 +109,28 @@ export function TransactionWidget({userId}: Props) {
                           {project ? project.slug : null}
                         </Row>
                         <Row gap={0.5}>
-                          <IconCalendar color="gray300" size="xs" />
+                          <IconClock color="gray300" size="xs" />
                           <TextOverflow>
-                            <TimeSince date={dataRow.timestamp} />
+                            <TimeSince date={dataRow['last_seen()']} />
                           </TextOverflow>
                         </Row>
                       </SubRow>
+                    </Cols>
+                    <Cols>
+                      <NumberContainer>
+                        <StyledDuration
+                          ms={duration}
+                          seconds={duration / 1000}
+                          fixedDigits={2}
+                          abbreviation
+                        />
+                      </NumberContainer>
+                    </Cols>
+                    <Cols>
+                      {miseryRenderer?.(dataRow, {
+                        organization,
+                        location,
+                      })}
                     </Cols>
                   </Fragment>
                 );
@@ -128,8 +147,7 @@ const Table = styled('div')`
   display: grid;
   overflow: hidden;
   gap: ${space(1.5)};
-  grid-template-columns: auto;
-  grid-template-columns: 1fr;
+  grid-template-columns: auto 1fr 1fr;
   align-items: center;
   padding: ${space(1)} ${space(2)};
 `;
@@ -161,6 +179,20 @@ const TransactionPanel = styled(Panel)`
 `;
 
 const Title = styled('div')`
-  display: flex;
+  display: grid;
   gap: ${space(0.25)};
+
+  a {
+    ${p => p.theme.overflowEllipsis};
+  }
+`;
+
+const StyledDuration = styled(Duration)<{ms?: number}>`
+  ${p =>
+    p.ms &&
+    (p.ms <= 1500
+      ? `color: ${p.theme.green300};`
+      : p.ms <= 5000
+      ? `color: ${p.theme.yellow300};`
+      : `color: ${p.theme.red300};`)}
 `;
