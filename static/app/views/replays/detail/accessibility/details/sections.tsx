@@ -19,6 +19,21 @@ export type SectionProps = {
   startTimestampMs: number;
 };
 
+function DisplayString(props) {
+  const {text} = props;
+
+  return (
+    <div>
+      {text.split('\n').map((line, index) => (
+        <React.Fragment key={index}>
+          {line}
+          <br />
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
 export function GeneralSection({item, startTimestampMs}: SectionProps) {
   const {setCurrentTime} = useReplayContext();
 
@@ -42,6 +57,7 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
         timestampMs={item.timestampMs}
       />
     ),
+    [t('Extended Summary')]: <DisplayString text={item.failureSummary} />,
   };
 
   return (
