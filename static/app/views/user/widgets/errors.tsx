@@ -45,7 +45,6 @@ export function ErrorWidget({userKey, userValue}: Props) {
         name: '',
         version: 2,
         fields: [
-          'id',
           'issue.id',
           'message',
           'project_id',
