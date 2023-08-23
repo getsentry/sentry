@@ -1396,8 +1396,8 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
 @region_silo_test(stable=True)
 class WebStatsSaveTest(TestCase):
     def test_save_retrieve_web_stats(self):
-        org = self.create_organization()
-        release = self.create_release(organization=org, version="1abcdef")
+        self.create_organization()
+        release = self.create_release(version="1abcdef")
         web_stats = WebStats.parse(json.loads(SAMPLE_WEB_STATS))
         assert release.get_web_stats() is None
 
