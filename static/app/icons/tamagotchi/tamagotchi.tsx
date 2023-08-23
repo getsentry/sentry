@@ -117,8 +117,8 @@ function Tamagotchi({project}: {project?: Project}) {
 
   const tamagotchiMetrics = useMemo(() => {
     const metrics = {
-      energy: getEnergy(alerts.data),
-      cleanliness: getCleanliness(releases.data, project),
+      energy: getEnergy(alerts.data) * 100,
+      cleanliness: getCleanliness(releases.data, project) * 100,
       happiness: 50.0,
       health: 100.0,
     };
