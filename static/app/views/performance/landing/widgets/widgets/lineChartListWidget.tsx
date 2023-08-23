@@ -75,7 +75,13 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     props.chartSetting
   );
   const emptyComponent = canHaveIntegrationEmptyState
-    ? WidgetAddInstrumentationWarning
+    ? () => (
+        <WidgetAddInstrumentationWarning
+          type={
+            props.chartSetting === PerformanceWidgetSetting.SLOW_DB_OPS ? 'db' : 'http'
+          }
+        />
+      )
     : WidgetEmptyStateWarning;
 
   const field = props.fields[0];
