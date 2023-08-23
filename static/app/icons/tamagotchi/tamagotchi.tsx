@@ -167,6 +167,13 @@ function getHappiness({
   resolved: number;
   total: number;
 }) {
+  if (total === 0) {
+    return {
+      percentAssigned: 1,
+      percentResolved: 1,
+      happiness: 1,
+    };
+  }
   const percentAssigned = assigned / total;
   const percentResolved = resolved / total;
   const happiness = percentAssigned + percentResolved;
