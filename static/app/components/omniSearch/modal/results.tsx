@@ -132,8 +132,10 @@ function OmniResultSection({section, state}) {
   });
 
   return (
-    <ResultSection {...itemProps}>
-      <ResultSectionLabel {...headingProps}>{section.rendered}</ResultSectionLabel>
+    <ResultSection {...itemProps} hasHeading={!!section.rendered}>
+      {section.rendered && (
+        <ResultSectionLabel {...headingProps}>{section.rendered}</ResultSectionLabel>
+      )}
       <ResultSectionList {...groupProps}>
         {[...section.childNodes].map(item => (
           <OmniResultOption key={item.key} item={item} state={state} />
@@ -220,14 +222,24 @@ const ResultsList = styled('ul')`
   overflow: auto;
 `;
 
-const ResultSection = styled('li')`
+const ResultSection = styled('li')<{hasHeading?: boolean}>`
   position: relative;
   list-style-type: none;
   padding: ${space(1.5)} 0;
 
+  &:first-of-type {
+    padding-top: ${space(1)};
+  }
+
   &:last-of-type {
     padding-bottom: 0;
   }
+
+  ${p =>
+    !p.hasHeading &&
+    `&& {
+      padding-top: ${space(0.5)};
+    }`};
 
   &:not(:last-of-type)::after {
     content: '';

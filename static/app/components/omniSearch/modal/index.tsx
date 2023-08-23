@@ -1,6 +1,10 @@
-import {createContext, useMemo, useState} from 'react';
+import {createContext, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {t} from 'sentry/locale';
+import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
+
+import {OmniSection} from '../types';
 import {useOmniSearchState} from '../useOmniState';
 
 import {OmniResults} from './results';
@@ -11,11 +15,40 @@ export const OnmniSearchInputContext = createContext<
 
 function OmniSearchModal() {
   const searchState = useOmniSearchState();
-  const [_search, setSearch] = useState('');
+  const [search, setSearch] = useState('');
+  const fuse = useRef<Fuse<any>>();
+
+  useEffect(() => {
+    async function initializeFuse() {
+      const {actions} = searchState;
+      fuse.current = await createFuzzySearch(actions, {
+        keys: ['label'],
+        threshold: 0.8,
+      });
+    }
+
+    initializeFuse();
+  }, [searchState]);
 
   const results = useMemo(() => {
     const {actions, areas, areaPriority} = searchState;
-    return Object.values(areas)
+    const searchResults = search
+      ? fuse.current?.search(search).map(r => r.item)
+      : actions;
+
+    const topSearchResults: OmniSection[] = [
+      {
+        key: 'top-search-results',
+        'aria-label': t('Top results'),
+        actions:
+          searchResults?.slice(0, 5).map(action => ({
+            ...action,
+            key: `top-result-${action.key}`,
+          })) ?? [],
+      },
+    ];
+
+    const searchResultsByArea: OmniSection[] = Object.values(areas)
       .sort(
         (a, b) =>
           areaPriority.findIndex(p => p === b.key) -
@@ -25,11 +58,13 @@ function OmniSearchModal() {
         return {
           key: area.key,
           label: area.label,
-          actions: actions.filter(a => a.areaKey === area.key),
+          actions: searchResults?.filter(a => a.areaKey === area.key) ?? [],
         };
       })
-      .filter(area => area.actions.length);
-  }, [searchState]);
+      .filter(area => area.actions?.length);
+
+    return search ? topSearchResults.concat(searchResultsByArea) : searchResultsByArea;
+  }, [search, searchState]);
 
   return (
     <Overlay>

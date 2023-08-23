@@ -72,3 +72,10 @@ export interface OmniAction extends MenuItemProps {
    */
   areaKey?: string;
 }
+
+export interface OmniSection {
+  actions: OmniAction[];
+  key: string;
+  ['aria-label']?: string;
+  label?: React.ReactNode;
+}
