@@ -1,21 +1,19 @@
+import random
 from typing import Mapping
 
+import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import Message, Partition
+from django.conf import settings
 
 from sentry.replays.lib.batched_file_storage.consumer import BatchedFileStorageProcessingStrategy
-from sentry.replays.usecases.ingest import recording_billing_outcome
+from sentry.replays.usecases.ingest import recording_billing_outcome, replay_click_post_processor
 from sentry.replays.usecases.ingest.decode import decode_recording_message
 
 
 class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    """
-    This consumer processes replay recordings, which are compressed payloads split up into
-    chunks.
-    """
-
     def create_with_partitions(
         self,
         max_batch_row_count: int,
@@ -36,7 +34,6 @@ class BatchedRecordingProcessingStrategy(BatchedFileStorageProcessingStrategy):
     def submit(self, message: Message[KafkaPayload]) -> None:
         assert not self.__closed
 
-        # Coerce the Kafka message to a RecordingSegment message.
         recording_segment = decode_recording_message(message.payload.value)
 
         # If the message was not well-formed submit the offset to the commit step so that it can
@@ -45,21 +42,19 @@ class BatchedRecordingProcessingStrategy(BatchedFileStorageProcessingStrategy):
             self.next_step.submit(message)
             return None
 
-        # Record a billing outcome for the to-be processed segment.
-        #
-        # There's no guarantee that this event is unique or that it will commit so our billing
-        # outcome process must be able to handle duplicates.
-        recording_billing_outcome(
-            key_id=recording_segment["key_id"],
-            org_id=recording_segment["org_id"],
-            project_id=recording_segment["project_id"],
-            received=recording_segment["received"],
-            replay_id=recording_segment["replay_id"],
-            segment_id=recording_segment["segment_id"],
+        transaction = sentry_sdk.start_transaction(
+            name="replays.consumer.process_batched_recording",
+            op="replays.consumer",
+            sampled=random.random()
+            < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
         )
 
-        # Process click events
-        # replay_click_post_processor(message, headers["segment_id"], recording_segment, transaction)
+        # Process the segment.
+        #
+        # There's no guarantee that this event is unique or that it will commit so any side-effect
+        # we produce must tolerate duplicates.
+        recording_billing_outcome(message)
+        replay_click_post_processor(message, transaction)
 
         self.__append_to_batch(
             key=f"{recording_segment['replay_id']}{recording_segment['segment_id']}",
