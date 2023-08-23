@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import zlib
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -16,6 +15,7 @@ from sentry.replays.feature import has_feature_access
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_storage_driver
 from sentry.replays.usecases.ingest.decode import RecordingSegment, decode_recording_message
 from sentry.replays.usecases.ingest.dom_index import parse_and_emit_replay_actions
+from sentry.replays.usecases.reader import decompress
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -58,11 +58,6 @@ def _ingest_recording(message: RecordingSegment, transaction: Span) -> None:
     recording_billing_outcome(message)
 
     transaction.finish()
-
-
-def decompress(data: bytes) -> bytes:
-    """Return decompressed bytes."""
-    return data if data.startswith(b"[") else zlib.decompress(data, zlib.MAX_WBITS | 32)
 
 
 def replay_click_post_processor(message: RecordingSegment, transaction: Span) -> None:

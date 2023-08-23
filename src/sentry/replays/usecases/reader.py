@@ -300,12 +300,5 @@ def download_segment(
 
 
 def decompress(buffer: bytes) -> bytes:
-    """Return decompressed output."""
-    # If the file starts with a valid JSON character we assume its uncompressed.
-    #
-    # Going forward all replays are compressed by Relay regardless of their SDK compression
-    # state.  This condition will be redundant in the near-future.
-    if buffer.startswith(b"["):
-        return buffer
-
-    return zlib.decompress(buffer, zlib.MAX_WBITS | 32)
+    """Return decompressed bytes."""
+    return buffer if buffer.startswith(b"[") else zlib.decompress(buffer, zlib.MAX_WBITS | 32)
