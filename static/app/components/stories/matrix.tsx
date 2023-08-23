@@ -9,11 +9,10 @@ import {space} from 'sentry/styles/space';
 interface Props {
   component: ElementType;
   propMatrix: Record<string, unknown[]>;
+  selectedProps: [string, string];
 }
 
-export default function Matrix({component, propMatrix}: Props) {
-  const selectedProps = ['priority', 'borderless'];
-
+export default function Matrix({component, propMatrix, selectedProps}: Props) {
   const defaultValues = Object.fromEntries(
     Object.entries(propMatrix).map(([key, values]) => {
       return [key, values[0]];
@@ -49,18 +48,18 @@ export default function Matrix({component, propMatrix}: Props) {
       ));
 
   return (
-    <form onSubmit={() => {}}>
-      <InputGroup>
-        <ul>
-          {Object.keys(propMatrix).map(key => (
-            <li key={key}>
-              {key}
-              <InputForType prop={key} values={propMatrix[key]} />
-            </li>
-          ))}
-        </ul>
-      </InputGroup>
-
+    <div>
+      <form onSubmit={() => {}}>
+        <InputGroup>
+          <ul>
+            {Object.keys(propMatrix).map(key => (
+              <li key={key}>
+                <InputForType prop={key} values={propMatrix[key]} />
+              </li>
+            ))}
+          </ul>
+        </InputGroup>
+      </form>
       <Grid
         style={{
           gridTemplateColumns: `repeat(${values2.length}, max-content)`,
@@ -68,11 +67,11 @@ export default function Matrix({component, propMatrix}: Props) {
       >
         {items}
       </Grid>
-    </form>
+    </div>
   );
 }
 
-function InputForType(key: string, values: unknown[]) {
+function InputForType({prop, values}: {prop: string; values: unknown[]}) {
   const isAllString = areAllString(values);
   const isAllNumber = areAllNumber(values);
   const isAllBoolean = areAllBoolean(values);
@@ -82,7 +81,7 @@ function InputForType(key: string, values: unknown[]) {
   if (isAllString || isAllNumber || isAllBoolean) {
     return (
       <CompactSelect
-        triggerLabel={key}
+        triggerLabel={prop}
         onChange={selected => setValue(selected.value)}
         options={values.map(v => ({
           label: toLabel(v),
@@ -93,7 +92,7 @@ function InputForType(key: string, values: unknown[]) {
       />
     );
   }
-  return <InputGroup.Input />;
+  return <InputGroup.Input placeholder={prop} />;
 }
 
 function areAllString(values: unknown[]): values is string[] {

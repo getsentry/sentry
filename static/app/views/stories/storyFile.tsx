@@ -48,10 +48,12 @@ export default function StoryFile({filename, style}: Props) {
         </FlexRow>
       </FlexRow>
 
-      <StoryArea>{DefaultExport ? <DefaultExport /> : null}</StoryArea>
-      {otherEntries.map(([field, Component]) => (
-        <Component key={field} />
-      ))}
+      <StoryArea>
+        {DefaultExport ? <DefaultExport /> : null}
+        {otherEntries.map(([field, Component]) => (
+          <Component key={field} />
+        ))}
+      </StoryArea>
     </FlexColumn>
   );
 }
@@ -63,12 +65,14 @@ const FlexRow = styled('div')`
   gap: var(--stories-grid-space);
   align-content: flex-start;
 `;
+
 const FlexColumn = styled('div')`
   display: flex;
   flex-direction: column;
   gap: var(--stories-grid-space);
   max-height: 100%;
 `;
+
 const StoryArea = styled('div')`
   overflow: scroll;
 `;

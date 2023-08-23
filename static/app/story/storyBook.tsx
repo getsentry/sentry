@@ -40,7 +40,11 @@ export default function storyBook(rootName: string, setup: SetupFn) {
     }, [storyFn]);
 
     const items = contexts.map(context => (
-      <Section key={context.rootName + context.storyName} name={context.storyName}>
+      <Section
+        key={context.rootName + context.storyName}
+        rootName={context.rootName}
+        name={context.storyName}
+      >
         {doRender(context.children)}
       </Section>
     ));
@@ -60,11 +64,12 @@ function doRender(children: ReactNode | ReactNode[]) {
 interface SectionProps {
   children: ReactNode;
   name: string;
+  rootName: string;
 }
-function Section({name, children}: SectionProps) {
+function Section({rootName, name, children}: SectionProps) {
   return (
     <Story>
-      <StoryTitle>{name}</StoryTitle>
+      <StoryTitle id={`${rootName}_${name}`}>{name}</StoryTitle>
       {children}
     </Story>
   );

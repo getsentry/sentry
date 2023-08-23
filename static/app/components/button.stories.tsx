@@ -14,12 +14,12 @@ export default storyBook('Button', story => {
     'link' as const,
   ];
 
-  story('default', () => <Button priority="default">Default Button</Button>);
+  story('Default', () => <Button>Default Button</Button>);
 
   story('Size', () =>
     sizes.map(size => (
       <Button key={size} size={size}>
-        {size}
+        size={size}
       </Button>
     ))
   );
@@ -30,7 +30,7 @@ export default storyBook('Button', story => {
         resolve(
           priorities.map(priority => (
             <Button key={priority} priority={priority}>
-              {priority}
+              priority={priority}
             </Button>
           ))
         );
@@ -48,6 +48,7 @@ export default storyBook('Button', story => {
         size: sizes,
         borderless: [false, true],
       }}
+      selectedProps={['priority', 'borderless']}
     />
   ));
 });
