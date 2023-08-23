@@ -166,7 +166,7 @@ function GroupHeaderTabs({
 
   useOmniActions(
     tabItems.map(item => ({
-      key: item.key,
+      key: `issues-tab-${item.key}`,
       to: item.to,
       label: item.omniLabel ?? item.textValue ?? item.label,
       areaKey: 'issue',
