@@ -1,6 +1,7 @@
 import {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';
 
 export interface AlertTemplate {
+  description: string | null;
   id: string;
   issue_alert_data: {
     actionMatch: 'all' | 'any' | 'none';
@@ -17,6 +18,7 @@ export interface AlertTemplate {
 }
 
 export interface AlertProcedure {
+  description: string | null;
   id: string;
   is_manual: boolean;
   issue_alert_actions: IssueAlertRuleAction[];

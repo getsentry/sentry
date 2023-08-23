@@ -11,15 +11,15 @@ import {UnassignedBadge} from 'sentry/views/alerts/blueprints/util';
 
 export interface AlertBlueprintCardProps {
   actions: MenuItemProps[];
+  description: string | null;
   owner: string | null;
   title: string;
-  subtitle?: string;
 }
 
 function AlertBlueprintCard({
   owner,
   title,
-  subtitle = 'This is the content of the subtitle',
+  description,
   actions,
   children,
 }: React.PropsWithChildren<AlertBlueprintCardProps>) {
@@ -30,8 +30,8 @@ function AlertBlueprintCard({
 
   return (
     <StyledCard>
-      <Title>{title}</Title>
-      <Subtitle>{subtitle}</Subtitle>
+      <AlertBlueprintTitle>{title}</AlertBlueprintTitle>
+      <AlertBlueprintDescription>{description}</AlertBlueprintDescription>
       <BadgeArea>
         {ownerTeam ? <TeamBadge team={ownerTeam} /> : <UnassignedBadge />}
         <StyledDropdown
@@ -67,13 +67,13 @@ const StyledCard = styled(Card)`
   }
 `;
 
-const Title = styled('div')`
+const AlertBlueprintTitle = styled('div')`
   grid-area: 1 / 1 / 2 / 2;
   ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
 `;
 
-const Subtitle = styled('div')`
+const AlertBlueprintDescription = styled('div')`
   grid-area: 2 / 1 / 3 / 2;
   font-size: 0.9rem;
   line-height: ${p => p.theme.text.lineHeightBody};
@@ -81,7 +81,7 @@ const Subtitle = styled('div')`
 `;
 
 const BadgeArea = styled('div')`
-  grid-area: 1 / 2 / 3 / 3;
+  grid-area: 1 / 2 / 2 / 3;
   display: flex;
 `;
 

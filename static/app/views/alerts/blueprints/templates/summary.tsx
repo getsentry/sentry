@@ -147,7 +147,7 @@ const AlertEmptyMessage = styled('div')`
 
 const AlertDivider = styled('hr')`
   border: 1px solid ${p => p.theme.border};
-  margin: ${space(1)};
+  margin: ${space(0.5)};
 `;
 
 const AlertItem = styled('div')`

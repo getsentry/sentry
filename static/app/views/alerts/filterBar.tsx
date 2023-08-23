@@ -15,6 +15,8 @@ interface Props {
   location: Location<any>;
   onChangeFilter: (activeFilters: string[]) => void;
   onChangeSearch: (query: string) => void;
+  action?: React.ReactNode;
+  hasProjectFilters?: boolean;
   hasStatusFilters?: boolean;
   onChangeStatus?: (status: string) => void;
 }
@@ -25,15 +27,17 @@ function FilterBar({
   onChangeFilter,
   onChangeStatus,
   hasStatusFilters,
+  hasProjectFilters = true,
+  action = null,
 }: Props) {
   const selectedTeams = getTeamParams(location.query.team);
   const selectedStatus = getQueryStatus(location.query.status);
 
   return (
-    <Wrapper>
+    <Wrapper hasAction={!!action}>
       <FilterButtons gap={1.5}>
         <TeamFilter selectedTeams={selectedTeams} handleChangeFilter={onChangeFilter} />
-        <ProjectPageFilter />
+        {hasProjectFilters && <ProjectPageFilter />}
         {hasStatusFilters && onChangeStatus && (
           <CompactSelect
             triggerProps={{
@@ -63,19 +67,21 @@ function FilterBar({
         query={location.query?.name}
         onSearch={onChangeSearch}
       />
+      {action}
     </Wrapper>
   );
 }
 
 export default FilterBar;
 
-const Wrapper = styled('div')`
+const Wrapper = styled('div')<{hasAction: boolean}>`
   display: grid;
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: min-content 1fr;
+    grid-template-columns: ${p =>
+      p.hasAction ? 'min-content 1fr auto' : 'min-content 1fr'};
   }
 `;
 
