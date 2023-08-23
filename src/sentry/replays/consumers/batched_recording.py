@@ -7,7 +7,7 @@ from arroyo.types import Message, Partition
 
 from sentry.replays.lib.batched_file_storage.consumer import BatchedFileStorageProcessingStrategy
 from sentry.replays.usecases.ingest import recording_billing_outcome
-from sentry.replays.usecases.ingest.batched_recording import decode_recording_message
+from sentry.replays.usecases.ingest.decode import decode_recording_message
 
 
 class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

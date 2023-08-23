@@ -10,8 +10,6 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy, Processing
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
-from sentry_kafka_schemas import get_codec
-from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk.tracing import Span
 
 from sentry.replays.usecases.ingest import ingest_recording
@@ -19,12 +17,10 @@ from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
 logger = logging.getLogger(__name__)
 
-RECORDINGS_CODEC = get_codec("ingest-replay-recordings")
-
 
 @dataclasses.dataclass
 class MessageContext:
-    message: ReplayRecording
+    message: bytes
     transaction: Span
     current_hub: sentry_sdk.Hub
 
@@ -103,16 +99,13 @@ def initialize_threaded_context(message: Message[KafkaPayload]) -> MessageContex
         < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
     )
     current_hub = sentry_sdk.Hub(sentry_sdk.Hub.current)
-    message_dict = RECORDINGS_CODEC.decode(message.payload.value)
-    return MessageContext(message_dict, transaction, current_hub)
+    return MessageContext(message.payload.value, transaction, current_hub)
 
 
 def process_message_threaded(message: Message[MessageContext]) -> Any:
     """Move the replay payload to permanent storage."""
     context: MessageContext = message.payload
-    message_dict = context.message
-
-    ingest_recording(message_dict, context.transaction, context.current_hub)
+    ingest_recording(context.message, context.transaction, context.current_hub)
 
 
 def process_message(message: Message[KafkaPayload]) -> Any:
@@ -124,5 +117,4 @@ def process_message(message: Message[KafkaPayload]) -> Any:
         < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
     )
     current_hub = sentry_sdk.Hub(sentry_sdk.Hub.current)
-    message_dict = RECORDINGS_CODEC.decode(message.payload.value)
-    ingest_recording(message_dict, transaction, current_hub)
+    ingest_recording(message.payload.value, transaction, current_hub)

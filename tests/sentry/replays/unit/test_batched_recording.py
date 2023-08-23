@@ -5,7 +5,7 @@ from typing import List
 import msgpack
 
 from sentry.models import FilePartModel
-from sentry.replays.usecases.ingest.batched_recording import (
+from sentry.replays.usecases.ingest.decode import (
     ProcessedRecordingSegment,
     RecordingFilePartRow,
     RecordingSegment,

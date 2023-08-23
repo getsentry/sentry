@@ -1,19 +1,23 @@
 from __future__ import annotations
 
 import logging
-from typing import TypedDict
+import typing
 
 import msgpack
 from sentry_kafka_schemas import codecs, get_codec
 
-from sentry.replays.usecases.ingest import MissingRecordingSegmentHeaders, process_headers
+from sentry.utils import json, metrics
 
 logger = logging.getLogger()
 
 RECORDINGS_CODEC = get_codec("ingest-replay-recordings")
 
 
-class RecordingSegment(TypedDict):
+class MissingRecordingSegmentHeaders(ValueError):
+    pass
+
+
+class RecordingSegment(typing.TypedDict):
     key_id: int | None
     org_id: int
     payload: bytes
@@ -21,6 +25,10 @@ class RecordingSegment(TypedDict):
     received: int
     replay_id: str
     retention_days: int
+    segment_id: int
+
+
+class RecordingSegmentHeaders(typing.TypedDict):
     segment_id: int
 
 
@@ -48,3 +56,13 @@ def decode_recording_message(message: bytes) -> RecordingSegment | None:
         "retention_days": message_dict["retention_days"],
         "segment_id": headers["segment_id"],
     }
+
+
+@metrics.wraps("replays.usecases.ingest.process_headers")
+def process_headers(recording_bytes: bytes) -> tuple[RecordingSegmentHeaders, bytes]:
+    try:
+        recording_headers, recording_segment = recording_bytes.split(b"\n", 1)
+    except ValueError:
+        raise MissingRecordingSegmentHeaders("Missing recording-segment headers")
+    else:
+        return json.loads(recording_headers, use_rapid_json=True), recording_segment
