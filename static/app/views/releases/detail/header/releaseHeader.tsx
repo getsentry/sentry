@@ -72,6 +72,10 @@ function ReleaseHeader({
       title: <Fragment>{t('Bundle Details')}</Fragment>,
       to: `bundle-details/`,
     },
+    {
+      title: <Fragment>{t('Bundle Diff')}</Fragment>,
+      to: `bundle-diff/`,
+    },
   ];
 
   const getTabUrl = (path: string) => ({

@@ -11,6 +11,9 @@ import {space} from 'sentry/styles/space';
 import {formatBytesBase2} from 'sentry/utils';
 import useRouter from 'sentry/utils/useRouter';
 import {bundleStats as stats} from 'sentry/views/bundleAnalyzer';
+
+const beforeStats = require('../../../../src/sentry/static/sentry/dist/stats.json');
+
 import {CardSection} from 'sentry/views/performance/transactionSummary/transactionVitals/styles';
 
 enum BundleType {
@@ -18,6 +21,14 @@ enum BundleType {
   IN_APP = 'in_app',
   PACKAGES = 'packages',
   OTHER = 'other',
+}
+
+enum BundleState {
+  REMOVED = 'removed',
+  INCREASED = 'increased',
+  NO_CHANGE = 'no_change',
+  DECREASED = 'decreased',
+  ADDED = 'added',
 }
 
 const BUNDLE_TYPES = [
@@ -39,7 +50,7 @@ const BUNDLE_TYPES = [
   // },
 ];
 
-const chunks = stats.chunks;
+const chunks = stats.chunks.map(chunk => ({...chunk, name: chunk.id}));
 const assets = stats.assets.sort((a, b) => b.size - a.size);
 const modules = stats.modules;
 
@@ -53,6 +64,23 @@ const inAppModules = modules
   .sort((a, b) => b.size - a.size);
 
 const packageModules = modules
+  .filter(m => m.name.startsWith('../node_modules'))
+  .sort((a, b) => b.size - a.size);
+
+const beforeChunks = beforeStats.chunks.map(chunk => ({...chunk, name: chunk.id}));
+const beforeAssets = beforeStats.assets.sort((a, b) => b.size - a.size);
+const beforeModules = beforeStats.modules;
+
+const beforeInAppModules = beforeModules
+  .filter(
+    m =>
+      m.moduleType.startsWith('javascript') &&
+      m.name.startsWith('./app') &&
+      !m.name.endsWith('namespace object')
+  )
+  .sort((a, b) => b.size - a.size);
+
+const beforePackageModules = beforeModules
   .filter(m => m.name.startsWith('../node_modules'))
   .sort((a, b) => b.size - a.size);
 
@@ -73,20 +101,18 @@ export default function BundleDiff() {
   function getPanelItems() {
     switch (bundleType) {
       case BundleType.ASSETS: {
-        return assets.map(asset => (
+        return diff(beforeAssets, assets).map(asset => (
           <Fragment key={`asset-${asset.name}`}>
             <div>{asset.name}</div>
             <div>{formatBytesBase2(asset.size)}</div>
+            <div>{asset.state}</div>
+            <div>{(asset.diff / asset.size) * 100}</div>
           </Fragment>
         ));
       }
       case BundleType.IN_APP: {
-        return inAppModules.map(module => (
-          <Fragment
-            key={`module-${module.name}-${
-              module?.chunks[0] ? module?.chunks[0] : '_sentry_no_chunk'
-            }`}
-          >
+        return diff(beforeInAppModules, inAppModules).map(module => (
+          <Fragment key={`module-${module.name}-${module.size}`}>
             <ExternalLink
               href={`https://github.com/getsentry/sentry/blob/master/static/${module.name.replace(
                 './',
@@ -96,22 +122,22 @@ export default function BundleDiff() {
               {module.name}
             </ExternalLink>
             <div>{formatBytesBase2(module.size)}</div>
+            <div>{module.state}</div>
+            <div>{(module.diff / module.size) * 100}</div>
           </Fragment>
         ));
       }
       case BundleType.PACKAGES: {
-        return packageModules.map(module => {
+        return diff(beforePackageModules, packageModules).map(module => {
           const npmPackageName = getNpmPackageFromNodeModules(module.name);
           return (
-            <Fragment
-              key={`module-${module.name}-${
-                module?.chunks[0] ? module?.chunks[0] : '_sentry_no_chunk'
-              }`}
-            >
+            <Fragment key={`module-${module.name}-${module.size}`}>
               <ExternalLink href={`https://www.npmjs.com/package/${npmPackageName}`}>
                 {module.name.replace('../node_modules/', '')}
               </ExternalLink>
               <div>{formatBytesBase2(module.size)}</div>
+              <div>{module.state}</div>
+              <div>{(module.diff / module.size) * 100}</div>
             </Fragment>
           );
         });
@@ -122,16 +148,19 @@ export default function BundleDiff() {
     }
   }
 
+  const beforeEntryPoints = beforeChunks.filter(c => c.entry);
   const entrypoints = chunks.filter(c => c.entry);
 
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
         <CardWrapper>
-          {entrypoints.map(entrypoint => (
-            <StyledCard key={entrypoint.id}>
+          {diff(beforeEntryPoints, entrypoints).map(entrypoint => (
+            <StyledCard key={entrypoint.name}>
               <CardSection>
-                <div>{entrypoint.id}</div>
+                <div>{entrypoint.name}</div>
+                <div>{entrypoint.state}</div>
+                <div>{(entrypoint.diff / entrypoint.size) * 100}</div>
                 <StatNumber>{formatBytesBase2(entrypoint.size)}</StatNumber>
               </CardSection>
             </StyledCard>
@@ -153,7 +182,9 @@ export default function BundleDiff() {
           </SegmentedControl>
         </SegmentedControlWrapper>
 
-        <PanelTable headers={[t('Name'), t('Size')]}>{getPanelItems()}</PanelTable>
+        <PanelTable headers={[t('Name'), t('Size'), t('Change'), t('Diff')]}>
+          {getPanelItems()}
+        </PanelTable>
       </Layout.Main>
     </Layout.Body>
   );
@@ -178,6 +209,57 @@ function getNpmPackageFromNodeModules(name: string): string {
     return pathComponents[0] + pathComponents[1];
   }
   return pathComponents[0];
+}
+
+type Bundle = {
+  name: string;
+  size: number;
+};
+
+type DiffedBundle = {
+  diff: number;
+  name: string;
+  size: number;
+  state: BundleState;
+};
+
+function diff(before: Bundle[], after: Bundle[]): DiffedBundle[] {
+  const diffed = new Map<string, DiffedBundle>();
+
+  before.forEach(b => {
+    diffed.set(b.name, {
+      diff: 0,
+      name: b.name,
+      size: b.size,
+      state: BundleState.REMOVED,
+    });
+  });
+
+  after.forEach(a => {
+    const beforeEntry = diffed.get(a.name);
+    if (beforeEntry) {
+      diffed.set(a.name, {
+        diff: a.size - beforeEntry.size,
+        name: a.name,
+        size: a.size,
+        state:
+          a.size === beforeEntry.size
+            ? BundleState.NO_CHANGE
+            : a.size > beforeEntry.size
+            ? BundleState.INCREASED
+            : BundleState.DECREASED,
+      });
+    } else {
+      diffed.set(a.name, {
+        diff: 0,
+        name: a.name,
+        size: a.size,
+        state: BundleState.ADDED,
+      });
+    }
+  });
+
+  return Array.from(diffed.values());
 }
 
 const StyledCard = styled(Card)`

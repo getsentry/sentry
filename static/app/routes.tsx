@@ -1403,6 +1403,11 @@ function buildRoutes() {
               component={make(() => import('sentry/views/releases/bundledetails'))}
             />
           </Route>
+          <Route path="bundle-diff/">
+            <IndexRoute
+              component={make(() => import('sentry/views/releases/bundlediff'))}
+            />
+          </Route>
           <IndexRoute
             component={make(() => import('sentry/views/releases/detail/overview'))}
           />
