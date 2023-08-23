@@ -6,11 +6,27 @@ import tamagotchiHappy from 'sentry-images/tamagotchi/happy.gif';
 import tamagotchiMeh from 'sentry-images/tamagotchi/meh.gif';
 import tamagotchiSad from 'sentry-images/tamagotchi/sad.gif';
 
-import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
+import {t, tct} from 'sentry/locale';
+import {Project, Release} from 'sentry/types';
 import {useReleases} from 'sentry/views/starfish/queries/useReleases';
 
-function Tamagotchi({project}: {project: Project}) {
+function getHealth(releases?: Release[], project?: Project): number {
+  const hasReleases = releases?.length !== 0;
+  const hasEnvironments =
+    project?.environments.length &&
+    !(project.environments.length === 1 && project.environments.includes('prod'));
+
+  if ((hasReleases && !hasEnvironments) || (!hasReleases && hasEnvironments)) {
+    return 0.5;
+  }
+  if (hasReleases && hasEnvironments) {
+    return 1;
+  }
+
+  return 0;
+}
+
+function Tamagotchi({project}: {project?: Project}) {
   const [currentScore, setCurrentScore] = useState(0);
   const [currentStage, setCurrentStage] = useState(tamagotchiEgg);
   const [currentStageName, setCurrentStageName] = useState('Hatching Your Tamagatchi');
@@ -59,22 +75,14 @@ function Tamagotchi({project}: {project: Project}) {
     setCurrentStageName(tamagotchiStages[currentScore].stageName);
   };
 
-  const release = useReleases();
+  const releases = useReleases();
+  const health = getHealth(releases.data, project);
+
   return (
     <TamagotchiWrapper>
       <h3>{t('Tamagotchi Status: ')}</h3>
-
-      {release?.data?.length === 0 ? (
-        <h3>{t('no releases ')}</h3>
-      ) : (
-        <h3>{t('releases')}</h3>
-      )}
-      {project.environments?.length === 0 ? (
-        <h3>{t('no environments ')}</h3>
-      ) : (
-        <h3>{t('environments')}</h3>
-      )}
       <h4>{currentStageName}</h4>
+      <h4>{tct('Health: [health]', {health})}</h4>
       <img height={200} alt="tamagotchi" src={currentStage} />
       <Wrapper>
         <FirstTitle>{t('This is where we can give some message')}</FirstTitle>
