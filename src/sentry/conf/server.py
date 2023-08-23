@@ -1613,6 +1613,7 @@ SENTRY_FEATURES = {
     "organizations:session-replay-slack-new-issue": False,
     "organizations:session-replay-issue-emails": False,
     "organizations:session-replay-weekly-email": False,
+    "organizations:session-replay-trial-ended-banner": False,
     "organizations:session-replay-trace-table": False,
     # Enable optimized serach feature.
     "organizations:session-replay-optimized-search": False,
@@ -2378,6 +2379,8 @@ SENTRY_TEAM_ROLES = (
 # See sentry/options/__init__.py for more information
 SENTRY_OPTIONS: dict[str, Any] = {}
 SENTRY_DEFAULT_OPTIONS: dict[str, Any] = {}
+# Raise an error in dev on failed lookups
+SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
 
 # You should not change this setting after your database has been created
 # unless you have altered all schemas first

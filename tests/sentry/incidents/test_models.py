@@ -104,6 +104,8 @@ class IncidentClearSubscriptionCacheTest(TestCase):
         )
         subscription_id = self.subscription.id
         self.subscription.delete()
+        assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id) is None
+
         # Add the subscription id back in so we don't use `None` in the lookup check.
         self.subscription.id = subscription_id
         with pytest.raises(AlertRule.DoesNotExist):
@@ -116,6 +118,7 @@ class IncidentClearSubscriptionCacheTest(TestCase):
             == self.alert_rule
         )
         delete_alert_rule(self.alert_rule)
+        assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id) is None
         with pytest.raises(AlertRule.DoesNotExist):
             AlertRule.objects.get_for_subscription(self.subscription)
 

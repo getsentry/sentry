@@ -5,6 +5,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.encoding import force_str
 
+from sentry.backup.scopes import RelocationScope
 from sentry.conf.server import SENTRY_SCOPES
 from sentry.db.models import (
     ArrayField,
@@ -26,7 +27,7 @@ def validate_scope_list(value):
 
 @control_silo_only_model
 class OrgAuthToken(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     organization_id = HybridCloudForeignKey("sentry.Organization", null=False, on_delete="CASCADE")
     # The JWT token in hashed form
