@@ -52,6 +52,7 @@ class AlertProcedureSerializer(Serializer):
             "owner": owner_value,
             "templates": [{"id": t.id, "name": t.name} for t in templates],
             "label": obj.label,
+            "description": obj.description,
             "organization_id": obj.organization_id,
             "is_manual": obj.is_manual,
             "issue_alert_actions": actions,
@@ -64,6 +65,7 @@ class IncomingAlertProcedureSerializer(ModelSerializer):
     """
 
     label = serializers.CharField(max_length=255)
+    description = serializers.CharField(max_length=2048, required=False)
     owner = ActorField(required=False, allow_null=True)
     is_manual = serializers.BooleanField(default=False)
     issue_alert_actions = serializers.ListField(child=RuleNodeField(type="action/event"))
@@ -135,6 +137,7 @@ class AlertTemplateSerializer(Serializer):
             "id": str(obj.id),
             "owner": owner_value,
             "name": obj.name,
+            "description": obj.description,
             "organization_id": obj.organization_id,
             # TODO(Leander): Use get_attrs
             "issue_alerts": [{"id": r.id, "name": r.label, "project": r.project_id} for r in rules],
@@ -149,6 +152,7 @@ class IncomingAlertTemplateSerializer(ModelSerializer):
     """
 
     name = serializers.CharField(max_length=128)
+    description = serializers.CharField(max_length=2048, required=False)
     owner = ActorField(required=False, allow_null=True)
     issue_alerts = serializers.ListField(child=serializers.IntegerField(), required=False)
     issue_alert_data = RuleSetSerializer(partial=True)

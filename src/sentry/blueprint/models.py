@@ -36,6 +36,7 @@ class AlertTemplate(Model):
     procedure = FlexibleForeignKey("sentry.AlertProcedure", null=True, on_delete=models.SET_NULL)
     organization = FlexibleForeignKey("sentry.Organization")
     name = models.CharField(max_length=128)
+    description = models.CharField(max_length=2048, null=True)
     issue_alert_data = JSONField(default={})
 
     class Meta:
@@ -68,6 +69,7 @@ class AlertProcedure(Model):
     owner = FlexibleForeignKey("sentry.Actor", null=True, on_delete=models.SET_NULL)
     organization = FlexibleForeignKey("sentry.Organization")
     label = models.CharField(max_length=255)
+    description = models.CharField(max_length=2048, null=True)
     is_manual = models.BooleanField(default=False)
     issue_alert_actions = JSONField(default=[])
 
