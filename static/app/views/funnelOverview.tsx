@@ -151,14 +151,16 @@ export default function FunnelOverview() {
               <SelectControl
                 placeholder="Sort by..."
                 options={[
-                  {label: 'Completion Rate', val: 'completionRate'},
-                  {label: 'Starts', val: 'starts'},
-                  {label: 'Completes', val: 'completes'},
-                  {label: 'Events', val: 'events'},
+                  {label: 'Completion Rate', value: 'completionRate'},
+                  {label: 'Starts', value: 'starts'},
+                  {label: 'Completes', value: 'completes'},
+                  {label: 'Events', value: 'events'},
                 ]}
                 disabled={false}
                 value={sortVal}
                 onChange={value => changeSortVal(value)}
+                singlevalue
+                clearindicator={false}
               />
               <GridHeader style={{gridArea: 'issue'}}>Issue</GridHeader>
               <GridHeader style={{gridArea: 'completionRate'}}>
