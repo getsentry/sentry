@@ -158,15 +158,28 @@ function OmniResultSection({section, state}: OmniResultSectionProps) {
     'aria-label': section['aria-label'],
   });
 
+  const actionItems = [...section.childNodes];
+
   return (
     <ResultSection {...itemProps} hasHeading={!!section.rendered}>
       {section.rendered && (
         <ResultSectionLabel {...headingProps}>{section.rendered}</ResultSectionLabel>
       )}
       <ResultSectionList {...groupProps}>
-        {[...section.childNodes].map(item => (
-          <OmniResultOption key={item.key} item={item} state={state} />
-        ))}
+        {actionItems.map((item, index) => {
+          const nextItem = actionItems[index + 1];
+
+          const nextActionTypeIsDifferent = nextItem
+            ? item.props.actionType !== nextItem.props.actionType
+            : false;
+
+          return (
+            <Fragment key={item.key}>
+              <OmniResultOption item={item} state={state} />
+              {nextActionTypeIsDifferent && <ItemDivider role="separator" />}
+            </Fragment>
+          );
+        })}
       </ResultSectionList>
     </ResultSection>
   );
@@ -356,4 +369,10 @@ const KeyboardShortcutKey = styled('kbd')<{isSymbol: boolean}>`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   line-height: 1;
+`;
+
+const ItemDivider = styled('li')`
+  display: block;
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  margin: ${space(1)} ${space(1.5)};
 `;
