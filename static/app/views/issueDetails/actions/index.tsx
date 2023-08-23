@@ -374,7 +374,7 @@ export function Actions(props: Props) {
       onAction: () => onArchive(ARCHIVE_UNTIL_ESCALATING),
     },
     {
-      key: 'issue-archive-escalating',
+      key: 'issue-archive-forever',
       areaKey: 'issue',
       label: t('Archive Forever'),
       actionType: 'archive',
