@@ -40,23 +40,33 @@ export function useAlertRules() {
   );
 }
 
-function getCleanliness(releases?: Release[], project?: Project): number {
+function getCleanliness(
+  releases?: Release[],
+  project?: Project
+): {cleanliness: number; hasEnvironments: boolean; hasReleases: boolean} {
   const hasReleases = releases?.length !== 0;
-  const hasEnvironments =
+  const hasEnvironments = Boolean(
     project?.environments.length &&
-    !(project.environments.length === 1 && project.environments.includes('prod'));
+      !(project.environments.length === 1 && project.environments.includes('prod'))
+  );
+
+  const cleanliness = {hasReleases, hasEnvironments, cleanliness: 0};
 
   if ((hasReleases && !hasEnvironments) || (!hasReleases && hasEnvironments)) {
-    return 0.5;
+    cleanliness.cleanliness = 0.5;
   }
   if (hasReleases && hasEnvironments) {
-    return 1;
+    cleanliness.cleanliness = 1;
   }
 
-  return 0;
+  return cleanliness;
 }
 
-function getEnergy(alerts?: CombinedMetricIssueAlerts[]): number {
+function getEnergy(alerts?: CombinedMetricIssueAlerts[]): {
+  energy: number;
+  hasIssueAlerts: boolean;
+  hasMetricAlerts: boolean;
+} {
   const metricAlerts = alerts?.filter(function (element) {
     return element.type === CombinedAlertType.METRIC;
   });
@@ -65,17 +75,18 @@ function getEnergy(alerts?: CombinedMetricIssueAlerts[]): number {
     return element.type === CombinedAlertType.ISSUE;
   });
 
-  const hasIssueAlerts = issueAlerts && issueAlerts.length > 0;
-  const hasMetricAlerts = metricAlerts && metricAlerts.length > 0;
+  const hasIssueAlerts = Boolean(issueAlerts && issueAlerts.length > 0);
+  const hasMetricAlerts = Boolean(metricAlerts && metricAlerts.length > 0);
+  const energy = {hasIssueAlerts, hasMetricAlerts, energy: 0};
 
   if ((hasIssueAlerts && !hasMetricAlerts) || (!hasMetricAlerts && hasIssueAlerts)) {
-    return 0.5;
+    energy.energy = 0.5;
   }
   if (hasIssueAlerts && hasMetricAlerts) {
-    return 1;
+    energy.energy = 1;
   }
 
-  return 0;
+  return energy;
 }
 
 function Tamagotchi({project}: {project?: Project}) {
@@ -117,8 +128,8 @@ function Tamagotchi({project}: {project?: Project}) {
 
   const tamagotchiMetrics = useMemo(() => {
     const metrics = {
-      energy: getEnergy(alerts.data) * 100,
-      cleanliness: getCleanliness(releases.data, project) * 100,
+      energy: getEnergy(alerts.data).energy * 100,
+      cleanliness: getCleanliness(releases.data, project).cleanliness * 100,
       happiness: 50.0,
       health: 100.0,
     };
