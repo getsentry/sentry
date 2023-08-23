@@ -16,7 +16,7 @@ from sentry.replays.lib.batched_file_storage.create import (
     FilePart,
     RawFilePart,
     create_new_batch,
-    process_pending_file_part,
+    process_raw_file_part,
 )
 
 
@@ -89,7 +89,7 @@ class BatchedFileStorageProcessingStrategy(ProcessingStrategy[KafkaPayload]):
         self.next_step.terminate()
 
     def __append_to_batch(self, key: str, message: bytes) -> None:
-        file_part = process_pending_file_part({"key": key, "message": message})
+        file_part = process_raw_file_part({"key": key, "message": message})
         self.__batch.append(file_part)
         self.__batch_size_in_bytes += len(file_part["message"])
 

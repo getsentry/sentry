@@ -61,7 +61,7 @@ def create_new_batch(processed_parts: list[FilePart]) -> None:
     _save_file_part_rows(commit["rows"])
 
 
-def process_pending_file_part(part: RawFilePart) -> FilePart:
+def process_raw_file_part(part: RawFilePart) -> FilePart:
     # Encryption is an optional process.
     #
     # If we encrypt the payload then we can support deletes without downloading the blob, zeroing
@@ -142,6 +142,7 @@ def _save_file_part_rows(rows: list[FilePartRow]) -> None:
                 filename=row["filename"],
                 key=row["key"],
                 start=row["start"],
+                is_archived=False,
             )
             for row in rows
         ]

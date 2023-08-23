@@ -25,27 +25,7 @@ def archive_file_part(file_part: FilePartModel) -> None:
     file_part.save()
 
 
-def permanently_delete_file_parts(file_parts: list[FilePartModel]) -> None:
-    """Permanently delete a file-part.
-
-    You probably do not want to use this function. If you are trying to handle user-facing deletes
-    within your product then you should expose the "archive_file_part" function.
-
-    This function is intended to service GDPR deletes and other use-cases which require data to be
-    eagerly deleted. For most cases its okay to let the data expire with the retention-period.
-    """
-    # The file-parts are archived first to prevent concurrent access.
-    archive_file_parts(file_parts)
-    _delete_and_zero_file_parts(file_parts)
-
-
-def _delete_and_zero_file_parts(file_parts: list[FilePartModel]) -> None:
-    """Delete and zero many file-parts."""
-    for file_part in file_parts:
-        _delete_and_zero_file_part(file_part)
-
-
-def _delete_and_zero_file_part(file_part: FilePartModel) -> None:
+def delete_and_zero_file_part(file_part: FilePartModel) -> None:
     """Delete all references to a file-part.
 
     This function will work regardless of whether the file-part is encrypted or not. The range

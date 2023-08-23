@@ -13,11 +13,11 @@ class FilePartModel(Model):
     created_at = models.DateTimeField(default=timezone.now, db_index=True)
     dek = models.CharField(max_length=64, null=True)
     end = models.IntegerField()
-    filename = models.CharField(max_length=32)
+    filename = models.CharField(max_length=64)
     is_archived = models.BooleanField()
     key = models.CharField(max_length=64, db_index=True)
     start = models.IntegerField()
 
     class Meta:
         app_label = "sentry"
-        db_table = "sentry_blob_range"
+        db_table = "sentry_file_part"
