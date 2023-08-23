@@ -1,30 +1,24 @@
-import {Fragment, useCallback, useMemo, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location, Query} from 'history';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import Spinner from 'sentry/components/forms/spinner';
 import Link from 'sentry/components/links/link';
-import Panel from 'sentry/components/panels/panel';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
-import checkboxToggle from 'sentry/components/stream/group';
-import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Activity, BaseGroup, Group, GroupStats} from 'sentry/types';
+import {Group, GroupStats} from 'sentry/types';
 import {Funnel} from 'sentry/types/funnel';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {TagAndMessageWrapper} from 'sentry/views/issueDetails/unhandledTag';
 
 interface FunnelResponse {
   funnel: Funnel;
@@ -37,7 +31,7 @@ export default function FunnelOverview() {
   const organization = useOrganization();
   const router = useRouter();
   const location = useLocation();
-  const {data: funnelData} = useApiQuery<FunnelResponse>(
+  const {data: funnelData, isLoading: funnelLoading} = useApiQuery<FunnelResponse>(
     [
       `/organizations/${organization.slug}/funnel/${router.params.funnelSlug}/`,
       {
@@ -48,7 +42,7 @@ export default function FunnelOverview() {
       staleTime: Infinity,
     }
   );
-  const {data: eventsCount} = useApiQuery<GroupStats[]>(
+  const {data: eventsCount, isLoading: statsLoading} = useApiQuery<GroupStats[]>(
     [
       `/organizations/${organization.slug}/issues-stats/`,
       {
@@ -68,22 +62,29 @@ export default function FunnelOverview() {
   );
 
   const listIssues = funnelData?.issues.map(({starts, completes, issue}) => (
-    <Wrapper key={issue.id}>
-      <div data-test-id="event-issue-header">
+    <WrapGroup key={issue.id}>
+      <GroupWrapper data-test-id="event-issue-header">
         <EventOrGroupHeader data={issue} />
         <EventOrGroupExtraDetails data={issue} />
-        <StyledTagAndMessageWrapper size="normal">
-          {issue.message && <Message>{issue.message}</Message>}
-        </StyledTagAndMessageWrapper>
-      </div>
-      <EventCountsWrapper>{((100 * completes) / starts).toFixed(2)}%</EventCountsWrapper>
-      <EventCountsWrapper>{starts}</EventCountsWrapper>
-      <EventCountsWrapper>{completes}</EventCountsWrapper>
-      <EventCountsWrapper>
+      </GroupWrapper>
+      <EventCountsWrapper style={{gridArea: 'completionRate'}}>
+        {((100 * completes) / starts).toFixed(2)}%
+      </EventCountsWrapper>
+      <EventCountsWrapper style={{gridArea: 'starts'}}>{starts}</EventCountsWrapper>
+      <EventCountsWrapper style={{gridArea: 'completes'}}>{completes}</EventCountsWrapper>
+      <EventCountsWrapper style={{gridArea: 'events'}}>
         {eventsCount?.find(({id}) => id === issue.id)?.count}
       </EventCountsWrapper>
-    </Wrapper>
+    </WrapGroup>
   ));
+
+  // if (!funnelLoading && funnelData) {
+
+  // }
+
+  // if (funnelLoading || statsLoading) {
+  //   return <LoadingIndicator />;
+  // }
 
   return (
     <Wrapper>
@@ -100,32 +101,51 @@ export default function FunnelOverview() {
         <h2>Funnel {funnelData?.funnel.name}</h2>
       </HeaderWrapper>
       <ContentWrapper>
-        <IssueListWrapper>
-          <IssueList>
-            <PanelHeader>
-              <div>
-                <GridHeader>Issue</GridHeader>
-              </div>
-              <GridHeader>Completion Rate</GridHeader>
-              <GridHeader>Starts</GridHeader>
-              <GridHeader>Completes</GridHeader>
-              <div>
-                <GridHeader>Events</GridHeader>
-              </div>
-            </PanelHeader>
+        {!statsLoading ? (
+          <IssueListWrapper>
+            <StyledPanelHeader>
+              <GridHeader style={{gridArea: 'issue'}}>Issue</GridHeader>
+              <GridHeader style={{gridArea: 'completionRate'}}>
+                Completion Rate
+              </GridHeader>
+              <GridHeader style={{gridArea: 'starts'}}>Starts</GridHeader>
+              <GridHeader style={{gridArea: 'completes'}}>Completes</GridHeader>
+              <GridHeader style={{gridArea: 'events'}}>Events</GridHeader>
+            </StyledPanelHeader>
             <PanelBody>
               {listIssues?.length ? (
                 <StyledPanelItem>{listIssues}</StyledPanelItem>
               ) : (
                 <StyledEmptyStateWarning>No Related Issues</StyledEmptyStateWarning>
               )}
-              <Grid />
             </PanelBody>
-          </IssueList>
-        </IssueListWrapper>
+          </IssueListWrapper>
+        ) : (
+          <LoadingIndicator />
+        )}
         <div>
           {funnelData ? (
             <FunnelInfo>
+              <div>
+                <SectionHeading>Starting Transaction</SectionHeading>
+                <div>
+                  <Link
+                    to={`/organizations/${organization.slug}/performance/summary/?project=${funnelData.funnel.project}&transaction=${funnelData.funnel.startingTransaction}`}
+                  >
+                    Transaction {funnelData.funnel.startingTransaction}
+                  </Link>
+                </div>
+              </div>
+              <div>
+                <SectionHeading>Ending Transaction</SectionHeading>
+                <div>
+                  <Link
+                    to={`/organizations/${organization.slug}/performance/summary/?project=${funnelData.funnel.project}&transaction=${funnelData.funnel.endingTransaction}`}
+                  >
+                    Transaction {funnelData.funnel.endingTransaction}
+                  </Link>
+                </div>
+              </div>
               <div>
                 <SectionHeading>Total Starts</SectionHeading>
                 <div>{funnelData.totalStarts}</div>
@@ -154,31 +174,32 @@ export default function FunnelOverview() {
   );
 }
 
-const Wrapper = styled('main')`
-  flex-grow: 1;
+const Wrapper = styled('div')`
   display: flex;
   flex-direction: column;
+  margin-left: ${space(4)};
 `;
 
 const FunnelInfo = styled('div')`
-  border-top: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.gray200};
   padding: ${space(3)};
+  background-color: ${p => p.theme.white};
 `;
 
 const ContentWrapper = styled('div')`
   flex-grow: 1;
   display: grid;
   grid-template-columns: 4fr 1fr;
-  background-color: ${p => p.theme.white};
   height: 100%;
 `;
 
-const IssueList = styled(Panel)`
-  margin: ${space(2)};
-`;
-
 const IssueListWrapper = styled('div')`
-  border: 1px solid ${p => p.theme.gray200};
+  border-top: 1px solid ${p => p.theme.gray200};
+  display: flex;
+  flex-direction: column;
+  background-color: ${p => p.theme.white};
+  height: min-content;
+  border-left: 1px solid ${p => p.theme.gray200};
 `;
 
 const GridHeader = styled('h5')`
@@ -188,10 +209,12 @@ const GridHeader = styled('h5')`
   text-transform: uppercase;
 `;
 
-const Grid = styled('div')`
+const WrapGroup = styled('div')`
+  width: 100%;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${space(2)};
+  grid-template-columns: 4fr 1fr 1fr 1fr 1fr;
+  grid-template-areas: 'issue completionRate starts completes events';
+  border-bottom: 1px solid ${p => p.theme.gray200};
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
@@ -205,38 +228,11 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
 const HeaderWrapper = styled('div')`
   padding: ${space(3)};
 `;
-const truncateStyles = css`
-  overflow: hidden;
-  max-width: 100%;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
+
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const Title = styled('div')`
-  display: inline-flex;
-  margin-bottom: ${space(0.25)};
-  & em {
-    font-size: ${p => p.theme.fontSizeMedium};
-    font-style: normal;
-    font-weight: 300;
-    color: ${p => p.theme.subText};
-  }
-`;
-
-const TitleWrapper = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  display: flex;
-  gap: ${space(0.5)};
-  min-width: 200px;
-`;
-const MessageWrapper = styled('span')`
-  ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.textColor};
+  flex-direction: column;
+  padding: 0;
 `;
 
 const EventCountsWrapper = styled('div')`
@@ -245,30 +241,22 @@ const EventCountsWrapper = styled('div')`
   align-self: center;
   width: 60px;
   margin: 0 ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    width: 80px;
-  }
+  display: flex;
+  flex-direction: column;
 `;
 
-const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
-  'margin: 0 0 5px;
-  line-height: 1.2;
+const StyledPanelHeader = styled(PanelHeader)`
+  display: grid;
+  grid-template-areas: 'issue completionRate starts completes events';
+  grid-template-columns: 4fr 1fr 1fr 1fr 1fr;
 `;
 
-const Message = styled('div')`
-  ${truncateStyles};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const LocationWrapper = styled('div')`
-  ${truncateStyles};
- 'margin: 0 0 5px';
-  direction: rtl;
-  text-align: left;
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.subText};
-  span {
-    direction: ltr;
-  }
+const GroupWrapper = styled('div')`
+  position: relative;
+  padding: ${space(1.5)};
+  grid-area: issue;
+  max-width: 100%; // This ensures the container doesn't grow beyond its grid cell
+  overflow: hidden; // Hide overflowed content
+  white-space: nowrap; // Prevent content from breaking into the next line
+  text-overflow: ellipsis; // Add '...' to show that content is truncated
 `;
