@@ -171,12 +171,14 @@ const lightShadows = {
   dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
   dropShadowMedium: '0 1px 2px rgba(43, 34, 51, 0.04)',
   dropShadowHeavy: '0 4px 24px rgba(43, 34, 51, 0.12)',
+  dropShadowExtraHeavy: '0 16px 72px rgba(43, 34, 51, 0.2)',
 };
 
 const darkShadows = {
   dropShadowLight: '0 0 1px rgba(10, 8, 12, 0.2)',
   dropShadowMedium: '0 1px 2px rgba(10, 8, 12, 0.2)',
   dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
+  dropShadowExtraHeavy: '0 8px 48px rgba(10, 8, 12, 0.56)',
 };
 
 /**

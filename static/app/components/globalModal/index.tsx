@@ -196,9 +196,21 @@ function GlobalModal({onClose}: Props) {
 
   return createPortal(
     <Fragment>
-      <Backdrop
-        style={backdrop && visible ? {opacity: 0.5, pointerEvents: 'auto'} : {}}
-      />
+      <AnimatePresence>
+        {backdrop && visible && (
+          <Backdrop
+            initial={{opacity: 0}}
+            animate={{opacity: 0.05}}
+            exit={{opacity: 0}}
+            transition={testableTransition({
+              type: 'spring',
+              bounce: 0.25,
+              duration: 0.5,
+            })}
+          />
+        )}
+      </AnimatePresence>
+
       <Container
         data-test-id="modal-backdrop"
         ref={containerRef}
@@ -226,14 +238,13 @@ const fullPageCss = css`
   left: 0;
 `;
 
-const Backdrop = styled('div')`
+const Backdrop = styled(motion.div)`
   ${fullPageCss};
   z-index: ${p => p.theme.zIndex.modal};
-  background: ${p => p.theme.black};
   will-change: opacity;
+  background: ${p => p.theme.black};
   transition: opacity 200ms;
   pointer-events: none;
-  opacity: 0;
 `;
 
 const Container = styled('div')`
@@ -259,12 +270,13 @@ const Modal = styled(motion.div)`
 `;
 
 Modal.defaultProps = {
-  initial: {opacity: 0, y: -10},
-  animate: {opacity: 1, y: 0},
-  exit: {opacity: 0, y: 15},
+  initial: {opacity: 0, y: 80, filter: 'blur(16px)'},
+  animate: {opacity: 1, y: 0, filter: 'blur(0px)'},
+  exit: {opacity: 0, filter: 'blur(8px)'},
   transition: testableTransition({
-    opacity: {duration: 0.2},
-    y: {duration: 0.25},
+    type: 'spring',
+    bounce: 0.25,
+    duration: 0.5,
   }),
 };
 
@@ -279,5 +291,29 @@ const Content = styled('div')`
     padding: ${space(4)};
   }
 `;
+
+// const Content = styled(motion.div)`
+//   max-width: 100%;
+//   width: 640px;
+//   pointer-events: auto;
+//   margin-top: 64px;
+
+//   background: ${p => p.theme.backgroundElevated}D8;
+//   box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder},
+//     ${p => p.theme.dropShadowExtraHeavy};
+//   backdrop-filter: blur(16px);
+//   border-radius: 8px;
+// `;
+
+// Content.defaultProps = {
+//   initial: {opacity: 0, y: 60, filter: 'blur(20px)'},
+//   animate: {opacity: 1, y: 0, filter: 'blur(0px)'},
+//   exit: {opacity: 0, filter: 'blur(8px)'},
+//   transition: testableTransition({
+//     type: 'spring',
+//     bounce: 0.25,
+//     duration: 0.65,
+//   }),
+// };
 
 export default GlobalModal;
