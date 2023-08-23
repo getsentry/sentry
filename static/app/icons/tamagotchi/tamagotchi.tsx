@@ -57,6 +57,7 @@ function useIssues(project?: Project): {
       staleTime: Infinity,
     }
   );
+
   const resolved = getResponseResolved.data?.length;
   return {
     total,
@@ -216,7 +217,7 @@ function Tamagotchi({project}: {project: Project}) {
 
   const releases = useReleases();
   const alerts = useAlertRules();
-  const issues = useIssues();
+  const issues = useIssues(project);
   const sdkUpdates = useProjectSdkUpdates({
     organization,
     projectId: project.id,
