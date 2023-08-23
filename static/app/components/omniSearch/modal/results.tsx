@@ -5,6 +5,7 @@ import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
 
+import {closeModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import MenuListItem from 'sentry/components/menuListItem';
 import {t} from 'sentry/locale';
@@ -84,6 +85,7 @@ function OmniResultsList(props) {
       }
 
       selectedOption.onAction?.();
+      closeModal();
     },
     [state, router]
   );
