@@ -241,7 +241,7 @@ const ResultsList = styled('ul')`
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-height: min(calc(100vh - 128px - 4rem), 540px);
+  max-height: min(calc(100vh - 128px - 4rem), 400px);
   overflow: auto;
   padding: ${space(0.5)} 0;
   margin: 0;
