@@ -11,7 +11,6 @@ class FilePartModel(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     created_at = models.DateTimeField(default=timezone.now, db_index=True)
-    dek = models.CharField(max_length=64, null=True)
     end = models.IntegerField()
     filename = models.CharField(max_length=64)
     is_archived = models.BooleanField()

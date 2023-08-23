@@ -1,13 +1,8 @@
 """Batched file-part reader module."""
 from __future__ import annotations
 
-import base64
-
-from django.conf import settings
-
 from sentry.models import FilePartModel
 from sentry.replays.lib.batched_file_storage.storage import download_blob_range
-from sentry.utils.crypt_envelope import envelope_decrypt
 
 
 def find_file_parts_by_prefix(key_prefix: str, limit: int, offset: int) -> list[FilePartModel]:
@@ -27,14 +22,5 @@ def find_file_part_by_key(key: str) -> FilePartModel | None:
     return FilePartModel.objects.filter(is_archived=False, key=key).first()
 
 
-def fetch_file_part_blob_data(file_part: FilePartModel) -> bytes:
-    result = download_blob_range(file_part.filename, file_part.start, file_part.end)
-
-    # File-parts are optionally encrypted.  If we encounter a file-part model with a non-null
-    # value in the `dek` column we know the value was encrypted.
-    if file_part.dek:
-        kek = settings.REPLAYS_KEK
-        dek = base64.b64decode(file_part.dek)
-        return envelope_decrypt(kek, dek, result)
-    else:
-        return result
+def download_file_part(file_part: FilePartModel) -> bytes:
+    return download_blob_range(file_part.filename, file_part.start, file_part.end)

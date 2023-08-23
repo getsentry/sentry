@@ -3684,9 +3684,6 @@ SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
 # Feature flag to turn off role-swapping to help bridge getsentry transition.
 USE_ROLE_SWAPPING_IN_TESTS = True
 
-REPLAYS_ENCRYPT_FILE_PART = True
-REPLAYS_KEK = b'\xfe\xc2\xf6\xf6O\x8e\x8a\x15"\x99Z\x8b\xbc\xdd\xb3N'
-
 # Threshold for the number of timeouts needed in a day to disable an integration
 BROKEN_TIMEOUT_THRESHOLD = 1000
 

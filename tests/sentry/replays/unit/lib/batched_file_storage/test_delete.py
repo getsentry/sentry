@@ -21,7 +21,7 @@ def test_zero_bytes_in_range():
 @django_db_all
 def test_archive_file_parts():
     file_part = FilePartModel.objects.create(
-        dek="a", end=8, filename="a", is_archived=False, key="a", start=5
+        end=8, filename="a", is_archived=False, key="a", start=5
     )
     archive_file_parts([file_part])
     assert file_part.is_archived
@@ -30,7 +30,7 @@ def test_archive_file_parts():
 @django_db_all
 def test_archive_file_part():
     file_part = FilePartModel.objects.create(
-        dek="a", end=8, filename="a", is_archived=False, key="a", start=5
+        end=8, filename="a", is_archived=False, key="a", start=5
     )
     archive_file_part(file_part)
     assert file_part.is_archived
@@ -45,12 +45,7 @@ def test_delete_and_zero_file_part(upload_blob, download_blob):
     upload_blob.return_value = None
 
     file_part = FilePartModel.objects.create(
-        dek="a",
-        end=8,
-        filename="a",
-        is_archived=True,
-        key="a",
-        start=5,
+        end=8, filename="a", is_archived=True, key="a", start=5
     )
 
     delete_and_zero_file_part(file_part)
