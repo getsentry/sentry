@@ -9,7 +9,7 @@ import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
-from arroyo.types import Message, Partition
+from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 
 from sentry.replays.lib.batched_file_storage.consumer import BatchedFileStorageProcessingStrategy
@@ -30,7 +30,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 
     def create_with_partitions(
         self,
-        commit: CommitOffsets,
+        commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         return BatchedRecordingProcessingStrategy(
