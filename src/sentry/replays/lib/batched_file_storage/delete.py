@@ -1,9 +1,10 @@
+"""Batched file-part deletion module."""
 from __future__ import annotations
 
 import io
 
 from sentry.models import FilePartModel
-from sentry.replays.lib.batched_file_storage.storage import read, save
+from sentry.replays.lib.batched_file_storage.storage import download_blob, upload_blob
 
 
 def archive_file_parts(file_parts: list[FilePartModel]) -> None:
@@ -50,23 +51,18 @@ def _delete_and_zero_file_part(file_part: FilePartModel) -> None:
     This function will work regardless of whether the file-part is encrypted or not. The range
     considers the length of the encrypted output.
     """
-    # Store the values necessary to delete the byte-range from the file-part.
-    filename = file_part.filename
-    start = file_part.start
-    end = file_part.end
+    message = "File-parts must be archived prior to deletion to prevent concurrent access."
+    assert file_part.is_archived, message
 
-    # Objects in the blob storage service are immutable. The blob is downloaded in full before
-    # being replaced.
-    old_file_data = read(filename)
+    blob_data = download_blob(file_part.filename)
+    blob = io.BytesIO(blob_data)
 
-    # The ending byte is the 0-indexed position of the last byte in the sequence. To make the
-    # range inclusive we add one. Otherwise we would miss the last byte.
-    new_file_data = _overwrite_range(old_file_data, start=start, length=(end - start) + 1)
+    zero_bytes_in_range(blob, start=file_part.start, length=(file_part.end - file_part.start) + 1)
 
     # This will reset the TTLs extending the life of the blob. Theoretically, the maximum lifespan
     # of a file is large enough to be considered unbounded. However, by pruning expired file-part
     # models we can cap this lifespan to the retention-period * 2.
-    save(filename, new_file_data)
+    upload_blob(file_part.filename, blob)
 
     # With the blob data deleted we can safely delete the metadata row. Had we deleted it earlier
     # a failure in blob deletion would have left potentially sensitive data orphaned in blob
@@ -81,24 +77,19 @@ def _delete_and_zero_file_part(file_part: FilePartModel) -> None:
     file_part.delete()
 
 
-def _overwrite_range(blob_data: bytes, start: int, length: int) -> io.BytesIO:
+def zero_bytes_in_range(blob: io.BytesIO, start: int, length: int) -> None:
     """Replace every byte within a contiguous range with null bytes."""
-    # Wrap the bytes in a familiar file-like interface.
-    blob_data = io.BytesIO(blob_data)
-
     # Move the cursor position to the starting byte. If we called read() this would give us every
     # byte starting from the beginning of our file-part's range.
-    blob_data.seek(start)
+    blob.seek(start)
 
     # The "write" method overwrites everything in its path. By specifying a null byte of length
     # `n` we are guaranteeing that the next `n` bytes will be null bytes. The length should be
     # carefully calculated to ensure we do not write into another file-part's range.
-    blob_data.write(b"\x00" * length)
+    blob.write(b"\x00" * length)
 
     # Reset the cursor position to the start of the file. This operation is likely performed
     # multiple times by every client library we use until the file is uploaded. However, its good
     # practice to reset these when you're finished. We don't want to make assumptions about what
     # callers will do with this instance.
-    blob_data.seek(0)
-
-    return blob_data
+    blob.seek(0)

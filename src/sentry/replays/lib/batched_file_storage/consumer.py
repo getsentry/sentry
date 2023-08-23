@@ -1,3 +1,9 @@
+"""Batched file consumer reference implementation.
+
+This could be implemented as its own consumer process or it can be inherited by a pre-existing
+consumer process.  If you're re-using this class for your own consumer be sure to override and
+follow the directions in the submit function.
+"""
 import time
 from typing import List, Optional, cast
 
@@ -33,14 +39,16 @@ class BatchedFileStorageProcessingStrategy(ProcessingStrategy[KafkaPayload]):
     def submit(self, message: Message[KafkaPayload]) -> None:
         assert not self.__closed
 
-        # Deserialize the message.
+        # This line is for example purposes only.  We assume the message is msgpack encoded
+        # dictionary of message and key.  Those are the only two fields necessary to make a batch
+        # item.
         raw_file_part = cast(RawFilePart, msgpack.unpackb(message.payload.value))
 
-        #
+        # The submit step does nothing.  We just push the message into the buffer.
         self.__append_to_batch(key=raw_file_part["key"], message=raw_file_part["message"])
 
-        # Forward the message to the commit step. The contents of the payload are irrelevant so
-        # we forward the un-modified value.
+        # The next-step accepts the raw message value.  As of writing, the next-step is assumed to
+        # be the commit-step (a no-op).
         self.next_step.submit(message)
 
     def commit(self, force: bool) -> bool:
@@ -96,14 +104,15 @@ class BatchedFileStorageProcessingStrategy(ProcessingStrategy[KafkaPayload]):
 
     @property
     def has_exceeded_max_message_count(self) -> bool:
+        """Return "True" if we have accumulated the configured number of messages."""
         return len(self.__batch) >= self.max_message_count
 
     @property
     def has_exceeded_batch_byte_size(self) -> bool:
-        """Return "True" if the batch's total byte size meets or exceeds the commit threshold."""
+        """Return "True" if we have accumulated the configured number of bytes."""
         return self.__batch_size_in_bytes >= self.max_batch_size_in_bytes
 
     @property
     def has_exceeded_last_batch_commit_time(self) -> bool:
-        """Return "True" if the batch's wait time meets or exceeds the commit threshold."""
+        """Return "True" if we have waited to commit for the configured amount of time."""
         return time.time() >= self.__batch_next_commit_time

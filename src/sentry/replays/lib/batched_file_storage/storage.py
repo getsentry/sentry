@@ -12,12 +12,12 @@ from sentry.filestore.s3 import S3Boto3Storage
 from sentry.models.files.utils import get_storage
 
 
-def read(filename: str) -> bytes:
+def download_blob(filename: str) -> bytes:
     storage = get_storage(_make_storage_options())
     return storage.get(filename)
 
 
-def read_range(filename: str, start: int, end: int) -> bytes:
+def download_blob_range(filename: str, start: int, end: int) -> bytes:
     """Return a range of bytes contained within a file."""
     storage = get_storage(_make_storage_options())
 
@@ -31,7 +31,7 @@ def read_range(filename: str, start: int, end: int) -> bytes:
         return file_io.read((end - start) + 1)
 
 
-def save(filename: str, file_data: io.BytesIO) -> None:
+def upload_blob(filename: str, file_data: io.BytesIO) -> None:
     storage = get_storage(_make_storage_options())
     storage.save(filename, file_data)
 
