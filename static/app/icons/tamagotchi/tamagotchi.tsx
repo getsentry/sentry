@@ -94,7 +94,7 @@ function getHealth(
   projectsdkupdates: ReturnType<typeof useProjectSdkUpdates>
 ): {health: number; minifiedStackTraceIsHealthy: boolean; sdkIsHealthy: boolean} {
   let minifiedStackTraceIsHealthy = false;
-  let sdkIsHealthy;
+  let sdkIsHealthy = false;
   if (projectsdkupdates.type === 'resolved') {
     sdkIsHealthy = !projectsdkupdates.data;
   }
