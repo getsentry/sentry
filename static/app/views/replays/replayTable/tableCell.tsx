@@ -30,6 +30,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
+import {renderUserDetailsLink} from 'sentry/views/user/util';
 
 type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
@@ -385,9 +386,12 @@ export function ReplayCell({
           replay.is_archived ? (
             replay.user.display_name || t('Unknown User')
           ) : (
-            <MainLink to={detailsTab} onClick={trackNavigationEvent}>
-              {replay.user.display_name || t('Unknown User')}
-            </MainLink>
+            <Row gap={0.25}>
+              <MainLink to={detailsTab} onClick={trackNavigationEvent}>
+                {replay.user.display_name || t('Unknown User')}
+              </MainLink>
+              {renderUserDetailsLink(organization.slug, replay.user)}
+            </Row>
           )
         }
         user={getUserBadgeUser(replay)}

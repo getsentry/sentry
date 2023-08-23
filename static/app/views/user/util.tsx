@@ -36,7 +36,7 @@ export function renderUserDetailsLink(
 
   return (
     <Link to={url}>
-      <IconUser />
+      <IconUser size="xs" />
     </Link>
   );
 }

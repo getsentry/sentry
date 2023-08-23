@@ -14,6 +14,7 @@ import {ErrorWidget} from 'sentry/views/user/widgets/errors';
 
 import {ReplayWidget} from './widgets/replays';
 import {TransactionWidget} from './widgets/transactions';
+import {VitalsWidget} from './widgets/vitals';
 import {Metrics} from './metrics';
 import {UserTimeline} from './timeline';
 import {useUserParams} from './useUserParams';
@@ -75,10 +76,9 @@ function UserDetails() {
                 </PageFilterBar>
               </FilterBar>
               <Widgets>
-                {/* Add widgets here */}
                 <ErrorWidget userKey={userKey} userValue={userValue} />
                 <TransactionWidget userKey={userKey} userValue={userValue} />
-                <div>placeholder</div>
+                <VitalsWidget userKey={userKey} userValue={userValue} />
               </Widgets>
 
               <LargeWidgets>
