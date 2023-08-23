@@ -78,7 +78,7 @@ export default function FunnelOverview() {
     }
   );
   const [sortVal, sortValChange] = useState('completionRate');
-  function changeSortVal(newVal) {
+  function changeSortVal(newVal: string) {
     sortValChange(newVal);
   }
 
@@ -158,7 +158,7 @@ export default function FunnelOverview() {
                 ]}
                 disabled={false}
                 value={sortVal}
-                onChange={value => changeSortVal(value)}
+                onChange={value => changeSortVal(value.value)}
                 singlevalue
                 clearindicator={false}
               />
