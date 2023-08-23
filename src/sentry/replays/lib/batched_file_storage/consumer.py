@@ -1,8 +1,6 @@
 """Batched file consumer reference implementation.
 
-This could be implemented as its own consumer process or it can be inherited by a pre-existing
-consumer process.  If you're re-using this class for your own consumer be sure to override and
-follow the directions in the submit function.
+This could be implemented as its own consumer or it can be inherited by a pre-existing consumer.
 """
 from __future__ import annotations
 

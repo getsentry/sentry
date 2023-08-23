@@ -60,8 +60,6 @@ class BatchedRecordingProcessingStrategy(BatchedFileStorageProcessingStrategy):
             < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
         )
 
-        # Process the segment.
-        #
         # There's no guarantee that this event is unique or that it will commit so any side-effect
         # we produce must tolerate duplicates.
         recording_billing_outcome(recording_segment)

@@ -34,8 +34,7 @@ def delete_and_zero_file_part(file_part: FilePartModel) -> None:
     message = "File-parts must be archived prior to deletion to prevent concurrent access."
     assert file_part.is_archived, message
 
-    blob_data = download_blob(file_part.filename)
-    blob = io.BytesIO(blob_data)
+    blob = io.BytesIO(download_blob(file_part.filename))
 
     zero_bytes_in_range(blob, start=file_part.start, length=(file_part.end - file_part.start) + 1)
 
