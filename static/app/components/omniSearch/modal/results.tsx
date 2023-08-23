@@ -12,6 +12,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 
+import {OmniSection} from '../types';
+
 import {OnmniSearchInputContext} from './index';
 /**
  * Maps keyboard event `key` to correspinding unicode glyphs.
@@ -40,7 +42,11 @@ const windowsKeyboardGlyphs = {
   Meta: '❖',
 };
 
-function OmniResults({results}) {
+interface OmniResultsProps {
+  results: OmniSection[];
+}
+
+function OmniResults({results}: OmniResultsProps) {
   return (
     <OmniResultsList>
       {results.map(({key: sectionKey, ...section}) => (
