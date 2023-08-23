@@ -44,6 +44,7 @@ function OmniSearchModal() {
         actions:
           searchResults?.slice(0, 5).map(action => ({
             ...action,
+            actionType: 'top-result',
             key: `top-result-${action.key}`,
           })) ?? [],
       },
@@ -67,7 +68,11 @@ function OmniSearchModal() {
       })
       .filter(area => area.actions?.length);
 
-    return hasSearch ? topSearchResults.concat(searchResultsByArea) : searchResultsByArea;
+    const allResults = hasSearch
+      ? [...topSearchResults, ...searchResultsByArea]
+      : searchResultsByArea;
+
+    return allResults;
   }, [search, searchState]);
 
   return (
