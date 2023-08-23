@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Avatar from 'sentry/components/avatar';
+import Count from 'sentry/components/count';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
@@ -21,7 +22,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {BrowserCell, OSCell} from 'sentry/views/replays/replayTable/tableCell';
-import Count from 'sentry/components/count';
 
 import {UserParams} from '../types';
 
