@@ -1,12 +1,17 @@
-import {useMemo} from 'react';
+import {createContext, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {useOmniSearchState} from '../useOmniState';
 
 import {OmniResults} from './results';
 
+export const OnmniSearchInputContext = createContext<
+  React.Dispatch<React.SetStateAction<string>>
+>(() => {});
+
 function OmniSearchModal() {
   const searchState = useOmniSearchState();
+  const [_search, setSearch] = useState('');
 
   const results = useMemo(() => {
     const {actions, areas, areaPriority} = searchState;
@@ -28,7 +33,9 @@ function OmniSearchModal() {
 
   return (
     <Overlay>
-      <OmniResults results={results} />
+      <OnmniSearchInputContext.Provider value={setSearch}>
+        <OmniResults results={results} />
+      </OnmniSearchInputContext.Provider>
     </Overlay>
   );
 }

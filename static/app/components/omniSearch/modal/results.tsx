@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef} from 'react';
+import {Fragment, useCallback, useContext, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useListBox, useListBoxSection, useOption} from '@react-aria/listbox';
 import {isMac} from '@react-aria/utils';
@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 
+import {OnmniSearchInputContext} from './index';
 /**
  * Maps keyboard event `key` to correspinding unicode glyphs.
  * See https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values
@@ -55,6 +56,7 @@ function OmniResults({results}) {
 }
 
 function OmniResultsList(props) {
+  const setSearch = useContext(OnmniSearchInputContext);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -104,6 +106,7 @@ function OmniResultsList(props) {
     <Fragment>
       <OmniInput
         ref={inputRef}
+        onChange={e => setSearch(e.target.value)}
         placeholder="Search for anything…"
         onKeyDown={e => {
           if (['Enter', 'Tab'].includes(e.key)) {
