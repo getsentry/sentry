@@ -93,6 +93,7 @@ function OmniResultsList(props: TreeProps<OmniSection>) {
 
   const {listBoxProps} = useListBox(
     {
+      'aria-label': t('Search results'),
       autoFocus: true,
       shouldFocusOnHover: true,
       shouldUseVirtualFocus: true,
