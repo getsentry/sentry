@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
@@ -7,6 +8,7 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader, {GroupLevel} from 'sentry/components/eventOrGroupHeader';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -20,7 +22,14 @@ import checkboxToggle from 'sentry/components/stream/group';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Group, GroupStats} from 'sentry/types';
+import {
+  DateString,
+  Group,
+  GroupStats,
+  Organization,
+  PageFilters,
+  SelectValue,
+} from 'sentry/types';
 import {Funnel} from 'sentry/types/funnel';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -29,6 +38,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {TagAndMessageWrapper} from 'sentry/views/issueDetails/unhandledTag';
 import IssueListFilters from 'sentry/views/issueList/filters';
 import {IssueSearchWithSavedSearches} from 'sentry/views/issueList/issueSearchWithSavedSearches';
+import {getVitalDetailTablePoorStatusFunction} from 'sentry/views/performance/vitalDetail/utils';
 
 interface FunnelResponse {
   funnel: Funnel;
@@ -67,23 +77,48 @@ export default function FunnelOverview() {
       staleTime: Infinity,
     }
   );
+  const [sortVal, sortValChange] = useState('completionRate');
+  function changeSortVal(newVal) {
+    sortValChange(newVal);
+  }
 
-  const listIssues = funnelData?.issues.map(({starts, completes, issue}) => (
-    <WrapGroup key={issue.id}>
-      <GroupWrapper data-test-id="event-issue-header">
-        <EventOrGroupHeader data={issue} addMargin />
-        <EventOrGroupExtraDetails data={issue} />
-      </GroupWrapper>
-      <EventCountsWrapper style={{gridArea: 'completionRate'}}>
-        {((100 * completes) / starts).toFixed(2)}%
-      </EventCountsWrapper>
-      <EventCountsWrapper style={{gridArea: 'starts'}}>{starts}</EventCountsWrapper>
-      <EventCountsWrapper style={{gridArea: 'completes'}}>{completes}</EventCountsWrapper>
-      <EventCountsWrapper style={{gridArea: 'events'}}>
-        {eventsCount?.find(({id}) => id === issue.id)?.count}
-      </EventCountsWrapper>
-    </WrapGroup>
-  ));
+  const listIssues = funnelData?.issues
+    .sort((a, b) => {
+      if (sortVal === 'completionRate') {
+        return (100 * b.completes) / b.starts - (100 * a.completes) / a.starts;
+      }
+      if (sortVal === 'starts') {
+        return b.starts - a.starts;
+      }
+      if (sortVal === 'completes') {
+        return b.completes - a.completes;
+      }
+      if (sortVal === 'events') {
+        return (
+          Number(eventsCount?.find(({id}) => id === b.issue.id)?.count) -
+          Number(eventsCount?.find(({id}) => id === a.issue.id)?.count)
+        );
+      }
+      return 0;
+    })
+    .map(({starts, completes, issue}) => (
+      <WrapGroup key={issue.id}>
+        <GroupWrapper data-test-id="event-issue-header">
+          <EventOrGroupHeader data={issue} addMargin />
+          <EventOrGroupExtraDetails data={issue} />
+        </GroupWrapper>
+        <EventCountsWrapper style={{gridArea: 'completionRate'}}>
+          {((100 * completes) / starts).toFixed(2)}%
+        </EventCountsWrapper>
+        <EventCountsWrapper style={{gridArea: 'starts'}}>{starts}</EventCountsWrapper>
+        <EventCountsWrapper style={{gridArea: 'completes'}}>
+          {completes}
+        </EventCountsWrapper>
+        <EventCountsWrapper style={{gridArea: 'events'}}>
+          {eventsCount?.find(({id}) => id === issue.id)?.count}
+        </EventCountsWrapper>
+      </WrapGroup>
+    ));
 
   return (
     <Wrapper>
@@ -113,6 +148,18 @@ export default function FunnelOverview() {
         {listIssues ? (
           <IssueListWrapper>
             <StyledPanelHeader>
+              <SelectControl
+                placeholder="Sort by..."
+                options={[
+                  {label: 'Completion Rate', val: 'completionRate'},
+                  {label: 'Starts', val: 'starts'},
+                  {label: 'Completes', val: 'completes'},
+                  {label: 'Events', val: 'events'},
+                ]}
+                disabled={false}
+                value={sortVal}
+                onChange={value => changeSortVal(value)}
+              />
               <GridHeader style={{gridArea: 'issue'}}>Issue</GridHeader>
               <GridHeader style={{gridArea: 'completionRate'}}>
                 Completion Rate
