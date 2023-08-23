@@ -11,7 +11,6 @@ import {OmniAction} from 'sentry/components/omniSearch/types';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -167,7 +166,7 @@ function SidebarItem({
     : {
         key: `sidebar-${id}`,
         areaKey: 'navigate',
-        label: t('Go to %s', labelString),
+        label: labelString,
         actionType: 'sidebar',
         actionIcon: makeIconWithArrow(Icon),
         to,
