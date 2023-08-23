@@ -28,7 +28,10 @@ describe('NoProjectMessage', function () {
   });
 
   it('shows "Join a Team" when member has no teams', function () {
-    const organization = TestStubs.Organization({slug: 'org-slug'});
+    const organization = TestStubs.Organization({
+      slug: 'org-slug',
+      access: ['org:read', 'team:read'],
+    });
     const childrenMock = jest.fn().mockReturnValue(null);
     ProjectsStore.loadInitialData([]);
 
