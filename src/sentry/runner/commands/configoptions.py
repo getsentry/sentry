@@ -123,7 +123,7 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
         options_to_update = safe_load(stream)
 
     feature_flags = options_to_update.get("features", [])
-    options_to_update = options_to_update["options"]
+    options_to_update = options_to_update.get("options", [])
 
     drifted_options = set()
     invalid_options = set()
