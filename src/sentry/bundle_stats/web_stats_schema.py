@@ -12,6 +12,7 @@ class AssetInfo:
     hotModuleReplacement: Optional[bool] = None
     sourceFilename: Optional[str] = None
     javascriptModule: Optional[bool] = None
+    contenthash: Optional[str] = None
 
 
 @dataclass
@@ -64,29 +65,6 @@ class Origin:
 
 
 @dataclass
-class Chunk:
-    entry: Optional[bool] = None
-    files: Optional[List[str]] = None
-    filteredModules: Optional[int] = None
-    id: Optional[int] = None
-    initial: Optional[bool] = None
-    modules: Optional[List[str]] = None
-    names: Optional[List[str]] = None
-    origins: Optional[List[Origin]] = None
-    parents: Optional[int] = None
-    rendered: Optional[bool] = None
-    size: Optional[int] = None
-
-    @classmethod
-    def parse(cls, obj: Mapping) -> "Chunk":
-        chunk = cls(**obj)
-        origins = obj.get("origins", None)
-        if origins:
-            chunk.origins = [Origin.parse(o) for o in origins]
-        return chunk
-
-
-@dataclass
 class Profile:
     building: Optional[int] = None
     dependencies: Optional[int] = None
@@ -98,7 +76,7 @@ class Module:
     assets: Optional[List[Asset]] = None
     built: Optional[bool] = None
     cacheable: Optional[bool] = None
-    chunks: Optional[List[int]] = None
+    chunks: Optional[List[str]] = None
     errors: Optional[int] = None
     failed: Optional[bool] = None
     id: Optional[int] = None
@@ -125,6 +103,50 @@ class Module:
             module.reasons = [Reason(**r) for r in reasons]
 
         return module
+
+
+@dataclass
+class ChunkModule:
+    assets: Optional[List[Asset]] = None
+    chunks: Optional[List[str]] = None
+    id: Optional[int] = None
+    identifier: Optional[str] = None
+    name: Optional[str] = None
+    size: Optional[int] = None
+
+    @classmethod
+    def parse(cls, obj: Mapping) -> "ChunkModule":
+        chunk_module = cls(**obj)
+        assets = obj.get("assets", None)
+        if assets:
+            chunk_module.assets = [Asset.parse(a) for a in assets]
+        return chunk_module
+
+
+@dataclass
+class Chunk:
+    entry: Optional[bool] = None
+    files: Optional[List[str]] = None
+    filteredModules: Optional[int] = None
+    id: Optional[int] = None
+    initial: Optional[bool] = None
+    modules: Optional[List[ChunkModule]] = None
+    names: Optional[List[str]] = None
+    origins: Optional[List[Origin]] = None
+    parents: Optional[int] = None
+    rendered: Optional[bool] = None
+    size: Optional[int] = None
+
+    @classmethod
+    def parse(cls, obj: Mapping) -> "Chunk":
+        chunk = cls(**obj)
+        origins = obj.get("origins", None)
+        if origins:
+            chunk.origins = [Origin.parse(o) for o in origins]
+        modules = obj.get("modules", None)
+        if modules:
+            chunk.modules = [ChunkModule.parse(m) for m in modules]
+        return chunk
 
 
 @dataclass
@@ -182,7 +204,7 @@ class WebStats:
     assets: Optional[List[Asset]] = None
     chunks: Optional[List[Chunk]] = None
     modules: Optional[List[Module]] = None
-    entryPoints: Optional[List[Mapping]] = None
+    entrypoints: Optional[Mapping] = None
     errors: Optional[List[ErrorOrWarning]] = None
     errorsCount: Optional[int] = None
     warnings: Optional[List[ErrorOrWarning]] = None
