@@ -12,12 +12,58 @@ import {Button, ButtonLabel} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project, Release} from 'sentry/types';
+import {IssueAlertRule} from 'sentry/types/alerts';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdkUpdates';
 import {CombinedAlertType, CombinedMetricIssueAlerts} from 'sentry/views/alerts/types';
 import {useReleases} from 'sentry/views/starfish/queries/useReleases';
+
+function useIssues(project?: Project): {
+  assigned: number;
+  resolved: number;
+  total: number;
+} {
+  // /organizations/${org}/issues/?&project=${projectId}&statsPeriod=14d
+  const organization = useOrganization();
+  const {getResponseHeader} = useApiQuery<IssueAlertRule>(
+    [
+      `/organizations/${organization.slug}/issues/?project=${project?.id}`,
+      {query: {statsPeriod: '3d'}},
+    ],
+    {
+      staleTime: Infinity,
+    }
+  );
+  const total = Math.min(parseInt(getResponseHeader?.('X-Hits') ?? '0', 10), 100);
+  const getResponseAssigned = useApiQuery<any>(
+    [
+      `/organizations/${organization.slug}/issues/?project=${project?.id}`,
+      {query: {statsPeriod: '3d', query: 'is:assigned is:unresolved'}},
+    ],
+    {
+      staleTime: Infinity,
+    }
+  );
+  const assigned = getResponseAssigned.data?.length;
+
+  const getResponseResolved = useApiQuery<any>(
+    [
+      `/organizations/${organization.slug}/issues/?project=${project?.id}`,
+      {query: {statsPeriod: '3d', query: 'is:resolved'}},
+    ],
+    {
+      staleTime: Infinity,
+    }
+  );
+  const resolved = getResponseResolved.data?.length;
+  return {
+    total,
+    assigned,
+    resolved,
+  };
+}
 
 export function useAlertRules() {
   const organization = useOrganization();
@@ -112,6 +158,26 @@ function getHealth(
   return health;
 }
 
+function getHappiness({
+  assigned,
+  resolved,
+  total,
+}: {
+  assigned: number;
+  resolved: number;
+  total: number;
+}) {
+  const percentAssigned = assigned / total;
+  const percentResolved = resolved / total;
+  const totalHappiness = percentAssigned + percentResolved;
+
+  return {
+    percentAssigned,
+    percentResolved,
+    totalHappiness,
+  };
+}
+
 function Tamagotchi({project}: {project: Project}) {
   const organization = useOrganization();
   const [currentScore, setCurrentScore] = useState(0);
@@ -150,6 +216,7 @@ function Tamagotchi({project}: {project: Project}) {
 
   const releases = useReleases();
   const alerts = useAlertRules();
+  const issues = useIssues();
   const sdkUpdates = useProjectSdkUpdates({
     organization,
     projectId: project.id,
@@ -160,11 +227,11 @@ function Tamagotchi({project}: {project: Project}) {
     const metrics = {
       energy: getEnergy(alerts.data).energy * 100,
       tidiness: getTidiness(releases.data, project).tidiness * 100,
-      happiness: 50.0,
+      happiness: getHappiness(issues).totalHappiness * 100,
       health: getHealth(project, sdkUpdates).health * 100,
     };
     return metrics;
-  }, [releases, project, alerts, sdkUpdates]);
+  }, [releases, project, alerts, sdkUpdates, issues]);
 
   useEffect(() => {
     // Currently allowing 3 seconds for egg to hatch and then set the initial data to the Sad stage
