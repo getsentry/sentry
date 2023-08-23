@@ -13,6 +13,11 @@ export function navigateTo(
   router: InjectedRouter & {location?: Location},
   configUrl?: string
 ) {
+  if (to.startsWith('http')) {
+    window.open(to, '_blank');
+    return;
+  }
+
   // Check for placeholder params
   const needOrg = to.includes(':orgId');
   const needProject = to.includes(':projectId') || to.includes(':project');
