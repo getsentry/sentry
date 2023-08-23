@@ -12,7 +12,7 @@ import {formatBytesBase2} from 'sentry/utils';
 import useRouter from 'sentry/utils/useRouter';
 import {bundleStats as stats} from 'sentry/views/bundleAnalyzer';
 
-const beforeStats = require('../../../../src/sentry/static/sentry/dist/stats.json');
+const beforeStats = require('./stats.json');
 
 import {CardSection} from 'sentry/views/performance/transactionSummary/transactionVitals/styles';
 
@@ -68,7 +68,7 @@ const packageModules = modules
   .sort((a, b) => b.size - a.size);
 
 const beforeChunks = beforeStats.chunks.map(chunk => ({...chunk, name: chunk.id}));
-const beforeAssets = beforeStats.assets.sort((a, b) => b.size - a.size);
+// const beforeAssets = beforeStats.assets.sort((a, b) => b.size - a.size);
 const beforeModules = beforeStats.modules;
 
 const beforeInAppModules = beforeModules
@@ -101,46 +101,52 @@ export default function BundleDiff() {
   function getPanelItems() {
     switch (bundleType) {
       case BundleType.ASSETS: {
-        return diff(beforeAssets, assets).map(asset => (
+        return assets.map(asset => (
           <Fragment key={`asset-${asset.name}`}>
             <div>{asset.name}</div>
             <div>{formatBytesBase2(asset.size)}</div>
-            <div>{asset.state}</div>
-            <div>{(asset.diff / asset.size) * 100}</div>
+            <div>-</div>
+            <div>-</div>
           </Fragment>
         ));
       }
       case BundleType.IN_APP: {
-        return diff(beforeInAppModules, inAppModules).map(module => (
-          <Fragment key={`module-${module.name}-${module.size}`}>
-            <ExternalLink
-              href={`https://github.com/getsentry/sentry/blob/master/static/${module.name.replace(
-                './',
-                ''
-              )}`}
-            >
-              {module.name}
-            </ExternalLink>
-            <div>{formatBytesBase2(module.size)}</div>
-            <div>{module.state}</div>
-            <div>{(module.diff / module.size) * 100}</div>
-          </Fragment>
-        ));
-      }
-      case BundleType.PACKAGES: {
-        return diff(beforePackageModules, packageModules).map(module => {
-          const npmPackageName = getNpmPackageFromNodeModules(module.name);
-          return (
+        return diff(beforeInAppModules, inAppModules)
+          .filter(m => m.state !== BundleState.NO_CHANGE)
+          .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff))
+          .map(module => (
             <Fragment key={`module-${module.name}-${module.size}`}>
-              <ExternalLink href={`https://www.npmjs.com/package/${npmPackageName}`}>
-                {module.name.replace('../node_modules/', '')}
+              <ExternalLink
+                href={`https://github.com/getsentry/sentry/blob/master/static/${module.name.replace(
+                  './',
+                  ''
+                )}`}
+              >
+                {module.name}
               </ExternalLink>
               <div>{formatBytesBase2(module.size)}</div>
               <div>{module.state}</div>
               <div>{(module.diff / module.size) * 100}</div>
             </Fragment>
-          );
-        });
+          ));
+      }
+      case BundleType.PACKAGES: {
+        return diff(beforePackageModules, packageModules)
+          .filter(m => m.state !== BundleState.NO_CHANGE)
+          .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff))
+          .map(module => {
+            const npmPackageName = getNpmPackageFromNodeModules(module.name);
+            return (
+              <Fragment key={`module-${module.name}-${module.size}`}>
+                <ExternalLink href={`https://www.npmjs.com/package/${npmPackageName}`}>
+                  {module.name.replace('../node_modules/', '')}
+                </ExternalLink>
+                <div>{formatBytesBase2(module.size)}</div>
+                <div>{module.state}</div>
+                <div>{(module.diff / module.size) * 100}</div>
+              </Fragment>
+            );
+          });
       }
       default: {
         throw new Error('Invalid bundle type');
@@ -150,6 +156,9 @@ export default function BundleDiff() {
 
   const beforeEntryPoints = beforeChunks.filter(c => c.entry);
   const entrypoints = chunks.filter(c => c.entry);
+
+  // console.log(beforeEntryPoints);
+  // console.log(entrypoints);
 
   return (
     <Layout.Body>
