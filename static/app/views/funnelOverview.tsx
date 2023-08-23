@@ -68,7 +68,6 @@ export default function FunnelOverview() {
     }
   );
 
-  console.log({eventsCount}, funnelData?.issues);
   const listIssues = funnelData?.issues.map(({starts, completes, issue}) => (
     <WrapGroup key={issue.id}>
       <GroupWrapper data-test-id="event-issue-header">
@@ -191,9 +190,7 @@ const Wrapper = styled('div')`
 `;
 
 const FunnelInfo = styled('div')`
-  border: 1px solid ${p => p.theme.gray200};
   padding: ${space(3)};
-  background-color: ${p => p.theme.white};
 `;
 
 const ContentWrapper = styled('div')`
@@ -204,13 +201,12 @@ const ContentWrapper = styled('div')`
 `;
 
 const IssueListWrapper = styled('div')`
-  border-top: 1px solid ${p => p.theme.gray200};
   display: flex;
   flex-direction: column;
   background-color: ${p => p.theme.white};
   height: min-content;
-  border-left: 1px solid ${p => p.theme.gray200};
-  border-bottom: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.gray200};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const GridHeader = styled('h5')`
@@ -267,7 +263,7 @@ const StyledPanelHeader = styled(PanelHeader)`
 
 const GroupWrapper = styled('div')`
   position: relative;
-  padding: ${space(1.5)};
+  padding: ${space(2)};
   grid-area: issue;
   max-width: 100%; // This ensures the container doesn't grow beyond its grid cell
   overflow: hidden; // Hide overflowed content
