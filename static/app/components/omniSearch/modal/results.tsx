@@ -177,9 +177,6 @@ interface OmniResultOptionProps {
 }
 
 function scrollIntoView(el: HTMLElement | null) {
-  console.log('scrolling');
-  console.log(el);
-
   el?.scrollIntoView({block: 'nearest'});
 }
 
