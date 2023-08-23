@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any
 
 from rest_framework import serializers
@@ -191,9 +193,12 @@ class IncomingAlertTemplateSerializer(ModelSerializer):
     def validate(self, attrs):
         return validate_actions(attrs)
 
-    def _create_alert_procedure(self, validated_data) -> AlertProcedure:
+    def _create_alert_procedure(self, validated_data) -> AlertProcedure | None:
         name = validated_data["name"]
         issue_alert_actions = validated_data.pop("issue_alert_actions", [])
+        if len(issue_alert_actions) < 1:
+            return None
+
         procedure_data = {
             "label": f"[Procedure from Template] {name}",
             "issue_alert_actions": issue_alert_actions,
