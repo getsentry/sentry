@@ -322,15 +322,8 @@ const GroupWrapper = styled('div')`
 
 const SearchContainer = styled('div')`
   display: flex;
-  flex-wrap: wrap;
-  column-gap: ${space(2)};
-  row-gap: ${space(1)};
   width: 100%;
   margin-bottom: ${space(2)};
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    flex-direction: column;
-  }
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
@@ -356,4 +349,7 @@ const StyledPageFilterBar = styled(PageFilterBar)`
   }
 `;
 
-const StyledSelectControl = styled(SelectControl)``;
+const StyledSelectControl = styled(SelectControl)`
+  width: 200px;
+  margin-left: ${space(2)};
+`;
