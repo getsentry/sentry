@@ -69,6 +69,10 @@ class NotificationSettingTypes(ValueEqualityEnum):
     # Notifications about spikes
     SPIKE_PROTECTION = 60
 
+    # new for settings v2 but only with helper functions
+    # This value shouldn't be stored in the DB
+    REPORTS = -1
+
 
 class NotificationSettingEnum(Enum):
     DEFAULT = "default"
@@ -85,6 +89,7 @@ class NotificationSettingEnum(Enum):
     QUOTA_WARNINGS = "quotaWarnings"
     QUOTA_SPEND_ALLOCATIONS = "quotaSpendAllocations"
     SPIKE_PROTECTION = "spikeProtection"
+    REPORTS = "reports"
 
 
 # TODO(Steve): clean up after we finish migrating to settings 2.0
@@ -103,6 +108,7 @@ NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.QUOTA_WARNINGS: NotificationSettingEnum.QUOTA_WARNINGS.value,
     NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS.value,
     NotificationSettingTypes.SPIKE_PROTECTION: NotificationSettingEnum.SPIKE_PROTECTION.value,
+    NotificationSettingTypes.REPORTS: NotificationSettingEnum.REPORTS.value,
 }
 
 
@@ -250,6 +256,10 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingOptionValues.NEVER,
     },
     NotificationSettingTypes.SPIKE_PROTECTION: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.REPORTS: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },
