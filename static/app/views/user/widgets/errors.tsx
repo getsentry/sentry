@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import qs from 'qs';
 
 import Avatar from 'sentry/components/avatar';
 import Count from 'sentry/components/count';
@@ -89,7 +90,10 @@ export function ErrorWidget({userKey, userValue}: Props) {
             {data.data.map(dataRow => {
               const issueId = dataRow['issue.id'];
               const project = projectsHash[dataRow.project_id];
-              const link = `/issues/${issueId}/events/${dataRow.id}/`;
+              const link = `/issues/${issueId}/events/?${qs.stringify({
+                project: dataRow.project_id,
+                query: `user.${userKey}:${userValue}`,
+              })}`;
 
               return (
                 <Fragment key={issueId}>
