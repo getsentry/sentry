@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useContext, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useListBox, useListBoxSection, useOption} from '@react-aria/listbox';
-import {isMac, mergeRefs} from '@react-aria/utils';
+import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import {TreeProps, TreeState, useTreeState} from '@react-stately/tree';
 import {Node} from '@react-types/shared';
@@ -117,7 +117,7 @@ function OmniResultsList(props: TreeProps<OmniSection>) {
       firstItem?.type === 'section' ? [...firstItem.childNodes][0] : firstItem;
     firstFocusableItem && state.selectionManager.setFocusedKey(firstFocusableItem.key);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [state.collection]);
 
   return (
     <Fragment>
@@ -176,10 +176,6 @@ interface OmniResultOptionProps {
   state: TreeState<OmniSection>;
 }
 
-function scrollIntoView(el: HTMLElement | null) {
-  el?.scrollIntoView({block: 'nearest'});
-}
-
 function OmniResultOption({item, state}: OmniResultOptionProps) {
   const {actionIcon: Icon, actionHotkey} = item.props as OmniAction;
   const optionRef = useRef<HTMLLIElement>(null);
@@ -197,7 +193,7 @@ function OmniResultOption({item, state}: OmniResultOptionProps) {
 
   return (
     <MenuListItem
-      ref={isFocused ? mergeRefs(optionRef, scrollIntoView) : optionRef}
+      ref={optionRef}
       disabled={isDisabled}
       isFocused={isFocused}
       isSelected={isSelected}
