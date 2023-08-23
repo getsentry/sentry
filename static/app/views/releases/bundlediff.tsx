@@ -8,12 +8,13 @@ import PanelTable from 'sentry/components/panels/panelTable';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatBytesBase2} from 'sentry/utils';
+import {formatBytesBase10} from 'sentry/utils';
 import useRouter from 'sentry/utils/useRouter';
 import {bundleStats as stats} from 'sentry/views/bundleAnalyzer';
 
 const beforeStats = require('./stats.json');
 
+import {formatPercentage} from 'sentry/utils/formatters';
 import {CardSection} from 'sentry/views/performance/transactionSummary/transactionVitals/styles';
 
 enum BundleType {
@@ -104,7 +105,7 @@ export default function BundleDiff() {
         return assets.map(asset => (
           <Fragment key={`asset-${asset.name}`}>
             <div>{asset.name}</div>
-            <div>{formatBytesBase2(asset.size)}</div>
+            <div>{formatBytesBase10(asset.size)}</div>
             <div>-</div>
             <div>-</div>
           </Fragment>
@@ -124,9 +125,9 @@ export default function BundleDiff() {
               >
                 {module.name}
               </ExternalLink>
-              <div>{formatBytesBase2(module.size)}</div>
+              <div>{formatBytesBase10(module.size)}</div>
               <div>{module.state}</div>
-              <div>{(module.diff / module.size) * 100}</div>
+              <div>{formatPercentage(module.diff)}</div>
             </Fragment>
           ));
       }
@@ -141,9 +142,9 @@ export default function BundleDiff() {
                 <ExternalLink href={`https://www.npmjs.com/package/${npmPackageName}`}>
                   {module.name.replace('../node_modules/', '')}
                 </ExternalLink>
-                <div>{formatBytesBase2(module.size)}</div>
+                <div>{formatBytesBase10(module.size)}</div>
                 <div>{module.state}</div>
-                <div>{(module.diff / module.size) * 100}</div>
+                <div>{formatPercentage(module.diff)}</div>
               </Fragment>
             );
           });
@@ -168,9 +169,8 @@ export default function BundleDiff() {
             <StyledCard key={entrypoint.name}>
               <CardSection>
                 <div>{entrypoint.name}</div>
-                <div>{entrypoint.state}</div>
-                <div>{(entrypoint.diff / entrypoint.size) * 100}</div>
-                <StatNumber>{formatBytesBase2(entrypoint.size)}</StatNumber>
+                <StatNumber>{formatBytesBase10(entrypoint.size)}</StatNumber>
+                <div>({formatPercentage(entrypoint.diff)})</div>
               </CardSection>
             </StyledCard>
           ))}
@@ -248,7 +248,7 @@ function diff(before: Bundle[], after: Bundle[]): DiffedBundle[] {
     const beforeEntry = diffed.get(a.name);
     if (beforeEntry) {
       diffed.set(a.name, {
-        diff: a.size - beforeEntry.size,
+        diff: (a.size - beforeEntry.size) / beforeEntry.size,
         name: a.name,
         size: a.size,
         state:
