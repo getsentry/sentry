@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {MenuItemProps} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -11,6 +11,7 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -18,14 +19,18 @@ import AlertBlueprintCard from 'sentry/views/alerts/blueprints/card';
 import AlertTemplateSummary from 'sentry/views/alerts/blueprints/templates/summary';
 import {AlertTemplate} from 'sentry/views/alerts/blueprints/types';
 import FilterBar from 'sentry/views/alerts/filterBar';
-
-import AlertHeader from '../../list/header';
+import AlertHeader from 'sentry/views/alerts/list/header';
 
 function AlertTemplateList() {
   const organization = useOrganization();
   const router = useRouter();
   const location = useLocation();
-  const {data: templates = [], isLoading} = useApiQuery<AlertTemplate[]>(
+  const api = useApi();
+  const {
+    data: templates = [],
+    isLoading,
+    refetch,
+  } = useApiQuery<AlertTemplate[]>(
     [`/organizations/${organization.slug}/alert-templates/`],
     {staleTime: 0}
   );
@@ -70,6 +75,40 @@ function AlertTemplateList() {
     );
   }
 
+  function getActionsForTemplate({id, name}: AlertTemplate) {
+    const actions: MenuItemProps[] = [
+      {
+        key: 'edit',
+        label: t('Edit'),
+        to: `/organization/${organization.slug}/alerts/templates/${id}/`,
+      },
+      {
+        key: 'delete',
+        label: t('Delete'),
+        priority: 'danger',
+        onAction: () => {
+          openConfirmModal({
+            onConfirm: async () => {
+              await api.requestPromise(
+                `/organizations/${organization.slug}/alert-templates/${id}/`,
+                {method: 'DELETE'}
+              );
+              await refetch();
+            },
+            header: <h5>{t('Delete Alert Template?')}</h5>,
+            message: tct(
+              "Are you sure you want to delete '[name]'? All it's associated data will be removed. Alerts will be unlinked, but not be affected.",
+              {name}
+            ),
+            confirmText: t('Delete Alert Procedure'),
+            priority: 'danger',
+          });
+        },
+      },
+    ];
+    return actions;
+  }
+
   return (
     <SentryDocumentTitle title={t('Alert Templates')} orgSlug={organization.slug}>
       <PageFiltersContainer>
@@ -86,11 +125,12 @@ function AlertTemplateList() {
                   onChangeSearch={handleChangeSearch}
                   hasProjectFilters={false}
                   action={
-                    <Button
+                    <LinkButton
                       title="Create Alert Template"
                       priority="primary"
                       icon={<IconAdd isCircled size="md" />}
                       aria-label="Create Alert Template"
+                      href={`/organization/${organization.slug}/alerts/templates/new/`}
                     />
                   }
                 />
@@ -115,39 +155,6 @@ function AlertTemplateList() {
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
-}
-
-function getActionsForTemplate({name}: AlertTemplate) {
-  const actions: MenuItemProps[] = [
-    {
-      key: 'edit',
-      label: t('Edit'),
-      // to: editLink,
-    },
-    {
-      key: 'duplicate',
-      label: t('Duplicate'),
-      // to: duplicateLink,
-    },
-    {
-      key: 'delete',
-      label: t('Delete'),
-      priority: 'danger',
-      onAction: () => {
-        openConfirmModal({
-          onConfirm: () => {},
-          header: <h5>{t('Delete Alert Procedure?')}</h5>,
-          message: tct(
-            "Are you sure you want to delete '[name]'? All it's associated data will be removed. Alerts/Templates which use this procedure will not be affected.",
-            {name}
-          ),
-          confirmText: t('Delete Alert Procedure'),
-          priority: 'danger',
-        });
-      },
-    },
-  ];
-  return actions;
 }
 
 const TemplateItemContainer = styled('div')`

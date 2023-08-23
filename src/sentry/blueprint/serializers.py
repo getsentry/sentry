@@ -74,6 +74,7 @@ class IncomingAlertProcedureSerializer(ModelSerializer):
         model = AlertProcedure
         fields = [
             "label",
+            "description",
             "owner",
             "is_manual",
             "issue_alert_actions",
@@ -156,18 +157,15 @@ class IncomingAlertTemplateSerializer(ModelSerializer):
     owner = ActorField(required=False, allow_null=True)
     issue_alerts = serializers.ListField(child=serializers.IntegerField(), required=False)
     issue_alert_data = RuleSetSerializer(partial=True)
-    issue_alert_actions = serializers.ListField(
-        child=RuleNodeField(type="action/event"), required=False
-    )
 
     class Meta:
         model = AlertProcedure
         fields = [
             "name",
+            "description",
             "owner",
             "issue_alerts",
             "issue_alert_data",
-            "issue_alert_actions",
         ]
 
     def validate_name(self, incoming_name: str):
@@ -197,32 +195,8 @@ class IncomingAlertTemplateSerializer(ModelSerializer):
     def validate(self, attrs):
         return validate_actions(attrs)
 
-    def _create_alert_procedure(self, validated_data) -> AlertProcedure | None:
-        name = validated_data["name"]
-        issue_alert_actions = validated_data.pop("issue_alert_actions", [])
-        if len(issue_alert_actions) < 1:
-            return None
-
-        procedure_data = {
-            "label": f"[Procedure from Template] {name}",
-            "issue_alert_actions": issue_alert_actions,
-        }
-        serializer = IncomingAlertProcedureSerializer(
-            data=procedure_data,
-            context={
-                "organization": self.context["organization"],
-                "project": self.context["project"],
-            },
-        )
-        if serializer.is_valid(raise_exception=True):
-            ap = serializer.save()
-            return ap
-
     def create(self, validated_data):
         procedure_id = self.context.get("procedure_id")
-        if validated_data.get("issue_alert_actions"):
-            ap = self._create_alert_procedure(validated_data=validated_data)
-            procedure_id = ap.id
 
         issue_alerts = validated_data.pop("issue_alerts", [])
         at = AlertTemplate.objects.create(

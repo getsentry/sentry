@@ -49,3 +49,13 @@ class OrganizationAlertProcedureDetailsEndpoint(BlueprintEndpoint):
             )
 
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(
+        self, request: Request, organization: Organization, alert_procedure_id: int
+    ) -> Response:
+        try:
+            ap = AlertProcedure.objects.get(id=alert_procedure_id, organization_id=organization.id)
+        except AlertProcedure.DoesNotExist:
+            return self.respond(status=status.HTTP_404_NOT_FOUND)
+        ap.delete()
+        return self.respond(status=status.HTTP_204_NO_CONTENT)

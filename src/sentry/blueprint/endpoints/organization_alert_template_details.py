@@ -57,3 +57,13 @@ class OrganizationAlertTemplateDetailsEndpoint(BlueprintEndpoint):
             )
 
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(
+        self, request: Request, organization: Organization, alert_template_id: int
+    ) -> Response:
+        try:
+            at = AlertTemplate.objects.get(id=alert_template_id, organization_id=organization.id)
+        except AlertTemplate.DoesNotExist:
+            return self.respond(status=status.HTTP_404_NOT_FOUND)
+        at.delete()
+        return self.respond(status=status.HTTP_204_NO_CONTENT)

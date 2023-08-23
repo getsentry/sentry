@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {MenuItemProps} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -11,6 +11,7 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -24,7 +25,12 @@ function AlertProcedureList() {
   const organization = useOrganization();
   const router = useRouter();
   const location = useLocation();
-  const {data: procedures = [], isLoading} = useApiQuery<AlertProcedure[]>(
+  const api = useApi();
+  const {
+    data: procedures = [],
+    isLoading,
+    refetch,
+  } = useApiQuery<AlertProcedure[]>(
     [`/organizations/${organization.slug}/alert-procedures/`],
     {staleTime: 0}
   );
@@ -69,6 +75,40 @@ function AlertProcedureList() {
     );
   }
 
+  function getActionsForProcedure({id, label}: AlertProcedure) {
+    const actions: MenuItemProps[] = [
+      {
+        key: 'edit',
+        label: t('Edit'),
+        to: `/organization/${organization.slug}/alerts/procedures/${id}/`,
+      },
+      {
+        key: 'delete',
+        label: t('Delete'),
+        priority: 'danger',
+        onAction: () => {
+          openConfirmModal({
+            onConfirm: async () => {
+              await api.requestPromise(
+                `/organizations/${organization.slug}/alert-procedures/${id}/`,
+                {method: 'DELETE'}
+              );
+              await refetch();
+            },
+            header: <h5>{t('Delete Alert Procedure?')}</h5>,
+            message: tct(
+              "Are you sure you want to delete '[label]'? All it's associated data will be removed. Alerts/Templates which use this procedure will not be affected.",
+              {label}
+            ),
+            confirmText: t('Delete Alert Procedure'),
+            priority: 'danger',
+          });
+        },
+      },
+    ];
+    return actions;
+  }
+
   return (
     <SentryDocumentTitle title={t('Alert Procedures')} orgSlug={organization.slug}>
       <PageFiltersContainer>
@@ -85,11 +125,12 @@ function AlertProcedureList() {
                   onChangeSearch={handleChangeSearch}
                   hasProjectFilters={false}
                   action={
-                    <Button
+                    <LinkButton
                       title="Create Alert Procedure"
                       priority="primary"
                       icon={<IconAdd isCircled size="md" />}
                       aria-label="Create Alert Procedure"
+                      href={`/organization/${organization.slug}/alerts/procedures/new/`}
                     />
                   }
                 />
@@ -114,39 +155,6 @@ function AlertProcedureList() {
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
-}
-
-function getActionsForProcedure({label}: AlertProcedure) {
-  const actions: MenuItemProps[] = [
-    {
-      key: 'edit',
-      label: t('Edit'),
-      // to: editLink,
-    },
-    {
-      key: 'duplicate',
-      label: t('Duplicate'),
-      // to: duplicateLink,
-    },
-    {
-      key: 'delete',
-      label: t('Delete'),
-      priority: 'danger',
-      onAction: () => {
-        openConfirmModal({
-          onConfirm: () => {},
-          header: <h5>{t('Delete Alert Procedure?')}</h5>,
-          message: tct(
-            "Are you sure you want to delete '[label]'? All it's associated data will be removed. Alerts/Templates which use this procedure will not be affected.",
-            {label}
-          ),
-          confirmText: t('Delete Alert Procedure'),
-          priority: 'danger',
-        });
-      },
-    },
-  ];
-  return actions;
 }
 
 const ProcedureItemContainer = styled('div')`

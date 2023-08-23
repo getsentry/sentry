@@ -1263,8 +1263,20 @@ function buildRoutes() {
           component={make(() => import('sentry/views/alerts/blueprints/templates'))}
         />
         <Route
+          path="templates/:templateId/"
+          component={make(
+            () => import('sentry/views/alerts/blueprints/templates/editor')
+          )}
+        />
+        <Route
           path="procedures/"
           component={make(() => import('sentry/views/alerts/blueprints/procedures'))}
+        />
+        <Route
+          path="procedures/:procedureId/"
+          component={make(
+            () => import('sentry/views/alerts/blueprints/procedures/editor')
+          )}
         />
         <Route
           path=":alertId/"
