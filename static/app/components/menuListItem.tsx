@@ -203,6 +203,7 @@ const MenuListItem = memo(
 export default MenuListItem;
 
 const MenuItemWrap = styled('li')`
+  scroll-margin: ${space(0.5)};
   position: static;
   list-style-type: none;
   margin: 0;
