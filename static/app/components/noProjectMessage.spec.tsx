@@ -1,5 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {Label} from 'sentry/components/editableText';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -24,6 +25,38 @@ describe('NoProjectMessage', function () {
 
     expect(childrenMock).not.toHaveBeenCalled();
     expect(screen.getByText('Remain Calm')).toBeInTheDocument();
+  });
+
+  it('shows "Join a Team" when member has no teams', function () {
+    const organization = TestStubs.Organization({slug: 'org-slug'});
+    const childrenMock = jest.fn().mockReturnValue(null);
+    ProjectsStore.loadInitialData([]);
+
+    render(
+      <NoProjectMessage organization={organization}>{childrenMock}</NoProjectMessage>
+    );
+
+    expect(childrenMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', {name: 'Join a Team'})).toBeInTheDocument();
+  });
+
+  it('does not show up when user has at least a project and a team', function () {
+    const organization = TestStubs.Organization({slug: 'org-slug'});
+    const team = TestStubs.Team({slug: 'team-slug', isMember: true});
+    const project = TestStubs.Project({slug: 'project1', teams: [team]});
+    ProjectsStore.loadInitialData([{...project, hasAccess: true}]);
+    TeamStore.loadInitialData([{...team, access: ['team:read']}]);
+
+    render(
+      <NoProjectMessage organization={organization}>
+        <Label data-test-id="project-row" isDisabled>
+          Some Project
+        </Label>
+      </NoProjectMessage>
+    );
+
+    expect(screen.getByTestId('project-row')).toBeInTheDocument();
+    expect(screen.queryByText('Remain Calm')).not.toBeInTheDocument();
   });
 
   it('shows "Create Project" button when there are no projects', function () {
