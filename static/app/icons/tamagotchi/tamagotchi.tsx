@@ -15,6 +15,7 @@ import {Project, Release} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdkUpdates';
 import {CombinedAlertType, CombinedMetricIssueAlerts} from 'sentry/views/alerts/types';
 import {useReleases} from 'sentry/views/starfish/queries/useReleases';
 
@@ -88,7 +89,31 @@ function getEnergy(alerts?: CombinedMetricIssueAlerts[]): {
   return energy;
 }
 
-function Tamagotchi({project}: {project?: Project}) {
+function getHealth(
+  project: Project,
+  projectsdkupdates: ReturnType<typeof useProjectSdkUpdates>
+): {health: number; minifiedStackTraceIsHealthy: boolean; sdkIsHealthy: boolean} {
+  let minifiedStackTraceIsHealthy = false;
+  let sdkIsHealthy;
+  if (projectsdkupdates.type === 'resolved') {
+    sdkIsHealthy = !projectsdkupdates.data;
+  }
+  if (project.hasMinifiedStackTrace) {
+    minifiedStackTraceIsHealthy = true;
+  }
+  const health = {sdkIsHealthy, minifiedStackTraceIsHealthy, health: 0};
+  if (sdkIsHealthy && minifiedStackTraceIsHealthy) {
+    health.health = 1;
+  }
+  if (sdkIsHealthy || minifiedStackTraceIsHealthy) {
+    health.health = 0.5;
+  }
+
+  return health;
+}
+
+function Tamagotchi({project}: {project: Project}) {
+  const organization = useOrganization();
   const [currentScore, setCurrentScore] = useState(0);
   const [currentStage, setCurrentStage] = useState(tamagotchiEgg);
   const [currentCard, setCurrentCard] = useState(4);
@@ -125,16 +150,21 @@ function Tamagotchi({project}: {project?: Project}) {
 
   const releases = useReleases();
   const alerts = useAlertRules();
+  const sdkUpdates = useProjectSdkUpdates({
+    organization,
+    projectId: project.id,
+  });
+  // const health = getHealth(project, sdkUpdates);
 
   const tamagotchiMetrics = useMemo(() => {
     const metrics = {
       energy: getEnergy(alerts.data).energy * 100,
       tidiness: getTidiness(releases.data, project).tidiness * 100,
       happiness: 50.0,
-      health: 100.0,
+      health: getHealth(project, sdkUpdates).health * 100,
     };
     return metrics;
-  }, [releases, project, alerts]);
+  }, [releases, project, alerts, sdkUpdates]);
 
   useEffect(() => {
     // Currently allowing 3 seconds for egg to hatch and then set the initial data to the Sad stage

@@ -320,7 +320,7 @@ class ProjectDetail extends DeprecatedAsyncView<Props, State> {
                 )}
               </Layout.Main>
               <Layout.Side>
-                <Tamagotchi project={project} />
+                {project ? <Tamagotchi project={project} /> : null}
                 <ProjectTeamAccess organization={organization} project={project} />
                 <Feature features={['incidents']} organization={organization}>
                   <ProjectLatestAlerts
