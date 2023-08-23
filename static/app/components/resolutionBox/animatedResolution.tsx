@@ -64,7 +64,7 @@ export function AnimatedResolution({children}: AnimatedResolutionProps) {
   };
 
   return (
-    <motion.div>
+    <div>
       <LeftContainer>
         <Portal animate={portalControls} variants={portalVariants} initial="closed" />
         <ErrorGemlin onEndRun={onEndRun} onEndJump={onEndJump} />
@@ -81,7 +81,7 @@ export function AnimatedResolution({children}: AnimatedResolutionProps) {
       <StyledText animate={textControls} variants={textVariants} initial="hidden">
         {children}
       </StyledText>
-    </motion.div>
+    </div>
   );
 }
 

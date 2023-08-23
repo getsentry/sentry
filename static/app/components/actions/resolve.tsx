@@ -31,7 +31,7 @@ const peekingGremlinVariants: Variants = {
     x: 40,
     y: 0,
     rotate: 20,
-    scale: 0.5,
+    scale: 0,
     transition: {
       duration: 0.3,
     },
@@ -41,8 +41,8 @@ const peekingGremlinVariants: Variants = {
     return {
       x: [40, x, x],
       y: [0, 0, -18],
-      rotate: [20, 20, 20],
-      scale: [0.5, 0.5, 1],
+      rotate: 20,
+      scale: 1,
       transition: {
         duration: 0.6,
       },
