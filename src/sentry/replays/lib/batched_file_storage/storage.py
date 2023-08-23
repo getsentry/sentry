@@ -4,6 +4,8 @@ This driver module is layered on top of the existing filestore module. Some file
 not support ranged reads and cannot be made to support it. This module enables transparent support
 for ranged reads regardless of driver type.
 """
+from __future__ import annotations
+
 import io
 
 from sentry import options
