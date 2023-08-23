@@ -8,9 +8,13 @@ import {
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCircleFill} from 'sentry/icons';
+import {IconCircleFill, IconFatal, IconFire, IconWarning} from 'sentry/icons';
 import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import {getFramePath, getFrameType} from 'sentry/utils/replays/resourceFrame';
+import {
+  getFrameImpact,
+  getFramePath,
+  getFrameType,
+} from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import useSortAccessibility from 'sentry/views/replays/detail/accessibility/useSortAccessibility';
@@ -18,6 +22,13 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import {operationName} from 'sentry/views/replays/detail/utils';
 
 const EMPTY_CELL = '--';
+
+const IMPACT_COLOR_MAPPINGS = {
+  minor: <IconWarning color="yellow400" />,
+  moderate: <IconWarning color="yellow400" />,
+  serious: <IconFire color="pink400" />,
+  critical: <IconFatal color="red400" />,
+};
 
 interface Props extends ReturnType<typeof useCrumbHandlers> {
   columnIndex: number;
@@ -56,6 +67,7 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
     const isSelected = getParamValue() === String(dataIndex);
 
     const type = getFrameType(frame);
+    const impact = getFrameImpact(frame);
     const path = getFramePath(frame);
 
     const hasOccurred = currentTime >= frame.offsetMs;
@@ -103,8 +115,15 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
       () => (
         <Cell {...columnProps}>
           <Text>
-            <IconCircleFill color="red400" /> {type ? type : 'unknown'}
+            <Tooltip title={impact ? impact : 'unknown'}>
+              {IMPACT_COLOR_MAPPINGS[impact]}
+            </Tooltip>
           </Text>
+        </Cell>
+      ),
+      () => (
+        <Cell {...columnProps}>
+          <Text>{type ? type : 'unknown'}</Text>
         </Cell>
       ),
       () => (

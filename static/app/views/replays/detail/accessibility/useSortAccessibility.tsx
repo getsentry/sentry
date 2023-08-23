@@ -9,18 +9,22 @@ interface SortConfig {
   getValue: (row: SpanFrame) => any;
 }
 
+const IMPACT_SORT = {
+  minor: 0,
+  moderate: 1,
+  serious: 2,
+  critical: 3,
+};
+
 const SortStrategies: Record<string, (row) => any> = {
-  method: row => row.data.method || 'GET',
-  status: row => row.data.statusCode,
-  description: row => row.description,
-  op: row => row.op,
-  size: row => row.data.size ?? row.data.response?.size ?? row.data.responseBodySize,
-  duration: row => row.endTimestamp - row.startTimestamp,
+  impact: row => IMPACT_SORT[row.impact],
+  id: row => row.id,
+  element: row => row.element,
   startTimestamp: row => row.startTimestamp,
 };
 
-const DEFAULT_ASC = 'true';
-const DEFAULT_BY = 'startTimestamp';
+const DEFAULT_ASC = 'false';
+const DEFAULT_BY = 'impact';
 
 type Opts = {items: SpanFrame[]};
 

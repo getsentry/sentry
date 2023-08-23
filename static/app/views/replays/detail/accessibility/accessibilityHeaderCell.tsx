@@ -1,7 +1,8 @@
-import {ComponentProps, CSSProperties, forwardRef} from 'react';
+import {ComponentProps, CSSProperties, forwardRef, ReactNode} from 'react';
 
 import HeaderCell from 'sentry/components/replays/virtualizedGrid/headerCell';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconExclamation} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useSortAccessibility from 'sentry/views/replays/detail/accessibility/useSortAccessibility';
 
@@ -15,9 +16,13 @@ type Props = {
 
 const COLUMNS: {
   field: SortConfig['by'];
-  label: string;
+  label: ReactNode;
   tooltipTitle?: ComponentProps<typeof Tooltip>['title'];
 }[] = [
+  {
+    field: 'impact',
+    label: <IconExclamation />,
+  },
   {
     field: 'id',
     label: t('Type'),
