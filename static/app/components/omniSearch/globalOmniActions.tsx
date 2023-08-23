@@ -82,9 +82,9 @@ export function useGlobalOmniActions() {
       onAction: () => openInviteMembersModal(),
     },
     {
-      key: 'nav-account-settings',
+      key: 'nav-user-settings',
       areaKey: 'navigate',
-      label: t('Account Settings'),
+      label: t('User Settings'),
       actionType: 'settings',
       actionIcon: makeIconWithArrow(IconSettings),
       to: normalizeUrl('/settings/account/'),
