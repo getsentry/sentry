@@ -290,11 +290,11 @@ const KeyboardShortcutWrap = styled('div')`
 `;
 
 const KeyboardShortcutKey = styled('kbd')<{isSymbol: boolean}>`
-  height: 1.4rem;
+  height: 1.2rem;
   ${p =>
     !p.isSymbol &&
     `
-    width: 1.2rem;
+    width: 1.1rem;
     text-transform: uppercase;
   `}
   display: flex;
@@ -307,6 +307,7 @@ const KeyboardShortcutKey = styled('kbd')<{isSymbol: boolean}>`
   background: ${p => p.theme.backgroundElevated}D9;
 
   font-family: system-ui;
-  font-size: ${p => (p.isSymbol ? p.theme.fontSizeLarge : p.theme.fontSizeMedium)};
+  font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
+  line-height: 1;
 `;
