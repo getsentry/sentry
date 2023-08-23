@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {openCommandPalette} from 'sentry/actionCreators/modal';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -20,6 +21,7 @@ import {
   IconProfiling,
   IconProject,
   IconReleases,
+  IconSearch,
   IconSettings,
   IconSiren,
   IconStar,
@@ -391,6 +393,23 @@ function Sidebar({location, organization}: Props) {
           />
         </SidebarSection>
 
+        <SidebarSection>
+          <SidebarCollapseItem
+            id="search"
+            data-test-id="sidebar-search"
+            {...sidebarItemProps}
+            icon={props => <IconSearch {...props} />}
+            label={t('Search…')}
+            onClick={() => openCommandPalette()}
+            trailingItems={
+              <SearchKeyboardShortcut>
+                <SearchKeyboardShortcutKey>⌘</SearchKeyboardShortcutKey>
+                <SearchKeyboardShortcutKey>K</SearchKeyboardShortcutKey>
+              </SearchKeyboardShortcut>
+            }
+          />
+        </SidebarSection>
+
         <PrimaryItems>
           {hasOrganization && (
             <Fragment>
@@ -632,4 +651,26 @@ const SidebarCollapseItem = styled(SidebarItem)`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     display: none;
   }
+`;
+
+const SearchKeyboardShortcut = styled('span')`
+  display: flex;
+  font-size: ${p => p.theme.fontSizeSmall};
+  gap: ${space(0.25)};
+`;
+
+const SearchKeyboardShortcutKey = styled('kbd')`
+  height: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 ${space(0.5)};
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px ${p => p.theme.translucentInnerBorder};
+  background: ${p => p.theme.backgroundElevated}0a;
+
+  font-family: system-ui;
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 1;
 `;
