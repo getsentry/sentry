@@ -10,7 +10,7 @@ import {t, tct} from 'sentry/locale';
 import {Project, Release} from 'sentry/types';
 import {useReleases} from 'sentry/views/starfish/queries/useReleases';
 
-function getHealth(releases?: Release[], project?: Project): number {
+function getCleanliness(releases?: Release[], project?: Project): number {
   const hasReleases = releases?.length !== 0;
   const hasEnvironments =
     project?.environments.length &&
@@ -76,13 +76,13 @@ function Tamagotchi({project}: {project?: Project}) {
   };
 
   const releases = useReleases();
-  const health = getHealth(releases.data, project);
+  const cleanliness = getCleanliness(releases.data, project);
 
   return (
     <TamagotchiWrapper>
       <h3>{t('Tamagotchi Status: ')}</h3>
       <h4>{currentStageName}</h4>
-      <h4>{tct('Health: [health]', {health})}</h4>
+      <h4>{tct('Cleanliness: [cleanliness]', {cleanliness})}</h4>
       <img height={200} alt="tamagotchi" src={currentStage} />
       <Wrapper>
         <FirstTitle>{t('This is where we can give some message')}</FirstTitle>
