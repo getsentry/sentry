@@ -77,7 +77,8 @@ export function getTidiness(
 ): {hasEnvironments: boolean; hasReleases: boolean; tidiness: number} {
   const hasReleases = releases?.length !== 0;
   const hasEnvironments = Boolean(
-    project?.environments.length &&
+    project?.environments &&
+      project.environments.length > 0 &&
       !(project.environments.length === 1 && project.environments.includes('prod'))
   );
 
