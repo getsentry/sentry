@@ -25,11 +25,15 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import {OmniAction} from 'sentry/components/omniSearch/types';
 import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
 import {
   IconArchive,
+  IconBookmark,
   IconCheckmark,
   IconEllipsis,
+  IconIssues,
+  IconLink,
   IconMute,
   IconSubscribed,
   IconUnsubscribed,
@@ -363,25 +367,152 @@ export function Actions(props: Props) {
     onUpdate,
   });
 
+  const archiveActions: OmniAction[] =
+    isResolved || isIgnored
+      ? []
+      : [
+          {
+            key: 'issue-archive-escalating',
+            areaKey: 'issue',
+            label: t('Archive Until Escalating'),
+            actionType: 'archive',
+            actionIcon: IconArchive,
+            actionHotkey: 'shift+a',
+            onAction: () => onArchive(ARCHIVE_UNTIL_ESCALATING),
+          },
+          {
+            key: 'issue-archive-forever',
+            areaKey: 'issue',
+            label: t('Archive Forever'),
+            actionType: 'archive',
+            actionIcon: IconArchive,
+            actionHotkey: 'cmd+shift+a',
+            onAction: () => onArchive(ARCHIVE_FOREVER),
+          },
+        ];
+
+  const resolveActions: OmniAction[] =
+    isResolved || isIgnored
+      ? [
+          {
+            key: 'issue-unresolve',
+            areaKey: 'issue',
+            label: t('Unresolve Issue'),
+            actionType: 'resolve',
+            actionIcon: IconArchive,
+            actionHotkey: 'shift+a',
+            onAction: () =>
+              onUpdate({
+                status: GroupStatus.UNRESOLVED,
+                statusDetails: {},
+                substatus: GroupSubstatus.ONGOING,
+              }),
+          },
+        ]
+      : [
+          {
+            key: 'issue-resolve',
+            areaKey: 'issue',
+            label: t('Resolve Issue'),
+            actionType: 'resolve',
+            actionIcon: IconCheckmark,
+            actionHotkey: 'shift+r',
+            onAction: () =>
+              onUpdate({
+                status: GroupStatus.RESOLVED,
+                statusDetails: {},
+                substatus: null,
+              }),
+          },
+          {
+            key: 'issue-resolve-next-release',
+            areaKey: 'issue',
+            label: t('Resolve Issue in next release'),
+            hidden: !hasRelease,
+            actionType: 'resolve',
+            actionIcon: IconCheckmark,
+            actionHotkey: 'shift+n',
+            onAction: () =>
+              onUpdate({
+                status: GroupStatus.RESOLVED,
+                statusDetails: {inNextRelease: true},
+                substatus: null,
+              }),
+          },
+          {
+            key: 'issue-resolve-current-release',
+            areaKey: 'issue',
+            label: t('Resolve Issue in current release'),
+            hidden: !hasRelease,
+            actionType: 'resolve',
+            actionIcon: IconCheckmark,
+            actionHotkey: 'shift+u',
+            onAction: () =>
+              onUpdate({
+                status: GroupStatus.RESOLVED,
+                statusDetails: {
+                  inRelease: project.latestRelease
+                    ? project.latestRelease.version
+                    : 'latest',
+                },
+                substatus: null,
+              }),
+          },
+        ];
+
+  const markReviewedActions: OmniAction[] = [
+    {
+      key: 'issue-mark-review',
+      areaKey: 'issue',
+      label: t('Mark reviewed'),
+      disabled: !group.inbox || disabled,
+      actionIcon: IconIssues,
+      onAction: () => onUpdate({inbox: false}),
+    },
+  ];
+
+  const subscribeActions: OmniAction[] = [
+    {
+      key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
+      areaKey: 'issue',
+      label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
+      disabled: disabled || group.subscriptionDetails?.disabled,
+      actionIcon: group.isSubscribed ? IconUnsubscribed : IconSubscribed,
+      actionHotkey: 'shift+s',
+      onAction: onToggleSubscribe,
+    },
+  ];
+
+  const bookmarkActions: OmniAction[] = [
+    {
+      key: `issue-${bookmarkKey}`,
+      areaKey: 'issue',
+      label: bookmarkTitle,
+      actionIcon: p => <IconBookmark {...p} isSolid={isBookmarked} />,
+      actionHotkey: 'shift+b',
+      onAction: onToggleBookmark,
+    },
+  ];
+
+  const shareActions: OmniAction[] = [
+    {
+      key: 'issue-share',
+      areaKey: 'issue',
+      label: t('Share Issue'),
+      disabled: disabled || !shareCap.enabled,
+      hidden: !organization.features.includes('shared-issues'),
+      actionIcon: IconLink,
+      onAction: openShareModal,
+    },
+  ];
+
   useOmniActions([
-    {
-      key: 'issue-archive-escalating',
-      areaKey: 'issue',
-      label: t('Archive Until Escalating'),
-      actionType: 'archive',
-      actionIcon: IconArchive,
-      actionHotkey: 'shift+a',
-      onAction: () => onArchive(ARCHIVE_UNTIL_ESCALATING),
-    },
-    {
-      key: 'issue-archive-forever',
-      areaKey: 'issue',
-      label: t('Archive Forever'),
-      actionType: 'archive',
-      actionIcon: IconArchive,
-      actionHotkey: 'cmd+shift+a',
-      onAction: () => onArchive(ARCHIVE_FOREVER),
-    },
+    ...resolveActions,
+    ...archiveActions,
+    ...markReviewedActions,
+    ...subscribeActions,
+    ...bookmarkActions,
+    ...shareActions,
   ]);
 
   return (
