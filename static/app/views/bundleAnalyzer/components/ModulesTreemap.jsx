@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import filesize from 'filesize';
+import {filesize} from 'filesize';
 import {computed} from 'mobx';
 import {observer} from 'mobx-react';
 
