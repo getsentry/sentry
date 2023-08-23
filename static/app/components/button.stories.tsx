@@ -3,9 +3,9 @@ import Matrix from 'sentry/components/stories/matrix';
 import {IconDelete} from 'sentry/icons';
 // import SideBySide from 'sentry/components/stories/sideBySide';
 // import SizingWindow from 'sentry/components/stories/sizingWindow';
-import component from 'sentry/story/component';
+import storyBook from 'sentry/story/storyBook';
 
-export default component('Button', story => {
+export default storyBook('Button', story => {
   const sizes = ['md' as const, 'sm' as const, 'xs' as const, 'zero' as const];
   const priorities = [
     'default' as const,

@@ -48,7 +48,7 @@ export default function StoryFile({filename, style}: Props) {
         </FlexRow>
       </FlexRow>
 
-      <div>{DefaultExport ? <DefaultExport /> : null}</div>
+      <StoryArea>{DefaultExport ? <DefaultExport /> : null}</StoryArea>
       {otherEntries.map(([field, Component]) => (
         <Component key={field} />
       ))}
@@ -67,6 +67,10 @@ const FlexColumn = styled('div')`
   display: flex;
   flex-direction: column;
   gap: var(--stories-grid-space);
+  max-height: 100%;
+`;
+const StoryArea = styled('div')`
+  overflow: scroll;
 `;
 
 const Header = styled('h2')`
