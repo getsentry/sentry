@@ -9,15 +9,18 @@ import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
+import ScoreBar from 'sentry/components/scoreBar';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconClock} from 'sentry/icons/iconClock';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {NumberContainer} from 'sentry/utils/discover/styles';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -49,7 +52,7 @@ export function TransactionWidget({userId}: Props) {
           'project_id',
           'last_seen()',
           'transaction',
-          'failure_count()',
+          'failure_rate()',
           'tpm()',
           'count_unique(user)',
           'p95(transaction.duration)',
@@ -72,8 +75,8 @@ export function TransactionWidget({userId}: Props) {
     limit: 3,
   });
 
-  const miseryRenderer =
-    data?.meta && getFieldRenderer('user_misery()', data.meta, false);
+  const bars = 10;
+  const palette = new Array(bars).fill([CHART_PALETTE[0][0]]);
 
   return (
     <TransactionPanel>
@@ -96,10 +99,11 @@ export function TransactionWidget({userId}: Props) {
                   query: `user.id:${userId}`,
                 })}`;
                 const duration = Number(dataRow['p95(transaction.duration)']);
+                const failureRate = Number(dataRow['failure_rate()']);
 
                 return (
-                  <Fragment key={dataRow.id}>
-                    <Cols key={`${dataRow.id}-data`}>
+                  <Fragment key={dataRow.transaction}>
+                    <Cols key={`${dataRow.transaction}-data`}>
                       <Title>
                         <Link to={link}>{dataRow.transaction}</Link>
                       </Title>
@@ -127,10 +131,19 @@ export function TransactionWidget({userId}: Props) {
                       </NumberContainer>
                     </Cols>
                     <Cols>
-                      {miseryRenderer?.(dataRow, {
-                        organization,
-                        location,
-                      })}
+                      <Tooltip
+                        title={tct('Failure rate of [failureRate]', {
+                          failureRate: formatPercentage(failureRate),
+                        })}
+                        containerDisplayMode="block"
+                      >
+                        <ScoreBar
+                          size={20}
+                          score={Math.round(failureRate * palette.length)}
+                          palette={palette}
+                          radius={0}
+                        />
+                      </Tooltip>
                     </Cols>
                   </Fragment>
                 );

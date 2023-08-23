@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import Avatar from 'sentry/components/avatar';
-import Count from 'sentry/components/count';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
@@ -12,11 +11,12 @@ import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconClock} from 'sentry/icons/iconClock';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -120,7 +120,11 @@ export function ErrorWidget({userId}: Props) {
                   </Cols>
                   <Cols>
                     <NumberContainer>
-                      <Count value={dataRow['count()']} /> events
+                      {tn(
+                        '%s event',
+                        '%s events',
+                        formatAbbreviatedNumber(dataRow['count()'])
+                      )}
                     </NumberContainer>
                   </Cols>
                 </Fragment>
