@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
@@ -15,10 +15,11 @@ import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge'
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
+import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {TabList} from 'sentry/components/tabs';
-import {IconChat} from 'sentry/icons';
+import {IconArrow, IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, Organization, Project} from 'sentry/types';
@@ -76,83 +77,111 @@ function GroupHeaderTabs({
     group_has_replay: (replaysCount ?? 0) > 0,
   });
 
+  const tabItems = [
+    {
+      key: Tab.DETAILS,
+      disabled: disabledTabs.includes(Tab.DETAILS),
+      to: `${baseUrl}${location.search}`,
+      label: t('Details'),
+      omniLabel: t('Issue Details'),
+    },
+    {
+      key: Tab.ACTIVITY,
+      textValue: t('Activity'),
+      disabled: disabledTabs.includes(Tab.ACTIVITY),
+      to: `${baseUrl}activity/${location.search}`,
+      omniLabel: t('Issue Activity'),
+      label: (
+        <Fragment>
+          {t('Activity')}
+          <IconBadge>
+            {group.numComments}
+            <IconChat size="xs" />
+          </IconBadge>
+        </Fragment>
+      ),
+    },
+    {
+      key: Tab.USER_FEEDBACK,
+      textValue: t('User Feedback'),
+      hidden: !issueTypeConfig.userFeedback.enabled,
+      disabled: disabledTabs.includes(Tab.USER_FEEDBACK),
+      to: `${baseUrl}feedback/${location.search}`,
+      omniLabel: t('Issue User Feedback'),
+      label: (
+        <Fragment>
+          {t('User Feedback')} <Badge text={group.userReportCount} />
+        </Fragment>
+      ),
+    },
+    {
+      key: Tab.ATTACHMENTS,
+      hidden: !hasEventAttachments || !issueTypeConfig.attachments.enabled,
+      disabled: disabledTabs.includes(Tab.ATTACHMENTS),
+      to: `${baseUrl}attachments/${location.search}`,
+      omniLabel: t('Issue Attachments'),
+      label: t('Attachments'),
+    },
+    {
+      key: Tab.TAGS,
+      disabled: disabledTabs.includes(Tab.TAGS),
+      to: `${baseUrl}tags/${location.search}`,
+      omniLabel: t('Issue Tags'),
+      label: t('Tags'),
+    },
+    {
+      key: Tab.EVENTS,
+      disabled: disabledTabs.includes(Tab.EVENTS),
+      to: eventRoute,
+      omniLabel: t('View All Issue Events'),
+      label: t('All Events'),
+    },
+    {
+      key: Tab.MERGED,
+      hidden: !issueTypeConfig.mergedIssues.enabled,
+      disabled: disabledTabs.includes(Tab.MERGED),
+      to: `${baseUrl}merged/${location.search}`,
+      label: t('Merged Issues'),
+    },
+    {
+      key: Tab.SIMILAR_ISSUES,
+      hidden: !hasSimilarView || !issueTypeConfig.similarIssues.enabled,
+      disabled: disabledTabs.includes(Tab.SIMILAR_ISSUES),
+      to: `${baseUrl}similar/${location.search}`,
+      label: t('Similar Issues'),
+    },
+    {
+      key: Tab.REPLAYS,
+      textValue: t('Replays'),
+      hidden: !hasReplaySupport || !issueTypeConfig.replays.enabled,
+      to: `${baseUrl}replays/${location.search}`,
+      label: (
+        <Fragment>
+          {' '}
+          {t('Replays')} <ReplayCountBadge count={replaysCount} />
+        </Fragment>
+      ),
+    },
+  ];
+
+  useOmniActions(
+    tabItems.map(item => ({
+      key: item.key,
+      to: item.to,
+      label: item.omniLabel ?? item.textValue ?? item.label,
+      areaKey: 'issue',
+      actionType: 'issue-tab',
+      actionIcon: props => <IconArrow {...props} direction="right" />,
+    }))
+  );
+
   return (
     <StyledTabList hideBorder>
-      <TabList.Item
-        key={Tab.DETAILS}
-        disabled={disabledTabs.includes(Tab.DETAILS)}
-        to={`${baseUrl}${location.search}`}
-      >
-        {t('Details')}
-      </TabList.Item>
-      <TabList.Item
-        key={Tab.ACTIVITY}
-        textValue={t('Activity')}
-        disabled={disabledTabs.includes(Tab.ACTIVITY)}
-        to={`${baseUrl}activity/${location.search}`}
-      >
-        {t('Activity')}
-        <IconBadge>
-          {group.numComments}
-          <IconChat size="xs" />
-        </IconBadge>
-      </TabList.Item>
-      <TabList.Item
-        key={Tab.USER_FEEDBACK}
-        textValue={t('User Feedback')}
-        hidden={!issueTypeConfig.userFeedback.enabled}
-        disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
-        to={`${baseUrl}feedback/${location.search}`}
-      >
-        {t('User Feedback')} <Badge text={group.userReportCount} />
-      </TabList.Item>
-      <TabList.Item
-        key={Tab.ATTACHMENTS}
-        hidden={!hasEventAttachments || !issueTypeConfig.attachments.enabled}
-        disabled={disabledTabs.includes(Tab.ATTACHMENTS)}
-        to={`${baseUrl}attachments/${location.search}`}
-      >
-        {t('Attachments')}
-      </TabList.Item>
-      <TabList.Item
-        key={Tab.TAGS}
-        disabled={disabledTabs.includes(Tab.TAGS)}
-        to={`${baseUrl}tags/${location.search}`}
-      >
-        {t('Tags')}
-      </TabList.Item>
-      <TabList.Item
-        key={Tab.EVENTS}
-        disabled={disabledTabs.includes(Tab.EVENTS)}
-        to={eventRoute}
-      >
-        {t('All Events')}
-      </TabList.Item>
-      <TabList.Item
-        key={Tab.MERGED}
-        hidden={!issueTypeConfig.mergedIssues.enabled}
-        disabled={disabledTabs.includes(Tab.MERGED)}
-        to={`${baseUrl}merged/${location.search}`}
-      >
-        {t('Merged Issues')}
-      </TabList.Item>
-      <TabList.Item
-        key={Tab.SIMILAR_ISSUES}
-        hidden={!hasSimilarView || !issueTypeConfig.similarIssues.enabled}
-        disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}
-        to={`${baseUrl}similar/${location.search}`}
-      >
-        {t('Similar Issues')}
-      </TabList.Item>
-      <TabList.Item
-        key={Tab.REPLAYS}
-        textValue={t('Replays')}
-        hidden={!hasReplaySupport || !issueTypeConfig.replays.enabled}
-        to={`${baseUrl}replays/${location.search}`}
-      >
-        {t('Replays')}
-        <ReplayCountBadge count={replaysCount} />
-      </TabList.Item>
+      {tabItems.map(({key, label, ...props}) => (
+        <TabList.Item key={key} {...props}>
+          {label}
+        </TabList.Item>
+      ))}
     </StyledTabList>
   );
 }
