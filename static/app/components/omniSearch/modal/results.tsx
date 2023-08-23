@@ -61,14 +61,6 @@ function OmniResultsList(props) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!inputRef.current) {
-      return;
-    }
-
-    inputRef.current.focus();
-  }, []);
-
   const state = useTreeState(props);
   const collection = [...state.collection];
 
@@ -103,6 +95,20 @@ function OmniResultsList(props) {
     state,
     inputRef
   );
+
+  useEffect(() => {
+    if (!inputRef.current) {
+      return;
+    }
+
+    inputRef.current.focus();
+    // Focus on first focusable item
+    const firstItem = state.collection.at(0);
+    const firstFocusableItem =
+      firstItem?.type === 'section' ? [...firstItem.childNodes][0] : firstItem;
+    firstFocusableItem && state.selectionManager.setFocusedKey(firstFocusableItem.key);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <Fragment>
