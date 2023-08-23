@@ -7,7 +7,6 @@ import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import {AnimatedResolution} from 'sentry/components/resolutionBox/animatedResolution';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
-import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -18,8 +17,6 @@ import {
   Repository,
   ResolvedStatusDetails,
 } from 'sentry/types';
-
-import {ErrorGemlin} from './errorGremlin';
 
 type Props = {
   projectId: string;

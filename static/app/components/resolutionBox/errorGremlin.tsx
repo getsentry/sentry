@@ -1,58 +1,21 @@
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion, useAnimation, Variants} from 'framer-motion';
+import {motion} from 'framer-motion';
 
 type ErrorGemlinProps = {onEndJump: () => void; onEndRun: () => void};
 
-const ANIMATION_DURATION = '500ms';
+const RUN_DURATION = '1.5s';
+const RUNNING_CADENCE = '500ms';
+const RUN_FROM_POSITION = '1000px';
 const JUMP_DURATION = '400ms';
+const JUMP_FROM_POSITION = '45px';
 
-const animationVariants: Variants = {
-  start: {x: 1000, y: 0},
-  running: {x: 30, y: 0, transition: {duration: 2, ease: 'easeInOut'}},
-  jump: {x: 0, y: -40},
-  fall: {x: 0, y: 40},
-};
-
-const bodyVariants: Variants = {
-  start: {x: 0, y: 0},
-  running: {
-    x: 0,
-    y: 10,
-    transition: {
-      repeat: Infinity,
-      repeatType: 'mirror',
-      duration: 0.2,
-      ease: 'easeInOut',
-    },
-  },
-  jump: {
-    rotate: 30,
-  },
-  fall: {
-    rotate: 60,
-  },
-};
+type AnimationClass = 'running' | 'jumping' | 'end';
 
 export function ErrorGemlin({onEndRun, onEndJump}: ErrorGemlinProps) {
-  // const controls = useAnimation();
-  const [animationClass, setAnimationClass] = useState('running');
-
-  // useEffect(() => {
-  //   const animation = async () => {
-  //     // await controls.start('running');
-  //     await controls.start('running');
-  //     console.log('done running');
-  //     setAnimationClass('jumping');
-  //     await controls.start('jump');
-  //     console.log('done jump');
-  //     await controls.start('fall');
-  //     console.log('done fall');
-  //     // animate('li', {opacity: 1});
-  //   };
-
-  //   animation();
-  // }, [controls]);
+  const theme = useTheme();
+  const [animationClass, setAnimationClass] = useState<AnimationClass>('running');
 
   return (
     <AnimatedSvg
@@ -62,8 +25,6 @@ export function ErrorGemlin({onEndRun, onEndJump}: ErrorGemlinProps) {
       textRendering="geometricPrecision"
       viewBox="0 -35 60 110"
       initial="start"
-      // animate={controls}
-      // variants={animationVariants}
       className={animationClass}
       onAnimationEnd={e => {
         switch (e.animationName) {
@@ -73,13 +34,14 @@ export function ErrorGemlin({onEndRun, onEndJump}: ErrorGemlinProps) {
             break;
           case 'jump-horizontal':
             onEndJump();
+            setAnimationClass('end');
             break;
           default:
         }
       }}
     >
       <g id="gremlin-container">
-        <motion.g id="gremlin">
+        <g id="gremlin">
           <g id="right-arm">
             <polyline
               points="116.2624,20.005 109.7105,27.3815 103.9094,22.5728 104.9186,21.4037 100.2651,17.0929 99.4013,18.4721 99.6615,19.5195 97.9384,22.6531 100.9509,24.4724 109.8549,30.0042 116.371,21.7757"
@@ -116,6 +78,12 @@ export function ErrorGemlin({onEndRun, onEndJump}: ErrorGemlinProps) {
           />
           <g id="gremlin-body">
             <path
+              d="M 29.4,22.4 49.5,47.7 45.2,48 27.9,24.7 28.6,22.4 Z"
+              fill={theme.white}
+              stroke="none"
+              id="body-highlight"
+            />
+            <path
               d="m 27.743424,24.688512 -5.5496,23.5303 c -0.0676,0.2866 0.3176,0.6164 0.7059,0.6063 l 24.7162,-0.6428 c 0.6434,-0.0167 1.0757,-0.4727 0.7772,-0.8333 l -19.1186,-23.0978 c -0.4743,-0.573 -1.3535,-0.3153 -1.531,0.4373 z"
               fill="#ebb432"
               id="body-fill"
@@ -150,7 +118,7 @@ export function ErrorGemlin({onEndRun, onEndJump}: ErrorGemlinProps) {
               id="left-arm-outline"
             />
           </g>
-        </motion.g>
+        </g>
       </g>
     </AnimatedSvg>
   );
@@ -160,7 +128,8 @@ const AnimatedSvg = styled(motion.svg)`
   margin: 0 !important;
   position: absolute;
   bottom: 2px;
-  left: 45px;
+  transform: translateX(${JUMP_FROM_POSITION});
+  will-change: transform;
 
   #left-arm {
     transform-origin: 39px 37px;
@@ -184,27 +153,14 @@ const AnimatedSvg = styled(motion.svg)`
     transform-origin: 33px 39px;
   }
 
-  @keyframes move {
-    0% {
-      opacity: 0;
-      left: calc(100% - 50px);
-    }
-    10% {
-      opacity: 1;
-    }
-    100% {
-      left: 45px;
-    }
-  }
-
   &.jumping {
     animation: jump-horizontal ${JUMP_DURATION};
-    animation-timing-function: ease-in-out;
-    left: 10px;
+    animation-timing-function: ease-in;
+    transform: translateX(0);
 
     #gremlin-container {
       animation: jump-vertical ${JUMP_DURATION} cubic-bezier(0.4, -0.08, 0.48, -2.58);
-      transform: translateY(40px);
+      transform: translateY(60px);
     }
 
     #gremlin {
@@ -213,12 +169,12 @@ const AnimatedSvg = styled(motion.svg)`
     }
 
     #left-arm {
-      transition: transform ${JUMP_DURATION} ease-out;
+      animation: jump-left-arm-rotate ${JUMP_DURATION} ease-out;
       transform: rotate(50deg);
     }
 
     #right-arm {
-      transition: transform ${JUMP_DURATION} ease-out;
+      animation: jump-right-arm-rotate ${JUMP_DURATION} ease-out;
       transform: rotate(-50deg);
     }
 
@@ -230,12 +186,30 @@ const AnimatedSvg = styled(motion.svg)`
       animation: right-leg-tuck ${JUMP_DURATION} ease-out;
     }
 
-    @keyframes jump-horizontal {
+    @keyframes jump-left-arm-rotate {
       0% {
-        left: 45px;
+        transform: rotate(0);
       }
       100% {
-        left: 10px;
+        transform: rotate(50deg);
+      }
+    }
+
+    @keyframes jump-right-arm-rotate {
+      0% {
+        transform: rotate(0);
+      }
+      100% {
+        transform: rotate(-50deg);
+      }
+    }
+
+    @keyframes jump-horizontal {
+      0% {
+        transform: translateX(${JUMP_FROM_POSITION});
+      }
+      100% {
+        transform: translateX(0);
       }
     }
 
@@ -245,7 +219,7 @@ const AnimatedSvg = styled(motion.svg)`
       }
 
       100% {
-        transform: translateY(40px);
+        transform: translateY(60px);
       }
     }
 
@@ -290,12 +264,29 @@ const AnimatedSvg = styled(motion.svg)`
   }
 
   &.running {
-    animation: move 2s;
-    animation-timing-function: ease-in-out;
+    animation: move ${RUN_DURATION};
+    animation-delay: 500ms;
+    opacity: 0;
+    animation-timing-function: ease-out;
+    transform: translateX(${JUMP_FROM_POSITION});
 
     #gremlin {
-      animation: bounce ${ANIMATION_DURATION} ease-out;
+      animation: bounce ${RUNNING_CADENCE} ease-out;
       animation-iteration-count: infinite;
+    }
+
+    @keyframes move {
+      0% {
+        opacity: 0;
+        transform: translateX(${RUN_FROM_POSITION});
+      }
+      10% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 1;
+        transform: translateX(${JUMP_FROM_POSITION});
+      }
     }
 
     @keyframes bounce {
@@ -317,7 +308,7 @@ const AnimatedSvg = styled(motion.svg)`
     }
 
     #left-arm {
-      animation: rotate-left-arm infinite ${ANIMATION_DURATION};
+      animation: rotate-left-arm infinite ${RUNNING_CADENCE};
     }
 
     @keyframes rotate-left-arm {
@@ -331,7 +322,7 @@ const AnimatedSvg = styled(motion.svg)`
     }
 
     #right-arm {
-      animation: rotate-right-arm infinite ${ANIMATION_DURATION};
+      animation: rotate-right-arm infinite ${RUNNING_CADENCE};
     }
 
     @keyframes rotate-right-arm {
@@ -345,11 +336,11 @@ const AnimatedSvg = styled(motion.svg)`
     }
 
     #right-leg {
-      animation: right-leg-run linear infinite ${ANIMATION_DURATION};
+      animation: right-leg-run linear infinite ${RUNNING_CADENCE};
     }
 
     #left-leg {
-      animation: left-leg-run linear infinite ${ANIMATION_DURATION};
+      animation: left-leg-run linear infinite ${RUNNING_CADENCE};
     }
 
     @keyframes right-leg-run {
@@ -383,5 +374,9 @@ const AnimatedSvg = styled(motion.svg)`
         );
       }
     }
+  }
+
+  &.end {
+    display: none;
   }
 `;
