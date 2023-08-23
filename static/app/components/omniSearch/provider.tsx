@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useState} from 'react';
+import {browserHistory} from 'react-router';
 
 import {Hotkey, useHotkeys} from 'sentry/utils/useHotkeys';
 
@@ -67,7 +68,14 @@ export function OmniSearchProvider({children}: OmniSearchProviderProps) {
       .map<Hotkey>(action => {
         function callback() {
           action.onAction?.(action.key);
-          // TODO handle `to`
+
+          const link = action.to?.toString();
+
+          if (link) {
+            link.startsWith('http')
+              ? window.open(link, '_blank')
+              : browserHistory.push(link);
+          }
         }
 
         return {callback, match: action.actionHotkey!};
