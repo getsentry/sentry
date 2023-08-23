@@ -90,7 +90,7 @@ function ServiceIncidents({
         orientation={orientation}
         collapsed={collapsed}
         active={active}
-        icon={<IconWarning size="md" />}
+        icon={props => <IconWarning {...props} size="md" />}
         label={t('Service status')}
         onClick={onShowPanel}
       />

@@ -7,14 +7,19 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
+import {OmniAction} from 'sentry/components/omniSearch/types';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+
+import {useOmniActions} from '../omniSearch/useOmniActions';
 
 import {SidebarOrientation} from './types';
 
@@ -27,7 +32,7 @@ export type SidebarItemProps = {
   /**
    * Icon to display
    */
-  icon: React.ReactNode;
+  icon: React.ComponentType<SVGIconProps>;
   /**
    * Key of the sidebar item. Used for label hooks
    */
@@ -87,6 +92,10 @@ export type SidebarItemProps = {
    * The current organization. Useful for analytics.
    */
   organization?: Organization;
+  /**
+   * Registers the sidebar item as a navigation action within the OmniSearch.
+   */
+  registerOmniAction?: boolean;
   to?: string;
   /**
    * Content to render at the end of the item.
@@ -98,7 +107,7 @@ function SidebarItem({
   id,
   href,
   to,
-  icon,
+  icon: Icon,
   label,
   badge,
   active,
@@ -114,6 +123,7 @@ function SidebarItem({
   organization,
   onClick,
   trailingItems,
+  registerOmniAction,
   ...props
 }: SidebarItemProps) {
   const router = useRouter();
@@ -150,6 +160,18 @@ function SidebarItem({
   const seenSuffix = isNewSeenKeySuffix ?? '';
   const isNewSeenKey = `sidebar-new-seen:${id}${seenSuffix}`;
   const showIsNew = isNew && !localStorage.getItem(isNewSeenKey);
+
+  const omniAction: OmniAction | null = !registerOmniAction
+    ? null
+    : {
+        key: `sidebar-${id}`,
+        label: t('Go to %s', labelString),
+        actionType: 'sidebar',
+        actionIcon: Icon,
+        to,
+      };
+
+  useOmniActions(omniAction ? [omniAction] : []);
 
   const recordAnalytics = () => {
     trackAnalytics('growth.clicked_sidebar', {
@@ -189,7 +211,9 @@ function SidebarItem({
       >
         <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
         <SidebarItemWrapper collapsed={collapsed}>
-          <SidebarItemIcon>{icon}</SidebarItemIcon>
+          <SidebarItemIcon>
+            <Icon />
+          </SidebarItemIcon>
           {!collapsed && !isTop && (
             <SidebarItemLabel>
               <LabelHook id={id}>

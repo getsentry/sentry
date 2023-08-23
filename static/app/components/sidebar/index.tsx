@@ -175,7 +175,8 @@ function Sidebar({location, organization}: Props) {
     <SidebarItem
       {...sidebarItemProps}
       index
-      icon={<IconProject />}
+      registerOmniAction
+      icon={IconProject}
       label={sidebarAnchor}
       to={`/organizations/${organization.slug}/projects/`}
       id="projects"
@@ -185,7 +186,8 @@ function Sidebar({location, organization}: Props) {
   const issues = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<IconIssues />}
+      registerOmniAction
+      icon={IconIssues}
       label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
       to={`/organizations/${organization.slug}/issues/?referrer=sidebar`}
       id="issues"
@@ -200,7 +202,8 @@ function Sidebar({location, organization}: Props) {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconTelescope />}
+        registerOmniAction
+        icon={IconTelescope}
         label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
         to={getDiscoverLandingUrl(organization)}
         id="discover-v2"
@@ -216,7 +219,8 @@ function Sidebar({location, organization}: Props) {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconLightning />}
+        registerOmniAction
+        icon={IconLightning}
         label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/performance/`}
         id="performance"
@@ -232,7 +236,7 @@ function Sidebar({location, organization}: Props) {
     >
       <SidebarAccordion
         {...sidebarItemProps}
-        icon={<IconStar />}
+        icon={IconStar}
         aria-label={t('Starfish')}
         label={<GuideAnchor target="starfish">{t('Starfish')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/starfish/`}
@@ -244,7 +248,7 @@ function Sidebar({location, organization}: Props) {
           label={<GuideAnchor target="starfish">{t('Database')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/performance/database/`}
           id="performance-database"
-          icon={<SubitemDot collapsed={collapsed} />}
+          icon={() => <SubitemDot collapsed={collapsed} />}
         />
       </SidebarAccordion>
     </Feature>
@@ -253,7 +257,8 @@ function Sidebar({location, organization}: Props) {
   const releases = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<IconReleases />}
+      registerOmniAction
+      icon={IconReleases}
       label={<GuideAnchor target="releases">{t('Releases')}</GuideAnchor>}
       to={`/organizations/${organization.slug}/releases/`}
       id="releases"
@@ -263,7 +268,8 @@ function Sidebar({location, organization}: Props) {
   const userFeedback = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<IconSupport />}
+      registerOmniAction
+      icon={IconSupport}
       label={t('User Feedback')}
       to={`/organizations/${organization.slug}/user-feedback/`}
       id="user-feedback"
@@ -273,7 +279,8 @@ function Sidebar({location, organization}: Props) {
   const alerts = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<IconSiren />}
+      registerOmniAction
+      icon={IconSiren}
       label={t('Alerts')}
       to={`/organizations/${organization.slug}/alerts/rules/`}
       id="alerts"
@@ -284,7 +291,8 @@ function Sidebar({location, organization}: Props) {
     <Feature features={['monitors']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconTimer />}
+        registerOmniAction
+        icon={IconTimer}
         label={t('Crons')}
         to={`/organizations/${organization.slug}/crons/`}
         id="crons"
@@ -302,7 +310,8 @@ function Sidebar({location, organization}: Props) {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconPlay />}
+        registerOmniAction
+        icon={IconPlay}
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
@@ -319,8 +328,9 @@ function Sidebar({location, organization}: Props) {
     >
       <SidebarItem
         {...sidebarItemProps}
+        registerOmniAction
         index
-        icon={<IconDashboard />}
+        icon={IconDashboard}
         label={t('Dashboards')}
         to={`/organizations/${organization.slug}/dashboards/`}
         id="customizable-dashboards"
@@ -337,8 +347,9 @@ function Sidebar({location, organization}: Props) {
     >
       <SidebarItem
         {...sidebarItemProps}
+        registerOmniAction
         index
-        icon={<IconProfiling />}
+        icon={IconProfiling}
         label={t('Profiling')}
         to={`/organizations/${organization.slug}/profiling/`}
         id="profiling"
@@ -349,7 +360,8 @@ function Sidebar({location, organization}: Props) {
   const stats = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<IconStats />}
+      registerOmniAction
+      icon={IconStats}
       label={t('Stats')}
       to={`/organizations/${organization.slug}/stats/`}
       id="stats"
@@ -359,7 +371,7 @@ function Sidebar({location, organization}: Props) {
   const settings = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<IconSettings />}
+      icon={IconSettings}
       label={t('Settings')}
       to={`/settings/${organization.slug}/`}
       id="settings"
@@ -479,7 +491,9 @@ function Sidebar({location, organization}: Props) {
                 id="collapse"
                 data-test-id="sidebar-collapse"
                 {...sidebarItemProps}
-                icon={<IconChevron direction={collapsed ? 'right' : 'left'} size="sm" />}
+                icon={props => (
+                  <IconChevron {...props} direction={collapsed ? 'right' : 'left'} />
+                )}
                 label={collapsed ? t('Expand') : t('Collapse')}
                 onClick={toggleCollapse}
               />

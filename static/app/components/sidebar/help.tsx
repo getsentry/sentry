@@ -28,7 +28,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
               orientation={orientation}
               collapsed={collapsed}
               hasPanel={false}
-              icon={<IconQuestion size="md" />}
+              icon={IconQuestion}
               label={t('Help')}
               id="help"
             />
