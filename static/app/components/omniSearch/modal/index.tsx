@@ -32,7 +32,8 @@ function OmniSearchModal() {
 
   const results = useMemo(() => {
     const {actions, areas, areaPriority} = searchState;
-    const searchResults = search
+    const hasSearch = search.length > 1;
+    const searchResults = hasSearch
       ? fuse.current?.search(search).map(r => r.item)
       : actions;
 
@@ -63,7 +64,7 @@ function OmniSearchModal() {
       })
       .filter(area => area.actions?.length);
 
-    return search ? topSearchResults.concat(searchResultsByArea) : searchResultsByArea;
+    return hasSearch ? topSearchResults.concat(searchResultsByArea) : searchResultsByArea;
   }, [search, searchState]);
 
   return (
