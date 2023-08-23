@@ -1,4 +1,3 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
@@ -7,8 +6,7 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import Spinner from 'sentry/components/forms/spinner';
+import EventOrGroupHeader, {GroupLevel} from 'sentry/components/eventOrGroupHeader';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -43,7 +41,7 @@ export default function FunnelOverview() {
   const organization = useOrganization();
   const router = useRouter();
   const location = useLocation();
-  const {data: funnelData, isLoading: funnelLoading} = useApiQuery<FunnelResponse>(
+  const {data: funnelData} = useApiQuery<FunnelResponse>(
     [
       `/organizations/${organization.slug}/funnel/${router.params.funnelSlug}/`,
       {
@@ -76,7 +74,7 @@ export default function FunnelOverview() {
   const listIssues = funnelData?.issues.map(({starts, completes, issue}) => (
     <WrapGroup key={issue.id}>
       <GroupWrapper data-test-id="event-issue-header">
-        <EventOrGroupHeader data={issue} />
+        <EventOrGroupHeader data={issue} addMargin />
         <EventOrGroupExtraDetails data={issue} />
       </GroupWrapper>
       <EventCountsWrapper style={{gridArea: 'completionRate'}}>
@@ -123,7 +121,7 @@ export default function FunnelOverview() {
       </SearchContainer>
 
       <ContentWrapper>
-        {!statsLoading ? (
+        {listIssues ? (
           <IssueListWrapper>
             <StyledPanelHeader>
               <GridHeader style={{gridArea: 'issue'}}>Issue</GridHeader>

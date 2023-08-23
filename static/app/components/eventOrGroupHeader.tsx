@@ -23,6 +23,7 @@ type Size = 'small' | 'normal';
 interface EventOrGroupHeaderProps {
   data: Event | Group | GroupTombstoneHelper;
   organization: Organization;
+  addMargin?: boolean;
   /* is issue breakdown? */
   grouping?: boolean;
   hideIcons?: boolean;
@@ -49,6 +50,7 @@ function EventOrGroupHeader({
   size = 'normal',
   grouping = false,
   source,
+  addMargin,
 }: EventOrGroupHeaderProps) {
   const location = useLocation();
 
@@ -56,7 +58,7 @@ function EventOrGroupHeader({
     const {level, status, isBookmarked, hasSeen} = data as Group;
     return (
       <Fragment>
-        {!hideLevel && level && <GroupLevel level={level} />}
+        {!hideLevel && level && <GroupLevel addMargin={addMargin} level={level} />}
         {!hideIcons &&
           status === 'ignored' &&
           !organization.features.includes('escalating-issues') && (
@@ -212,12 +214,14 @@ const IconWrapper = styled('span')`
   margin-right: 5px;
 `;
 
-const GroupLevel = styled(ErrorLevel)<{level: Level}>`
+// TODO: remove margin-top which is needed in funnelOverview
+const GroupLevel = styled(ErrorLevel)<{level: Level; addMargin?: boolean}>`
   position: absolute;
   left: -1px;
   width: 9px;
   height: 15px;
   border-radius: 0 3px 3px 0;
+  ${p => p.addMargin && 'margin-top: 2px'};
 `;
 
 const TitleWithLink = styled(GlobalSelectionLink)`
