@@ -234,7 +234,8 @@ const OmniHeader = styled('div')<{hasFocusedArea: boolean}>`
   display: flex;
   flex-direction: column;
   align-items: start;
-  border-bottom: 1px solid ${p => p.theme.translucentInnerBorder};
+  box-shadow: 0 1px 0 0 ${p => p.theme.translucentInnerBorder};
+  z-index: 2;
   ${p => p.hasFocusedArea && `padding-top: ${space(1.5)};`}
 `;
 
