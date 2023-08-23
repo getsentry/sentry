@@ -71,6 +71,10 @@ export interface OmniAction extends MenuItemProps {
    * represent in a single group.
    */
   actionType?: string;
+  /**
+   * Additional words that are used to search on.
+   */
+  keywords?: string[];
 }
 
 export interface OmniSection {
