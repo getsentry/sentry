@@ -33,6 +33,8 @@ import {
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 interface ReplayReaderParams {
+  accessibilityFrames: unknown;
+
   /**
    * Loaded segment data
    *
@@ -88,13 +90,18 @@ function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
 }
 
 export default class ReplayReader {
-  static factory({attachments, errors, replayRecord}: ReplayReaderParams) {
-    if (!attachments || !replayRecord || !errors) {
+  static factory({
+    attachments,
+    errors,
+    replayRecord,
+    accessibilityFrames,
+  }: ReplayReaderParams) {
+    if (!attachments || !replayRecord || !errors || !accessibilityFrames) {
       return null;
     }
 
     try {
-      return new ReplayReader({attachments, errors, replayRecord});
+      return new ReplayReader({attachments, errors, replayRecord, accessibilityFrames});
     } catch (err) {
       Sentry.captureException(err);
 
@@ -113,6 +120,7 @@ export default class ReplayReader {
   private constructor({
     attachments,
     errors,
+    accessibilityFrames,
     replayRecord,
   }: RequiredNotNull<ReplayReaderParams>) {
     this._cacheKey = domId('replayReader-');
@@ -161,6 +169,8 @@ export default class ReplayReader {
     this._sortedSpanFrames = hydrateSpans(replayRecord, spanFrames).sort(sortFrames);
     this._optionFrame = optionFrame;
 
+    this._accessibilityFrames = accessibilityFrames;
+
     // Insert extra records to satisfy minimum requirements for the UI
     this._sortedBreadcrumbFrames.push(replayInitBreadcrumb(replayRecord));
     this._sortedRRWebEvents.unshift(recordingStartFrame(replayRecord));
@@ -173,6 +183,7 @@ export default class ReplayReader {
   private _errors: ErrorFrame[];
   private _optionFrame: undefined | OptionFrame;
   private _replayRecord: ReplayRecord;
+  private _accessibilityFrames: unknown;
   private _sortedBreadcrumbFrames: BreadcrumbFrame[];
   private _sortedRRWebEvents: RecordingFrame[];
   private _sortedSpanFrames: SpanFrame[];
@@ -193,6 +204,8 @@ export default class ReplayReader {
   getRRWebFrames = () => this._sortedRRWebEvents;
 
   getErrorFrames = () => this._errors;
+
+  getAccessibilityFrames = () => this._accessibilityFrames;
 
   getConsoleFrames = memoize(() =>
     this._sortedBreadcrumbFrames.filter(

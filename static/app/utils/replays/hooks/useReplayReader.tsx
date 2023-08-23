@@ -11,14 +11,15 @@ type Props = {
 export default function useReplayReader({orgSlug, replaySlug}: Props) {
   const replayId = parseReplayId(replaySlug);
 
-  const {attachments, errors, replayRecord, ...replayData} = useReplayData({
-    orgSlug,
-    replayId,
-  });
+  const {attachments, accessibilityFrames, errors, replayRecord, ...replayData} =
+    useReplayData({
+      orgSlug,
+      replayId,
+    });
 
   const replay = useMemo(
-    () => ReplayReader.factory({attachments, errors, replayRecord}),
-    [attachments, errors, replayRecord]
+    () => ReplayReader.factory({attachments, errors, replayRecord, accessibilityFrames}),
+    [attachments, errors, replayRecord, accessibilityFrames]
   );
 
   return {
@@ -28,6 +29,7 @@ export default function useReplayReader({orgSlug, replaySlug}: Props) {
     replay,
     replayId,
     replayRecord,
+    accessibilityFrames,
   };
 }
 

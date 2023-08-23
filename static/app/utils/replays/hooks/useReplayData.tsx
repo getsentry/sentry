@@ -49,6 +49,7 @@ type Options = {
 };
 
 interface Result {
+  accessibilityFrames: unknown[];
   attachments: unknown[];
   errors: ReplayError[];
   fetchError: undefined | RequestError;
@@ -63,6 +64,7 @@ const INITIAL_STATE: State = Object.freeze({
   fetchingAttachments: true,
   fetchingErrors: true,
   fetchingReplay: true,
+  fetchingAccessibilityFrames: true,
 });
 
 /**
@@ -103,6 +105,7 @@ function useReplayData({
   const [attachments, setAttachments] = useState<unknown[]>([]);
   const attachmentMap = useRef<Map<string, unknown[]>>(new Map()); // Map keys are always iterated by insertion order
   const [errors, setErrors] = useState<ReplayError[]>([]);
+  const [accessibilityFrames, setAccessibilityFrames] = useState<ReplayError[]>([]);
   const [replayRecord, setReplayRecord] = useState<ReplayRecord>();
 
   const projectSlug = useMemo(() => {
@@ -184,6 +187,28 @@ function useReplayData({
     setState(prev => ({...prev, fetchingErrors: false}));
   }, [api, orgSlug, replayRecord, errorsPerPage]);
 
+  const fetchAccessibilityFrames = useCallback(async () => {
+    if (!attachments || attachments.length === 0) {
+      return;
+    }
+
+    // await a post to localhost:3000 with the replayRecord.events
+    const atts = JSON.stringify(attachments);
+    const response = await fetch('http://localhost:3000/events', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: atts,
+    });
+    // get body from response
+    const body = await response.json();
+
+    setAccessibilityFrames(body);
+
+    setState(prev => ({...prev, fetchingAccessibilityFrames: false}));
+  }, [attachments]);
+
   const onError = useCallback(error => {
     Sentry.captureException(error);
     setState(prev => ({...prev, fetchError: error}));
@@ -212,9 +237,17 @@ function useReplayData({
     fetchAttachments().catch(onError);
   }, [state.fetchError, fetchAttachments, onError]);
 
+  useEffect(() => {
+    if (state.fetchError) {
+      return;
+    }
+    fetchAccessibilityFrames().catch(onError);
+  }, [state.fetchError, fetchAccessibilityFrames, onError]);
+
   return {
     attachments,
     errors,
+    accessibilityFrames,
     fetchError: state.fetchError,
     fetching: state.fetchingAttachments || state.fetchingErrors || state.fetchingReplay,
     onRetry: loadData,
