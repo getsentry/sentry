@@ -29,7 +29,7 @@ import {useOmniAreas} from './useOmniAreas';
  */
 export function useGlobalOmniActions() {
   useOmniAreas([
-    {key: 'navigate', label: t('Navigate')},
+    {key: 'navigate', label: t('Go to...')},
     {key: 'add', label: t('Add...')},
     {key: 'help', label: t('Help')},
     {key: 'other', label: t('Other')},
