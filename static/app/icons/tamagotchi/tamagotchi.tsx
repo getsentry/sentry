@@ -8,6 +8,7 @@ import tamagotchiHappy from 'sentry-images/tamagotchi/happy.gif';
 import tamagotchiMeh from 'sentry-images/tamagotchi/meh.gif';
 import tamagotchiSad from 'sentry-images/tamagotchi/sad.gif';
 
+import {Button, ButtonLabel} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project, Release} from 'sentry/types';
@@ -38,26 +39,26 @@ export function useAlertRules() {
   );
 }
 
-function getCleanliness(
+function getTidiness(
   releases?: Release[],
   project?: Project
-): {cleanliness: number; hasEnvironments: boolean; hasReleases: boolean} {
+): {hasEnvironments: boolean; hasReleases: boolean; tidiness: number} {
   const hasReleases = releases?.length !== 0;
   const hasEnvironments = Boolean(
     project?.environments.length &&
       !(project.environments.length === 1 && project.environments.includes('prod'))
   );
 
-  const cleanliness = {hasReleases, hasEnvironments, cleanliness: 0};
+  const tidiness = {hasReleases, hasEnvironments, tidiness: 0};
 
   if ((hasReleases && !hasEnvironments) || (!hasReleases && hasEnvironments)) {
-    cleanliness.cleanliness = 0.5;
+    tidiness.tidiness = 0.5;
   }
   if (hasReleases && hasEnvironments) {
-    cleanliness.cleanliness = 1;
+    tidiness.tidiness = 1;
   }
 
-  return cleanliness;
+  return tidiness;
 }
 
 function getEnergy(alerts?: CombinedMetricIssueAlerts[]): {
@@ -128,7 +129,7 @@ function Tamagotchi({project}: {project?: Project}) {
   const tamagotchiMetrics = useMemo(() => {
     const metrics = {
       energy: getEnergy(alerts.data).energy * 100,
-      cleanliness: getCleanliness(releases.data, project).cleanliness * 100,
+      tidiness: getTidiness(releases.data, project).tidiness * 100,
       happiness: 50.0,
       health: 100.0,
     };
@@ -150,7 +151,7 @@ function Tamagotchi({project}: {project?: Project}) {
   useEffect(() => {
     const totalScore =
       tamagotchiMetrics.energy +
-      tamagotchiMetrics.cleanliness +
+      tamagotchiMetrics.tidiness +
       tamagotchiMetrics.happiness +
       tamagotchiMetrics.health;
     if (totalScore !== currentScore) {
@@ -175,7 +176,7 @@ function Tamagotchi({project}: {project?: Project}) {
   cards.push(
     <CardPanel color="#ffe8ec">
       <TamagotchiWrapper>
-        <img height={28} alt="tamagotchi" src={currentStage} />
+        <img height={70} alt="tamagotchi" src={currentStage} />
       </TamagotchiWrapper>
       {Object.keys(tamagotchiMetrics).map((id, index) => {
         const pctLabel = Math.floor(tamagotchiMetrics[id]);
@@ -183,13 +184,15 @@ function Tamagotchi({project}: {project?: Project}) {
           <TamagotchiMetric key={id}>
             <div>
               {
-                <button
+                <MyTextButton
+                  priority="primary"
+                  size="xs"
                   onClick={() => {
                     handleSetCurrentCard(index);
                   }}
                 >
-                  {id}
-                </button>
+                  {id.charAt(0).toLocaleUpperCase() + id.slice(1)}
+                </MyTextButton>
               }
             </div>
             <Segment
@@ -210,7 +213,7 @@ function Tamagotchi({project}: {project?: Project}) {
       <MyButtonContainer>
         <TamagotchiButton />
         <TamagotchiButton
-          isEnabled
+          isEnabled={currentCard !== 4}
           onClick={() => {
             handleSetCurrentCard(4);
           }}
@@ -247,7 +250,7 @@ const TamagotchiButton = styled('button')<{isEnabled?: boolean}>`
 const MyButtonContainer = styled('div')`
   width: 100%;
   height: 24px;
-  top: 300px;
+  top: 320px;
   display: flex;
   flex-direction: row;
   justify-content: center;
@@ -257,12 +260,12 @@ const MyButtonContainer = styled('div')`
 
 const CardPanel = styled('div')<{color: string}>`
   width: 212px;
-  height: 216px;
+  height: 246px;
   position: absolute;
   margin: auto;
   left: 0;
   right: 0;
-  top: 0;
+  top: 20px;
   bottom: 0;
   z-index: 1;
   background-color: ${p => p.color};
@@ -289,7 +292,7 @@ const MyEggShape = styled('div')`
 const TamagotchiWrapper = styled('div')`
   justify-content: center;
   display: flex;
-  padding: 8px;
+  padding: 3px;
   background-color: #f7c3d0;
   border-radius: 16px 16px 0px 0px;
 `;
@@ -300,7 +303,16 @@ const TamagotchiMetric = styled('div')`
   gap: ${space(1)};
   text-transform: capitalize;
   font-size: ${p => p.theme.fontSizeSmall};
+  justify-items: stretch;
   grid-template-columns: 1fr 55%;
+`;
+
+const MyTextButton = styled(Button)`
+  width: 100%;
+
+  ${ButtonLabel} {
+    justify-content: start;
+  }
 `;
 
 const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}>`
