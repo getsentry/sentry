@@ -8,7 +8,32 @@ import tamagotchiSad from 'sentry-images/tamagotchi/sad.gif';
 
 import {t, tct} from 'sentry/locale';
 import {Project, Release} from 'sentry/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {CombinedAlertType, CombinedMetricIssueAlerts} from 'sentry/views/alerts/types';
 import {useReleases} from 'sentry/views/starfish/queries/useReleases';
+
+export function useAlertRules() {
+  const organization = useOrganization();
+  const location = useLocation();
+  const {query} = location;
+
+  query.expand = ['latestIncident', 'lastTriggered'];
+
+  if (!query.sort) {
+    query.sort = ['incident_status', 'date_triggered'];
+  }
+  return useApiQuery<CombinedMetricIssueAlerts[]>(
+    [
+      `/organizations/${organization.slug}/combined-rules/`,
+      {
+        query,
+      },
+    ],
+    {staleTime: Infinity}
+  );
+}
 
 function getCleanliness(releases?: Release[], project?: Project): number {
   const hasReleases = releases?.length !== 0;
@@ -20,6 +45,28 @@ function getCleanliness(releases?: Release[], project?: Project): number {
     return 0.5;
   }
   if (hasReleases && hasEnvironments) {
+    return 1;
+  }
+
+  return 0;
+}
+
+function getEnergy(alerts?: CombinedMetricIssueAlerts[]): number {
+  const metricAlerts = alerts?.filter(function (element) {
+    return element.type === CombinedAlertType.METRIC;
+  });
+
+  const issueAlerts = alerts?.filter(function (element) {
+    return element.type === CombinedAlertType.ISSUE;
+  });
+
+  const hasIssueAlerts = issueAlerts && issueAlerts.length > 0;
+  const hasMetricAlerts = metricAlerts && metricAlerts.length > 0;
+
+  if ((hasIssueAlerts && !hasMetricAlerts) || (!hasMetricAlerts && hasIssueAlerts)) {
+    return 0.5;
+  }
+  if (hasIssueAlerts && hasMetricAlerts) {
     return 1;
   }
 
@@ -78,11 +125,15 @@ function Tamagotchi({project}: {project?: Project}) {
   const releases = useReleases();
   const cleanliness = getCleanliness(releases.data, project);
 
+  const alerts = useAlertRules();
+  const energy = getEnergy(alerts.data);
+
   return (
     <TamagotchiWrapper>
       <h3>{t('Tamagotchi Status: ')}</h3>
       <h4>{currentStageName}</h4>
       <h4>{tct('Cleanliness: [cleanliness]', {cleanliness})}</h4>
+      <h4>{tct('Energy: [energy]', {energy})}</h4>
       <img height={200} alt="tamagotchi" src={currentStage} />
       <Wrapper>
         <FirstTitle>{t('This is where we can give some message')}</FirstTitle>
