@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useState} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import tamagotchiEgg from 'sentry-images/tamagotchi/egg.gif';
@@ -6,7 +7,11 @@ import tamagotchiHappy from 'sentry-images/tamagotchi/happy.gif';
 import tamagotchiMeh from 'sentry-images/tamagotchi/meh.gif';
 import tamagotchiSad from 'sentry-images/tamagotchi/sad.gif';
 
-import {t, tct} from 'sentry/locale';
+import Panel from 'sentry/components/panels/panel';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Project, Release} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -76,128 +81,169 @@ function getEnergy(alerts?: CombinedMetricIssueAlerts[]): number {
 function Tamagotchi({project}: {project?: Project}) {
   const [currentScore, setCurrentScore] = useState(0);
   const [currentStage, setCurrentStage] = useState(tamagotchiEgg);
-  const [currentStageName, setCurrentStageName] = useState('Hatching Your Tamagatchi');
 
   const tamagotchiStages = useMemo(() => {
     const stages = {
       0: {
         stage: tamagotchiEgg,
-        stageName: 'Egg',
+        stageName: 'egg',
+        stageMinimumScore: 0,
+        stageMaximumScore: 100,
       },
       1: {
         stage: tamagotchiSad,
-        stageName: 'Sad',
+        stageName: 'sad',
+        stageMinimumScore: 101,
+        stageMaximumScore: 200,
       },
       2: {
         stage: tamagotchiMeh,
-        stageName: 'Meh',
+        stageName: 'meh',
+        stageMinimumScore: 201,
+        stageMaximumScore: 300,
       },
       3: {
         stage: tamagotchiHappy,
-        stageName: 'Happy',
+        stageName: 'happy',
+        stageMinimumScore: 301,
+        stageMaximumScore: 400,
       },
     };
     return stages;
   }, []);
+
+  const releases = useReleases();
+  const alerts = useAlertRules();
+
+  const tamagotchiMetrics = useMemo(() => {
+    const metrics = {
+      energy: getEnergy(alerts.data),
+      cleanliness: getCleanliness(releases.data, project),
+      happiness: 50.0,
+      health: 100.0,
+    };
+    return metrics;
+  }, [releases, project, alerts]);
 
   useEffect(() => {
     // Currently allowing 3 seconds for egg to hatch and then set the initial data to the Sad stage
     setTimeout(() => {
       setCurrentScore(1);
       setCurrentStage(tamagotchiStages[1].stage);
-      setCurrentStageName(tamagotchiStages[1].stageName);
     }, 3000);
   }, [tamagotchiStages]);
 
-  // These handle clicks are placeholders to allow the buttons to cycle through the stages
-  const handleIncreaseClick = () => {
-    setCurrentScore(currentScore + 1);
-    setCurrentStage(tamagotchiStages[currentScore].stage);
-    setCurrentStageName(tamagotchiStages[currentScore].stageName);
-  };
-
-  const handleDecreaseClick = () => {
-    setCurrentScore(currentScore - 1);
-    setCurrentStage(tamagotchiStages[currentScore].stage);
-    setCurrentStageName(tamagotchiStages[currentScore].stageName);
-  };
-
-  const releases = useReleases();
-  const cleanliness = getCleanliness(releases.data, project);
-
-  const alerts = useAlertRules();
-  const energy = getEnergy(alerts.data);
+  useEffect(() => {
+    const totalScore =
+      tamagotchiMetrics.energy +
+      tamagotchiMetrics.cleanliness +
+      tamagotchiMetrics.happiness +
+      tamagotchiMetrics.health;
+    if (totalScore !== currentScore) {
+      setCurrentScore(totalScore);
+      Object.keys(tamagotchiStages).map(id => {
+        if (
+          tamagotchiStages[id].stageMinimumScore <= totalScore &&
+          tamagotchiStages[id].stageMaximumScore >= totalScore
+        ) {
+          setCurrentStage(tamagotchiStages[id].stage);
+        }
+        return id;
+      });
+    }
+  }, [currentScore, tamagotchiMetrics, tamagotchiStages]);
 
   return (
-    <TamagotchiWrapper>
-      <h3>{t('Tamagotchi Status: ')}</h3>
-      <h4>{currentStageName}</h4>
-      <h4>{tct('Cleanliness: [cleanliness]', {cleanliness})}</h4>
-      <h4>{tct('Energy: [energy]', {energy})}</h4>
-      <img height={200} alt="tamagotchi" src={currentStage} />
-      <Wrapper>
-        <FirstTitle>{t('This is where we can give some message')}</FirstTitle>
-        <ButtonWrapper>
-          <Button onClick={handleIncreaseClick}>{t('Yes')}</Button>
-          <Button onClick={handleDecreaseClick}>{t('Nope 💩')}</Button>
-        </ButtonWrapper>
-      </Wrapper>
-    </TamagotchiWrapper>
+    <EggContainer>
+      <MyEgg>
+        <MyBox>
+          <Panel>
+            <TamagotchiWrapper>
+              <img height={50} alt="tamagotchi" src={currentStage} />
+            </TamagotchiWrapper>
+            {Object.keys(tamagotchiMetrics).map(id => {
+              const pctLabel = Math.floor(tamagotchiMetrics[id]);
+              return (
+                <TamagotchiMetric key={id}>
+                  <div>{id}</div>
+                  <Segment
+                    data-percent={`${pctLabel}%`}
+                    aria-label={`${id} ${t('segment')}`}
+                    color="#E1567C"
+                  >
+                    <span>{`${pctLabel}%`}</span>
+                  </Segment>
+                </TamagotchiMetric>
+              );
+            })}
+          </Panel>
+        </MyBox>
+      </MyEgg>
+    </EggContainer>
   );
 }
 
 export default Tamagotchi;
 
-const TamagotchiWrapper = styled('div')`
-  font-family: monospace;
-`;
-
-const FirstTitle = styled('h4')`
-  font-weight: 600;
-  font-size: 16px;
-  padding: 0px 8px 8px;
-  margin: 0;
-`;
-
-const Wrapper = styled('div')`
-  width: 400px;
-  max-height: 500px;
-  height: fit-content;
-  background-color: #fbf1c7;
-  border: 1px solid transparent;
-  border-radius: 2px;
-  padding: 16px 12px;
-  font-weight: 600;
-  font-size: 14px;
+const EggContainer = styled('div')`
   position: relative;
-  white-space: pre-wrap;
-  word-break: break-word;
+  height: 400px;
+`;
+const MyEgg = styled('div')`
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: #452650;
+  display: block;
+  border-radius: 50% 60% 50% 50% / 70% 70% 40% 40%;
+`;
 
-  :before {
+const MyBox = styled('div')`
+  width: 212px;
+  background-color: #ffe8ec;
+  border-radius: 16px;
+  margin: auto;
+  margin-top: 70px;
+`;
+
+const TamagotchiWrapper = styled(PanelHeader)`
+  justify-content: center;
+`;
+
+const TamagotchiMetric = styled(PanelItem)`
+  display: grid;
+  gap: ${space(1)};
+  text-transform: capitalize;
+  font-size: ${p => p.theme.fontSizeSmall};
+  grid-template-columns: 1fr 60%;
+`;
+
+const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}>`
+  display: block;
+  width: 100%;
+  height: ${space(2)};
+  color: ${p => p.theme.black};
+  outline: none;
+  position: relative;
+  background-color: ${p => p.theme.backgroundSecondary};
+  border: 1px solid black;
+  text-align: right;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  padding: 1px ${space(0.5)} 0 0;
+
+  &:after {
     content: '';
-    width: 0px;
-    height: 0px;
+    width: ${p => p['data-percent']};
     position: absolute;
-    border-left: 14px solid transparent;
-    border-right: 15px solid #fbf1c7;
-    border-top: 18px solid transparent;
-    border-bottom: 18px solid #fbf1c7;
-    top: -36px;
+    left: 0;
+    height: 100%;
+    top: 0;
+    background-color: ${p => p.color};
   }
-`;
-
-const Button = styled('button')`
-  background-color: transparent;
-  border: 1px solid rgba(0, 0, 0, 0.25);
-  border-radius: 2px;
-  width: 100px;
-  :hover {
-    text-decoration: underline;
+  & span {
+    position: relative;
+    z-index: 1;
   }
-`;
-
-const ButtonWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0 0 0;
 `;
