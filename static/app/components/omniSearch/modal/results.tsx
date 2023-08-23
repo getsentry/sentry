@@ -296,10 +296,10 @@ const ResultsList = styled('ul')`
 const ResultSection = styled('li')<{hasHeading?: boolean}>`
   position: relative;
   list-style-type: none;
-  padding: ${space(1.5)} 0;
+  padding: ${space(1)} 0;
 
   &:first-of-type {
-    padding-top: ${space(1)};
+    padding-top: calc(${space(0.5)} + 1px);
   }
 
   &:last-of-type {
@@ -309,7 +309,7 @@ const ResultSection = styled('li')<{hasHeading?: boolean}>`
   ${p =>
     !p.hasHeading &&
     `&& {
-      padding-top: ${space(0.5)};
+      padding-top: 1px;
     }`};
 
   &:not(:last-of-type)::after {
