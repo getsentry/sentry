@@ -89,7 +89,7 @@ export default class ModuleItem extends Component {
         <span dangerouslySetInnerHTML={{__html: this.titleHtml}} />
         {showSize && [
           ' (',
-          <strong key={module[size]}>{filesize(module[showSize])}</strong>,
+          <strong key={module[showSize]}>{filesize(module[showSize])}</strong>,
           ')',
         ]}
       </div>
