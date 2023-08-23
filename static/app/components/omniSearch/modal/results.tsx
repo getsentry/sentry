@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 
 import {OmniAction, OmniSection} from '../types';
+import {useOmniSearchState} from '../useOmniState';
 
 import {OnmniSearchInputContext} from './index';
 /**
@@ -64,6 +65,7 @@ function OmniResults({results}: OmniResultsProps) {
 }
 
 function OmniResultsList(props: TreeProps<OmniSection>) {
+  const {focusedArea} = useOmniSearchState();
   const setSearch = useContext(OnmniSearchInputContext);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -119,18 +121,22 @@ function OmniResultsList(props: TreeProps<OmniSection>) {
 
   return (
     <Fragment>
-      <OmniInput
-        ref={inputRef}
-        onChange={e => setSearch(e.target.value)}
-        placeholder="Search for anything…"
-        onKeyDown={e => {
-          if (['Enter', 'Tab'].includes(e.key)) {
-            e.preventDefault();
-            onAction(state.selectionManager.focusedKey);
-          }
-          listBoxProps.onKeyDown?.(e);
-        }}
-      />
+      <OmniHeader hasFocusedArea={!!focusedArea}>
+        {focusedArea && <OmniFocusedAreaLabel>{focusedArea.label}</OmniFocusedAreaLabel>}
+        <OmniInput
+          ref={inputRef}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search for anything…"
+          onKeyDown={e => {
+            if (['Enter', 'Tab'].includes(e.key)) {
+              e.preventDefault();
+              onAction(state.selectionManager.focusedKey);
+            }
+            listBoxProps.onKeyDown?.(e);
+          }}
+        />
+      </OmniHeader>
+
       <ResultsList {...listBoxProps}>
         {collection.map(item => (
           <OmniResultSection key={item.key} section={item} state={state} />
@@ -223,14 +229,35 @@ function OmniResultOption({item, state}: OmniResultOptionProps) {
 
 export {OmniResults};
 
+const OmniHeader = styled('div')<{hasFocusedArea: boolean}>`
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  border-bottom: 1px solid ${p => p.theme.translucentInnerBorder};
+  ${p => p.hasFocusedArea && `padding-top: ${space(1.5)};`}
+`;
+
+const OmniFocusedAreaLabel = styled('p')`
+  margin-bottom: 0;
+  margin-left: ${space(1.5)};
+  padding: 0 ${space(0.5)};
+  box-shadow: 0 0 0 1px ${p => p.theme.translucentInnerBorder};
+  background: ${p => p.theme.backgroundSecondary};
+  border-radius: 2px;
+
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  line-height: 1.5;
+`;
+
 const OmniInput = styled('input')`
   width: 100%;
   background: transparent;
-  font-size: ${p => p.theme.fontSizeLarge};
-  padding: ${space(1.5)} ${space(2)};
-  line-height: 2;
+  padding: ${space(1)} ${space(2)};
   border: none;
-  border-bottom: 1px solid ${p => p.theme.translucentInnerBorder};
+
+  font-size: ${p => p.theme.fontSizeLarge};
+  line-height: 2;
 
   &:focus {
     outline: none;
