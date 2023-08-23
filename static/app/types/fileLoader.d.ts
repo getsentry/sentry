@@ -11,3 +11,5 @@ declare module '*.svg' {
 }
 
 declare module '*.pegjs';
+
+declare module '*.gif';
