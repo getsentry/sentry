@@ -430,6 +430,7 @@ const appConfig: Configuration = {
         modules: true,
         env: true,
         entrypoints: true,
+        chunkModules: true,
       },
       transform(data: webpack.StatsCompilation) {
         data.namedChunkGroups;
@@ -533,7 +534,16 @@ const appConfig: Configuration = {
               initial: chunk.initial,
               files: chunk.files,
               names: chunk.names,
-              modules: chunk.modules,
+              ...(chunk.modules && {
+                modules: chunk.modules.map(m => ({
+                  name: m.name,
+                  size: m.size,
+                  id: m.id,
+                  identifier: m.identifier,
+                  chunks: m.chunks,
+                  assets: m.assets,
+                })),
+              }),
             });
             return acc;
           }, [] as Array<Pick<webpack.StatsChunk, 'entry' | 'id' | 'initial' | 'files' | 'names' | 'size' | 'modules'>>);
@@ -582,26 +592,11 @@ const appConfig: Configuration = {
               return acc;
             }
 
-            const seenReasonModule = new Set();
-
             acc.push({
               name: module.name,
               size: module.size,
               moduleType: module.moduleType,
               ...(module.chunks && {chunks: module.chunks}),
-              ...(module.reasons && {
-                reasons: module.reasons.reduce((reasonAcc, reason) => {
-                  if (seenReasonModule.has(reason.module)) {
-                    return reasonAcc;
-                  }
-
-                  reasonAcc.push({
-                    module: reason.module,
-                  });
-                  seenReasonModule.add(reason.module);
-                  return reasonAcc;
-                }, [] as Array<Pick<webpack.StatsModuleReason, 'module'>>),
-              }),
             });
 
             return acc;

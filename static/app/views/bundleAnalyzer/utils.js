@@ -3,7 +3,6 @@ export function isChunkParsed(chunk) {
 }
 
 export function walkModules(modules, cb) {
-  console.log(modules);
   for (const module of modules) {
     if (cb(module) === false) {
       return false;
