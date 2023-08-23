@@ -374,5 +374,5 @@ const KeyboardShortcutKey = styled('kbd')<{isSymbol: boolean}>`
 const ItemDivider = styled('li')`
   display: block;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
-  margin: ${space(1)} ${space(1.5)};
+  margin: ${space(0.5)} ${space(1.5)} ${space(0.5)} 45px;
 `;
