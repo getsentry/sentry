@@ -52,17 +52,14 @@ export default function FunnelOverview() {
       staleTime: Infinity,
     }
   );
-  const {data: eventsCount, isLoading: statsLoading} = useApiQuery<GroupStats[]>(
+  const {data: eventsCount} = useApiQuery<GroupStats[]>(
     [
       `/organizations/${organization.slug}/issues-stats/`,
       {
         query: {
-          groups:
-            funnelData?.issues
-              .map(({issue}) => {
-                return issue.id;
-              })
-              .join(',') ?? '',
+          groups: funnelData?.issues.map(({issue}) => {
+            return issue.id;
+          }),
         },
       },
     ],
@@ -71,6 +68,7 @@ export default function FunnelOverview() {
     }
   );
 
+  console.log({eventsCount}, funnelData?.issues);
   const listIssues = funnelData?.issues.map(({starts, completes, issue}) => (
     <WrapGroup key={issue.id}>
       <GroupWrapper data-test-id="event-issue-header">
@@ -87,14 +85,6 @@ export default function FunnelOverview() {
       </EventCountsWrapper>
     </WrapGroup>
   ));
-
-  // if (!funnelLoading && funnelData) {
-
-  // }
-
-  // if (funnelLoading || statsLoading) {
-  //   return <LoadingIndicator />;
-  // }
 
   return (
     <Wrapper>
