@@ -1564,14 +1564,9 @@ function buildRoutes() {
       </Route>
       <Route
         path="/aggregate-spans/"
-        component={withDomainRedirect(make(() => import('sentry/views/discover')))}
+        component={make(() => import('sentry/views/discover/aggregateSpans'))}
         key="org-discover-route"
-      >
-        <Route
-          path=":eventSlug/"
-          component={make(() => import('sentry/views/discover/aggregateSpans'))}
-        />
-      </Route>
+      />
     </Fragment>
   );
 

@@ -8,6 +8,7 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {EntryType, EventOrGroupType, EventTransaction} from 'sentry/types';
 import {useQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function formatSpan(span) {
@@ -37,13 +38,15 @@ function formatSpan(span) {
 
 function AggregateSpans({params}) {
   const organization = useOrganization();
+  const location = useLocation();
+  const transaction = location.query.transaction;
 
   const eventSlug = typeof params.eventSlug === 'string' ? params.eventSlug.trim() : '';
 
   const spans = useQuery<{children: {}}[]>({
     queryKey: ['spans', {eventSlug}],
     queryFn: async () => {
-      const response = await fetch('http://localhost:8080/');
+      const response = await fetch(`http://localhost:8080/?transaction=${transaction}`);
       return await response.json();
     },
     initialData: [],
