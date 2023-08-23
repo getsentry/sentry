@@ -142,26 +142,26 @@ export default function FunnelOverview() {
             <DatePageFilter />
           </StyledPageFilterBar>
         </PageFiltersContainer>
+        <StyledSelectControl
+          placeholder="Sort by..."
+          options={[
+            {label: 'Completion Rate', value: 'completionRate'},
+            {label: 'Starts', value: 'starts'},
+            {label: 'Completes', value: 'completes'},
+            {label: 'Events', value: 'events'},
+          ]}
+          disabled={false}
+          value={sortVal}
+          onChange={value => changeSortVal(value.value)}
+          singlevalue
+          clearindicator={false}
+        />
       </SearchContainer>
 
       <ContentWrapper>
         {listIssues ? (
           <IssueListWrapper>
             <StyledPanelHeader>
-              <SelectControl
-                placeholder="Sort by..."
-                options={[
-                  {label: 'Completion Rate', value: 'completionRate'},
-                  {label: 'Starts', value: 'starts'},
-                  {label: 'Completes', value: 'completes'},
-                  {label: 'Events', value: 'events'},
-                ]}
-                disabled={false}
-                value={sortVal}
-                onChange={value => changeSortVal(value.value)}
-                singlevalue
-                clearindicator={false}
-              />
               <GridHeader style={{gridArea: 'issue'}}>Issue</GridHeader>
               <GridHeader style={{gridArea: 'completionRate'}}>
                 Completion Rate
@@ -355,3 +355,5 @@ const StyledPageFilterBar = styled(PageFilterBar)`
     }
   }
 `;
+
+const StyledSelectControl = styled(SelectControl)``;
