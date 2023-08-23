@@ -24,7 +24,7 @@ import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
 const HEADER_HEIGHT = 25;
 const BODY_HEIGHT = 28;
 
-// const RESIZEABLE_HANDLE_HEIGHT = 90;
+const RESIZEABLE_HANDLE_HEIGHT = 105;
 
 type Props = {
   accessibilityFrames: undefined | any;
@@ -87,12 +87,12 @@ function AccessibilityList({
   );
   const detailDataIndex = getDetailRow();
 
-  // const maxContainerHeight =
-  //   (containerRef.current?.clientHeight || window.innerHeight) - RESIZEABLE_HANDLE_HEIGHT;
-  // const splitSize =
-  //   accessibilityFrames && detailDataIndex
-  //     ? Math.min(maxContainerHeight, containerSize)
-  //     : undefined;
+  const maxContainerHeight =
+    (containerRef.current?.clientHeight || window.innerHeight) - RESIZEABLE_HANDLE_HEIGHT;
+  const splitSize =
+    accessibilityFrames && detailDataIndex
+      ? Math.min(maxContainerHeight, containerSize)
+      : undefined;
 
   const onClickCell = useCallback(
     ({dataIndex, rowIndex}: {dataIndex: number; rowIndex: number}) => {
@@ -164,9 +164,9 @@ function AccessibilityList({
         data-test-id="replay-details-accessibility-tab"
       >
         <SplitPanel
-        // style={{
-        //   gridTemplateRows: splitSize !== undefined ? `1fr auto ${splitSize}px` : '1fr',
-        // }}
+          style={{
+            gridTemplateRows: splitSize !== undefined ? `1fr auto ${splitSize}px` : '1fr',
+          }}
         >
           {accessibilityFrames ? (
             <OverflowHidden>

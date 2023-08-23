@@ -8,6 +8,7 @@ import {
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconCircleFill} from 'sentry/icons';
 import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {getFramePath, getFrameType} from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
@@ -101,7 +102,9 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
     const renderFns = [
       () => (
         <Cell {...columnProps}>
-          <Text>{type ? type : 'unknown'}</Text>
+          <Text>
+            <IconCircleFill color="red400" /> {type ? type : 'unknown'}
+          </Text>
         </Cell>
       ),
       () => (

@@ -1,5 +1,8 @@
-import {MouseEvent} from 'react';
+import {Fragment, MouseEvent} from 'react';
+import styled from '@emotion/styled';
+import beautify from 'js-beautify';
 
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import type {SpanFrame} from 'sentry/utils/replays/types';
@@ -7,10 +10,11 @@ import {
   keyValueTableOrNotFound,
   SectionItem,
 } from 'sentry/views/replays/detail/accessibility/details/components';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 export type SectionProps = {
-  item: SpanFrame;
+  item: unknown;
   projectId: string;
   startTimestampMs: number;
 };
@@ -23,7 +27,7 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
 
   const data = {
     [t('Type')]: item.id,
-    [t('Help')]: 'TODO',
+    [t('Help')]: item.description,
     [t('Help URL')]: 'TODO',
     [t('Status')]: 'TODO',
     [t('Path')]: item.element,
@@ -42,8 +46,19 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
   };
 
   return (
-    <SectionItem title={t('General')}>
-      {keyValueTableOrNotFound(data, t('Missing request details'))}
-    </SectionItem>
+    <Fragment>
+      <SectionItem title={t('DOM Element')}>
+        <CodeSnippet language="html" hideCopyButton>
+          {beautify.html(item.element, {indent_size: 2})}
+        </CodeSnippet>
+      </SectionItem>
+      <SectionItem title={t('General')}>
+        {keyValueTableOrNotFound(data, t('Missing request details'))}
+      </SectionItem>
+    </Fragment>
   );
 }
+
+const OverflowFluidHeight = styled(FluidHeight)`
+  overflow: auto;
+`;
