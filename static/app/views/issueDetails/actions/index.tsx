@@ -13,7 +13,11 @@ import {
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archive';
+import ArchiveActions, {
+  ARCHIVE_FOREVER,
+  ARCHIVE_UNTIL_ESCALATING,
+  getArchiveActions,
+} from 'sentry/components/actions/archive';
 import ActionButton from 'sentry/components/actions/button';
 import IgnoreActions, {getIgnoreActions} from 'sentry/components/actions/ignore';
 import ResolveActions from 'sentry/components/actions/resolve';
@@ -21,7 +25,9 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
 import {
+  IconArchive,
   IconCheckmark,
   IconEllipsis,
   IconMute,
@@ -353,9 +359,31 @@ export function Actions(props: Props) {
   };
 
   const {dropdownItems, onIgnore} = getIgnoreActions({onUpdate});
-  const {dropdownItems: archiveDropdownItems} = getArchiveActions({
+  const {onArchive, dropdownItems: archiveDropdownItems} = getArchiveActions({
     onUpdate,
   });
+
+  useOmniActions([
+    {
+      key: 'issue-archive-escalating',
+      areaKey: 'issue',
+      label: t('Archive Until Escalating'),
+      actionType: 'archive',
+      actionIcon: IconArchive,
+      actionHotkey: 'shift+a',
+      onAction: () => onArchive(ARCHIVE_UNTIL_ESCALATING),
+    },
+    {
+      key: 'issue-archive-escalating',
+      areaKey: 'issue',
+      label: t('Archive Forever'),
+      actionType: 'archive',
+      actionIcon: IconArchive,
+      actionHotkey: 'cmd+shift+a',
+      onAction: () => onArchive(ARCHIVE_FOREVER),
+    },
+  ]);
+
   return (
     <ActionWrapper>
       <DropdownMenu

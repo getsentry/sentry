@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
 import ShortId from 'sentry/components/shortId';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconCopy, IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
@@ -41,6 +42,36 @@ export function ShortIdBreadrcumb({
     text: `[${group.shortId}](${issueUrl})`,
     successMessage: t('Copied Markdown Issue Link to clipboard'),
   });
+
+  useOmniActions([
+    {
+      key: 'issue-copy-issue-url',
+      areaKey: 'issue',
+      label: t('Copy Issue URL'),
+      actionType: 'copy',
+      actionIcon: IconCopy,
+      actionHotkey: 'cmd+shift+c',
+      onAction: handleCopyUrl,
+    },
+    {
+      key: 'issue-copy-short-id',
+      areaKey: 'issue',
+      label: t('Copy Short ID'),
+      actionType: 'copy',
+      actionIcon: IconCopy,
+      actionHotkey: 'cmd+c',
+      onAction: () => !window.getSelection()?.toString() && handleCopyShortId(),
+    },
+    {
+      key: 'issue-copy-markdown-id',
+      areaKey: 'issue',
+      label: t('Copy Issue as Markdown Link'),
+      actionType: 'copy',
+      actionIcon: IconMarkdown,
+      actionHotkey: 'cmd+shift+m',
+      onAction: handleCopyMarkdown,
+    },
+  ]);
 
   if (!group.shortId) {
     return null;

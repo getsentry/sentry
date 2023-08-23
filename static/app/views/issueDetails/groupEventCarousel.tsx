@@ -10,6 +10,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import FeatureBadge from 'sentry/components/featureBadge';
+import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
@@ -21,6 +22,7 @@ import {
   IconNext,
   IconOpen,
   IconPrevious,
+  IconStar,
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -289,6 +291,40 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
   const isHelpfulEventUiEnabled =
     organization.features.includes('issue-details-most-helpful-event') &&
     organization.features.includes('issue-details-most-helpful-event-ui');
+
+  useOmniActions([
+    {
+      key: 'issue-next-event',
+      label: t('Go to Recommended Event'),
+      actionType: 'event-navigate',
+      actionIcon: IconStar,
+      to: normalizeUrl(
+        makeBaseEventsPath({organization, group}) +
+          EventNavDropdownOption.RECOMMENDED +
+          '/'
+      ),
+    },
+    {
+      key: 'issue-oldest-event',
+      label: t('Go to Oldest Event'),
+      actionType: 'event-navigate',
+      actionIcon: IconPrevious,
+      actionHotkey: 'shift+[',
+      to: normalizeUrl(
+        makeBaseEventsPath({organization, group}) + EventNavDropdownOption.OLDEST + '/'
+      ),
+    },
+    {
+      key: 'issue-latest-event',
+      label: t('Go to Latest Event'),
+      actionType: 'event-navigate',
+      actionIcon: IconNext,
+      actionHotkey: 'shift+]',
+      to: normalizeUrl(
+        makeBaseEventsPath({organization, group}) + EventNavDropdownOption.LATEST + '/'
+      ),
+    },
+  ]);
 
   return (
     <CarouselAndButtonsWrapper>

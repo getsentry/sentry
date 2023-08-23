@@ -1,6 +1,5 @@
 import {
   cloneElement,
-  Fragment,
   isValidElement,
   useCallback,
   useEffect,
@@ -16,6 +15,7 @@ import * as qs from 'query-string';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {OmniSearchArea} from 'sentry/components/omniSearch/areaContext';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -828,7 +828,7 @@ function GroupDetails(props: GroupDetailsProps) {
   };
 
   return (
-    <Fragment>
+    <OmniSearchArea areaKey="issue" label={group?.shortId ?? t('Issue')} focused>
       {isSampleError && group && (
         <SampleEventAlert project={group.project} organization={organization} />
       )}
@@ -847,7 +847,7 @@ function GroupDetails(props: GroupDetailsProps) {
           />
         </PageFiltersContainer>
       </SentryDocumentTitle>
-    </Fragment>
+    </OmniSearchArea>
   );
 }
 

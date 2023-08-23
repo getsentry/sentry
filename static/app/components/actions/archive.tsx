@@ -21,12 +21,12 @@ interface ArchiveActionProps {
   size?: 'xs' | 'sm';
 }
 
-const ARCHIVE_UNTIL_ESCALATING: GroupStatusResolution = {
+export const ARCHIVE_UNTIL_ESCALATING: GroupStatusResolution = {
   status: GroupStatus.IGNORED,
   statusDetails: {},
   substatus: GroupSubstatus.ARCHIVED_UNTIL_ESCALATING,
 };
-const ARCHIVE_FOREVER: GroupStatusResolution = {
+export const ARCHIVE_FOREVER: GroupStatusResolution = {
   status: GroupStatus.IGNORED,
   statusDetails: {},
   substatus: GroupSubstatus.ARCHIVED_FOREVER,
