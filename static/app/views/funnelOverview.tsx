@@ -19,6 +19,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import checkboxToggle from 'sentry/components/stream/group';
+import {t} from 'sentry/locale';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
@@ -85,7 +86,7 @@ export default function FunnelOverview() {
   const listIssues = funnelData?.issues
     .sort((a, b) => {
       if (sortVal === 'completionRate') {
-        return (100 * b.completes) / b.starts - (100 * a.completes) / a.starts;
+        return (100 * a.completes) / a.starts - (100 * b.completes) / b.starts;
       }
       if (sortVal === 'starts') {
         return b.starts - a.starts;
@@ -143,12 +144,13 @@ export default function FunnelOverview() {
           </StyledPageFilterBar>
         </PageFiltersContainer>
         <StyledSelectControl
+          label="Sort by:"
           placeholder="Sort by..."
           options={[
-            {label: 'Completion Rate', value: 'completionRate'},
-            {label: 'Starts', value: 'starts'},
-            {label: 'Completes', value: 'completes'},
-            {label: 'Events', value: 'events'},
+            {label: 'Sort by: Completion Rate', value: 'completionRate'},
+            {label: 'Sort by: Starts', value: 'starts'},
+            {label: 'Sort by: Completes', value: 'completes'},
+            {label: 'Sort by: Events', value: 'events'},
           ]}
           disabled={false}
           value={sortVal}
@@ -350,6 +352,7 @@ const StyledPageFilterBar = styled(PageFilterBar)`
 `;
 
 const StyledSelectControl = styled(SelectControl)`
-  width: 200px;
+  width: 225px;
   margin-left: ${space(2)};
+  font-weight: bold;
 `;
