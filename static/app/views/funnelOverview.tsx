@@ -3,15 +3,24 @@ import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import DatePageFilter from 'sentry/components/datePageFilter';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import Spinner from 'sentry/components/forms/spinner';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import checkboxToggle from 'sentry/components/stream/group';
+import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {Group, GroupStats} from 'sentry/types';
 import {Funnel} from 'sentry/types/funnel';
@@ -19,6 +28,9 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {TagAndMessageWrapper} from 'sentry/views/issueDetails/unhandledTag';
+import IssueListFilters from 'sentry/views/issueList/filters';
+import {IssueSearchWithSavedSearches} from 'sentry/views/issueList/issueSearchWithSavedSearches';
 
 interface FunnelResponse {
   funnel: Funnel;
@@ -100,6 +112,16 @@ export default function FunnelOverview() {
         />
         <h2>Funnel {funnelData?.funnel.name}</h2>
       </HeaderWrapper>
+
+      <SearchContainer>
+        <PageFiltersContainer />
+        <PageFilterBar />
+        <StyledPageFilterBar>
+          <EnvironmentPageFilter />
+          <DatePageFilter />
+        </StyledPageFilterBar>
+      </SearchContainer>
+
       <ContentWrapper>
         {!statsLoading ? (
           <IssueListWrapper>
@@ -259,4 +281,40 @@ const GroupWrapper = styled('div')`
   overflow: hidden; // Hide overflowed content
   white-space: nowrap; // Prevent content from breaking into the next line
   text-overflow: ellipsis; // Add '...' to show that content is truncated
+`;
+
+const SearchContainer = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: ${space(2)};
+  row-gap: ${space(1)};
+  width: 100%;
+  margin-bottom: ${space(2)};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    flex-direction: column;
+  }
+`;
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  display: flex;
+  flex-basis: content;
+  width: 100%;
+  max-width: 43rem;
+  align-self: flex-start;
+
+  > div > button {
+    width: 100%;
+  }
+
+  & > * {
+    /* Prevent date filter from shrinking below 6.5rem */
+    &:nth-last-child(2) {
+      min-width: 6.5rem;
+    }
+
+    &:last-child {
+      min-width: 0;
+    }
+  }
 `;
