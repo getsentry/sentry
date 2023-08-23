@@ -56,7 +56,7 @@ const packageModules = modules
   .filter(m => m.name.startsWith('../node_modules'))
   .sort((a, b) => b.size - a.size);
 
-export default function BundleDetails() {
+export default function BundleDiff() {
   const router = useRouter();
   const bundleType = router.location.query.bundleType ?? BundleType.ASSETS;
 

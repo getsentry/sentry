@@ -3,7 +3,7 @@ import {getViewerData} from 'sentry/views/bundleAnalyzer/utils/analyzer';
 
 import {store} from './store';
 
-const bundleStats = require('../../../../src/sentry/static/sentry/dist/stats.json');
+export const bundleStats = require('../../../../src/sentry/static/sentry/dist/stats.json');
 
 const chartData = getViewerData(bundleStats);
 
