@@ -11,17 +11,18 @@ import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconClock} from 'sentry/icons/iconClock';
-import {t, tn} from 'sentry/locale';
+import {IconFire} from 'sentry/icons/iconFire';
+import {t} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {NumberContainer} from 'sentry/utils/discover/styles';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {BrowserCell, OSCell} from 'sentry/views/replays/replayTable/tableCell';
+import Count from 'sentry/components/count';
 
 interface Props {
   userId: string;
@@ -46,7 +47,7 @@ export function ErrorWidget({userId}: Props) {
         version: 2,
         fields: [
           'issue.id',
-          'title',
+          'message',
           'project_id',
           'count()',
           'platform.name',
@@ -54,6 +55,10 @@ export function ErrorWidget({userId}: Props) {
           'issue',
           'last_seen()',
           'error.type',
+          'browser.name',
+          'browser.version',
+          'os.name',
+          'os.version',
         ],
         projects: [],
         query: conditions.formatString(),
@@ -70,14 +75,6 @@ export function ErrorWidget({userId}: Props) {
     limit: 3,
   });
 
-  if (isLoading) {
-    return <Placeholder height="232px" />;
-  }
-
-  if (error) {
-    return <LoadingError />;
-  }
-
   return (
     <TransactionPanel>
       <PanelHeader>{t('Recent Errors')}</PanelHeader>
@@ -93,7 +90,7 @@ export function ErrorWidget({userId}: Props) {
             {data.data.map(dataRow => {
               const issueId = dataRow['issue.id'];
               const project = projectsHash[dataRow.project_id];
-              const link = `/issues/${issueId}/events/?${qs.stringify({
+              const link = `/issues/${issueId}/events/${dataRow.id}/?${qs.stringify({
                 project: dataRow.project_id,
                 query: `user.id:${userId}`,
               })}`;
@@ -101,14 +98,35 @@ export function ErrorWidget({userId}: Props) {
               return (
                 <Fragment key={issueId}>
                   <Cols key={`${issueId}-data`}>
-                    <Title>
-                      <Link to={link}>{dataRow.issue}</Link>
-                      <div>{dataRow.title}</div>
-                    </Title>
+                    <TextOverflow>
+                      <Link to={link}>{dataRow.message}</Link>
+                    </TextOverflow>
                     <SubRow gap={1}>
                       <Row gap={0.5}>
+                        <SmallOSCell
+                          replay={
+                            {
+                              os: {
+                                name: dataRow['os.name'],
+                                version: dataRow['os.version'],
+                              },
+                            } as any
+                          }
+                        />
+                        <SmallBrowserCell
+                          replay={
+                            {
+                              browser: {
+                                name: dataRow['browser.name'],
+                                version: dataRow['browser.version'],
+                              },
+                            } as any
+                          }
+                        />
+                      </Row>
+                      <Row gap={0.5}>
                         {project ? <Avatar size={12} project={project} /> : null}
-                        {project ? project.slug : null}
+                        <Link to={link}>{dataRow.issue}</Link>
                       </Row>
                       <Row gap={0.5}>
                         <IconClock color="gray300" size="xs" />
@@ -120,11 +138,8 @@ export function ErrorWidget({userId}: Props) {
                   </Cols>
                   <Cols>
                     <NumberContainer>
-                      {tn(
-                        '%s event',
-                        '%s events',
-                        formatAbbreviatedNumber(dataRow['count()'])
-                      )}
+                      <IconFire />
+                      <Count value={dataRow['count()']} />
                     </NumberContainer>
                   </Cols>
                 </Fragment>
@@ -142,7 +157,7 @@ const Table = styled('div')`
   overflow: hidden;
   gap: ${space(1.5)};
   grid-column-gap: ${space(3)};
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto max-content;
   align-items: center;
   padding: ${space(1)} ${space(2)};
 `;
@@ -156,6 +171,7 @@ const Cols = styled('div')`
   flex-direction: column;
   gap: ${space(0.5)};
   width: 100%;
+  overflow: hidden;
 `;
 
 const Row = styled('div')<{gap: ValidSize; minWidth?: number}>`
@@ -173,12 +189,18 @@ const TransactionPanel = styled(Panel)`
   overflow: hidden;
 `;
 
-const Title = styled('div')`
-  display: grid;
-  grid-template-columns: max-content auto;
-  gap: ${space(1)};
+const NumberContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  color: ${p => p.theme.error};
+  gap: ${space(0.25)};
+`;
 
-  div {
-    ${p => p.theme.overflowEllipsis};
-  }
+const SmallOSCell = styled(OSCell)`
+  padding: 0;
+`;
+
+const SmallBrowserCell = styled(BrowserCell)`
+  padding: 0;
 `;
