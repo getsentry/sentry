@@ -400,7 +400,7 @@ export function Actions(props: Props) {
             label: t('Unresolve Issue'),
             actionType: 'resolve',
             actionIcon: IconArchive,
-            actionHotkey: 'shift+a',
+            actionHotkey: 'shift+r',
             onAction: () =>
               onUpdate({
                 status: GroupStatus.UNRESOLVED,
