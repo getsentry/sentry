@@ -45,7 +45,7 @@ function NotificationSettings({organizations}: Props) {
   const renderOneSetting = (type: string) => {
     const field = NOTIFICATION_SETTING_FIELDS[type];
     return (
-      <FieldWrapper>
+      <FieldWrapper key={type}>
         <div>
           <FieldLabel>{field.label}</FieldLabel>
           <FieldHelp>{field.help}</FieldHelp>
@@ -67,6 +67,7 @@ function NotificationSettings({organizations}: Props) {
     type => NOTIFICATION_SETTING_FIELDS[type] as FieldObject
   );
 
+  // use 0 as stale time because we change the values elsewhere
   const {data: initialLegacyData, isLoading} = useApiQuery<{[key: string]: string}>(
     ['/users/me/notifications/'],
     {
