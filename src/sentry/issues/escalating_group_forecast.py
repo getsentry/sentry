@@ -75,9 +75,12 @@ class EscalatingGroupForecast:
         if not escalating_forecast:
             return None
 
-        forecast_today_index = (date_now - escalating_forecast.date_added.date()).days
+        date_added = escalating_forecast.date_added.date()
+        forecast_today_index = (date_now - date_added).days
         if forecast_today_index >= len(escalating_forecast.forecast):
-            logger.error("Forecast list index is out of range")
+            logger.error(
+                f"Forecast list index is out of range. Index: {forecast_today_index}. Date now: {date_now}. Forecast date added: {date_added}."
+            )
             # Use last available forecast as a fallback
             forecast_today_index = -1
         return escalating_forecast.forecast[forecast_today_index]

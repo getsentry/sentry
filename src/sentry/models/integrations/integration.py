@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, List
 
 from django.db import IntegrityError, models, router, transaction
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -45,7 +46,7 @@ class Integration(DefaultFieldsModel):
     workspace, a single GH org, etc.), which can be shared by multiple Sentry orgs.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     provider = models.CharField(max_length=64)
     external_id = models.CharField(max_length=64)

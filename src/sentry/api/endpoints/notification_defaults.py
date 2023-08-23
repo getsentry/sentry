@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.notifications.defaults import (
     NOTIFICATION_SETTING_DEFAULTS,
@@ -42,6 +43,7 @@ TYPE_DEFAULTS = get_type_defaults()
 
 @control_silo_endpoint
 class NotificationDefaultsEndpoints(Endpoint):
+    owner = ApiOwner.ISSUES
     permission_classes = ()
     private = True
 

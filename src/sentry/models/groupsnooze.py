@@ -4,6 +4,7 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -36,7 +37,7 @@ class GroupSnooze(Model):
     NOTE: `window` and `user_window` are specified in minutes
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group", unique=True)
     until = models.DateTimeField(null=True)

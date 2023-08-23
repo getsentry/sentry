@@ -26,6 +26,10 @@ class SlackTasksTest(TestCase):
     def setUp(self):
         self.integration = install_slack(self.organization)
         self.uuid = uuid4().hex
+
+        self.mck = responses.mock
+        self.mck.__enter__()
+
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/chat.scheduleMessage",
@@ -42,6 +46,9 @@ class SlackTasksTest(TestCase):
             content_type="application/json",
             body=json.dumps({"ok": True}),
         )
+
+    def tearDown(self):
+        self.mck.__exit__(None, None, None)
 
     @cached_property
     def metric_alert_data(self):

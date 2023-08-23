@@ -12,6 +12,7 @@ from django.utils import timezone
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -65,7 +66,7 @@ class ArtifactBundleIndexingState(Enum):
 
 @region_silo_only_model
 class ArtifactBundle(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     # We use 00000000-00000000-00000000-00000000 in place of NULL because the uniqueness constraint doesn't play well
@@ -138,7 +139,7 @@ indexstore = LazyServiceWrapper(
 
 @region_silo_only_model
 class ArtifactBundleFlatFileIndex(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project_id = BoundedBigIntegerField(db_index=True)
     release_name = models.CharField(max_length=250)
@@ -153,7 +154,7 @@ class ArtifactBundleFlatFileIndex(Model):
         app_label = "sentry"
         db_table = "sentry_artifactbundleflatfileindex"
 
-        index_together = (("project_id", "release_name", "dist_name"),)
+        unique_together = (("project_id", "release_name", "dist_name"),)
 
     def _indexstore_id(self) -> str:
         return f"bundle_index:{self.project_id}:{self.id}"
@@ -176,7 +177,7 @@ class ArtifactBundleFlatFileIndex(Model):
 
 @region_silo_only_model
 class FlatFileIndexState(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     flat_file_index = FlexibleForeignKey("sentry.ArtifactBundleFlatFileIndex")
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
@@ -186,6 +187,8 @@ class FlatFileIndexState(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_flatfileindexstate"
+
+        unique_together = (("flat_file_index", "artifact_bundle"),)
 
     @staticmethod
     def mark_as_indexed(
@@ -206,7 +209,7 @@ class FlatFileIndexState(Model):
 
 @region_silo_only_model
 class ArtifactBundleIndex(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
@@ -229,7 +232,7 @@ class ArtifactBundleIndex(Model):
 
 @region_silo_only_model
 class ReleaseArtifactBundle(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     release_name = models.CharField(max_length=250)
@@ -250,7 +253,7 @@ class ReleaseArtifactBundle(Model):
 
 @region_silo_only_model
 class DebugIdArtifactBundle(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     debug_id = models.UUIDField()
@@ -267,7 +270,7 @@ class DebugIdArtifactBundle(Model):
 
 @region_silo_only_model
 class ProjectArtifactBundle(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField()

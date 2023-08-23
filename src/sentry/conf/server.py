@@ -760,6 +760,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.check_am2_compatibility",
     "sentry.dynamic_sampling.tasks.collect_orgs",
     "sentry.tasks.statistical_detectors",
+    "sentry.debug_files.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -1134,6 +1135,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.statistical_detectors.run_detection",
         "schedule": crontab(minute=0, hour="*/1"),
     },
+    "backfill-artifact-bundle-index": {
+        "task": "sentry.debug_files.tasks.backfill_artifact_index_updates",
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -1355,6 +1361,8 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
+    # Allow disabling github integrations when broken is detected
+    "organizations:github-disable-on-broken": False,
     # Allow disabling integrations when broken is detected
     "organizations:slack-fatal-disable-on-broken": False,
     # Allow disabling sentryapps when broken is detected
@@ -1605,6 +1613,7 @@ SENTRY_FEATURES = {
     "organizations:session-replay-slack-new-issue": False,
     "organizations:session-replay-issue-emails": False,
     "organizations:session-replay-weekly-email": False,
+    "organizations:session-replay-trial-ended-banner": False,
     "organizations:session-replay-trace-table": False,
     # Enable optimized serach feature.
     "organizations:session-replay-optimized-search": False,
@@ -2370,6 +2379,8 @@ SENTRY_TEAM_ROLES = (
 # See sentry/options/__init__.py for more information
 SENTRY_OPTIONS: dict[str, Any] = {}
 SENTRY_DEFAULT_OPTIONS: dict[str, Any] = {}
+# Raise an error in dev on failed lookups
+SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
 
 # You should not change this setting after your database has been created
 # unless you have altered all schemas first
