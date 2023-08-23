@@ -132,6 +132,10 @@ export default function getConfiguration({
           title: t('Releases'),
         },
         {
+          path: `${pathPrefix}/nel/`,
+          title: t('Network Error Logging'),
+        },
+        {
           path: `${pathPrefix}/security-headers/`,
           title: t('Security Headers'),
         },
