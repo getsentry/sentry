@@ -366,6 +366,7 @@ export default class ModulesTreemap extends Component {
                     <Checkbox
                       checked={context.concatToggle}
                       onChange={() => {
+                        store.showConcatenatedModulesContent = !context.concatToggle;
                         context.setConcatToggle(!context.concatToggle);
                       }}
                     />

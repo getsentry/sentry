@@ -9,6 +9,8 @@ export class Store {
   @observable.ref allChunks;
   @observable.shallow selectedChunks;
   @observable defaultSize;
+  @observable showConcatenatedModulesContent =
+    localStorage.getItem('showConcatenatedModulesContent') === true;
   @observable selectedSize;
 
   setModules(modules) {
