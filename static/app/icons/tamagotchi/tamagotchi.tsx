@@ -25,7 +25,6 @@ function useIssues(project?: Project): {
   resolved: number;
   total: number;
 } {
-  // /organizations/${org}/issues/?&project=${projectId}&statsPeriod=14d
   const organization = useOrganization();
   const {getResponseHeader} = useApiQuery<IssueAlertRule>(
     [
@@ -170,12 +169,12 @@ function getHappiness({
 }) {
   const percentAssigned = assigned / total;
   const percentResolved = resolved / total;
-  const totalHappiness = percentAssigned + percentResolved;
+  const happiness = percentAssigned + percentResolved;
 
   return {
     percentAssigned,
     percentResolved,
-    totalHappiness,
+    happiness,
   };
 }
 
@@ -222,13 +221,12 @@ function Tamagotchi({project}: {project: Project}) {
     organization,
     projectId: project.id,
   });
-  // const health = getHealth(project, sdkUpdates);
 
   const tamagotchiMetrics = useMemo(() => {
     const metrics = {
       energy: getEnergy(alerts.data).energy * 100,
       tidiness: getTidiness(releases.data, project).tidiness * 100,
-      happiness: getHappiness(issues).totalHappiness * 100,
+      happiness: getHappiness(issues).happiness * 100,
       health: getHealth(project, sdkUpdates).health * 100,
     };
     return metrics;
