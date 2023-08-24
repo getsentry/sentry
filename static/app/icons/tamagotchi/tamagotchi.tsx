@@ -33,6 +33,22 @@ const Screens = {
   health: ['SDK Version', 'Has Un-Minified Stack Traces'],
 };
 
+function StartScreen() {
+  return (
+    <CardPanel color="#ffe8ec">
+      <StartTitle>{t('Press Button for new Tamagotchi')}</StartTitle>
+    </CardPanel>
+  );
+}
+
+function TamagotchiHatchingScreen() {
+  return (
+    <CardPanel color="#ffe8ec">
+      <HatchEggImage height={150} alt="tamagotchi" src={tamagotchiEgg} />
+    </CardPanel>
+  );
+}
+
 function TamagotchiMetricScreen({metric}: {metric: string}) {
   const checkBoxes = Screens[metric].map(item => {
     return (
@@ -57,9 +73,12 @@ function TamagotchiMetricScreen({metric}: {metric: string}) {
 
 function Tamagotchi({project}: {project: Project}) {
   const organization = useOrganization();
+  const [start, setStart] = useState(true);
+  const [hatchEgg, setHatchEgg] = useState(true);
   const [currentScore, setCurrentScore] = useState(0);
-  const [currentStage, setCurrentStage] = useState(tamagotchiEgg);
+  const [currentStage, setCurrentStage] = useState();
   const [currentCard, setCurrentCard] = useState(4);
+  const [showDetails, setShowDetails] = useState(false);
 
   const tamagotchiStages = useMemo(() => {
     const stages = {
@@ -67,25 +86,25 @@ function Tamagotchi({project}: {project: Project}) {
         stage: tamagotchiEgg,
         stageName: 'egg',
         stageMinimumScore: 0,
-        stageMaximumScore: 100,
+        maxDepletedCategories: 4,
       },
       1: {
         stage: tamagotchiSad,
         stageName: 'sad',
-        stageMinimumScore: 101,
-        stageMaximumScore: 200,
+        stageMinimumScore: 1,
+        maxDepletedCategories: 3,
       },
       2: {
         stage: tamagotchiMeh,
         stageName: 'meh',
-        stageMinimumScore: 201,
-        stageMaximumScore: 300,
+        stageMinimumScore: 200,
+        maxDepletedCategories: 2,
       },
       3: {
         stage: tamagotchiHappy,
         stageName: 'happy',
-        stageMinimumScore: 301,
-        stageMaximumScore: 400,
+        stageMinimumScore: 300,
+        maxDepletedCategories: 1,
       },
     };
     return stages;
@@ -110,43 +129,69 @@ function Tamagotchi({project}: {project: Project}) {
     return metrics;
   }, [releases, project, alerts, sdkUpdates, issues]);
 
-  useEffect(() => {
-    // Currently allowing 3 seconds for egg to hatch and then set the initial data to the Sad stage
-    setTimeout(() => {
-      setCurrentScore(1);
-      setCurrentStage(tamagotchiStages[1].stage);
-    }, 3000);
-  }, [tamagotchiStages]);
-
   const handleSetCurrentCard = (index: number) => {
+    if (currentCard === 4) {
+      setStart(false);
+    }
+    if (index <= 4) {
+      setShowDetails(true);
+    }
     setCurrentCard(index);
   };
 
   useEffect(() => {
-    const totalScore =
-      tamagotchiMetrics.energy +
-      tamagotchiMetrics.tidiness +
-      tamagotchiMetrics.joy +
-      tamagotchiMetrics.health;
-    if (totalScore !== currentScore) {
-      setCurrentScore(totalScore);
-      Object.keys(tamagotchiStages).map(id => {
-        if (
-          tamagotchiStages[id].stageMinimumScore <= totalScore &&
-          tamagotchiStages[id].stageMaximumScore >= totalScore
-        ) {
-          setCurrentStage(tamagotchiStages[id].stage);
+    if (showDetails) {
+      return;
+    }
+    const calculateScore = () => {
+      let totalScore = 0;
+      const depletedMetrics: string[] = [];
+      Object.keys(tamagotchiMetrics).map(id => {
+        totalScore = totalScore + tamagotchiMetrics[id];
+        if (!tamagotchiMetrics[id]) {
+          depletedMetrics.push(id);
         }
         return id;
       });
+      setCurrentScore(totalScore);
+      if (totalScore) {
+        Object.keys(tamagotchiStages).map(id => {
+          if (tamagotchiStages[id].stageMinimumScore <= totalScore) {
+            if (depletedMetrics.length <= tamagotchiStages[id].maxDepletedCategories) {
+              setCurrentStage(tamagotchiStages[id].stage);
+            }
+          }
+          return id;
+        });
+      }
+    };
+    if (!start && !hatchEgg) {
+      setCurrentCard(6);
+      calculateScore();
+    } else if (!start) {
+      setTimeout(() => {
+        setHatchEgg(false);
+        calculateScore();
+        setCurrentCard(6);
+      }, 3000);
     }
-  }, [currentScore, tamagotchiMetrics, tamagotchiStages]);
+  }, [
+    start,
+    currentScore,
+    tamagotchiMetrics,
+    tamagotchiStages,
+    hatchEgg,
+    showDetails,
+    currentStage,
+  ]);
 
   const cards: EmotionJSX.Element[] = [];
   cards.push(<TamagotchiMetricScreen metric="energy" />);
   cards.push(<TamagotchiMetricScreen metric="tidiness" />);
   cards.push(<TamagotchiMetricScreen metric="joy" />);
   cards.push(<TamagotchiMetricScreen metric="health" />);
+  cards.push(<StartScreen />);
+  cards.push(<TamagotchiHatchingScreen />);
   cards.push(
     <CardPanel color="#ffe8ec">
       <TamagotchiWrapper>
@@ -187,9 +232,13 @@ function Tamagotchi({project}: {project: Project}) {
       <MyButtonContainer>
         <TamagotchiButton />
         <TamagotchiButton
-          isEnabled={currentCard !== 4}
+          isEnabled={currentCard !== 5 && currentCard !== 6}
           onClick={() => {
-            handleSetCurrentCard(4);
+            if (currentCard === 4) {
+              handleSetCurrentCard(5);
+            } else {
+              handleSetCurrentCard(6);
+            }
           }}
         />
         <TamagotchiButton />
@@ -199,6 +248,17 @@ function Tamagotchi({project}: {project: Project}) {
 }
 
 export default Tamagotchi;
+
+const StartTitle = styled('h3')`
+  padding-left: 25px;
+  padding-right: 25px;
+  padding-top: 50px;
+`;
+
+const HatchEggImage = styled('img')`
+  padding-left: 50px;
+  padding-top: 50px;
+`;
 
 const TamagotchiButton = styled('button')<{isEnabled?: boolean}>`
   border-radius: 50%;
