@@ -3,8 +3,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class BackfillTombstones(TestMigrations):
-    migrate_from = "0535_add_created_date_to_outbox_model"
-    migrate_to = "0536_backfill_tombstones"
+    migrate_from = "0536_backfill_tombstones"
+    migrate_to = "0537_adding_athena_demo"
 
     def setup_initial_state(self):
         self.tombstones = [
