@@ -6,6 +6,7 @@ import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
@@ -47,6 +48,29 @@ function ReplayPreview({orgSlug, replaySlug, event, onClickOpenReplay}: Props) {
 
     return 0;
   }, [eventTimestampMs, startTimestampMs]);
+
+  const fullReplayUrl =
+    fetching || !replayRecord
+      ? undefined
+      : {
+          pathname: normalizeUrl(`/organizations/${orgSlug}/replays/${replayId}/`),
+          query: {
+            referrer: getRouteStringFromRoutes(routes),
+            t_main: 'console',
+            t: initialTimeOffsetMs / 1000,
+          },
+        };
+
+  useOmniActions([
+    {
+      key: 'issue-replay',
+      label: t('Watch Replay'),
+      areaKey: 'issue',
+      actionIcon: IconPlay,
+      hidden: !fullReplayUrl,
+      to: fullReplayUrl,
+    },
+  ]);
 
   if (fetchError) {
     const reasons = [
@@ -98,15 +122,6 @@ function ReplayPreview({orgSlug, replaySlug, event, onClickOpenReplay}: Props) {
       />
     );
   }
-
-  const fullReplayUrl = {
-    pathname: normalizeUrl(`/organizations/${orgSlug}/replays/${replayId}/`),
-    query: {
-      referrer: getRouteStringFromRoutes(routes),
-      t_main: 'console',
-      t: initialTimeOffsetMs / 1000,
-    },
-  };
 
   return (
     <ReplayContextProvider
