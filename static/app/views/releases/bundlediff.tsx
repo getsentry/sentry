@@ -14,6 +14,7 @@ import {bundleStats as stats} from 'sentry/views/bundleAnalyzer';
 
 const beforeStats = require('./stats.json');
 
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {CardSection} from 'sentry/views/performance/transactionSummary/transactionVitals/styles';
 
@@ -164,6 +165,19 @@ export default function BundleDiff() {
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
+        <CompactSelect
+          triggerLabel="aecd977f813ca1ac63a4123d5404230084938fa7"
+          value="aecd977f813ca1ac63a4123d5404230084938fa7"
+          triggerProps={{prefix: t('Compare')}}
+          options={[
+            {
+              value: 'aecd977f813ca1ac63a4123d5404230084938fa7',
+              textValue: 'aecd977f813ca1ac63a4123d5404230084938fa7',
+              label: 'aecd977f813ca1ac63a4123d5404230084938fa7',
+            },
+          ]}
+          onChange={() => undefined}
+        />
         <CardWrapper>
           {diff(beforeEntryPoints, entrypoints).map(entrypoint => (
             <StyledCard key={entrypoint.name}>
@@ -285,4 +299,5 @@ export const StatNumber = styled('div')`
 
 export const CardWrapper = styled('div')`
   display: flex;
+  margin-top: ${space(2)};
 `;
