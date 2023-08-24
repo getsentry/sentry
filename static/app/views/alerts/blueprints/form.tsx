@@ -10,7 +10,7 @@ import Input from 'sentry/components/input';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TeamSelector} from 'sentry/components/teamSelector';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -210,6 +210,13 @@ function AlertBlueprintEditorForm({
                 </LinkButton>
                 <Button priority="primary" onClick={() => onSubmit(nodeData)}>
                   {t('Save %s', typeText)}
+                  {type === 'template' && template?.issue_alerts?.length
+                    ? tn(
+                        ' and apply to alert',
+                        ' and apply to %s alerts',
+                        (template?.issue_alerts ?? []).length
+                      )
+                    : null}
                 </Button>
               </EditorControls>
             </EditorContent>

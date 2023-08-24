@@ -80,31 +80,33 @@ function AlertTemplateEditor() {
       help={t('Setup a standard series of actions for Sentry to run for you')}
       onSubmit={handleSubmit}
       aside={
-        <SidebarSection.Wrap>
-          <SidebarSection.Title>
-            {t('Alerts using this template')}
-            <QuestionTooltip
-              title={t('These alerts will update when saving this template')}
-              size="xs"
-            />
-          </SidebarSection.Title>
-          <SidebarSection.Content>
-            {alerts.map((a, i) => {
-              const project = projectsByIds[a.project];
-              const link = `/organizations/${organization.slug}/alerts/rules/${project.slug}/${a.id}/details/`;
-              return (
-                <Fragment key={i}>
-                  <AlertItem>
-                    <AlertItemAvatar size={25} project={project} />
-                    <AlertItemLink to={link}>{a.name}</AlertItemLink>
-                    <AlertItemSubtitle>{project.name}</AlertItemSubtitle>
-                  </AlertItem>
-                  {i !== alerts.length - 1 && <AlertDivider />}
-                </Fragment>
-              );
-            })}
-          </SidebarSection.Content>
-        </SidebarSection.Wrap>
+        alerts.length > 1 ? (
+          <SidebarSection.Wrap>
+            <SidebarSection.Title>
+              {t('Alerts using this template')}
+              <QuestionTooltip
+                title={t('These alerts will update when saving this template')}
+                size="xs"
+              />
+            </SidebarSection.Title>
+            <SidebarSection.Content>
+              {alerts.map((a, i) => {
+                const project = projectsByIds[a.project];
+                const link = `/organizations/${organization.slug}/alerts/rules/${project.slug}/${a.id}/details/`;
+                return (
+                  <Fragment key={i}>
+                    <AlertItem>
+                      <AlertItemAvatar size={25} project={project} />
+                      <AlertItemLink to={link}>{a.name}</AlertItemLink>
+                      <AlertItemSubtitle>{project.name}</AlertItemSubtitle>
+                    </AlertItem>
+                    {i !== alerts.length - 1 && <AlertDivider />}
+                  </Fragment>
+                );
+              })}
+            </SidebarSection.Content>
+          </SidebarSection.Wrap>
+        ) : null
       }
     />
   );

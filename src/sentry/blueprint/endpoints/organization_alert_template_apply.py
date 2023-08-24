@@ -28,7 +28,15 @@ class OrganizationAlertTemplateApplyEndpoint(BlueprintEndpoint):
 
         with transaction.atomic(router.db_for_write(Rule)):
             rule = serializer.validated_data["rule"]
-            rule.data.update(at.issue_alert_data)
+            rule.data.update(
+                {
+                    "action_match": at.issue_alert_data.get("actionMatch", "all"),
+                    "filter_match": at.issue_alert_data.get("filterMatch", "all"),
+                    "frequency": at.issue_alert_data.get("frequency", 1440),
+                    "conditions": at.issue_alert_data.get("conditions", [])
+                    + at.issue_alert_data.get("filters", []),
+                }
+            )
             rule.template_id = at.id
             rule.save()
         return self.respond(status=status.HTTP_202_ACCEPTED)

@@ -43,15 +43,26 @@ class OrganizationAlertTemplateDetailsEndpoint(BlueprintEndpoint):
             issue_alerts = serializer.validated_data.pop("issue_alerts", [])
             issue_alert_actions = serializer.validated_data.pop("issue_alert_actions", [])
             with transaction.atomic(router.db_for_write(AlertTemplate)):
+                at.update(**serializer.validated_data)
                 # Disconnect non-specified alert rules
                 Rule.objects.filter(template_id=at.id).exclude(id__in=issue_alerts).update(
                     template_id=None
                 )
                 if len(issue_alerts) > 0:
-                    Rule.objects.filter(id__in=issue_alerts).update(template_id=at.id)
+                    for rule in Rule.objects.filter(id__in=issue_alerts):
+                        rule.template_id = at.id
+                        rule.data.update(
+                            {
+                                "action_match": at.issue_alert_data.get("actionMatch", "all"),
+                                "filter_match": at.issue_alert_data.get("filterMatch", "all"),
+                                "frequency": at.issue_alert_data.get("frequency", 1440),
+                                "conditions": at.issue_alert_data.get("conditions", [])
+                                + at.issue_alert_data.get("filters", []),
+                            }
+                        )
+                        rule.save()
                 if at.procedure:
                     at.procedure.update(issue_alert_actions=issue_alert_actions)
-                at.update(**serializer.validated_data)
             return self.respond(
                 serialize(at, request.user, AlertTemplateSerializer()),
                 status=status.HTTP_200_OK,
