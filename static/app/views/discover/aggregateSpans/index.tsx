@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
+import {urlEncode} from '@sentry/utils';
 
+import {LinkButton} from 'sentry/components/button';
 import {Spans} from 'sentry/components/events/interfaces/spans';
 import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -149,10 +151,19 @@ function AggregateSpans({params}) {
             <Layout.Side />
             <Layout.Body>
               <SpansContainer>
-                <DescriptionContainer>
-                  This span tree represents a p95 aggregated view of{' '}
-                  <b>{location.query.transaction}</b> transactions.
-                </DescriptionContainer>
+                <Flex>
+                  <DescriptionContainer>
+                    This span tree represents a p95 aggregated view of{' '}
+                    <b>{location.query.transaction}</b> transactions.
+                  </DescriptionContainer>
+                  <LinkButton
+                    to={`/discover/homepage/?query=transaction:${encodeURIComponent(
+                      transaction as string
+                    )}`}
+                  >
+                    View Samples
+                  </LinkButton>
+                </Flex>
                 <Spans
                   event={event}
                   organization={organization}
@@ -191,4 +202,11 @@ const DescriptionContainer = styled('div')`
   margin-bottom: ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray500};
+  margin-top: ${space(1)};
+`;
+
+const Flex = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: ${space(2)};
 `;
