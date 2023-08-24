@@ -15,6 +15,10 @@ export const OnmniSearchInputContext = createContext<
   React.Dispatch<React.SetStateAction<string>>
 >(() => {});
 
+function enabledActionsOnly(action: OmniAction) {
+  return !action.hidden && !action.disabled;
+}
+
 function OmniSearchModal({Body, closeModal}: ModalRenderProps) {
   const searchState = useOmniSearchState();
   const [search, setSearch] = useState('');
@@ -24,7 +28,7 @@ function OmniSearchModal({Body, closeModal}: ModalRenderProps) {
     async function initializeFuse() {
       const {actions} = searchState;
       fuse.current = await createFuzzySearch(
-        actions.map(action => ({
+        actions.filter(enabledActionsOnly).map(action => ({
           ...action,
           keywords: (action.keywords ?? []).concat(
             action.actionType === 'navigate' ? ['open', 'view', 'see', 'navigate'] : []
@@ -41,7 +45,9 @@ function OmniSearchModal({Body, closeModal}: ModalRenderProps) {
   }, [searchState]);
 
   const results = useMemo(() => {
-    const {actions, areas, areaPriority, focusedArea} = searchState;
+    const {areas, areaPriority, focusedArea} = searchState;
+    const actions = searchState.actions.filter(enabledActionsOnly);
+
     const hasSearch = search.length > 1;
     const searchResults = hasSearch
       ? fuse.current?.search(search).map(r => r.item)
