@@ -76,6 +76,10 @@ function ReleaseHeader({
       title: <Fragment>{t('Bundle Diff')}</Fragment>,
       to: `bundle-diff/`,
     },
+    {
+      title: <Fragment>{t('BrowsersList Config')}</Fragment>,
+      to: `browserslist/`,
+    },
   ];
 
   const getTabUrl = (path: string) => ({

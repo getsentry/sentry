@@ -1408,6 +1408,11 @@ function buildRoutes() {
               component={make(() => import('sentry/views/releases/bundlediff'))}
             />
           </Route>
+          <Route path="browserslist/">
+            <IndexRoute
+              component={make(() => import('sentry/views/releases/browserslist'))}
+            />
+          </Route>
           <IndexRoute
             component={make(() => import('sentry/views/releases/detail/overview'))}
           />
