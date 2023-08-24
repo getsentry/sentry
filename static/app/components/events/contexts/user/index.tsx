@@ -76,7 +76,7 @@ export function UserEventContext({data, event}: Props) {
               key,
               value,
               subject: key,
-              meta: meta[key]?.[''],
+              meta: getChildMetaContainer(meta, key),
             }))}
             isContextData
           />

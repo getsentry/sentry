@@ -5,6 +5,7 @@ import ContextSummary from 'sentry/components/events/contextSummary';
 import {ContextSummaryGPU} from 'sentry/components/events/contextSummary/contextSummaryGPU';
 import {ContextSummaryOS} from 'sentry/components/events/contextSummary/contextSummaryOS';
 import {ContextSummaryUser} from 'sentry/components/events/contextSummary/contextSummaryUser';
+import {castAsMetaContainer} from 'sentry/components/events/meta/metaContainer';
 import {FILTER_MASK} from 'sentry/constants';
 
 const CONTEXT_USER = {
@@ -195,7 +196,7 @@ describe('OsSummary', function () {
             version: '10.13.4',
             name: 'Mac OS X',
           }}
-          meta={{}}
+          meta={castAsMetaContainer({})}
         />
       );
       expect(container).toSnapshot();
@@ -208,7 +209,7 @@ describe('OsSummary', function () {
             kernel_version: '17.5.0',
             name: 'Mac OS X',
           }}
-          meta={{}}
+          meta={castAsMetaContainer({})}
         />
       );
       expect(container).toSnapshot();
@@ -220,7 +221,7 @@ describe('OsSummary', function () {
           data={{
             name: 'Mac OS X',
           }}
-          meta={{}}
+          meta={castAsMetaContainer({})}
         />
       );
       expect(container).toSnapshot();
@@ -233,14 +234,14 @@ describe('OsSummary', function () {
             name: '',
             version: '10',
           }}
-          meta={{
+          meta={castAsMetaContainer({
             name: {
               '': {
                 rem: [['project:0', 's', 0, 0]],
                 len: 19,
               },
             },
-          }}
+          })}
         />
       );
       await userEvent.hover(screen.getByText(/redacted/));
@@ -260,14 +261,14 @@ describe('OsSummary', function () {
             name: false,
             version: false,
           }}
-          meta={{
+          meta={castAsMetaContainer({
             name: {
               '': {
                 rem: [['project:0', 's', 0, 0]],
                 len: 19,
               },
             },
-          }}
+          })}
         />
       );
       await userEvent.hover(screen.getByText(/redacted/));
@@ -291,7 +292,7 @@ describe('GpuSummary', function () {
             name: 'Mali-T880',
             vendor_name: 'ARM',
           }}
-          meta={{}}
+          meta={castAsMetaContainer({})}
         />
       );
       expect(container).toSnapshot();
@@ -303,7 +304,7 @@ describe('GpuSummary', function () {
           data={{
             name: 'Apple A8 GPU',
           }}
-          meta={{}}
+          meta={castAsMetaContainer({})}
         />
       );
       expect(container).toSnapshot();
@@ -315,14 +316,14 @@ describe('GpuSummary', function () {
           data={{
             name: '',
           }}
-          meta={{
+          meta={castAsMetaContainer({
             name: {
               '': {
                 rem: [['project:0', 's', 0, 0]],
                 len: 19,
               },
             },
-          }}
+          })}
         />
       );
       await userEvent.hover(screen.getByText(/redacted/));
@@ -348,7 +349,9 @@ describe('UserSummary', function () {
         name: 'Maisey Dog',
       };
 
-      const {rerender} = render(<ContextSummaryUser data={user1} meta={{}} />);
+      const {rerender} = render(
+        <ContextSummaryUser data={user1} meta={castAsMetaContainer({})} />
+      );
       expect(screen.getByText(user1.email)).toBeInTheDocument();
 
       const user2 = {
@@ -358,7 +361,7 @@ describe('UserSummary', function () {
         name: 'Maisey Dog',
       };
 
-      rerender(<ContextSummaryUser data={user2} meta={{}} />);
+      rerender(<ContextSummaryUser data={user2} meta={castAsMetaContainer({})} />);
       expect(screen.getByTestId('user-title')?.textContent).toEqual(user2.ip_address);
 
       const user3 = {
@@ -374,7 +377,7 @@ describe('UserSummary', function () {
             username: 'maiseythedog',
             name: 'Maisey Dog',
           }}
-          meta={{}}
+          meta={castAsMetaContainer({})}
         />
       );
       expect(screen.getByTestId('user-title')?.textContent).toEqual(user3.id);
@@ -384,7 +387,7 @@ describe('UserSummary', function () {
         name: 'Maisey Dog',
       };
 
-      rerender(<ContextSummaryUser data={user4} meta={{}} />);
+      rerender(<ContextSummaryUser data={user4} meta={castAsMetaContainer({})} />);
       expect(screen.getByTestId('user-title')).toHaveTextContent(user4.username);
     });
 
@@ -394,7 +397,7 @@ describe('UserSummary', function () {
           data={{
             name: 'Maisey Dog',
           }}
-          meta={{}}
+          meta={castAsMetaContainer({})}
         />
       );
       expect(screen.queryByTestId('user-title')).not.toBeInTheDocument();
@@ -407,7 +410,7 @@ describe('UserSummary', function () {
           data={{
             email: FILTER_MASK,
           }}
-          meta={{}}
+          meta={castAsMetaContainer({})}
         />
       );
       expect(screen.queryByTestId('user-title')).not.toBeInTheDocument();
@@ -423,7 +426,7 @@ describe('UserSummary', function () {
           data={{
             id: FILTER_MASK,
           }}
-          meta={{}}
+          meta={castAsMetaContainer({})}
         />
       );
       expect(screen.queryByTestId('user-title')).not.toBeInTheDocument();
@@ -434,7 +437,7 @@ describe('UserSummary', function () {
           data={{
             username: FILTER_MASK,
           }}
-          meta={{}}
+          meta={castAsMetaContainer({})}
         />
       );
       expect(screen.queryByTestId('user-title')).not.toBeInTheDocument();
@@ -452,7 +455,7 @@ describe('UserSummary', function () {
             id: '26',
             name: FILTER_MASK,
           }}
-          meta={{}}
+          meta={castAsMetaContainer({})}
         />
       );
       expect(screen.getByText('?')).toBeInTheDocument();
@@ -463,7 +466,7 @@ describe('UserSummary', function () {
             id: '26',
             email: FILTER_MASK,
           }}
-          meta={{}}
+          meta={castAsMetaContainer({})}
         />
       );
       expect(screen.getByText('?')).toBeInTheDocument();
@@ -474,7 +477,7 @@ describe('UserSummary', function () {
             id: '26',
             username: FILTER_MASK,
           }}
-          meta={{}}
+          meta={castAsMetaContainer({})}
         />
       );
       expect(screen.getByText('?')).toBeInTheDocument();
@@ -487,14 +490,14 @@ describe('UserSummary', function () {
             name: 'Maisey Dog',
             email: '',
           }}
-          meta={{
+          meta={castAsMetaContainer({
             email: {
               '': {
                 rem: [['project:0', 's', 0, 0]],
                 len: 19,
               },
             },
-          }}
+          })}
         />
       );
       await userEvent.hover(screen.getByText(/redacted/));
