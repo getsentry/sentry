@@ -94,7 +94,7 @@ export function getEnergy(alerts?: CombinedMetricIssueAlerts[]): {
   const hasMetricAlerts = Boolean(metricAlerts && metricAlerts.length > 0);
   const energy = {hasIssueAlerts, hasMetricAlerts, energy: 0};
 
-  if ((hasIssueAlerts && !hasMetricAlerts) || (!hasMetricAlerts && hasIssueAlerts)) {
+  if ((hasIssueAlerts && !hasMetricAlerts) || (hasMetricAlerts && !hasIssueAlerts)) {
     energy.energy = 0.5;
   }
   if (hasIssueAlerts && hasMetricAlerts) {
