@@ -14,7 +14,7 @@ import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Sidebar from 'sentry/components/sidebar';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
-import {IconSettings} from 'sentry/icons';
+import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import ConfigStore from 'sentry/stores/configStore';
@@ -66,6 +66,15 @@ function RegisterOmniActions({organization}: {organization: Organization}) {
       actionIcon: makeIconWithArrow(IconSettings),
       actionType: 'settings',
       to: normalizeUrl(`/organizations/${organization.slug}/settings/organization`),
+    },
+    {
+      key: 'add-integration',
+      areaKey: 'add',
+      label: t('Connect Integration'),
+      actionIcon: IconAdd,
+      to: normalizeUrl(
+        `/organizations/${organization.slug}/settings/organization/integrations/`
+      ),
     },
   ]);
 

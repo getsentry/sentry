@@ -1,7 +1,6 @@
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {makeIconWithArrow} from 'sentry/components/iconWithArrow';
 import {
-  IconAdd,
   IconBroadcast,
   IconChevron,
   IconDashboard,
@@ -66,13 +65,6 @@ export function useGlobalOmniActions() {
       label: t('Add new Monitor'),
       actionIcon: IconTimer,
       to: normalizeUrl('/crons/create/'),
-    },
-    {
-      key: 'add-integration',
-      areaKey: 'add',
-      label: t('Connect Integration'),
-      actionIcon: IconAdd,
-      to: normalizeUrl('/settings/integrations/'),
     },
     {
       key: 'add-team-member',
