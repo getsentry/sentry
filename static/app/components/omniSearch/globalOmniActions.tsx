@@ -118,7 +118,7 @@ export function useGlobalOmniActions() {
       areaKey: 'help',
       label: t('View Changelog'),
       actionIcon: IconBroadcast,
-      to: 'https://changelog.getsentry.net',
+      to: 'https://changelog.getsentry.com',
     },
     {
       key: 'toggle-theme',
