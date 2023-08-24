@@ -43,13 +43,18 @@ function AggregateSpans({params}) {
   const organization = useOrganization();
   const location = useLocation();
   const transaction = location.query.transaction;
+  const transactionMethod = location.query.method;
 
   const eventSlug = typeof params.eventSlug === 'string' ? params.eventSlug.trim() : '';
 
   const spans = useQuery<{children: {}}[]>({
     queryKey: ['spans', {eventSlug}],
     queryFn: async () => {
-      const response = await fetch(`http://localhost:8080/?transaction=${transaction}`);
+      const response = await fetch(
+        `http://localhost:8080/?transaction=${transaction}${
+          transactionMethod ? `&transaction_method=${transactionMethod}` : ''
+        }`
+      );
       return await response.json();
     },
     initialData: [],
@@ -158,7 +163,11 @@ function AggregateSpans({params}) {
                   <LinkButton
                     to={`/discover/homepage/?query=transaction:${encodeURIComponent(
                       transaction as string
-                    )}`}
+                    )} http.method:${
+                      transactionMethod
+                        ? encodeURIComponent(transactionMethod as string)
+                        : 'GET'
+                    }`}
                   >
                     View Samples
                   </LinkButton>
