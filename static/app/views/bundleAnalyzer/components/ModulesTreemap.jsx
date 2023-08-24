@@ -4,7 +4,6 @@ import {computed} from 'mobx';
 import {observer} from 'mobx-react';
 
 import Checkbox from 'sentry/components/checkbox';
-import {Label} from 'sentry/components/editableText';
 import Input from 'sentry/components/input';
 
 import {BundleContext} from '../bundleContextProvider';
@@ -362,7 +361,6 @@ export default class ModulesTreemap extends Component {
                 />
                 {store.hasConcatenatedModules && (
                   <div className={s.showOption}>
-                    <Label>Show concatenated modules</Label>
                     <Checkbox
                       checked={context.concatToggle}
                       onChange={() => {
@@ -370,6 +368,7 @@ export default class ModulesTreemap extends Component {
                         context.setConcatToggle(!context.concatToggle);
                       }}
                     />
+                    <span style={{textAlign: 'center'}}>Show concatenated modules</span>
                   </div>
                 )}
               </div>
@@ -448,3 +447,7 @@ export default class ModulesTreemap extends Component {
     );
   }
 }
+
+// export const InputLabel = ({children, label}) => {
+//   return <Label>{label}</Label>;
+// };
