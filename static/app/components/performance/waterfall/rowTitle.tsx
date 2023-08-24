@@ -25,6 +25,7 @@ export const RowTitle = styled('div')`
 
 export const RowTitleContent = styled('span')<{errored: boolean}>`
   color: ${p => (p.errored ? p.theme.error : 'inherit')};
+  overflow: hidden;
 `;
 
 export const SpanGroupRowTitleContent = styled('span')<{color: string}>`

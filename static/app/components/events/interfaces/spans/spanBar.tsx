@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 
 import Count from 'sentry/components/count';
+import AggregateSpanDetail from 'sentry/components/events/interfaces/spans/aggregateSpanDetail';
 import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
@@ -49,6 +50,7 @@ import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {formatPercentage} from 'sentry/utils/formatters';
 import toPercent from 'sentry/utils/number/toPercent';
 import {
   QuickTraceContext,
@@ -305,8 +307,11 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
+    const isAggregateSpan = location.pathname === '/aggregate-spans/';
+    const SpanDetailComponent = isAggregateSpan ? AggregateSpanDetail : SpanDetail;
+
     return (
-      <SpanDetail
+      <SpanDetailComponent
         span={span}
         organization={organization}
         event={event}
@@ -982,7 +987,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     return (
       <RowCellContainer showDetail={this.state.showDetail}>
-        <RowCell
+        <TitleRowCell
           data-type="span-row-cell"
           showDetail={this.state.showDetail}
           style={{
@@ -995,7 +1000,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
           ref={this.spanTitleRef}
         >
           {this.renderTitle(errors)}
-        </RowCell>
+        </TitleRowCell>
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
           {this.renderErrorBadge(errors)}
@@ -1081,6 +1086,8 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       : null;
 
     const durationDisplay = getDurationDisplay(bounds);
+    // @ts-ignore
+    const frequency = span?.frequency;
     return (
       <Fragment>
         <RowRectangle
@@ -1102,6 +1109,9 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
           </DurationPill>
         </RowRectangle>
         {subSpans}
+        <PercentageContainer>
+          <Percentage>{frequency && formatPercentage(frequency)}</Percentage>
+        </PercentageContainer>
       </Fragment>
     );
   }
@@ -1184,3 +1194,20 @@ const StyledIconWarning = styled(IconWarning)`
 const Regroup = styled('span')``;
 
 export const ProfiledSpanBar = withProfiler(SpanBar);
+
+const PercentageContainer = styled('div')`
+  position: absolute;
+  left: 100%;
+  padding-left: 10px;
+  white-space: nowrap;
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const Percentage = styled('div')`
+  position: fixed;
+`;
+
+const TitleRowCell = styled(RowCell)`
+  overflow: hidden !important;
+`;

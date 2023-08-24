@@ -17,7 +17,7 @@ export const Row = styled('div')<RowProps>`
   border-top: ${p => (p.showBorder ? `1px solid ${p.theme.border}` : null)};
   margin-top: ${p => (p.showBorder ? '-1px' : null)}; /* to prevent offset on toggle */
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   min-height: ${ROW_HEIGHT}px;
   cursor: ${p => p.cursor ?? 'pointer'};
   transition: background-color 0.15s ease-in-out;
@@ -40,7 +40,7 @@ export const RowCellContainer = styled('div')<RowCellProps>`
   height: ${ROW_HEIGHT}px;
 
   /* for virtual scrollbar */
-  overflow: hidden;
+  overflow: visible;
 
   user-select: none;
 
@@ -53,7 +53,7 @@ export const RowCellContainer = styled('div')<RowCellProps>`
 export const RowCell = styled('div')<RowCellProps>`
   position: relative;
   height: 100%;
-  overflow: hidden;
+  overflow: visible;
   background-color: ${p => getBackgroundColor(p)};
   transition: background-color 125ms ease-in-out;
   color: ${p => (p.showDetail ? p.theme.background : 'inherit')};

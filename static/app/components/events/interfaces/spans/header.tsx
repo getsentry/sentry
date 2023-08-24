@@ -435,6 +435,9 @@ class TraceViewHeader extends Component<PropType, State> {
                   dividerPosition={dividerPosition}
                 />
               ) : null}
+              <PercentageHeader>
+                <Percentage>% Of Transactions That Have This Span</Percentage>
+              </PercentageHeader>
             </SecondaryHeader>
           );
         }}
@@ -958,7 +961,7 @@ export const SecondaryHeader = styled('div')<{hasProfileMeasurementsChart?: bool
   background-color: ${p => p.theme.backgroundSecondary};
   display: flex;
   border-top: 1px solid ${p => p.theme.border};
-  overflow: hidden;
+  overflow: visible;
 `;
 
 const OperationsBreakdown = styled('div')`
@@ -974,5 +977,17 @@ const RightSidePane = styled('div')`
   position: absolute;
   top: 0;
 `;
+
+const PercentageHeader = styled('div')`
+  position: absolute;
+  left: 100%;
+  padding-left: 10px;
+  white-space: nowrap;
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: bold;
+`;
+
+const Percentage = styled('div')``;
 
 export default TraceViewHeader;

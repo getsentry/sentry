@@ -20,6 +20,7 @@ function formatSpan(span) {
     'p95(exclusive_time)': exclusive_time,
     'p50(offset)': offset,
     parent_start_timestamp,
+    'uniq(transaction_id)': count,
     ...rest
   } = span;
   const start_timestamp = (parent_start_timestamp ?? 0) + offset;
@@ -32,7 +33,8 @@ function formatSpan(span) {
     op,
     timestamp: start_timestamp + exclusive_time / 1000,
     start_timestamp,
-    trace_id: '10ff38656613473bac1675edfe1e17d5', // TODO
+    trace_id: '10ff38656613473bac1675edfe1e17d5', // not actually trace_id just a placeholder
+    count,
   };
 }
 
@@ -67,6 +69,12 @@ function AggregateSpans({params}) {
       );
     }
   }
+
+  const maxCount = Math.max(...flattenedSpans.map(span => span.count));
+  // Not exactly correct because maxCount isnt guaranteed to be to total number of transactions
+  flattenedSpans.forEach(span => {
+    span.frequency = span.count / maxCount;
+  });
 
   const event: EventTransaction = {
     contexts: {
@@ -133,9 +141,7 @@ function AggregateSpans({params}) {
     >
       <Layout.Page>
         <NoProjectMessage organization={organization}>
-          <TitleWrapper>
-            <StyledEventOrGroupTitle data={event} />
-          </TitleWrapper>
+          <TitleWrapper>Aggregate Span Tree - {location.query.transaction}</TitleWrapper>
           <Layout.Main>
             <Layout.Header />
             <Layout.Side />
@@ -154,11 +160,9 @@ function AggregateSpans({params}) {
 export default AggregateSpans;
 
 const TitleWrapper = styled('div')`
-  margin-top: 20px;
-`;
-
-const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
+  padding: 0px 30px;
   font-size: ${p => p.theme.headerFontSize};
+  margin-top: 20px;
 `;
 
 const SpansContainer = styled('div')`
