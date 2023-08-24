@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {flatten} from 'lodash';
 
 import {LinkButton} from 'sentry/components/button';
 import {Spans} from 'sentry/components/events/interfaces/spans';
@@ -22,6 +23,7 @@ function formatSpan(span) {
     'p95(offset)': offset,
     parent_start_timestamp,
     'uniq(transaction_id)': count,
+    'p95(duration)': duration,
     ...rest
   } = span;
   const start_timestamp = (parent_start_timestamp ?? 0) + offset;
@@ -32,10 +34,11 @@ function formatSpan(span) {
     description,
     exclusive_time,
     op,
-    timestamp: start_timestamp + exclusive_time / 1000,
+    timestamp: start_timestamp + duration,
     start_timestamp,
-    trace_id: '10ff38656613473bac1675edfe1e17d5', // not actually trace_id just a placeholder
+    trace_id: '1', // not actually trace_id just a placeholder
     count,
+    duration,
   };
 }
 
@@ -81,23 +84,18 @@ function AggregateSpans({params}) {
   flattenedSpans.forEach(span => {
     span.frequency = span.count / maxCount;
   });
+  const [parentSpan, ...childFlattenedSpans] = flattenedSpans;
 
   const event: EventTransaction = {
     contexts: {
       trace: {
-        trace_id: '10ff38656613473bac1675edfe1e17d5',
-        span_id: '9e324eaff5381c5f',
-        op: 'navigation',
-        status: 'unknown',
-        exclusive_time: 842.501163,
-        hash: '681ce0178e0f10c0',
-        type: 'trace',
+        ...parentSpan,
       },
     },
     endTimestamp: 0,
     entries: [
       {
-        data: flattenedSpans as RawSpanType[],
+        data: childFlattenedSpans as RawSpanType[],
         type: EntryType.SPANS,
       },
     ],
