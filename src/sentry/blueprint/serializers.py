@@ -190,7 +190,9 @@ class IncomingAlertTemplateSerializer(ModelSerializer):
         return incoming_issue_alerts
 
     def validate_owner(self, owner):
-        return owner.resolve_to_actor()
+        if owner:
+            return owner.resolve_to_actor()
+        return owner
 
     def validate(self, attrs):
         return validate_actions(attrs)

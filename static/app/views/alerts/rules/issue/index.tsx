@@ -79,7 +79,7 @@ import {getProjectOptions} from '../utils';
 import RuleNodeList from './ruleNodeList';
 import SetupAlertIntegrationButton from './setupAlertIntegrationButton';
 
-const FREQUENCY_OPTIONS = [
+export const FREQUENCY_OPTIONS = [
   {value: '5', label: t('5 minutes')},
   {value: '10', label: t('10 minutes')},
   {value: '30', label: t('30 minutes')},
@@ -91,18 +91,18 @@ const FREQUENCY_OPTIONS = [
   {value: '43200', label: t('30 days')},
 ];
 
-const ACTION_MATCH_OPTIONS = [
+export const ACTION_MATCH_OPTIONS = [
   {value: 'all', label: t('all')},
   {value: 'any', label: t('any')},
   {value: 'none', label: t('none')},
 ];
 
-const ACTION_MATCH_OPTIONS_MIGRATED = [
+export const ACTION_MATCH_OPTIONS_MIGRATED = [
   {value: 'all', label: t('all')},
   {value: 'any', label: t('any')},
 ];
 
-const defaultRule: UnsavedIssueAlertRule = {
+export const defaultRule: UnsavedIssueAlertRule = {
   actionMatch: 'any',
   filterMatch: 'all',
   actions: [],

@@ -62,7 +62,9 @@ function AlertProcedureList() {
   if (nameQuery?.length) {
     const nameQueryString =
       typeof nameQuery === 'object' ? JSON.stringify(nameQuery) : nameQuery;
-    queryProcedures = queryProcedures.filter(p => p.label.includes(nameQueryString));
+    queryProcedures = queryProcedures.filter(p =>
+      p.label.toLowerCase().includes(nameQueryString.toLowerCase())
+    );
   }
   if (teamQuery?.length) {
     const teamQueryArray = typeof teamQuery === 'string' ? [teamQuery] : teamQuery;

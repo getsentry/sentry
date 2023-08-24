@@ -62,7 +62,9 @@ function AlertTemplateList() {
   if (nameQuery?.length) {
     const nameQueryString =
       typeof nameQuery === 'object' ? JSON.stringify(nameQuery) : nameQuery;
-    queryTemplates = queryTemplates.filter(tmpl => tmpl.name.includes(nameQueryString));
+    queryTemplates = queryTemplates.filter(tmpl =>
+      tmpl.name.toLowerCase().includes(nameQueryString.toLowerCase())
+    );
   }
   if (teamQuery?.length) {
     const teamQueryArray = typeof teamQuery === 'string' ? [teamQuery] : teamQuery;

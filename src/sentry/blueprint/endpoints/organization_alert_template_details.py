@@ -49,7 +49,8 @@ class OrganizationAlertTemplateDetailsEndpoint(BlueprintEndpoint):
                 )
                 if len(issue_alerts) > 0:
                     Rule.objects.filter(id__in=issue_alerts).update(template_id=at.id)
-                at.procedure.update(issue_alert_actions=issue_alert_actions)
+                if at.procedure:
+                    at.procedure.update(issue_alert_actions=issue_alert_actions)
                 at.update(**serializer.validated_data)
             return self.respond(
                 serialize(at, request.user, AlertTemplateSerializer()),

@@ -12,18 +12,13 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IssueOwnership} from 'sentry/types';
-import {IssueAlertRuleConditionTemplate} from 'sentry/types/alerts';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import AlertProcedureNodeForm from 'sentry/views/alerts/blueprints/procedures/form';
+import AlertTemplateNodeForm from 'sentry/views/alerts/blueprints/templates/form';
 import {AlertProcedure, AlertTemplate} from 'sentry/views/alerts/blueprints/types';
-import {IssueAlertRuleConfig} from 'sentry/views/alerts/rules/issue';
-import RuleNodeList from 'sentry/views/alerts/rules/issue/ruleNodeList';
-import {
-  CHANGE_ALERT_CONDITION_IDS,
-  CHANGE_ALERT_PLACEHOLDERS_LABELS,
-} from 'sentry/views/alerts/utils/constants';
+import {defaultRule, IssueAlertRuleConfig} from 'sentry/views/alerts/rules/issue';
 
 interface AlertBlueprintEditorFormProps {
   help: string;
@@ -51,15 +46,16 @@ function AlertBlueprintEditorForm({
     {staleTime: 0}
   );
 
-  const {data: ownership = {} as IssueOwnership} = useApiQuery<IssueOwnership>(
-    [`/projects/${organization.slug}/${project.slug}/ownership/`],
-    {staleTime: 0}
-  );
-
   const [nodeData, setNodeData] = useState<any>({
     actions: procedure?.issue_alert_actions ?? [],
     filters: template?.issue_alert_data?.filters ?? [],
     conditions: template?.issue_alert_data?.conditions ?? [],
+    filterMatch: template?.issue_alert_data?.filterMatch ?? defaultRule.filterMatch,
+    actionMatch: template?.issue_alert_data?.actionMatch ?? defaultRule.actionMatch,
+    frequency: template?.issue_alert_data?.frequency ?? defaultRule.frequency,
+    name: procedure?.label ?? template?.name,
+    description: procedure?.description ?? template?.description,
+    owner: procedure?.owner ?? template?.owner,
   });
 
   useEffect(() => {
@@ -69,12 +65,17 @@ function AlertBlueprintEditorForm({
         actions: procedure?.issue_alert_actions ?? [],
         filters: template?.issue_alert_data?.filters ?? [],
         conditions: template?.issue_alert_data?.conditions ?? [],
+        filterMatch: template?.issue_alert_data?.filterMatch ?? defaultRule.filterMatch,
+        actionMatch: template?.issue_alert_data?.actionMatch ?? defaultRule.actionMatch,
+        frequency: template?.issue_alert_data?.frequency ?? defaultRule.frequency,
+        name: procedure?.label ?? template?.name,
+        description: procedure?.description ?? template?.description,
+        owner: procedure?.owner ?? template?.owner,
       },
     }));
   }, [template, procedure]);
 
   const typeText = capitalize(type);
-
   const pageTitle = identifier === 'new' ? `New ${typeText}` : `Editing ${typeText}`;
 
   function handleNodeUpdate(
@@ -106,69 +107,28 @@ function AlertBlueprintEditorForm({
     }
   }
 
+  function handleFieldUpdate(fieldName: string, value: any) {
+    setNodeData({...nodeData, [fieldName]: value});
+  }
+
   function renderNodeList() {
     return type === 'procedure' ? (
-      <RuleNodeList
-        nodes={configs?.actions ?? null}
-        selectType="grouped"
-        items={nodeData?.actions ?? []}
-        placeholder={t('Add action...')}
-        organization={organization}
+      <AlertProcedureNodeForm
+        configs={configs}
+        handleNodeUpdate={handleNodeUpdate}
         project={project}
-        ownership={ownership}
-        disabled={false}
-        onResetRow={() => {}}
-        error={null}
-        onPropertyChange={(ruleIndex, prop, val) =>
-          handleNodeUpdate('actions', 'change', {ruleIndex, prop, val})
-        }
-        onAddRow={val => handleNodeUpdate('actions', 'add', {val})}
-        onDeleteRow={ruleIndex => handleNodeUpdate('actions', 'delete', {ruleIndex})}
+        organization={organization}
+        nodeData={nodeData}
       />
     ) : (
-      <Fragment>
-        <RuleNodeList
-          nodes={
-            configs?.conditions?.map(condition =>
-              CHANGE_ALERT_CONDITION_IDS.includes(condition.id)
-                ? ({
-                    ...condition,
-                    label: CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id],
-                  } as IssueAlertRuleConditionTemplate)
-                : condition
-            ) ?? null
-          }
-          items={nodeData?.conditions ?? []}
-          selectType="grouped"
-          placeholder={t('Add triggers...')}
-          onResetRow={() => {}}
-          organization={organization}
-          project={project}
-          disabled={false}
-          error={null}
-          onPropertyChange={(ruleIndex, prop, val) =>
-            handleNodeUpdate('conditions', 'change', {ruleIndex, prop, val})
-          }
-          onAddRow={val => handleNodeUpdate('conditions', 'add', {val})}
-          onDeleteRow={ruleIndex => handleNodeUpdate('conditions', 'delete', {ruleIndex})}
-        />
-
-        <RuleNodeList
-          nodes={configs?.filters ?? null}
-          items={nodeData?.filters ?? []}
-          placeholder={t('Add filters...')}
-          organization={organization}
-          project={project}
-          disabled={false}
-          error={null}
-          onPropertyChange={(ruleIndex, prop, val) =>
-            handleNodeUpdate('filters', 'change', {ruleIndex, prop, val})
-          }
-          onAddRow={val => handleNodeUpdate('filters', 'add', {val})}
-          onDeleteRow={ruleIndex => handleNodeUpdate('filters', 'delete', {ruleIndex})}
-          onResetRow={() => {}}
-        />
-      </Fragment>
+      <AlertTemplateNodeForm
+        configs={configs}
+        handleNodeUpdate={handleNodeUpdate}
+        handleFieldUpdate={handleFieldUpdate}
+        project={project}
+        organization={organization}
+        nodeData={nodeData}
+      />
     );
   }
 
@@ -195,7 +155,7 @@ function AlertBlueprintEditorForm({
           <Layout.Title>
             {identifier === 'new'
               ? `Create a new ${type}`
-              : procedure?.label || template?.name || null}
+              : procedure?.label ?? template?.name ?? null}
           </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
@@ -221,30 +181,28 @@ function AlertBlueprintEditorForm({
                   name={`${type}-name`}
                   placeholder={t('Enter %s name', type)}
                   autoComplete="off"
-                  onChange={e => setNodeData({...nodeData, name: e.target.value})}
+                  onChange={e => handleFieldUpdate('name', e.target.value)}
+                  value={nodeData?.name}
                 />
                 <TeamField
+                  includeUnassigned
                   organization={organization}
-                  onChange={opt =>
-                    setNodeData({...nodeData, owner: `team:${opt.actor.id}`})
-                  }
+                  onChange={opt => handleFieldUpdate('owner', `team:${opt.value}`)}
+                  useId
+                  value={nodeData.owner ? nodeData.owner.split(':')[1] : null}
                 />
                 <DescriptionField
                   name="description"
                   placeholder={t('(optional) Here is a description for this %s...', type)}
-                  onChange={e => setNodeData({...nodeData, description: e.target.value})}
+                  onChange={e => handleFieldUpdate('description', e.target.value)}
+                  value={nodeData?.description}
                 />
               </EditorDetails>
               <EditorControls>
                 <LinkButton to={`/organizations/${organization.slug}/alerts/${type}/`}>
                   {t('Cancel')}
                 </LinkButton>
-                <Button
-                  priority="primary"
-                  onClick={() => {
-                    onSubmit(nodeData);
-                  }}
-                >
+                <Button priority="primary" onClick={() => onSubmit(nodeData)}>
                   {t('Save %s', typeText)}
                 </Button>
               </EditorControls>

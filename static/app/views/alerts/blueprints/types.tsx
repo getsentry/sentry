@@ -9,6 +9,7 @@ export interface AlertTemplate {
     conditions: IssueAlertRuleCondition[];
     filterMatch: 'all' | 'any' | 'none';
     filters: IssueAlertRuleCondition[];
+    frequency: number;
   };
   issue_alerts: {id: number; name: string; project: number}[];
   name: string;
