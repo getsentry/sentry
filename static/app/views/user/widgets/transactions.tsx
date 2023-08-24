@@ -164,7 +164,7 @@ export function TransactionWidget({userKey, userValue}: Props) {
                         })}
                         containerDisplayMode="block"
                       >
-                        <ScoreBar
+                        <FailureRateBar
                           size={20}
                           score={Math.round(failureRate * palette.length)}
                           palette={palette}
@@ -235,6 +235,11 @@ const StyledDuration = styled(Duration)<{ms?: number}>`
       : p.ms <= 5000
       ? `color: ${p.theme.yellow300};`
       : `color: ${p.theme.red300};`)}
+`;
+
+const FailureRateBar = styled(ScoreBar)`
+  display: flex;
+  justify-content: flex-end;
 `;
 
 const SmallOSCell = styled(OSCell)`
