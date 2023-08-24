@@ -1090,7 +1090,6 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     const durationDisplay = getDurationDisplay(bounds);
     // @ts-ignore
     const frequency = span?.frequency;
-    console.log(frequency);
     return (
       <Fragment>
         <RowRectangle
@@ -1113,14 +1112,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
         </RowRectangle>
         {subSpans}
         <PercentageContainer>
-          <Percentage>
-            {frequency &&
-              (frequency > 0.3 ? (
-                <b>{formatPercentage(frequency)}</b>
-              ) : (
-                formatPercentage(frequency)
-              ))}
-          </Percentage>
+          <Percentage>{frequency && formatPercentage(frequency)}</Percentage>
         </PercentageContainer>
       </Fragment>
     );
