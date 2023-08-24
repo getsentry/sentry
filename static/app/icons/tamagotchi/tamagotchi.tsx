@@ -9,7 +9,9 @@ import tamagotchiMeh from 'sentry-images/tamagotchi/meh.gif';
 import tamagotchiSad from 'sentry-images/tamagotchi/sad.gif';
 
 import {Button, ButtonLabel} from 'sentry/components/button';
-import {t} from 'sentry/locale';
+import Checkbox from 'sentry/components/checkbox';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -23,6 +25,35 @@ import {
   useIssues,
 } from 'sentry/views/projectDetail/tamagotchi/utils';
 import {useReleases} from 'sentry/views/starfish/queries/useReleases';
+
+const Screens = {
+  energy: ['Issue Alerts Are Configured', 'Metric Alerts Are Configured'],
+  tidiness: ['Releases Are Being Created', 'Projects Are Using Environments'],
+  joy: ['Issues Are Assigned', 'Issues Get Resolved'],
+  health: ['SDK Version', 'Has Un-Minified Stack Traces'],
+};
+
+function TamagotchiMetricScreen({metric}: {metric: string}) {
+  const checkBoxes = Screens[metric].map(item => {
+    return (
+      <CheckboxWrapper key={item}>
+        <Checkbox checkboxColor="black" checked />
+        <h6>{tct('[item]', {item})}</h6>
+      </CheckboxWrapper>
+    );
+  });
+  return (
+    <CardPanel color="#ffe8ec">
+      <TamagotchiMetric key={metric} style={{display: 'flex', alignItems: 'start'}}>
+        <MetricHeadingWrapper>
+          <h3>{tct('[metric]', {metric})}</h3>
+          <QuestionTooltip title="more info" size="sm" />
+        </MetricHeadingWrapper>
+      </TamagotchiMetric>
+      {checkBoxes}
+    </CardPanel>
+  );
+}
 
 function Tamagotchi({project}: {project: Project}) {
   const organization = useOrganization();
@@ -112,10 +143,10 @@ function Tamagotchi({project}: {project: Project}) {
   }, [currentScore, tamagotchiMetrics, tamagotchiStages]);
 
   const cards: EmotionJSX.Element[] = [];
-  cards.push(<CardPanel color="red" />);
-  cards.push(<CardPanel color="orange" />);
-  cards.push(<CardPanel color="blue" />);
-  cards.push(<CardPanel color="green" />);
+  cards.push(<TamagotchiMetricScreen metric="energy" />);
+  cards.push(<TamagotchiMetricScreen metric="tidiness" />);
+  cards.push(<TamagotchiMetricScreen metric="joy" />);
+  cards.push(<TamagotchiMetricScreen metric="health" />);
   cards.push(
     <CardPanel color="#ffe8ec">
       <TamagotchiWrapper>
@@ -188,6 +219,23 @@ const TamagotchiButton = styled('button')<{isEnabled?: boolean}>`
     background-color: #fedb4b;
 
   }`}
+`;
+
+const CheckboxWrapper = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: baseline;
+  margin-left: ${space(2)};
+  margin-right: ${space(1)};
+`;
+
+const MetricHeadingWrapper = styled('div')`
+  display: flex;
+  align-items: baseline;
+  gap: ${space(0.5)};
+  margin-right: ${space(1)};
+  width: 100%;
+  padding: ${space(1)};
 `;
 
 const MyButtonContainer = styled('div')`
