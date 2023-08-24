@@ -4,6 +4,7 @@ from typing import Any
 
 from rest_framework import serializers
 
+from sentry import eventstore
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.rule import _generate_rule_label, _is_filter
@@ -104,6 +105,27 @@ class IncomingAlertProcedureSerializer(ModelSerializer):
             organization_id=self.context["organization"].id,
             **validated_data,
         )
+
+
+class IncomingAlertProcedureTriggerSerializer(serializers.Serializer):
+    project = serializers.IntegerField()
+    event = serializers.JSONField()
+
+    def validate_project(self, incoming_project_id):
+        try:
+            project = Project.objects.get(
+                organization_id=self.context["organization"].id, id=incoming_project_id
+            )
+        except Project.DoesNotExist:
+            raise serializers.ValidationError("Invalid project")
+        return project
+
+    def validate_event(self, incoming_event_id):
+        project_id = self.initial_data.get("project")
+        event = eventstore.backend.get_event_by_id(project_id, incoming_event_id)
+        if not event:
+            raise serializers.ValidationError("Invalid event")
+        return event
 
 
 @register(AlertTemplate)

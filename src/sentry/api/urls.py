@@ -22,6 +22,7 @@ from sentry.api.utils import method_dispatch
 from sentry.blueprint.endpoints import (
     OrganizationAlertProcedureDetailsEndpoint,
     OrganizationAlertProcedureIndexEndpoint,
+    OrganizationAlertProcedureTriggerEndpoint,
     OrganizationAlertTemplateDetailsEndpoint,
     OrganizationAlertTemplateIndexEndpoint,
 )
@@ -979,6 +980,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/alert-procedures/(?P<alert_procedure_id>[^\/]+)/$",
         OrganizationAlertProcedureDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-alert-procedures-details",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/alert-procedures/(?P<alert_procedure_id>[^\/]+)/trigger/$",
+        OrganizationAlertProcedureTriggerEndpoint.as_view(),
+        name="sentry-api-0-organization-alert-procedures-trigger",
     ),
     # Data Export
     re_path(
