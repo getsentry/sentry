@@ -2,6 +2,7 @@ import upperFirst from 'lodash/upperFirst';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
+import {getChildMetaContainer} from 'sentry/components/events/meta/metaContainer';
 import {t} from 'sentry/locale';
 import {Event} from 'sentry/types';
 
@@ -21,7 +22,7 @@ type Props = {
 };
 
 export function StateEventContext({data, event}: Props) {
-  const meta = event._meta?.contexts?.state ?? {};
+  const meta = getChildMetaContainer(event._meta, 'contexts', 'state');
 
   function getStateTitle(name: string, type?: string) {
     return `${name}${type ? ` (${upperFirst(type)})` : ''}`;
@@ -37,7 +38,7 @@ export function StateEventContext({data, event}: Props) {
         key: 'state',
         subject: getStateTitle(t('State'), data.state.type),
         value: data.state.value,
-        meta: meta.state?.value?.[''],
+        meta: getChildMetaContainer(meta, 'state', 'value'),
       },
     ];
   }
@@ -49,7 +50,7 @@ export function StateEventContext({data, event}: Props) {
         key: name,
         value: state.value,
         subject: getStateTitle(name, state.type),
-        meta: meta[name]?.value?.[''],
+        meta: getChildMetaContainer(meta, name, 'value'),
       }));
   }
 

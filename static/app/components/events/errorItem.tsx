@@ -6,6 +6,11 @@ import moment from 'moment';
 import {Button} from 'sentry/components/button';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {
+  getChildMetaContainer,
+  getMeta,
+  MetaContainer,
+} from 'sentry/components/events/meta/metaContainer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
@@ -34,7 +39,7 @@ const keyMapping = {
 
 export type ErrorItemProps = {
   error: EventErrorData;
-  meta?: Record<any, any>;
+  meta?: MetaContainer;
 };
 
 export function ErrorItem({error, meta}: ErrorItemProps) {
@@ -74,7 +79,10 @@ export function ErrorItem({error, meta}: ErrorItemProps) {
         key,
         value,
         subject: keyMapping[key] || startCase(key),
-        meta: key === 'image_name' ? meta?.image_path?.[''] : meta?.[key]?.[''],
+        meta:
+          key === 'image_name'
+            ? getChildMetaContainer(meta, 'image_path')
+            : getChildMetaContainer(meta, key),
       }))
       .filter(d => {
         if (!d.value && !!d.meta) {
@@ -84,20 +92,22 @@ export function ErrorItem({error, meta}: ErrorItemProps) {
       });
   }, [error.data, meta]);
 
+  const nameMeta = getMeta(getChildMetaContainer(meta, 'data', 'name'));
+  const messageMeta = getMeta(getChildMetaContainer(meta, 'message'));
   return (
     <StyledListItem data-test-id="event-error-item">
       <OverallInfo>
         <div>
-          {meta?.data?.name?.[''] ? (
-            <AnnotatedText value={error.message} meta={meta?.data?.name?.['']} />
+          {nameMeta ? (
+            <AnnotatedText value={error.message} meta={nameMeta} />
           ) : !error.data?.name || typeof error.data?.name !== 'string' ? null : (
             <Fragment>
               <strong>{error.data?.name}</strong>
               {': '}
             </Fragment>
           )}
-          {meta?.message?.[''] ? (
-            <AnnotatedText value={error.message} meta={meta?.message?.['']} />
+          {messageMeta ? (
+            <AnnotatedText value={error.message} meta={messageMeta} />
           ) : (
             error.message
           )}

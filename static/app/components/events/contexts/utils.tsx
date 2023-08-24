@@ -4,10 +4,14 @@ import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
 import ContextData from 'sentry/components/contextData';
+import {
+  getChildMetaContainer,
+  MetaContainer,
+} from 'sentry/components/events/meta/metaContainer';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import {space} from 'sentry/styles/space';
-import {Event, KeyValueListData} from 'sentry/types';
+import {KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 import {AppEventContext} from './app';
@@ -163,7 +167,7 @@ export function getUnknownData({
 }: {
   allData: Record<string, any>;
   knownKeys: string[];
-  meta?: NonNullable<Event['_meta']>[keyof Event['_meta']];
+  meta?: MetaContainer;
 }): KeyValueListData {
   return Object.entries(allData)
     .filter(
@@ -171,13 +175,15 @@ export function getUnknownData({
         key !== 'type' &&
         key !== 'title' &&
         !knownKeys.includes(key) &&
-        (typeof allData[key] !== 'number' && !allData[key] ? !!meta?.[key]?.[''] : true)
+        (typeof allData[key] !== 'number' && !allData[key]
+          ? !!getChildMetaContainer(meta, key)
+          : true)
     )
     .map(([key, value]) => ({
       key,
       value,
       subject: startCase(key),
-      meta: meta?.[key]?.[''],
+      meta: getChildMetaContainer(meta, key),
     }));
 }
 

@@ -1,7 +1,7 @@
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import {Meta} from 'sentry/types';
+import {MetaContainer} from 'sentry/components/events/meta/metaContainer';
 import {EntryRequest} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
@@ -14,7 +14,7 @@ type Props = {
   title: string;
   defaultCollapsed?: boolean;
   isContextData?: boolean;
-  meta?: Meta;
+  meta?: MetaContainer;
 };
 
 export function RichHttpContentClippedBoxKeyValueList({

@@ -3,6 +3,7 @@ import type {
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
+import {MetaContainer} from 'sentry/components/events/meta/metaContainer';
 import type {PlatformKey} from 'sentry/data/platformCategories';
 import type {IssueType} from 'sentry/types';
 
@@ -750,7 +751,7 @@ interface EventBase {
     | EventOrGroupType.EXPECTSTAPLE
     | EventOrGroupType.HPKP;
   user: EventUser | null;
-  _meta?: Record<string, any>;
+  _meta?: MetaContainer;
   context?: Record<string, any>;
   dateCreated?: string;
   device?: Record<string, any>;

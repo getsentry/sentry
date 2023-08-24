@@ -61,12 +61,21 @@ export function RichHttpContentClippedBoxBodySection({
         );
       }
 
-      default:
+      default: {
+        // FIXME: Is the test case in static/app/components/events/interfaces/request/index.spec.tsx accurate?
+        // `EntryRequest['data']['data']` suggests that data may be [key: string, value: any][], **not** Record<string, any>[].
+        // If this is a real scenario, what is the rule for looking up the relevant data in meta? As a hack, I assume that if
+        // we encounter data as an array, that the same meta structure can be used by all items... which allows the test case
+        // to pass.
+        const wrappedMeta = Array.isArray(data)
+          ? Object.fromEntries(data.map((_: any, i: number) => [i, meta]))
+          : meta;
         return (
           <pre data-test-id="rich-http-content-body-section-pre">
-            <ContextData data={data} meta={meta} withAnnotatedText />
+            <ContextData data={data} meta={wrappedMeta} withAnnotatedText />
           </pre>
         );
+      }
     }
   }
 

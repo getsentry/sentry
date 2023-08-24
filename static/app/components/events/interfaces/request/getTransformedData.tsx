@@ -1,42 +1,35 @@
-import {defined} from 'sentry/utils';
+import {
+  getChildMetaContainer,
+  MetaContainer,
+} from 'sentry/components/events/meta/metaContainer';
+import {EntryRequest} from 'sentry/types';
 
-function getTransformedData(data: any, meta: Record<any, any> | undefined) {
+type KeyValue = [key: any, value: any];
+
+function getTransformedData(
+  data: EntryRequest['data']['data'],
+  meta: MetaContainer
+): Array<{data: KeyValue; meta: MetaContainer}> {
   if (Array.isArray(data)) {
-    return data
-      .filter(dataValue => {
-        if (typeof dataValue === 'string') {
-          return !!dataValue;
-        }
-
-        return defined(dataValue);
-      })
-      .map((dataValue, index) => {
-        if (Array.isArray(dataValue)) {
-          return {
-            data: dataValue,
-            meta: meta?.[index]?.[1]?.[1]?.[''],
-          };
-        }
-
-        if (typeof data === 'object') {
-          return {
-            data: Object.keys(dataValue).flatMap(key => [key, dataValue[key]]),
-          };
-        }
-
-        return {
-          data: dataValue,
-        };
-      });
+    return data.flatMap((dataValue, index: number) => {
+      if (Array.isArray(dataValue)) {
+        return [
+          {
+            data: [dataValue[0], dataValue[1]] satisfies KeyValue,
+            meta: getChildMetaContainer(meta, index),
+          },
+        ];
+      }
+      // Unexpected scenario given `EntryRequest['data']['data']` type.
+      return [];
+    });
   }
 
-  if (typeof data === 'object') {
-    return Object.keys(data).map(key => {
-      return {
-        data: [key, data[key]],
-        meta: meta?.[key]?.[''],
-      };
-    });
+  if (data !== null && typeof data === 'object') {
+    return Object.keys(data).map(key => ({
+      data: [key, data[key]],
+      meta: getChildMetaContainer(meta, key),
+    }));
   }
 
   return [];

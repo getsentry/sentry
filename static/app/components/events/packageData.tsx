@@ -2,6 +2,7 @@ import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {getChildMetaContainer} from 'sentry/components/events/meta/metaContainer';
 import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
@@ -13,11 +14,12 @@ type Props = {
 export function EventPackageData({event}: Props) {
   let longKeys: boolean, title: string;
 
+  const meta = getChildMetaContainer(event._meta, 'packages');
   const packages = Object.entries(event.packages || {}).map(([key, value]) => ({
     key,
     value,
     subject: key,
-    meta: event._meta?.packages?.[key]?.[''],
+    meta: getChildMetaContainer(meta, key),
   }));
 
   switch (event.platform) {

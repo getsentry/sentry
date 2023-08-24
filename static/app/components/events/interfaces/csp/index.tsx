@@ -2,6 +2,10 @@ import {useState} from 'react';
 
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {
+  getChildMetaContainer,
+  MetaContainer,
+} from 'sentry/components/events/meta/metaContainer';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {EntryType, Event} from 'sentry/types/event';
@@ -10,7 +14,7 @@ import Help, {HelpProps} from './help';
 
 type View = 'report' | 'raw' | 'help';
 
-function getView(view: View, data: Record<any, any>, meta: Record<any, any>) {
+function getView(view: View, data: Record<any, any>, meta: MetaContainer) {
   switch (view) {
     case 'report':
       return (
@@ -20,7 +24,7 @@ function getView(view: View, data: Record<any, any>, meta: Record<any, any>) {
               key,
               subject: key,
               value,
-              meta: meta?.[key]?.[''],
+              meta: getChildMetaContainer(meta, key),
             };
           })}
           isContextData
