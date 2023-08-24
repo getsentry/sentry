@@ -1,6 +1,10 @@
 import styled from '@emotion/styled';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {
+  getChildMetaContainer,
+  getMeta,
+} from 'sentry/components/events/meta/metaContainer';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -20,10 +24,10 @@ type Data = {
 type VersionElement = {
   subject: string;
   value: string;
-  meta?: Meta;
+  meta?: Partial<Meta>;
 };
 
-type Props = ContextItemProps<Data, 'gpu'>;
+type Props = ContextItemProps<Data>;
 
 export function ContextSummaryGPU({data, meta}: Props) {
   if (Object.keys(data).length === 0) {
@@ -35,7 +39,7 @@ export function ContextSummaryGPU({data, meta}: Props) {
       return {
         subject: t('Vendor:'),
         value: data.vendor_name,
-        meta: meta.vendor_name?.[''],
+        meta: getMeta(getChildMetaContainer(meta, 'vendor_name')),
       };
     }
 
@@ -50,7 +54,10 @@ export function ContextSummaryGPU({data, meta}: Props) {
   return (
     <Item icon={generateIconName(data.vendor_name ? data.vendor_name : data.name)}>
       <h3>
-        <AnnotatedText value={data.name} meta={meta.name?.['']} />
+        <AnnotatedText
+          value={data.name}
+          meta={getMeta(getChildMetaContainer(meta, 'name'))}
+        />
       </h3>
       <TextOverflow isParagraph>
         <Subject>{versionElement.subject}</Subject>

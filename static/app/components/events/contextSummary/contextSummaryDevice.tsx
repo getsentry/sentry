@@ -2,6 +2,10 @@ import styled from '@emotion/styled';
 
 import {DeviceName} from 'sentry/components/deviceName';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {
+  getChildMetaContainer,
+  getMeta,
+} from 'sentry/components/events/meta/metaContainer';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,10 +26,10 @@ type Data = {
 type SubTitle = {
   subject: string;
   value: string;
-  meta?: Meta;
+  meta?: Partial<Meta>;
 };
 
-type Props = ContextItemProps<Data, 'device'>;
+type Props = ContextItemProps<Data>;
 
 export function ContextSummaryDevice({data, meta}: Props) {
   if (Object.keys(data).length === 0) {
@@ -37,14 +41,12 @@ export function ContextSummaryDevice({data, meta}: Props) {
       return t('Unknown Device');
     }
 
+    const nameMeta = getMeta(getChildMetaContainer(meta, 'name'));
     return (
       <DeviceName value={data.model}>
         {deviceName => {
           return (
-            <AnnotatedText
-              value={meta.name?.[''] ? data.name : deviceName}
-              meta={meta.name?.['']}
-            />
+            <AnnotatedText value={nameMeta ? data.name : deviceName} meta={nameMeta} />
           );
         }}
       </DeviceName>
@@ -56,7 +58,7 @@ export function ContextSummaryDevice({data, meta}: Props) {
       return {
         subject: t('Arch:'),
         value: data.arch,
-        meta: meta.arch?.[''],
+        meta: getMeta(getChildMetaContainer(meta, 'arch')),
       };
     }
 
@@ -64,7 +66,7 @@ export function ContextSummaryDevice({data, meta}: Props) {
       return {
         subject: t('Model:'),
         value: data.model,
-        meta: meta.model?.[''],
+        meta: getMeta(getChildMetaContainer(meta, 'model')),
       };
     }
 

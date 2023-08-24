@@ -1,6 +1,10 @@
 import styled from '@emotion/styled';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {
+  getChildMetaContainer,
+  getMeta,
+} from 'sentry/components/events/meta/metaContainer';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,10 +25,10 @@ type Data = {
 type VersionElement = {
   subject: string;
   value: string;
-  meta?: Meta;
+  meta?: Partial<Meta>;
 };
 
-type Props = ContextItemProps<Data, 'os' | 'client_os'>;
+type Props = ContextItemProps<Data>;
 
 export function ContextSummaryOS({data, meta}: Props) {
   if (Object.keys(data).length === 0) {
@@ -36,7 +40,7 @@ export function ContextSummaryOS({data, meta}: Props) {
       return {
         subject: t('Version:'),
         value: data.version,
-        meta: meta.version?.[''],
+        meta: getMeta(getChildMetaContainer(meta, 'version')),
       };
     }
 
@@ -44,7 +48,7 @@ export function ContextSummaryOS({data, meta}: Props) {
       return {
         subject: t('Kernel:'),
         value: data.kernel_version,
-        meta: meta.kernel_version?.[''],
+        meta: getMeta(getChildMetaContainer(meta, 'kernel_version')),
       };
     }
 
@@ -59,7 +63,10 @@ export function ContextSummaryOS({data, meta}: Props) {
   return (
     <Item icon={generateIconName(data.name)}>
       <h3>
-        <AnnotatedText value={data.name} meta={meta.name?.['']} />
+        <AnnotatedText
+          value={data.name}
+          meta={getMeta(getChildMetaContainer(meta, 'name'))}
+        />
       </h3>
       <TextOverflow isParagraph data-test-id="context-sub-title">
         <Subject>{versionElement.subject}</Subject>

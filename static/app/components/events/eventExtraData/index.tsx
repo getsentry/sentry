@@ -2,6 +2,7 @@ import {memo, useState} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {getChildMetaContainer} from 'sentry/components/events/meta/metaContainer';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
@@ -47,7 +48,7 @@ export const EventExtraData = memo(
             data={getKnownData<TEventExtraData, EventExtraDataType>({
               data: event.context,
               knownDataTypes: Object.keys(event.context),
-              meta: event._meta?.context,
+              meta: getChildMetaContainer(event._meta, 'context'),
               raw,
               onGetKnownDataDetails: v => getEventExtraDataKnownDataDetails(v),
             })}

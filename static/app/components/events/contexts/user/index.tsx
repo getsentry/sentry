@@ -3,6 +3,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {removeFilterMaskedEntries} from 'sentry/components/events/interfaces/utils';
+import {getChildMetaContainer} from 'sentry/components/events/meta/metaContainer';
 import {AvatarUser} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -43,7 +44,7 @@ export const userKnownDataValues = [
 const userIgnoredDataValues = [UserIgnoredDataType.DATA];
 
 export function UserEventContext({data, event}: Props) {
-  const meta = event._meta?.user ?? event._meta?.contexts?.user ?? {};
+  const meta = getChildMetaContainer(event._meta, 'contexts', 'user');
 
   return (
     <div className="user-widget">

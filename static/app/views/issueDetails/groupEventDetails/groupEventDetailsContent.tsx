@@ -19,6 +19,7 @@ import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
 import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
+import {getChildMetaContainer} from 'sentry/components/events/meta/metaContainer';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
@@ -145,7 +146,7 @@ function GroupEventDetailsContent({
       <EventDevice event={event} />
       <EventViewHierarchy event={event} project={project} />
       <EventAttachments event={event} projectSlug={project.slug} />
-      <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
+      <EventSdk sdk={event.sdk} meta={getChildMetaContainer(event._meta, 'sdk')} />
       {event.groupID && (
         <EventGroupingInfo
           projectSlug={project.slug}

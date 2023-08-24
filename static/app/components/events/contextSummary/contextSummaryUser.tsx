@@ -3,6 +3,10 @@ import styled from '@emotion/styled';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {removeFilterMaskedEntries} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {
+  getChildMetaContainer,
+  getMeta,
+} from 'sentry/components/events/meta/metaContainer';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,16 +20,16 @@ import {ContextItemProps} from './types';
 
 type UserTitle = {
   value: string;
-  meta?: Meta;
+  meta?: Partial<Meta>;
 };
 
 type UserDetails = {
   subject: string;
-  meta?: Meta;
+  meta?: Partial<Meta>;
   value?: string;
 };
 
-type Props = ContextItemProps<EventUser, 'user'>;
+type Props = ContextItemProps<EventUser>;
 
 export function ContextSummaryUser({data, meta}: Props) {
   const user = removeFilterMaskedEntries(data);
@@ -38,13 +42,13 @@ export function ContextSummaryUser({data, meta}: Props) {
     const userDetails: UserDetails = {
       subject: t('Username:'),
       value: user.username ?? '',
-      meta: meta.username?.[''],
+      meta: getMeta(getChildMetaContainer(meta, 'username')),
     };
 
     if (key === 'id') {
       userDetails.subject = t('ID:');
       userDetails.value = user.id;
-      userDetails.meta = meta.id?.[''];
+      userDetails.meta = getMeta(getChildMetaContainer(meta, 'id'));
     }
 
     return (
@@ -59,28 +63,28 @@ export function ContextSummaryUser({data, meta}: Props) {
     if (defined(user.email)) {
       return {
         value: user.email,
-        meta: meta.email?.[''],
+        meta: getMeta(getChildMetaContainer(meta, 'email')),
       };
     }
 
     if (defined(user.ip_address)) {
       return {
         value: user.ip_address,
-        meta: meta.ip_address?.[''],
+        meta: getMeta(getChildMetaContainer(meta, 'ip_address')),
       };
     }
 
     if (defined(user.id)) {
       return {
         value: user.id,
-        meta: meta.id?.[''],
+        meta: getMeta(getChildMetaContainer(meta, 'id')),
       };
     }
 
     if (defined(user.username)) {
       return {
         value: user.username,
-        meta: meta.username?.[''],
+        meta: getMeta(getChildMetaContainer(meta, 'username')),
       };
     }
 

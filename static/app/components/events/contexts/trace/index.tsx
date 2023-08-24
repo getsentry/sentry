@@ -1,5 +1,6 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {getChildMetaContainer} from 'sentry/components/events/meta/metaContainer';
 import {Event} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -26,7 +27,7 @@ type Props = {
 
 export function TraceEventContext({event, data}: Props) {
   const organization = useOrganization();
-  const meta = event._meta?.contexts?.trace ?? {};
+  const meta = getChildMetaContainer(event._meta, 'contexts', 'trace');
 
   return (
     <ErrorBoundary mini>

@@ -2,6 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ErrorItem} from 'sentry/components/events/errorItem';
+import {castAsMetaContainer} from 'sentry/components/events/meta/metaContainer';
 
 describe('Issue error item', function () {
   it('expand subitems', async function () {
@@ -38,9 +39,9 @@ describe('Issue error item', function () {
           message: 'A required debug information file was missing.',
           type: 'native_missing_dsym',
         }}
-        meta={{
+        meta={castAsMetaContainer({
           image_path: {'': {rem: [['project:2', 's', 0, 0]], len: 117}},
-        }}
+        })}
       />
     );
 

@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
+import {getChildMetaContainer} from 'sentry/components/events/meta/metaContainer';
 import {Event} from 'sentry/types/event';
 
 import {getKnownData, getUnknownData} from '../utils';
@@ -21,7 +22,7 @@ export const runtimeKnownDataValues = [
 const runtimeIgnoredDataValues = [RuntimeIgnoredDataType.BUILD];
 
 export function RuntimeEventContext({data, event}: Props) {
-  const meta = event._meta?.contexts?.runtime ?? {};
+  const meta = getChildMetaContainer(event._meta, 'contexts', 'runtime');
   return (
     <Fragment>
       <ContextBlock

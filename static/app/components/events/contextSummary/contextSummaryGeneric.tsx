@@ -1,6 +1,10 @@
 import styled from '@emotion/styled';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {
+  getChildMetaContainer,
+  getMeta,
+} from 'sentry/components/events/meta/metaContainer';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,7 +20,7 @@ type Data = {
   version?: string;
 };
 
-type Props = ContextItemProps<Data, any>;
+type Props = ContextItemProps<Data>;
 
 export function ContextSummaryGeneric({
   data,
@@ -31,7 +35,10 @@ export function ContextSummaryGeneric({
   return (
     <Item icon={generateIconName(data.name, data.version)}>
       <h3>
-        <AnnotatedText value={data.name} meta={meta.name?.['']} />
+        <AnnotatedText
+          value={data.name}
+          meta={getMeta(getChildMetaContainer(meta, 'name'))}
+        />
       </h3>
       {(data.version || !omitUnknownVersion) && (
         <TextOverflow isParagraph>
@@ -39,7 +46,10 @@ export function ContextSummaryGeneric({
           {!defined(data.version) ? (
             t('Unknown')
           ) : (
-            <AnnotatedText value={data.version} meta={meta.version?.['']} />
+            <AnnotatedText
+              value={data.version}
+              meta={getMeta(getChildMetaContainer(meta, 'version'))}
+            />
           )}
         </TextOverflow>
       )}

@@ -5,6 +5,7 @@ import {Location} from 'history';
 import {CommitRow} from 'sentry/components/commitRow';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import EventReplay from 'sentry/components/events/eventReplay';
+import {getChildMetaContainer} from 'sentry/components/events/meta/metaContainer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -117,7 +118,7 @@ function EventEntries({
       <EventDevice event={event} />
       {!isShare && <EventViewHierarchy event={event} project={project} />}
       {!isShare && <EventAttachments event={event} projectSlug={projectSlug} />}
-      <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
+      <EventSdk sdk={event.sdk} meta={getChildMetaContainer(event._meta, 'sdk')} />
       {!isShare && event.groupID && (
         <EventGroupingInfo
           projectSlug={projectSlug}

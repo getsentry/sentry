@@ -1,13 +1,11 @@
-import {Event} from 'sentry/types';
-
-type Meta = NonNullable<Event['_meta']>;
+import {MetaContainer} from 'sentry/components/events/meta/metaContainer';
 
 /**
  * The props passed to each context item
  */
-export type ContextItemProps<D, M extends keyof Meta> = {
+export type ContextItemProps<D> = {
   data: D;
-  meta: Meta[M];
+  meta: MetaContainer;
   omitUnknownVersion?: boolean;
   unknownTitle?: string;
 };
@@ -16,7 +14,7 @@ export type ContextItemProps<D, M extends keyof Meta> = {
  * Defines a context type
  */
 export type Context = {
-  Component: React.ComponentType<ContextItemProps<any, any>>;
+  Component: React.ComponentType<ContextItemProps<any>>;
   keys: string[];
   omitUnknownVersion?: boolean;
   unknownTitle?: string;

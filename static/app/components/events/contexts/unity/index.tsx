@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
+import {getChildMetaContainer} from 'sentry/components/events/meta/metaContainer';
 import {Event, UnityContext} from 'sentry/types';
 
 import {getKnownData, getUnknownData} from '../utils';
@@ -17,7 +18,7 @@ export function UnityEventContext({data, event}: Props) {
     return null;
   }
 
-  const meta = event._meta?.contexts?.unity ?? {};
+  const meta = getChildMetaContainer(event._meta, 'contexts', 'unity');
 
   return (
     <Fragment>

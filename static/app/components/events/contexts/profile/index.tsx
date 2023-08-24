@@ -2,6 +2,7 @@ import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {getChildMetaContainer} from 'sentry/components/events/meta/metaContainer';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {Event, ProfileContext, ProfileContextKey} from 'sentry/types/event';
@@ -23,7 +24,7 @@ export function ProfileEventContext({event, data}: ProfileContextProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === event.projectID);
-  const meta = event._meta?.contexts?.profile ?? {};
+  const meta = getChildMetaContainer(event._meta, 'contexts', 'profile');
 
   return (
     <Feature organization={organization} features={['profiling']}>

@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
+import {getChildMetaContainer} from 'sentry/components/events/meta/metaContainer';
 import {Event} from 'sentry/types';
 
 import {getKnownData, getUnknownData} from '../utils';
@@ -27,7 +28,7 @@ export const operatingSystemKnownDataValues = [
 const operatingSystemIgnoredDataValues = [OperatingSystemIgnoredDataType.BUILD];
 
 export function OperatingSystemEventContext({data, event}: Props) {
-  const meta = event._meta?.contexts?.os ?? {};
+  const meta = getChildMetaContainer(event._meta, 'contexts', 'os');
   return (
     <Fragment>
       <ContextBlock
