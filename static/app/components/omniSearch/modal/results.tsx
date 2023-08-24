@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useContext, useEffect, useRef} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {useListBox, useListBoxSection, useOption} from '@react-aria/listbox';
 import {isMac, mergeRefs} from '@react-aria/utils';
@@ -6,11 +7,9 @@ import {Item, Section} from '@react-stately/collections';
 import {TreeProps, TreeState, useTreeState} from '@react-stately/tree';
 import {Node} from '@react-types/shared';
 
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import MenuListItem from 'sentry/components/menuListItem';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useRouter from 'sentry/utils/useRouter';
 
 import {OmniAction, OmniSection} from '../types';
 import {useOmniSearchState} from '../useOmniState';
@@ -71,7 +70,6 @@ interface OmniResultListProps extends TreeProps<OmniSection> {
 function OmniResultsList({onAction, ...treeProps}: OmniResultListProps) {
   const {focusedArea} = useOmniSearchState();
   const setSearch = useContext(OnmniSearchInputContext);
-  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const state = useTreeState(treeProps);
@@ -82,17 +80,21 @@ function OmniResultsList({onAction, ...treeProps}: OmniResultListProps) {
       const selectedOption = [...state.collection]
         .map(section => [...section.childNodes])
         .flat()
-        .find(item => item.key === selection)?.props;
+        .find(item => item.key === selection)?.props as OmniAction;
 
-      if (selectedOption.to) {
-        navigateTo(selectedOption.to, router);
-        return;
+      const selectedLink = selectedOption.to?.toString();
+
+      if (selectedOption.to && selectedLink) {
+        console.log(selectedOption.to, selectedLink);
+        selectedLink.startsWith('http')
+          ? window.open(selectedLink, '_blank')
+          : browserHistory.push(selectedOption.to);
       }
 
       onAction?.();
-      selectedOption.onAction?.();
+      selectedOption.onAction?.(selectedOption.key);
     },
-    [state, router, onAction]
+    [state, onAction]
   );
 
   const {listBoxProps} = useListBox(

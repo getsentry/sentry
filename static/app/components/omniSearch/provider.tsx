@@ -71,10 +71,10 @@ export function OmniSearchProvider({children}: OmniSearchProviderProps) {
 
           const link = action.to?.toString();
 
-          if (link) {
+          if (action.to && link) {
             link.startsWith('http')
               ? window.open(link, '_blank')
-              : browserHistory.push(link);
+              : browserHistory.push(action.to);
           }
         }
 
