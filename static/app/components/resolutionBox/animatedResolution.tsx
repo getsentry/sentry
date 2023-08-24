@@ -1,5 +1,6 @@
-import {ReactNode} from 'react';
+import {ReactNode, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 import {motion, useAnimation, Variants} from 'framer-motion';
 
 import {ErrorGemlin} from 'sentry/components/resolutionBox/errorGremlin';
@@ -49,6 +50,17 @@ const textVariants: Variants = {
 };
 
 export function AnimatedResolution({children}: AnimatedResolutionProps) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [bannerWidth, setBannerWidth] = useState(0);
+  useResizeObserver<HTMLDivElement>({
+    ref,
+    onResize: () => {
+      if (ref.current) {
+        setBannerWidth(ref.current.clientWidth);
+      }
+    },
+  });
+
   const portalControls = useAnimation();
   const checkControls = useAnimation();
   const textControls = useAnimation();
@@ -64,10 +76,14 @@ export function AnimatedResolution({children}: AnimatedResolutionProps) {
   };
 
   return (
-    <div>
+    <div style={{width: '100%'}} ref={ref}>
       <LeftContainer>
         <Portal animate={portalControls} variants={portalVariants} initial="closed" />
-        <ErrorGemlin onEndRun={onEndRun} onEndJump={onEndJump} />
+        <ErrorGemlin
+          onEndRun={onEndRun}
+          onEndJump={onEndJump}
+          runFromPosition={`${bannerWidth + 200}px`}
+        />
         <ClipPath>
           <CheckContainer
             animate={checkControls}

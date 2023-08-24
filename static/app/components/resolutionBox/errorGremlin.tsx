@@ -1,19 +1,21 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
 
-type ErrorGemlinProps = {onEndJump: () => void; onEndRun: () => void};
+type ErrorGemlinProps = {
+  onEndJump: () => void;
+  onEndRun: () => void;
+  runFromPosition: string;
+};
 
-const RUN_DURATION = '1.5s';
+const RUN_DURATION = '2s';
 const RUNNING_CADENCE = '500ms';
-const RUN_FROM_POSITION = '1000px';
 const JUMP_DURATION = '400ms';
 const JUMP_FROM_POSITION = '45px';
 
 type AnimationClass = 'running' | 'jumping' | 'end';
 
-export function ErrorGemlin({onEndRun, onEndJump}: ErrorGemlinProps) {
+export function ErrorGemlin({onEndRun, onEndJump, runFromPosition}: ErrorGemlinProps) {
   const theme = useTheme();
   const [animationClass, setAnimationClass] = useState<AnimationClass>('running');
 
@@ -24,8 +26,8 @@ export function ErrorGemlin({onEndRun, onEndJump}: ErrorGemlinProps) {
       shapeRendering="geometricPrecision"
       textRendering="geometricPrecision"
       viewBox="0 -35 60 110"
-      initial="start"
       className={animationClass}
+      runFromPosition={runFromPosition}
       onAnimationEnd={e => {
         switch (e.animationName) {
           case 'move':
@@ -124,7 +126,12 @@ export function ErrorGemlin({onEndRun, onEndJump}: ErrorGemlinProps) {
   );
 }
 
-const AnimatedSvg = styled(motion.svg)`
+const AnimatedSvg = styled('svg', {
+  shouldForwardProp: prop => prop !== 'runFromPosition',
+})<{
+  runFromPosition: string;
+}>`
+  display: none;
   margin: 0 !important;
   position: absolute;
   bottom: 2px;
@@ -154,6 +161,7 @@ const AnimatedSvg = styled(motion.svg)`
   }
 
   &.jumping {
+    display: block;
     animation: jump-horizontal ${JUMP_DURATION};
     animation-timing-function: ease-in;
     transform: translateX(0);
@@ -264,9 +272,8 @@ const AnimatedSvg = styled(motion.svg)`
   }
 
   &.running {
+    display: block;
     animation: move ${RUN_DURATION};
-    animation-delay: 500ms;
-    opacity: 0;
     animation-timing-function: ease-out;
     transform: translateX(${JUMP_FROM_POSITION});
 
@@ -277,14 +284,9 @@ const AnimatedSvg = styled(motion.svg)`
 
     @keyframes move {
       0% {
-        opacity: 0;
-        transform: translateX(${RUN_FROM_POSITION});
-      }
-      10% {
-        opacity: 1;
+        transform: translateX(${p => p.runFromPosition});
       }
       100% {
-        opacity: 1;
         transform: translateX(${JUMP_FROM_POSITION});
       }
     }
