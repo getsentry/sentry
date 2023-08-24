@@ -1,4 +1,4 @@
-import {Component, Fragment, PureComponent} from 'react';
+import React, {Component, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -528,42 +528,45 @@ class TraceViewHeader extends Component<PropType, State> {
                           mouseLeft,
                           showCursorGuide,
                         }) => (
-                          <RightSidePane
-                            ref={this.props.minimapInteractiveRef}
-                            style={{
-                              width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
-                              left: `calc(${toPercent(dividerPosition)} + 0.5px)`,
-                            }}
-                            onMouseEnter={event => {
-                              displayCursorGuide(event.pageX);
-                            }}
-                            onMouseLeave={() => {
-                              hideCursorGuide();
-                            }}
-                            onMouseMove={event => {
-                              displayCursorGuide(event.pageX);
-                            }}
-                            onMouseDown={handleStartWindowSelection}
-                          >
-                            <MinimapContainer>
-                              {this.renderFog(this.props.dragProps)}
-                              {this.renderCursorGuide({
+                          <React.Fragment>
+                            <RightSidePane
+                              ref={this.props.minimapInteractiveRef}
+                              style={{
+                                width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
+                                left: `calc(${toPercent(dividerPosition)} + 0.5px)`,
+                              }}
+                              onMouseEnter={event => {
+                                displayCursorGuide(event.pageX);
+                              }}
+                              onMouseLeave={() => {
+                                hideCursorGuide();
+                              }}
+                              onMouseMove={event => {
+                                displayCursorGuide(event.pageX);
+                              }}
+                              onMouseDown={handleStartWindowSelection}
+                            >
+                              <MinimapContainer>
+                                {this.renderFog(this.props.dragProps)}
+                                {this.renderCursorGuide({
+                                  showCursorGuide,
+                                  mouseLeft,
+                                  cursorGuideHeight: MINIMAP_HEIGHT,
+                                })}
+                                {this.renderViewHandles(
+                                  this.props.dragProps,
+                                  hasProfileMeasurementsChart
+                                )}
+                                {this.renderWindowSelection(this.props.dragProps)}
+                              </MinimapContainer>
+                              {this.renderTimeAxis({
                                 showCursorGuide,
                                 mouseLeft,
-                                cursorGuideHeight: MINIMAP_HEIGHT,
+                                hasProfileMeasurementsChart,
                               })}
-                              {this.renderViewHandles(
-                                this.props.dragProps,
-                                hasProfileMeasurementsChart
-                              )}
-                              {this.renderWindowSelection(this.props.dragProps)}
-                            </MinimapContainer>
-                            {this.renderTimeAxis({
-                              showCursorGuide,
-                              mouseLeft,
-                              hasProfileMeasurementsChart,
-                            })}
-                          </RightSidePane>
+                            </RightSidePane>
+                            <GrossUIHack />
+                          </React.Fragment>
                         )}
                       </CursorGuideHandler.Consumer>
                       {hasProfileMeasurementsChart && (
@@ -991,3 +994,9 @@ const PercentageHeader = styled('div')`
 const Percentage = styled('div')``;
 
 export default TraceViewHeader;
+
+const GrossUIHack = styled('div')`
+  width: 2000px;
+  height: 100%;
+  background-color: ${p => p.theme.background};
+`;
