@@ -36,6 +36,7 @@ import {
   IconLink,
   IconMute,
   IconSubscribed,
+  IconTelescope,
   IconUnsubscribed,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -506,6 +507,17 @@ export function Actions(props: Props) {
     },
   ];
 
+  const otherActions: OmniAction[] = [
+    {
+      key: 'issue-open-in-discover',
+      areaKey: 'issue',
+      label: t('Open in Discover'),
+      details: t('Find events from %s in discover', group.shortId),
+      to: getDiscoverUrl(),
+      actionIcon: IconTelescope,
+    },
+  ];
+
   useOmniActions([
     ...resolveActions,
     ...archiveActions,
@@ -513,6 +525,7 @@ export function Actions(props: Props) {
     ...subscribeActions,
     ...bookmarkActions,
     ...shareActions,
+    ...otherActions,
   ]);
 
   return (
