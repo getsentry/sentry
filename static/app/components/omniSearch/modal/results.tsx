@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useEffect, useRef} from 'react';
+import {Fragment, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {useListBox, useListBoxSection, useOption} from '@react-aria/listbox';
@@ -85,7 +85,6 @@ function OmniResultsList({onAction, ...treeProps}: OmniResultListProps) {
       const selectedLink = selectedOption.to?.toString();
 
       if (selectedOption.to && selectedLink) {
-        console.log(selectedOption.to, selectedLink);
         selectedLink.startsWith('http')
           ? window.open(selectedLink, '_blank')
           : browserHistory.push(selectedOption.to);
@@ -112,19 +111,25 @@ function OmniResultsList({onAction, ...treeProps}: OmniResultListProps) {
     inputRef
   );
 
+  const firstFocusableKey = useMemo(() => {
+    // Focus on first focusable item
+    const firstItem = state.collection.at(0);
+    const firstFocusableItem =
+      firstItem?.type === 'section' ? [...firstItem.childNodes][0] : firstItem;
+
+    return firstFocusableItem?.key;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.collection]);
+
   useEffect(() => {
     if (!inputRef.current) {
       return;
     }
 
     inputRef.current.focus();
-    // Focus on first focusable item
-    const firstItem = state.collection.at(0);
-    const firstFocusableItem =
-      firstItem?.type === 'section' ? [...firstItem.childNodes][0] : firstItem;
-    firstFocusableItem && state.selectionManager.setFocusedKey(firstFocusableItem.key);
+    firstFocusableKey && state.selectionManager.setFocusedKey(firstFocusableKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.collection]);
+  }, [firstFocusableKey]);
 
   return (
     <Fragment>
