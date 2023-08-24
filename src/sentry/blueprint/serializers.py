@@ -232,3 +232,16 @@ class IncomingAlertTemplateSerializer(ModelSerializer):
             Rule.objects.filter(id__in=issue_alerts).update(template_id=at.id)
 
         return at
+
+
+class IncomingAlertTemplateApplySerializer(serializers.Serializer):
+    rule = serializers.IntegerField()
+
+    def validate_rule(self, incoming_rule_id):
+        try:
+            rule = Rule.objects.get(
+                project__organization_id=self.context["organization"].id, id=incoming_rule_id
+            )
+        except Rule.DoesNotExist:
+            raise serializers.ValidationError("Invalid rule")
+        return rule

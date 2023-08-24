@@ -23,6 +23,7 @@ from sentry.blueprint.endpoints import (
     OrganizationAlertProcedureDetailsEndpoint,
     OrganizationAlertProcedureIndexEndpoint,
     OrganizationAlertProcedureTriggerEndpoint,
+    OrganizationAlertTemplateApplyEndpoint,
     OrganizationAlertTemplateDetailsEndpoint,
     OrganizationAlertTemplateIndexEndpoint,
 )
@@ -970,6 +971,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/alert-templates/(?P<alert_template_id>[^\/]+)/$",
         OrganizationAlertTemplateDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-alert-templates-details",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/alert-templates/(?P<alert_template_id>[^\/]+)/apply/$",
+        OrganizationAlertTemplateApplyEndpoint.as_view(),
+        name="sentry-api-0-organization-alert-templates-apply",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/alert-procedures/$",
