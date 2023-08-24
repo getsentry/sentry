@@ -147,7 +147,7 @@ export default function FunnelOverview() {
           label="Sort by:"
           placeholder="Sort by..."
           options={[
-            {label: 'Sort by: Completion Rate', value: 'completionRate'},
+            {label: 'Sort by: Conversion Rate', value: 'completionRate'},
             {label: 'Sort by: Starts', value: 'starts'},
             {label: 'Sort by: Completes', value: 'completes'},
             {label: 'Sort by: Events', value: 'events'},
@@ -166,7 +166,7 @@ export default function FunnelOverview() {
             <StyledPanelHeader>
               <GridHeader style={{gridArea: 'issue'}}>Issue</GridHeader>
               <GridHeader style={{gridArea: 'completionRate'}}>
-                Completion Rate
+                Conversion Rate
               </GridHeader>
               <GridHeader style={{gridArea: 'starts'}}>Starts</GridHeader>
               <GridHeader style={{gridArea: 'completes'}}>Completes</GridHeader>
@@ -216,7 +216,7 @@ export default function FunnelOverview() {
               </div>
               {funnelData.totalStarts > 0 ? (
                 <div>
-                  <SectionHeading>Completion Rate</SectionHeading>
+                  <SectionHeading>Conversion Rate</SectionHeading>
                   <div>
                     {(
                       (100 * funnelData.totalCompletions) /
