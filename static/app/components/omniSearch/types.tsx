@@ -71,6 +71,7 @@ export interface OmniAction extends MenuItemProps {
    * represent in a single group.
    */
   actionType?: string;
+  fullLabel?: string;
   /**
    * Additional words that are used to search on.
    */

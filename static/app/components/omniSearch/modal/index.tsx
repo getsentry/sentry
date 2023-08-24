@@ -62,6 +62,7 @@ function OmniSearchModal({Body, closeModal}: ModalRenderProps) {
             ...action,
             actionType: 'top-result',
             key: `top-result-${action.key}`,
+            label: action.fullLabel ?? action.label,
           })) ?? [],
       },
     ];

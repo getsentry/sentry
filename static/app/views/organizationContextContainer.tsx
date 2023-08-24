@@ -62,6 +62,7 @@ function RegisterOmniActions({organization}: {organization: Organization}) {
       key: 'nav-org-settings',
       areaKey: 'navigate',
       label: t('%s Settings', organization.name),
+      fullLabel: t('Go to %s Settings', organization.name),
       keywords: ['organization', 'org'],
       actionIcon: makeIconWithArrow(IconSettings),
       actionType: 'settings',

@@ -77,6 +77,7 @@ export function useGlobalOmniActions() {
       key: 'nav-user-settings',
       areaKey: 'navigate',
       label: t('User Settings'),
+      fullLabel: t('Go to User Settings'),
       actionType: 'settings',
       actionIcon: makeIconWithArrow(IconSettings),
       to: normalizeUrl('/settings/account/'),
