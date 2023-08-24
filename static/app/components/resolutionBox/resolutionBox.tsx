@@ -23,6 +23,7 @@ type Props = {
   // TODO(ts): This should be a union type `IgnoredStatusDetails | ResolvedStatusDetails`
   statusDetails: ResolvedStatusDetails;
   activities?: GroupActivity[];
+  newlyResolved?: boolean;
 };
 
 function renderReason(
@@ -107,11 +108,16 @@ function renderReason(
   return t('This issue has been marked as resolved.');
 }
 
-function ResolutionBox({statusDetails, projectId, activities = []}: Props) {
+function ResolutionBox({
+  statusDetails,
+  projectId,
+  newlyResolved,
+  activities = [],
+}: Props) {
   return (
     <BannerContainer priority="default">
       <BannerSummary>
-        <AnimatedResolution>
+        <AnimatedResolution animate={newlyResolved}>
           {renderReason(statusDetails, projectId, activities)}
         </AnimatedResolution>
       </BannerSummary>

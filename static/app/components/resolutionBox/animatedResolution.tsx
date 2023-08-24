@@ -1,4 +1,4 @@
-import {ReactNode, useRef, useState} from 'react';
+import {ReactNode, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 import {motion, useAnimation, Variants} from 'framer-motion';
@@ -7,7 +7,7 @@ import {ErrorGemlin} from 'sentry/components/resolutionBox/errorGremlin';
 import {IconCheckmark} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-type AnimatedResolutionProps = {children: ReactNode};
+type AnimatedResolutionProps = {animate: boolean; children: ReactNode};
 
 const portalVariants: Variants = {
   open: {
@@ -49,7 +49,7 @@ const textVariants: Variants = {
   },
 };
 
-export function AnimatedResolution({children}: AnimatedResolutionProps) {
+export function AnimatedResolution({animate, children}: AnimatedResolutionProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [bannerWidth, setBannerWidth] = useState(0);
   useResizeObserver<HTMLDivElement>({
@@ -60,6 +60,13 @@ export function AnimatedResolution({children}: AnimatedResolutionProps) {
       }
     },
   });
+
+  const [shouldAnimate, setShouldAnimate] = useState(animate ?? false);
+  useEffect(() => {
+    if (animate) {
+      setShouldAnimate(true);
+    }
+  }, [animate]);
 
   const portalControls = useAnimation();
   const checkControls = useAnimation();
@@ -79,22 +86,32 @@ export function AnimatedResolution({children}: AnimatedResolutionProps) {
     <div style={{width: '100%'}} ref={ref}>
       <LeftContainer>
         <Portal animate={portalControls} variants={portalVariants} initial="closed" />
-        <ErrorGemlin
-          onEndRun={onEndRun}
-          onEndJump={onEndJump}
-          runFromPosition={`${bannerWidth + 200}px`}
-        />
+        {shouldAnimate && (
+          <ErrorGemlin
+            onEndRun={onEndRun}
+            onEndJump={onEndJump}
+            runFromPosition={`${bannerWidth + 200}px`}
+          />
+        )}
         <ClipPath>
           <CheckContainer
-            animate={checkControls}
-            variants={checkVariants}
-            initial="hidden"
+            {...(shouldAnimate
+              ? {
+                  animate: checkControls,
+                  variants: checkVariants,
+                  initial: 'hidden',
+                }
+              : {})}
           >
             <StyledIconCheckmark color="successText" />
           </CheckContainer>
         </ClipPath>
       </LeftContainer>
-      <StyledText animate={textControls} variants={textVariants} initial="hidden">
+      <StyledText
+        animate={shouldAnimate ? textControls : undefined}
+        variants={textVariants}
+        initial={shouldAnimate ? 'hidden' : 'shown'}
+      >
         {children}
       </StyledText>
     </div>
@@ -125,6 +142,8 @@ const ClipPath = styled('div')`
 `;
 
 const CheckContainer = styled(motion.div)`
+  left: 0;
+  top: 0;
   height: ${p => p.theme.iconSizes.sm};
   width: ${p => p.theme.iconSizes.sm};
 `;
@@ -135,7 +154,7 @@ const StyledIconCheckmark = styled(IconCheckmark)`
 `;
 
 const StyledText = styled(motion.span)`
-  padding-left: 40px;
+  padding-left: 35px;
 `;
 
 const Portal = styled(motion.div)`

@@ -85,6 +85,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   const environments = useEnvironmentsFromUrl();
   const prevEnvironment = usePrevious(environments);
   const prevEvent = usePrevious(event);
+  const prevGroupStatus = usePrevious(group.status);
 
   // load the data
   useEffect(() => {
@@ -160,6 +161,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
             statusDetails={group.statusDetails}
             activities={group.activity}
             projectId={project.id}
+            newlyResolved={prevGroupStatus === 'unresolved'}
           />
         </GroupStatusBannerWrapper>
       );
