@@ -23,7 +23,7 @@ from sentry.models import (
 )
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.hashlib import md5_text
 
 
@@ -545,6 +545,7 @@ class ReleaseSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
+        web_stats = obj.get_web_stats()
         d = {
             "id": obj.id,
             "version": obj.version,
@@ -570,6 +571,8 @@ class ReleaseSerializer(Serializer):
                 kwargs.get("current_project_meta", {})
             ),
             "userAgent": obj.user_agent,
+            "hasWebStats": bool(web_stats),
+            "webStatsJson": json.dumps(web_stats.as_dict(), True) if web_stats else None,
         }
         if self.with_adoption_stages:
             d.update(

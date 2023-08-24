@@ -22,7 +22,7 @@ type Props = {
 function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
   const organization = useOrganization();
   const orgSlug = organization.slug;
-  const {version, versionInfo, dateCreated, firstEvent, lastEvent} = release;
+  const {version, versionInfo, dateCreated, firstEvent, lastEvent, hasWebStats} = release;
   const {releaseFileCount, isArtifactBundle} = releaseMeta;
 
   return (
@@ -76,6 +76,10 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
                 {tn('artifact', 'artifacts', releaseFileCount)}
               </Link>
             }
+          />
+          <KeyValueTableRow
+            keyName={t('WebStats Uploaded')}
+            value={hasWebStats ? 'Yes' : 'No'}
           />
         </KeyValueTable>
       </SidebarSection.Content>

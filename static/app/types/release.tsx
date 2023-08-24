@@ -103,10 +103,12 @@ interface ReleaseData {
       unadopted: string | null;
     }
   >;
+  hasWebStats?: boolean;
   lastCommit?: Commit;
   lastDeploy?: Deploy;
   owner?: any;
   userAgent?: string;
+  webStatsJson?: string;
 }
 
 export type CurrentRelease = {
