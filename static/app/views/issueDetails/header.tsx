@@ -176,6 +176,18 @@ function GroupHeaderTabs({
     }))
   );
 
+  // Specific omni-action for add comment
+  useOmniActions([
+    {
+      key: 'issue-add-comment',
+      areaKey: 'issue',
+      disabled: disabledTabs.includes(Tab.ACTIVITY),
+      to: `${baseUrl}activity/${location.search}`,
+      actionIcon: IconChat,
+      label: t('Add a Comment'),
+    },
+  ]);
+
   return (
     <StyledTabList hideBorder>
       {tabItems.map(({key, label, ...props}) => (
