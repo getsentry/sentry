@@ -6,8 +6,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - name: List files in the repository
+        run: |
+          ls ${{ github.workspace }}
       - name: update migration
-        run: python ./bin/update-migration adding_athena_demo
+        run: python ../../bin/update-migration adding_athena_demo
       - name: check for changes
         run: git status
       - name: add changed files
