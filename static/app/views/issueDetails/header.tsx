@@ -153,6 +153,7 @@ function GroupHeaderTabs({
     {
       key: Tab.REPLAYS,
       textValue: t('Replays'),
+      omniLabel: t('Issue Replays'),
       hidden: !hasReplaySupport || !issueTypeConfig.replays.enabled,
       to: `${baseUrl}replays/${location.search}`,
       label: (
