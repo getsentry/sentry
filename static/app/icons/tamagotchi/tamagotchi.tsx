@@ -335,6 +335,11 @@ const CheckboxWrapper = styled('div')`
   align-items: baseline;
   margin-left: ${space(2)};
   margin-right: ${space(1)};
+
+  :hover {
+    color: #fa7faa;
+    cursor: pointer;
+  }
 `;
 
 const MetricHeadingWrapper = styled('div')`
