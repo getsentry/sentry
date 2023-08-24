@@ -22,10 +22,18 @@ function OmniSearchModal() {
   useEffect(() => {
     async function initializeFuse() {
       const {actions} = searchState;
-      fuse.current = await createFuzzySearch(actions, {
-        keys: ['label'],
-        threshold: 0.8,
-      });
+      fuse.current = await createFuzzySearch(
+        actions.map(action => ({
+          ...action,
+          keywords: (action.keywords ?? []).concat(
+            action.actionType === 'navigate' ? ['open', 'view', 'see', 'navigate'] : []
+          ),
+        })),
+        {
+          keys: ['label', 'keywords'],
+          threshold: 0.8,
+        }
+      );
     }
 
     initializeFuse();
