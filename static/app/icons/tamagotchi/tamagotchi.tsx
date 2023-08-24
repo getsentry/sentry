@@ -26,11 +26,18 @@ import {
 } from 'sentry/views/projectDetail/tamagotchi/utils';
 import {useReleases} from 'sentry/views/starfish/queries/useReleases';
 
-const Screens = {
+const CategoryScreenContent = {
   energy: ['Issue Alerts Are Configured', 'Metric Alerts Are Configured'],
   tidiness: ['Releases Are Being Created', 'Projects Are Using Environments'],
   joy: ['Issues Are Assigned', 'Issues Get Resolved'],
   health: ['SDK Version', 'Has Un-Minified Stack Traces'],
+};
+
+const MetricToActionsMap = {
+  energy: ['hasIssueAlerts', 'hasMetricAlerts'],
+  tidiness: ['hasReleases', 'hasEnvironments'],
+  joy: ['percentAssigned', 'percentResolved'],
+  health: ['sdkIsHealthy', 'minifiedStackTraceIsHealthy'],
 };
 
 function StartScreen() {
@@ -49,11 +56,22 @@ function TamagotchiHatchingScreen() {
   );
 }
 
-function TamagotchiMetricScreen({metric}: {metric: string}) {
-  const checkBoxes = Screens[metric].map(item => {
+function TamagotchiMetricScreen({
+  metric,
+  metricActions,
+}: {
+  metric: string;
+  metricActions: any;
+}) {
+  const actionsToCheck = MetricToActionsMap[metric];
+  const checkBoxes = CategoryScreenContent[metric].map((item, index) => {
+    const isChecked =
+      typeof metricActions[metric][actionsToCheck[index]] === 'boolean'
+        ? metricActions[metric][actionsToCheck[index]]
+        : metricActions[metric][actionsToCheck[index]] > 0;
     return (
       <CheckboxWrapper key={item}>
-        <Checkbox checkboxColor="black" checked />
+        <Checkbox checkboxColor="black" checked={isChecked} />
         <h6>{tct('[item]', {item})}</h6>
       </CheckboxWrapper>
     );
@@ -119,15 +137,25 @@ function Tamagotchi({project}: {project: Project}) {
     projectId: project.id,
   });
 
+  const tamagotchiMetricActions = useMemo(() => {
+    const actions = {
+      energy: getEnergy(alerts.data),
+      tidiness: getTidiness(releases.data, project),
+      joy: getJoy(issues),
+      health: getHealth(project, sdkUpdates),
+    };
+    return actions;
+  }, [releases, project, alerts, sdkUpdates, issues]);
+
   const tamagotchiMetrics = useMemo(() => {
     const metrics = {
-      energy: getEnergy(alerts.data).energy * 100,
-      tidiness: getTidiness(releases.data, project).tidiness * 100,
-      joy: getJoy(issues).joy * 100,
-      health: getHealth(project, sdkUpdates).health * 100,
+      energy: tamagotchiMetricActions.energy.energy * 100,
+      tidiness: tamagotchiMetricActions.tidiness.tidiness * 100,
+      joy: tamagotchiMetricActions.joy.joy * 100,
+      health: tamagotchiMetricActions.health.health * 100,
     };
     return metrics;
-  }, [releases, project, alerts, sdkUpdates, issues]);
+  }, [tamagotchiMetricActions]);
 
   const handleSetCurrentCard = (index: number) => {
     if (currentCard === 4) {
@@ -186,10 +214,18 @@ function Tamagotchi({project}: {project: Project}) {
   ]);
 
   const cards: EmotionJSX.Element[] = [];
-  cards.push(<TamagotchiMetricScreen metric="energy" />);
-  cards.push(<TamagotchiMetricScreen metric="tidiness" />);
-  cards.push(<TamagotchiMetricScreen metric="joy" />);
-  cards.push(<TamagotchiMetricScreen metric="health" />);
+  cards.push(
+    <TamagotchiMetricScreen metric="energy" metricActions={tamagotchiMetricActions} />
+  );
+  cards.push(
+    <TamagotchiMetricScreen metric="tidiness" metricActions={tamagotchiMetricActions} />
+  );
+  cards.push(
+    <TamagotchiMetricScreen metric="joy" metricActions={tamagotchiMetricActions} />
+  );
+  cards.push(
+    <TamagotchiMetricScreen metric="health" metricActions={tamagotchiMetricActions} />
+  );
   cards.push(<StartScreen />);
   cards.push(<TamagotchiHatchingScreen />);
   cards.push(
