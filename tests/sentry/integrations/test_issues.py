@@ -203,8 +203,10 @@ class IssueDefaultTest(TestCase):
         }
 
     def test_store_issue_last_defaults_for_user_multiple_providers(self):
-        other_integration = Integration.objects.create(provider=AliasedIntegrationProvider.key)
-        other_integration.add_organization(self.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            other_integration = Integration.objects.create(provider=AliasedIntegrationProvider.key)
+            other_integration.add_organization(self.organization, self.user)
+
         other_installation = other_integration.get_installation(self.organization.id)
 
         self.installation.store_issue_last_defaults(
@@ -230,8 +232,9 @@ class IssueDefaultTest(TestCase):
             self.group.id: [f'<a href="{link}">{label}</a>']
         }
 
-        integration = Integration.objects.create(provider="example", external_id="4444")
-        integration.add_organization(self.group.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(provider="example", external_id="4444")
+            integration.add_organization(self.group.organization, self.user)
         installation = integration.get_installation(self.group.organization.id)
 
         assert installation.get_annotations_for_group_list([self.group]) == {self.group.id: []}

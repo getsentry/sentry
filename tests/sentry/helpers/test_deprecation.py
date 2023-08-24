@@ -11,7 +11,6 @@ from rest_framework.status import HTTP_200_OK, HTTP_410_GONE
 from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.helpers.deprecation import deprecated
-from sentry.options import register
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -42,7 +41,7 @@ class DummyEndpoint(Endpoint):
 dummy_endpoint = DummyEndpoint.as_view()
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class TestDeprecationDecorator(APITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -142,8 +141,8 @@ class TestDeprecationDecorator(APITestCase):
             with freeze_time(old_brownout_start):
                 self.assert_denied_request("POST")
 
-            register("override-cron", default=custom_cron)
-            register("override-duration", default=custom_duration)
+            options.register("override-cron", default=custom_cron)
+            options.register("override-duration", default=custom_duration)
             custom_time_iter = croniter(custom_cron, test_date)
             custom_duration_timedelta = isodate.parse_duration(custom_duration)
 
@@ -157,6 +156,8 @@ class TestDeprecationDecorator(APITestCase):
             new_brownout_end = new_brownout_start + custom_duration_timedelta
             with freeze_time(new_brownout_end):
                 self.assert_allowed_request("POST")
+            options.unregister("override-cron")
+            options.unregister("override-duration")
 
     def test_bad_schedule_format(self):
         brownout_start = timeiter.get_next(datetime)
