@@ -40,6 +40,8 @@ function AlertProcedureEditor() {
     } catch (err) {
       logException(err);
       addErrorMessage(t('Unable to save procedure'));
+      // eslint-disable-next-line no-alert
+      alert(JSON.stringify(err.responseJSON));
     }
   }
   return (

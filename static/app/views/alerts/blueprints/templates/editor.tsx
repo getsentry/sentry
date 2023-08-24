@@ -47,6 +47,8 @@ function AlertTemplateEditor() {
     } catch (err) {
       logException(err);
       addErrorMessage(t('Unable to save template'));
+      // eslint-disable-next-line no-alert
+      alert(JSON.stringify(err.responseJSON));
     }
   }
 
