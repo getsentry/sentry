@@ -32,6 +32,7 @@ type Props = {
   event: EventTransaction;
   organization: Organization;
   affectedSpanIds?: string[];
+  hiddenSpanSubTrees?: Set<string>;
 };
 
 function TraceErrorAlerts({
@@ -81,11 +82,17 @@ function TraceErrorAlerts({
   );
 }
 
-function SpansInterface({event, affectedSpanIds, organization}: Props) {
+function SpansInterface({
+  event,
+  affectedSpanIds,
+  organization,
+  hiddenSpanSubTrees,
+}: Props) {
   const parsedTrace = useMemo(() => parseTrace(event), [event]);
 
   const waterfallModel = useMemo(
-    () => new WaterfallModel(event, affectedSpanIds),
+    () => new WaterfallModel(event, affectedSpanIds, hiddenSpanSubTrees),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [event, affectedSpanIds]
   );
 

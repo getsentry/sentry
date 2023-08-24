@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import {Spans} from 'sentry/components/events/interfaces/spans';
 import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {space} from 'sentry/styles/space';
 import {EntryType, EventOrGroupType, EventTransaction} from 'sentry/types';
 import {useQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -133,6 +133,16 @@ function AggregateSpans({params}) {
 
   const projectSlug = eventSlug.split(':')[0];
 
+  console.log(
+    new Set(
+      flattenedSpans
+        .filter(span => {
+          return span.frequency < 0.3;
+        })
+        .map(span => span.span_id)
+    )
+  );
+
   return (
     <SentryDocumentTitle
       title="Aggregate Span View"
@@ -141,13 +151,31 @@ function AggregateSpans({params}) {
     >
       <Layout.Page>
         <NoProjectMessage organization={organization}>
-          <TitleWrapper>Aggregate Span Tree - {location.query.transaction}</TitleWrapper>
+          <TitleWrapper>
+            <b>Aggregate Span Tree</b>
+          </TitleWrapper>
           <Layout.Main>
             <Layout.Header />
             <Layout.Side />
             <Layout.Body>
               <SpansContainer>
-                <Spans event={event} organization={organization} />
+                <DescriptionContainer>
+                  This span tree represents a p95 aggregated view of{' '}
+                  <b>{location.query.transaction}</b> transactions.
+                </DescriptionContainer>
+                <Spans
+                  event={event}
+                  organization={organization}
+                  hiddenSpanSubTrees={
+                    new Set(
+                      flattenedSpans
+                        .filter(span => {
+                          return span.frequency < 0.3;
+                        })
+                        .map(span => span.span_id)
+                    )
+                  }
+                />
               </SpansContainer>
             </Layout.Body>
           </Layout.Main>
@@ -167,4 +195,10 @@ const TitleWrapper = styled('div')`
 
 const SpansContainer = styled('div')`
   margin: space(2);
+`;
+
+const DescriptionContainer = styled('div')`
+  margin-bottom: ${space(2)};
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray500};
 `;

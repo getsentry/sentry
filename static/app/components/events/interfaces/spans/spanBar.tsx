@@ -1202,6 +1202,7 @@ const PercentageContainer = styled('div')`
   white-space: nowrap;
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
+  top: 4px;
 `;
 
 const Percentage = styled('div')`
