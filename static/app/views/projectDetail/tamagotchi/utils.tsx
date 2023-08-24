@@ -65,14 +65,13 @@ export function getTidiness(
       !(project.environments.length === 1 && project.environments.includes('prod'))
   );
 
-  const tidiness = {hasReleases, hasEnvironments, tidiness: 0};
-
-  if ((hasReleases && !hasEnvironments) || (!hasReleases && hasEnvironments)) {
-    tidiness.tidiness = 0.5;
-  }
-  if (hasReleases && hasEnvironments) {
-    tidiness.tidiness = 1;
-  }
+  const pointsFromReleases = hasReleases ? 0.5 : 0;
+  const pointsFromEnvironments = hasEnvironments ? 0.5 : 0;
+  const tidiness = {
+    hasReleases,
+    hasEnvironments,
+    tidiness: pointsFromReleases + pointsFromEnvironments,
+  };
 
   return tidiness;
 }
@@ -92,14 +91,14 @@ export function getEnergy(alerts?: CombinedMetricIssueAlerts[]): {
 
   const hasIssueAlerts = Boolean(issueAlerts && issueAlerts.length > 0);
   const hasMetricAlerts = Boolean(metricAlerts && metricAlerts.length > 0);
-  const energy = {hasIssueAlerts, hasMetricAlerts, energy: 0};
 
-  if ((hasIssueAlerts && !hasMetricAlerts) || (hasMetricAlerts && !hasIssueAlerts)) {
-    energy.energy = 0.5;
-  }
-  if (hasIssueAlerts && hasMetricAlerts) {
-    energy.energy = 1;
-  }
+  const pointsFromIssuesAlerts = hasIssueAlerts ? 0.5 : 0;
+  const pointsFromMetricAlerts = hasMetricAlerts ? 0.5 : 0;
+  const energy = {
+    hasIssueAlerts,
+    hasMetricAlerts,
+    energy: pointsFromIssuesAlerts + pointsFromMetricAlerts,
+  };
 
   return energy;
 }
@@ -108,20 +107,19 @@ export function getHealth(
   project: Project,
   projectsdkupdates: ReturnType<typeof useProjectSdkUpdates>
 ): {health: number; minifiedStackTraceIsHealthy: boolean; sdkIsHealthy: boolean} {
-  let minifiedStackTraceIsHealthy = false;
   let sdkIsHealthy = false;
   if (projectsdkupdates.type === 'resolved') {
     sdkIsHealthy = !projectsdkupdates.data;
   }
-  if (project.hasMinifiedStackTrace) {
-    minifiedStackTraceIsHealthy = true;
-  }
-  const health = {sdkIsHealthy, minifiedStackTraceIsHealthy, health: 0};
-  if (sdkIsHealthy && minifiedStackTraceIsHealthy) {
-    health.health = 1;
-  } else if (sdkIsHealthy || minifiedStackTraceIsHealthy) {
-    health.health = 0.5;
-  }
+  const minifiedStackTraceIsHealthy = project.hasMinifiedStackTrace;
+
+  const pointsFromSDK = sdkIsHealthy ? 0.5 : 0;
+  const pointsFromStackTrace = minifiedStackTraceIsHealthy ? 0.5 : 0;
+  const health = {
+    sdkIsHealthy,
+    minifiedStackTraceIsHealthy,
+    health: pointsFromSDK + pointsFromStackTrace,
+  };
 
   return health;
 }
