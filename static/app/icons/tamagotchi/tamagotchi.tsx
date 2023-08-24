@@ -220,6 +220,7 @@ const TamagotchiContainer = styled('div')`
   margin: auto;
   width: 300px;
   height: 360px;
+  font-family: silkScreen;
 `;
 const MyEggShape = styled('div')`
   width: 100%;
