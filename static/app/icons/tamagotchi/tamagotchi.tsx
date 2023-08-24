@@ -27,10 +27,10 @@ import {
 import {useReleases} from 'sentry/views/starfish/queries/useReleases';
 
 const CategoryScreenContent = {
-  energy: ['Issue Alerts Are Configured', 'Metric Alerts Are Configured'],
-  tidiness: ['Releases Are Being Created', 'Projects Are Using Environments'],
-  joy: ['Issues Are Assigned', 'Issues Get Resolved'],
-  health: ['SDK Version', 'Has Un-Minified Stack Traces'],
+  energy: ['Configured Issue Alerts', 'Configured Metric Alerts'],
+  tidiness: ['Releases Are Being Created', 'Project Uses Environments'],
+  joy: ['> 50% Issues Assigned', '> 50% Issues Resolved'],
+  health: ['SDK Version Is Updated', 'Has Un-Minified Stack Traces'],
 };
 
 const MetricToActionsMap = {
@@ -68,7 +68,7 @@ function TamagotchiMetricScreen({
     const isChecked =
       typeof metricActions[metric][actionsToCheck[index]] === 'boolean'
         ? metricActions[metric][actionsToCheck[index]]
-        : metricActions[metric][actionsToCheck[index]] > 0;
+        : metricActions[metric][actionsToCheck[index]] > 0.5;
     return (
       <CheckboxWrapper key={item}>
         <Checkbox
@@ -79,12 +79,21 @@ function TamagotchiMetricScreen({
       </CheckboxWrapper>
     );
   });
+  const tooltip = {
+    energy:
+      '“I love checking my emails” said no one ever...so up your energy by setting up Sentry alerts!',
+    tidiness:
+      'To tidy up your project, consider creating releases and setting up different environments.',
+    joy: 'To increase your joy, you can take actions such as assigning or resolving issues.',
+    health:
+      'To up your health, upgrade your SDK to experience our latest and greatest features, and consider using un-minified stacktraces!',
+  };
   return (
     <CardPanel color="#ffe8ec">
       <TamagotchiMetric key={metric} style={{display: 'flex', alignItems: 'start'}}>
         <MetricHeadingWrapper>
           <h3>{tct('[metric]', {metric})}</h3>
-          <QuestionTooltip title="more info" size="sm" />
+          <QuestionTooltip title={tooltip[metric]} size="sm" />
         </MetricHeadingWrapper>
       </TamagotchiMetric>
       {checkBoxes}
