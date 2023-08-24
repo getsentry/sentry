@@ -5,49 +5,32 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdkUpdates';
 import {CombinedAlertType, CombinedMetricIssueAlerts} from 'sentry/views/alerts/types';
 
-export function useIssues(project?: Project): {
-  assigned: number;
-  resolved: number;
-  total: number;
-} {
+export function useIssues(project?: Project) {
+  const total = useIssuesQuery(project, {statsPeriod: '3d'});
+
+  const assigned = useIssuesQuery(project, {
+    statsPeriod: '3d',
+    query: 'is:assigned is:unresolved',
+  });
+
+  const resolved = useIssuesQuery(project, {
+    statsPeriod: '3d',
+    query: 'is:resolved',
+  });
+
+  const issues = {assigned, resolved, total};
+  return issues;
+}
+
+function useIssuesQuery(project?: Project, query?: Record<string, any>): number {
   const organization = useOrganization();
   const {getResponseHeader} = useApiQuery<any>(
-    [
-      `/organizations/${organization.slug}/issues/?project=${project?.id}`,
-      {query: {statsPeriod: '3d'}},
-    ],
+    [`/organizations/${organization.slug}/issues/?project=${project?.id}`, {query}],
     {
       staleTime: Infinity,
     }
   );
-  const total = Math.min(parseInt(getResponseHeader?.('X-Hits') ?? '0', 10), 100);
-  const getResponseAssigned = useApiQuery<any>(
-    [
-      `/organizations/${organization.slug}/issues/?project=${project?.id}`,
-      {query: {statsPeriod: '3d', query: 'is:assigned is:unresolved'}},
-    ],
-    {
-      staleTime: Infinity,
-    }
-  );
-  const assigned = getResponseAssigned.data?.length;
-
-  const getResponseResolved = useApiQuery<any>(
-    [
-      `/organizations/${organization.slug}/issues/?project=${project?.id}`,
-      {query: {statsPeriod: '3d', query: 'is:resolved'}},
-    ],
-    {
-      staleTime: Infinity,
-    }
-  );
-
-  const resolved = getResponseResolved.data?.length;
-  return {
-    total,
-    assigned,
-    resolved,
-  };
+  return parseInt(getResponseHeader?.('X-Hits') ?? '0', 10);
 }
 
 export function useAlertRules() {

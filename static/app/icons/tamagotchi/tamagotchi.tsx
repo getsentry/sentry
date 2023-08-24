@@ -63,6 +63,7 @@ function Tamagotchi({project}: {project: Project}) {
   const releases = useReleases();
   const alerts = useAlertRules();
   const issues = useIssues(project);
+
   const sdkUpdates = useProjectSdkUpdates({
     organization,
     projectId: project.id,
