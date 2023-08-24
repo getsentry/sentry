@@ -8,7 +8,7 @@ import PanelTable from 'sentry/components/panels/panelTable';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatBytesBase2} from 'sentry/utils';
+import {formatBytesBase10} from 'sentry/utils';
 import useRouter from 'sentry/utils/useRouter';
 import {bundleStats as stats} from 'sentry/views/bundleAnalyzer';
 import {CardSection} from 'sentry/views/performance/transactionSummary/transactionVitals/styles';
@@ -76,7 +76,7 @@ export default function BundleDetails() {
         return assets.map(asset => (
           <Fragment key={`asset-${asset.name}`}>
             <div>{asset.name}</div>
-            <div>{formatBytesBase2(asset.size)}</div>
+            <div>{formatBytesBase10(asset.size)}</div>
           </Fragment>
         ));
       }
@@ -95,7 +95,7 @@ export default function BundleDetails() {
             >
               {module.name}
             </ExternalLink>
-            <div>{formatBytesBase2(module.size)}</div>
+            <div>{formatBytesBase10(module.size)}</div>
           </Fragment>
         ));
       }
@@ -111,7 +111,7 @@ export default function BundleDetails() {
               <ExternalLink href={`https://www.npmjs.com/package/${npmPackageName}`}>
                 {module.name.replace('../node_modules/', '')}
               </ExternalLink>
-              <div>{formatBytesBase2(module.size)}</div>
+              <div>{formatBytesBase10(module.size)}</div>
             </Fragment>
           );
         });
@@ -132,7 +132,7 @@ export default function BundleDetails() {
             <StyledCard key={entrypoint.id}>
               <CardSection>
                 <div>{entrypoint.id}</div>
-                <StatNumber>{formatBytesBase2(entrypoint.size)}</StatNumber>
+                <StatNumber>{formatBytesBase10(entrypoint.size)}</StatNumber>
               </CardSection>
             </StyledCard>
           ))}

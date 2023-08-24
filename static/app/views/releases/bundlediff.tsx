@@ -166,14 +166,14 @@ export default function BundleDiff() {
     <Layout.Body>
       <Layout.Main fullWidth>
         <CompactSelect
-          triggerLabel="aecd977f813ca1ac63a4123d5404230084938fa7"
-          value="aecd977f813ca1ac63a4123d5404230084938fa7"
+          triggerLabel="0b59c87e937b8950ea9e10b3b45f764805972db4"
+          value="0b59c87e937b8950ea9e10b3b45f764805972db4"
           triggerProps={{prefix: t('Compare')}}
           options={[
             {
-              value: 'aecd977f813ca1ac63a4123d5404230084938fa7',
-              textValue: 'aecd977f813ca1ac63a4123d5404230084938fa7',
-              label: 'aecd977f813ca1ac63a4123d5404230084938fa7',
+              value: '0b59c87e937b8950ea9e10b3b45f764805972db4',
+              textValue: '0b59c87e937b8950ea9e10b3b45f764805972db4',
+              label: '0b59c87e937b8950ea9e10b3b45f764805972db4',
             },
           ]}
           onChange={() => undefined}
