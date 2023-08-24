@@ -17,9 +17,6 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_dangerous = False
 
-    dependencies = [
-        ("sentry", "0536_adding_athena_demo"),
-        ("sentry", "0536_backfill_tombstones"),
-    ]
+    dependencies = []
 
     operations = []
