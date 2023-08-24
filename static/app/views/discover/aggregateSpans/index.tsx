@@ -133,16 +133,6 @@ function AggregateSpans({params}) {
 
   const projectSlug = eventSlug.split(':')[0];
 
-  console.log(
-    new Set(
-      flattenedSpans
-        .filter(span => {
-          return span.frequency < 0.3;
-        })
-        .map(span => span.span_id)
-    )
-  );
-
   return (
     <SentryDocumentTitle
       title="Aggregate Span View"
