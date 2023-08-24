@@ -37,16 +37,6 @@ class WatermarkBatch:
     transaction_id: str
 
 
-def deletion_silo_modes() -> List[SiloMode]:
-    cur = SiloMode.get_current_mode()
-    result: List[SiloMode] = []
-    if cur != SiloMode.REGION:
-        result.append(SiloMode.CONTROL)
-    if cur != SiloMode.CONTROL:
-        result.append(SiloMode.REGION)
-    return result
-
-
 def get_watermark_key(prefix: str, field: HybridCloudForeignKey) -> str:
     return f"{prefix}.{field.model._meta.db_table}.{field.name}"
 
