@@ -43,18 +43,18 @@ function AlertProcedureSummary({procedure}: {procedure: AlertProcedure}) {
   );
 }
 
-const ActionTitle = styled('div')`
+export const ActionTitle = styled('div')`
   display: flex;
   align-items: center;
   * {
     margin: 0 0.2rem;
   }
 `;
-const ActionTextContainer = styled('div')`
+export const ActionTextContainer = styled('div')`
   padding: ${space(0.5)};
 `;
 
-const ActionText = styled('div')`
+export const ActionText = styled('div')`
   display: grid;
   grid-template-columns: 20px 1fr;
   align-items: center;

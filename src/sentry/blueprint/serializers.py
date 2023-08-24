@@ -121,7 +121,7 @@ class IncomingAlertProcedureTriggerSerializer(serializers.Serializer):
         return project
 
     def validate_event(self, incoming_event_id):
-        project_id = self.initial_data.get("project")
+        project_id = int(self.initial_data.get("project"))
         event = eventstore.backend.get_event_by_id(project_id, incoming_event_id)
         if not event:
             raise serializers.ValidationError("Invalid event")

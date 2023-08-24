@@ -31,6 +31,7 @@ import {userDisplayName} from 'sentry/utils/formatters';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import AlertProcedureGroupList from 'sentry/views/alerts/blueprints/procedures/groupList';
 import {getGroupDetailsQueryData} from 'sentry/views/issueDetails/utils';
 
 type Props = {
@@ -185,6 +186,7 @@ export default function GroupSidebar({
         group={group}
         currentRelease={currentRelease}
       />
+      <AlertProcedureGroupList event={event} group={group} project={project} />
       {event && (
         <ErrorBoundary mini>
           <ExternalIssueList project={project} group={group} event={event} />
