@@ -54,8 +54,10 @@ const StyledCard = styled(Card)`
   padding: 1rem;
   margin: 0;
   display: grid;
-  grid-column-gap: ${space(2)};
-  grid-template: 1fr 1fr auto / 1fr auto;
+  column-gap: ${space(2)};
+  row-gap: ${space(1)};
+  grid-template: auto 1fr auto / 1fr auto;
+  align-items: center;
   &:focus,
   &:hover {
     box-shadow: 0px 0px 0px 6px rgba(209, 202, 216, 0.2);
@@ -74,7 +76,7 @@ const AlertBlueprintTitle = styled('div')`
 `;
 
 const AlertBlueprintDescription = styled('div')`
-  grid-area: 2 / 1 / 3 / 2;
+  grid-area: 2 / 1 / 3 / 3;
   font-size: 0.9rem;
   line-height: ${p => p.theme.text.lineHeightBody};
   color: ${p => p.theme.subText};

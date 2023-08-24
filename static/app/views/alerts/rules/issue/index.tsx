@@ -724,42 +724,21 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     });
   };
 
-  getInitialValue = (type: ConditionOrActionProperty, id: string) => {
-    const configuration = this.state.configs?.[type]?.find(c => c.id === id);
-
-    const hasChangeAlerts =
-      configuration?.id &&
-      this.props.organization.features.includes('change-alerts') &&
-      CHANGE_ALERT_CONDITION_IDS.includes(configuration.id);
-
-    return configuration?.formFields
-      ? Object.fromEntries(
-          Object.entries(configuration.formFields)
-            // TODO(ts): Doesn't work if I cast formField as IssueAlertRuleFormField
-            .map(([key, formField]: [string, any]) => [
-              key,
-              hasChangeAlerts && key === 'interval'
-                ? '1h'
-                : formField?.initial ?? formField?.choices?.[0]?.[0],
-            ])
-            .filter(([, initial]) => !!initial)
-        )
-      : {};
-  };
-
   handleResetRow = <T extends keyof IssueAlertRuleAction>(
     type: ConditionOrActionProperty,
     idx: number,
     prop: T,
     val: IssueAlertRuleAction[T]
   ) => {
+    const {organization} = this.props;
+    const {configs} = this.state;
     this.setState(prevState => {
       const clonedState = cloneDeep(prevState);
 
       // Set initial configuration, but also set
       const id = (clonedState.rule as IssueAlertRule)[type][idx].id;
       const newRule = {
-        ...this.getInitialValue(type, id),
+        ...getInitialValue(organization, configs, type, id),
         id,
         [prop]: val,
       };
@@ -773,12 +752,14 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     type: ConditionOrActionProperty,
     item: IssueAlertRuleActionTemplate
   ) => {
+    const {organization} = this.props;
+    const {project, configs} = this.state;
     this.setState(prevState => {
       const clonedState = cloneDeep(prevState);
 
       // Set initial configuration
       const newRule = {
-        ...this.getInitialValue(type, item.id),
+        ...getInitialValue(organization, configs, type, item.id),
         id: item.id,
         sentryAppInstallationUuid: item.sentryAppInstallationUuid,
       };
@@ -788,8 +769,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       return clonedState;
     });
 
-    const {organization} = this.props;
-    const {project} = this.state;
+    const {} = this.state;
     trackAnalytics('edit_alert_rule.add_row', {
       organization,
       project_id: project.id,
@@ -1481,6 +1461,34 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
 }
 
 export default withOrganization(withProjects(IssueRuleEditor));
+
+export const getInitialValue = (
+  organization: Organization,
+  configs: IssueAlertRuleConfig | null,
+  type: ConditionOrActionProperty,
+  id: string
+) => {
+  const configuration = configs?.[type]?.find(c => c.id === id);
+
+  const hasChangeAlerts =
+    configuration?.id &&
+    organization.features.includes('change-alerts') &&
+    CHANGE_ALERT_CONDITION_IDS.includes(configuration.id);
+
+  return configuration?.formFields
+    ? Object.fromEntries(
+        Object.entries(configuration.formFields)
+          // TODO(ts): Doesn't work if I cast formField as IssueAlertRuleFormField
+          .map(([key, formField]: [string, any]) => [
+            key,
+            hasChangeAlerts && key === 'interval'
+              ? '1h'
+              : formField?.initial ?? formField?.choices?.[0]?.[0],
+          ])
+          .filter(([, initial]) => !!initial)
+      )
+    : {};
+};
 
 export const findIncompatibleRules = (
   rule: IssueAlertRule | UnsavedIssueAlertRule | null | undefined

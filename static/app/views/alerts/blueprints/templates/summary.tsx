@@ -133,6 +133,9 @@ const DataContainer = styled('div')`
   padding: ${space(0.5)};
   display: grid;
   grid-template: 1fr / 1fr 1fr;
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    grid-template-columns: 1fr;
+  }
   gap: ${space(1.5)};
 `;
 

@@ -18,7 +18,11 @@ import useProjects from 'sentry/utils/useProjects';
 import AlertProcedureNodeForm from 'sentry/views/alerts/blueprints/procedures/form';
 import AlertTemplateNodeForm from 'sentry/views/alerts/blueprints/templates/form';
 import {AlertProcedure, AlertTemplate} from 'sentry/views/alerts/blueprints/types';
-import {defaultRule, IssueAlertRuleConfig} from 'sentry/views/alerts/rules/issue';
+import {
+  defaultRule,
+  getInitialValue,
+  IssueAlertRuleConfig,
+} from 'sentry/views/alerts/rules/issue';
 
 interface AlertBlueprintEditorFormProps {
   help: string;
@@ -86,11 +90,10 @@ function AlertBlueprintEditorForm({
     const records = [...nodeData[keyType]] ?? [];
     switch (action) {
       case 'add':
-        const config = configs?.[type]?.find(c => c.id === val.id);
         records.push({
+          ...getInitialValue(organization, configs, keyType, val.id),
           id: val.id,
           sentryAppInstallationUuid: val.sentryAppInstallationUuid,
-          ...(config?.formFields ?? {}),
         });
         setNodeData({...nodeData, [keyType]: records});
         break;

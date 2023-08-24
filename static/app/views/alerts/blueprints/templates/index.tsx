@@ -162,7 +162,7 @@ function AlertTemplateList() {
 const TemplateItemContainer = styled('div')`
   display: grid;
   gap: ${space(2)};
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr 1fr;
 `;
 
 const TemplateItem = styled('div')``;
