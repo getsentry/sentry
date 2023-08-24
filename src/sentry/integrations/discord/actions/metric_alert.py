@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sentry_sdk
 
 from sentry import features
@@ -5,7 +7,9 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.integrations.discord.client import DiscordClient
-from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
+from sentry.integrations.discord.message_builder.metric_alerts import (
+    DiscordMetricAlertMessageBuilder,
+)
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
 
@@ -39,7 +43,20 @@ def send_incident_alert_notification(
 
     channel = action.target_identifier
 
-    message = DiscordMessageBuilder(content=f"Metric alert gang {chart_url}")
+    if not channel:
+        # We can't send a message if we don't know the channel
+        logger.warning(
+            "discord.metric_alert.message_send_failure",
+            extra={"guild_id": integration.external_id, "channel_id": channel},
+        )
+        return
+
+    message = DiscordMetricAlertMessageBuilder(
+        incident,
+        new_status,
+        metric_value,
+        chart_url,
+    )
 
     client = DiscordClient(integration_id=integration.id)
     try:
