@@ -53,7 +53,7 @@ export const RowCellContainer = styled('div')<RowCellProps>`
 export const RowCell = styled('div')<RowCellProps>`
   position: relative;
   height: 100%;
-  overflow: visible;
+  overflow: hidden;
   background-color: ${p => getBackgroundColor(p)};
   transition: background-color 125ms ease-in-out;
   color: ${p => (p.showDetail ? p.theme.background : 'inherit')};
