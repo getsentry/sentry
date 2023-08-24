@@ -17,6 +17,8 @@ const getPlaceholderForType = (type: ActionType) => {
     case ActionType.MSTEAMS:
       // no prefixes for msteams
       return 'username or channel';
+    case ActionType.DISCORD:
+      return 'Discord channel ID';
     case ActionType.PAGERDUTY:
       return 'service';
     case ActionType.OPSGENIE:
