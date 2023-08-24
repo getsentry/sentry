@@ -565,7 +565,7 @@ class TraceViewHeader extends Component<PropType, State> {
                                 hasProfileMeasurementsChart,
                               })}
                             </RightSidePane>
-                            <GrossUIHack />
+                            {/* <GrossUIHack /> */}
                           </React.Fragment>
                         )}
                       </CursorGuideHandler.Consumer>

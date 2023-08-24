@@ -153,7 +153,7 @@ function AggregateSpans({params}) {
           <Layout.Main>
             <Layout.Header />
             <Layout.Side />
-            <Layout.Body>
+            <StyledBody>
               <SpansContainer>
                 <Flex>
                   <DescriptionContainer>
@@ -186,7 +186,7 @@ function AggregateSpans({params}) {
                   }
                 />
               </SpansContainer>
-            </Layout.Body>
+            </StyledBody>
           </Layout.Main>
         </NoProjectMessage>
       </Layout.Page>
@@ -217,4 +217,8 @@ const Flex = styled('div')`
   display: flex;
   justify-content: space-between;
   margin-bottom: ${space(2)};
+`;
+
+const StyledBody = styled(Layout.Body)`
+  overflow: hidden;
 `;
