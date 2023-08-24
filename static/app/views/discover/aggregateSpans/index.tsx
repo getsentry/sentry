@@ -20,7 +20,7 @@ function formatSpan(span) {
     'any(description)': description,
     'any(op)': op,
     'p95(exclusive_time)': exclusive_time,
-    'p50(offset)': offset,
+    'p95(offset)': offset,
     parent_start_timestamp,
     'uniq(transaction_id)': count,
     ...rest
