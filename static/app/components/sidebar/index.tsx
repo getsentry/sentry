@@ -402,10 +402,12 @@ function Sidebar({location, organization}: Props) {
             label={t('Search…')}
             onClick={() => openCommandPalette()}
             trailingItems={
-              <SearchKeyboardShortcut>
-                <SearchKeyboardShortcutKey>⌘</SearchKeyboardShortcutKey>
-                <SearchKeyboardShortcutKey>K</SearchKeyboardShortcutKey>
-              </SearchKeyboardShortcut>
+              !collapsed && (
+                <SearchKeyboardShortcut>
+                  <SearchKeyboardShortcutKey>⌘</SearchKeyboardShortcutKey>
+                  <SearchKeyboardShortcutKey>K</SearchKeyboardShortcutKey>
+                </SearchKeyboardShortcut>
+              )
             }
           />
         </SidebarSection>
