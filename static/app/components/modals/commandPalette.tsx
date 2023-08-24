@@ -5,7 +5,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {OmniSearchModal} from 'sentry/components/omniSearch/modal';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-function CommandPalette({Body}: ModalRenderProps) {
+function CommandPalette(props: ModalRenderProps) {
   useEffect(
     () =>
       void trackAnalytics('omnisearch.open', {
@@ -14,11 +14,7 @@ function CommandPalette({Body}: ModalRenderProps) {
     []
   );
 
-  return (
-    <Body>
-      <OmniSearchModal />
-    </Body>
-  );
+  return <OmniSearchModal {...props} />;
 }
 
 export default CommandPalette;

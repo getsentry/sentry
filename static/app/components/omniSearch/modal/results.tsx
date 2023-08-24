@@ -6,7 +6,6 @@ import {Item, Section} from '@react-stately/collections';
 import {TreeProps, TreeState, useTreeState} from '@react-stately/tree';
 import {Node} from '@react-types/shared';
 
-import {closeModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import MenuListItem from 'sentry/components/menuListItem';
 import {t} from 'sentry/locale';
@@ -46,11 +45,12 @@ const windowsKeyboardGlyphs = {
 
 interface OmniResultsProps {
   results: OmniSection[];
+  onAction?: () => void;
 }
 
-function OmniResults({results}: OmniResultsProps) {
+function OmniResults({results, ...props}: OmniResultsProps) {
   return (
-    <OmniResultsList>
+    <OmniResultsList {...props}>
       {results.map(({key: sectionKey, ...section}) => (
         <Section key={sectionKey} title={section.label}>
           {section.actions.map(({key: actionKey, ...action}) => (
@@ -64,16 +64,20 @@ function OmniResults({results}: OmniResultsProps) {
   );
 }
 
-function OmniResultsList(props: TreeProps<OmniSection>) {
+interface OmniResultListProps extends TreeProps<OmniSection> {
+  onAction?: () => void;
+}
+
+function OmniResultsList({onAction, ...treeProps}: OmniResultListProps) {
   const {focusedArea} = useOmniSearchState();
   const setSearch = useContext(OnmniSearchInputContext);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const state = useTreeState(props);
+  const state = useTreeState(treeProps);
   const collection = [...state.collection];
 
-  const onAction = useCallback(
+  const handleAction = useCallback(
     selection => {
       const selectedOption = [...state.collection]
         .map(section => [...section.childNodes])
@@ -85,10 +89,10 @@ function OmniResultsList(props: TreeProps<OmniSection>) {
         return;
       }
 
+      onAction?.();
       selectedOption.onAction?.();
-      closeModal();
     },
-    [state, router]
+    [state, router, onAction]
   );
 
   const {listBoxProps} = useListBox(
@@ -100,7 +104,7 @@ function OmniResultsList(props: TreeProps<OmniSection>) {
       shouldSelectOnPressUp: false,
       shouldFocusWrap: true,
       selectionMode: 'none',
-      onAction,
+      onAction: handleAction,
     },
     state,
     inputRef
@@ -131,7 +135,7 @@ function OmniResultsList(props: TreeProps<OmniSection>) {
           onKeyDown={e => {
             if (['Enter', 'Tab'].includes(e.key)) {
               e.preventDefault();
-              onAction(state.selectionManager.focusedKey);
+              handleAction(state.selectionManager.focusedKey);
             }
             listBoxProps.onKeyDown?.(e);
           }}

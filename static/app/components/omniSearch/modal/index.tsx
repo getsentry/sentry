@@ -2,6 +2,7 @@ import {createContext, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 
@@ -14,7 +15,7 @@ export const OnmniSearchInputContext = createContext<
   React.Dispatch<React.SetStateAction<string>>
 >(() => {});
 
-function OmniSearchModal() {
+function OmniSearchModal({Body, closeModal}: ModalRenderProps) {
   const searchState = useOmniSearchState();
   const [search, setSearch] = useState('');
   const fuse = useRef<Fuse<OmniAction>>();
@@ -85,11 +86,13 @@ function OmniSearchModal() {
   }, [search, searchState]);
 
   return (
-    <Overlay>
-      <OnmniSearchInputContext.Provider value={setSearch}>
-        <OmniResults results={results} />
-      </OnmniSearchInputContext.Provider>
-    </Overlay>
+    <Body>
+      <Overlay>
+        <OnmniSearchInputContext.Provider value={setSearch}>
+          <OmniResults onAction={closeModal} results={results} />
+        </OnmniSearchInputContext.Provider>
+      </Overlay>
+    </Body>
   );
 }
 
