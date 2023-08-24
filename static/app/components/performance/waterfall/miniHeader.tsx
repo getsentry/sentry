@@ -10,13 +10,16 @@ const MINI_HEADER_HEIGHT = 20;
 export const ScrollbarContainer = styled('div')`
   display: block;
   width: 100%;
-  height: 2000px;
+  height: ${MINI_HEADER_HEIGHT}px;
   & > div[data-type='virtual-scrollbar'].dragging > div {
     background-color: ${p => p.theme.textColor};
     opacity: 0.8;
     cursor: grabbing;
   }
   overflow-x: scroll;
+  ::-webkit-scrollbar {
+    display: none;
+  }
 `;
 
 export const VirtualScrollbar = styled('div')`

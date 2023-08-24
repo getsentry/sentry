@@ -219,6 +219,4 @@ const Flex = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const StyledBody = styled(Layout.Body)`
-  overflow: hidden;
-`;
+const StyledBody = styled(Layout.Body)``;
