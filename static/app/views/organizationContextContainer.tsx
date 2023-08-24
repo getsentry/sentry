@@ -65,7 +65,7 @@ function RegisterOmniActions({organization}: {organization: Organization}) {
       keywords: ['organization', 'org'],
       actionIcon: makeIconWithArrow(IconSettings),
       actionType: 'settings',
-      to: normalizeUrl('/settings/organization/'),
+      to: normalizeUrl(`/organizations/${organization.slug}/settings/organization`),
     },
   ]);
 
