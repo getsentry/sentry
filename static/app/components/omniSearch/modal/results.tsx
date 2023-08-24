@@ -131,7 +131,7 @@ function OmniResultsList({onAction, ...treeProps}: OmniResultListProps) {
         <OmniInput
           ref={inputRef}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search for anything…"
+          placeholder="Type for actions…"
           onKeyDown={e => {
             if (['Enter', 'Tab'].includes(e.key)) {
               e.preventDefault();
