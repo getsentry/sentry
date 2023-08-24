@@ -29,6 +29,7 @@ interface AlertBlueprintEditorFormProps {
   identifier: string;
   onSubmit: (data: any) => void;
   type: 'template' | 'procedure';
+  aside?: React.ReactNode;
   procedure?: AlertProcedure;
   template?: AlertTemplate;
 }
@@ -37,6 +38,7 @@ function AlertBlueprintEditorForm({
   type,
   identifier,
   procedure,
+  aside,
   template,
   help,
   onSubmit,
@@ -66,6 +68,7 @@ function AlertBlueprintEditorForm({
     setNodeData(nd => ({
       ...nd,
       ...{
+        alerts: template?.issue_alerts?.map(a => a.id) ?? [],
         actions: procedure?.issue_alert_actions ?? [],
         filters: template?.issue_alert_data?.filters ?? [],
         conditions: template?.issue_alert_data?.conditions ?? [],
@@ -212,6 +215,7 @@ function AlertBlueprintEditorForm({
             </EditorContent>
           </EditorGrouping>
         </Layout.Main>
+        <Layout.Side>{aside}</Layout.Side>
       </Layout.Body>
     </Fragment>
   );

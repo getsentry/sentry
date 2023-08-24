@@ -148,12 +148,12 @@ const AlertEmptyMessage = styled('div')`
   text-align: center;
 `;
 
-const AlertDivider = styled('hr')`
+export const AlertDivider = styled('hr')`
   border: 1px solid ${p => p.theme.border};
   margin: ${space(0.5)};
 `;
 
-const AlertItem = styled('div')`
+export const AlertItem = styled('div')`
   display: grid;
   grid-template: 1fr 1fr / 25px 1fr;
   column-gap: ${space(0.75)};
@@ -162,17 +162,17 @@ const AlertItem = styled('div')`
   align-items: center;
 `;
 
-const AlertItemAvatar = styled(ProjectAvatar)`
+export const AlertItemAvatar = styled(ProjectAvatar)`
   grid-area: 1 / 1 / 3 / 2;
 `;
 
-const AlertItemLink = styled(Link)`
+export const AlertItemLink = styled(Link)`
   grid-area: 1 / 2 / 2 / 3;
   font-weight: bold;
   ${p => p.theme.overflowEllipsis}
 `;
 
-const AlertItemSubtitle = styled('div')`
+export const AlertItemSubtitle = styled('div')`
   grid-area: 2 / 2 / 3 / 3;
   color: ${p => p.theme.subText};
   text-transform: uppercase;
