@@ -201,7 +201,7 @@ function scrollIntoView(el: HTMLElement | null) {
 }
 
 function OmniResultOption({item, state}: OmniResultOptionProps) {
-  const {actionIcon: Icon, actionHotkey} = item.props as OmniAction;
+  const {actionIcon: Icon, actionHotkey, ...actionProps} = item.props as OmniAction;
   const optionRef = useRef<HTMLLIElement>(null);
   const {optionProps, isFocused, isPressed, isSelected, isDisabled} = useOption(
     {key: item.key},
@@ -246,6 +246,7 @@ function OmniResultOption({item, state}: OmniResultOptionProps) {
           </KeyboardShortcutWrap>
         )
       }
+      {...actionProps}
       {...optionProps}
     />
   );
