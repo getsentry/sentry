@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0536_backfill_tombstones"),
+        ("sentry", "0535_add_created_date_to_outbox_model"),
     ]
 
     operations = [
