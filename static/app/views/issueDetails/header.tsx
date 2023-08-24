@@ -170,6 +170,7 @@ function GroupHeaderTabs({
       key: `issues-tab-${item.key}`,
       to: item.to,
       label: item.omniLabel ?? item.textValue ?? item.label,
+      keywords: ['tab', 'scetion', 'page'],
       areaKey: 'issue',
       actionType: 'issue-tab',
       actionIcon: props => <IconArrow {...props} direction="right" />,
