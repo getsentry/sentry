@@ -4,13 +4,13 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import {EntryType, Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 
-// import Help, {HelpProps} from './help';
+import Help from './help';
 
 type View = 'report' | 'raw' | 'help';
 
-function getView(view: View, data: Record<any, any>, meta: Record<any, any>) {
+function getView(view: View, data: Record<any, any>, event: Record<any, any>) {
   switch (view) {
     case 'report':
       const viewData = data.body;
@@ -24,7 +24,6 @@ function getView(view: View, data: Record<any, any>, meta: Record<any, any>) {
               key,
               subject: key,
               value,
-              meta: meta?.[key]?.[''],
             };
           })}
           isContextData
@@ -32,8 +31,8 @@ function getView(view: View, data: Record<any, any>, meta: Record<any, any>) {
       );
     case 'raw':
       return <pre>{JSON.stringify(data, null, 2)}</pre>;
-    // case 'help':
-    //   return <Help data={data as HelpProps['data']} />;
+    case 'help':
+      return <Help data={event} />;
     default:
       throw new TypeError(`Invalid view: ${view}`);
   }
@@ -46,9 +45,6 @@ type Props = {
 
 export function Nel({data, event}: Props) {
   const [view, setView] = useState<View>('report');
-
-  const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.NEL);
-  const meta = event._meta?.entries?.[entryIndex]?.data;
 
   const viewData = {...data};
   viewData.body = {...data.body};
@@ -68,7 +64,7 @@ export function Nel({data, event}: Props) {
 
   return (
     <EventDataSection type="nel" title={t('NEL Report')} actions={actions}>
-      {getView(view, viewData, meta)}
+      {getView(view, viewData, event)}
     </EventDataSection>
   );
 }

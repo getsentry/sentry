@@ -6,34 +6,10 @@ import {space} from 'sentry/styles/space';
 
 import nelProperties from './nelProperties';
 
-type NelProperty = keyof typeof nelProperties;
-
-const linkOverrides = {'script-src': 'script-src_2'};
-
-export type HelpProps = {
-  data: {
-    property: NelProperty;
-  };
-};
-
-function NELHelp({data: {property: key}}: HelpProps) {
-  const getHelp = () => ({
-    __html: nelProperties[key],
-  });
-
-  const getLinkHref = () => {
-    const baseLink =
-      'https://developer.mozilla.org/en-US/docs/Web/HTTP/Network_Error_Logging#error_reports';
-
-    if (key in linkOverrides) {
-      return `${baseLink}${linkOverrides[key]}`;
-    }
-
-    return `${baseLink}${key}`;
-  };
-
+function NELHelp({data}) {
   const getLink = () => {
-    const href = getLinkHref();
+    const href =
+      'https://developer.mozilla.org/en-US/docs/Web/HTTP/Network_Error_Logging#error_reports';
 
     return (
       <StyledExternalLink href={href}>
@@ -43,14 +19,20 @@ function NELHelp({data: {property: key}}: HelpProps) {
     );
   };
 
+  let output = '';
+  for (const [nelProperty, nelExplanation] of Object.entries(nelProperties)) {
+    output += `<span><b>${nelProperty}</b></span>: <span>${nelExplanation}</span><br/>`;
+  }
+
   return (
     <div>
       <h4>
-        <code>{key}</code>
+        <code>{data.message}</code>
       </h4>
-      <blockquote dangerouslySetInnerHTML={getHelp()} />
+      <blockquote>{data.culprit}</blockquote>
+      <blockquote dangerouslySetInnerHTML={{__html: output}} />
       <StyledP>
-        <span>{'\u2014 MDN ('}</span>
+        <span>{'\u2023 MDN ('}</span>
         <span>{getLink()}</span>
         <span>{')'}</span>
       </StyledP>
