@@ -127,7 +127,7 @@ export function getHealth(
   return health;
 }
 
-export function getHappiness({
+export function getJoy({
   assigned,
   resolved,
   total,
@@ -140,16 +140,16 @@ export function getHappiness({
     return {
       percentAssigned: 1,
       percentResolved: 1,
-      happiness: 1,
+      joy: 1,
     };
   }
   const percentAssigned = assigned / total;
   const percentResolved = resolved / total;
-  const happiness = percentAssigned + percentResolved;
+  const joy = percentAssigned + percentResolved;
 
   return {
     percentAssigned,
     percentResolved,
-    happiness,
+    joy,
   };
 }

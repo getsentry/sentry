@@ -16,8 +16,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdkUpdates';
 import {
   getEnergy,
-  getHappiness,
   getHealth,
+  getJoy,
   getTidiness,
   useAlertRules,
   useIssues,
@@ -73,7 +73,7 @@ function Tamagotchi({project}: {project: Project}) {
     const metrics = {
       energy: getEnergy(alerts.data).energy * 100,
       tidiness: getTidiness(releases.data, project).tidiness * 100,
-      happiness: getHappiness(issues).happiness * 100,
+      joy: getJoy(issues).joy * 100,
       health: getHealth(project, sdkUpdates).health * 100,
     };
     return metrics;
@@ -95,7 +95,7 @@ function Tamagotchi({project}: {project: Project}) {
     const totalScore =
       tamagotchiMetrics.energy +
       tamagotchiMetrics.tidiness +
-      tamagotchiMetrics.happiness +
+      tamagotchiMetrics.joy +
       tamagotchiMetrics.health;
     if (totalScore !== currentScore) {
       setCurrentScore(totalScore);
