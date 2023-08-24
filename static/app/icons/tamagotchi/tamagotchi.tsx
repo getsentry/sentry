@@ -71,7 +71,10 @@ function TamagotchiMetricScreen({
         : metricActions[metric][actionsToCheck[index]] > 0;
     return (
       <CheckboxWrapper key={item}>
-        <Checkbox checkboxColor="black" checked={isChecked} />
+        <Checkbox
+          checkboxColor={isChecked ? '#2BA185' : '#F55459'}
+          checked={isChecked ? isChecked : 'indeterminate'}
+        />
         <h6>{tct('[item]', {item})}</h6>
       </CheckboxWrapper>
     );

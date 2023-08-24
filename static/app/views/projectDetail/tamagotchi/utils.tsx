@@ -119,8 +119,7 @@ export function getHealth(
   const health = {sdkIsHealthy, minifiedStackTraceIsHealthy, health: 0};
   if (sdkIsHealthy && minifiedStackTraceIsHealthy) {
     health.health = 1;
-  }
-  if (sdkIsHealthy || minifiedStackTraceIsHealthy) {
+  } else if (sdkIsHealthy || minifiedStackTraceIsHealthy) {
     health.health = 0.5;
   }
 
