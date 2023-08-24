@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import {urlEncode} from '@sentry/utils';
 
 import {LinkButton} from 'sentry/components/button';
 import {Spans} from 'sentry/components/events/interfaces/spans';

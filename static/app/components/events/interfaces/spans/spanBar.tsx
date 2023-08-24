@@ -1053,7 +1053,9 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
     const duration = Math.abs(endTimestamp - startTimestamp);
-    const durationString = getHumanDuration(duration);
+    const durationString =
+      getHumanDuration(duration) +
+      (location.pathname === '/aggregate-spans/' ? ' (P95)' : '');
     const bounds = this.getBounds();
     const displaySpanBar = defined(bounds.left) && defined(bounds.width);
     if (!displaySpanBar) {

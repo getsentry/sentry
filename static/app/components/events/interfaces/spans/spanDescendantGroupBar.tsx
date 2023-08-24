@@ -144,7 +144,9 @@ export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
     const durationDisplay = getDurationDisplay(bounds);
     const {startTimestamp, endTimestamp} = getSpanGroupTimestamps(spanGrouping);
     const duration = Math.abs(endTimestamp - startTimestamp);
-    const durationString = getHumanDuration(duration);
+    const durationString =
+      getHumanDuration(duration) +
+      (location.pathname === '/aggregate-spans/' ? ' (P95)' : '');
 
     return (
       <RowRectangle
