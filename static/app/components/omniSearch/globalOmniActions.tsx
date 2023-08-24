@@ -93,7 +93,7 @@ export function useGlobalOmniActions() {
     {
       key: 'create-gh-ticket',
       areaKey: 'help',
-      label: t('File a GitHub ticket'),
+      label: t('File a GitHub issue'),
       keywords: ['issue'],
       actionIcon: IconGithub,
       to: 'https://github.com/getsentry/sentry/issues/new/choose',
