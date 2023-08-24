@@ -427,7 +427,7 @@ export function Actions(props: Props) {
           {
             key: 'issue-resolve-next-release',
             areaKey: 'issue',
-            label: t('Resolve Issue in next release'),
+            label: t('Resolve Issue in Next Release'),
             hidden: !hasRelease,
             actionType: '0-resolve',
             actionIcon: IconCheckmark,
@@ -442,7 +442,7 @@ export function Actions(props: Props) {
           {
             key: 'issue-resolve-current-release',
             areaKey: 'issue',
-            label: t('Resolve Issue in current release'),
+            label: t('Resolve Issue in Current Release'),
             hidden: !hasRelease,
             actionType: '0-resolve',
             actionIcon: IconCheckmark,
