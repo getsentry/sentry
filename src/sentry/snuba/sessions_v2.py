@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from snuba_sdk import BooleanCondition, Column, Condition, Function, Limit, Op
 
 from sentry.api.utils import get_date_range_from_params
+from sentry.models.project import Project
 from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
 from sentry.search.events.builder import SessionsV2QueryBuilder, TimeseriesSessionsV2QueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
@@ -753,10 +754,12 @@ def massage_sessions_result_summary(
             )
 
     projects = dict(sorted(projects.items()))
+    ids = projects.keys()
+    project_id_to_slug = dict(Project.objects.filter(id__in=ids).values_list("id", "slug"))
     formatted_projects = []
     for key, values in projects.items():
         categories = values["categories"]
-        project_dict = {"id": key, "stats": []}
+        project_dict = {"id": key, "slug": project_id_to_slug[key], "stats": []}
 
         for key, stats in categories.items():
             project_dict["stats"].append(stats)

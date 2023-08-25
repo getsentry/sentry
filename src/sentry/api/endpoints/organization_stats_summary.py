@@ -196,7 +196,7 @@ class OrganizationStatsSummaryEndpoint(OrganizationEventsEndpointBase):
 
     def _generate_csv(self, projects):
         if not len(projects):
-            return []
+            return
 
         output = StringIO()
         csv_writer = csv.writer(output)
@@ -219,8 +219,11 @@ class OrganizationStatsSummaryEndpoint(OrganizationEventsEndpointBase):
 
         csv_writer.writerow(headers)
 
+        ids = projects.keys()
+        project_id_to_slug = dict(Project.objects.filter(id__in=ids).values_list("id", "slug"))
+
         for project_id, project_stats in projects.items():
-            slug = Project.objects.get_from_cache(id=project_id).slug
+            slug = project_id_to_slug[project_id]
             row = {"project_id": project_id, "project_slug": slug}
             for category_stats in project_stats.values():
                 for category, stats in category_stats.items():

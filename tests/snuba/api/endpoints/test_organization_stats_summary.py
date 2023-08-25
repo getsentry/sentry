@@ -303,6 +303,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             "projects": [
                 {
                     "id": self.project.id,
+                    "slug": self.project.slug,
                     "stats": [
                         {
                             "category": "error",
@@ -320,6 +321,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                 },
                 {
                     "id": self.project2.id,
+                    "slug": self.project2.slug,
                     "stats": [
                         {
                             "category": "transaction",
@@ -359,6 +361,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             "projects": [
                 {
                     "id": self.project.id,
+                    "slug": self.project.slug,
                     "stats": [
                         {
                             "category": "attachment",
@@ -388,6 +391,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                 },
                 {
                     "id": self.project2.id,
+                    "slug": self.project2.slug,
                     "stats": [
                         {
                             "category": "transaction",
@@ -427,6 +431,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             "projects": [
                 {
                     "id": self.project.id,
+                    "slug": self.project.slug,
                     "stats": [
                         {
                             "category": "attachment",
@@ -460,6 +465,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                 },
                 {
                     "id": self.project2.id,
+                    "slug": self.project2.slug,
                     "stats": [
                         {
                             "category": "transaction",
@@ -500,6 +506,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             "projects": [
                 {
                     "id": self.project.id,
+                    "slug": self.project.slug,
                     "stats": [
                         {
                             "category": "error",
@@ -517,6 +524,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                 },
                 {
                     "id": self.project2.id,
+                    "slug": self.project2.slug,
                     "stats": [
                         {
                             "category": "transaction",
@@ -558,6 +566,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             "projects": [
                 {
                     "id": self.project.id,
+                    "slug": self.project.slug,
                     "stats": [
                         {
                             "category": "error",
@@ -599,6 +608,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             "projects": [
                 {
                     "id": self.project.id,
+                    "slug": self.project.slug,
                     "stats": [
                         {
                             "category": "attachment",
@@ -617,6 +627,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                 },
                 {
                     "id": self.project2.id,
+                    "slug": self.project2.slug,
                     "stats": [
                         {
                             "category": "transaction",
@@ -658,6 +669,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             "projects": [
                 {
                     "id": self.project.id,
+                    "slug": self.project.slug,
                     "stats": [
                         {
                             "category": "error",
@@ -692,6 +704,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             "projects": [
                 {
                     "id": self.project.id,
+                    "slug": self.project.slug,
                     "stats": [
                         {
                             "category": "error",
