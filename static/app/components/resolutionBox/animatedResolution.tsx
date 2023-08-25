@@ -90,7 +90,7 @@ export function AnimatedResolution({animate, children}: AnimatedResolutionProps)
           <ErrorGemlin
             onEndRun={onEndRun}
             onEndJump={onEndJump}
-            runFromPosition={`${bannerWidth + 200}px`}
+            runFromPosition={`${bannerWidth + 250}px`}
           />
         )}
         <ClipPath>

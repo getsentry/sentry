@@ -19,11 +19,11 @@ import {
 } from 'sentry/types';
 
 type Props = {
+  newlyResolved: boolean;
   projectId: string;
   // TODO(ts): This should be a union type `IgnoredStatusDetails | ResolvedStatusDetails`
   statusDetails: ResolvedStatusDetails;
   activities?: GroupActivity[];
-  newlyResolved?: boolean;
 };
 
 function renderReason(

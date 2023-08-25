@@ -8,9 +8,9 @@ type ErrorGemlinProps = {
   runFromPosition: string;
 };
 
-const RUN_DURATION = '2s';
+const RUN_DURATION = '5s';
 const RUNNING_CADENCE = '500ms';
-const JUMP_DURATION = '400ms';
+const JUMP_DURATION = '4s';
 const JUMP_FROM_POSITION = '45px';
 
 type AnimationClass = 'running' | 'jumping' | 'end';
