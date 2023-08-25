@@ -50,6 +50,9 @@ class TeamProjectsListTest(APITestCase):
 
 @region_silo_test(stable=True)
 class TeamProjectsCreateTest(APITestCase):
+    endpoint = "sentry-api-0-team-project-index"
+    method = "post"
+
     def test_simple(self):
         self.login_as(user=self.user)
         team = self.create_team(members=[self.user])
@@ -137,6 +140,18 @@ class TeamProjectsCreateTest(APITestCase):
 
         assert response.status_code == 409, response.content
         assert response.data == {"detail": "A project with this slug already exists."}
+
+    @with_feature("app:enterprise-prevent-numeric-slugs")
+    def test_generated_slug_not_entirely_numeric(self):
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="1234",
+            status_code=201,
+        )
+
+        assert response.data["slug"].startswith("1234" + "-")
 
     def test_with_invalid_platform(self):
         user = self.create_user()

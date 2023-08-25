@@ -31,7 +31,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import org_setup_complete, terms_accepted
 
 
-class OrganizationSerializer(BaseOrganizationSerializer):
+class OrganizationPostSerializer(BaseOrganizationSerializer):
     defaultTeam = serializers.BooleanField(required=False)
     agreeTerms = serializers.BooleanField(required=True)
     idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
@@ -209,7 +209,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 status=429,
             )
 
-        serializer = OrganizationSerializer(data=request.data)
+        serializer = OrganizationPostSerializer(data=request.data)
 
         if serializer.is_valid():
             result = serializer.validated_data
