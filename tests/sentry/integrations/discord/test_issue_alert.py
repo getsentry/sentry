@@ -195,6 +195,7 @@ class DiscordIssueAlertTest(RuleTestCase):
             f"{DiscordClient.MESSAGE_URL.format(channel_id=self.channel_id)}", 0
         )
 
+    @responses.activate
     def test_integration_removed(self):
         integration_service.delete_integration(integration_id=self.discord_integration.id)
         results = list(self.rule.after(self.event, self.get_state()))
@@ -209,6 +210,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         assert form.cleaned_data["channel_id"] == self.channel_id
         assert form.cleaned_data["tags"] == self.tags
 
+    @responses.activate
     def test_label(self):
         label = self.rule.render_label()
         assert (
