@@ -7,9 +7,9 @@ import {
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useOrganization from 'sentry/utils/useOrganization';
+import ListPage from 'sentry/views/replays/list/listContent';
 
-import ReplayList from './replaysList';
-
+jest.mock('sentry/utils/replays/hooks/useReplayPageview');
 jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 jest.mock('sentry/utils/replays/hooks/useReplayList', () => {
@@ -61,6 +61,10 @@ describe('ReplayList', () => {
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
   });
 
   it('should render the onboarding panel when the org is on AM1', async () => {
@@ -70,7 +74,7 @@ describe('ReplayList', () => {
       hasSentOneReplay: false,
     });
 
-    render(<ReplayList />, {
+    render(<ListPage />, {
       context: getMockContext(mockOrg),
     });
 
@@ -87,7 +91,7 @@ describe('ReplayList', () => {
       hasSentOneReplay: true,
     });
 
-    render(<ReplayList />, {
+    render(<ListPage />, {
       context: getMockContext(mockOrg),
     });
 
@@ -104,7 +108,7 @@ describe('ReplayList', () => {
       hasSentOneReplay: false,
     });
 
-    render(<ReplayList />, {
+    render(<ListPage />, {
       context: getMockContext(mockOrg),
     });
 
@@ -121,11 +125,11 @@ describe('ReplayList', () => {
       hasSentOneReplay: true,
     });
 
-    render(<ReplayList />, {
+    render(<ListPage />, {
       context: getMockContext(mockOrg),
     });
 
-    await waitFor(() => expect(screen.getByTestId('replay-table')).toBeInTheDocument());
+    await waitFor(() => expect(screen.queryAllByTestId('replay-table')).toHaveLength(3));
     expect(mockUseReplayList).toHaveBeenCalled();
   });
 });

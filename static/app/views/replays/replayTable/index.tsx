@@ -21,10 +21,12 @@ import {
   ActivityCell,
   BrowserCell,
   DeadClickCountCell,
+  DeadClickCountWithDropdownCell,
   DurationCell,
   ErrorCountCell,
   OSCell,
   RageClickCountCell,
+  RageClickCountWithDropdownCell,
   ReplayCell,
   TransactionCell,
 } from 'sentry/views/replays/replayTable/tableCell';
@@ -156,7 +158,12 @@ function ReplayTable({
                   return <BrowserCell key="browser" replay={replay} />;
 
                 case ReplayColumn.COUNT_DEAD_CLICKS:
-                  return <DeadClickCountCell key="countDeadClicks" replay={replay} />;
+                  return (
+                    <DeadClickCountWithDropdownCell
+                      key="countDeadClicks"
+                      replay={replay}
+                    />
+                  );
 
                 case ReplayColumn.COUNT_DEAD_CLICKS_NO_HEADER:
                   return <DeadClickCountCell key="countDeadClicks" replay={replay} />;
@@ -165,7 +172,12 @@ function ReplayTable({
                   return <ErrorCountCell key="countErrors" replay={replay} />;
 
                 case ReplayColumn.COUNT_RAGE_CLICKS:
-                  return <RageClickCountCell key="countRageClicks" replay={replay} />;
+                  return (
+                    <RageClickCountWithDropdownCell
+                      key="countRageClicks"
+                      replay={replay}
+                    />
+                  );
 
                 case ReplayColumn.COUNT_RAGE_CLICKS_NO_HEADER:
                   return <RageClickCountCell key="countRageClicks" replay={replay} />;
