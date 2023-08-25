@@ -56,6 +56,7 @@ default_manager = FeatureManager()  # NOQA
 # fmt: off
 
 # Features that don't use resource scoping
+default_manager.add("app:enterprise-prevent-numeric-slugs", SystemFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 
