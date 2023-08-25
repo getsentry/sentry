@@ -82,10 +82,10 @@ function NotificationSettings({organizations}: Props) {
       <TextBlock>
         {t('Personal notifications sent by email or an integration.')}
       </TextBlock>
-      <Panel>
+      <PanelNoBottomMargin>
         <PanelHeader>{t('Notification')}</PanelHeader>
         <Container>{notificationFields.map(renderOneSetting)}</Container>
-      </Panel>
+      </PanelNoBottomMargin>
       {!isLoading && (
         <Form
           saveOnBlur
@@ -93,7 +93,7 @@ function NotificationSettings({organizations}: Props) {
           apiEndpoint="/users/me/notifications/"
           initialData={initialLegacyData}
         >
-          <JsonForm title={t('Other')} fields={legacyFields} />
+          <BottomForm fields={legacyFields} />
         </Form>
       )}
       <AlertLink to="/settings/account/emails" icon={<IconMail />}>
@@ -126,4 +126,19 @@ const IconWrapper = styled('div')`
   display: flex;
   margin: auto;
   cursor: pointer;
+`;
+
+const BottomForm = styled(JsonForm)`
+  & > ${Panel} {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-top: 0;
+  }
+`;
+
+const PanelNoBottomMargin = styled(Panel)`
+  margin-bottom: 0;
+  border-bottom: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 `;
