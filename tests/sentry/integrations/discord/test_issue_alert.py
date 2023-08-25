@@ -202,6 +202,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         assert len(results) == 0
 
     @mock.patch("sentry.integrations.discord.actions.issue_alert.form.validate_channel_id")
+    @responses.activate
     def test_get_form_instance(self, mock_validate_channel_id):
         form = self.rule.get_form_instance()
         form.full_clean()
