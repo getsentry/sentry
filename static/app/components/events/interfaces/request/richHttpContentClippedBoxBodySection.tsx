@@ -31,6 +31,8 @@ export function RichHttpContentClippedBoxBodySection({
             data-test-id="rich-http-content-body-context-data"
             data={data}
             preserveQuotes
+            meta={meta}
+            withAnnotatedText
           />
         );
       case 'application/x-www-form-urlencoded':
