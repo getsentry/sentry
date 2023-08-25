@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import timedelta
 from typing import Optional
 from urllib import parse
@@ -136,7 +138,7 @@ def metric_alert_attachment_info(
     alert_rule: AlertRule,
     selected_incident: Optional[Incident] = None,
     new_status: Optional[IncidentStatus] = None,
-    metric_value: Optional[str] = None,
+    metric_value: Optional[int] = None,
 ):
     latest_incident = None
     if selected_incident is None:

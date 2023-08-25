@@ -6,6 +6,7 @@ from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
+from django.core.exceptions import ValidationError
 from django.db import router, transaction
 from django.db.models.signals import post_save
 from django.utils import timezone
@@ -1240,6 +1241,11 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
         target_identifier = get_alert_rule_trigger_action_msteams_channel_id(
             target_value, *args, **kwargs
         )
+    # target_value is the Discord channel ID
+    elif type == AlertRuleTriggerAction.Type.DISCORD.value:
+        target_identifier = get_alert_rule_trigger_action_discord_channel_id(
+            target_value, *args, **kwargs
+        )
     # target_value is the ID of the PagerDuty service
     elif type == AlertRuleTriggerAction.Type.PAGERDUTY.value:
         target_identifier, target_value = get_alert_rule_trigger_action_pagerduty_service(
@@ -1311,6 +1317,28 @@ def get_alert_rule_trigger_action_msteams_channel_id(
     if channel_id is None:
         # no granting access for msteams channels unlike slack
         raise InvalidTriggerActionError("Could not find channel %s." % name)
+
+    return channel_id
+
+
+def get_alert_rule_trigger_action_discord_channel_id(
+    channel_id,
+    organization,
+    integration_id,
+    **kwargs,
+) -> str:
+    from sentry.integrations.discord.utils.channel import validate_channel_id
+
+    integration = integration_service.get_integration(integration_id=integration_id)
+    if integration is None:
+        raise InvalidTriggerActionError("Discord server is a required field.")
+
+    try:
+        validate_channel_id(channel_id, integration.external_id, integration.id)
+    except ValidationError as err:
+        raise InvalidTriggerActionError(
+            err.message,
+        )
 
     return channel_id
 
