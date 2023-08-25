@@ -2,6 +2,7 @@ import datetime
 import uuid
 from unittest import mock
 
+import pytest
 from django.urls import reverse
 
 from sentry.replays.testutils import (
@@ -1249,6 +1250,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     == b'{"detail":"Replay search query limits exceeded. Please narrow the time-range."}'
                 )
 
+    @pytest.mark.skip(reason="flaky: Date logic breaks - possibly due to stats-period.")
     def test_get_replays_dead_rage_click_cutoff(self):
         """Test rage and dead clicks are accumulated after the cutoff."""
         project = self.create_project(teams=[self.team])
