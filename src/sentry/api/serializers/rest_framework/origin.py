@@ -19,7 +19,6 @@ class OriginField(serializers.CharField):
             return
 
         bits = parse_uri_match(value)
-        # ports are not supported on matching expressions (yet)
         if ":*" in bits.domain:
             raise serializers.ValidationError(
                 "%s is not an acceptable domain. Wildcard ports are not allowed." % value
