@@ -76,7 +76,6 @@ type TestStubFixtures = {
   Group: OverridableStub;
   GroupStats: OverridableStub;
   GroupingConfigs: SimpleStub;
-  GroupingEnhancements: SimpleStub;
   Groups: SimpleStub;
   HiddenEnvironments: SimpleStub;
   Incident: OverridableStub;
