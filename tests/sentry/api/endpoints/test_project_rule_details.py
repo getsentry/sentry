@@ -145,6 +145,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert len(response.data["filters"]) == 1
         assert response.data["filters"][0]["id"] == conditions[1]["id"]
 
+    @responses.activate
     def test_with_snooze_rule(self):
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=self.rule)
 
@@ -156,6 +157,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["snoozeCreatedBy"] == "You"
         assert not response.data["snoozeForEveryone"]
 
+    @responses.activate
     def test_with_snooze_rule_everyone(self):
         user2 = self.create_user("user2@example.com")
         self.snooze_rule(owner_id=user2.id, rule=self.rule)
@@ -214,6 +216,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         )
         assert response.data["actions"][0]["disabled"] is True
 
+    @responses.activate
     def test_with_deleted_sentry_app(self):
         actions = [
             {
@@ -255,6 +258,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         )
         assert response.data["lastTriggered"] == datetime.now().replace(tzinfo=timezone.utc)
 
+    @responses.activate
     def test_with_jira_action_error(self):
         conditions = [
             {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
@@ -399,6 +403,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert_rule_from_payload(self.rule, payload)
 
+    @responses.activate
     def test_with_environment(self):
         payload = {
             "name": "hello world",

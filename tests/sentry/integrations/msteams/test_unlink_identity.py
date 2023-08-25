@@ -98,6 +98,7 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
         )
         assert len(responses.calls) == 2
 
+    @responses.activate
     def test_no_identity(self):
         teams_user_id = "my-teams-user-id"
         # identity for a different user

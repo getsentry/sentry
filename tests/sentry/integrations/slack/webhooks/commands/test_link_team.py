@@ -32,6 +32,7 @@ class SlackCommandsLinkTeamTestBase(SlackCommandsTest):
 
 @region_silo_test
 class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
+    @responses.activate
     def test_link_another_team_to_channel(self):
         """
         Test that we block a user who tries to link a second team to a
@@ -51,6 +52,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         data = json.loads(str(response.content.decode("utf-8")))
         assert CHANNEL_ALREADY_LINKED_MESSAGE in get_response_text(data)
 
+    @responses.activate
     def test_link_team_from_dm(self):
         """
         Test that if a user types `/sentry link team` from a DM instead of a
@@ -67,6 +69,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         data = json.loads(str(response.content.decode("utf-8")))
         assert LINK_FROM_CHANNEL_MESSAGE in get_response_text(data)
 
+    @responses.activate
     def test_link_team_identity_does_not_exist(self):
         """Test that get_identity fails if the user has no Identity and we reply with the LINK_USER_MESSAGE"""
         user2 = self.create_user()
@@ -117,6 +120,7 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
         super().setUp()
         self.link_team()
 
+    @responses.activate
     def test_unlink_team(self):
         data = self.send_slack_message(
             "unlink team",
@@ -125,6 +129,7 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
         )
         assert "Click here to unlink your team from this channel" in get_response_text(data)
 
+    @responses.activate
     def test_unlink_no_team(self):
         """
         Test for when a user attempts to remove a link between a Slack channel
@@ -137,6 +142,7 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
         )
         assert TEAM_NOT_LINKED_MESSAGE in get_response_text(data)
 
+    @responses.activate
     def test_unlink_multiple_orgs(self):
         # Create another organization and team for this user that is linked through `self.integration`.
         organization2 = self.create_organization(owner=self.user)

@@ -85,6 +85,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         assert len(blocks[1]["elements"]) == 2
         assert [button["text"]["text"] for button in blocks[1]["elements"]] == ["Link", "Cancel"]
 
+    @responses.activate
     def test_share_discover_links_unlinked_user_no_channel(self):
         IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
         with self.feature("organizations:discover-basic"):

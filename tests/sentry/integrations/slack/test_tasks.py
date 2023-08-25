@@ -171,6 +171,7 @@ class SlackTasksTest(TestCase):
             }
         ]
 
+    @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
@@ -200,6 +201,7 @@ class SlackTasksTest(TestCase):
         trigger_action = AlertRuleTriggerAction.objects.get(integration_id=self.integration.id)
         assert trigger_action.target_identifier == "chan-id"
 
+    @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
@@ -224,6 +226,7 @@ class SlackTasksTest(TestCase):
             serialize_integration(self.integration), "my-channel", 180
         )
 
+    @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
@@ -248,6 +251,7 @@ class SlackTasksTest(TestCase):
             serialize_integration(self.integration), "my-channel", 180
         )
 
+    @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
