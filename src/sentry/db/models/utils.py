@@ -80,7 +80,7 @@ def slugify_instance(
 
     # Don't further mutate if the value is unique
     if not base_qs.filter(**{f"{field_name}__iexact": base_value}).exists():
-        if features.has("app:enterprise-prevent-numeric-slugs", None):
+        if features.has("app:enterprise-prevent-numeric-slugs"):
             # if feature flag is on, we only return if the slug is not entirely numeric
             if not base_value.isdigit():
                 return

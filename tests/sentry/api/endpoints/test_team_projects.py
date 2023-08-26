@@ -141,6 +141,5 @@ class TeamProjectsCreateTest(APITestCase):
             default_rules=False,
             status_code=201,
         )
-
         project = Project.objects.get(id=response.data["id"])
         assert not Rule.objects.filter(project=project).exists()
