@@ -146,7 +146,9 @@ export class FlamegraphChartRenderer {
     }
 
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.context.font = `bold 14px ${this.theme.FONTS.FRAME_FONT}`;
+    this.context.font = `bold ${
+      this.theme.SIZES.METRICS_FONT_SIZE * window.devicePixelRatio
+    }px ${this.theme.FONTS.FRAME_FONT}`;
 
     this.context.beginPath();
     this.context.stroke();

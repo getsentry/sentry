@@ -107,6 +107,7 @@ export interface FlamegraphTheme {
     LABEL_FONT_SIZE: number;
     MAX_SPANS_HEIGHT: number;
     MEMORY_CHART_HEIGHT: number;
+    METRICS_FONT_SIZE: number;
     MINIMAP_HEIGHT: number;
     MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: number;
     SPANS_BAR_HEIGHT: number;
@@ -167,6 +168,7 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   SPANS_BAR_HEIGHT: 20,
   SPANS_DEPTH_OFFSET: 3,
   SPANS_FONT_SIZE: 11,
+  METRICS_FONT_SIZE: 11,
   MAX_SPANS_HEIGHT: 160,
   TIMELINE_HEIGHT: 20,
   TOOLTIP_FONT_SIZE: 12,
