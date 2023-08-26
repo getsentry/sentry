@@ -2,6 +2,7 @@ from functools import cached_property
 
 from django.urls import reverse
 
+from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 from sentry.models.projectteam import ProjectTeam
 from sentry.testutils.cases import APITestCase
@@ -249,6 +250,13 @@ class OrganizationTeamsCreateTest(APITestCase):
         self.get_error_response(
             self.organization.slug, name="x" * 65, slug="xxxxxxx", status_code=400
         )
+
+    @with_feature("app:enterprise-prevent-numeric-slugs")
+    def test_invalid_numeric_slug(self):
+        response = self.get_error_response(
+            self.organization.slug, name="hello word", slug="1234", status_code=400
+        )
+        assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
     @with_feature("app:enterprise-prevent-numeric-slugs")
     def test_generated_slug_not_entirely_numeric(self):
