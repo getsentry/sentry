@@ -385,6 +385,7 @@ class ProfileFrameDropType(GroupType):
     slug = "profile_frame_drop"
     description = "A Frame Drop Occurred"
     category = GroupCategory.PERFORMANCE.value
+    noise_config = NoiseConfig(ignore_limit=25)
     released = True
 
 
