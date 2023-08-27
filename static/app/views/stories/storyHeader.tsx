@@ -10,7 +10,7 @@ interface Props extends ComponentProps<'div'> {}
 
 export default function StoryHeader({style}: Props) {
   return (
-    <Flex justify="space-between" gap={space(2)} style={style}>
+    <Flex as="header" justify="space-between" gap={space(2)} style={style}>
       <H1>
         <IconSentry size="lg" /> UI
       </H1>

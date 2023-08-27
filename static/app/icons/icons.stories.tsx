@@ -1217,7 +1217,7 @@ function Section({section}: {section: TSection}) {
   }
 
   return (
-    <Fragment>
+    <section>
       <SectionHeader>{section.label}</SectionHeader>
       <Grid style={{gridTemplateColumns: 'repeat(4, 1fr)'}}>
         {section.icons.map(icon => {
@@ -1243,7 +1243,7 @@ function Section({section}: {section: TSection}) {
           );
         })}
       </Grid>
-    </Fragment>
+    </section>
   );
 }
 
@@ -1259,8 +1259,7 @@ function formatObjAsReactStatement(name, props: Record<string, unknown>) {
 }
 
 const SectionHeader = styled('h5')`
-  margin-top: ${space(2)};
-  margin-bottom: 0;
+  margin-block: ${space(2)};
 `;
 
 const Grid = styled('div')`

@@ -21,7 +21,7 @@ export default function Stories({
     <Layout>
       <StoryHeader style={{gridArea: 'head'}} />
       <StoryList style={{gridArea: 'list'}} files={FilesList} />
-      <StyledPanel style={{gridArea: 'body'}}>
+      <StyledPanel as="main" style={{gridArea: 'body'}}>
         {currentFile ? <StoryFile filename={currentFile} /> : <EmptyStory />}
       </StyledPanel>
     </Layout>

@@ -66,7 +66,7 @@ const FlexRow = styled('div')`
   align-content: flex-start;
 `;
 
-const FlexColumn = styled('div')`
+const FlexColumn = styled('section')`
   display: flex;
   flex-direction: column;
   gap: var(--stories-grid-space);

@@ -16,9 +16,9 @@ export default function StoryList({files, style}: Props) {
   const tree = toTree(files);
 
   return (
-    <div style={style}>
+    <nav style={style}>
       <FolderContent path="" content={tree} />
-    </div>
+    </nav>
   );
 }
 

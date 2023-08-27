@@ -1,8 +1,7 @@
-import {type ElementType, useState} from 'react';
+import {type ElementType} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
-import {InputGroup} from 'sentry/components/inputGroup';
+import Panel from 'sentry/components/panels/panel';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {space} from 'sentry/styles/space';
 
@@ -22,98 +21,51 @@ export default function Matrix({component, propMatrix, selectedProps}: Props) {
   const values1 = propMatrix[selectedProps[0]];
   const values2 = propMatrix[selectedProps[1]];
 
-  const renderList = values1.flatMap(value1 => {
-    return values2.map(value2 => {
-      return {
+  const items = values1.flatMap(value1 => {
+    const label = <div>{`${selectedProps[0]}=${value1}`}</div>;
+    const content = values2.map(value2 => {
+      return item(component, {
         ...defaultValues,
         [selectedProps[0]]: value1,
         [selectedProps[1]]: value2,
-      };
+      });
     });
+    return [label, ...content];
   });
 
-  const hasChildren = 'children' in propMatrix;
-
-  const Component = component;
-  const items = hasChildren
-    ? renderList.map(({children, ...props}) => (
-        <SizingWindow key={JSON.stringify(props)}>
-          <Component {...props}>{children}</Component>
-        </SizingWindow>
-      ))
-    : renderList.map(props => (
-        <SizingWindow key={JSON.stringify(props)}>
-          <Component {...props} />
-        </SizingWindow>
-      ));
-
   return (
-    <div>
-      <form onSubmit={() => {}}>
-        <InputGroup>
-          <ul>
-            {Object.keys(propMatrix).map(key => (
-              <li key={key}>
-                <InputForType prop={key} values={propMatrix[key]} />
-              </li>
-            ))}
-          </ul>
-        </InputGroup>
-      </form>
+    <Panel style={{padding: space(2)}}>
       <Grid
         style={{
-          gridTemplateColumns: `repeat(${values2.length}, max-content)`,
+          gridTemplateColumns: `max-content repeat(${values2.length}, max-content)`,
         }}
       >
+        <div key="space-head" />
+        {values2.map(v => (
+          <div key={`title-2-${v}`}>{`${selectedProps[1]}=${v}`}</div>
+        ))}
         {items}
       </Grid>
-    </div>
+    </Panel>
   );
 }
 
-function InputForType({prop, values}: {prop: string; values: unknown[]}) {
-  const isAllString = areAllString(values);
-  const isAllNumber = areAllNumber(values);
-  const isAllBoolean = areAllBoolean(values);
+function item(Component, props) {
+  const hasChildren = 'children' in props;
 
-  const [value, setValue] = useState<string>('');
-
-  if (isAllString || isAllNumber || isAllBoolean) {
-    return (
-      <CompactSelect
-        triggerLabel={prop}
-        onChange={selected => setValue(selected.value)}
-        options={values.map(v => ({
-          label: toLabel(v),
-          value: toLabel(v),
-        }))}
-        size="sm"
-        value={value}
-      />
-    );
-  }
-  return <InputGroup.Input placeholder={prop} />;
+  return hasChildren ? (
+    <SizingWindow key={JSON.stringify(props)}>
+      <Component {...props}>{props.children}</Component>
+    </SizingWindow>
+  ) : (
+    <SizingWindow key={JSON.stringify(props)}>
+      <Component {...props} />
+    </SizingWindow>
+  );
 }
 
-function areAllString(values: unknown[]): values is string[] {
-  return values.every(val => typeof val === 'string');
-}
-function areAllNumber(values: unknown[]): values is number[] {
-  return values.every(val => typeof val === 'number');
-}
-function areAllBoolean(values: unknown[]): values is boolean[] {
-  return values.every(val => typeof val === 'boolean');
-}
-
-function toLabel(value: string | boolean | number) {
-  if (typeof value === 'boolean') {
-    return value ? 'true' : 'false';
-  }
-  return String(value);
-}
-
-const Grid = styled('div')`
+const Grid = styled('section')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${space(1)};
   align-items: center;
 `;

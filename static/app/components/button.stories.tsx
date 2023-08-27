@@ -1,8 +1,6 @@
 import {Button} from 'sentry/components/button';
 import Matrix from 'sentry/components/stories/matrix';
 import {IconDelete} from 'sentry/icons';
-// import SideBySide from 'sentry/components/stories/sideBySide';
-// import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/story/storyBook';
 
 export default storyBook('Button', story => {
@@ -38,17 +36,40 @@ export default storyBook('Button', story => {
     });
   });
 
+  const propMatrix = {
+    borderless: [false, true],
+    busy: [false, true],
+    children: ['Save', undefined],
+    icon: [undefined, <IconDelete key="" />],
+    priority: priorities,
+    size: sizes,
+    disabled: [false, true],
+    external: [false, true],
+    title: [undefined, 'Save Now'],
+    translucentBorder: [false, true],
+  };
   story('Props', () => (
-    <Matrix
-      component={Button}
-      propMatrix={{
-        children: ['Save', undefined],
-        icon: [undefined, <IconDelete key="" />],
-        priority: priorities,
-        size: sizes,
-        borderless: [false, true],
-      }}
-      selectedProps={['priority', 'borderless']}
-    />
+    <div>
+      <Matrix
+        component={Button}
+        propMatrix={propMatrix}
+        selectedProps={['priority', 'size']}
+      />
+      <Matrix
+        component={Button}
+        propMatrix={propMatrix}
+        selectedProps={['children', 'icon']}
+      />
+      <Matrix
+        component={Button}
+        propMatrix={propMatrix}
+        selectedProps={['borderless', 'translucentBorder']}
+      />
+      <Matrix
+        component={Button}
+        propMatrix={propMatrix}
+        selectedProps={['disabled', 'busy']}
+      />
+    </div>
   ));
 });

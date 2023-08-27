@@ -15,10 +15,11 @@ type Context = {
   rootName: string;
   storyName: string;
 };
+type ContextMap = Record<string, Context>;
 
 export default function storyBook(rootName: string, setup: SetupFn) {
   return function RenderStory() {
-    const [contexts, setContexts] = useState<Context[]>([]);
+    const [contexts, setContexts] = useState<ContextMap>({});
 
     const storyFn = useCallback(async (storyName: string, storyRender: RenderFn) => {
       const context: Context = {
@@ -28,18 +29,21 @@ export default function storyBook(rootName: string, setup: SetupFn) {
         isResolved: false,
       };
 
-      setContexts(prev => [...prev, context]);
+      setContexts(prev => ({
+        ...prev,
+        [storyName]: context,
+      }));
       const finished = await storyRender();
       context.children = [finished];
 
-      setContexts(prev => [...prev]);
+      setContexts(prev => ({...prev}));
     }, []);
 
     useEffect(() => {
       setup(storyFn);
     }, [storyFn]);
 
-    const items = contexts.map(context => (
+    const items = Object.values(contexts).map(context => (
       <Section
         key={context.rootName + context.storyName}
         rootName={context.rootName}
