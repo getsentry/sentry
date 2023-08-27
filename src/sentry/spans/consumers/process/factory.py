@@ -49,6 +49,7 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
 
     snuba_span: MutableMapping[str, Any] = {}
     snuba_span["description"] = relay_span.get("description")
+    snuba_span["event_id"] = relay_span["event_id"]
     snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
     snuba_span["group_raw"] = "0"
     snuba_span["is_segment"] = relay_span.get("is_segment", False)
@@ -82,9 +83,9 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
 
 def _format_event_id(payload: Mapping[str, Any]) -> str:
     event_id = payload.get("event_id")
-    if not event_id:
-        return ""
-    return uuid.UUID(event_id).hex
+    if event_id:
+        return uuid.UUID(event_id).hex
+    return ""
 
 
 def _process_message(message: Message[KafkaPayload]) -> KafkaPayload:
