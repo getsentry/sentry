@@ -1,6 +1,9 @@
+import type {Group as TGroup} from 'sentry/types';
+import {EventOrGroupType, GroupStatus, IssueCategory, IssueType} from 'sentry/types';
+
 import {Project} from './project';
 
-export function Group(params = {}) {
+export function Group(params: Partial<TGroup> = {}): TGroup {
   const project = Project();
   return {
     activity: [],
@@ -15,12 +18,12 @@ export function Group(params = {}) {
     isBookmarked: false,
     isPublic: false,
     isSubscribed: false,
-    issueCategory: 'error',
-    issueType: 'error',
+    issueCategory: IssueCategory.ERROR,
+    issueType: IssueType.ERROR,
     lastRelease: null,
     lastSeen: '2019-04-11T01:08:59Z',
     level: 'warning',
-    logger: null,
+    logger: '',
     metadata: {function: 'fetchData', type: 'RequestError'},
     numComments: 0,
     participants: [],
@@ -29,13 +32,13 @@ export function Group(params = {}) {
     pluginActions: [],
     pluginContexts: [],
     pluginIssues: [],
-    project: {
+    project: Project({
       platform: 'javascript',
       id: project.id,
       slug: project.slug,
-    },
+    }),
     seenBy: [],
-    shareId: null,
+    shareId: '',
     shortId: 'JAVASCRIPT-6QS',
     stats: {
       '24h': [
@@ -47,13 +50,13 @@ export function Group(params = {}) {
         [1515024000, 122],
       ],
     },
-    status: 'unresolved',
+    status: GroupStatus.UNRESOLVED,
     statusDetails: {},
     subscriptionDetails: null,
     // ex tag: {key: 'browser', name: 'Browser', totalValues: 1}
     tags: [],
     title: 'RequestError: GET /issues/ 404',
-    type: 'error',
+    type: EventOrGroupType.ERROR,
     userCount: 35097,
     userReportCount: 0,
     ...params,

@@ -575,7 +575,7 @@ export const enum GroupSubstatus {
 export interface BaseGroup {
   activity: GroupActivity[];
   annotations: string[];
-  assignedTo: Actor;
+  assignedTo: null | Actor;
   culprit: string;
   firstSeen: string;
   hasSeen: boolean;
