@@ -72,10 +72,18 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     )
 
     sentry_tags: MutableMapping[str, Any] = {}
+
     if tags := relay_span.get("data"):
         for relay_tag, snuba_tag in TAG_MAPPING.items():
             if relay_tag in tags:
                 sentry_tags[snuba_tag] = tags.get(relay_tag)
+
+    if "op" not in sentry_tags:
+        sentry_tags["op"] = relay_span["op"]
+
+    if "status" not in sentry_tags:
+        sentry_tags["status"] = relay_span["status"]
+
     snuba_span["sentry_tags"] = sentry_tags
 
     return snuba_span
