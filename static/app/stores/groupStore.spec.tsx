@@ -1,7 +1,8 @@
 import GroupStore from 'sentry/stores/groupStore';
 import {Group, GroupStats, TimeseriesValue} from 'sentry/types';
 
-const g = (id: string, params?: Partial<Group>) => TestStubs.Group({id, ...params});
+const g = (id: string, params?: Partial<Group>): Group =>
+  TestStubs.Group({id, ...params});
 
 describe('GroupStore', function () {
   beforeEach(function () {
@@ -19,10 +20,12 @@ describe('GroupStore', function () {
     it('should update matching existing entries', function () {
       GroupStore.items = [g('1'), g('2')];
 
-      GroupStore.add([{id: '1', foo: 'bar'}, g('3')]);
+      GroupStore.add([g('1', {count: '1337'}), g('3')]);
 
       expect(GroupStore.getAllItemIds()).toEqual(['1', '2', '3']);
-      expect(GroupStore.items[0]).toEqual(expect.objectContaining({id: '1', foo: 'bar'}));
+      expect(GroupStore.items[0]).toEqual(
+        expect.objectContaining({id: '1', count: '1337'})
+      );
     });
 
     it('should attempt to preserve order of ids', function () {
@@ -42,10 +45,10 @@ describe('GroupStore', function () {
     it('should update matching existing entries', function () {
       GroupStore.items = [g('1'), g('2')];
 
-      GroupStore.addToFront([{id: '1', foo: 'bar'}, g('3')]);
+      GroupStore.addToFront([g('1', {count: '1337'}), g('3')]);
 
       expect(GroupStore.getAllItems()).toEqual([
-        expect.objectContaining({id: '1', foo: 'bar'}),
+        expect.objectContaining({id: '1', count: '1337'}),
         g('3'),
         g('2'),
       ]);
