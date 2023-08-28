@@ -203,6 +203,7 @@ default_manager.add(
 default_manager.add(events.ServiceHookAddAuditLogEvent())
 default_manager.add(events.ServiceHookEditAuditLogEvent())
 default_manager.add(events.ServiceHookRemoveAuditLogEvent())
+default_manager.add(events.IntegrationDisabledAuditLogEvent())
 default_manager.add(events.IntegrationUpgradeAuditLogEvent())
 default_manager.add(events.IntegrationAddAuditLogEvent())
 default_manager.add(events.IntegrationEditAuditLogEvent())
@@ -263,6 +264,7 @@ default_manager.add(
     )
 )
 default_manager.add(events.InternalIntegrationAddAuditLogEvent())
+default_manager.add(events.InternalIntegrationDisabledAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
         event_id=135,
