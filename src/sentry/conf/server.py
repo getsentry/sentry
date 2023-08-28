@@ -1602,23 +1602,30 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enable Sentry Functions
     "organizations:sentry-functions": False,
-    # Enable experimental session replay backend APIs
+    # Enable core Session Replay backend APIs
     "organizations:session-replay": False,
-    # Enable Session Replay showing in the sidebar
+    # Enable core Session Replay link in the sidebar
     "organizations:session-replay-ui": True,
-    # Enable experimental session replay SDK for recording on Sentry
+    # Enable core Session Replay SDK for recording on sentry.io
     "organizations:session-replay-sdk": False,
+    # Enable core Session Replay SDK for recording onError events on sentry.io
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
+    # Enable the Replay Details > Accessibility tab
+    "organizations:session-replay-a11y-tab": False,
     # Enable linking from 'new issue' slack notifs to the issue replay list
     "organizations:session-replay-slack-new-issue": False,
+    # Enable linking from 'new issue' email notifs to the issue replay list
     "organizations:session-replay-issue-emails": False,
-    "organizations:session-replay-weekly-email": False,
-    "organizations:session-replay-trial-ended-banner": False,
-    "organizations:session-replay-trace-table": False,
     # Enable optimized serach feature.
     "organizations:session-replay-optimized-search": False,
+    # Enable linking from 'weekly email' summaries to the issue replay list
+    "organizations:session-replay-weekly-email": False,
+    # Enable the Replay Details > Performance tab
+    "organizations:session-replay-trace-table": False,
+    # Enable the AM1 trial ended banner on sentry.io
+    "organizations:session-replay-trial-ended-banner": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
