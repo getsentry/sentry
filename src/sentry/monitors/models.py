@@ -266,7 +266,7 @@ class Monitor(Model):
     def get_next_expected_checkin_latest(self, last_checkin: datetime) -> datetime:
         """
         Computes the latest time we will expect the next checkin at given the
-        most recent checkin time. This is determined by the user-conigured
+        most recent checkin time. This is determined by the user-configured
         margin.
         """
         next_checkin = self.get_next_expected_checkin(last_checkin)
@@ -405,7 +405,7 @@ class MonitorCheckIn(Model):
     timeout_at = models.DateTimeField(null=True)
     """
     Holds the exact time when a check-in would be considered to have timed out.
-    This is computed as the sume of date_updated and the user configured
+    This is computed as the sum of date_updated and the user configured
     max_runtime.
     """
 
@@ -417,7 +417,7 @@ class MonitorCheckIn(Model):
     trace_id = UUIDField(null=True)
     """
     Trace ID associated during this check-in. Useful to find associated events
-    that occured during the check-in.
+    that occurred during the check-in.
     """
 
     attachment_id = BoundedBigIntegerField(null=True)
