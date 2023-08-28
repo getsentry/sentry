@@ -235,8 +235,7 @@ function CustomRepositories({
                         <DropdownButton
                           isOpen={isOpen}
                           disabled={addRepositoryButtonDisabled}
-                          size="sm"
-                          aria-label={t('Add Repository')}
+                          size="xs"
                         >
                           {t('Add Repository')}
                         </DropdownButton>
