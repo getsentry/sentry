@@ -34,6 +34,7 @@ from sentry.search.events.builder.utils import (
     remove_hours,
     remove_minutes,
 )
+from sentry.search.events.fields import get_function_alias
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
     HistogramParams,
@@ -141,9 +142,14 @@ class MetricsQueryBuilder(QueryBuilder):
         if self.params.organization is None:
             raise InvalidSearchQuery("An on demand metrics query requires an organization")
 
+        if len(self.selected_columns) == 0:
+            raise InvalidSearchQuery(
+                "An on demand metrics query requires at least one selected column"
+            )
+
         if isinstance(self, TimeseriesMetricQueryBuilder):
             limit = Limit(1)
-            alias = "count"
+            alias = get_function_alias(self.selected_columns[0]) or "count"
             include_series = True
             interval = self.interval
         else:
