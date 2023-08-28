@@ -3,6 +3,7 @@ import logging
 from django.db import models, router, transaction
 from django.db.models.signals import post_delete, post_save
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     DefaultFieldsModel,
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 @region_silo_only_model
 class ExternalActor(DefaultFieldsModel):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     actor = FlexibleForeignKey("sentry.Actor", db_index=True, on_delete=models.CASCADE)
     team = FlexibleForeignKey("sentry.Team", null=True, db_index=True, on_delete=models.CASCADE)

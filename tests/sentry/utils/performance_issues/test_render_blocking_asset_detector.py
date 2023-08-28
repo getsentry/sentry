@@ -193,6 +193,7 @@ class RenderBlockingAssetDetectorTest(TestCase):
         assert self.find_problems(event) == []
 
 
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     "expected,first_url,second_url",
     [

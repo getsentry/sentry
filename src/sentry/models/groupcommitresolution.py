@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 
 
@@ -10,7 +11,7 @@ class GroupCommitResolution(Model):
     When a Group is referenced via a commit, its association is stored here.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     group_id = BoundedBigIntegerField()
     commit_id = BoundedBigIntegerField(db_index=True)

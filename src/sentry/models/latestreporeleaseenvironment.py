@@ -1,3 +1,4 @@
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 
 
@@ -8,7 +9,7 @@ class LatestRepoReleaseEnvironment(Model):
     commits in the given repo.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     repository_id = BoundedBigIntegerField()
     # 0 for 'all environments'

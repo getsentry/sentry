@@ -4,6 +4,7 @@ from enum import Enum
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.manager import BaseManager
@@ -22,7 +23,7 @@ query_aggregation_to_snuba = {
 
 @region_silo_only_model
 class SnubaQuery(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     class Type(Enum):
         ERROR = 0
@@ -50,7 +51,7 @@ class SnubaQuery(Model):
 
 @region_silo_only_model
 class SnubaQueryEventType(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     class EventType(Enum):
         ERROR = 0
@@ -72,7 +73,7 @@ class SnubaQueryEventType(Model):
 
 @region_silo_only_model
 class QuerySubscription(DefaultFieldsModel):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     class Status(Enum):
         ACTIVE = 0

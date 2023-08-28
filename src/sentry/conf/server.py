@@ -1312,7 +1312,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "CONTACT": {"email": "partners@sentry.io"},
         "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
         "VERSION": "v0",
-        "SERVERS": [{"url": "https://sentry.io/"}],
+        "SERVERS": [{"url": "https://sentry.io"}],
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
         "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
@@ -1323,6 +1323,8 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
 SENTRY_FEATURES = {
+    # Prevents entirely numeric resource slugs
+    "app:enterprise-prevent-numeric-slugs": False,
     # Enables user registration.
     "auth:register": True,
     # Enables actionable items alerts and endpoint
@@ -1613,6 +1615,7 @@ SENTRY_FEATURES = {
     "organizations:session-replay-slack-new-issue": False,
     "organizations:session-replay-issue-emails": False,
     "organizations:session-replay-weekly-email": False,
+    "organizations:session-replay-trial-ended-banner": False,
     "organizations:session-replay-trace-table": False,
     # Enable optimized serach feature.
     "organizations:session-replay-optimized-search": False,
@@ -1697,8 +1700,6 @@ SENTRY_FEATURES = {
     "organizations:org-roles-for-teams": False,
     # Enable new JS SDK Dynamic Loader
     "organizations:js-sdk-dynamic-loader": False,
-    # If true, allow to create/use org auth tokens
-    "organizations:org-auth-tokens": False,
     # Enable detecting SDK crashes during event processing
     "organizations:sdk-crash-detection": False,
     # Enable functionality for recap server polling.
@@ -1713,6 +1714,8 @@ SENTRY_FEATURES = {
     "projects:custom-inbound-filters": False,
     # Enable the new flat file indexing system for sourcemaps.
     "organizations:sourcemaps-bundle-flat-file-indexing": False,
+    # Upload release bundles as artifact bundles.
+    "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
     # Signals that the organization can start prefilling on demand metrics.
@@ -2378,6 +2381,8 @@ SENTRY_TEAM_ROLES = (
 # See sentry/options/__init__.py for more information
 SENTRY_OPTIONS: dict[str, Any] = {}
 SENTRY_DEFAULT_OPTIONS: dict[str, Any] = {}
+# Raise an error in dev on failed lookups
+SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
 
 # You should not change this setting after your database has been created
 # unless you have altered all schemas first
