@@ -33,7 +33,7 @@ function ReplayCurrentUrl() {
     return (
       <Tooltip
         title={t(
-          'This function is disabled since the URL contains filtered content, which is not a valid path.'
+          'Copy-paste is disabled since the URL contains filtered content, which is not a valid path.'
         )}
       >
         <TextCopyInput size="sm" disabled>
