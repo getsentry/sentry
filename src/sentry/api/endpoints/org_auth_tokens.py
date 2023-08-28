@@ -66,6 +66,11 @@ class OrgAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
         if not name:
             return Response({"detail": ["The name cannot be blank."]}, status=400)
 
+        if len(name) > 255:
+            return Response(
+                {"detail": ["The name cannot be longer than 255 characters."]}, status=400
+            )
+
         token = OrgAuthToken.objects.create(
             name=name,
             organization_id=organization.id,
