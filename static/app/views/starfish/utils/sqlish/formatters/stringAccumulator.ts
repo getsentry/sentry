@@ -41,24 +41,59 @@ export class StringAccumulator {
   }
 
   toString() {
-    return this.lines
-      .map(line => line.toString())
-      .join(NEWLINE)
-      .trim();
+    let output: Line[] = [];
+
+    this.lines.forEach(line => {
+      if (line.textLength <= LINE_LENGTH) {
+        output.push(line);
+        return;
+      }
+
+      const splitLines: Line[] = [new Line([], line.indentation)];
+      let tokenIndex = 0;
+
+      while (tokenIndex < line.tokens.length) {
+        const incomingToken = line.tokens.at(tokenIndex) as string;
+
+        const totalLength = (splitLines.at(-1) as Line).textLength + incomingToken.length;
+
+        if (totalLength <= LINE_LENGTH) {
+          splitLines.at(-1)?.add(incomingToken);
+        } else {
+          splitLines.push(new Line([incomingToken], line.indentation + 1));
+        }
+
+        tokenIndex += 1;
+      }
+
+      output = [...output, ...splitLines.filter(splitLine => !splitLine.isEmpty)];
+    });
+
+    return output.join(NEWLINE).trim();
   }
 }
+
+const LINE_LENGTH = 100;
 
 class Line {
   tokens: string[];
   indentation: number;
 
-  constructor() {
-    this.tokens = [];
-    this.indentation = 0;
+  constructor(tokens: string[] = [], indentation: number = 0) {
+    this.tokens = tokens;
+    this.indentation = indentation;
   }
 
   get isEmpty() {
     return this.toString().trim() === '';
+  }
+
+  get length() {
+    return this.toString().length;
+  }
+
+  get textLength() {
+    return this.toString().trim().length;
   }
 
   add(token: string) {
