@@ -27,10 +27,12 @@ def clean_rule_data(data):
         if datum.get("name"):
             del datum["name"]
 
+
 @receiver(pre_save, sender=Rule)
 def pre_save_rule(instance, sender, *args, **kwargs):
     clean_rule_data(instance.data.get("conditions", []))
     clean_rule_data(instance.data.get("actions", []))
+
 
 def find_duplicate_rule(rule_data, project):
     matchers = [key for key in list(rule_data.keys()) if key not in ("name", "user_id")]
