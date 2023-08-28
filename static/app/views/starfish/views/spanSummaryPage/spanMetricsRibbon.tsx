@@ -25,10 +25,6 @@ export function SpanMetricsRibbon({spanMetrics}: Props) {
 
   return (
     <BlockContainer>
-      {op.startsWith('db') && op !== 'db.redis' && (
-        <Block title={t('Table')}>{spanMetrics?.[SpanMetricsFields.SPAN_DOMAIN]}</Block>
-      )}
-
       <Block
         title={getThroughputTitle(op)}
         description={tct('Throughput of this [opDescription] span per minute', {
