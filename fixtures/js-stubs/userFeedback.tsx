@@ -1,8 +1,10 @@
+import type {UserReport as TUserReport} from 'sentry/types';
+
 import {Event} from './event';
 import {Group} from './group';
 import {User} from './user';
 
-export function UserFeedback(params = {}) {
+export function UserFeedback(params: Partial<TUserReport> = {}): TUserReport {
   const event = Event();
   return {
     id: '123',
