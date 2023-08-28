@@ -25,7 +25,6 @@ class TeamSerializer(CamelSnakeModelSerializer, PreventNumericSlugMixin):
         max_length=50,
         error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
     )
-
     org_role = serializers.ChoiceField(
         choices=tuple(list(roles.get_choices()) + [("")]),
         default="",

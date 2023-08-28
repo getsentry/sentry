@@ -189,7 +189,46 @@ class SCIMIndexListTest(SCIMTestCase):
         response = self.client.get(f"{url}?startIndex=0")
         assert response.status_code == 400, response.data
 
-    @override_settings(SENTRY_REGION="na")
+
+@override_settings(SENTRY_REGION="na")
+@region_silo_test(stable=True)
+class SCIMIndexCreateTest(SCIMTestCase):
+    endpoint = "sentry-api-0-organization-scim-team-index"
+    method = "post"
+
+    def setUp(self):
+        super().setUp()
+        self.post_data = {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+            "displayName": "Test SCIMv2",
+            "members": [],
+        }
+
+    @patch("sentry.scim.endpoints.teams.metrics")
+    def test_scim_team_index_create(self, mock_metrics):
+        with receivers_raise_on_send():
+            response = self.get_success_response(
+                self.organization.slug, **self.post_data, status_code=201
+            )
+
+        team_id = response.data["id"]
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+            "id": team_id,
+            "displayName": "Test SCIMv2",
+            "members": [],
+            "meta": {"resourceType": "Group"},
+        }
+
+        assert Team.objects.filter(id=team_id).exists()
+        assert Team.objects.get(id=team_id).slug == "test-scimv2"
+        assert Team.objects.get(id=team_id).name == "Test SCIMv2"
+        assert Team.objects.get(id=team_id).idp_provisioned
+        assert len(Team.objects.get(id=team_id).member_set) == 0
+        mock_metrics.incr.assert_called_with(
+            "sentry.scim.team.provision",
+        )
+
     def test_scim_team_no_duplicate_names(self):
         self.create_team(organization=self.organization, name=self.post_data["displayName"])
         response = self.get_error_response(
