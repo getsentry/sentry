@@ -222,7 +222,6 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
         }
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
-
         assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
     @with_feature("app:enterprise-prevent-numeric-slugs")
@@ -236,10 +235,6 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         response = self.get_success_response(self.organization.slug, **data, status_code=201)
 
         assert response.data["slug"].startswith("1234" + "-")
-        assert response.data["slug"][0] == (
-            "Enter a valid slug consisting of lowercase letters, numbers, underscores or "
-            "hyphens. It cannot be entirely numeric."
-        )
 
     @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_organization_limit(self):
