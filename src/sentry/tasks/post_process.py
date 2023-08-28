@@ -684,6 +684,8 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
         # deprecated event.group and event.group_id usage, kept here for backwards compatibility
         event.group, _ = get_group_with_redirect(event.group_id)
         event.group_id = event.group.id
+        # We buffer updates to last_seen, assume its at least >= the event datetime
+        event.group.last_seen = max(event.datetime, event.group.last_seen)
 
     # Re-bind Group since we're reading the Event object
     # from cache, which may contain a stale group and project
@@ -691,6 +693,8 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
     rebound_groups = []
     for group_state in group_states:
         rebound_group = get_group_with_redirect(group_state["id"])[0]
+        # We buffer updates to last_seen, assume its at least >= the event datetime
+        rebound_group.last_seen = max(event.datetime, rebound_group.last_seen)
 
         # We fetch buffered updates to group aggregates here and populate them on the Group. This
         # helps us avoid problems with processing group ignores and alert rules that rely on these
