@@ -21,8 +21,8 @@ class RpcMetricsTest(TestCase):
             assert len(span.records) == 3
 
     def test_multithreaded(self):
-        tracker_id_queue = Queue()
-        record_queue = Queue()
+        tracker_id_queue: Queue[int] = Queue()
+        record_queue: Queue[RpcMetricRecord] = Queue()
 
         def make_thread(n: int) -> Thread:
             def run() -> None:
