@@ -80,7 +80,7 @@ declare namespace Profiling {
     received: string;
     timestamp: string;
     release: Release | null;
-    platform: string;
+    platform: 'node' | 'javascript' | string;
     environment?: string;
     debug_meta?: {
       images: Image[];
