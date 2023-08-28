@@ -19,20 +19,33 @@ const introduction = (
 );
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+}: Partial<
+  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
+> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t('Add the Sentry dependency:'),
     configurations: [
       {
         language: 'powershell',
-        code: 'Install-Package Sentry.AspNetCore -Version 3.34.0',
+        partialLoading: sourcePackageRegistries?.isLoading,
+        code: `Install-Package Sentry.AspNetCore -Version ${
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.aspnetcore']?.version ??
+              '3.34.0'
+        }`,
       },
       {
         language: 'shell',
-        code: 'dotnet add package Sentry.AspNetCore -v 3.34.0',
+        partialLoading: sourcePackageRegistries?.isLoading,
+        code: `dotnet add package Sentry.AspNetCore -v ${
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.aspnetcore']?.version ??
+              '3.34.0'
+        }`,
       },
     ],
     additionalInfo: (
@@ -131,8 +144,18 @@ public class BadController
 ];
 // Configuration End
 
-export function GettingStartedAwsLambda({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} introduction={introduction} {...props} />;
+export function GettingStartedAwsLambda({
+  dsn,
+  sourcePackageRegistries,
+  ...props
+}: ModuleProps) {
+  return (
+    <Layout
+      steps={steps({dsn, sourcePackageRegistries})}
+      introduction={introduction}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedAwsLambda;

@@ -12,9 +12,10 @@ from sentry.constants import ObjectStatus
 from sentry.models import Environment, Rule, RuleActivity, RuleActivityType
 from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
 from sentry.models.user import User
+from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 
@@ -50,7 +51,7 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
         assert len(response.data) == Rule.objects.filter(project=self.project).count()
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     method = "post"
 
@@ -75,7 +76,8 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         **kwargs: Any,
     ):
         owner = get_actor_for_user(self.user).get_actor_identifier()
-        self.user = User.objects.get(id=self.user.id)  # reload user after setting actor
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user = User.objects.get(id=self.user.id)  # reload user after setting actor
         query_args = {}
         if "environment" in kwargs:
             query_args["environment"] = kwargs["environment"]
@@ -490,7 +492,8 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             status_code=status.HTTP_202_ACCEPTED,
         )
 
-        self.user = User.objects.get(id=self.user.id)  # reload user to get actor
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user = User.objects.get(id=self.user.id)  # reload user to get actor
         assert not Rule.objects.filter(label=payload["name"]).exists()
         payload["actions"][0].pop("name")
         kwargs = {

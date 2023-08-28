@@ -17,6 +17,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
 from sentry.net.http import connection_from_url
 from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -133,7 +134,9 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     # the `yAxis` qs. So we explicitly ignore the
                     # columns, and hard code in the columns we want.
                     timeseries_columns=[data["function"], "worst()"],
-                    skip_tag_resolution=True,
+                    config=QueryBuilderConfig(
+                        skip_tag_resolution=True,
+                    ),
                 )
                 for chunk in chunks
             ]

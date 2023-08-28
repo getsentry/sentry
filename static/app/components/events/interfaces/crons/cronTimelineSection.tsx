@@ -22,7 +22,7 @@ import {
   MonitorBucketData,
   TimeWindow,
 } from 'sentry/views/monitors/components/overviewTimeline/types';
-import {timeWindowConfig} from 'sentry/views/monitors/components/overviewTimeline/utils';
+import {getConfigFromTimeRange} from 'sentry/views/monitors/components/overviewTimeline/utils';
 import {getTimeRangeFromEvent} from 'sentry/views/monitors/utils/getTimeRangeFromEvent';
 
 interface Props {
@@ -43,8 +43,8 @@ export function CronTimelineSection({event, organization}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
-  const elapsedMinutes = timeWindowConfig[timeWindow].elapsedMinutes;
-  const rollup = Math.floor((elapsedMinutes * 60) / timelineWidth);
+  const timeWindowConfig = getConfigFromTimeRange(start, end, timelineWidth);
+  const rollup = Math.floor((timeWindowConfig.elapsedMinutes * 60) / timelineWidth);
 
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
@@ -69,7 +69,7 @@ export function CronTimelineSection({event, organization}: Props) {
     return null;
   }
 
-  const msPerPixel = (elapsedMinutes * 60 * 1000) / timelineWidth;
+  const msPerPixel = (timeWindowConfig.elapsedMinutes * 60 * 1000) / timelineWidth;
   const eventTickLeft =
     (new Date(event.dateReceived).valueOf() - start.valueOf()) / msPerPixel;
 
@@ -83,13 +83,15 @@ export function CronTimelineSection({event, organization}: Props) {
       <TimelineContainer>
         <TimelineWidthTracker ref={elementRef} />
         <StyledGridLineTimeLabels
-          timeWindow={timeWindow}
+          timeWindowConfig={timeWindowConfig}
+          start={start}
           end={end}
           width={timelineWidth}
         />
         <StyledGridLineOverlay
           showCursor={!isLoading}
-          timeWindow={timeWindow}
+          timeWindowConfig={timeWindowConfig}
+          start={start}
           end={end}
           width={timelineWidth}
         />
@@ -105,7 +107,7 @@ export function CronTimelineSection({event, organization}: Props) {
                 bucketedData={monitorStats[monitorSlug]}
                 start={start}
                 end={end}
-                timeWindow={timeWindow}
+                timeWindowConfig={timeWindowConfig}
                 environment={environment ?? DEFAULT_ENVIRONMENT}
               />
             </FadeInContainer>
