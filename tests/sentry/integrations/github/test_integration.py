@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest import mock
+from unittest.mock import patch
 from urllib.parse import urlencode, urlparse
 
 import pytest
