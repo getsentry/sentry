@@ -26,6 +26,10 @@ class SlackTasksTest(TestCase):
     def setUp(self):
         self.integration = install_slack(self.organization)
         self.uuid = uuid4().hex
+
+        self.mck = responses.mock
+        self.mck.__enter__()
+
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/chat.scheduleMessage",
@@ -42,6 +46,9 @@ class SlackTasksTest(TestCase):
             content_type="application/json",
             body=json.dumps({"ok": True}),
         )
+
+    def tearDown(self):
+        self.mck.__exit__(None, None, None)
 
     @cached_property
     def metric_alert_data(self):
@@ -164,6 +171,7 @@ class SlackTasksTest(TestCase):
             }
         ]
 
+    @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
@@ -193,6 +201,7 @@ class SlackTasksTest(TestCase):
         trigger_action = AlertRuleTriggerAction.objects.get(integration_id=self.integration.id)
         assert trigger_action.target_identifier == "chan-id"
 
+    @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
@@ -217,6 +226,7 @@ class SlackTasksTest(TestCase):
             serialize_integration(self.integration), "my-channel", 180
         )
 
+    @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
@@ -241,6 +251,7 @@ class SlackTasksTest(TestCase):
             serialize_integration(self.integration), "my-channel", 180
         )
 
+    @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
