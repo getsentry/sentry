@@ -100,7 +100,12 @@ export function DropdownAddTeam({
       alignMenu="right"
     >
       {({isOpen}) => (
-        <DropdownButton isOpen={isOpen} size="xs" disabled={disabled}>
+        <DropdownButton
+          aria-label={t('Add Team')}
+          isOpen={isOpen}
+          size="xs"
+          disabled={disabled}
+        >
           {t('Add Team')}
         </DropdownButton>
       )}
