@@ -34,6 +34,7 @@ from sentry.search.events.builder.utils import (
     remove_hours,
     remove_minutes,
 )
+from sentry.search.events.fields import get_function_alias
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
     HistogramParams,
@@ -148,7 +149,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         if isinstance(self, TimeseriesMetricQueryBuilder):
             limit = Limit(1)
-            alias = self.resolve_column(self.selected_columns[0]).alias or "count"
+            alias = get_function_alias(self.selected_columns[0]) or "count"
             include_series = True
             interval = self.interval
         else:
