@@ -113,7 +113,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         query = request.GET.get("query")
 
-        top_trending_transactions = []
+        top_trending_transactions = {}
 
         def get_top_events(user_query, params, event_limit, referrer):
             top_event_columns = cast(List[str], selected_columns[:])
@@ -229,7 +229,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             )
 
             # Fetch transactions names with the highest event count
-            global top_trending_transactions
+            nonlocal top_trending_transactions
             top_trending_transactions = get_top_events(
                 user_query=user_query,
                 params=params,
@@ -369,7 +369,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             ).hexdigest()
 
         def send_occurrence_to_plaform(found_trending_events):
-            global top_trending_transactions
+            nonlocal top_trending_transactions
             qualifying_trends = []
             for trend in found_trending_events:
                 if (
