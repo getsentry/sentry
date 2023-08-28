@@ -33,6 +33,7 @@ import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/repla
 
 type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
+  showDropdownFilters?: boolean;
 };
 
 export type ReferrerTableType = 'main' | 'dead-table' | 'errors-table' | 'rage-table';
@@ -446,7 +447,7 @@ export function TransactionCell({
   ) : null;
 }
 
-export function OSCell({replay}: Props) {
+export function OSCell({replay, showDropdownFilters}: Props) {
   const {name, version} = replay.os ?? {};
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
@@ -463,13 +464,15 @@ export function OSCell({replay}: Props) {
           showVersion={false}
           showTooltip={false}
         />
-        <OSBrowserDropdownFilter type="os" name={name} version={version} />
+        {showDropdownFilters ? (
+          <OSBrowserDropdownFilter type="os" name={name} version={version} />
+        ) : null}
       </Container>
     </Item>
   );
 }
 
-export function BrowserCell({replay}: Props) {
+export function BrowserCell({replay, showDropdownFilters}: Props) {
   const {name, version} = replay.browser ?? {};
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
@@ -486,13 +489,15 @@ export function BrowserCell({replay}: Props) {
           showVersion={false}
           showTooltip={false}
         />
-        <OSBrowserDropdownFilter type="browser" name={name} version={version} />
+        {showDropdownFilters ? (
+          <OSBrowserDropdownFilter type="browser" name={name} version={version} />
+        ) : null}
       </Container>
     </Item>
   );
 }
 
-export function DurationCell({replay}: Props) {
+export function DurationCell({replay, showDropdownFilters}: Props) {
   if (replay.is_archived) {
     return <Item isArchived />;
   }
@@ -500,13 +505,15 @@ export function DurationCell({replay}: Props) {
     <Item>
       <Container>
         <Time>{formatTime(replay.duration.asMilliseconds())}</Time>
-        <NumericDropdownFilter type="duration" val={replay.duration.asSeconds()} />
+        {showDropdownFilters ? (
+          <NumericDropdownFilter type="duration" val={replay.duration.asSeconds()} />
+        ) : null}
       </Container>
     </Item>
   );
 }
 
-export function RageClickCountWithDropdownCell({replay}: Props) {
+export function RageClickCountCell({replay, showDropdownFilters}: Props) {
   if (replay.is_archived) {
     return <Item isArchived />;
   }
@@ -518,33 +525,18 @@ export function RageClickCountWithDropdownCell({replay}: Props) {
         ) : (
           <Count>0</Count>
         )}
-        <NumericDropdownFilter
-          type="count_rage_clicks"
-          val={replay.count_rage_clicks ?? 0}
-        />
+        {showDropdownFilters ? (
+          <NumericDropdownFilter
+            type="count_rage_clicks"
+            val={replay.count_rage_clicks ?? 0}
+          />
+        ) : null}
       </Container>
     </Item>
   );
 }
 
-export function RageClickCountCell({replay}: Props) {
-  if (replay.is_archived) {
-    return <Item isArchived />;
-  }
-  return (
-    <Item data-test-id="replay-table-count-rage-clicks">
-      <Container>
-        {replay.count_rage_clicks ? (
-          <DeadRageCount>{replay.count_rage_clicks}</DeadRageCount>
-        ) : (
-          <Count>0</Count>
-        )}
-      </Container>
-    </Item>
-  );
-}
-
-export function DeadClickCountWithDropdownCell({replay}: Props) {
+export function DeadClickCountCell({replay, showDropdownFilters}: Props) {
   if (replay.is_archived) {
     return <Item isArchived />;
   }
@@ -556,33 +548,18 @@ export function DeadClickCountWithDropdownCell({replay}: Props) {
         ) : (
           <Count>0</Count>
         )}
-        <NumericDropdownFilter
-          type="count_dead_clicks"
-          val={replay.count_dead_clicks ?? 0}
-        />
+        {showDropdownFilters ? (
+          <NumericDropdownFilter
+            type="count_dead_clicks"
+            val={replay.count_dead_clicks ?? 0}
+          />
+        ) : null}
       </Container>
     </Item>
   );
 }
 
-export function DeadClickCountCell({replay}: Props) {
-  if (replay.is_archived) {
-    return <Item isArchived />;
-  }
-  return (
-    <Item data-test-id="replay-table-count-dead-clicks">
-      <Container>
-        {replay.count_dead_clicks ? (
-          <DeadRageCount>{replay.count_dead_clicks}</DeadRageCount>
-        ) : (
-          <Count>0</Count>
-        )}
-      </Container>
-    </Item>
-  );
-}
-
-export function ErrorCountCell({replay}: Props) {
+export function ErrorCountCell({replay, showDropdownFilters}: Props) {
   if (replay.is_archived) {
     return <Item isArchived />;
   }
@@ -597,13 +574,15 @@ export function ErrorCountCell({replay}: Props) {
         ) : (
           <Count>0</Count>
         )}
-        <NumericDropdownFilter type="count_errors" val={replay.count_errors ?? 0} />
+        {showDropdownFilters ? (
+          <NumericDropdownFilter type="count_errors" val={replay.count_errors ?? 0} />
+        ) : null}
       </Container>
     </Item>
   );
 }
 
-export function ActivityCell({replay}: Props) {
+export function ActivityCell({replay, showDropdownFilters}: Props) {
   if (replay.is_archived) {
     return <Item isArchived />;
   }
@@ -617,11 +596,13 @@ export function ActivityCell({replay}: Props) {
           palette={scoreBarPalette}
           radius={0}
         />
-        <NumericDropdownFilter
-          type="activity"
-          val={replay?.activity ?? 0}
-          triggerOverlay
-        />
+        {showDropdownFilters ? (
+          <NumericDropdownFilter
+            type="activity"
+            val={replay?.activity ?? 0}
+            triggerOverlay
+          />
+        ) : null}
       </Container>
     </Item>
   );
