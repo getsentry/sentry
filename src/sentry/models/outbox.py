@@ -103,6 +103,8 @@ class OutboxCategory(IntEnum):
     DISABLE_AUTH_PROVIDER = 20
     RESET_IDP_FLAGS = 21
     MARK_INVALID_SSO = 22
+    SUBSCRIPTION_ORGANIZATION_ALERT_RULES = 23
+    FLUSH_SUBSCRIPTION_QUOTA_CACHE = 24
 
     @classmethod
     def as_choices(cls):
