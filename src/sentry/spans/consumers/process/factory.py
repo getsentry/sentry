@@ -15,6 +15,7 @@ from django.conf import settings
 
 from sentry import quotas
 from sentry.models import Project
+from sentry.spans.grouping.api import DEFAULT_CONFIG_ID, load_span_grouping_config
 from sentry.utils import json, metrics
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -53,7 +54,6 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     snuba_span["description"] = relay_span.get("description")
     snuba_span["event_id"] = relay_span["event_id"]
     snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
-    snuba_span["group_raw"] = span_data.get("span.group", "0")
     snuba_span["is_segment"] = relay_span.get("is_segment", False)
     snuba_span["organization_id"] = organization.id
     snuba_span["parent_span_id"] = relay_span.get("parent_span_id", "0")
@@ -87,6 +87,11 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         sentry_tags["status"] = relay_span.get("status", "")
 
     snuba_span["sentry_tags"] = sentry_tags
+
+    group_config = load_span_grouping_config({"id": DEFAULT_CONFIG_ID})
+    group = group_config.execute_strategy(snuba_span)
+    snuba_span["group_raw"] = group.results.get(snuba_span["span_id"]) or "0"
+    snuba_span["span_grouping_config"] = {"id": group.id}
 
     return snuba_span
 
