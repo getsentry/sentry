@@ -112,7 +112,7 @@ def process_trend_payloads(
         if trend == TrendType.Regressed:
             regressed.append(payload)
         elif trend == TrendType.Improved:
-            regressed.append(payload)
+            improved.append(payload)
 
     redis.update_states(project, new_states, payloads)
 
