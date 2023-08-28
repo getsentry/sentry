@@ -1,9 +1,11 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {Field} from 'sentry/components/forms/types';
+import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -311,7 +313,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
           initialData={this.getInitialTopOptionData()}
           onSubmitSuccess={() => this.trackTuningUpdated('general')}
         >
-          <JsonForm
+          <TopJsonForm
             title={
               isGroupedByProject(notificationType)
                 ? t('All Projects')
@@ -326,7 +328,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
           apiEndpoint="/users/me/notification-providers/"
           initialData={this.getProviderInitialData()}
         >
-          <JsonForm fields={this.getProviderFields()} />
+          <BottomJsonForm fields={this.getProviderFields()} />
         </Form>
         <NotificationSettingsByEntity
           notificationType={notificationType}
@@ -342,3 +344,19 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
 }
 
 export default withOrganizations(NotificationSettingsByTypeV2);
+
+export const TopJsonForm = styled(JsonForm)`
+  ${Panel} {
+    border-bottom: 0;
+    margin-bottom: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+`;
+
+export const BottomJsonForm = styled(JsonForm)`
+  ${Panel} {
+    border-top-right-radius: 0;
+    border-top-left-radius: 0;
+  }
+`;

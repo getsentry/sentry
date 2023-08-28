@@ -46,6 +46,7 @@ const accountNotifications = [
   'approval',
   'quota',
   'spikeProtection',
+  'reports',
 ];
 
 type ANBPProps = {
@@ -141,7 +142,7 @@ type State = DeprecatedAsyncView['state'] & {
   projects: Project[] | null;
 };
 
-class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
+class AccountNotificationFineTuningV2 extends DeprecatedAsyncView<Props, State> {
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {fineTuneType: pathnameType} = this.props.params;
     const fineTuneType = getNotificationTypeFromPathname(pathnameType);
@@ -274,7 +275,7 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
             <Form
               saveOnBlur
               apiMethod="PUT"
-              apiEndpoint={`/users/me/notifications-v2/${fineTuneType}/`}
+              apiEndpoint={`/users/me/notifications/${fineTuneType}/`}
               initialData={fineTuneData}
             >
               {isProject && hasProjects && (
@@ -312,4 +313,4 @@ const StyledPanelHeader = styled(PanelHeader)`
   }
 `;
 
-export default withOrganizations(AccountNotificationFineTuning);
+export default withOrganizations(AccountNotificationFineTuningV2);
