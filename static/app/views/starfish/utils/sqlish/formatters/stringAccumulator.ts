@@ -33,14 +33,6 @@ export class StringAccumulator {
     this.lastLine.indentTo(level);
   }
 
-  endsWith(token: string) {
-    if (token === NEWLINE) {
-      return this.lastLine.isEmpty;
-    }
-
-    return this.lastLine.lastToken === token;
-  }
-
   toString() {
     return this.lines
       .map(line => line.toString())

@@ -60,9 +60,7 @@ export function string(tokens: Token[]): string {
       } else if (['LeftParenthesis', 'RightParenthesis'].includes(token.type)) {
         // Parenthesis contents are appended above, so we can skip them here
       } else {
-        if (accumulator.endsWith(NEWLINE)) {
-          accumulator.indentTo(indentation);
-        }
+        accumulator.indentTo(indentation);
         accumulator.add(token.content);
       }
     }
@@ -98,5 +96,3 @@ const NEWLINE_KEYWORDS = new Set([
 
 // Keywords that may or may not trigger a newline, but they always trigger a newlines if followed by a parenthesis
 const PARENTHESIS_NEWLINE_KEYWORDS = new Set([...NEWLINE_KEYWORDS, ...['IN']]);
-
-const NEWLINE = '\n';
