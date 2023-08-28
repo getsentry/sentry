@@ -5,7 +5,6 @@ export function string(tokens: Token[]): string {
   const accumulator = new StringAccumulator();
 
   let precedingNonWhitespaceToken: Token | undefined = undefined;
-  let indentation: number = 0; // Tracks the current indent level
   let parenthesisLevel: number = 0; // Tracks the current parenthesis nesting level
   const indentationLevels: number[] = []; // Tracks the parenthesis nesting levels at which we've incremented the indentation
 
@@ -27,7 +26,7 @@ export function string(tokens: Token[]): string {
       ) {
         accumulator.break();
 
-        indentation += 1;
+        accumulator.indent();
         indentationLevels.push(parenthesisLevel);
       }
     }
@@ -37,8 +36,7 @@ export function string(tokens: Token[]): string {
       // we incremented the indentation, decrement the indentation
       if (indentationLevels.at(-1) === parenthesisLevel) {
         accumulator.break();
-        indentation -= 1;
-        accumulator.indentTo(indentation);
+        accumulator.unindent();
         indentationLevels.pop();
       }
 
@@ -52,7 +50,6 @@ export function string(tokens: Token[]): string {
           accumulator.break();
         }
 
-        accumulator.indentTo(indentation);
         accumulator.add(token.content);
       } else if (token.type === 'Whitespace') {
         // Convert all whitespace to single spaces
@@ -60,7 +57,6 @@ export function string(tokens: Token[]): string {
       } else if (['LeftParenthesis', 'RightParenthesis'].includes(token.type)) {
         // Parenthesis contents are appended above, so we can skip them here
       } else {
-        accumulator.indentTo(indentation);
         accumulator.add(token.content);
       }
     }

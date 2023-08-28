@@ -26,7 +26,18 @@ export class StringAccumulator {
   }
 
   break() {
-    this.lines.push(new Line());
+    const newLine = new Line();
+    newLine.indentTo(this.lastLine.indentation);
+
+    this.lines.push(newLine);
+  }
+
+  indent() {
+    this.lastLine.indent();
+  }
+
+  unindent() {
+    this.lastLine.unindent();
   }
 
   indentTo(level: number = 1) {
