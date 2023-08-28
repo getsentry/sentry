@@ -9,10 +9,6 @@ export class StringAccumulator {
     return this.lines.at(-1) as Line;
   }
 
-  get lastToken(): string | undefined {
-    return this.lastLine.lastToken;
-  }
-
   add(token: string) {
     if (!token) {
       return;
@@ -59,10 +55,6 @@ class Line {
   constructor() {
     this.tokens = [];
     this.indentation = 0;
-  }
-
-  get lastToken() {
-    return this.tokens.at(-1);
   }
 
   get isEmpty() {
