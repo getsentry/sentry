@@ -27,5 +27,5 @@ class ProjectFiltersEndpoint(ProjectEndpoint):
                     "active": inbound_filters.get_filter_state(flt.id, project),
                 }
             )
-        results.sort(key=lambda x: x["name"])
+        results.sort(key=lambda x: x["id"])
         return Response(results)
