@@ -6,6 +6,7 @@ import {CommitRow} from 'sentry/components/commitRow';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
+import EventBreakpointChart from 'sentry/components/events/eventBreakpointChart';
 import {EventCause} from 'sentry/components/events/eventCause';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEntry} from 'sentry/components/events/eventEntry';
@@ -90,6 +91,7 @@ function GroupEventDetailsContent({
       // TODO: Swap this feature flag with the statistical detector flag
       <Feature features={['performance-trends-issues']}>
         <RegressionMessage event={event} />
+        <EventBreakpointChart event={event} />
       </Feature>
     );
   }

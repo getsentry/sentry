@@ -117,6 +117,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
 
   const getChart = provided =>
     function () {
+      debugger;
       return (
         <TrendsChart
           {...provided}
@@ -292,4 +293,4 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   );
 }
 
-const TrendsChart = withProjects(Chart);
+export const TrendsChart = withProjects(Chart);

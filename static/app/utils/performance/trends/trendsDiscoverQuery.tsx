@@ -73,6 +73,7 @@ export function getTrendsRequestPayload(props: RequestProps) {
     apiPayload.topEvents = parseInt(topEventsCountAsString, 10);
   }
 
+  console.log(apiPayload);
   return apiPayload;
 }
 
