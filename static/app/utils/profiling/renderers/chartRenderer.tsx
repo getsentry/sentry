@@ -146,7 +146,9 @@ export class FlamegraphChartRenderer {
     }
 
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.context.font = `bold 14px ${this.theme.FONTS.FRAME_FONT}`;
+    this.context.font = `bold ${
+      this.theme.SIZES.METRICS_FONT_SIZE * window.devicePixelRatio
+    }px ${this.theme.FONTS.FRAME_FONT}`;
 
     this.context.beginPath();
     this.context.stroke();
@@ -216,8 +218,8 @@ export class FlamegraphChartRenderer {
     }
 
     // Draw interval ticks
-    this.context.strokeStyle = this.theme.COLORS.CPU_CHART_LABEL_COLOR;
-    this.context.fillStyle = this.theme.COLORS.CPU_CHART_LABEL_COLOR;
+    this.context.strokeStyle = this.theme.COLORS.CHART_LABEL_COLOR;
+    this.context.fillStyle = this.theme.COLORS.CHART_LABEL_COLOR;
     for (let i = 0; i < intervals.length; i++) {
       const interval = vec3.fromValues(configView.left, intervals[i], 1);
       vec3.transformMat3(interval, interval, configViewToPhysicalSpace);

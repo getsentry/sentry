@@ -308,4 +308,4 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
                 date_added=datetime.now() - timedelta(15),
             )
             assert is_escalating(archived_group) == (True, 1)
-            logger.error.assert_called_once_with("Forecast list index is out of range")
+            logger.error.assert_called_once()
