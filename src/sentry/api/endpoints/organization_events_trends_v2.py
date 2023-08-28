@@ -365,7 +365,9 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         def fingerprint_regression(trending_event):
             return hashlib.sha1(
-                (f'p95_transaction_duration_regression-{trending_event["transaction"]}').encode()
+                (
+                    f'p95_transaction_duration_regression-{trending_event["transaction"]}-experiment'
+                ).encode()
             ).hexdigest()
 
         def send_occurrence_to_plaform(found_trending_events):
@@ -469,7 +471,10 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             if features.has(
                 "organizations:performance-trends-issues", organization, actor=request.user
             ):
-                send_occurrence_to_plaform(trending_events)
+                try:
+                    send_occurrence_to_plaform(trending_events)
+                except Exception as error:
+                    sentry_sdk.capture_exception(error)
 
             return self.paginate(
                 request=request,
