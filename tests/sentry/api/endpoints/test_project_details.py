@@ -10,6 +10,7 @@ from django.db import router
 from django.urls import reverse
 
 from sentry import audit_log
+from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
@@ -547,6 +548,16 @@ class ProjectUpdateTest(APITestCase):
         )
         project = Project.objects.get(id=self.project.id)
         assert project.slug != new_project.slug
+
+    @with_feature("app:enterprise-prevent-numeric-slugs")
+    def test_invalid_numeric_slug(self):
+        response = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            slug="1234",
+            status_code=400,
+        )
+        assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
     def test_reserved_slug(self):
         self.get_error_response(

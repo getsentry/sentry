@@ -85,7 +85,7 @@ audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
 
 DEFAULT_SLUG_PATTERN = r"^[a-z0-9_\-]+$"
-
+NON_NUMERIC_SLUG_PATTERN = r"^(?![0-9]+$)[a-z0-9_\-]+$"
 DEFAULT_SLUG_ERROR_MESSAGE = _(
     "Enter a valid slug consisting of lowercase letters, numbers, underscores or hyphens. "
     "It cannot be entirely numeric."
