@@ -167,6 +167,7 @@ function ReplaysContent({
           ReplayColumn.COUNT_ERRORS,
           ReplayColumn.ACTIVITY,
         ]}
+        showDropdownFilters={false}
       />
     </Layout.Main>
   );

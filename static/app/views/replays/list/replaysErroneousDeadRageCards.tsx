@@ -192,6 +192,7 @@ function CardTable({
         visibleColumns={visibleColumns}
         saveLocation
         gridRows={'auto ' + gridRows}
+        showDropdownFilters={false}
       />
       <StyledButton
         size="sm"
