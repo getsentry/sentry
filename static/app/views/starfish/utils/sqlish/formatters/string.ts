@@ -1,3 +1,4 @@
+import {StringAccumulator} from 'sentry/views/starfish/utils/sqlish/formatters/stringAccumulator';
 import type {Token} from 'sentry/views/starfish/utils/sqlish/types';
 
 export function string(tokens: Token[]): string {
@@ -98,51 +99,5 @@ const NEWLINE_KEYWORDS = new Set([
 // Keywords that may or may not trigger a newline, but they always trigger a newlines if followed by a parenthesis
 const PARENTHESIS_NEWLINE_KEYWORDS = new Set([...NEWLINE_KEYWORDS, ...['IN']]);
 
-class StringAccumulator {
-  tokens: string[];
-
-  constructor() {
-    this.tokens = [];
-  }
-
-  add(token: string) {
-    if (!token) {
-      return;
-    }
-
-    this.tokens.push(token);
-  }
-
-  space() {
-    this.rtrim();
-    this.tokens.push(SPACE);
-  }
-
-  break() {
-    this.rtrim();
-
-    this.tokens.push(NEWLINE);
-  }
-
-  indent(count: number = 1) {
-    this.tokens.push(INDENTATION.repeat(count));
-  }
-
-  rtrim() {
-    while (this.tokens.at(-1)?.trim() === '') {
-      this.tokens.pop();
-    }
-  }
-
-  endsWith(token: string) {
-    return this.tokens.at(-1) === token;
-  }
-
-  toString() {
-    return this.tokens.join('').trim();
-  }
-}
-
-const SPACE = ' ';
 const INDENTATION = '  ';
 const NEWLINE = '\n';
