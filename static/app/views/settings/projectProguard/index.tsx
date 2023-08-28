@@ -44,12 +44,20 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
   } = useApiQuery<DebugFile[]>(
     [
       `/projects/${organization.slug}/${projectId}/files/dsyms/`,
-      {query: {query: location.query.query, file_formats: 'proguard'}},
+      {
+        query: {
+          query: location.query.query,
+          file_formats: 'proguard',
+          cursor: location.query.cursor,
+        },
+      },
     ],
     {
       staleTime: 0,
     }
   );
+
+  const mappingsPageLinks = getResponseHeader?.('Link');
 
   const associationsResults = useQueries({
     queries:
@@ -75,13 +83,11 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
 
   const associationsFetched = associationsResults.every(result => result.isFetched);
 
-  const mappingsPageLinks = getResponseHeader?.('Link');
-
   const handleSearch = useCallback(
     (query: string) => {
       router.push({
         ...location,
-        query: {...location.query, cursor: undefined, query},
+        query: {...location.query, cursor: undefined, query: query || undefined},
       });
     },
     [location, router]

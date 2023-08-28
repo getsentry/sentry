@@ -116,7 +116,5 @@ def find_commit_context_for_event(
     return result, installation
 
 
-def is_date_less_than_year(date):
-    return datetime.strptime(date, "%Y-%m-%dT%H:%M:%SZ").replace(
-        tzinfo=timezone.utc
-    ) > datetime.now(tz=timezone.utc) - timedelta(days=365)
+def is_date_less_than_year(date: datetime):
+    return date > datetime.now(tz=timezone.utc) - timedelta(days=365)

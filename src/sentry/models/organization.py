@@ -14,6 +14,7 @@ from typing_extensions import override
 from bitfield import TypedClassBitField
 from sentry import features, roles
 from sentry.app import env
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
@@ -164,7 +165,7 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
     An organization represents a group of individuals which maintain ownership of projects.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
     name = models.CharField(max_length=64)
     slug: models.Field[str, str] = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(

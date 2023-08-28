@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {Link} from 'react-router';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -18,11 +19,21 @@ import {MonitorBucket} from './types';
 interface Props extends Omit<CheckInTimelineProps, 'bucketedData' | 'environment'> {
   monitor: Monitor;
   bucketedData?: MonitorBucket[];
+  /**
+   * Whether only one monitor is being rendered in a larger view with this component
+   * turns off things like zebra striping, hover effect, and showing monitor name
+   */
+  singleMonitorView?: boolean;
 }
 
 const MAX_SHOWN_ENVIRONMENTS = 4;
 
-export function TimelineTableRow({monitor, bucketedData, ...timelineProps}: Props) {
+export function TimelineTableRow({
+  monitor,
+  bucketedData,
+  singleMonitorView,
+  ...timelineProps
+}: Props) {
   const [isExpanded, setExpanded] = useState(
     monitor.environments.length <= MAX_SHOWN_ENVIRONMENTS
   );
@@ -32,15 +43,19 @@ export function TimelineTableRow({monitor, bucketedData, ...timelineProps}: Prop
     : monitor.environments.slice(0, MAX_SHOWN_ENVIRONMENTS);
 
   return (
-    <TimelineRow key={monitor.id}>
-      <MonitorDetails monitor={monitor} />
+    <TimelineRow key={monitor.id} singleMonitorView={singleMonitorView}>
+      {!singleMonitorView && <MonitorDetails monitor={monitor} />}
       <MonitorEnvContainer>
-        {environments.map(({name, status}) => (
-          <EnvWithStatus key={name}>
-            <MonitorEnvLabel status={status}>{name}</MonitorEnvLabel>
-            {statusIconColorMap[status].icon}
-          </EnvWithStatus>
-        ))}
+        {environments.map(({name, status}) => {
+          const envStatus =
+            monitor.status === MonitorStatus.DISABLED ? MonitorStatus.DISABLED : status;
+          return (
+            <EnvWithStatus key={name}>
+              <MonitorEnvLabel status={envStatus}>{name}</MonitorEnvLabel>
+              {statusIconColorMap[envStatus].icon}
+            </EnvWithStatus>
+          );
+        })}
         {!isExpanded && (
           <Button size="xs" onClick={() => setExpanded(true)}>
             {tct('Show [num] More', {
@@ -87,16 +102,19 @@ function MonitorDetails({monitor}: {monitor: Monitor}) {
   );
 }
 
-const TimelineRow = styled('div')`
+const TimelineRow = styled('div')<{singleMonitorView?: boolean}>`
   display: contents;
 
-  &:nth-child(odd) > * {
-    background: ${p => p.theme.backgroundSecondary};
-  }
-
-  &:hover > * {
-    background: ${p => p.theme.backgroundTertiary};
-  }
+  ${p =>
+    !p.singleMonitorView &&
+    css`
+      &:nth-child(odd) > * {
+        background: ${p.theme.backgroundSecondary};
+      }
+      &:hover > * {
+        background: ${p.theme.backgroundTertiary};
+      }
+    `}
 
   > * {
     transition: background 50ms ease-in-out;

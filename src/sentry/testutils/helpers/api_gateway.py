@@ -11,7 +11,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint, region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
 from sentry.api.endpoints.rpc import RpcServiceEndpoint
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.region import override_regions
@@ -20,10 +20,10 @@ from sentry.utils import json
 
 
 @control_silo_endpoint
-class ControlEndpoint(OrganizationEndpoint):
-    permission_classes = (AllowAny,)
+class ControlEndpoint(ControlSiloOrganizationEndpoint):
+    permission_classes = (AllowAny,)  # type: ignore
 
-    def get(self, request, organization):
+    def get(self, request, organization, **kwargs):
         return Response({"proxy": False})
 
 

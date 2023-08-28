@@ -9,6 +9,7 @@ from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
 from sentry import features
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
 from sentry.models import Activity, ActorTuple
@@ -32,7 +33,7 @@ _Everyone = enum.Enum("_Everyone", "EVERYONE")
 
 @region_silo_only_model
 class ProjectOwnership(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project", unique=True)
     raw = models.TextField(null=True)

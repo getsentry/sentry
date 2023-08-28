@@ -8,7 +8,6 @@ import ClippedBox from 'sentry/components/clippedBox';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Link from 'sentry/components/links/link';
-import {toRoundedPercent} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {
   Entry,
@@ -23,6 +22,7 @@ import {
 } from 'sentry/types';
 import {formatBytesBase2} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import useOrganization from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';

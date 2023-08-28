@@ -46,12 +46,12 @@ import {
 import {
   getDurationDisplay,
   getHumanDuration,
-  toPercent,
 } from 'sentry/components/performance/waterfall/utils';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import toPercent from 'sentry/utils/number/toPercent';
 import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {
   isTraceError,
@@ -88,7 +88,6 @@ type Props = {
   isOrphanError?: boolean;
   measurements?: Map<number, VerticalMark>;
   numOfOrphanErrors?: number;
-  traceHasSingleOrphanError?: boolean;
 };
 
 type State = {
@@ -478,10 +477,6 @@ class TransactionBar extends Component<Props, State> {
   }
 
   renderRectangle() {
-    if (this.props.traceHasSingleOrphanError) {
-      return null;
-    }
-
     const {transaction, traceInfo, barColor} = this.props;
     const {showDetail} = this.state;
 
@@ -501,7 +496,7 @@ class TransactionBar extends Component<Props, State> {
     const widthPercentage = duration / delta;
 
     return (
-      <RowRectangle
+      <StyledRowRectangle
         style={{
           backgroundColor: barColor,
           left: `min(${toPercent(startPercentage || 0)}, calc(100% - 1px))`,
@@ -512,17 +507,20 @@ class TransactionBar extends Component<Props, State> {
         {isTraceError(transaction) ? (
           <ErrorBadge />
         ) : (
-          <DurationPill
-            durationDisplay={getDurationDisplay({
-              left: startPercentage,
-              width: widthPercentage,
-            })}
-            showDetail={showDetail}
-          >
-            {getHumanDuration(duration)}
-          </DurationPill>
+          <Fragment>
+            {this.renderErrorBadge()}
+            <DurationPill
+              durationDisplay={getDurationDisplay({
+                left: startPercentage,
+                width: widthPercentage,
+              })}
+              showDetail={showDetail}
+            >
+              {getHumanDuration(duration)}
+            </DurationPill>
+          </Fragment>
         )}
-      </RowRectangle>
+      </StyledRowRectangle>
     );
   }
 
@@ -562,11 +560,11 @@ class TransactionBar extends Component<Props, State> {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
     scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
   }) {
-    const {hasGuideAnchor, index, transaction} = this.props;
+    const {hasGuideAnchor, index, transaction, organization} = this.props;
     const {showDetail} = this.state;
     const {dividerPosition} = dividerHandlerChildrenProps;
 
-    return (
+    const rowcellContainer = (
       <RowCellContainer showDetail={showDetail}>
         <RowCell
           data-test-id="transaction-row-title"
@@ -585,7 +583,6 @@ class TransactionBar extends Component<Props, State> {
         </RowCell>
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
-          {this.renderErrorBadge()}
         </DividerContainer>
         <RowCell
           data-test-id="transaction-row-duration"
@@ -594,8 +591,7 @@ class TransactionBar extends Component<Props, State> {
           style={{
             width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
             paddingTop: 0,
-            alignItems: isTraceError(transaction) ? 'normal' : 'center',
-            overflow: isTraceError(transaction) ? 'visible' : 'hidden',
+            overflow: 'visible',
           }}
           showDetail={showDetail}
           onClick={this.toggleDisplayDetail}
@@ -608,6 +604,14 @@ class TransactionBar extends Component<Props, State> {
         </RowCell>
         {!showDetail && this.renderGhostDivider(dividerHandlerChildrenProps)}
       </RowCellContainer>
+    );
+
+    return isTraceError(transaction) ? (
+      <Link to={generateIssueEventTarget(transaction, organization)}>
+        {rowcellContainer}
+      </Link>
+    ) : (
+      rowcellContainer
     );
   }
 
@@ -688,4 +692,9 @@ const StyledRow = styled(Row)`
 
 const ErrorLink = styled(Link)`
   color: ${p => p.theme.error};
+`;
+
+const StyledRowRectangle = styled(RowRectangle)`
+  display: flex;
+  align-items: center;
 `;

@@ -1641,6 +1641,18 @@ def _save_aggregate(
                     tags={"platform": event.platform or "unknown"},
                 )
 
+                # This only applies to events with stacktraces
+                frame_mix = event.get_event_metadata().get("in_app_frame_mix")
+                if frame_mix:
+                    metrics.incr(
+                        "grouping.in_app_frame_mix",
+                        sample_rate=1.0,
+                        tags={
+                            "platform": event.platform or "unknown",
+                            "frame_mix": frame_mix,
+                        },
+                    )
+
                 return GroupInfo(group, is_new, is_regression)
 
     group = Group.objects.get(id=existing_grouphash.group_id)
@@ -1834,7 +1846,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
     if not group.is_resolved():
         if should_log_extra_info:
             logger.info(
-                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
+                "_handle_regression: group.is_resolved() returned False", extra={**logging_details}
             )
         return None
 
@@ -1843,21 +1855,24 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
     elif GroupResolution.has_resolution(group, release):
         if should_log_extra_info:
             logger.info(
-                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
+                "_handle_regression: GroupResolution.has_resolution() returned True",
+                extra={**logging_details},
             )
         return None
 
     elif has_pending_commit_resolution(group):
         if should_log_extra_info:
             logger.info(
-                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
+                "_handle_regression: has_pending_commit_resolution() returned True",
+                extra={**logging_details},
             )
         return None
 
     if not plugin_is_regression(group, event):
         if should_log_extra_info:
             logger.info(
-                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
+                "_handle_regression: plugin_is_regression() returned False",
+                extra={**logging_details},
             )
         return None
 
