@@ -404,7 +404,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     subtitle=f"Transaction duration changed from {displayed_old_baseline} ms to {displayed_new_baseline} ms",
                     culprit=qualifying_trend["transaction"],
                     evidence_data=qualifying_trend,
-                    evidence_display={
+                    evidence_display=[
                         IssueEvidence(
                             name="Transaction",
                             value=qualifying_trend["transaction"],
@@ -415,7 +415,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                             value=f"Transaction duration changed from {displayed_old_baseline} ms to {displayed_new_baseline} ms",
                             important=True,
                         ),
-                    },
+                    ],
                     detection_time=current_timestamp,
                     level="info",
                 )
