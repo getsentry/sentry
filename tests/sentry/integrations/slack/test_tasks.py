@@ -109,7 +109,6 @@ class SlackTasksTest(TestCase):
                 "channel": "#my-channel",
                 "channel_id": "chan-id",
                 "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                "name": "Send a notification to the funinthesun Slack workspace to #secrets and show tags [] in notification",
                 "tags": "",
                 "workspace": self.integration.id,
             }
@@ -158,7 +157,6 @@ class SlackTasksTest(TestCase):
                 "channel": "#my-channel",
                 "channel_id": "chan-id",
                 "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                "name": "Send a notification to the funinthesun Slack workspace to #secrets and show tags [] in notification",
                 "tags": "",
                 "workspace": self.integration.id,
             }
