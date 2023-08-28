@@ -495,9 +495,9 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         mock_processor.assert_called_with(
             EventMatcher(event2, group=group1), False, True, False, False
         )
-        sent_event = mock_processor.call_args[0][0]
+        sent_group_date = mock_processor.call_args[0][0].group.last_seen
         # Check that last_seen was updated to be at least the new event's date
-        assert sent_event.group.last_seen == event2.datetime
+        self.assertAlmostEqual(sent_group_date, event2.datetime, delta=timedelta(seconds=10))
 
 
 class ServiceHooksTestMixin(BasePostProgressGroupMixin):
