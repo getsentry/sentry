@@ -1677,3 +1677,21 @@ class OrganizationReplayIndexOptimizedSearchTest(OrganizationReplayIndexTest):
                 assert response.status_code == 200
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
+
+    def test_query_scalar_optimization_multiple_varying(self):
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(
+            mock_replay(seq1_timestamp, project.id, replay1_id, urls=["apple", "microsoft"])
+        )
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id, urls=[]))
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?field=id&query=urls:apple urls:microsoft")
+            assert response.status_code == 200
+            response_data = response.json()
+            assert len(response_data["data"]) == 1

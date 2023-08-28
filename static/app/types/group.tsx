@@ -575,7 +575,7 @@ export const enum GroupSubstatus {
 export interface BaseGroup {
   activity: GroupActivity[];
   annotations: string[];
-  assignedTo: null | Actor;
+  assignedTo: Actor | null;
   culprit: string;
   firstSeen: string;
   hasSeen: boolean;
@@ -587,9 +587,8 @@ export interface BaseGroup {
   issueCategory: IssueCategory;
   issueType: IssueType;
   lastSeen: string;
-  latestEvent: Event;
   level: Level;
-  logger: string;
+  logger: string | null;
   metadata: EventMetadata;
   numComments: number;
   participants: User[];
@@ -609,6 +608,7 @@ export interface BaseGroup {
   type: EventOrGroupType;
   userReportCount: number;
   inbox?: InboxDetails | null | false;
+  latestEvent?: Event;
   owners?: SuggestedOwner[] | null;
   substatus?: GroupSubstatus | null;
 }
