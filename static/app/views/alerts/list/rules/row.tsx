@@ -215,10 +215,10 @@ function RuleListRow({
       onAction: () => {
         openConfirmModal({
           onConfirm: () => onDelete(slug, rule),
-          header: t('Delete Alert Rule?'),
-          message: tct(
-            "Are you sure you want to delete [name]? You won't be able to view the history of this alert once it's deleted.",
-            {name: rule.name}
+          header: <h5>{t('Delete Alert Rule?')}</h5>,
+          message: t(
+            'Are you sure you want to delete "%s"? You won\'t be able to view the history of this alert once it\'s deleted.',
+            rule.name
           ),
           confirmText: t('Delete Rule'),
           priority: 'danger',

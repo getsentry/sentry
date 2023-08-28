@@ -32,4 +32,4 @@ class GetAuthForUserTest(TestCase):
         auth = UserSocialAuth.objects.create(provider="test", user=user)
         p = IssueTrackingPlugin()
         p.auth_provider = "test"
-        self.assertEqual(p.get_auth_for_user(user), auth)
+        self.assertEqual(p.get_auth_for_user(user).id, auth.id)

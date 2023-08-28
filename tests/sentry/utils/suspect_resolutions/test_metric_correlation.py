@@ -66,6 +66,7 @@ class MetricCorrelationTest(TestCase):
         )
 
         result = is_issue_error_rate_correlated(group1, [group2])
+        assert result is not None
 
         assert result.candidate_metric_correlations == [
             CandidateMetricCorrResult(
@@ -100,6 +101,7 @@ class MetricCorrelationTest(TestCase):
         )
 
         result = is_issue_error_rate_correlated(group1, [group2])
+        assert result is not None
 
         assert result.candidate_metric_correlations == [
             CandidateMetricCorrResult(
@@ -133,6 +135,7 @@ class MetricCorrelationTest(TestCase):
         )
 
         result = is_issue_error_rate_correlated(group1, [group2])
+        assert result is not None
 
         assert result.candidate_metric_correlations == [
             CandidateMetricCorrResult(
@@ -191,6 +194,7 @@ class MetricCorrelationTest(TestCase):
         )
 
         result = is_issue_error_rate_correlated(group1, [group2, group3, group4])
+        assert result is not None
 
         assert result.candidate_metric_correlations == [
             CandidateMetricCorrResult(

@@ -44,7 +44,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            snuba_params, params = self.get_snuba_dataclass(
+            snuba_params, _ = self.get_snuba_dataclass(
                 request, organization, check_global_views=False
             )
         except NoProjects:
@@ -52,7 +52,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
 
         try:
             replay_counts = get_replay_counts(
-                snuba_params, params, request.GET.get("query"), request.GET.get("returnIds")
+                snuba_params, request.GET.get("query"), request.GET.get("returnIds")
             )
         except (InvalidSearchQuery, ValueError) as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)

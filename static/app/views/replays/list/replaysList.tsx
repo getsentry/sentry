@@ -11,17 +11,15 @@ import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
-import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
-import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
-import {getReplayListFields} from 'sentry/views/replays/types';
+import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
 function ReplaysList() {
   const location = useLocation<ReplayListLocationQuery>();
@@ -36,26 +34,21 @@ function ReplaysList() {
         id: '',
         name: '',
         version: 2,
-        fields: getReplayListFields(organization),
+        fields: REPLAY_LIST_FIELDS,
         projects: [],
         query: conditions.formatString(),
         orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
       },
       location
     );
-  }, [location, organization]);
+  }, [location]);
 
-  const hasSessionReplay = organization.features.includes('session-replay');
-  const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
-
-  return hasSessionReplay && !fetching && hasSentOneReplay ? (
+  return (
     <ReplaysListTable
       eventView={eventView}
       location={location}
       organization={organization}
     />
-  ) : (
-    <ReplayOnboardingPanel />
   );
 }
 
@@ -92,28 +85,16 @@ function ReplaysListTable({
 
   const hasReplayClick = conditions.getFilterKeys().some(k => k.startsWith('click.'));
 
-  const hasDeadRageCols = organization.features.includes(
-    'replay-rage-click-dead-click-columns'
-  );
-  const visibleCols = hasDeadRageCols
-    ? [
-        ReplayColumn.REPLAY,
-        ReplayColumn.OS,
-        ReplayColumn.BROWSER,
-        ReplayColumn.DURATION,
-        ReplayColumn.COUNT_DEAD_CLICKS,
-        ReplayColumn.COUNT_RAGE_CLICKS,
-        ReplayColumn.COUNT_ERRORS,
-        ReplayColumn.ACTIVITY,
-      ]
-    : [
-        ReplayColumn.REPLAY,
-        ReplayColumn.OS,
-        ReplayColumn.BROWSER,
-        ReplayColumn.DURATION,
-        ReplayColumn.COUNT_ERRORS,
-        ReplayColumn.ACTIVITY,
-      ];
+  const visibleCols = [
+    ReplayColumn.REPLAY,
+    ReplayColumn.OS,
+    ReplayColumn.BROWSER,
+    ReplayColumn.DURATION,
+    ReplayColumn.COUNT_DEAD_CLICKS,
+    ReplayColumn.COUNT_RAGE_CLICKS,
+    ReplayColumn.COUNT_ERRORS,
+    ReplayColumn.ACTIVITY,
+  ];
 
   return (
     <Fragment>
@@ -123,6 +104,7 @@ function ReplaysListTable({
         replays={replays}
         sort={eventView.sorts[0]}
         visibleColumns={visibleCols}
+        showDropdownFilters
         emptyMessage={
           allSelectedProjectsNeedUpdates && hasReplayClick ? (
             <Fragment>

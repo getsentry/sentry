@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Mapping, MutableMapping, Opti
 
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.base import region_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -49,6 +50,7 @@ class ActionService(FlexibleIntEnum):
     MSTEAMS = 3
     SENTRY_APP = 4
     SENTRY_NOTIFICATION = 5  # Use personal notification platform (src/sentry/notifications)
+    OPSGENIE = 6
 
     @classmethod
     def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -56,6 +58,7 @@ class ActionService(FlexibleIntEnum):
         assert ExternalProviders.PAGERDUTY.name is not None
         assert ExternalProviders.SLACK.name is not None
         assert ExternalProviders.MSTEAMS.name is not None
+        assert ExternalProviders.OPSGENIE.name is not None
         return (
             (cls.EMAIL.value, ExternalProviders.EMAIL.name),
             (cls.PAGERDUTY.value, ExternalProviders.PAGERDUTY.name),
@@ -63,6 +66,7 @@ class ActionService(FlexibleIntEnum):
             (cls.MSTEAMS.value, ExternalProviders.MSTEAMS.name),
             (cls.SENTRY_APP.value, "sentry_app"),
             (cls.SENTRY_NOTIFICATION.value, "sentry_notification"),
+            (cls.OPSGENIE.value, ExternalProviders.OPSGENIE.name),
         )
 
 
@@ -148,7 +152,7 @@ class TriggerGenerator:
 
 @region_silo_only_model
 class NotificationActionProject(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Global
 
     project = FlexibleForeignKey("sentry.Project")
     action = FlexibleForeignKey("sentry.NotificationAction")
@@ -201,7 +205,7 @@ class NotificationAction(AbstractNotificationAction):
     Generic notification action model to programmatically route depending on the trigger (or source) for the notification
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Global
     __repr__ = sane_repr("id", "trigger_type", "service_type", "target_display")
 
     _trigger_types: tuple[tuple[int, str], ...] = ActionTrigger.as_choices()

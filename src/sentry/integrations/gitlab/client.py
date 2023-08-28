@@ -92,7 +92,11 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         self.refreshed_identity: RpcIdentity | None = None
         self.base_url = self.metadata["base_url"]
         org_integration_id = installation.org_integration.id
-        super().__init__(org_integration_id=org_integration_id, verify_ssl=verify_ssl)
+        super().__init__(
+            integration_id=installation.model.id,
+            org_integration_id=org_integration_id,
+            verify_ssl=verify_ssl,
+        )
 
     @property
     def identity(self) -> RpcIdentity:

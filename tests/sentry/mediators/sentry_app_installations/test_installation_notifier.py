@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators.sentry_app_installations import InstallationNotifier
+from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer

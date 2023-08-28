@@ -24,6 +24,7 @@ from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -105,8 +106,10 @@ class EmailActionHandler(ActionHandler):
         self.email_users(TriggerStatus.RESOLVED, new_status)
 
     def email_users(self, trigger_status: TriggerStatus, incident_status: IncidentStatus) -> None:
-        for user_id, email in self.get_targets():
-            user = User.objects.get_from_cache(id=user_id)
+        targets = [(user_id, email) for user_id, email in self.get_targets()]
+        users = user_service.get_many(filter={"user_ids": [user_id for user_id, _ in targets]})
+        for index, (user_id, email) in enumerate(targets):
+            user = users[index]
             email_context = generate_incident_trigger_email_context(
                 self.project,
                 self.incident,
@@ -171,6 +174,19 @@ class PagerDutyActionHandler(DefaultActionHandler):
 
 
 @AlertRuleTriggerAction.register_type(
+    "opsgenie",
+    AlertRuleTriggerAction.Type.OPSGENIE,
+    [AlertRuleTriggerAction.TargetType.SPECIFIC],
+    integration_provider="opsgenie",
+)
+class OpsgenieActionHandler(DefaultActionHandler):
+    def send_alert(self, metric_value: int | float, new_status: IncidentStatus):
+        from sentry.integrations.opsgenie.utils import send_incident_alert_notification
+
+        send_incident_alert_notification(self.action, self.incident, metric_value, new_status)
+
+
+@AlertRuleTriggerAction.register_type(
     "sentry_app",
     AlertRuleTriggerAction.Type.SENTRY_APP,
     [AlertRuleTriggerAction.TargetType.SENTRY_APP],
@@ -209,7 +225,7 @@ def generate_incident_trigger_email_context(
     alert_rule_trigger,
     trigger_status,
     incident_status,
-    user=None,
+    user: User | RpcUser | None = None,
 ):
     trigger = alert_rule_trigger
     alert_rule = trigger.alert_rule

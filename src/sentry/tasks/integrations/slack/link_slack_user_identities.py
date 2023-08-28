@@ -9,6 +9,7 @@ from sentry.integrations.utils import get_identities_by_user
 from sentry.models import Identity, IdentityProvider, IdentityStatus, UserEmail
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
@@ -17,6 +18,7 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
 @instrumented_task(
     name="sentry.integrations.slack.link_users_identities",
     queue="integrations",
+    silo_mode=SiloMode.CONTROL,
 )
 def link_slack_user_identities(
     integration_id: int | None = None,

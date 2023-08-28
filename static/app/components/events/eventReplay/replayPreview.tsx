@@ -9,7 +9,6 @@ import ListItem from 'sentry/components/list/listItem';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {IconPlay} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -35,19 +34,19 @@ function ReplayPreview({orgSlug, replaySlug, event, onClickOpenReplay}: Props) {
   });
 
   const timeOfEvent = event.dateCreated ?? event.dateReceived;
-  const eventTimestamp = timeOfEvent
+  const eventTimestampMs = timeOfEvent
     ? Math.floor(new Date(timeOfEvent).getTime() / 1000) * 1000
     : 0;
 
   const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
 
   const initialTimeOffsetMs = useMemo(() => {
-    if (eventTimestamp && startTimestampMs) {
-      return relativeTimeInMs(eventTimestamp, startTimestampMs);
+    if (eventTimestampMs && startTimestampMs) {
+      return Math.abs(eventTimestampMs - startTimestampMs);
     }
 
     return 0;
-  }, [eventTimestamp, startTimestampMs]);
+  }, [eventTimestampMs, startTimestampMs]);
 
   if (fetchError) {
     const reasons = [

@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import logging
 import random
-from typing import Collection, Mapping, MutableMapping, Optional, Sequence, Set
+from typing import Collection, Iterable, Mapping, MutableMapping, Optional, Sequence, Set
 
 from django.conf import settings
 from django.core.cache import caches
@@ -48,7 +50,7 @@ class StringIndexerCache:
         return f"indexer:{self.partition_key}:org:str:{use_case_id}:{hashed}"
 
     def _format_results(
-        self, keys: Sequence[str], results: Mapping[str, Optional[int]]
+        self, keys: Iterable[str], results: Mapping[str, Optional[int]]
     ) -> MutableMapping[str, Optional[int]]:
         """
         Takes in keys formatted like "use_case_id:org_id:string", and results that have the
@@ -77,7 +79,7 @@ class StringIndexerCache:
             version=self.version,
         )
 
-    def get_many(self, keys: Sequence[str]) -> MutableMapping[str, Optional[int]]:
+    def get_many(self, keys: Iterable[str]) -> MutableMapping[str, Optional[int]]:
         cache_keys = {self.make_cache_key(key): key for key in keys}
         results: Mapping[str, Optional[int]] = self.cache.get_many(
             cache_keys.keys(), version=self.version

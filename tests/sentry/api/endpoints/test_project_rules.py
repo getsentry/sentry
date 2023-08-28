@@ -12,9 +12,10 @@ from sentry.constants import ObjectStatus
 from sentry.models import Environment, Rule, RuleActivity, RuleActivityType
 from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
 from sentry.models.user import User
+from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 
@@ -50,9 +51,17 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
         assert len(response.data) == Rule.objects.filter(project=self.project).count()
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     method = "post"
+
+    def clean_data(self, data):
+        cleaned_data = []
+        for datum in data:
+            if datum.get("name"):
+                del datum["name"]
+            cleaned_data.append(datum)
+        return cleaned_data
 
     def run_test(
         self,
@@ -67,7 +76,8 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         **kwargs: Any,
     ):
         owner = get_actor_for_user(self.user).get_actor_identifier()
-        self.user = User.objects.get(id=self.user.id)  # reload user after setting actor
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user = User.objects.get(id=self.user.id)  # reload user after setting actor
         query_args = {}
         if "environment" in kwargs:
             query_args["environment"] = kwargs["environment"]
@@ -101,9 +111,15 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert rule.owner == get_actor_for_user(self.user)
         assert rule.data["action_match"] == action_match
         assert rule.data["filter_match"] == filter_match
-        assert rule.data["actions"] == actions
+
+        updated_actions = self.clean_data(actions)
+        assert rule.data["actions"] == updated_actions
+
+        if conditions:
+            updated_conditions = self.clean_data(conditions)
+
         assert rule.data["conditions"] == (
-            expected_conditions if expected_conditions is not None else conditions
+            expected_conditions if expected_conditions is not None else updated_conditions
         )
         assert rule.data["frequency"] == frequency
         assert rule.created_by_id == self.user.id
@@ -123,9 +139,115 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
     def test_simple(self):
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        actions = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+                "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+            }
+        ]
 
         self.run_test(actions=actions, conditions=conditions)
+
+    def test_with_name(self):
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "name": "A new issue is created",
+            }
+        ]
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+            }
+        ]
+
+        self.run_test(actions=actions, conditions=conditions)
+
+    def test_duplicate_rule(self):
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "name": "A new issue is created",
+            }
+        ]
+        actions = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+                "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+            }
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="hellboy",
+            frequency=1440,
+            owner=self.user.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="all",
+            actions=actions,
+            conditions=conditions,
+        )
+        rule = Rule.objects.get(id=response.data["id"])
+
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            frequency=rule.data["frequency"],
+            owner=self.user.get_actor_identifier(),
+            actionMatch=rule.data["action_match"],
+            filterMatch=rule.data["filter_match"],
+            actions=rule.data["actions"],
+            conditions=conditions,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert (
+            resp.data["name"][0]
+            == f"This rule is an exact duplicate of '{rule.label}' in this project and may not be created."
+        )
+
+    def test_pre_save(self):
+        """Test that a rule with name data in the conditions and actions is saved without it"""
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "name": "A new issue is created",
+            }
+        ]
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+            }
+        ]
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="hello world",
+            owner=f"user:{self.user.id}",
+            environment=None,
+            actionMatch="any",
+            frequency=5,
+            actions=actions,
+            conditions=conditions,
+            status_code=status.HTTP_200_OK,
+        )
+        rule = Rule.objects.get(id=response.data.get("id"))
+        assert rule.data["actions"][0] == {
+            "id": "sentry.rules.actions.notify_event.NotifyEventAction"
+        }
+        assert rule.data["conditions"][0] == {
+            "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"
+        }
 
     def test_with_environment(self):
         Environment.get_or_create(self.project, "production")
@@ -217,6 +339,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         self.run_test(conditions=conditions, actions=actions)
 
     @override_settings(MAX_SLOW_CONDITION_ISSUE_ALERTS=1)
+    @override_settings(MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS=2)
     def test_exceed_limit_slow_conditions(self):
         conditions = [
             {
@@ -248,6 +371,17 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         # Make sure pending deletions don't affect the process
         Rule.objects.filter(project=self.project).update(status=ObjectStatus.PENDING_DELETION)
         self.run_test(conditions=conditions, actions=actions)
+
+        actions.append(
+            {
+                "targetType": "Team",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": self.team.id,
+            }
+        )
+        with self.feature("organizations:more-slow-alerts"):
+            self.run_test(conditions=conditions, actions=actions)
 
     def test_owner_perms(self):
         other_user = self.create_user()
@@ -302,6 +436,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         # Upper bound shouldn't be enforced when we're doing a comparison alert
         condition["comparisonType"] = "percent"
         condition["comparisonInterval"] = "1d"
+        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
         self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -310,6 +445,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             owner=self.user.get_actor_identifier(),
             actionMatch="any",
             filterMatch="any",
+            actions=actions,
             conditions=[condition],
             status_code=status.HTTP_200_OK,
         )
@@ -348,7 +484,10 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
     def test_with_filters(self):
         conditions: list[dict[str, Any]] = [
-            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "name": "A new issue is created",
+            }
         ]
         filters: list[dict[str, Any]] = [
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
@@ -407,7 +546,19 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
     def test_no_actions(self):
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        self.run_test(name="no action rule", actions=[], conditions=conditions)
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            frequency=30,
+            owner=self.user.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="any",
+            actions=[],
+            conditions=conditions,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert resp.data["actions"][0] == "You must add an action for this alert to fire."
 
     @patch(
         "sentry.integrations.slack.actions.notification.get_channel_id",
@@ -453,8 +604,10 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             status_code=status.HTTP_202_ACCEPTED,
         )
 
-        self.user = User.objects.get(id=self.user.id)  # reload user to get actor
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user = User.objects.get(id=self.user.id)  # reload user to get actor
         assert not Rule.objects.filter(label=payload["name"]).exists()
+        payload["actions"][0].pop("name")
         kwargs = {
             "name": payload["name"],
             "owner": get_actor_id_for_user(self.user),
@@ -492,11 +645,26 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
 
         condition["comparisonType"] = "count"
+        actions.append(
+            {
+                "targetType": "Team",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": self.team.id,
+            }
+        )
         self.run_test(actions=actions, conditions=[condition])
 
         condition["comparisonType"] = "percent"
         condition["comparisonInterval"] = "1d"
-
+        actions.append(
+            {
+                "targetType": "Member",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": self.user.id,
+            }
+        )
         self.run_test(actions=actions, conditions=[condition])
 
     def test_comparison_condition_validation(self):

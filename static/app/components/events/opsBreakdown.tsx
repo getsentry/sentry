@@ -320,7 +320,7 @@ export const OpsLine = styled('div')`
   }
 `;
 
-const OpsDot = styled('div')`
+export const OpsDot = styled('div')`
   content: '';
   display: block;
   width: 8px;

@@ -6,7 +6,8 @@ from mistune import markdown
 from rest_framework.response import Response
 
 from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
-from sentry.models import Activity, IntegrationExternalProject, OrganizationIntegration, User
+from sentry.models import Activity, User
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 
@@ -273,15 +274,12 @@ class VstsIssueSync(IssueSyncMixin):
                 vsts_project_id = p["id"]
                 break
 
-        try:
-            external_project = IntegrationExternalProject.objects.get(
-                external_id=vsts_project_id,
-                organization_integration_id__in=OrganizationIntegration.objects.filter(
-                    organization_id=external_issue.organization_id,
-                    integration_id=external_issue.integration_id,
-                ),
-            )
-        except IntegrationExternalProject.DoesNotExist:
+        integration_external_project = integration_service.get_integration_external_project(
+            organization_id=external_issue.organization_id,
+            integration_id=external_issue.integration_id,
+            external_id=vsts_project_id,
+        )
+        if integration_external_project is None:
             self.logger.info(
                 "vsts.external-project-not-found",
                 extra={
@@ -293,7 +291,9 @@ class VstsIssueSync(IssueSyncMixin):
             return
 
         status = (
-            external_project.resolved_status if is_resolved else external_project.unresolved_status
+            integration_external_project.resolved_status
+            if is_resolved
+            else integration_external_project.unresolved_status
         )
 
         try:

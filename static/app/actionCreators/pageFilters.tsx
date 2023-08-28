@@ -50,6 +50,10 @@ type Options = {
    * Persist changes to the page filter selection into local storage
    */
   save?: boolean;
+  /**
+   * Optional prefix for the storage key, for areas of the app that need separate pagefilters (i.e Starfish)
+   */
+  storageNamespace?: string;
 };
 
 /**
@@ -145,6 +149,10 @@ export type InitializeUrlStateParams = {
    * An example is Starfish, which doesn't support environments.
    */
   skipLoadLastUsedEnvironment?: boolean;
+  /**
+   * Optional prefix for the storage key, for areas of the app that need separate pagefilters (i.e Starfish)
+   */
+  storageNamespace?: string;
 };
 
 export function initializeUrlState({
@@ -161,6 +169,7 @@ export function initializeUrlState({
   forceProject,
   showAbsolute = true,
   skipInitializeUrlParams = false,
+  storageNamespace,
 }: InitializeUrlStateParams) {
   const orgSlug = organization.slug;
 
@@ -195,7 +204,9 @@ export function initializeUrlState({
     pageFilters.environments = parsed.environment || [];
   }
 
-  const storedPageFilters = skipLoadLastUsed ? null : getPageFilterStorage(orgSlug);
+  const storedPageFilters = skipLoadLastUsed
+    ? null
+    : getPageFilterStorage(orgSlug, storageNamespace);
   let shouldUsePinnedDatetime = false;
 
   // We may want to restore some page filters from local storage. In the new
@@ -324,6 +335,7 @@ export function updateProjects(
   PageFiltersStore.updateProjects(projects, options?.environments ?? null);
   updateParams({project: projects, environment: options?.environments}, router, options);
   persistPageFilters('projects', options);
+
   if (options?.environments) {
     persistPageFilters('environments', options);
   }
@@ -430,7 +442,11 @@ async function persistPageFilters(filter: PinnedPageFilter | null, options?: Opt
   }
 
   const targetFilter = filter !== null ? [filter] : [];
-  setPageFiltersStorage(orgSlug, new Set<PinnedPageFilter>(targetFilter));
+  setPageFiltersStorage(
+    orgSlug,
+    new Set<PinnedPageFilter>(targetFilter),
+    options.storageNamespace
+  );
 }
 
 /**

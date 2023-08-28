@@ -63,6 +63,7 @@ class TestServiceHooks(TestCase):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(minutes=1))}, project_id=self.project.id
         )
+        assert event.group is not None
 
         process_service_hook(self.hook.id, event)
         body = get_payload_v0(event)

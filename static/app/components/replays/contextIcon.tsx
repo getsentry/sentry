@@ -12,6 +12,7 @@ type Props = {
   name: string;
   version: undefined | string;
   className?: string;
+  showTooltip?: boolean;
   showVersion?: boolean;
 };
 
@@ -19,26 +20,36 @@ const LazyContextIcon = lazy(
   () => import('sentry/components/events/contextSummary/contextIcon')
 );
 
-const ContextIcon = styled(({className, name, version, showVersion}: Props) => {
-  const icon = generateIconName(name, version);
+const ContextIcon = styled(
+  ({className, name, version, showVersion, showTooltip}: Props) => {
+    const icon = generateIconName(name, version);
 
-  const title = (
-    <CountTooltipContent>
-      <dt>{t('Name:')}</dt>
-      <dd>{name}</dd>
-      {version ? <dt>{t('Version:')}</dt> : null}
-      {version ? <dd>{version}</dd> : null}
-    </CountTooltipContent>
-  );
-  return (
-    <Tooltip title={title} className={className}>
-      <Suspense fallback={<LoadingMask />}>
-        <LazyContextIcon name={icon} size="sm" />
-      </Suspense>
-      {showVersion ? (version ? version : null) : undefined}
-    </Tooltip>
-  );
-})`
+    if (!showTooltip) {
+      return (
+        <Suspense fallback={<LoadingMask />}>
+          <LazyContextIcon name={icon} size="sm" />
+        </Suspense>
+      );
+    }
+
+    const title = (
+      <CountTooltipContent>
+        <dt>{t('Name:')}</dt>
+        <dd>{name}</dd>
+        {version ? <dt>{t('Version:')}</dt> : null}
+        {version ? <dd>{version}</dd> : null}
+      </CountTooltipContent>
+    );
+    return (
+      <Tooltip title={title} className={className}>
+        <Suspense fallback={<LoadingMask />}>
+          <LazyContextIcon name={icon} size="sm" />
+        </Suspense>
+        {showVersion ? (version ? version : null) : undefined}
+      </Tooltip>
+    );
+  }
+)`
   display: flex;
   gap: ${space(1)};
   font-variant-numeric: tabular-nums;

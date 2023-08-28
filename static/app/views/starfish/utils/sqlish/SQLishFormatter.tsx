@@ -34,14 +34,32 @@ export class SQLishFormatter {
   toFormat(sql: string, format: Format) {
     let tokens;
 
+    const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+
+    const sentrySpan = sentryTransaction?.startChild({
+      op: 'function',
+      description: 'SQLishFormatter.toFormat',
+      data: {
+        format,
+      },
+    });
+
     try {
       tokens = this.parser.parse(sql);
     } catch (error) {
-      Sentry.captureException(error);
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['sqlish-parse-error']);
+        // Get the last 100 characters of the error message
+        scope.setExtra('message', error.message?.slice(-100));
+        Sentry.captureException(error);
+      });
       // If we fail to parse the SQL, return the original string
       return sql;
     }
 
-    return FORMATTERS[format](tokens);
+    const formattedString = FORMATTERS[format](tokens);
+    sentrySpan?.finish();
+
+    return formattedString;
   }
 }

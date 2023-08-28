@@ -9,8 +9,8 @@ from freezegun import freeze_time
 from sentry import options
 from sentry.buffer.redis import RedisBuffer
 from sentry.models import Group, Project
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
-from sentry.utils.pytest.fixtures import django_db_all
 
 
 class TestRedisBuffer:

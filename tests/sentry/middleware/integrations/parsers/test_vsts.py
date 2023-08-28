@@ -7,7 +7,7 @@ from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
 from fixtures.vsts import WORK_ITEM_UNASSIGNED, WORK_ITEM_UPDATED, WORK_ITEM_UPDATED_STATUS
-from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
+from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.vsts import VstsRequestParser
 from sentry.models import Integration
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
@@ -22,7 +22,7 @@ from sentry.types.region import Region, RegionCategory
 class VstsRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     factory = RequestFactory()
-    path = f"{IntegrationControlMiddleware.integration_prefix}vsts/issue-updated/"
+    path = f"{IntegrationClassification.integration_prefix}vsts/issue-updated/"
     region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
 
     def setUp(self):
@@ -31,7 +31,7 @@ class VstsRequestParserTest(TestCase):
 
     def set_workitem_state(self, old_value, new_value):
         work_item = deepcopy(WORK_ITEM_UPDATED_STATUS)
-        state = work_item["resource"]["fields"]["System.State"]  # type: ignore
+        state = work_item["resource"]["fields"]["System.State"]
 
         if old_value is None:
             del state["oldValue"]

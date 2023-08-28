@@ -65,6 +65,8 @@ describe('ReplayReader', () => {
 
   describe('attachment splitting', () => {
     const timestamp = new Date('2023-12-25T00:02:00');
+    const secondTimestamp = new Date('2023-12-25T00:04:00');
+    const thirdTimestamp = new Date('2023-12-25T00:05:00');
 
     const optionsFrame = TestStubs.Replay.OptionFrame({});
     const optionsEvent = TestStubs.Replay.OptionFrameEvent({
@@ -74,6 +76,9 @@ describe('ReplayReader', () => {
     const firstDiv = TestStubs.Replay.RRWebFullSnapshotFrameEvent({timestamp});
     const secondDiv = TestStubs.Replay.RRWebFullSnapshotFrameEvent({timestamp});
     const clickEvent = TestStubs.Replay.ClickEvent({timestamp});
+    const secondClickEvent = TestStubs.Replay.ClickEvent({timestamp: secondTimestamp});
+    const thirdClickEvent = TestStubs.Replay.ClickEvent({timestamp: thirdTimestamp});
+    const deadClickEvent = TestStubs.Replay.DeadClickEvent({timestamp});
     const firstMemory = TestStubs.Replay.MemoryEvent({
       startTimestamp: timestamp,
       endTimestamp: timestamp,
@@ -103,6 +108,8 @@ describe('ReplayReader', () => {
     });
     const attachments = [
       clickEvent,
+      secondClickEvent,
+      thirdClickEvent,
       consoleEvent,
       firstDiv,
       firstMemory,
@@ -111,6 +118,7 @@ describe('ReplayReader', () => {
       secondDiv,
       secondMemory,
       customEvent,
+      deadClickEvent,
     ];
 
     it.each([
@@ -144,7 +152,11 @@ describe('ReplayReader', () => {
       },
       {
         method: 'getDOMFrames',
-        expected: [expect.objectContaining({category: 'ui.click'})],
+        expected: [
+          expect.objectContaining({category: 'ui.slowClickDetected'}),
+          expect.objectContaining({category: 'ui.click'}),
+          expect.objectContaining({category: 'ui.click'}),
+        ],
       },
       {
         method: 'getMemoryFrames',
@@ -157,16 +169,10 @@ describe('ReplayReader', () => {
         method: 'getChapterFrames',
         expected: [
           expect.objectContaining({category: 'replay.init'}),
-          expect.objectContaining({category: 'ui.click'}),
+          expect.objectContaining({category: 'ui.slowClickDetected'}),
           expect.objectContaining({op: 'navigation.navigate'}),
-        ],
-      },
-      {
-        method: 'getTimelineFrames',
-        expected: [
-          expect.objectContaining({category: 'replay.init'}),
           expect.objectContaining({category: 'ui.click'}),
-          expect.objectContaining({op: 'navigation.navigate'}),
+          expect.objectContaining({category: 'ui.click'}),
         ],
       },
       {

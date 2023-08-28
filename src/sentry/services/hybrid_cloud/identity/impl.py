@@ -92,7 +92,9 @@ class DatabaseBackedIdentityService(IdentityService):
     class _IdentityFilterQuery(
         FilterQueryDatabaseImpl[Identity, IdentityFilterArgs, RpcIdentity, None]
     ):
-        def apply_filters(self, query: QuerySet, filters: IdentityFilterArgs) -> QuerySet:
+        def apply_filters(
+            self, query: QuerySet[Identity], filters: IdentityFilterArgs
+        ) -> QuerySet[Identity]:
             if "id" in filters:
                 query = query.filter(id=filters["id"])
             if "user_id" in filters:
@@ -107,7 +109,7 @@ class DatabaseBackedIdentityService(IdentityService):
                 query = query.filter(idp__type=filters["provider_type"])
             return query
 
-        def base_query(self, ids_only: bool = False) -> QuerySet:
+        def base_query(self, ids_only: bool = False) -> QuerySet[Identity]:
             return Identity.objects
 
         def filter_arg_validator(self) -> Callable[[IdentityFilterArgs], Optional[str]]:

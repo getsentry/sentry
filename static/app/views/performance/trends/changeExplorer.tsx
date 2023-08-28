@@ -17,6 +17,7 @@ import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
+import {FunctionsList} from 'sentry/views/performance/trends/changeExplorerUtils/functionsList';
 import {MetricsTable} from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
 import {SpansList} from 'sentry/views/performance/trends/changeExplorerUtils/spansList';
 import {Chart} from 'sentry/views/performance/trends/chart';
@@ -181,6 +182,14 @@ function ExplorerBody(props: ExplorerBodyProps) {
         breakpoint={transaction.breakpoint!}
         trendChangeType={trendChangeType}
       />
+      <FunctionsList
+        location={location}
+        organization={organization}
+        trendView={trendView}
+        transaction={transaction}
+        breakpoint={transaction.breakpoint!}
+        trendChangeType={trendChangeType}
+      />
     </Fragment>
   );
 }
@@ -272,7 +281,7 @@ function getTransactionSummaryLink(
 
 const PanelBodyWrapper = styled('div')`
   padding: 0 ${space(2)};
-  margin-top: ${space(4)};
+  margin-top: ${space(1)};
 `;
 
 const HeaderWrapper = styled('div')`
@@ -309,7 +318,7 @@ const TransactionNameWrapper = styled('div')`
   display: flex;
   align-items: center;
   margin-bottom: ${space(3)};
-  width: fit-content;
+  max-width: fit-content;
 `;
 
 const ViewTransactionButton = styled(Button)`

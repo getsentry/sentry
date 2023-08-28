@@ -31,7 +31,7 @@ import {
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
-const MIN_DEAD_RAGE_CLICK_SDK = '7.60.1';
+export const MIN_DEAD_RAGE_CLICK_SDK = '7.60.1';
 
 type Props = {
   fetchError: undefined | Error;
@@ -40,9 +40,9 @@ type Props = {
   sort: Sort | undefined;
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
-  footer?: ReactNode;
   gridRows?: string;
   saveLocation?: boolean;
+  showDropdownFilters?: boolean;
 };
 
 function ReplayTable({
@@ -54,12 +54,11 @@ function ReplayTable({
   emptyMessage,
   saveLocation,
   gridRows,
-  footer,
+  showDropdownFilters,
 }: Props) {
   const routes = useRoutes();
   const newLocation = useLocation();
   const organization = useOrganization();
-  const showBottomBorder = visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS);
 
   const {
     selection: {projects},
@@ -96,7 +95,7 @@ function ReplayTable({
         data-test-id="replay-table"
         gridRows={undefined}
       >
-        <StyledAlert type="error" showIcon showBottomBorder={showBottomBorder}>
+        <StyledAlert type="error" showIcon>
           {typeof fetchError === 'string'
             ? fetchError
             : t(
@@ -109,7 +108,8 @@ function ReplayTable({
 
   if (
     needSDKUpgrade.needsUpdate &&
-    visibleColumns.includes(ReplayColumn.COUNT_DEAD_CLICKS)
+    (visibleColumns.includes(ReplayColumn.MOST_DEAD_CLICKS) ||
+      visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS))
   ) {
     return (
       <StyledPanelTable
@@ -120,13 +120,11 @@ function ReplayTable({
         loader={<LoadingIndicator style={{margin: '54px auto'}} />}
         disablePadding
       >
-        <StyledAlert type="info" showIcon showBottomBorder={showBottomBorder}>
+        <StyledAlert type="info" showIcon>
           {tct('[data] requires [sdkPrompt]. [link:Upgrade now.]', {
             data: <strong>Rage and dead clicks</strong>,
             sdkPrompt: <strong>{t('SDK version >= 7.60.1')}</strong>,
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/npm/" />
-            ),
+            link: <ExternalLink href="https://docs.sentry.io/platforms/javascript/" />,
           })}
         </StyledAlert>
       </StyledPanelTable>
@@ -154,25 +152,85 @@ function ReplayTable({
             {visibleColumns.map(column => {
               switch (column) {
                 case ReplayColumn.ACTIVITY:
-                  return <ActivityCell key="activity" replay={replay} />;
+                  return (
+                    <ActivityCell
+                      key="activity"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
 
                 case ReplayColumn.BROWSER:
-                  return <BrowserCell key="browser" replay={replay} />;
+                  return (
+                    <BrowserCell
+                      key="browser"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
 
                 case ReplayColumn.COUNT_DEAD_CLICKS:
-                  return <DeadClickCountCell key="countDeadClicks" replay={replay} />;
+                  return (
+                    <DeadClickCountCell
+                      key="countDeadClicks"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
+
+                case ReplayColumn.COUNT_DEAD_CLICKS_NO_HEADER:
+                  return (
+                    <DeadClickCountCell
+                      key="countDeadClicks"
+                      replay={replay}
+                      showDropdownFilters={false}
+                    />
+                  );
 
                 case ReplayColumn.COUNT_ERRORS:
-                  return <ErrorCountCell key="countErrors" replay={replay} />;
+                  return (
+                    <ErrorCountCell
+                      key="countErrors"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
 
                 case ReplayColumn.COUNT_RAGE_CLICKS:
-                  return <RageClickCountCell key="countRageClicks" replay={replay} />;
+                  return (
+                    <RageClickCountCell
+                      key="countRageClicks"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
+
+                case ReplayColumn.COUNT_RAGE_CLICKS_NO_HEADER:
+                  return (
+                    <RageClickCountCell
+                      key="countRageClicks"
+                      replay={replay}
+                      showDropdownFilters={false}
+                    />
+                  );
 
                 case ReplayColumn.DURATION:
-                  return <DurationCell key="duration" replay={replay} />;
+                  return (
+                    <DurationCell
+                      key="duration"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
 
                 case ReplayColumn.OS:
-                  return <OSCell key="os" replay={replay} />;
+                  return (
+                    <OSCell
+                      key="os"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
 
                 case ReplayColumn.REPLAY:
                   return (
@@ -205,7 +263,20 @@ function ReplayTable({
                       referrer={referrer}
                       showUrl={false}
                       eventView={eventView}
-                      referrer_table="dead-rage-table"
+                      referrer_table="rage-table"
+                    />
+                  );
+
+                case ReplayColumn.MOST_DEAD_CLICKS:
+                  return (
+                    <ReplayCell
+                      key="mostDeadClicks"
+                      replay={replay}
+                      organization={organization}
+                      referrer={referrer}
+                      showUrl={false}
+                      eventView={eventView}
+                      referrer_table="dead-table"
                     />
                   );
 
@@ -229,7 +300,6 @@ function ReplayTable({
           </Fragment>
         );
       })}
-      {footer}
     </StyledPanelTable>
   );
 }
@@ -237,6 +307,7 @@ function ReplayTable({
 const flexibleColumns = [
   ReplayColumn.REPLAY,
   ReplayColumn.MOST_RAGE_CLICKS,
+  ReplayColumn.MOST_DEAD_CLICKS,
   ReplayColumn.MOST_ERRONEOUS_REPLAYS,
 ];
 
@@ -246,6 +317,7 @@ const StyledPanelTable = styled(PanelTable)<{
 }>`
   ${props =>
     props.visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS) ||
+    props.visibleColumns.includes(ReplayColumn.MOST_DEAD_CLICKS) ||
     props.visibleColumns.includes(ReplayColumn.MOST_ERRONEOUS_REPLAYS)
       ? `border-bottom-left-radius: 0; border-bottom-right-radius: 0;`
       : ``}
@@ -264,12 +336,11 @@ const StyledPanelTable = styled(PanelTable)<{
       : `grid-template-rows: 44px max-content;`}
 `;
 
-const StyledAlert = styled(Alert)<{showBottomBorder?: boolean}>`
+const StyledAlert = styled(Alert)`
   border-radius: 0;
+  border-width: 1px 0 0 0;
   grid-column: 1/-1;
   margin-bottom: 0;
-  ${props =>
-    props.showBottomBorder ? `border-width: 1px 0 1px 0;` : `border-width: 1px 0 0 0;`}
 `;
 
 export default ReplayTable;

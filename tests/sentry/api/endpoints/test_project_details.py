@@ -10,6 +10,7 @@ from django.db import router
 from django.urls import reverse
 
 from sentry import audit_log
+from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
@@ -259,125 +260,174 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         super().setUp()
         self.project = self.create_project(platform="javascript")
         self.user = self.create_user("bar@example.com")
-
-    def test_member_can_read_project_details(self):
-        self.create_member(
-            user=self.user,
-            organization=self.project.organization,
-            teams=[self.project.teams.first()],
-            role="member",
-        )
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
-        authorization = f"Bearer {token.token}"
-
-        url = reverse(
+        self.url = reverse(
             "sentry-api-0-project-details",
             kwargs={
                 "organization_slug": self.project.organization.slug,
                 "project_slug": self.project.slug,
             },
         )
-        response = self.client.get(url, format="json", HTTP_AUTHORIZATION=authorization)
-        assert response.status_code == 200, response.content
 
-    def test_member_updates_denied_with_token(self):
+        self.platforms = ["rust", "java"]
+
+    def test_member_can_update_limited_project_details(self):
         self.create_member(
             user=self.user,
             organization=self.project.organization,
-            teams=[self.project.teams.first()],
+            teams=[self.team],
             role="member",
         )
+        token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
-        authorization = f"Bearer {token.token}"
-
-        data = {"platform": "rust"}
-
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
+        response = self.client.put(
+            self.url,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            data={"isBookmarked": True},
         )
-        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
-        assert response.status_code == 403, response.content
+        assert response.status_code == 200
+        assert response.data["isBookmarked"] is True
 
-    def test_admin_updates_allowed_with_correct_token_scope(self):
+    def test_admin_update_allowed_with_correct_token_scope(self):
         self.create_member(
             user=self.user,
             organization=self.project.organization,
-            teams=[self.project.teams.first()],
+            teams=[self.team],
             role="admin",
         )
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
-        authorization = f"Bearer {token.token}"
+        for i, scope in enumerate(["project:write", "project:admin"]):
+            token = self.create_user_auth_token(user=self.user, scope_list=[scope])
+            platform = self.platforms[i]
 
-        data = {"platform": "rust"}
+            response = self.client.put(
+                self.url,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+                data={"platform": platform},
+            )
+            assert response.status_code == 200
+            assert response.data["platform"] == platform
 
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
-        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
-        assert response.status_code == 200, response.content
-
-    def test_admin_updates_denied_with_token(self):
+    @with_feature("organizations:team-roles")
+    def test_team_admin_update_allowed_with_correct_token_scope(self):
         self.create_member(
             user=self.user,
             organization=self.project.organization,
-            teams=[self.project.teams.first()],
-            role="admin",
+            role="member",
+        )
+        self.create_team_membership(user=self.user, team=self.team, role="admin")
+
+        for i, scope in enumerate(["project:write", "project:admin"]):
+            token = self.create_user_auth_token(user=self.user, scope_list=[scope])
+            platform = self.platforms[i]
+
+            response = self.client.put(
+                self.url,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+                data={"platform": platform},
+            )
+            assert response.status_code == 200
+            assert response.data["platform"] == platform
+
+    def test_manager_update_allowed_with_correct_token_scope(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.team],
+            role="manager",
         )
 
+        for i, scope in enumerate(["project:write", "project:admin"]):
+            token = self.create_user_auth_token(user=self.user, scope_list=[scope])
+            platform = self.platforms[i]
+
+            response = self.client.put(
+                self.url,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+                data={"platform": platform},
+            )
+            assert response.status_code == 200
+            assert response.data["platform"] == platform
+
+    def test_owner_update_allowed_with_correct_token_scope(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.team],
+            role="owner",
+        )
+
+        for i, scope in enumerate(["project:write", "project:admin"]):
+            token = self.create_user_auth_token(user=self.user, scope_list=[scope])
+            platform = self.platforms[i]
+
+            response = self.client.put(
+                self.url,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+                data={"platform": platform},
+            )
+            assert response.status_code == 200
+            assert response.data["platform"] == platform
+
+    def test_member_update_denied_with_token(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.team],
+            role="member",
+        )
+        # members are only allowed to update 'isBookmarked' and 'isSubscribed' fields
+        token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
+
+        response = self.client.put(
+            self.url,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            data={"platform": "rust"},
+        )
+        assert response.status_code == 403
+        assert response.data["detail"] == "You do not have permission to perform this action."
+
+    def test_admin_update_denied_with_token(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.team],
+            role="admin",
+        )
         # even though the user has the 'admin' role, they've issued a token with only a project:read scope
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
-        authorization = f"Bearer {token.token}"
+        token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
 
-        data = {"platform": "rust"}
-
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
+        response = self.client.put(
+            self.url,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            data={"platform": "rust"},
         )
-        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
-        assert response.status_code == 403, response.content
+        assert response.status_code == 403
+        assert response.data["detail"] == "You do not have permission to perform this action."
 
     def test_empty_token_scopes_denied(self):
         self.create_member(
             user=self.user,
             organization=self.project.organization,
-            teams=[self.project.teams.first()],
+            teams=[self.team],
             role="member",
         )
+        token = self.create_user_auth_token(user=self.user, scope_list=[""])
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            token = ApiToken.objects.create(user=self.user, scope_list=[""])
-        authorization = f"Bearer {token.token}"
-
-        data = {"platform": "rust"}
-
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
+        response = self.client.put(
+            self.url,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            data={"platform": "rust"},
         )
-        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
-        assert response.status_code == 403, response.content
+        assert response.status_code == 403
+        assert response.data["detail"] == "You do not have permission to perform this action."
 
 
 @region_silo_test(stable=True)
@@ -498,6 +548,16 @@ class ProjectUpdateTest(APITestCase):
         )
         project = Project.objects.get(id=self.project.id)
         assert project.slug != new_project.slug
+
+    @with_feature("app:enterprise-prevent-numeric-slugs")
+    def test_invalid_numeric_slug(self):
+        response = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            slug="1234",
+            status_code=400,
+        )
+        assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
     def test_reserved_slug(self):
         self.get_error_response(
@@ -1311,7 +1371,7 @@ class CopyProjectSettingsTest(APITestCase):
             copy_from_project=self.other_project.id,
             status_code=409,
         )
-        assert resp.data == {"detail": ["Copy project settings failed."]}
+        assert resp.data["detail"] == "Copy project settings failed."
         self.assert_settings_not_copied(project)
         self.assert_other_project_settings_not_changed()
 
@@ -1662,7 +1722,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             data={"dynamicSamplingBiases": DEFAULT_BIASES},
         )
         assert response.status_code == 403
-        assert response.json()["detail"] == ["dynamicSamplingBiases is not a valid field"]
+        assert response.data["detail"] == "dynamicSamplingBiases is not a valid field"
 
     def test_put_new_dynamic_sampling_rules_with_correct_flags(self):
         """

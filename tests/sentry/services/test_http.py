@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.test.utils import override_settings
 
 from sentry.services.http import SentryHTTPServer, convert_options_to_env
@@ -36,7 +40,7 @@ class HTTPServiceTest(TestCase):
         assert server.options["workers"] == 10
 
         # Make sure that changing `protocol` to uwsgi sets the right socket
-        options = {"protocol": "uwsgi"}
+        options: dict[str, Any] = {"protocol": "uwsgi"}
         with override_settings(SENTRY_WEB_OPTIONS=options):
             server = cls()
             assert "http-socket" not in server.options

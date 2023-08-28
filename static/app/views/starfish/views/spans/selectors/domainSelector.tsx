@@ -14,7 +14,7 @@ import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQue
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {
   EMPTY_OPTION_VALUE,
-  EmptyOption,
+  EmptyContainer,
 } from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 const {SPAN_DOMAIN} = SpanMetricsFields;
@@ -71,10 +71,6 @@ export function DomainSelector({
   const options = optionsReady
     ? [
         {value: '', label: 'All'},
-        {
-          value: EMPTY_OPTION_VALUE,
-          label: <EmptyOption />,
-        },
         ...(domains ?? [])
           .filter(datum => Boolean(datum[SPAN_DOMAIN]))
           .map(datum => {
@@ -84,6 +80,14 @@ export function DomainSelector({
             };
           })
           .sort((a, b) => a.value.localeCompare(b.value)),
+        {
+          value: EMPTY_OPTION_VALUE,
+          label: (
+            <EmptyContainer>
+              {t('(No %s)', LABEL_FOR_MODULE_NAME[moduleName])}
+            </EmptyContainer>
+          ),
+        },
       ]
     : [];
 

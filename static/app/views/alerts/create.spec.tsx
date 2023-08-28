@@ -169,7 +169,6 @@ describe('ProjectAlertsCreate', function () {
               conditions: [
                 expect.objectContaining({
                   id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-                  name: 'A new issue is created',
                 }),
               ],
               filterMatch: 'all',
@@ -263,7 +262,6 @@ describe('ProjectAlertsCreate', function () {
               conditions: [
                 expect.objectContaining({
                   id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-                  name: 'A new issue is created',
                 }),
               ],
               filterMatch: 'all',
@@ -321,7 +319,6 @@ describe('ProjectAlertsCreate', function () {
               conditions: [
                 expect.objectContaining({
                   id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-                  name: 'A new issue is created',
                 }),
               ],
               actions: [],
@@ -371,7 +368,6 @@ describe('ProjectAlertsCreate', function () {
               conditions: [
                 expect.objectContaining({
                   id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-                  name: 'A new issue is created',
                 }),
               ],
               filterMatch: 'all',
@@ -474,7 +470,6 @@ describe('ProjectAlertsCreate', function () {
               conditions: [
                 expect.objectContaining({
                   id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-                  name: 'A new issue is created',
                 }),
               ],
               filterMatch: 'all',
@@ -522,7 +517,6 @@ describe('ProjectAlertsCreate', function () {
               conditions: [
                 expect.objectContaining({
                   id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-                  name: 'A new issue is created',
                 }),
               ],
               filterMatch: 'all',

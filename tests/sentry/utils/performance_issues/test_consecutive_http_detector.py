@@ -26,7 +26,7 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 MIN_SPAN_DURATION = 900  # ms
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @pytest.mark.django_db
 class ConsecutiveHTTPSpansDetectorTest(TestCase):
     def setUp(self):

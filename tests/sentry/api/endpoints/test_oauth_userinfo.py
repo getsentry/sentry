@@ -85,7 +85,7 @@ class OAuthUserInfoTest(APITestCase):
 
     def test_gets_multiple_scopes(self):
         all_access_token = ApiToken.objects.create(
-            user=self.user, scope_list=["openid", "profile", "email", "address", "phone"]
+            user=self.user, scope_list=["openid", "profile", "email"]
         )
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + all_access_token.token)
 

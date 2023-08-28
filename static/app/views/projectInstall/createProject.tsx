@@ -7,7 +7,7 @@ import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openCreateTeamModal, openModal} from 'sentry/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -18,7 +18,7 @@ import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggesti
 import PlatformPicker, {Platform} from 'sentry/components/platformPicker';
 import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
 import TeamSelector from 'sentry/components/teamSelector';
-import {IconAdd} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
@@ -260,12 +260,27 @@ function CreateProject() {
   const canCreateTeam = organization.access.includes('project:admin');
   const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
 
-  const canSubmitForm =
-    !inFlight &&
-    (team || isOrgMemberWithNoAccess) &&
-    canCreateProject &&
-    projectName !== '' &&
-    (!shouldCreateCustomRule || conditions?.every?.(condition => condition.value));
+  const isMissingTeam = !isOrgMemberWithNoAccess && !team;
+  const isMissingProjectName = projectName === '';
+  const isMissingAlertThreshold =
+    shouldCreateCustomRule && !conditions?.every?.(condition => condition.value);
+
+  const formErrorCount = [
+    isMissingTeam,
+    isMissingProjectName,
+    isMissingAlertThreshold,
+  ].filter(value => value).length;
+
+  const canSubmitForm = !inFlight && canCreateProject && formErrorCount === 0;
+
+  let submitTooltipText: string = t('Please select a team');
+  if (formErrorCount > 1) {
+    submitTooltipText = t('Please fill out all the required fields');
+  } else if (isMissingProjectName) {
+    submitTooltipText = t('Please provide a project name');
+  } else if (isMissingAlertThreshold) {
+    submitTooltipText = t('Please provide an alert threshold');
+  }
 
   const alertFrequencyDefaultValues = useMemo(() => {
     if (!autoFill) {
@@ -330,6 +345,7 @@ function CreateProject() {
             <FormLabel>{t('Team')}</FormLabel>
             <TeamSelectInput>
               <TeamSelector
+                allowCreate
                 name="select-team"
                 aria-label={t('Select a Team')}
                 menuPlacement="auto"
@@ -339,33 +355,20 @@ function CreateProject() {
                 onChange={choice => setTeam(choice.value)}
                 teamFilter={(tm: Team) => tm.access.includes('team:admin')}
               />
-              {canCreateTeam && (
-                <Button
-                  borderless
-                  data-test-id="create-team"
-                  icon={<IconAdd isCircled />}
-                  onClick={() =>
-                    openCreateTeamModal({
-                      organization,
-                      onClose: ({slug}) => setTeam(slug),
-                    })
-                  }
-                  title={t('Create a team')}
-                  aria-label={t('Create a team')}
-                />
-              )}
             </TeamSelectInput>
           </div>
         )}
         <div>
-          <Button
-            type="submit"
-            data-test-id="create-project"
-            priority="primary"
-            disabled={!canSubmitForm}
-          >
-            {t('Create Project')}
-          </Button>
+          <Tooltip title={submitTooltipText} disabled={formErrorCount === 0}>
+            <Button
+              type="submit"
+              data-test-id="create-project"
+              priority="primary"
+              disabled={!canSubmitForm}
+            >
+              {t('Create Project')}
+            </Button>
+          </Tooltip>
         </div>
       </CreateProjectForm>
     </Fragment>

@@ -4,7 +4,7 @@ import responses
 
 from sentry.integrations.msteams.notifications import send_notification_as_msteams
 from sentry.models import Activity
-from sentry.notifications.notifications.activity import NoteActivityNotification
+from sentry.notifications.notifications.activity.note import NoteActivityNotification
 from sentry.testutils.cases import MSTeamsActivityNotificationTest, TestCase
 from sentry.testutils.helpers.notifications import (
     DummyNotification,

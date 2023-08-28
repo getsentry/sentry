@@ -1,3 +1,5 @@
+import {useMemo, useState} from 'react';
+
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -12,10 +14,24 @@ import {ALLOWED_PROJECT_IDS_FOR_ORG_SLUG} from 'sentry/views/starfish/allowedPro
 export function StarfishProjectSelector() {
   const {projects, initiallyLoaded: projectsLoaded, fetchError} = useProjects();
   const organization = useOrganization();
-  const {selection, isReady} = usePageFilters();
   const router = useRouter();
+  const {selection} = usePageFilters();
 
-  if (!projectsLoaded || !isReady) {
+  const allowedProjectIDs: string[] = useMemo(
+    () => ALLOWED_PROJECT_IDS_FOR_ORG_SLUG[organization.slug] ?? [],
+    [organization.slug]
+  );
+
+  const [selectedProjectId, setSelectedProjectId] = useState(
+    selection.projects[0] ?? allowedProjectIDs[0]
+  );
+
+  const currentProject = selection.projects[0] ?? allowedProjectIDs[0];
+  if (selectedProjectId !== currentProject) {
+    setSelectedProjectId(currentProject);
+  }
+
+  if (!projectsLoaded) {
     return (
       <CompactSelect
         disabled
@@ -29,36 +45,25 @@ export function StarfishProjectSelector() {
     throw new Error('Failed to fetch projects');
   }
 
-  const allowedProjectIDs: string[] =
-    ALLOWED_PROJECT_IDS_FOR_ORG_SLUG[organization.slug] ?? [];
-
   const projectOptions = projects
     .filter(project => allowedProjectIDs.includes(project.id))
     .map(project => ({
       label: <ProjectOptionLabel project={project} />,
       value: project.id,
-    }));
-
-  const selectedOption =
-    projectOptions.find(option =>
-      selection.projects.includes(parseInt(option.value, 10))
-    ) ?? projectOptions[0];
+    }))
+    .sort((projectA, projectB) => Number(projectA.value) - Number(projectB.value));
 
   const handleProjectChange = option =>
-    updateProjects([parseInt(option.value, 10)], router, {save: true});
-
-  if (
-    selection.projects.length > 1 ||
-    !allowedProjectIDs.includes(`${selection.projects[0]}`)
-  ) {
-    handleProjectChange(projectOptions[0]);
-  }
+    updateProjects([parseInt(option.value, 10)], router, {
+      storageNamespace: 'starfish',
+      save: true,
+    });
 
   return (
     <CompactSelect
       menuWidth={250}
       options={projectOptions}
-      defaultValue={selectedOption?.value}
+      value={String(selectedProjectId)}
       onChange={handleProjectChange}
     />
   );

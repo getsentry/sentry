@@ -94,6 +94,7 @@ def fetch_metric_alert_events_timeseries(
             path=f"/organizations/{organization.slug}/events-stats/",
             params={
                 "yAxis": rule_aggregate,
+                "referrer": "api.alerts.chartcuterie",
                 **query_params,
             },
         )

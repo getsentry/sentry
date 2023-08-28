@@ -13,6 +13,7 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
+    User,
 )
 from sentry.models.actor import Actor, get_actor_id_for_user
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -230,6 +231,19 @@ class Fixtures:
 
     def create_useremail(self, *args, **kwargs):
         return Factories.create_useremail(*args, **kwargs)
+
+    def create_usersocialauth(
+        self,
+        user: User | None = None,
+        provider: str | None = None,
+        uid: str | None = None,
+        extra_data: Mapping[str, Any] | None = None,
+    ):
+        if not user:
+            user = self.user
+        return Factories.create_usersocialauth(
+            user=user, provider=provider, uid=uid, extra_data=extra_data
+        )
 
     def store_event(self, *args, **kwargs) -> Event:
         return Factories.store_event(*args, **kwargs)

@@ -54,9 +54,12 @@ from sentry.snuba.metrics.fields.snql import (
     failure_count_transaction,
     foreground_anr_users,
     histogram_snql_factory,
+    http_error_count_transaction,
     max_timestamp,
     min_timestamp,
     miserable_users,
+    on_demand_apdex_snql_factory,
+    on_demand_failure_rate_snql_factory,
     rate_snql_factory,
     satisfaction_count_transaction,
     session_duration_filters,
@@ -1547,6 +1550,25 @@ DERIVED_METRICS = {
             ),
         ),
         SingularEntityDerivedMetric(
+            metric_mri=TransactionMRI.HTTP_ERROR_COUNT.value,
+            metrics=[TransactionMRI.DURATION.value],
+            unit="transactions",
+            snql=lambda project_ids, org_id, metric_ids, alias=None: http_error_count_transaction(
+                org_id, metric_ids=metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=TransactionMRI.HTTP_ERROR_RATE.value,
+            metrics=[
+                TransactionMRI.HTTP_ERROR_COUNT.value,
+                TransactionMRI.ALL.value,
+            ],
+            unit="transactions",
+            snql=lambda http_error_count, tx_count, project_ids, org_id, metric_ids, alias=None: division_float(
+                http_error_count, tx_count, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.SATISFIED.value,
             metrics=[TransactionMRI.DURATION.value, TransactionMRI.MEASUREMENTS_LCP.value],
             unit="transactions",
@@ -1693,6 +1715,19 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             snql_func=max_timestamp,
             meta_type="datetime",
             default_null_value=None,
+        ),
+        # Custom operations used for on demand derived metrics.
+        DerivedOp(
+            op="on_demand_failure_rate",
+            can_orderby=True,
+            snql_func=on_demand_failure_rate_snql_factory,
+            default_null_value=0,
+        ),
+        DerivedOp(
+            op="on_demand_apdex",
+            can_orderby=True,
+            snql_func=on_demand_apdex_snql_factory,
+            default_null_value=0,
         ),
     ]
 }

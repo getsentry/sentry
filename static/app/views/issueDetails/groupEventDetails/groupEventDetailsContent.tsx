@@ -16,6 +16,7 @@ import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
+import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {EventPackageData} from 'sentry/components/events/packageData';
@@ -95,10 +96,13 @@ function GroupEventDetailsContent({
         <EventDataSection title="User Feedback" type="user-feedback">
           <EventUserFeedback
             report={event.userReport}
-            orgId={organization.slug}
+            orgSlug={organization.slug}
             issueId={group.id}
           />
         </EventDataSection>
+      )}
+      {group.issueCategory === IssueCategory.CRON && (
+        <CronTimelineSection event={event} organization={organization} />
       )}
       <EventTagsAndScreenshot
         event={event}

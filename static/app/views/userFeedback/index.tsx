@@ -77,7 +77,7 @@ class OrganizationUserFeedback extends DeprecatedAsyncView<Props, State> {
             <CompactIssue key={item.id} id={issue.id} data={issue} eventId={item.eventID}>
               <StyledEventUserFeedback
                 report={item}
-                orgId={organization.slug}
+                orgSlug={organization.slug}
                 issueId={issue.id}
               />
             </CompactIssue>

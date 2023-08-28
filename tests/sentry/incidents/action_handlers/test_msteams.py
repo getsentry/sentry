@@ -7,7 +7,6 @@ from sentry.incidents.action_handlers import MsTeamsActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
 from sentry.models import Integration
 from sentry.silo import SiloMode
-from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
@@ -16,7 +15,7 @@ from . import FireTest
 
 @region_silo_test(stable=True)
 @freeze_time()
-class MsTeamsActionHandlerTest(FireTest, TestCase):
+class MsTeamsActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):

@@ -112,4 +112,4 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
             context = {
                 "detail": "Replay search query limits exceeded. Please narrow the time-range."
             }
-            return self.respond(context, status=504)
+            return self.respond(context, status=400)

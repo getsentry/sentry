@@ -4,8 +4,9 @@ from datetime import datetime, timedelta
 from django.db.models import Max
 from rest_framework import serializers
 
+from sentry import features
 from sentry.api.issue_search import parse_search_query
-from sentry.api.serializers.rest_framework import CamelSnakeSerializer, ListField
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
@@ -19,7 +20,9 @@ from sentry.models import (
 )
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.fields import is_function
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.dates import parse_stats_period
 
 AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
@@ -189,14 +192,17 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             builder = UnresolvedQuery(
                 dataset=Dataset.Discover,
                 params=params,
-                equation_config={
-                    "auto_add": not is_table or injected_orderby_equation,
-                    "aggregates_only": not is_table,
-                },
+                config=QueryBuilderConfig(
+                    equation_config={
+                        "auto_add": not is_table or injected_orderby_equation,
+                        "aggregates_only": not is_table,
+                    },
+                    use_aggregate_conditions=True,
+                ),
             )
 
             builder.resolve_time_conditions()
-            builder.resolve_conditions(conditions, use_aggregate_conditions=True)
+            builder.resolve_conditions(conditions)
             # We need to resolve params to set time range params here since some
             # field aliases might those params to be resolved (total.count)
             builder.where = builder.resolve_params()
@@ -302,8 +308,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
     id = serializers.CharField(required=False)
     title = serializers.CharField(required=False, max_length=255)
     widgets = DashboardWidgetSerializer(many=True, required=False)
-    projects = ListField(child=serializers.IntegerField(), required=False, default=[])
-    environment = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    projects = serializers.ListField(child=serializers.IntegerField(), required=False, default=[])
+    environment = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True
+    )
     period = serializers.CharField(required=False, allow_null=True)
     start = serializers.DateTimeField(required=False, allow_null=True)
     end = serializers.DateTimeField(required=False, allow_null=True)
@@ -376,6 +384,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
         self.update_dashboard_filters(self.instance, validated_data)
 
+        schedule_update_project_configs(self.instance)
+
         return self.instance
 
     def update(self, instance, validated_data):
@@ -397,6 +407,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             self.update_widgets(instance, validated_data["widgets"])
 
         self.update_dashboard_filters(instance, validated_data)
+
+        schedule_update_project_configs(self.instance)
 
         return instance
 
@@ -525,3 +537,22 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
 class DashboardSerializer(DashboardDetailsSerializer):
     title = serializers.CharField(required=True, max_length=255)
+
+
+def schedule_update_project_configs(dashboard: Dashboard):
+    """
+    Schedule a task to update project configs for all projects of an organization when a dashboard is updated.
+    """
+    org = dashboard.organization
+
+    on_demand_metrics = features.has("organizations:on-demand-metrics-extraction", org)
+    dashboard_on_demand_metrics = features.has(
+        "organizations:on-demand-metrics-extraction-experimental", org
+    )
+
+    if not on_demand_metrics or not dashboard_on_demand_metrics:
+        return
+
+    schedule_invalidate_project_config(
+        trigger="dashboards:create-on-demand-metric", organization_id=org.id
+    )

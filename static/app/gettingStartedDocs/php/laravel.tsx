@@ -25,9 +25,7 @@ const introduction = (
 
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     configurations: [
@@ -98,7 +96,7 @@ public function register() {
           </p>
         ),
         language: 'shell',
-        code: `php artisan sentry:publish --dsn=${dsn}`,
+        code: `SENTRY_LARAVEL_DSN=${dsn}`,
       },
     ],
   },

@@ -1,3 +1,4 @@
+import logging
 import os.path
 import random
 import time
@@ -14,6 +15,7 @@ from sentry.utils import json
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_timestamp
 
+logger = logging.getLogger(__name__)
 epoch = datetime.utcfromtimestamp(0)
 
 
@@ -409,6 +411,13 @@ def create_sample_event(
     )
 
     if not data:
+        logger.info(
+            "create_sample_event: no data loaded",
+            extra={
+                "project_id": project.id,
+                "sample_event": True,
+            },
+        )
         return
     for key in ["parent_span_id", "hash", "exclusive_time"]:
         if key in kwargs:

@@ -57,4 +57,4 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleIndexMixin):
         """
         Create an alert rule - @deprecated. Use OrganizationAlertRuleIndexEndpoint instead.
         """
-        return self.create_metric_alert(request, project.organization)
+        return self.create_metric_alert(request, project.organization, project)

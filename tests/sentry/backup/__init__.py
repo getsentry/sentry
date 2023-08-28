@@ -1,17 +1,19 @@
 from __future__ import annotations
 
-from typing import Type
+from typing import Any, Callable, Type
 
+import pytest
 from django.db import models
 
-from sentry.runner.commands.backup import DatetimeSafeDjangoJSONEncoder
+from sentry.backup.exports import DatetimeSafeDjangoJSONEncoder
+from sentry.testutils.hybrid_cloud import use_split_dbs
 
 
 def targets(expected_models: list[Type]):
     """A helper decorator that checks that every model that a test "targeted" was actually seen in
     the output, ensuring that we're actually testing the thing we think we are. Additionally, this
     decorator is easily legible to static analysis, which allows for static checks to ensure that
-    all `__include_in_export__ = True` models are being tested.
+    all `__relocation_scope__ != RelocationScope.Excluded` models are being tested.
 
     To be considered a proper "testing" of a given target type, the resulting output must contain at
     least one instance of that type with all of its fields present and set to non-default values."""
@@ -68,8 +70,6 @@ def targets(expected_models: list[Type]):
                     if isinstance(f, models.ManyToManyField):
                         continue
 
-                    # TODO(getsentry/team-ospo#156): Maybe make these checks recursive for models
-                    # that have POPOs for some of their field values?
                     if field_name not in data:
                         mistakes.append(f"Must include field: `{field_name}`")
                         continue
@@ -95,3 +95,19 @@ def targets(expected_models: list[Type]):
         return wrapped
 
     return decorator
+
+
+def run_backup_tests_only_on_single_db(test_case: Type | Callable[..., Any]):
+    """Skip tests on backup functionality if testing on a split DB.
+
+    The backup commands currently are implemented only for a monolithic database.
+    When backup eventually supports importing and exporting JSON for databases in
+    individual Hybrid Cloud silos, update the affected tests and remove all instances
+    of this decorator.
+    """
+    # TODO(getsentry/team-ospo#185)
+
+    delegate = pytest.mark.skipif(
+        use_split_dbs(), reason="backup is currently supported only for single DB"
+    )
+    return delegate(test_case)

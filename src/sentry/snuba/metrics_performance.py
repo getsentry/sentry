@@ -11,6 +11,7 @@ from sentry.search.events.builder import (
     TimeseriesMetricQueryBuilder,
 )
 from sentry.search.events.fields import get_function_alias
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
@@ -43,23 +44,26 @@ def query(
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
             params,
+            dataset=Dataset.PerformanceMetrics,
             snuba_params=snuba_params,
             query=query,
             selected_columns=selected_columns,
             equations=[],
             orderby=orderby,
-            # Auto fields will add things like id back in if enabled
-            auto_fields=False,
-            auto_aggregations=auto_aggregations,
-            use_aggregate_conditions=use_aggregate_conditions,
-            allow_metric_aggregates=allow_metric_aggregates,
-            functions_acl=functions_acl,
             limit=limit,
             offset=offset,
-            dataset=Dataset.PerformanceMetrics,
-            transform_alias_to_input_format=transform_alias_to_input_format,
-            use_metrics_layer=use_metrics_layer,
             granularity=granularity,
+            config=QueryBuilderConfig(
+                auto_aggregations=auto_aggregations,
+                use_aggregate_conditions=use_aggregate_conditions,
+                allow_metric_aggregates=allow_metric_aggregates,
+                functions_acl=functions_acl,
+                # Auto fields will add things like id back in if enabled
+                auto_fields=False,
+                transform_alias_to_input_format=transform_alias_to_input_format,
+                use_metrics_layer=use_metrics_layer,
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
+            ),
         )
         metrics_referrer = referrer + ".metrics-enhanced"
         results = metrics_query.run_query(metrics_referrer)
@@ -106,10 +110,12 @@ def bulk_timeseries_query(
                     dataset=Dataset.PerformanceMetrics,
                     query=query,
                     selected_columns=columns,
-                    functions_acl=functions_acl,
-                    allow_metric_aggregates=allow_metric_aggregates,
-                    use_metrics_layer=use_metrics_layer,
                     groupby=groupby,
+                    config=QueryBuilderConfig(
+                        functions_acl=functions_acl,
+                        allow_metric_aggregates=allow_metric_aggregates,
+                        use_metrics_layer=use_metrics_layer,
+                    ),
                 )
                 snql_query = metrics_query.get_snql_query()
                 metrics_queries.append(snql_query[0])
@@ -201,11 +207,13 @@ def timeseries_query(
                 dataset=Dataset.PerformanceMetrics,
                 query=query,
                 selected_columns=columns,
-                functions_acl=functions_acl,
-                allow_metric_aggregates=allow_metric_aggregates,
-                use_metrics_layer=use_metrics_layer,
                 groupby=groupby,
-                on_demand_metrics_enabled=on_demand_metrics_enabled,
+                config=QueryBuilderConfig(
+                    functions_acl=functions_acl,
+                    allow_metric_aggregates=allow_metric_aggregates,
+                    use_metrics_layer=use_metrics_layer,
+                    on_demand_metrics_enabled=on_demand_metrics_enabled,
+                ),
             )
             metrics_referrer = referrer + ".metrics-enhanced"
             result = metrics_query.run_query(metrics_referrer)
@@ -320,7 +328,9 @@ def histogram_query(
         selected_columns=[f"histogram({field})" for field in fields],
         orderby=order_by,
         limitby=limit_by,
-        use_metrics_layer=use_metrics_layer,
+        config=QueryBuilderConfig(
+            use_metrics_layer=use_metrics_layer,
+        ),
     )
     if extra_conditions is not None:
         builder.add_conditions(extra_conditions)

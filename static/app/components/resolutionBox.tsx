@@ -15,17 +15,18 @@ import {
   GroupActivitySetByResolvedInRelease,
   GroupActivityType,
   Repository,
-  ResolutionStatusDetails,
+  ResolvedStatusDetails,
 } from 'sentry/types';
 
 type Props = {
   projectId: string;
-  statusDetails: ResolutionStatusDetails;
+  // TODO(ts): This should be a union type `IgnoredStatusDetails | ResolvedStatusDetails`
+  statusDetails: ResolvedStatusDetails;
   activities?: GroupActivity[];
 };
 
 function renderReason(
-  statusDetails: ResolutionStatusDetails,
+  statusDetails: ResolvedStatusDetails,
   projectId: string,
   activities: GroupActivity[]
 ) {

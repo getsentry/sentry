@@ -40,6 +40,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
                     "timestamp": before_now(minutes=1).isoformat(),
                 },
             )
+            assert group_info is not None
             group = group_info.group
             event = group.get_latest_event()
         else:
@@ -56,30 +57,29 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             self.key, event_to_record(event, [self.rule]), increment_delay=0, maximum_delay=0
         )
 
-    @patch.object(sentry, "digests")
     def run_test(
         self,
-        digests,
         event_count: int,
         performance_issues: bool = False,
         generic_issues: bool = False,
     ):
-        backend = RedisBackend()
-        digests.digest = backend.digest
+        with patch.object(sentry, "digests") as digests:
+            backend = RedisBackend()
+            digests.digest = backend.digest
 
-        for i in range(event_count):
-            self.add_event(f"group-{i}", backend, "error")
+            for i in range(event_count):
+                self.add_event(f"group-{i}", backend, "error")
 
-        if performance_issues:
-            self.add_event(f"group-{event_count+1}", backend, "performance")
+            if performance_issues:
+                self.add_event(f"group-{event_count+1}", backend, "performance")
 
-        if generic_issues:
-            self.add_event(f"group-{event_count+2}", backend, "generic")
+            if generic_issues:
+                self.add_event(f"group-{event_count+2}", backend, "generic")
 
-        with self.tasks():
-            deliver_digest(self.key)
+            with self.tasks():
+                deliver_digest(self.key)
 
-        assert len(mail.outbox) == USER_COUNT
+            assert len(mail.outbox) == USER_COUNT
 
     def setUp(self):
         super().setUp()

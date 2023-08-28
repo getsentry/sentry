@@ -20,6 +20,7 @@ from sentry import features
 from sentry.models import (
     ActorTuple,
     Group,
+    GroupAssignee,
     GroupSubscription,
     NotificationSetting,
     Organization,
@@ -183,7 +184,7 @@ def get_participants_for_release(
     projects: Iterable[Project], organization: Organization, commited_user_ids: set[int]
 ) -> ParticipantMap:
     # Collect all users with verified emails on a team in the related projects.
-    user_ids = (
+    user_ids = list(
         OrganizationMember.objects.filter(
             teams__projectteam__project__in=projects,
             user_is_active=True,
@@ -256,7 +257,7 @@ def get_owners(
     elif owners == ProjectOwnership.Everyone:
         outcome = "everyone"
         users = user_service.get_many(
-            filter=dict(user_ids=project.member_set.values_list("user_id", flat=True))
+            filter=dict(user_ids=list(project.member_set.values_list("user_id", flat=True)))
         )
         recipients = RpcActor.many_from_object(users)
 
@@ -301,7 +302,7 @@ def get_owner_reason(
 
 def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, set[User]]:
     """Get a set of users that have disabled Issue Alert notifications for a given project."""
-    user_ids = project.member_set.values_list("user", flat=True)
+    user_ids = list(project.member_set.values_list("user", flat=True))
     rpc_users = user_service.get_many(filter={"user_ids": user_ids})
     users = RpcActor.many_from_object(rpc_users)
 
@@ -384,6 +385,19 @@ def determine_eligible_recipients(
 
     elif target_type == ActionTargetType.ISSUE_OWNERS:
         suggested_assignees, outcome = get_owners(project, event, fallthrough_choice)
+
+        # We're adding the current assignee to the list of suggested assignees because
+        # a new issue could have multiple codeowners and one of them got auto-assigned.
+        group_assignee: GroupAssignee | None = GroupAssignee.objects.filter(
+            group_id=event.group_id
+        ).first()
+        if group_assignee:
+            outcome = "match"
+            assignee_actor = RpcActor.from_orm_actor(
+                group_assignee.assigned_actor().resolve_to_actor()
+            )
+            suggested_assignees.append(assignee_actor)
+
         suspect_commit_users = None
         if features.has("organizations:streamline-targeting-context", project.organization):
             try:
@@ -462,13 +476,13 @@ def get_fallthrough_recipients(
 
     elif fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
         return user_service.get_many(
-            filter=dict(user_ids=project.member_set.values_list("user_id", flat=True))
+            filter=dict(user_ids=list(project.member_set.values_list("user_id", flat=True)))
         )
 
     elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
         member_users = user_service.get_many(
             filter={
-                "user_ids": project.member_set.values_list("user_id", flat=True),
+                "user_ids": list(project.member_set.values_list("user_id", flat=True)),
             },
         )
         member_users.sort(

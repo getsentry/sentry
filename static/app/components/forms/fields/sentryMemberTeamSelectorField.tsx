@@ -71,7 +71,7 @@ function SentryMemberTeamSelectorField({
 
   const teamOptions = teams?.map(team => ({
     value: `team:${team.id}`,
-    label: team.name,
+    label: `#${team.slug}`,
     leadingItems: <Avatar team={team} size={avatarSize} />,
   }));
 

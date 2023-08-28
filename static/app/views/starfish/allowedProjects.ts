@@ -12,8 +12,10 @@ export const ALLOWED_PROJECT_IDS_FOR_ORG_SLUG: {
   codecov: ['5215654'],
   peated: ['4505138082349056'],
   'sentry-sdks': ['5428557'],
+  'testorg-az': ['6249899'],
 };
 
 export const STARFISH_TYPE_FOR_PROJECT: {[project: string]: StarfishType} = {
   5428557: StarfishType.MOBILE,
+  6249899: StarfishType.MOBILE,
 };

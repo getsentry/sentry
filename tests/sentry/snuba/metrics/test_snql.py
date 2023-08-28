@@ -12,7 +12,6 @@ from sentry.models.transaction_threshold import (
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value, resolve_weak
-from sentry.snuba.metrics import TransactionMRI
 from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
     abnormal_users,
@@ -36,6 +35,7 @@ from sentry.snuba.metrics.fields.snql import (
     tolerated_count_transaction,
     uniq_aggregation_on_metric,
 )
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import (
     TransactionSatisfactionTagValue,
     TransactionStatusTagValue,

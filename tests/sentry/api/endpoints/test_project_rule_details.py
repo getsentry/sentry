@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Mapping
-from unittest import mock
-from unittest.mock import call, patch
+from unittest.mock import patch
 
-import pytest
 import responses
 from freezegun import freeze_time
-from pytz import UTC
+from rest_framework import status
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils.channel import strip_channel_name
@@ -50,6 +48,8 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
     # any(a.items() <= b.items()) to check if the payload dict is a subset of the rule.data dict
     # E.g. payload["actions"] = [{"name": "Test1"}], rule.data["actions"] = [{"name": "Test1", "id": 1}]
     for payload_action in payload.get("actions", []):
+        if payload_action.get("name"):
+            del payload_action["name"]
         # The Slack payload will contain '#channel' or '@user', but we save 'channel' or 'user' on the Rule
         if (
             payload_action["id"]
@@ -61,6 +61,8 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
         )
     payload_conditions = payload.get("conditions", []) + payload.get("filters", [])
     for payload_condition in payload_conditions:
+        if payload_condition.get("name"):
+            del payload_condition["name"]
         assert any(
             payload_condition.items() <= rule_condition.items()
             for rule_condition in rule.data["conditions"]
@@ -68,7 +70,6 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
     assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
 
 
-@region_silo_test(stable=True)
 class ProjectRuleDetailsBaseTestCase(APITestCase):
     endpoint = "sentry-api-0-project-rule-details"
 
@@ -104,6 +105,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         )
         assert response.data["id"] == str(self.rule.id)
         assert response.data["environment"] is None
+        assert response.data["conditions"][0]["name"]
 
     def test_non_existing_rule(self):
         self.get_error_response(self.organization.slug, self.project.slug, 12345, status_code=404)
@@ -115,6 +117,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         )
         assert response.data["id"] == str(self.rule.id)
         assert response.data["environment"] == self.environment.name
+        assert response.data["status"] == ObjectStatus.ACTIVE
 
     def test_with_filters(self):
         conditions: list[dict[str, Any]] = [
@@ -144,6 +147,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert len(response.data["filters"]) == 1
         assert response.data["filters"][0]["id"] == conditions[1]["id"]
 
+    @responses.activate
     def test_with_snooze_rule(self):
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=self.rule)
 
@@ -155,6 +159,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["snoozeCreatedBy"] == "You"
         assert not response.data["snoozeForEveryone"]
 
+    @responses.activate
     def test_with_snooze_rule_everyone(self):
         user2 = self.create_user("user2@example.com")
         self.snooze_rule(owner_id=user2.id, rule=self.rule)
@@ -213,6 +218,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         )
         assert response.data["actions"][0]["disabled"] is True
 
+    @responses.activate
     def test_with_deleted_sentry_app(self):
         actions = [
             {
@@ -252,8 +258,9 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, expand=["lastTriggered"]
         )
-        assert response.data["lastTriggered"] == datetime.now().replace(tzinfo=UTC)
+        assert response.data["lastTriggered"] == datetime.now().replace(tzinfo=timezone.utc)
 
+    @responses.activate
     def test_with_jira_action_error(self):
         conditions = [
             {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
@@ -315,11 +322,6 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
 
 @region_silo_test(stable=True)
 class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
-    @pytest.fixture(autouse=True)
-    def _setup_metric_patch(self):
-        with mock.patch("sentry.api.endpoints.project_rule_details.metrics") as self.metrics:
-            yield
-
     method = "PUT"
 
     @patch("sentry.signals.alert_rule_edited.send_robust")
@@ -402,6 +404,55 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             response.data["conditions"][0]["name"] == "The issue is seen more than 666 times in 1h"
         )
         assert_rule_from_payload(self.rule, payload)
+
+    def test_update_duplicate_rule(self):
+        """Test that if you edit a rule such that it's now the exact duplicate of another rule in the same project
+        we do not allow it"""
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+            }
+        ]
+        actions = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+            }
+        ]
+        rule = self.create_project_rule(
+            project=self.project, action_match=actions, condition_match=conditions
+        )
+        conditions.append(
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
+                "interval": "1h",
+                "value": "100",
+                "comparisonType": "count",
+            }
+        )
+        rule2 = self.create_project_rule(
+            project=self.project, action_match=actions, condition_match=conditions
+        )
+        conditions.pop(1)
+        payload = {
+            "name": "hello world",
+            "actionMatch": "all",
+            "actions": actions,
+            "conditions": conditions,
+        }
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            rule2.id,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            **payload,
+        )
+        assert (
+            resp.data["name"][0]
+            == f"This rule is an exact duplicate of '{rule.label}' in this project and may not be created."
+        )
 
     def test_with_environment(self):
         payload = {
@@ -640,7 +691,12 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
 
     def test_update_filters(self):
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "name": "A new issue is created",
+            }
+        ]
         filters = [
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
         ]
@@ -737,10 +793,6 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
-        assert (
-            call("sentry.issue_alert.conditions.edited", sample_rate=1.0)
-            in self.metrics.incr.call_args_list
-        )
 
     def test_edit_non_condition_metric(self):
         payload = {
@@ -753,10 +805,6 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         }
         self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
-        )
-        assert (
-            call("sentry.issue_alert.conditions.edited", sample_rate=1.0)
-            not in self.metrics.incr.call_args_list
         )
 
 

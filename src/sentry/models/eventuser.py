@@ -4,6 +4,7 @@ from operator import or_
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import MAX_EMAIL_FIELD_LENGTH
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 from sentry.utils.datastructures import BidirectionalMapping
@@ -24,7 +25,7 @@ KEYWORD_MAP = BidirectionalMapping(
 
 @region_silo_only_model
 class EventUser(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project_id = BoundedBigIntegerField(db_index=True)
     hash = models.CharField(max_length=32)

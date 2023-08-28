@@ -8,7 +8,7 @@ import responses
 from django.test.utils import override_settings
 from django.urls import reverse
 
-from fixtures.integrations.jira import StubJiraApiClient
+from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira.integration import JiraIntegrationProvider
 from sentry.models import (

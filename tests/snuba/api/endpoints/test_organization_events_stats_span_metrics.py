@@ -161,3 +161,11 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
             rows = data[0:6]
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0] / 60.0
+
+
+class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
+    OrganizationEventsStatsSpansMetricsEndpointTest
+):
+    def setUp(self):
+        super().setUp()
+        self.features["organizations:use-metrics-layer"] = True

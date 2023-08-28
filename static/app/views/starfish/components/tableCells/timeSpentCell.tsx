@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import clamp from 'lodash/clamp';
 
 import {Tooltip} from 'sentry/components/tooltip';
@@ -13,7 +14,7 @@ interface Props {
 
 export function TimeSpentCell({percentage, total}: Props) {
   const formattedPercentage = formatPercentage(clamp(percentage ?? 0, 0, 1));
-  const formattedTotal = getDuration((total ?? 0) / 1000, 1);
+  const formattedTotal = getDuration((total ?? 0) / 1000, 2, true);
   const tooltip = tct(
     'The application spent [percentage] of its total time on this span.',
     {
@@ -24,10 +25,17 @@ export function TimeSpentCell({percentage, total}: Props) {
   return (
     <TextAlignRight>
       <Tooltip isHoverable title={tooltip} showUnderline>
-        {defined(total) ? formattedTotal : '--'} {'('}
-        {defined(percentage) ? formattedPercentage : '--%'}
-        {')'}
+        {defined(total) ? formattedTotal : '--'}
+        <Deemphasized>
+          {' ('}
+          {defined(percentage) ? formattedPercentage : '--%'}
+          {')'}
+        </Deemphasized>
       </Tooltip>
     </TextAlignRight>
   );
 }
+
+const Deemphasized = styled('span')`
+  color: ${p => p.theme.gray300};
+`;

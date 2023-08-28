@@ -231,6 +231,10 @@ export const profiling: PlatformKey[] = [
   'javascript-nextjs',
   'javascript-remix',
   'javascript-sveltekit',
+  'javascript',
+  'javascript-react',
+  // react-native
+  'react-native',
   // python
   'python',
   'python-django',
@@ -308,9 +312,13 @@ export const releaseHealth: PlatformKey[] = [
 ];
 
 export const replayPlatforms: readonly PlatformKey[] = [
+  'capacitor',
+  'electron',
   'javascript-angular',
   // 'javascript-angularjs', // Unsupported, angularjs requires the v6.x core SDK
   'javascript-backbone',
+  'javascript-capacitor',
+  'javascript-electron',
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',
@@ -329,9 +337,13 @@ export const replayPlatforms: readonly PlatformKey[] = [
  * See: https://github.com/getsentry/sentry-docs/tree/master/src/wizard/javascript/replay-onboarding
  */
 export const replayOnboardingPlatforms: readonly PlatformKey[] = [
+  'capacitor',
+  'electron',
   'javascript-angular',
   // 'javascript-angularjs', // Unsupported, angularjs requires the v6.x core SDK
   // 'javascript-backbone', // No docs yet
+  'javascript-capacitor',
+  'javascript-electron',
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',

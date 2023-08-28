@@ -9,6 +9,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from sentry import analytics
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_only_model, sane_repr
 from sentry.models.organization import Organization
 from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
@@ -21,7 +22,7 @@ READ_CACHE_DURATION = 3600
 @region_silo_only_model
 class ProjectCodeOwners(Model):
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
     # no db constraint to prevent locks on the Project table
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     # repository_project_path_config ⇒ use this to transform CODEOWNERS paths to stacktrace paths

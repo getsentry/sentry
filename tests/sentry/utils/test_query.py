@@ -22,7 +22,6 @@ class InIexactQueryTest(TestCase):
         assert Organization.objects.filter(in_iexact("slug", [])).count() == 0
 
 
-@control_silo_test(stable=True)
 class RangeQuerySetWrapperTest(TestCase):
     range_wrapper = RangeQuerySetWrapper
 

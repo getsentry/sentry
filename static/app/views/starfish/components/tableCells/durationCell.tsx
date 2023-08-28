@@ -10,7 +10,7 @@ type Props = {
   >;
 };
 
-export default function DurationCell({milliseconds, containerProps}: Props) {
+export function DurationCell({milliseconds, containerProps}: Props) {
   const undefinedDurationText = `--${t('ms')}`;
 
   return (

@@ -10,7 +10,8 @@ from django.urls import reverse
 from sentry import audit_log
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.helper import AuthHelperSessionStore
-from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
+from sentry.auth.providers.saml2.generic.provider import GenericSAML2Provider
+from sentry.auth.providers.saml2.provider import Attributes
 from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organization
 from sentry.silo import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase
@@ -34,7 +35,7 @@ dummy_provider_config = {
 }
 
 
-class DummySAML2Provider(SAML2Provider):
+class DummySAML2Provider(GenericSAML2Provider):
     name = "dummy"
 
     def get_saml_setup_pipeline(self):

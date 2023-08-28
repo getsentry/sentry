@@ -9,7 +9,11 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import SentryAppStatus
 from sentry.incidents.endpoints.bases import OrganizationEndpoint
-from sentry.incidents.logic import get_available_action_integrations_for_org, get_pagerduty_services
+from sentry.incidents.logic import (
+    get_available_action_integrations_for_org,
+    get_opsgenie_teams,
+    get_pagerduty_services,
+)
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 from sentry.models import SentryAppInstallation
@@ -23,11 +27,10 @@ def build_action_response(
 
     :param registered_type: One of the registered AlertRuleTriggerAction types.
     :param integration: Optional. The Integration if this action uses a one.
-    :param organization: Optional. If this is a PagerDuty action, we need the organization to look up services.
+    :param organization: Optional. If this is a PagerDuty/Opsgenie action, we need the organization to look up services/teams.
     :param sentry_app: Optional. The SentryApp if this action uses a one.
     :return: The available action object.
     """
-
     action_response = {
         "type": registered_type.slug,
         "allowedTargetTypes": [
@@ -44,6 +47,11 @@ def build_action_response(
             action_response["options"] = [
                 {"value": id, "label": service_name}
                 for id, service_name in get_pagerduty_services(organization.id, integration.id)
+            ]
+        elif registered_type.type == AlertRuleTriggerAction.Type.OPSGENIE:
+            action_response["options"] = [
+                {"value": id, "label": team}
+                for id, team in get_opsgenie_teams(organization.id, integration.id)
             ]
 
     elif sentry_app_installation:

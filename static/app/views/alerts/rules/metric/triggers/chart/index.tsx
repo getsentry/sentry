@@ -174,9 +174,6 @@ class TriggersChart extends PureComponent<Props, State> {
         !isEqual(prevState.statsPeriod, statsPeriod))
     ) {
       this.fetchTotalCount();
-      if (this.props.isOnDemandMetricAlert) {
-        this.fetchSampleRate();
-      }
     }
   }
 
@@ -212,18 +209,6 @@ class TriggersChart extends PureComponent<Props, State> {
       COMPARISON_DELTA_OPTIONS.find(({value}) => value === this.props.comparisonDelta)
         ?.label || ''
     );
-  }
-
-  async fetchSampleRate() {
-    const {api, organization, projects} = this.props;
-    try {
-      const {sampleRate} = await api.requestPromise(
-        `/api/0/projects/${organization.slug}/${projects[0].slug}/dynamic-sampling/rate/`
-      );
-      this.setState({sampleRate});
-    } catch {
-      this.setState({sampleRate: 1});
-    }
   }
 
   async fetchTotalCount() {
