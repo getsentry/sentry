@@ -79,10 +79,10 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
                 sentry_tags[snuba_tag] = tags.get(relay_tag)
 
     if "op" not in sentry_tags:
-        sentry_tags["op"] = relay_span["op"]
+        sentry_tags["op"] = relay_span.get("op", "")
 
     if "status" not in sentry_tags:
-        sentry_tags["status"] = relay_span["status"]
+        sentry_tags["status"] = relay_span.get("status", "")
 
     snuba_span["sentry_tags"] = sentry_tags
 
