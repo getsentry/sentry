@@ -94,6 +94,7 @@ class GitHubAppsClientTest(TestCase):
             assert gh_rate_limit.used == 7
             assert gh_rate_limit.next_window() == "17:39:49"
 
+    @responses.activate
     def test_get_rate_limit_non_existant_resouce(self):
         with pytest.raises(AssertionError):
             self.github_client.get_rate_limit("foo")
