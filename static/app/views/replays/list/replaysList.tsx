@@ -104,6 +104,7 @@ function ReplaysListTable({
         replays={replays}
         sort={eventView.sorts[0]}
         visibleColumns={visibleCols}
+        showDropdownFilters
         emptyMessage={
           allSelectedProjectsNeedUpdates && hasReplayClick ? (
             <Fragment>

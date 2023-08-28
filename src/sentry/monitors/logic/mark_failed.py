@@ -67,8 +67,6 @@ def mark_failed(
     if monitor_env.monitor.status == ObjectStatus.DISABLED:
         return True
 
-    current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
-
     use_issue_platform = False
     try:
         organization = Organization.objects.get(id=monitor_env.monitor.organization_id)
@@ -77,102 +75,113 @@ def mark_failed(
         pass
 
     if use_issue_platform:
-        from sentry.grouping.utils import hash_from_values
-        from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-        from sentry.issues.producer import produce_occurrence_to_kafka
-
-        if not occurrence_context:
-            occurrence_context = {}
-
-        occurrence_data = get_occurrence_data(reason, **occurrence_context)
-
-        # Get last successful check-in to show in evidence display
-        last_successful_checkin_timestamp = "None"
-        last_successful_checkin = monitor_env.get_last_successful_checkin()
-        if last_successful_checkin:
-            last_successful_checkin_timestamp = last_successful_checkin.date_added.isoformat()
-
-        occurrence = IssueOccurrence(
-            id=uuid.uuid4().hex,
-            resource_id=None,
-            project_id=monitor_env.monitor.project_id,
-            event_id=uuid.uuid4().hex,
-            fingerprint=[
-                hash_from_values(
-                    ["monitor", str(monitor_env.monitor.guid), occurrence_data["reason"]]
-                )
-            ],
-            type=occurrence_data["group_type"],
-            issue_title=f"Monitor failure: {monitor_env.monitor.name}",
-            subtitle=occurrence_data["subtitle"],
-            evidence_display=[
-                IssueEvidence(
-                    name="Failure reason", value=occurrence_data["reason"], important=True
-                ),
-                IssueEvidence(
-                    name="Environment", value=monitor_env.environment.name, important=False
-                ),
-                IssueEvidence(
-                    name="Last successful check-in",
-                    value=last_successful_checkin_timestamp,
-                    important=False,
-                ),
-            ],
-            evidence_data={},
-            culprit=occurrence_data["reason"],
-            detection_time=current_timestamp,
-            level=occurrence_data["level"],
-        )
-
-        produce_occurrence_to_kafka(
-            occurrence,
-            {
-                "contexts": {"monitor": get_monitor_environment_context(monitor_env)},
-                "environment": monitor_env.environment.name,
-                "event_id": occurrence.event_id,
-                "fingerprint": [
-                    "monitor",
-                    str(monitor_env.monitor.guid),
-                    occurrence_data["reason"],
-                ],
-                "platform": "other",
-                "project_id": monitor_env.monitor.project_id,
-                "received": current_timestamp.isoformat(),
-                "sdk": None,
-                "tags": {
-                    "monitor.id": str(monitor_env.monitor.guid),
-                    "monitor.slug": monitor_env.monitor.slug,
-                },
-                "trace_id": occurrence_context.get("trace_id"),
-                "timestamp": current_timestamp.isoformat(),
-            },
-        )
+        create_issue_platform_issue(monitor_env, reason, occurrence_context)
     else:
-        from sentry.coreapi import insert_data_to_database_legacy
-        from sentry.event_manager import EventManager
-        from sentry.models import Project
-
-        event_manager = EventManager(
-            {
-                "logentry": {"message": f"Monitor failure: {monitor_env.monitor.name} ({reason})"},
-                "contexts": {"monitor": get_monitor_environment_context(monitor_env)},
-                "fingerprint": ["monitor", str(monitor_env.monitor.guid), reason],
-                "environment": monitor_env.environment.name,
-                # TODO: Both of these values should be get transformed from context to tags
-                # We should understand why that is not happening and remove these when it correctly is
-                "tags": {
-                    "monitor.id": str(monitor_env.monitor.guid),
-                    "monitor.slug": monitor_env.monitor.slug,
-                },
-            },
-            project=Project(id=monitor_env.monitor.project_id),
-        )
-        event_manager.normalize()
-        data = event_manager.get_data()
-        insert_data_to_database_legacy(data)
+        create_legacy_issue(monitor_env, reason)
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
+
     return True
+
+
+def create_legacy_issue(monitor_env: MonitorEnvironment, reason: str):
+    from sentry.coreapi import insert_data_to_database_legacy
+    from sentry.event_manager import EventManager
+    from sentry.models import Project
+
+    context = get_monitor_environment_context(monitor_env)
+
+    event_manager = EventManager(
+        {
+            "logentry": {"message": f"Monitor failure: {monitor_env.monitor.name} ({reason})"},
+            "contexts": {"monitor": context},
+            "fingerprint": ["monitor", str(monitor_env.monitor.guid), reason],
+            "environment": monitor_env.environment.name,
+            # TODO: Both of these values should be get transformed from context to tags
+            # We should understand why that is not happening and remove these when it correctly is
+            "tags": {
+                "monitor.id": str(monitor_env.monitor.guid),
+                "monitor.slug": monitor_env.monitor.slug,
+            },
+        },
+        project=Project(id=monitor_env.monitor.project_id),
+    )
+    event_manager.normalize()
+    data = event_manager.get_data()
+    insert_data_to_database_legacy(data)
+
+
+def create_issue_platform_issue(
+    monitor_env: MonitorEnvironment,
+    reason: str,
+    occurrence_context=None,
+):
+    from sentry.grouping.utils import hash_from_values
+    from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+    from sentry.issues.producer import produce_occurrence_to_kafka
+
+    current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
+
+    if not occurrence_context:
+        occurrence_context = {}
+
+    occurrence_data = get_occurrence_data(reason, **occurrence_context)
+
+    # Get last successful check-in to show in evidence display
+    last_successful_checkin_timestamp = "None"
+    last_successful_checkin = monitor_env.get_last_successful_checkin()
+    if last_successful_checkin:
+        last_successful_checkin_timestamp = last_successful_checkin.date_added.isoformat()
+
+    occurrence = IssueOccurrence(
+        id=uuid.uuid4().hex,
+        resource_id=None,
+        project_id=monitor_env.monitor.project_id,
+        event_id=uuid.uuid4().hex,
+        fingerprint=[
+            hash_from_values(["monitor", str(monitor_env.monitor.guid), occurrence_data["reason"]])
+        ],
+        type=occurrence_data["group_type"],
+        issue_title=f"Monitor failure: {monitor_env.monitor.name}",
+        subtitle=occurrence_data["subtitle"],
+        evidence_display=[
+            IssueEvidence(name="Failure reason", value=occurrence_data["reason"], important=True),
+            IssueEvidence(name="Environment", value=monitor_env.environment.name, important=False),
+            IssueEvidence(
+                name="Last successful check-in",
+                value=last_successful_checkin_timestamp,
+                important=False,
+            ),
+        ],
+        evidence_data={},
+        culprit=occurrence_data["reason"],
+        detection_time=current_timestamp,
+        level=occurrence_data["level"],
+    )
+
+    produce_occurrence_to_kafka(
+        occurrence,
+        {
+            "contexts": {"monitor": get_monitor_environment_context(monitor_env)},
+            "environment": monitor_env.environment.name,
+            "event_id": occurrence.event_id,
+            "fingerprint": [
+                "monitor",
+                str(monitor_env.monitor.guid),
+                occurrence_data["reason"],
+            ],
+            "platform": "other",
+            "project_id": monitor_env.monitor.project_id,
+            "received": current_timestamp.isoformat(),
+            "sdk": None,
+            "tags": {
+                "monitor.id": str(monitor_env.monitor.guid),
+                "monitor.slug": monitor_env.monitor.slug,
+            },
+            "trace_id": occurrence_context.get("trace_id"),
+            "timestamp": current_timestamp.isoformat(),
+        },
+    )
 
 
 def get_monitor_environment_context(monitor_environment):
