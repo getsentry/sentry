@@ -1,4 +1,4 @@
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {RateUnits} from 'sentry/utils/discover/fields';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -7,7 +7,6 @@ import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpe
 import {SpanMetricsFields, StarfishFunctions} from 'sentry/views/starfish/types';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
-import {getSpanOperationDescription} from 'sentry/views/starfish/views/spanSummaryPage/getSpanOperationDescription';
 
 interface Props {
   spanMetrics: {
@@ -21,31 +20,17 @@ interface Props {
 
 export function SpanMetricsRibbon({spanMetrics}: Props) {
   const op = spanMetrics?.[SpanMetricsFields.SPAN_OP] ?? '';
-  const opDescription = getSpanOperationDescription(op);
 
   return (
     <BlockContainer>
-      <Block
-        title={getThroughputTitle(op)}
-        description={tct('Throughput of this [opDescription] span per minute', {
-          opDescription,
-        })}
-      >
+      <Block title={getThroughputTitle(op)}>
         <ThroughputCell
           rate={spanMetrics?.[`${StarfishFunctions.SPM}()`]}
           unit={RateUnits.PER_MINUTE}
         />
       </Block>
 
-      <Block
-        title={DataTitles.avg}
-        description={tct(
-          'The average duration of [opDescription] spans in the selected period',
-          {
-            opDescription,
-          }
-        )}
-      >
+      <Block title={DataTitles.avg}>
         <DurationCell
           milliseconds={spanMetrics?.[`avg(${SpanMetricsFields.SPAN_SELF_TIME})`]}
         />
@@ -57,12 +42,7 @@ export function SpanMetricsRibbon({spanMetrics}: Props) {
         </Block>
       )}
 
-      <Block
-        title={t('Time Spent')}
-        description={t(
-          'Time spent in this span as a proportion of total application time'
-        )}
-      >
+      <Block title={t('Time Spent')}>
         <TimeSpentCell
           percentage={spanMetrics?.[`${StarfishFunctions.TIME_SPENT_PERCENTAGE}()`]}
           total={spanMetrics?.[`sum(${SpanMetricsFields.SPAN_SELF_TIME})`]}
