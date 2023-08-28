@@ -46,6 +46,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
             CheckInStatus.ERROR,
             CheckInStatus.MISSED,
             CheckInStatus.TIMEOUT,
+            CheckInStatus.IN_PROGRESS,
         ]
 
         monitor_ids = Monitor.objects.filter(
