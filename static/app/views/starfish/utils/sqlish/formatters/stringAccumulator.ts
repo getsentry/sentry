@@ -18,11 +18,11 @@ export class StringAccumulator {
       return;
     }
 
-    this.lastLine.push(token);
+    this.lastLine.add(token);
   }
 
   space() {
-    this.lastLine.push(SPACE);
+    this.lastLine.add(SPACE);
   }
 
   break() {
@@ -69,7 +69,7 @@ class Line {
     return this.toString().trim() === '';
   }
 
-  push(token: string) {
+  add(token: string) {
     this.tokens.push(token);
   }
 
