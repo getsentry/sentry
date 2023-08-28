@@ -11,8 +11,9 @@ import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.permissions import BasePermission
@@ -21,7 +22,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from sentry_sdk import Scope
 
-from sentry import analytics, options, tsdb
+from sentry import analytics, features, options, tsdb
+from sentry.api.api_owners import ApiOwner
 from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
@@ -81,6 +83,13 @@ DEFAULT_AUTHENTICATION = (
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
+
+DEFAULT_SLUG_PATTERN = r"^[a-z0-9_\-]+$"
+NON_NUMERIC_SLUG_PATTERN = r"^(?![0-9]+$)[a-z0-9_\-]+$"
+DEFAULT_SLUG_ERROR_MESSAGE = _(
+    "Enter a valid slug consisting of lowercase letters, numbers, underscores or hyphens. "
+    "It cannot be entirely numeric."
+)
 
 
 def allow_cors_options(func):
@@ -145,6 +154,7 @@ class Endpoint(APIView):
     cursor_name = "cursor"
 
     public: Optional[HTTP_METHODS_SET] = None
+    owner: ApiOwner = ApiOwner.UNOWNED
 
     rate_limits: RateLimitConfig | dict[
         str, dict[RateLimitCategory, RateLimit]
@@ -280,7 +290,7 @@ class Endpoint(APIView):
         except json.JSONDecodeError:
             return
 
-    def initialize_request(self, request: Request, *args, **kwargs):
+    def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
         # XXX: Since DRF 3.x, when the request is passed into
         # `initialize_request` it's set as an internal variable on the returned
         # request. Then when we call `rv.auth` it attempts to authenticate,
@@ -527,24 +537,24 @@ class StatsMixin:
             resolution = request.GET.get("resolution")
             if resolution:
                 resolution = self._parse_resolution(resolution)
-                if restrict_rollups and resolution not in tsdb.get_rollups():
+                if restrict_rollups and resolution not in tsdb.backend.get_rollups():
                     raise ValueError
         except ValueError:
             raise ParseError(detail="Invalid resolution")
 
         try:
-            end = request.GET.get("until")
-            if end:
-                end = to_datetime(float(end))
+            end_s = request.GET.get("until")
+            if end_s:
+                end = to_datetime(float(end_s))
             else:
                 end = datetime.utcnow().replace(tzinfo=timezone.utc)
         except ValueError:
             raise ParseError(detail="until must be a numeric timestamp.")
 
         try:
-            start = request.GET.get("since")
-            if start:
-                start = to_datetime(float(start))
+            start_s = request.GET.get("since")
+            if start_s:
+                start = to_datetime(float(start_s))
                 assert start <= end
             else:
                 start = end - timedelta(days=1, seconds=-1)
@@ -554,7 +564,7 @@ class StatsMixin:
             raise ParseError(detail="start must be before or equal to end")
 
         if not resolution:
-            resolution = tsdb.get_optimal_rollup(start, end)
+            resolution = tsdb.backend.get_optimal_rollup(start, end)
 
         return {
             "start": start,
@@ -585,6 +595,17 @@ class ReleaseAnalyticsMixin:
             project_ids=project_ids,
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
         )
+
+
+class PreventNumericSlugMixin:
+    def validate_slug(self, slug: str) -> str:
+        """
+        Validates that the slug is not entirely numeric. Requires a feature flag
+        to be turned on.
+        """
+        if features.has("app:enterprise-prevent-numeric-slugs") and slug.isnumeric():
+            raise serializers.ValidationError(DEFAULT_SLUG_ERROR_MESSAGE)
+        return slug
 
 
 def resolve_region(request: HttpRequest) -> Optional[str]:

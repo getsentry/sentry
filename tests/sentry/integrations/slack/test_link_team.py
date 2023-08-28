@@ -154,6 +154,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             in get_response_text(data)
         )
 
+    @responses.activate
     def test_error_page(self):
         """Test that we successfully render an error page when bad form data is sent."""
         response = self.get_success_response(data={"team": ["some", "garbage"]})

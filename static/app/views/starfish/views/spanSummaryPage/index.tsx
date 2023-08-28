@@ -67,6 +67,7 @@ function SpanSummaryPage({params, location}: Props) {
     [
       SpanMetricsFields.SPAN_OP,
       SpanMetricsFields.SPAN_GROUP,
+      SpanMetricsFields.PROJECT_ID,
       `${StarfishFunctions.SPS}()`,
     ],
     'api.starfish.span-summary-page-metrics'
@@ -137,6 +138,7 @@ function SpanSummaryPage({params, location}: Props) {
 
                 <SampleList
                   groupId={span[SpanMetricsFields.SPAN_GROUP]}
+                  projectId={spanMetrics[SpanMetricsFields.PROJECT_ID]}
                   transactionName={transaction}
                   transactionMethod={transactionMethod}
                 />

@@ -4,13 +4,14 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
 from sentry.db.models.fields.jsonfield import JSONField
 
 
 @control_silo_only_model
 class AuthIdentity(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     # NOTE: not a fk to sentry user
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
