@@ -44,7 +44,6 @@ const BlockTitle = styled('h3')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
-  margin-bottom: ${space(1)};
   white-space: nowrap;
   display: flex;
   height: ${space(3)};
