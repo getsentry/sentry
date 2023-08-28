@@ -25,9 +25,6 @@ class ProjectFiltersEndpoint(ProjectEndpoint):
                     # 'active' will be either a boolean or list for the legacy browser filters
                     # all other filters will be boolean
                     "active": inbound_filters.get_filter_state(flt.id, project),
-                    "description": flt.description,
-                    "name": flt.name,
-                    "hello": flt.id + " - " + flt.name,
                 }
             )
         results.sort(key=lambda x: x["name"])
