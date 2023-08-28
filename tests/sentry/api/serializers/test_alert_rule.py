@@ -3,6 +3,7 @@ from sentry.api.serializers.models.alert_rule import (
     CombinedRuleSerializer,
     DetailedAlertRuleSerializer,
 )
+from sentry.constants import ObjectStatus
 from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType
 from sentry.models import Rule
@@ -220,4 +221,6 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
 
         self.assert_alert_rule_serialized(alert_rule, result[0])
         assert result[1]["id"] == str(issue_rule.id)
+        assert result[1]["status"] == ObjectStatus.ACTIVE
+        assert not result[1]["snooze"]
         self.assert_alert_rule_serialized(other_alert_rule, result[2])
