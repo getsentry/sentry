@@ -120,12 +120,12 @@ export class SentrySampledProfile extends Profile {
       }
     );
 
-    function resolveFrame(index) {
+    function resolveFrame(index): Frame {
       const resolvedFrame = frameIndex[index];
       if (!resolvedFrame) {
         throw new Error(`Could not resolve frame ${index} in frame index`);
       }
-      return resolvedFrame;
+      return new Frame(resolvedFrame, sampledProfile.platform);
     }
 
     const {frames, stacks} = sampledProfile.profile;
