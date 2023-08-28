@@ -25,6 +25,7 @@ from typing_extensions import TypedDict
 from sentry import features, onboarding_tasks, quotas, roles
 from sentry.api.base import PreventNumericSlugMixin
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.base import import_guard
 from sentry.api.serializers.models.project import ProjectSerializerResponse
 from sentry.api.serializers.models.role import (
     OrganizationRoleSerializer,
@@ -100,6 +101,7 @@ ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
 }
 
 
+@import_guard(Organization)
 class BaseOrganizationSerializer(serializers.Serializer, PreventNumericSlugMixin):
     name = serializers.CharField(max_length=64)
 

@@ -10,9 +10,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import import_guard
 from sentry.models import ApiApplication, ApiApplicationStatus, ScheduledDeletion
 
 
+@import_guard(ApiApplication)
 class ApiApplicationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
     redirectUris = ListField(child=serializers.URLField(max_length=255), required=False)

@@ -10,12 +10,14 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.base import import_guard
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.incidents.models import AlertRule
 from sentry.models import Organization, OrganizationMember, Rule
 from sentry.models.rulesnooze import RuleSnooze
 
 
+@import_guard(RuleSnooze)
 class RuleSnoozeValidator(CamelSnakeSerializer):
     target = serializers.CharField(required=True, allow_null=False)
     until = serializers.DateTimeField(required=False, allow_null=True)

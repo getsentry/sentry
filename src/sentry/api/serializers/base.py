@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Type, TypeVar, Union
 
 import sentry_sdk
@@ -14,12 +15,27 @@ K = TypeVar("K")
 
 registry: MutableMapping[Any, Any] = {}
 
+# Unlike `registry`, we allow multiple import guards per key. If the second argument in the key
+# tuple is not `None`, the guard should only be applied to the specified field, rather than to the
+# entire model.
+import_guards: MutableMapping[Any, Any] = defaultdict(list)
+
 
 def register(type: Any) -> Callable[[Type[K]], Type[K]]:
     """A wrapper that adds the wrapped Serializer to the Serializer registry (see above) for the key `type`."""
 
     def wrapped(cls: Type[K]) -> Type[K]:
         registry[type] = cls()
+        return cls
+
+    return wrapped
+
+
+def import_guard(type: Any) -> Callable[[Type[K]], Type[K]]:
+    """A wrapper that adds the wrapped validator to the import guard registry (see above) for the key `type`."""
+
+    def wrapped(cls: Type[K]) -> Type[K]:
+        import_guards[type].append(cls)
         return cls
 
     return wrapped

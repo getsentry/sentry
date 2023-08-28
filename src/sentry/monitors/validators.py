@@ -11,6 +11,7 @@ from sentry.api.base import (
     PreventNumericSlugMixin,
 )
 from sentry.api.fields.empty_integer import EmptyIntegerField
+from sentry.api.serializers.base import import_guard
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
@@ -70,6 +71,7 @@ class MonitorAlertRuleValidator(serializers.Serializer):
     )
 
 
+@import_guard(Monitor)
 class ConfigValidator(serializers.Serializer):
     schedule_type = serializers.ChoiceField(
         choices=list(zip(SCHEDULE_TYPES.keys(), SCHEDULE_TYPES.keys())),

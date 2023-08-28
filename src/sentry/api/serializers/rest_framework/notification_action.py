@@ -3,6 +3,7 @@ from typing import Dict, List, Tuple, TypedDict
 from django.db import router, transaction
 from rest_framework import serializers
 
+from sentry.api.serializers.base import import_guard
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import SentryAppInstallationStatus
@@ -38,6 +39,7 @@ class NotificationActionInputData(TypedDict):
     target_display: str
 
 
+@import_guard(NotificationAction)
 class NotificationActionSerializer(CamelSnakeModelSerializer):
     """
     Django Rest Framework serializer for incoming NotificationAction API payloads

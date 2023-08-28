@@ -8,11 +8,13 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppInstallationsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import import_guard
 from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH
 from sentry.models import SentryAppInstallation
 from sentry.sentry_apps import SentryAppInstallationCreator
 
 
+@import_guard(SentryAppInstallation)
 class SentryAppInstallationsSerializer(serializers.Serializer):
     slug = serializers.RegexField(
         r"^[a-z0-9_\-]+$",

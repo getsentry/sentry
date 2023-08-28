@@ -6,6 +6,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.serializers.base import import_guard
 from sentry.db.models.fields.bounded import BoundedAutoField
 from sentry.models import InviteStatus, Organization, OrganizationMember
 
@@ -28,6 +29,7 @@ class MemberIdField(serializers.IntegerField):
         return super().run_validation(data)
 
 
+@import_guard(OrganizationMember)
 class MemberSerializer(serializers.Serializer):
     id = MemberIdField(min_value=0, max_value=BoundedAutoField.MAX_VALUE, required=True)
 

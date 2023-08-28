@@ -11,7 +11,7 @@ from sentry.api.bases.organization import (
     OrganizationIntegrationsLoosePermission,
 )
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.serializers import serialize
+from sentry.api.serializers import import_guard, serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.models import Project, Repository, RepositoryProjectPathConfig
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -29,6 +29,7 @@ def gen_path_regex_field():
 BRANCH_NAME_ERROR_MESSAGE = "Branch name may only have letters, numbers, underscores, forward slashes, dashes, and periods. Branch name may not start or end with a forward slash."
 
 
+@import_guard(RepositoryProjectPathConfig)
 class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
     repository_id = serializers.IntegerField(required=True)
     project_id = serializers.IntegerField(required=True)

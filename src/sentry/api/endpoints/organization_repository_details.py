@@ -9,6 +9,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationInte
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import import_guard
 from sentry.constants import ObjectStatus
 from sentry.models import Commit, RegionScheduledDeletion, Repository
 from sentry.services.hybrid_cloud import coerce_id_from
@@ -16,6 +17,7 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.tasks.repository import repository_cascade_delete_on_hide
 
 
+@import_guard(Repository)
 class RepositorySerializer(serializers.Serializer):
     status = serializers.ChoiceField(
         choices=(
@@ -116,4 +118,5 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 else:
                     RegionScheduledDeletion.schedule(repo, days=0, actor=request.user)
 
+        return Response(serialize(repo, request.user), status=202)
         return Response(serialize(repo, request.user), status=202)

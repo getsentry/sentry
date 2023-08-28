@@ -11,9 +11,11 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import import_guard
 from sentry.models import ApiKey
 
 
+@import_guard(ApiKey)
 class ApiKeySerializer(serializers.ModelSerializer):
     class Meta:
         model = ApiKey

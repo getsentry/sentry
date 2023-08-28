@@ -13,6 +13,7 @@ from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import Serializer, serialize
+from sentry.api.serializers.base import import_guard
 from sentry.api.serializers.models.team import BaseTeamSerializer, TeamSerializer
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
@@ -42,6 +43,7 @@ from . import can_admin_team, can_set_team_role
 ERR_INSUFFICIENT_ROLE = "You do not have permission to edit that user's membership."
 
 
+@import_guard(OrganizationMemberTeam)
 class OrganizationMemberTeamSerializer(serializers.Serializer):
     isActive = serializers.BooleanField()
     teamRole = serializers.CharField(allow_null=True, allow_blank=True)

@@ -15,6 +15,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import import_guard
 from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
 from sentry.constants import ObjectStatus
 from sentry.models import OrganizationIntegration, ScheduledDeletion
@@ -24,6 +25,7 @@ from sentry.utils.audit import create_audit_entry
 from sentry.web.decorators import set_referrer_policy
 
 
+@import_guard(OrganizationIntegration)
 class IntegrationSerializer(serializers.Serializer):
     name = serializers.CharField(required=False)
     domain = serializers.URLField(required=False, allow_blank=True)

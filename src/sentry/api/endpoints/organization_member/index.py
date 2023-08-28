@@ -13,6 +13,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import import_guard
 from sentry.api.serializers.models import organization_member as organization_member_serializers
 from sentry.api.validators import AllowedEmailField
 from sentry.models import ExternalActor, InviteStatus, OrganizationMember, Team, TeamStatus
@@ -41,6 +42,7 @@ class MemberConflictValidationError(serializers.ValidationError):
     pass
 
 
+@import_guard(OrganizationMember)
 class OrganizationMemberSerializer(serializers.Serializer):
     email = AllowedEmailField(max_length=75, required=True)
     role = serializers.ChoiceField(

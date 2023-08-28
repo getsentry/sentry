@@ -13,6 +13,7 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import import_guard
 from sentry.api.serializers.models.organization import BaseOrganizationSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
@@ -32,6 +33,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import org_setup_complete, terms_accepted
 
 
+@import_guard(Organization)
 class OrganizationPostSerializer(BaseOrganizationSerializer):
     defaultTeam = serializers.BooleanField(required=False)
     agreeTerms = serializers.BooleanField(required=True)

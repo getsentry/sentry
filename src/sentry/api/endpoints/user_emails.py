@@ -9,6 +9,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import import_guard
 from sentry.api.validators import AllowedEmailField
 from sentry.models import User, UserEmail, UserOption
 
@@ -23,6 +24,7 @@ class DuplicateEmailError(Exception):
     pass
 
 
+@import_guard(UserEmail)
 class EmailValidator(serializers.Serializer):
     email = AllowedEmailField(required=True)
 

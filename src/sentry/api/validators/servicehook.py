@@ -1,8 +1,11 @@
 from rest_framework import serializers
 
+from sentry.api.serializers.base import import_guard
 from sentry.models import SERVICE_HOOK_EVENTS
+from sentry.models.servicehook import ServiceHook
 
 
+@import_guard(ServiceHook)
 class ServiceHookValidator(serializers.Serializer):
     url = serializers.URLField(required=True)
     events = serializers.ListField(child=serializers.CharField(max_length=255), required=False)

@@ -2,6 +2,7 @@ from django.utils.encoding import force_str
 from rest_framework import serializers
 
 from sentry import analytics
+from sentry.api.serializers.base import import_guard
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.incidents.logic import (
     InvalidTriggerActionError,
@@ -19,6 +20,7 @@ from sentry.models import OrganizationMember, Team
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
 
+@import_guard(AlertRuleTriggerAction)
 class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
     """
     Serializer for creating/updating a trigger action. Required context:

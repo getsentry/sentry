@@ -7,10 +7,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import import_guard
 from sentry.models.recentsearch import RecentSearch, remove_excess_recent_searches
 from sentry.models.search_common import SearchType
 
 
+@import_guard(RecentSearch)
 class RecentSearchSerializer(serializers.Serializer):
     type = serializers.IntegerField(required=True)
     query = serializers.CharField(required=True)

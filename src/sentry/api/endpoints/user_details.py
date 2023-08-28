@@ -17,6 +17,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import import_guard
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer, ListField
 from sentry.auth.superuser import is_active_superuser
@@ -115,6 +116,7 @@ class SuperuserUserSerializer(BaseUserSerializer):
         fields = ("name", "username", "is_active")
 
 
+@import_guard(User)
 class PrivilegedUserSerializer(SuperuserUserSerializer):
     is_staff = serializers.BooleanField()
     is_superuser = serializers.BooleanField()

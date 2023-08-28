@@ -12,11 +12,13 @@ from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.fields import MultipleChoiceField
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import import_guard
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import ApiToken
 from sentry.security import capture_security_activity
 
 
+@import_guard(ApiToken)
 class ApiTokenSerializer(serializers.Serializer):
     scopes = MultipleChoiceField(required=True, choices=settings.SENTRY_SCOPES)
 

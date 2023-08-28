@@ -23,6 +23,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import import_guard
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
@@ -98,6 +99,7 @@ class ProjectMemberSerializer(serializers.Serializer):
     isSubscribed = serializers.BooleanField()
 
 
+@import_guard(Project)
 class ProjectAdminSerializer(ProjectMemberSerializer, PreventNumericSlugMixin):
     name = serializers.CharField(max_length=200)
     slug = serializers.RegexField(

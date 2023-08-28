@@ -19,6 +19,7 @@ from sentry.api.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
 from sentry.api.fields import AvatarField
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import import_guard
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
@@ -152,6 +153,7 @@ UNSAVED = object()
 DEFERRED = object()
 
 
+@import_guard(Organization)
 class OrganizationSerializer(BaseOrganizationSerializer):
     accountRateLimit = EmptyIntegerField(
         min_value=0, max_value=1000000, required=False, allow_null=True

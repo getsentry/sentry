@@ -11,12 +11,16 @@ from sentry.api.authentication import is_internal_relay, is_static_relay, relay_
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relay.constants import RELAY_AUTH_RATE_LIMITS
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import import_guard
+from sentry.models.relay import Relay, RelayUsage
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.utils import json
 
 from . import RelayIdSerializer
 
 
+@import_guard(Relay)
+@import_guard(RelayUsage)
 class RelayRegisterChallengeSerializer(RelayIdSerializer):
     public_key = serializers.CharField(max_length=64, required=True)
 

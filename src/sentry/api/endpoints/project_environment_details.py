@@ -7,9 +7,11 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import import_guard
 from sentry.models import Environment, EnvironmentProject
 
 
+@import_guard(Environment)
 class ProjectEnvironmentSerializer(serializers.Serializer):
     isHidden = serializers.BooleanField()
 

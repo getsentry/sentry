@@ -9,6 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectOwnershipPermission
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import import_guard
 from sentry.models.groupowner import GroupOwner
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
@@ -20,6 +21,7 @@ MAX_RAW_LENGTH = 100_000
 HIGHER_MAX_RAW_LENGTH = 200_000
 
 
+@import_guard(ProjectOwnership)
 class ProjectOwnershipSerializer(serializers.Serializer):
     raw = serializers.CharField(allow_blank=True)
     fallthrough = serializers.BooleanField()

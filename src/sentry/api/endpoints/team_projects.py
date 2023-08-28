@@ -18,6 +18,7 @@ from sentry.api.base import (
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
+from sentry.api.serializers.base import import_guard
 from sentry.api.serializers.models.project import OrganizationProjectResponse, ProjectSerializer
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.project_examples import ProjectExamples
@@ -32,6 +33,7 @@ from sentry.utils.snowflake import MaxSnowflakeRetryError
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
 
 
+@import_guard(Project)
 class ProjectPostSerializer(serializers.Serializer, PreventNumericSlugMixin):
     name = serializers.CharField(max_length=50, required=True)
     slug = serializers.RegexField(

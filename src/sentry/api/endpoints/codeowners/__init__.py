@@ -7,6 +7,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 
 from sentry import analytics, features
+from sentry.api.serializers.base import import_guard
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
 from sentry.models import Project, ProjectCodeOwners, RepositoryProjectPathConfig
@@ -17,6 +18,7 @@ from sentry.utils.codeowners import MAX_RAW_LENGTH
 from .analytics import *  # NOQA
 
 
+@import_guard(ProjectCodeOwners)
 class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
     code_mapping_id = serializers.IntegerField(required=True)
     raw = serializers.CharField(required=True)

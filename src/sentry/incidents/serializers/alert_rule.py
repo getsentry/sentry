@@ -10,6 +10,7 @@ from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import features
 from sentry.api.fields.actor import ActorField
+from sentry.api.serializers.base import import_guard
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
@@ -46,6 +47,7 @@ from .alert_rule_trigger import AlertRuleTriggerSerializer
 logger = logging.getLogger(__name__)
 
 
+@import_guard(AlertRule)
 class AlertRuleSerializer(CamelSnakeModelSerializer):
     """
     Serializer for creating/updating an alert rule. Required context:

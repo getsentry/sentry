@@ -6,6 +6,7 @@ from rest_framework import serializers
 
 from sentry import features
 from sentry.api.issue_search import parse_search_query
+from sentry.api.serializers.base import import_guard
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -112,6 +113,7 @@ class LayoutField(serializers.Field):
         return convert_dict_key_case(layout_to_store, snake_to_camel_case)
 
 
+@import_guard(DashboardWidgetQuery)
 class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
@@ -236,6 +238,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         return empty_value
 
 
+@import_guard(DashboardWidget)
 class DashboardWidgetSerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
@@ -303,6 +306,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
         return data
 
 
+@import_guard(Dashboard)
 class DashboardDetailsSerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)

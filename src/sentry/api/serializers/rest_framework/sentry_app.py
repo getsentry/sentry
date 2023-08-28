@@ -68,6 +68,8 @@ class URLField(serializers.URLField):
         return url
 
 
+# TODO(getsentry/team-ospo#181): Figure out how to properly pass in "access" here.
+# @import_guard(SentryApp)
 class SentryAppSerializer(Serializer):
     name = serializers.CharField()
     author = serializers.CharField(required=False, allow_null=True)

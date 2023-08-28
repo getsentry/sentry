@@ -2,7 +2,8 @@ from typing import List
 
 from rest_framework import serializers
 
-from sentry.models.savedsearch import SortOptions, Visibility
+from sentry.api.serializers.base import import_guard
+from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 
 
 def select_visibility_choices(allowed_visibility: List[str]):
@@ -18,6 +19,7 @@ class BaseOrganizationSearchSerializer(serializers.Serializer):
     )
 
 
+@import_guard(SavedSearch)
 class OrganizationSearchAdminSerializer(BaseOrganizationSearchSerializer):
     """
     Organization admins/owners may create organization wide saved searches

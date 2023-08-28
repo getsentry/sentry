@@ -19,6 +19,7 @@ from sentry.api.base import (
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import import_guard
 from sentry.api.serializers.models.team import TeamSerializer, TeamSerializerResponse
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.team_examples import TeamExamples
@@ -48,6 +49,7 @@ class OrganizationTeamsPermission(OrganizationPermission):
     }
 
 
+@import_guard(Team)
 class TeamPostSerializer(serializers.Serializer, PreventNumericSlugMixin):
     name = serializers.CharField(max_length=64, required=False, allow_null=True, allow_blank=True)
     slug = serializers.RegexField(

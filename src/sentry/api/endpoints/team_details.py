@@ -15,11 +15,13 @@ from sentry.api.base import (
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import import_guard
 from sentry.api.serializers.models.team import TeamSerializer as ModelTeamSerializer
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.models import RegionScheduledDeletion, Team, TeamStatus
 
 
+@import_guard(Team)
 class TeamSerializer(CamelSnakeModelSerializer, PreventNumericSlugMixin):
     slug = serializers.RegexField(
         DEFAULT_SLUG_PATTERN,

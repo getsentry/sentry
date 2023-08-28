@@ -1,8 +1,10 @@
 from rest_framework import serializers
 
 from sentry.api.fields.empty_integer import EmptyIntegerField
+from sentry.api.serializers.base import import_guard
 from sentry.loader.browsersdkversion import get_all_browser_sdk_version_choices
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption
+from sentry.models.projectkey import ProjectKey
 
 
 class RateLimitSerializer(serializers.Serializer):
@@ -27,6 +29,7 @@ class DynamicSdkLoaderOptionSerializer(serializers.Serializer):
         return super().to_internal_value(new_data)
 
 
+@import_guard(ProjectKey)
 class ProjectKeyRequestSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=False, allow_blank=True, allow_null=True)
     public = serializers.RegexField(r"^[a-f0-9]{32}$", required=False, allow_null=True)
