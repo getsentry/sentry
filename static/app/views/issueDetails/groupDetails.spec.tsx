@@ -270,8 +270,6 @@ describe('groupDetails', () => {
   });
 
   it('renders alert for sample event', async function () {
-    const sampleGroup = TestStubs.Group({issueCategory: IssueCategory.ERROR});
-    sampleGroup.tags.push({key: 'sample_event'});
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/tags/`,
       body: [{key: 'sample_event'}],
