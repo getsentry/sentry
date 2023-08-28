@@ -47,14 +47,14 @@ class MsTeamsClientTest(TestCase):
             json=access_json,
         )
 
-        self.client = MsTeamsClient(self.integration)
+        self.msteams_client = MsTeamsClient(self.integration)
 
     @responses.activate
     def test_token_refreshes(self):
         with patch("time.time") as mock_time:
             mock_time.return_value = self.expires_at
             # accessing the property should refresh the token
-            self.client.access_token
+            self.msteams_client.access_token
             body = responses.calls[0].request.body
             assert body == urlencode(
                 {
@@ -77,7 +77,7 @@ class MsTeamsClientTest(TestCase):
         with patch("time.time") as mock_time:
             mock_time.return_value = self.expires_at - 100
             # accessing the property should refresh the token
-            self.client.access_token
+            self.msteams_client.access_token
             assert not responses.calls
 
             integration = Integration.objects.get(provider="msteams")
@@ -89,7 +89,7 @@ class MsTeamsClientTest(TestCase):
 
     @responses.activate
     def test_simple(self):
-        self.client.get_team_info("foobar")
+        self.msteams_client.get_team_info("foobar")
         assert len(responses.calls) == 2
         token_request = responses.calls[0].request
 
@@ -102,7 +102,7 @@ class MsTeamsClientTest(TestCase):
         # API request to service url
         request = responses.calls[1].request
         assert "https://smba.trafficmanager.net/amer/v3/teams/foobar" == request.url
-        assert self.client.base_url in request.url
+        assert self.msteams_client.base_url in request.url
 
         # Check if metrics is generated properly
         calls = [

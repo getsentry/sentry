@@ -18,6 +18,7 @@ from sentry.integrations.utils.code_mapping import (
 from sentry.models import Integration, Repository
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -163,8 +164,15 @@ class GithubProxyClient(IntegrationProxyClient):
 
         return prepared_request
 
+    def is_error_fatal(self, error: Exception) -> bool:
+        if error.response.text:
+            if "suspended" in error.response.text:
+                return True
+        return super().is_error_fatal(error)
+
 
 class GitHubClientMixin(GithubProxyClient):
+
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -583,11 +591,8 @@ class GitHubClientMixin(GithubProxyClient):
         """
         return self.get(f"/users/{gh_username}")
 
-    def check_file(self, repo: Repository, path: str, version: str) -> str | None:
-        file: str = self.head_cached(
-            path=f"/repos/{repo.name}/contents/{path}", params={"ref": version}
-        )
-        return file
+    def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
+        return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
     def get_file(self, repo: Repository, path: str, ref: str) -> str:
         """Get the contents of a file
@@ -663,8 +668,13 @@ class GitHubAppsClient(GitHubClientMixin):
         logging_context: Mapping[str, Any] | None = None,
     ) -> None:
         self.integration = integration
+        kwargs = {}
+        if hasattr(self.integration, "id"):
+            kwargs["integration_id"] = integration.id
+
         super().__init__(
             org_integration_id=org_integration_id,
             verify_ssl=verify_ssl,
             logging_context=logging_context,
+            **kwargs,
         )

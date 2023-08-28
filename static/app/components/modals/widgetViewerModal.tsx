@@ -42,6 +42,10 @@ import {
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
+import {
+  createOnDemandFilterWarning,
+  hasOnDemandMetricWidgetFeature,
+} from 'sentry/utils/onDemandMetrics';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -390,6 +394,12 @@ function WidgetViewerModal(props: Props) {
     width: parseInt(widths[index], 10) || -1,
   }));
 
+  const getOnDemandFilterWarning = createOnDemandFilterWarning(
+    t(
+      'We don’t routinely collect metrics from this property. As such, historical data may be limited.'
+    )
+  );
+
   const queryOptions = sortedQueries.map(({name, conditions}, index) => {
     // Creates the highlighted query elements to be used in the Query Select
     const dashboardFiltersString = dashboardFiltersToString(dashboardFilters);
@@ -397,7 +407,12 @@ function WidgetViewerModal(props: Props) {
       !name && !!conditions
         ? parseSearch(
             conditions +
-              (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`)
+              (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`),
+            {
+              getFilterTokenWarning: hasOnDemandMetricWidgetFeature(organization)
+                ? getOnDemandFilterWarning
+                : undefined,
+            }
           )
         : null;
     const getHighlightedQuery = (

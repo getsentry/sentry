@@ -77,3 +77,4 @@ from .team_created import *  # noqa: F401,F403
 from .user_created import *  # noqa: F401,F403
 from .user_signup import *  # noqa: F401,F403
 from .webhook_repository_created import *  # noqa: F401,F403
+from .weekly_report import *  # noqa: F401,F403

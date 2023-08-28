@@ -49,7 +49,7 @@ class GithubAPIErrorType(Enum):
 
 
 COMMENT_BODY_TEMPLATE = """## Suspect Issues
-This pull request has been deployed and Sentry observed the following issues:
+This pull request was deployed and Sentry observed the following issues:
 
 {issue_list}
 
@@ -307,7 +307,7 @@ def github_comment_reactions():
                 extra={"organization_id": pr.organization_id},
             )
             metrics.incr("github_pr_comment.comment_reactions.missing_integration")
-            return
+            continue
 
         installation = integration.get_installation(organization_id=pr.organization_id)
 

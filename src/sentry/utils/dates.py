@@ -1,8 +1,7 @@
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional, Tuple, Union, overload
 
-import pytz
 from dateutil.parser import parse
 from django.http.request import HttpRequest
 from django.utils.timezone import is_aware, make_aware
@@ -10,7 +9,7 @@ from django.utils.timezone import is_aware, make_aware
 from sentry import quotas
 from sentry.constants import MAX_ROLLUP_POINTS
 
-epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
+epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
 def ensure_aware(value: datetime) -> datetime:
@@ -65,7 +64,7 @@ def floor_to_utc_day(value: datetime) -> datetime:
     """
     Floors a given datetime to UTC midnight.
     """
-    return value.astimezone(pytz.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    return value.astimezone(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 def parse_date(datestr: str, timestr: str) -> Optional[datetime]:
@@ -90,7 +89,7 @@ def parse_timestamp(value: Any) -> Optional[datetime]:
     if isinstance(value, datetime):
         return value
     elif isinstance(value, (int, float)):
-        return datetime.utcfromtimestamp(value).replace(tzinfo=pytz.utc)
+        return datetime.utcfromtimestamp(value).replace(tzinfo=timezone.utc)
     value = (value or "").rstrip("Z").encode("ascii", "replace").split(b".", 1)
     if not value:
         return None
@@ -103,7 +102,7 @@ def parse_timestamp(value: Any) -> Optional[datetime]:
             rv = rv.replace(microsecond=int(value[1].ljust(6, b"0")[:6]))
         except ValueError:
             return None
-    return rv.replace(tzinfo=pytz.utc)
+    return rv.replace(tzinfo=timezone.utc)
 
 
 def parse_stats_period(period: str) -> Optional[timedelta]:
@@ -192,7 +191,7 @@ def outside_retention_with_modified_start(
 
     # Need to support timezone-aware and naive datetimes since
     # Snuba API only deals in naive UTC
-    now = datetime.utcnow().astimezone(pytz.utc) if start.tzinfo else datetime.utcnow()
+    now = datetime.utcnow().astimezone(timezone.utc) if start.tzinfo else datetime.utcnow()
     start = max(start, now - timedelta(days=retention))
 
     return start > end, start

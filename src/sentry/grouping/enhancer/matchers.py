@@ -83,8 +83,6 @@ def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
 
 
 class Match:
-    description = None
-
     def matches_frame(self, frames, idx, platform, exception_data, cache):
         raise NotImplementedError()
 
@@ -163,7 +161,7 @@ class FrameMatch(Match):
         self.negated = negated
 
     @property
-    def description(self):
+    def description(self) -> str:
         return "{}:{}".format(
             self.key,
             self.pattern.split() != [self.pattern] and '"%s"' % self.pattern or self.pattern,
@@ -307,7 +305,7 @@ class CallerMatch(Match):
         self.caller = caller
 
     @property
-    def description(self):
+    def description(self) -> str:
         return f"[ {self.caller.description} ] |"
 
     def _to_config_structure(self, version):
@@ -324,7 +322,7 @@ class CalleeMatch(Match):
         self.caller = caller
 
     @property
-    def description(self):
+    def description(self) -> str:
         return f"| [ {self.caller.description} ]"
 
     def _to_config_structure(self, version):

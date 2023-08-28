@@ -1,18 +1,23 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 
 import pytest
 from freezegun import freeze_time
 
+from sentry.statistical_detectors.detector import TrendPayload
 from sentry.tasks.statistical_detectors import (
     detect_function_trends,
     detect_transaction_trends,
+    query_functions,
     run_detection,
 )
+from sentry.testutils.cases import ProfilesSnubaTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.silo import region_silo_test
 
 
 @pytest.fixture
@@ -168,3 +173,50 @@ def test_detect_function_trends_query_timerange(functions_query, timestamp, proj
     params = functions_query.mock_calls[0].kwargs["params"]
     assert params["start"] == datetime(2023, 8, 1, 11, 0, tzinfo=timezone.utc)
     assert params["end"] == datetime(2023, 8, 1, 11, 1, tzinfo=timezone.utc)
+
+
+@region_silo_test(stable=True)
+class FunctionsQueryTest(ProfilesSnubaTestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.now = before_now(minutes=10)
+        self.hour_ago = (self.now - timedelta(hours=1)).replace(
+            minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+        )
+
+    def test_functions_query(self):
+        self.store_functions(
+            [
+                {
+                    "self_times_ns": [100 for _ in range(100)],
+                    "package": "foo",
+                    "function": "bar",
+                    # only in app functions should
+                    # appear in the results
+                    "in_app": True,
+                },
+                {
+                    "self_times_ns": [200 for _ in range(100)],
+                    "package": "baz",
+                    "function": "quz",
+                    # non in app functions should not
+                    # appear in the results
+                    "in_app": False,
+                },
+            ],
+            project=self.project,
+            timestamp=self.hour_ago,
+        )
+
+        results = query_functions([self.project], self.now)
+        assert results == {
+            self.project.id: [
+                TrendPayload(
+                    group=self.function_fingerprint({"package": "foo", "function": "bar"}),
+                    count=100,
+                    value=pytest.approx(100),  # type: ignore[arg-type]
+                    timestamp=self.hour_ago,
+                )
+            ],
+        }

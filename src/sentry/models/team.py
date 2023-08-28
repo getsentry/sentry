@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
@@ -156,7 +157,7 @@ class Team(Model, SnowflakeIdMixin):
     A team represents a group of individuals which maintain ownership of projects.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization")
     slug = models.SlugField()
@@ -312,20 +313,15 @@ class Team(Model, SnowflakeIdMixin):
         ).delete()
 
         if new_team != self:
-            # Delete the old team
-            cursor = connections[router.db_for_write(Team)].cursor()
-            # we use a cursor here to avoid automatic cascading of relations
-            # in Django
-            try:
-                with outbox_context(transaction.atomic(router.db_for_write(Team)), flush=False):
-                    cursor.execute("DELETE FROM sentry_team WHERE id = %s", [self.id])
-                    self.outbox_for_update().save()
-                    cursor.execute("DELETE FROM sentry_actor WHERE team_id = %s", [new_team.id])
-            finally:
-                cursor.close()
+            with outbox_context(
+                transaction.atomic(router.db_for_write(Team)), flush=False
+            ), connections[router.db_for_write(Team)].cursor() as cursor:
+                # we use a cursor here to avoid automatic cascading of relations
+                # in Django
+                cursor.execute("DELETE FROM sentry_team WHERE id = %s", [self.id])
+                self.outbox_for_update().save()
+                cursor.execute("DELETE FROM sentry_actor WHERE team_id = %s", [new_team.id])
 
-            # Change whatever new_team's actor is to the one from the old team.
-            with transaction.atomic(router.db_for_write(Team)):
                 Actor.objects.filter(id=self.actor_id).update(team_id=new_team.id)
                 new_team.actor_id = self.actor_id
                 new_team.save()

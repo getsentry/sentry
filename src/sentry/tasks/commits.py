@@ -6,6 +6,7 @@ import sentry_sdk
 from django.urls import reverse
 from sentry_sdk import set_tag
 
+from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models import (
     Deploy,
@@ -93,11 +94,16 @@ def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **k
             pass
 
     for ref in refs:
-        try:
-            repo = Repository.objects.get(
-                organization_id=release.organization_id, name=ref["repository"]
+        repo = (
+            Repository.objects.filter(
+                organization_id=release.organization_id,
+                name=ref["repository"],
+                status=ObjectStatus.ACTIVE,
             )
-        except Repository.DoesNotExist:
+            .order_by("-pk")
+            .first()
+        )
+        if not repo:
             logger.info(
                 "repository.missing",
                 extra={

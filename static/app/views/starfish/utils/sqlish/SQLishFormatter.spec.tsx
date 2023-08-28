@@ -45,6 +45,13 @@ describe('SQLishFormatter', function () {
       `);
     });
 
+    it('Capitalizes lowercase keywords', () => {
+      expect(formatter.toString('select * from users;')).toMatchInlineSnapshot(`
+        "SELECT *
+        FROM users;"
+      `);
+    });
+
     it('Adds indentation for SELECTS in conditions', () => {
       expect(
         formatter.toString(

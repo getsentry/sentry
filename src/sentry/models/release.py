@@ -18,7 +18,8 @@ from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import parse_release
 
 from sentry import features
-from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
+from sentry.backup.scopes import RelocationScope
+from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER, ObjectStatus
 from sentry.db.models import (
     ArrayField,
     BaseQuerySet,
@@ -97,7 +98,7 @@ class ReleaseProjectModelManager(BaseManager):
 
 @region_silo_only_model
 class ReleaseProject(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
     release = FlexibleForeignKey("sentry.Release")
@@ -458,7 +459,7 @@ class Release(Model):
     A commit is generally a git commit. See also releasecommit.py
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField(
@@ -953,9 +954,23 @@ class Release(Model):
                 for idx, data in enumerate(commit_list):
                     repo_name = data.get("repository") or f"organization-{self.organization_id}"
                     if repo_name not in repos:
-                        repos[repo_name] = repo = Repository.objects.get_or_create(
-                            organization_id=self.organization_id, name=repo_name
-                        )[0]
+                        repo = (
+                            Repository.objects.filter(
+                                organization_id=self.organization_id,
+                                name=repo_name,
+                                status=ObjectStatus.ACTIVE,
+                            )
+                            .order_by("-pk")
+                            .first()
+                        )
+
+                        if repo is None:
+                            repo = Repository.objects.create(
+                                organization_id=self.organization_id,
+                                name=repo_name,
+                            )
+
+                        repos[repo_name] = repo
                     else:
                         repo = repos[repo_name]
 

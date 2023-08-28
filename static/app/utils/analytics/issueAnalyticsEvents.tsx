@@ -51,6 +51,9 @@ export type IssueEventParameters = {
     platform?: string;
     project_id?: string;
   };
+  'integrations.integration_reinstall_clicked': {
+    provider: string;
+  };
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
   'issue_details.copy_event_link_clicked': GroupEventParams;
@@ -275,6 +278,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_group_details.tags.bar.hovered': 'Issue Group Details: Tags value bar hovered',
   'issue_group_details.tags_distribution.bar.clicked':
     'Issue Group Details: Tags distribution value bar clicked',
+  'integrations.integration_reinstall_clicked': 'Integration Reinstall Button Clicked',
 
   // Performance Issue specific events here
   'issue_details.performance.autogrouped_siblings_toggle':
