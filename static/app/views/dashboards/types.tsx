@@ -91,7 +91,7 @@ export type DashboardDetails = {
   dateCreated: string;
   filters: DashboardFilters;
   id: string;
-  projects: number[];
+  projects: undefined | number[];
   title: string;
   widgets: Widget[];
   createdBy?: User;
