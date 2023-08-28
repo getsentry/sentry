@@ -6,9 +6,11 @@ import pytest
 from django.urls import reverse
 from freezegun import freeze_time
 
+from sentry.issues.grouptype import PerformanceP95TransactionDurationRegressionGroupType
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 pytestmark = pytest.mark.sentry_metrics
@@ -302,3 +304,251 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         assert len(trends_call_args_data.get(f"{self.project.slug},foo")) > 0
         # checks that second transaction wasn't sent to the trends microservice
         assert len(trends_call_args_data.get(f"{self.project.slug},bar", [])) == 0
+
+    @with_feature(
+        {"organizations:issue-platform": True, "organizations:performance-trends-issues": False}
+    )
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.produce_occurrence_to_kafka")
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.get_trends")
+    def test_skipped_issue_creation_no_feature_flag(
+        self, mock_get_trends, mock_produce_occurrence_to_kafka
+    ):
+        mock_trends_result = [
+            {
+                "project": self.project.slug,
+                "transaction": "foo",
+                "change": "regression",
+                "trend_percentage": 2.0,
+            }
+        ]
+        mock_get_trends.return_value = {"data": mock_trends_result}
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "statsPeriod": "14d",
+                    "interval": "1h",
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "project": self.project.id,
+                    "trendFunction": "p95(transaction.duration)",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
+
+    @with_feature(
+        {"organizations:issue-platform": True, "organizations:performance-trends-issues": True}
+    )
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.produce_occurrence_to_kafka")
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.get_trends")
+    def test_skipped_issue_creation_wrong_stats_period(
+        self, mock_get_trends, mock_produce_occurrence_to_kafka
+    ):
+        mock_trends_result = [
+            {
+                "project": self.project.slug,
+                "transaction": "foo",
+                "change": "regression",
+                "trend_percentage": 2.0,
+            }
+        ]
+        mock_get_trends.return_value = {"data": mock_trends_result}
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "statsPeriod": "30d",
+                    "interval": "1h",
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "project": self.project.id,
+                    "trendFunction": "p95(transaction.duration)",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
+
+    @with_feature(
+        {"organizations:issue-platform": True, "organizations:performance-trends-issues": True}
+    )
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.produce_occurrence_to_kafka")
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.get_trends")
+    def test_skipped_issue_creation_too_small_trend_percentage(
+        self, mock_get_trends, mock_produce_occurrence_to_kafka
+    ):
+        mock_trends_result = [
+            {
+                "project": self.project.slug,
+                "transaction": "foo",
+                "change": "regression",
+                # trend percentage change is 20%
+                "trend_percentage": 1.2,
+            }
+        ]
+        mock_get_trends.return_value = {"data": mock_trends_result}
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "statsPeriod": "14d",
+                    "interval": "1h",
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "project": self.project.id,
+                    "trendFunction": "p95(transaction.duration)",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
+
+    @with_feature(
+        {"organizations:issue-platform": True, "organizations:performance-trends-issues": True}
+    )
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.produce_occurrence_to_kafka")
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.get_trends")
+    def test_skipped_issue_creation_no_regression(
+        self, mock_get_trends, mock_produce_occurrence_to_kafka
+    ):
+        mock_trends_result = [
+            {
+                "project": self.project.slug,
+                "transaction": "foo",
+                "change": "improvement",
+                "trend_percentage": 2.0,
+            }
+        ]
+        mock_get_trends.return_value = {"data": mock_trends_result}
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "statsPeriod": "30d",
+                    "interval": "1h",
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "project": self.project.id,
+                    "trendFunction": "p95(transaction.duration)",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
+
+    @with_feature(
+        {"organizations:issue-platform": True, "organizations:performance-trends-issues": True}
+    )
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.produce_occurrence_to_kafka")
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.get_trends")
+    def test_skipped_issue_creation_wrong_metric(
+        self, mock_get_trends, mock_produce_occurrence_to_kafka
+    ):
+        mock_trends_result = [
+            {
+                "project": self.project.slug,
+                "transaction": "foo",
+                "change": "regression",
+                "trend_percentage": 2.0,
+            }
+        ]
+        mock_get_trends.return_value = {"data": mock_trends_result}
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "statsPeriod": "30d",
+                    "interval": "1h",
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "project": self.project.id,
+                    "trendFunction": "p75(transaction.duration)",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
+
+    @with_feature(
+        {"organizations:issue-platform": True, "organizations:performance-trends-issues": True}
+    )
+    # @mock.patch("sentry.api.endpoints.organization_events_trends_v2.datetime")
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.produce_occurrence_to_kafka")
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.get_trends")
+    def test_issue_creation_simple(self, mock_get_trends, mock_produce_occurrence_to_kafka):
+        mock_trends_result = [
+            {
+                "project": self.project.slug,
+                "transaction": "foo",
+                "change": "regression",
+                "trend_percentage": 2.0,
+                "aggregate_range_1": 14,
+                "aggregate_range_2": 28,
+            }
+        ]
+        mock_get_trends.return_value = {"data": mock_trends_result}
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "statsPeriod": "14d",
+                    "interval": "1h",
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "project": self.project.id,
+                    "trendFunction": "p95(transaction.duration)",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
+
+        occurrence, event = mock_produce_occurrence_to_kafka.mock_calls[0].args
+        occurrence = occurrence.to_dict()
+
+        assert dict(
+            occurrence,
+            **{
+                "project_id": self.project.id,
+                "issue_title": "P95 Transaction Duration Regression",
+                "subtitle": "Transaction duration changed from 14.0 ms to 28.0 ms",
+                "resource_id": None,
+                "evidence_data": mock_trends_result[0],
+                "evidence_display": [
+                    {
+                        "name": "Regression",
+                        "value": "Transaction duration changed from 14.0 ms to 28.0 ms",
+                        "important": True,
+                    },
+                    {"name": "Transaction", "value": "foo", "important": True},
+                ],
+                "type": PerformanceP95TransactionDurationRegressionGroupType.type_id,
+                "level": "info",
+                "culprit": "foo",
+            },
+        ) == dict(occurrence)
+
+        assert dict(
+            event,
+            **{
+                "project_id": self.project.id,
+                "transaction": "foo",
+                "event_id": occurrence["event_id"],
+                "platform": "python",
+                "tags": {},
+            },
+        ) == dict(event)
