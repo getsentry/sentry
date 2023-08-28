@@ -47,11 +47,13 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         or DEFAULT_SPAN_RETENTION_DAYS
     )
 
+    span_data: Mapping[str, Any] = relay_span.get("data", {})
+
     snuba_span: MutableMapping[str, Any] = {}
     snuba_span["description"] = relay_span.get("description")
     snuba_span["event_id"] = relay_span["event_id"]
     snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
-    snuba_span["group_raw"] = "0"
+    snuba_span["group_raw"] = span_data.get("span.group", "0")
     snuba_span["is_segment"] = relay_span.get("is_segment", False)
     snuba_span["organization_id"] = organization.id
     snuba_span["parent_span_id"] = relay_span.get("parent_span_id", "0")
@@ -73,10 +75,10 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
 
     sentry_tags: MutableMapping[str, Any] = {}
 
-    if tags := relay_span.get("data"):
+    if span_data:
         for relay_tag, snuba_tag in TAG_MAPPING.items():
-            if relay_tag in tags:
-                sentry_tags[snuba_tag] = tags.get(relay_tag)
+            if relay_tag in span_data:
+                sentry_tags[snuba_tag] = span_data.get(relay_tag)
 
     if "op" not in sentry_tags:
         sentry_tags["op"] = relay_span.get("op", "")
