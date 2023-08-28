@@ -26,10 +26,6 @@ export class StringAccumulator {
   }
 
   break() {
-    if (this.lastLine.isEmpty) {
-      this.lines.pop();
-    }
-
     this.lines.push(new Line());
   }
 
