@@ -73,7 +73,7 @@ function NotificationSettings({organizations}: Props) {
     data: initialLegacyData,
     isLoading,
     isError,
-  } = useApiQuery<{[key: string]: string}>(['/users/me/notificationsddd/'], {
+  } = useApiQuery<{[key: string]: string}>(['/users/me/notifications/'], {
     staleTime: 0,
   });
 
