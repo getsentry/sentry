@@ -1,6 +1,10 @@
-export function Organizations(params = {}) {
+import {Organization} from 'fixtures/js-stubs/organization';
+
+import {Organization as OrganizationType} from 'sentry/types';
+
+export function Organizations(params = {}): OrganizationType[] {
   return [
-    {
+    Organization({
       id: '1',
       name: 'test 1',
       slug: 'test 1',
@@ -10,8 +14,8 @@ export function Organizations(params = {}) {
         name: 'active',
       },
       ...params,
-    },
-    {
+    }),
+    Organization({
       id: '2',
       name: 'test 2',
       slug: 'test 2',
@@ -21,6 +25,6 @@ export function Organizations(params = {}) {
         name: 'active',
       },
       ...params,
-    },
+    }),
   ];
 }
