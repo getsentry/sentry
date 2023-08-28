@@ -15,6 +15,7 @@ from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import constants
 from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.utils.snuba import QueryOutsideRetentionError
@@ -430,7 +431,9 @@ class QueryBuilderTest(TestCase):
             self.params,
             query="",
             selected_columns=["array_join(measurements_key)", "count()"],
-            functions_acl=["array_join"],
+            config=QueryBuilderConfig(
+                functions_acl=["array_join"],
+            ),
         )
         array_join_column = Function(
             "arrayJoin",
@@ -460,7 +463,9 @@ class QueryBuilderTest(TestCase):
             self.params,
             query="",
             selected_columns=["sumArray(measurements_value)"],
-            functions_acl=["sumArray"],
+            config=QueryBuilderConfig(
+                functions_acl=["sumArray"],
+            ),
         )
         self.assertCountEqual(
             query.columns,
@@ -489,7 +494,9 @@ class QueryBuilderTest(TestCase):
                 self.params,
                 query="",
                 selected_columns=["sumArray(stuff)"],
-                functions_acl=["sumArray"],
+                config=QueryBuilderConfig(
+                    functions_acl=["sumArray"],
+                ),
             )
 
     def test_spans_columns(self):
@@ -502,7 +509,9 @@ class QueryBuilderTest(TestCase):
                 "array_join(spans_group)",
                 "sumArray(spans_exclusive_time)",
             ],
-            functions_acl=["array_join", "sumArray"],
+            config=QueryBuilderConfig(
+                functions_acl=["array_join", "sumArray"],
+            ),
         )
         self.assertCountEqual(
             query.columns,
@@ -577,8 +586,10 @@ class QueryBuilderTest(TestCase):
             selected_columns=[
                 "count()",
             ],
-            auto_aggregations=True,
-            use_aggregate_conditions=True,
+            config=QueryBuilderConfig(
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+            ),
         )
         snql_query = query.get_snql_query().query
         snql_query.validate()
@@ -605,8 +616,10 @@ class QueryBuilderTest(TestCase):
             selected_columns=[
                 "count()",
             ],
-            auto_aggregations=True,
-            use_aggregate_conditions=True,
+            config=QueryBuilderConfig(
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+            ),
         )
         snql_query = query.get_snql_query().query
         snql_query.validate()
@@ -641,8 +654,10 @@ class QueryBuilderTest(TestCase):
             selected_columns=[
                 "count()",
             ],
-            auto_aggregations=False,
-            use_aggregate_conditions=True,
+            config=QueryBuilderConfig(
+                auto_aggregations=False,
+                use_aggregate_conditions=True,
+            ),
         )
         # With count_unique only in a condition and no auto_aggregations this should raise a invalid search query
         with pytest.raises(InvalidSearchQuery):
