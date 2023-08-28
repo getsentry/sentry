@@ -463,6 +463,42 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             EventMatcher(event, group=group2), True, False, True, False
         )
 
+    @patch("sentry.rules.processor.RuleProcessor")
+    def test_group_last_seen_buffer(self, mock_processor):
+        first_event_date = datetime.now(timezone.utc) - timedelta(days=90)
+        event1 = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+        group1 = event1.group
+        group1.update(last_seen=first_event_date)
+
+        event2 = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+
+        # Mock set the last_seen value to the first event date
+        # To simulate the update to last_seen being buffered
+        event2.group.last_seen = first_event_date
+        event2.group.update(last_seen=first_event_date)
+        assert event2.group_id == group1.id
+
+        mock_callback = Mock()
+        mock_futures = [Mock()]
+
+        mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=True,
+            is_new_group_environment=False,
+            event=event2,
+        )
+        mock_processor.assert_called_with(
+            EventMatcher(event2, group=group1), False, True, False, False
+        )
+        sent_group_date = mock_processor.call_args[0][0].group.last_seen
+        # Check that last_seen was updated to be at least the new event's date
+        self.assertAlmostEqual(sent_group_date, event2.datetime, delta=timedelta(seconds=10))
+
 
 class ServiceHooksTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.servicehooks.process_service_hook")
