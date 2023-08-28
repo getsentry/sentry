@@ -251,6 +251,7 @@ class ProjectOwnership(Model):
             User,
         )
 
+        # If event is passed in, then this is not called from the force auto-assign API, else it is
         force_autoassign = True
         if event:
             force_autoassign = False
