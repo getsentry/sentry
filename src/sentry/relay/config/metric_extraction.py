@@ -263,7 +263,11 @@ def _convert_aggregate_and_query_to_metric(
             "tags": [{"key": QUERY_HASH_KEY, "value": query_hash}],
         }
     except Exception as e:
-        logger.error(e, exc_info=True)
+        # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
+        # Sentry console.
+        if not prefilling:
+            logger.error(e, exc_info=True)
+
         return None
 
 
