@@ -26,7 +26,7 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.RunPython(
-            migrations.RunPython.noop(),
+            migrations.RunPython.noop,
             migrations.RunPython.noop,
             hints={"tables": []},
         ),
