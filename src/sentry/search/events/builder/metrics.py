@@ -141,9 +141,14 @@ class MetricsQueryBuilder(QueryBuilder):
         if self.params.organization is None:
             raise InvalidSearchQuery("An on demand metrics query requires an organization")
 
+        if len(self.selected_columns) == 0:
+            raise InvalidSearchQuery(
+                "An on demand metrics query requires at least one selected column"
+            )
+
         if isinstance(self, TimeseriesMetricQueryBuilder):
             limit = Limit(1)
-            alias = "count"
+            alias = self.resolve_column(self.selected_columns[0]).alias or "count"
             include_series = True
             interval = self.interval
         else:
