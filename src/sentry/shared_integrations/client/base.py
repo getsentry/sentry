@@ -9,7 +9,7 @@ from django.core.cache import cache
 from requests import PreparedRequest, Request, Response
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
@@ -19,6 +19,7 @@ from sentry.models import Organization, OrganizationIntegration
 from sentry.models.integrations.utils import is_response_error, is_response_success
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils import json, metrics
+from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.hashlib import md5_text
 
 from ..exceptions import ApiConnectionResetError, ApiHostError, ApiTimeoutError
@@ -100,6 +101,21 @@ class BaseApiClient(TrackResponseMixin):
         return f"sentry-integration-error:{self.integration_id}"
 
     def is_response_fatal(self, resp: Response) -> bool:
+        return False
+
+    def is_response_error(self, resp: Response) -> bool:
+        if resp.status_code:
+            if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
+                return True
+        return False
+
+    def is_response_success(self, resp: Response) -> bool:
+        if resp.status_code:
+            if resp.status_code < 300:
+                return True
+        return False
+
+    def is_error_fatal(self, error: Exception) -> bool:
         return False
 
     @overload
@@ -414,7 +430,10 @@ class BaseApiClient(TrackResponseMixin):
             return
         try:
             buffer = IntegrationRequestBuffer(redis_key)
-            buffer.record_error()
+            if self.is_error_fatal(error):
+                buffer.record_fatal()
+            else:
+                buffer.record_error()
             if randint(0, 99) == 0:
                 (
                     rpc_integration,
@@ -481,12 +500,25 @@ class BaseApiClient(TrackResponseMixin):
         )
 
         if (
-            features.has("organizations:slack-disable-on-broken", org)
-            and rpc_integration.provider == "slack"
+            (
+                features.has("organizations:slack-fatal-disable-on-broken", org)
+                and rpc_integration.provider == "slack"
+            )
+            and buffer.is_integration_fatal_broken()
+        ) or (
+            features.has("organizations:github-disable-on-broken", org)
+            and rpc_integration.provider == "github"
         ):
+
             integration_service.update_integration(
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )
             notify_disable(org, rpc_integration.provider, self._get_redis_key())
             buffer.clear()
+            create_system_audit_entry(
+                organization=org,
+                target_object=org.id,
+                event=audit_log.get_event_id("INTEGRATION_DISABLED"),
+                data={"provider": rpc_integration.provider},
+            )
         return

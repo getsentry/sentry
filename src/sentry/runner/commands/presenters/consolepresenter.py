@@ -1,6 +1,7 @@
 from typing import Any, List, Tuple
 
 import click
+from yaml import safe_dump
 
 from sentry.runner.commands.presenters.optionspresenter import OptionsPresenter
 
@@ -47,7 +48,7 @@ class ConsolePresenter(OptionsPresenter):
                 # This is yaml instead of the python representation as the
                 # expected flow, in this case, is to use the output of this
                 # line to copy paste it in the config map.
-                click.echo(db_value)
+                click.echo(safe_dump(db_value))
 
         for key in self.channel_updated_options:
             click.echo(self.CHANNEL_UPDATE_MSG % key)

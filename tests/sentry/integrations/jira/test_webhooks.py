@@ -14,6 +14,7 @@ from sentry.integrations.mixins import IssueSyncMixin
 from sentry.integrations.utils import AtlassianConnectValidationError
 from sentry.models import Integration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils.cases import APITestCase, TestCase
 
@@ -171,7 +172,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
 
             mock_set_tag.assert_called_with("integration_id", self.integration.id)
-            mock_bind_org_context.assert_called_with(self.organization)
+            mock_bind_org_context.assert_called_with(serialize_rpc_organization(self.organization))
 
     def test_missing_changelog(self):
         with patch(

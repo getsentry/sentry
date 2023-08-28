@@ -18,7 +18,7 @@ import {Monitor} from '../../types';
 import {ResolutionSelector} from './resolutionSelector';
 import {TimelineTableRow} from './timelineTableRow';
 import {MonitorBucketData, TimeWindow} from './types';
-import {getStartFromTimeWindow, timeWindowConfig} from './utils';
+import {getConfigFromTimeRange, getStartFromTimeWindow} from './utils';
 
 interface Props {
   monitorList: Monitor[];
@@ -31,11 +31,11 @@ export function OverviewTimeline({monitorList}: Props) {
   const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
   const nowRef = useRef<Date>(new Date());
   const start = getStartFromTimeWindow(nowRef.current, timeWindow);
-  const {elementRef, width: timelineWidth} = useDimensions<HTMLDivElement>();
+  const elementRef = useRef<HTMLDivElement>(null);
+  const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
-  const rollup = Math.floor(
-    (timeWindowConfig[timeWindow].elapsedMinutes * 60) / timelineWidth
-  );
+  const timeWindowConfig = getConfigFromTimeRange(start, nowRef.current, timelineWidth);
+  const rollup = Math.floor((timeWindowConfig.elapsedMinutes * 60) / timelineWidth);
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
     [
@@ -63,8 +63,9 @@ export function OverviewTimeline({monitorList}: Props) {
         <ResolutionSelector />
       </StickyResolutionSelector>
       <StickyGridLineTimeLabels>
-        <GridLineTimeLabels
-          timeWindow={timeWindow}
+        <BorderlessGridLineTimeLabels
+          timeWindowConfig={timeWindowConfig}
+          start={start}
           end={nowRef.current}
           width={timelineWidth}
         />
@@ -72,7 +73,8 @@ export function OverviewTimeline({monitorList}: Props) {
       <GridLineOverlay
         stickyCursor
         showCursor={!isLoading}
-        timeWindow={timeWindow}
+        timeWindowConfig={timeWindowConfig}
+        start={start}
         end={nowRef.current}
         width={timelineWidth}
       />
@@ -81,10 +83,10 @@ export function OverviewTimeline({monitorList}: Props) {
         <TimelineTableRow
           key={monitor.id}
           monitor={monitor}
-          timeWindow={timeWindow}
+          timeWindowConfig={timeWindowConfig}
+          start={start}
           bucketedData={monitorStats?.[monitor.slug]}
           end={nowRef.current}
-          start={start}
           width={timelineWidth}
         />
       ))}
@@ -110,6 +112,11 @@ const StickyResolutionSelector = styled(Sticky)`
     border-left: 1px solid ${p => p.theme.border};
     margin-left: -1px;
   }
+`;
+
+// We don't need border here because it is already accomplished via box-shadow below
+const BorderlessGridLineTimeLabels = styled(GridLineTimeLabels)`
+  border: none;
 `;
 
 const StickyGridLineTimeLabels = styled(Sticky)`

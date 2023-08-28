@@ -1,8 +1,7 @@
 Hi there,
 
     We found an issue with your {{ integration_name }} integration.</p><p>
-    To restore the connection and prevent data loss, please re-authenticate or fix the integration as quickly as possible.</p><p>
-    Please follow the link below to view the {{ integration_name }} integration in Sentry.
+    To restore the connection, please follow the link below to view {{ integration_name }} in Sentry and reinstall.</p><p>
 
 
 

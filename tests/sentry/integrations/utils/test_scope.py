@@ -1,65 +1,83 @@
 from unittest.mock import MagicMock, patch
 
-from sentry.integrations.utils.scope import (
-    bind_org_context_from_integration,
-    get_orgs_from_integration,
-)
+from sentry.integrations.utils.scope import bind_org_context_from_integration, get_org_integrations
 from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.services.hybrid_cloud.integration.serial import serialize_organization_integration
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
+@all_silo_test(stable=True)
 class GetOrgsFromIntegrationTest(TestCase):
     def test_finds_single_org(self):
         org = self.create_organization(slug="dogsaregreat")
-        integration = Integration.objects.create(name="squirrelChasers")
-        integration.add_organization(org)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(name="squirrelChasers")
+            integration.add_organization(org)
 
-        found_orgs = get_orgs_from_integration(integration.id)
+        actual = get_org_integrations(integration.id)
 
-        assert found_orgs == [org]
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            ois = OrganizationIntegration.objects.filter(
+                organization_id=org.id, integration_id=integration.id
+            ).all()
+
+        assert actual == [serialize_organization_integration(oi) for oi in ois]
 
     def test_finds_multiple_orgs(self):
         maisey_org = self.create_organization(slug="themaiseymaiseydog")
         charlie_org = self.create_organization(slug="charliebear")
-        integration = Integration.objects.create(name="squirrelChasers")
-        integration.add_organization(maisey_org)
-        integration.add_organization(charlie_org)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(name="squirrelChasers")
+            integration.add_organization(maisey_org)
+            integration.add_organization(charlie_org)
 
-        found_orgs = get_orgs_from_integration(integration.id)
+        actual = get_org_integrations(integration.id)
 
-        assert found_orgs == [maisey_org, charlie_org]
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            ois = OrganizationIntegration.objects.filter(integration_id=integration.id).all()
+        expected = [serialize_organization_integration(oi) for oi in ois]
+        assert actual == expected
 
     def test_finds_no_orgs_without_erroring(self):
-        integration = Integration.objects.create(name="squirrelChasers")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(name="squirrelChasers")
 
-        found_orgs = get_orgs_from_integration(integration.id)
+        actual = get_org_integrations(integration.id)
 
-        assert found_orgs == []
+        assert actual == []
 
 
+@all_silo_test(stable=True)
 class BindOrgContextFromIntegrationTest(TestCase):
     @patch("sentry.integrations.utils.scope.bind_organization_context")
     def test_binds_org_context_with_single_org(self, mock_bind_org_context: MagicMock):
         org = self.create_organization(slug="dogsaregreat")
-        integration = Integration.objects.create(name="squirrelChasers")
-        integration.add_organization(org)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(name="squirrelChasers")
+            integration.add_organization(org)
 
         bind_org_context_from_integration(integration.id)
 
-        mock_bind_org_context.assert_called_with(org)
+        with assume_test_silo_mode(SiloMode.REGION):
+            mock_bind_org_context.assert_called_with(serialize_rpc_organization(org))
 
     @patch("sentry.integrations.utils.scope.bind_ambiguous_org_context")
     def test_binds_org_context_with_multiple_orgs(self, mock_bind_ambiguous_org_context: MagicMock):
         maisey_org = self.create_organization(slug="themaiseymaiseydog")
         charlie_org = self.create_organization(slug="charliebear")
-        integration = Integration.objects.create(name="squirrelChasers")
-        integration.add_organization(maisey_org)
-        integration.add_organization(charlie_org)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(name="squirrelChasers")
+            integration.add_organization(maisey_org)
+            integration.add_organization(charlie_org)
 
         bind_org_context_from_integration(integration.id)
 
         mock_bind_ambiguous_org_context.assert_called_with(
-            [maisey_org, charlie_org], f"integration (id={integration.id})"
+            [maisey_org.slug, charlie_org.slug], f"integration (id={integration.id})"
         )
 
     @patch("sentry.integrations.utils.scope.bind_ambiguous_org_context")
@@ -73,7 +91,8 @@ class BindOrgContextFromIntegrationTest(TestCase):
         mock_bind_org_context: MagicMock,
         mock_bind_ambiguous_org_context: MagicMock,
     ):
-        integration = Integration.objects.create(name="squirrelChasers")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(name="squirrelChasers")
 
         bind_org_context_from_integration(integration.id, {"webhook": "issue_updated"})
         mock_logger_warning.assert_called_with(

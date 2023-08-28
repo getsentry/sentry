@@ -1925,7 +1925,7 @@ class ProfilesSnubaTestCase(
             hasher.update(b"")
         hasher.update(b":")
         hasher.update(function["function"].encode())
-        return int(hasher.hexdigest()[:16], 16)
+        return int(hasher.hexdigest()[:8], 16)
 
 
 @pytest.mark.snuba
@@ -1985,6 +1985,11 @@ class IntegrationRepositoryTestCase(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
+
+    @pytest.fixture(autouse=True)
+    def responses_context(self):
+        with responses.mock:
+            yield
 
     def add_create_repository_responses(self, repository_config):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
@@ -2394,6 +2399,11 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
+
+    @pytest.fixture(autouse=True)
+    def responses_context(self):
+        with responses.mock:
+            yield
 
     def assert_performance_issue_attachments(
         self, attachment, project_slug, referrer, alert_type="workflow"

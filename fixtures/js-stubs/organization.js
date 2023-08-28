@@ -35,6 +35,7 @@ export function Organization(params = {}) {
     onboardingTasks: [],
     teams: [],
     projects: [],
+    isDynamicallySampled: true,
     ...params,
 
     orgRoleList: OrgRoleList(),

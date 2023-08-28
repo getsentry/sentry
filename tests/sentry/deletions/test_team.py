@@ -1,13 +1,13 @@
-from sentry.models import Project, RegionScheduledDeletion, Rule, Team
+from sentry.models import Project, Rule, Team
 from sentry.models.projectteam import ProjectTeam
-from sentry.silo import SiloMode
-from sentry.tasks.deletion.scheduled import run_deletion
+from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TestCase
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
-class DeleteTeamTest(TestCase):
+class DeleteTeamTest(TestCase, HybridCloudTestMixin):
     def test_simple(self):
         team = self.create_team(name="test")
         project1 = self.create_project(teams=[team], name="test1")
@@ -15,11 +15,10 @@ class DeleteTeamTest(TestCase):
         assert project1.teams.first() == team
         assert project2.teams.first() == team
 
-        deletion = RegionScheduledDeletion.schedule(team, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=team, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id, silo_mode=str(SiloMode.REGION))
+            run_scheduled_deletions()
 
         assert not Team.objects.filter(id=team.id).exists()
         assert Project.objects.filter(id=project1.id).exists()
@@ -33,11 +32,10 @@ class DeleteTeamTest(TestCase):
         alert_rule = self.create_alert_rule(
             name="test alert rule", owner=team.actor.get_actor_tuple(), projects=[project]
         )
-        deletion = RegionScheduledDeletion.schedule(team, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(team, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id, silo_mode=str(SiloMode.REGION))
+            run_scheduled_deletions()
 
         assert not Team.objects.filter(id=team.id).exists()
         assert Project.objects.filter(id=project.id).exists()

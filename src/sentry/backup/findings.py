@@ -62,6 +62,13 @@ class ComparatorFindingKind(IntEnum):
     # `None`.
     HashObfuscatingComparatorExistenceCheck = auto()
 
+    # Foreign key field comparison failed.
+    ForeignKeyComparator = auto()
+
+    # Failed to compare foreign key fields because one of the fields being compared was not present
+    # or `None`.
+    ForeignKeyComparatorExistenceCheck = auto()
+
     # Failed to compare an ignored field.
     IgnoredComparator = auto()
 

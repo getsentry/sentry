@@ -54,11 +54,10 @@ function OpenInContextLine({lineNo, filename, components}: Props) {
 export {OpenInContextLine};
 
 const OpenInContainer = styled('div')<{columnQuantity: number}>`
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(${p => p.columnQuantity}, max-content);
+  display: flex;
   gap: ${space(1)};
+  align-items: center;
+  z-index: 1;
   color: ${p => p.theme.subText};
   background-color: ${p => p.theme.background};
   font-family: ${p => p.theme.text.family};
@@ -71,9 +70,9 @@ const OpenInContainer = styled('div')<{columnQuantity: number}>`
 `;
 
 const OpenInLink = styled(ExternalLink)`
-  align-items: center;
-  grid-template-columns: max-content auto;
+  display: flex;
   gap: ${space(0.75)};
+  align-items: center;
   color: ${p => p.theme.gray300};
 `;
 

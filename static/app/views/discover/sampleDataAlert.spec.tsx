@@ -34,4 +34,19 @@ describe('SampleDataAlert', function () {
     const {container} = render(<SampleDataAlert />);
     expect(container).toBeEmptyDOMElement();
   });
+
+  it("doesn't render when there's no dynamic sampling", function () {
+    const dismiss = jest.fn();
+    mockUseDismissAlert.mockImplementation(() => {
+      return {
+        dismiss,
+        isDismissed: false,
+      };
+    });
+    const {container} = render(<SampleDataAlert />, {
+      organization: {...TestStubs.Organization, isDynamicallySampled: false},
+    });
+
+    expect(container).toBeEmptyDOMElement();
+  });
 });

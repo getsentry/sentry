@@ -2,6 +2,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -32,7 +33,7 @@ class NotificationSetting(Model):
     and the value is ("value").
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     @property
     def scope_str(self) -> str:

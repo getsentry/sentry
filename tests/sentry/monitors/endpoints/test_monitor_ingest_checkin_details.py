@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.models import Environment
+from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -13,7 +14,6 @@ from sentry.monitors.models import (
     MonitorStatus,
     MonitorType,
 )
-from sentry.monitors.tasks import TIMEOUT
 from sentry.testutils.cases import MonitorIngestTestCase
 from sentry.testutils.silo import region_silo_test
 

@@ -7,11 +7,12 @@ from django.core import mail
 from django.test import override_settings
 from freezegun import freeze_time
 
+from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.slack.client import SlackClient
-from sentry.models import Integration
+from sentry.models import AuditLogEntry, Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -48,7 +49,7 @@ class SlackClientDisable(TestCase):
         self.resp.__exit__(None, None, None)
 
     @responses.activate
-    @with_feature("organizations:slack-disable-on-broken")
+    @with_feature("organizations:slack-fatal-disable-on-broken")
     def test_fatal_and_disable_integration(self):
         """
         fatal fast shut off with disable flag on, integration should be broken and disabled
@@ -71,9 +72,12 @@ class SlackClientDisable(TestCase):
         assert integration.status == ObjectStatus.DISABLED
         assert [len(item) == 0 for item in buffer._get_broken_range_from_buffer()]
         assert len(buffer._get_all_from_buffer()) == 0
+        assert AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("INTEGRATION_DISABLED"),
+            organization_id=self.organization.id,
+        ).exists()
 
     @responses.activate
-    @with_feature("organizations:disable-on-broken")
     def test_email(self):
         client = SlackClient(integration_id=self.integration.id)
         with self.tasks():
@@ -89,7 +93,7 @@ class SlackClientDisable(TestCase):
         )
         assert (
             self.organization.absolute_url(
-                f"/settings/{self.organization.slug}/integrations/{self.integration.provider}/?referrer=disabled-integration/"
+                f"/settings/{self.organization.slug}/integrations/{self.integration.provider}/?referrer=disabled-integration"
             )
             in msg.body
         )
@@ -145,7 +149,7 @@ class SlackClientDisable(TestCase):
         assert buffer.is_integration_broken() is False
 
     @responses.activate
-    @with_feature("organizations:slack-disable-on-broken")
+    @with_feature("organizations:slack-fatal-disable-on-broken")
     def test_slow_integration_is_not_broken_or_disabled(self):
         """
         slow test with disable flag on
