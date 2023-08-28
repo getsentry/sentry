@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -79,7 +79,7 @@ describe('SQLishFormatter', function () {
   describe('SQLishFormatter.toSimpleMarkup()', () => {
     const formatter = new SQLishFormatter();
     const getMarkup = (markup: any): string => {
-      const {container} = render(<React.Fragment>{markup}</React.Fragment>);
+      const {container} = render(<Fragment>{markup}</Fragment>);
 
       return container.innerHTML;
     };

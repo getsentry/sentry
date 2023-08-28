@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -65,7 +65,7 @@ function TeamSelect({
       : null;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {selectedTeams.map(team => (
           <TeamRow
             key={team.slug}
@@ -76,7 +76,7 @@ function TeamSelect({
             onRemoveTeam={slug => onRemoveTeam(slug)}
           />
         ))}
-      </React.Fragment>
+      </Fragment>
     );
   };
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
@@ -94,7 +94,7 @@ export function SpanSummaryView({groupId}: Props) {
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       <HeaderContainer>
         <FilterOptionsContainer>
           <StarfishDatePicker />
@@ -166,7 +166,7 @@ export function SpanSummaryView({groupId}: Props) {
           </Block>
         )}
       </BlockContainer>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

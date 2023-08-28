@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
@@ -80,7 +80,7 @@ function TeamSelect({
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         {effectiveOrgRole && (
           <RoleOverwritePanelAlert
             orgRole={effectiveOrgRole?.id}
@@ -105,7 +105,7 @@ function TeamSelect({
             onRemoveTeam={slug => onRemoveTeam(slug)}
           />
         ))}
-      </React.Fragment>
+      </Fragment>
     );
   };
 
