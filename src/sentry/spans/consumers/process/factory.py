@@ -16,7 +16,8 @@ from django.conf import settings
 
 from sentry import quotas
 from sentry.models import Project
-from sentry.spans.grouping.api import DEFAULT_CONFIG_ID, load_span_grouping_config
+from sentry.spans.grouping.api import load_span_grouping_config
+from sentry.spans.grouping.strategy.config import DEFAULT_CONFIG_ID
 from sentry.utils import json, metrics
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
