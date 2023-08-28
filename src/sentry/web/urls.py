@@ -597,6 +597,11 @@ urlpatterns += [
                     name="sentry-customer-domain-developer-settings-settings",
                 ),
                 re_path(
+                    r"^auth-tokens/",
+                    react_page_view,
+                    name="sentry-customer-domain-auth-token-settings",
+                ),
+                re_path(
                     r"^document-integrations/",
                     react_page_view,
                     name="sentry-customer-domain-document-integrations-settings",
