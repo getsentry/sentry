@@ -349,3 +349,62 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         )
 
         assert rule2_updated.data["actions"] == []
+
+    def test_existing_rule(self):
+        """
+        Don't add a new recipient from an API key if the recipient already exists.
+        """
+        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        org_integration.config = {
+            "team_table": [
+                {
+                    "id": str(self.organization.id) + "-pikachu",
+                    "team": "pikachu",
+                    "integration_key": "123-key",
+                },
+            ]
+        }
+        org_integration.save()
+
+        Rule.objects.create(
+            label="rule",
+            project=self.project,
+            data={
+                "match": "all",
+                "actions": [
+                    ALERT_LEGACY_INTEGRATIONS,
+                    {
+                        "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+                        "account": org_integration.id,
+                        "team": str(self.organization.id) + "-pikachu",
+                    },
+                ],
+            },
+        )
+        with self.tasks():
+            self.installation.schedule_migrate_opsgenie_plugin()
+
+        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        assert org_integration.config == {
+            "team_table": [
+                {
+                    "id": str(self.organization.id) + "-pikachu",
+                    "team": "pikachu",
+                    "integration_key": "123-key",
+                },
+            ]
+        }
+
+        rule_updated = Rule.objects.get(
+            label="rule",
+            project=self.project,
+        )
+
+        assert rule_updated.data["actions"] == [
+            ALERT_LEGACY_INTEGRATIONS,
+            {
+                "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+                "account": org_integration.id,
+                "team": str(self.organization.id) + "-pikachu",
+            },
+        ]
