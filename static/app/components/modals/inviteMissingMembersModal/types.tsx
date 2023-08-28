@@ -4,5 +4,5 @@ export type MissingMemberInvite = {
   externalId: string;
   role: string;
   selected: boolean;
-  teams: Set<string>;
+  teamSlugs: Set<string>;
 };

@@ -1,7 +1,8 @@
 import {Fragment, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {closeModal, ModalRenderProps} from 'sentry/actionCreators/modal';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Checkbox from 'sentry/components/checkbox';
@@ -24,27 +25,29 @@ import {space} from 'sentry/styles/space';
 import {MissingMember, Organization, OrgRole} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
+import withOrganization from 'sentry/utils/withOrganization';
 import {
   StyledExternalLink,
   Subtitle,
 } from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 export interface InviteMissingMembersModalProps extends ModalRenderProps {
-  invitableRoles: OrgRole[];
-  missingMembers: MissingMember[];
-  organization: Organization;
+  allowedRoles?: OrgRole[];
+  missingMembers?: {integration: string; users: MissingMember[]};
+  organization?: Organization;
 }
 
 export function InviteMissingMembersModal({
   missingMembers,
   organization,
-  invitableRoles,
+  allowedRoles,
+  closeModal,
 }: InviteMissingMembersModalProps) {
-  const initialMemberInvites = missingMembers?.map(member => ({
+  const initialMemberInvites = (missingMembers?.users || []).map(member => ({
     email: member.email,
     commitCount: member.commitCount,
-    role: organization.defaultRole,
-    teams: new Set<string>(),
+    role: organization?.defaultRole ?? 'member',
+    teamSlugs: new Set<string>(),
     externalId: member.externalId,
     selected: false,
   }));
@@ -56,10 +59,7 @@ export function InviteMissingMembersModal({
 
   const api = useApi();
 
-  if (
-    !memberInvites ||
-    (organization.access && !organization.access.includes('org:write'))
-  ) {
+  if (!memberInvites || !organization?.access.includes('org:write')) {
     return null;
   }
 
@@ -74,11 +74,11 @@ export function InviteMissingMembersModal({
     );
   };
 
-  const setTeams = (teams: string[], index: number) => {
+  const setTeams = (teamSlugs: string[], index: number) => {
     setMemberInvites(
       memberInvites.map((member, i) => {
         if (i === index) {
-          member.teams = new Set(teams);
+          member.teamSlugs = new Set(teamSlugs);
         }
         return member;
       })
@@ -136,12 +136,12 @@ export function InviteMissingMembersModal({
   const sendMemberInvite = async (invite: MissingMemberInvite) => {
     const data = {
       email: invite.email,
-      teams: [...invite.teams],
+      teams: [...invite.teamSlugs],
       role: invite.role,
     };
 
     try {
-      await api.requestPromise(`/organizations/${organization.slug}/members/`, {
+      await api.requestPromise(`/organizations/${organization?.slug}/members/`, {
         method: 'POST',
         data,
       });
@@ -175,13 +175,15 @@ export function InviteMissingMembersModal({
     setSendingInvites(false);
     setComplete(true);
 
-    trackAnalytics(
-      'missing_members_invite_modal.requests_sent',
-      {
-        organization,
-      },
-      {startSession: true}
-    );
+    if (organization) {
+      trackAnalytics(
+        'missing_members_invite_modal.requests_sent',
+        {
+          organization,
+        },
+        {startSession: true}
+      );
+    }
   };
 
   const selectedCount = memberInvites.filter(i => i.selected).length;
@@ -207,7 +209,7 @@ export function InviteMissingMembersModal({
         headers={[
           <Checkbox
             key={0}
-            aria-label={selectedAll ? 'Deselect All' : 'Select All'}
+            aria-label={selectedAll ? t('Deselect All') : t('Select All')}
             onChange={() => selectAll(!selectedAll)}
             checked={selectedAll}
           />,
@@ -237,7 +239,7 @@ export function InviteMissingMembersModal({
                 <ContentRow>
                   <IconGithub size="sm" />
                   <StyledExternalLink href={`http://github.com/${member.externalId}`}>
-                    {tct('@[userId]', {userId: member.externalId})}
+                    {member.externalId}
                   </StyledExternalLink>
                 </ContentRow>
                 <Subtitle>{member.email}</Subtitle>
@@ -250,11 +252,12 @@ export function InviteMissingMembersModal({
                 aria-label={t('Role')}
                 data-test-id="select-role"
                 disabled={false}
-                roles={invitableRoles}
+                roles={allowedRoles ?? []}
                 disableUnallowed
                 onChange={value => setRole(value?.value, i)}
               />
               <TeamSelector
+                organization={organization}
                 aria-label={t('Add to Team')}
                 data-test-id="select-teams"
                 disabled={false}
@@ -270,7 +273,12 @@ export function InviteMissingMembersModal({
       <Footer>
         <div>{renderStatusMessage()}</div>
         <ButtonBar gap={1}>
-          <Button size="sm" onClick={() => closeModal()} style={{marginRight: space(1)}}>
+          <Button
+            size="sm"
+            onClick={() => {
+              closeModal();
+            }}
+          >
             {t('Cancel')}
           </Button>
           <Button
@@ -278,7 +286,6 @@ export function InviteMissingMembersModal({
             priority="primary"
             aria-label={t('Send Invites')}
             onClick={sendInvites}
-            style={{marginRight: space(1)}}
             disabled={!canSend || selectedCount === 0}
           >
             {inviteButtonLabel()}
@@ -299,7 +306,7 @@ export function InviteMissingMembersModal({
   );
 }
 
-export default InviteMissingMembersModal;
+export default withOrganization(InviteMissingMembersModal);
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: max-content 1fr max-content 1fr 1fr;
@@ -329,4 +336,9 @@ const ContentRow = styled('div')`
   & > *:first-child {
     margin-right: ${space(0.75)};
   }
+`;
+
+export const modalCss = css`
+  width: 80%;
+  max-width: 870px;
 `;

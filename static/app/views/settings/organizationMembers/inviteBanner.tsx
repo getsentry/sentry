@@ -1,8 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
@@ -10,7 +9,6 @@ import Carousel from 'sentry/components/carousel';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import ExternalLink from 'sentry/components/links/externalLink';
-import InviteMissingMembersModal from 'sentry/components/modals/inviteMissingMembersModal';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -21,8 +19,9 @@ import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
-  invitableRoles: OrgRole[];
+  allowedRoles: OrgRole[];
   missingMembers: {integration: string; users: MissingMember[]};
+  onModalClose: () => void;
   onSendInvite: (email: string) => void;
   organization: Organization;
 };
@@ -31,7 +30,8 @@ export function InviteBanner({
   missingMembers,
   onSendInvite,
   organization,
-  invitableRoles,
+  allowedRoles,
+  onModalClose,
 }: Props) {
   // NOTE: this is currently used for Github only
 
@@ -127,9 +127,10 @@ export function InviteBanner({
   cards.push(
     <SeeMoreCard
       key="see-more"
-      missingUsers={users}
+      missingMembers={missingMembers}
+      allowedRoles={allowedRoles}
+      onModalClose={onModalClose}
       organization={organization}
-      invitableRoles={invitableRoles}
     />
   );
 
@@ -155,17 +156,14 @@ export function InviteBanner({
             priority="primary"
             size="xs"
             onClick={() =>
-              openModal(
-                deps => (
-                  <InviteMissingMembersModal
-                    {...deps}
-                    organization={organization}
-                    missingMembers={missingMembers.users}
-                    invitableRoles={invitableRoles}
-                  />
-                ),
-                {modalCss}
-              )
+              openInviteMissingMembersModal({
+                allowedRoles,
+                missingMembers,
+                onClose: () => {
+                  onModalClose();
+                },
+                organization,
+              })
             }
           >
             {t('View All')}
@@ -189,25 +187,33 @@ export function InviteBanner({
 export default withOrganization(InviteBanner);
 
 type SeeMoreCardProps = {
-  invitableRoles: OrgRole[];
-  missingUsers: MissingMember[];
+  allowedRoles: OrgRole[];
+  missingMembers: {integration: string; users: MissingMember[]};
+  onModalClose: () => void;
   organization: Organization;
 };
 
-function SeeMoreCard({missingUsers, organization, invitableRoles}: SeeMoreCardProps) {
+function SeeMoreCard({
+  missingMembers,
+  allowedRoles,
+  onModalClose,
+  organization,
+}: SeeMoreCardProps) {
+  const users = missingMembers.users;
+
   return (
     <MemberCard data-test-id="see-more-card">
       <MemberCardContent>
         <MemberCardContentRow>
           <SeeMore>
             {tct('See all [missingMembersCount] missing members', {
-              missingMembersCount: missingUsers.length,
+              missingMembersCount: users.length,
             })}
           </SeeMore>
         </MemberCardContentRow>
         <Subtitle>
           {tct('Accounting for [totalCommits] recent commits', {
-            totalCommits: missingUsers.reduce((acc, curr) => acc + curr.commitCount, 0),
+            totalCommits: users.reduce((acc, curr) => acc + curr.commitCount, 0),
           })}
         </Subtitle>
       </MemberCardContent>
@@ -215,17 +221,14 @@ function SeeMoreCard({missingUsers, organization, invitableRoles}: SeeMoreCardPr
         size="sm"
         priority="primary"
         onClick={() =>
-          openModal(
-            deps => (
-              <InviteMissingMembersModal
-                {...deps}
-                organization={organization}
-                missingMembers={missingUsers}
-                invitableRoles={invitableRoles}
-              />
-            ),
-            {modalCss}
-          )
+          openInviteMissingMembersModal({
+            allowedRoles,
+            missingMembers,
+            organization,
+            onClose: () => {
+              onModalClose();
+            },
+          })
         }
       >
         {t('View All')}
@@ -233,11 +236,6 @@ function SeeMoreCard({missingUsers, organization, invitableRoles}: SeeMoreCardPr
     </MemberCard>
   );
 }
-
-const modalCss = css`
-  width: 80%;
-  max-width: 870px;
-`;
 
 const StyledCard = styled(Card)`
   display: flex;
