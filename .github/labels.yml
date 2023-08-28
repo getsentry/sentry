@@ -163,6 +163,8 @@
   color: '8D5494'
 - name: 'Waiting for: Community'
   color: '8D5494'
+- name: 'Stale'
+  color: '8D5494'
 
 # Product Areas - www.notion.so/sentry/473791bae5bf43399d46093050b77bf0
 - name: 'Product Area: Unknown'
@@ -175,7 +177,11 @@
   color: '8D5494'
 - name: 'Product Area: Issues - Suggested Fix'
   color: '8D5494'
-- name: 'Product Area: Projects'
+- name: 'Product Area: Projects - Project Creation'
+  color: '8D5494'
+- name: 'Product Area: Projects - Project Details'
+  color: '8D5494'
+- name: 'Product Area: APIs'
   color: '8D5494'
 - name: 'Product Area: Performance'
   color: '8D5494'

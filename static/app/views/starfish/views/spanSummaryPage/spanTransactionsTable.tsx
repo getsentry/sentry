@@ -35,6 +35,7 @@ import {
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
+import type {ValidSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 
 type Row = {
   'avg(span.self_time)': number;
@@ -52,10 +53,6 @@ type Props = {
   >;
   endpoint?: string;
   endpointMethod?: string;
-};
-
-type ValidSort = Sort & {
-  field: keyof Row;
 };
 
 export type TableColumnHeader = GridColumnHeader<keyof Row>;

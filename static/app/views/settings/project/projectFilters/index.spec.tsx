@@ -35,7 +35,7 @@ describe('ProjectFilters', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `${PROJECT_URL}stats/`,
+      url: `/organizations/${organization.slug}/stats_v2/`,
       body: [],
     });
 

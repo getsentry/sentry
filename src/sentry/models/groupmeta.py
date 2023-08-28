@@ -4,6 +4,7 @@ from celery.signals import task_postrun
 from django.core.signals import request_finished
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.exceptions import CacheNotPopulated
@@ -91,7 +92,7 @@ class GroupMeta(Model):
     provided by plugins.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group")
     key = models.CharField(max_length=64)

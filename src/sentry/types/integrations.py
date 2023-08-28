@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Optional, Sequence, Set
 
 from sentry.services.hybrid_cloud import ValueEqualityEnum
@@ -24,16 +25,28 @@ class ExternalProviders(ValueEqualityEnum):
         return get_provider_name(self.value)
 
 
+class ExternalProviderEnum(Enum):
+    EMAIL = "email"
+    SLACK = "slack"
+    MSTEAMS = "msteams"
+    PAGERDUTY = "pagerduty"
+    DISCORD = "discord"
+    OPSGENIE = "opsgenie"
+    GITHUB = "github"
+    GITLAB = "gitlab"
+    CUSTOM = "custom_scm"
+
+
 EXTERNAL_PROVIDERS = {
-    ExternalProviders.EMAIL: "email",
-    ExternalProviders.SLACK: "slack",
-    ExternalProviders.MSTEAMS: "msteams",
-    ExternalProviders.PAGERDUTY: "pagerduty",
-    ExternalProviders.DISCORD: "discord",
-    ExternalProviders.OPSGENIE: "opsgenie",
-    ExternalProviders.GITHUB: "github",
-    ExternalProviders.GITLAB: "gitlab",
-    ExternalProviders.CUSTOM: "custom_scm",
+    ExternalProviders.EMAIL: ExternalProviderEnum.EMAIL.value,
+    ExternalProviders.SLACK: ExternalProviderEnum.SLACK.value,
+    ExternalProviders.MSTEAMS: ExternalProviderEnum.MSTEAMS.value,
+    ExternalProviders.PAGERDUTY: ExternalProviderEnum.PAGERDUTY.value,
+    ExternalProviders.DISCORD: ExternalProviderEnum.DISCORD.value,
+    ExternalProviders.OPSGENIE: ExternalProviderEnum.OPSGENIE.value,
+    ExternalProviders.GITHUB: ExternalProviderEnum.GITHUB.value,
+    ExternalProviders.GITLAB: ExternalProviderEnum.GITLAB.value,
+    ExternalProviders.CUSTOM: ExternalProviderEnum.CUSTOM.value,
 }
 
 

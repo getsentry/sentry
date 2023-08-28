@@ -12,9 +12,10 @@ from sentry.constants import ObjectStatus
 from sentry.models import Environment, Rule, RuleActivity, RuleActivityType
 from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
 from sentry.models.user import User
+from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 
@@ -50,9 +51,17 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
         assert len(response.data) == Rule.objects.filter(project=self.project).count()
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     method = "post"
+
+    def clean_data(self, data):
+        cleaned_data = []
+        for datum in data:
+            if datum.get("name"):
+                del datum["name"]
+            cleaned_data.append(datum)
+        return cleaned_data
 
     def run_test(
         self,
@@ -67,7 +76,8 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         **kwargs: Any,
     ):
         owner = get_actor_for_user(self.user).get_actor_identifier()
-        self.user = User.objects.get(id=self.user.id)  # reload user after setting actor
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user = User.objects.get(id=self.user.id)  # reload user after setting actor
         query_args = {}
         if "environment" in kwargs:
             query_args["environment"] = kwargs["environment"]
@@ -101,9 +111,15 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert rule.owner == get_actor_for_user(self.user)
         assert rule.data["action_match"] == action_match
         assert rule.data["filter_match"] == filter_match
-        assert rule.data["actions"] == actions
+
+        updated_actions = self.clean_data(actions)
+        assert rule.data["actions"] == updated_actions
+
+        if conditions:
+            updated_conditions = self.clean_data(conditions)
+
         assert rule.data["conditions"] == (
-            expected_conditions if expected_conditions is not None else conditions
+            expected_conditions if expected_conditions is not None else updated_conditions
         )
         assert rule.data["frequency"] == frequency
         assert rule.created_by_id == self.user.id
@@ -124,6 +140,22 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     def test_simple(self):
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+
+        self.run_test(actions=actions, conditions=conditions)
+
+    def test_with_name(self):
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "name": "A new issue is created",
+            }
+        ]
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+            }
+        ]
 
         self.run_test(actions=actions, conditions=conditions)
 
@@ -352,7 +384,10 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
     def test_with_filters(self):
         conditions: list[dict[str, Any]] = [
-            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "name": "A new issue is created",
+            }
         ]
         filters: list[dict[str, Any]] = [
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
@@ -457,8 +492,10 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             status_code=status.HTTP_202_ACCEPTED,
         )
 
-        self.user = User.objects.get(id=self.user.id)  # reload user to get actor
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user = User.objects.get(id=self.user.id)  # reload user to get actor
         assert not Rule.objects.filter(label=payload["name"]).exists()
+        payload["actions"][0].pop("name")
         kwargs = {
             "name": payload["name"],
             "owner": get_actor_id_for_user(self.user),

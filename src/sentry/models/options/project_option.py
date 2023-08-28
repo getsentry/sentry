@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Mapping, Sequence
 from django.db import models
 
 from sentry import projectoptions
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.manager import OptionManager, ValidateFunction, Value
@@ -144,7 +145,7 @@ class ProjectOption(Model):
     their key. e.g. key='myplugin:optname'
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project")
     key = models.CharField(max_length=64)
