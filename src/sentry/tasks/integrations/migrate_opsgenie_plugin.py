@@ -73,8 +73,6 @@ def migrate_opsgenie_plugin(integration_id: int, organization_id: int) -> None:
         },
     )
 
-    # config = organization_integration.config
-    # team_table = config["team_table"]
     # migrate alert rules
     for project in opsgenie_projects:
         api_key = plugin.get_option("api_key", project)
