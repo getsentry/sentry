@@ -77,12 +77,12 @@ class Line {
     this.indentation += 1;
   }
 
-  indentTo(level: number) {
-    this.indentation = level;
-  }
-
   unindent() {
     this.indentation -= 1;
+  }
+
+  indentTo(level: number) {
+    this.indentation = level;
   }
 
   toString() {
