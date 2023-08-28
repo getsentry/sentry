@@ -377,10 +377,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         if params is None:
             params = {}
 
-        extra_conditions = self.get_snql_extra_conditions()
-
         if environment:
-            extra_conditions.append(self._get_environment_condition(environment.name))
             params["environment"] = environment.name
 
         query = apply_dataset_query_conditions(self.query_type, query, None)
@@ -398,6 +395,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             skip_issue_validation=skip_issue_validation,
         )
 
+        extra_conditions = self.get_snql_extra_conditions()
         qb.add_conditions(extra_conditions)
 
         return qb
