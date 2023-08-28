@@ -96,7 +96,6 @@ const SPECIAL_MAPPING = {
   ProviderList: 'integrationListDirectory',
   BitbucketIntegrationConfig: 'integrationListDirectory',
   GitHubIntegration: 'githubIntegration',
-  GitHubRepositoryProvider: 'githubRepositoryProvider',
   GitHubIntegrationProvider: 'githubIntegrationProvider',
   GitHubIntegrationConfig: 'integrationListDirectory',
   OrgOwnedApps: 'integrationListDirectory',

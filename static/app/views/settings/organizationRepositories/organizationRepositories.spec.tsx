@@ -40,7 +40,7 @@ describe('OrganizationRepositories', function () {
         organization={org}
         itemList={[
           TestStubs.Repository({
-            provider: TestStubs.GitHubRepositoryProvider({id: 'github'}),
+            provider: {id: 'github', name: 'GitHub'},
           }),
         ]}
         {...routerProps}

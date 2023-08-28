@@ -71,12 +71,10 @@ type TestStubFixtures = {
   GitHubIntegration: OverridableStub;
   GitHubIntegrationConfig: SimpleStub;
   GitHubIntegrationProvider: OverridableStub;
-  GitHubRepositoryProvider: OverridableStub;
   GlobalSelection: OverridableStub;
   Group: OverridableStub;
   GroupStats: OverridableStub;
   GroupingConfigs: SimpleStub;
-  GroupingEnhancements: SimpleStub;
   Groups: SimpleStub;
   HiddenEnvironments: SimpleStub;
   Incident: OverridableStub;
