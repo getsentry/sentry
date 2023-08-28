@@ -397,6 +397,8 @@ const Actions = styled('div')`
   width: 100%;
 `;
 
+// Style the modals document and section elements as flex containers
+// to allow the list of frameworks to dynamically grow and shrink with the dialog / screen height
 export const modalCss = css`
   [role='document'] {
     display: flex;
