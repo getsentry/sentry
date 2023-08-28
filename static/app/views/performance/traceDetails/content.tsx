@@ -199,7 +199,7 @@ class TraceDetailsContent extends Component<Props, State> {
         <TraceSearchBar
           defaultQuery=""
           query={this.state.searchQuery || ''}
-          placeholder={t('Search for transactions')}
+          placeholder={t('Search for events')}
           onSearch={this.handleTransactionFilter}
         />
       </TraceSearchContainer>
@@ -268,9 +268,6 @@ class TraceDetailsContent extends Component<Props, State> {
 
     let warning: React.ReactNode = null;
 
-    const hasOnlyOrphanErrors =
-      hasTraceData(traces, orphanErrors) && (!traces || traces.length <= 0);
-
     if (roots === 0 && orphans > 0) {
       warning = (
         <Alert type="info" showIcon>
@@ -299,14 +296,14 @@ class TraceDetailsContent extends Component<Props, State> {
           </ExternalLink>
         </Alert>
       );
-    } else if (hasOnlyOrphanErrors) {
+    } else if (orphanErrors && orphanErrors.length > 1) {
       warning = (
         <Alert type="info" showIcon>
           {tct(
-            "The good news is we know these errors are related to each other. The bad news is you haven't enabled tracing to tell you more than that. [tracingLink: Configure Tracing]",
+            "The good news is we know these errors are related to each other. The bad news is that we can't tell you more than that. If you haven't already, [tracingLink: configure tracing for your SDKs] to learn more about service interactions.",
             {
               tracingLink: (
-                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/distributed-tracing/" />
+                <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
               ),
             }
           )}

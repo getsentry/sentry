@@ -1,3 +1,4 @@
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
@@ -10,7 +11,7 @@ class ProjectIntegration(Model):
      Project Integrations.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
     integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")

@@ -12,6 +12,23 @@ import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView, {AsyncViewProps} from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
+// The avatar endpoint ("/users/me/avatar/") returns a User-like type without `options` and other properties that are present in User
+export type ChangeAvatarUser = Omit<
+  User,
+  'canReset2fa' | 'flags' | 'identities' | 'isAuthenticated' | 'options' | 'permissions'
+> &
+  Partial<
+    Pick<
+      User,
+      | 'canReset2fa'
+      | 'flags'
+      | 'identities'
+      | 'isAuthenticated'
+      | 'options'
+      | 'permissions'
+    >
+  >;
+
 const ENDPOINT = '/users/me/';
 
 interface Props extends AsyncViewProps {
@@ -24,7 +41,7 @@ class AccountDetails extends DeprecatedAsyncView<Props> {
     return [['user', ENDPOINT]];
   }
 
-  handleSubmitSuccess = (user: User) => {
+  handleSubmitSuccess = (user: User | ChangeAvatarUser) => {
     // the updateUser method updates our Config Store
     // No components listen to the ConfigStore, they just access it directly
     updateUser(user);
@@ -66,7 +83,7 @@ class AccountDetails extends DeprecatedAsyncView<Props> {
           endpoint="/users/me/avatar/"
           model={user}
           onSave={resp => {
-            this.handleSubmitSuccess(resp as User);
+            this.handleSubmitSuccess(resp as ChangeAvatarUser);
           }}
           isUser
         />
