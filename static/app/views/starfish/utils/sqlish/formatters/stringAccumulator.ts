@@ -29,7 +29,7 @@ export class StringAccumulator {
     this.lines.push(new Line());
   }
 
-  indent(level: number = 1) {
+  indentTo(level: number = 1) {
     this.lastLine.indentTo(level);
   }
 
