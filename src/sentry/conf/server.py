@@ -118,6 +118,7 @@ SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
 SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER = "default"
 SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_MONITORS_REDIS_CLUSTER = "default"
+SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -1312,7 +1313,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "CONTACT": {"email": "partners@sentry.io"},
         "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
         "VERSION": "v0",
-        "SERVERS": [{"url": "https://sentry.io/"}],
+        "SERVERS": [{"url": "https://sentry.io"}],
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
         "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
@@ -1323,6 +1324,8 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
 SENTRY_FEATURES = {
+    # Prevents entirely numeric resource slugs
+    "app:enterprise-prevent-numeric-slugs": False,
     # Enables user registration.
     "auth:register": True,
     # Enables actionable items alerts and endpoint
@@ -1600,24 +1603,32 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enable Sentry Functions
     "organizations:sentry-functions": False,
-    # Enable experimental session replay backend APIs
+    # Enable core Session Replay backend APIs
     "organizations:session-replay": False,
-    # Enable Session Replay showing in the sidebar
+    # Enable core Session Replay link in the sidebar
     "organizations:session-replay-ui": True,
-    # Enable experimental session replay SDK for recording on Sentry
+    # Enable core Session Replay SDK for recording on sentry.io
     "organizations:session-replay-sdk": False,
+    # Enable core Session Replay SDK for recording onError events on sentry.io
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
+    # Enable the Replay Details > Accessibility tab
+    "organizations:session-replay-a11y-tab": False,
     # Enable linking from 'new issue' slack notifs to the issue replay list
     "organizations:session-replay-slack-new-issue": False,
+    # Enable linking from 'new issue' email notifs to the issue replay list
     "organizations:session-replay-issue-emails": False,
-    "organizations:session-replay-weekly-email": False,
-    "organizations:session-replay-trace-table": False,
     # Enable optimized serach feature.
     "organizations:session-replay-optimized-search": False,
     # Enable replay event linking in event processing
     "organizations:session-replay-event-linking": False,
+    # Enable linking from 'weekly email' summaries to the issue replay list
+    "organizations:session-replay-weekly-email": False,
+    # Enable the Replay Details > Performance tab
+    "organizations:session-replay-trace-table": False,
+    # Enable the AM1 trial ended banner on sentry.io
+    "organizations:session-replay-trial-ended-banner": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -1699,8 +1710,6 @@ SENTRY_FEATURES = {
     "organizations:org-roles-for-teams": False,
     # Enable new JS SDK Dynamic Loader
     "organizations:js-sdk-dynamic-loader": False,
-    # If true, allow to create/use org auth tokens
-    "organizations:org-auth-tokens": False,
     # Enable detecting SDK crashes during event processing
     "organizations:sdk-crash-detection": False,
     # Enable functionality for recap server polling.
@@ -1715,6 +1724,8 @@ SENTRY_FEATURES = {
     "projects:custom-inbound-filters": False,
     # Enable the new flat file indexing system for sourcemaps.
     "organizations:sourcemaps-bundle-flat-file-indexing": False,
+    # Upload release bundles as artifact bundles.
+    "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
     # Signals that the organization can start prefilling on demand metrics.
