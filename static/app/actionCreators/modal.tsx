@@ -11,7 +11,9 @@ import type {
   Event,
   Group,
   IssueOwnership,
+  MissingMember,
   Organization,
+  OrgRole,
   Project,
   SentryApp,
   Team,
@@ -56,6 +58,13 @@ type InviteMembersModalOptions = {
   initialData?: Partial<InviteRow>[];
   onClose?: () => void;
   source?: string;
+};
+
+type InviteMissingMembersModalOptions = {
+  allowedRoles?: OrgRole[];
+  missingMembers?: {integration: string; users: MissingMember[]};
+  onClose?: () => void;
+  organization?: Organization;
 };
 
 export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
@@ -241,6 +250,16 @@ export async function openInviteMembersModal({
   ...args
 }: InviteMembersModalOptions = {}) {
   const mod = await import('sentry/components/modals/inviteMembersModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...args} />, {modalCss, onClose});
+}
+
+export async function openInviteMissingMembersModal({
+  onClose,
+  ...args
+}: InviteMissingMembersModalOptions = {}) {
+  const mod = await import('sentry/components/modals/inviteMissingMembersModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...args} />, {modalCss, onClose});
