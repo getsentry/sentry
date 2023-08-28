@@ -159,6 +159,40 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
         self.run_test(actions=actions, conditions=conditions)
 
+    def test_pre_save(self):
+        """Test that a rule with name data in the conditions and actions is saved without it"""
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "name": "A new issue is created",
+            }
+        ]
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+            }
+        ]
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="hello world",
+            owner=f"user:{self.user.id}",
+            environment=None,
+            actionMatch="any",
+            frequency=5,
+            actions=actions,
+            conditions=conditions,
+            status_code=status.HTTP_200_OK,
+        )
+        rule = Rule.objects.get(id=response.data.get("id"))
+        assert rule.data["actions"][0] == {
+            "id": "sentry.rules.actions.notify_event.NotifyEventAction"
+        }
+        assert rule.data["conditions"][0] == {
+            "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"
+        }
+
     def test_with_environment(self):
         Environment.get_or_create(self.project, "production")
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]

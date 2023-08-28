@@ -1,4 +1,6 @@
 from django.conf import settings
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,6 +20,18 @@ from sentry.rules.processor import is_condition_slow
 from sentry.signals import alert_rule_created
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.web.decorators import transaction_start
+
+
+def clean_rule_data(data):
+    for datum in data:
+        if datum.get("name"):
+            del datum["name"]
+
+
+@receiver(pre_save, sender=Rule)
+def pre_save_rule(instance, sender, *args, **kwargs):
+    clean_rule_data(instance.data.get("conditions", []))
+    clean_rule_data(instance.data.get("actions", []))
 
 
 @region_silo_endpoint
