@@ -763,6 +763,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 batch_size=5,
             )
         # Check unmerge counts
+        sleep(1)  # Sleep to allow snuba to update
         primary, dest = list(Group.objects.all())
         primary_unmerge_hour_count = get_group_hourly_count(primary)
         past_counts = query_groups_past_counts(list(Group.objects.all()))
@@ -870,6 +871,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 batch_size=5,
             )
         # Check unmerge counts
+        sleep(1)  # Sleep to allow snuba to update
         primary, new_child = list(Group.objects.all())
         primary_unmerge_hour_count = get_group_hourly_count(primary)
         past_counts = query_groups_past_counts(list(Group.objects.all()))

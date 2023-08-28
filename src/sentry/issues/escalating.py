@@ -274,13 +274,12 @@ def get_hourly_count_unmerged_group(group: Group) -> Optional[int]:
     groups involved in the unmerge to get accurate event counts due to a Clickhouse bug.
     """
     # Check if the group is a source groups involved in an unmerge in the last 24 hrs
+    org_id = group.project.organization.id
     project_id = group.project.id
-    source_key = f"source-groups:{project_id}"
-    source_ids = cache.get(source_key)
+    unmerge_key = f"unmerged-groups:{org_id}:{project_id}:{group.id}"
+    unmerge_groups_ids = cache.get(unmerge_key)
 
-    if source_ids and group.id in source_ids:
-        unmerge_key = f"unmerged-groups:{project_id}:{group.id}"
-        unmerge_groups_ids = cache.get(unmerge_key)
+    if unmerge_groups_ids:
         unmerge_groups = Group.objects.filter(project=group.project, id__in=unmerge_groups_ids)
         unmerge_groups_counts = query_groups_past_counts(unmerge_groups)
         parsed_unmerge_groups_counts = parse_groups_past_counts(unmerge_groups_counts)

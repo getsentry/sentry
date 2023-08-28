@@ -4,6 +4,7 @@ This module is for helper functions for escalating issues forecasts.
 
 import logging
 from datetime import datetime
+from itertools import chain
 from typing import Sequence
 
 from sentry import analytics
@@ -57,18 +58,17 @@ def generate_and_save_forecasts(groups: Sequence[Group]) -> None:
     # If a group was a source group in an unmerge in the last 24 hr, then we must query all the
     # groups involved in the unmerge to get accurate event counts due to a Clickhouse bug.
     if groups:
-        project_id = groups[0].project.id
-        source_key = f"source-groups:{project_id}"
-        source_ids = cache.get(source_key)
-        if source_ids:
-            source_groups_ids = [id for id in groups if id in source_ids]
-            for source_id in source_groups_ids:
-                unmerge_key = f"unmerged-groups:{project_id}:{source_id}"
-                unmerge_groups_ids = cache.get(unmerge_key)
-                unmerge_groups = Group.objects.filter(
-                    project=groups[0].project, id__in=unmerge_groups_ids
-                )
-                groups = groups + unmerge_groups
+        org_id = groups[0].project.organization.id
+        unmerged_keys = [
+            key.partition("unmerged-groups")[1] + key.partition("unmerged-groups")[2]
+            for key in cache._cache.keys()
+            if "unmerged-groups:" + str(org_id) + ":" in key
+        ]
+        for key in unmerged_keys:
+            unmerge_groups_ids = cache.get(key)
+            if unmerge_groups_ids:
+                unmerge_groups = Group.objects.filter(id__in=unmerge_groups_ids)
+                groups = set(chain(groups, unmerge_groups))
 
     past_counts = query_groups_past_counts(groups)
     group_counts = parse_groups_past_counts(past_counts)

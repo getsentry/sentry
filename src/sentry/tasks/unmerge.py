@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from functools import reduce
-from typing import Any, Mapping, Optional, Tuple
+from typing import Any, List, Mapping, Optional, Tuple
 
 from django.db import router, transaction
 
@@ -549,17 +549,16 @@ def unmerge(*posargs, **kwargs):
 
             # Save groups involved in unmerge to cache for 24 hours until snuba updates
             # This is needed to get accurate event counts due to a Clickhouse bug
-            source_key = f"source-groups:{source.project.id}"
-            source_ids = utils_cache.get(source_key)
-            if source_ids:
-                source_ids.append(source.id)
-            else:
-                source_ids = [source.id]
-            utils_cache.set(source_key, source_ids, SOURCE_MERGE_GROUPS_TTL)
-            unmerge_key = f"unmerged-groups:{source.project.id}:{source.id}"
+            unmerge_key = (
+                f"unmerged-groups:{source.project.organization.id}:{source.project.id}:{source.id}"
+            )
             utils_cache.set(unmerge_key, unmerged_groups_ids, SOURCE_MERGE_GROUPS_TTL)
 
-            generate_and_save_forecasts(unmerged_groups)
+            regenerate_unmerged_groups_forecast.apply_async(
+                kwargs={"group_ids": unmerged_groups_ids, "project_id": source.project.id},
+                queue="unmerge",
+                countdown=60,
+            )
         return
 
     source_events = []
@@ -617,3 +616,13 @@ def unmerge(*posargs, **kwargs):
     )
 
     unmerge.delay(**new_args.dump_arguments())
+
+
+@instrumented_task(
+    name="sentry.tasks.unmerge.regenerate_unmerged_groups_forecast",
+    queue="unmerge",
+    max_retries=None,
+)
+def regenerate_unmerged_groups_forecast(group_ids: List[int], project_id: int, **kwargs) -> None:
+    unmerged_groups = Group.objects.filter(project=project_id, id__in=group_ids)
+    generate_and_save_forecasts(unmerged_groups)
