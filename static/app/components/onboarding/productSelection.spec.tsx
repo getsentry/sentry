@@ -232,4 +232,40 @@ describe('Onboarding Product Selection', function () {
       })
     );
   });
+
+  it('renders npm & yarn info text', function () {
+    const {routerContext} = initializeOrg({
+      router: {
+        location: {
+          query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
+        },
+        params: {},
+      },
+    });
+
+    render(<ProductSelection platform="javascript-react" />, {
+      context: routerContext,
+    });
+
+    expect(screen.queryByText('npm')).toBeInTheDocument();
+    expect(screen.queryByText('yarn')).toBeInTheDocument();
+  });
+
+  it('does not render npm & yarn info text', function () {
+    const {routerContext} = initializeOrg({
+      router: {
+        location: {
+          query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
+        },
+        params: {},
+      },
+    });
+
+    render(<ProductSelection platform="python-django" />, {
+      context: routerContext,
+    });
+
+    expect(screen.queryByText('npm')).not.toBeInTheDocument();
+    expect(screen.queryByText('yarn')).not.toBeInTheDocument();
+  });
 });

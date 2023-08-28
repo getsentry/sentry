@@ -243,18 +243,25 @@ export function ProductSelection({
     return null;
   }
 
+  // TODO(aknaus): clean up
+  // The package manager info is only shown for javascript platforms
+  // until we improve multi snippet suppport
+  const showPackageManagerInfo = platform?.indexOf('javascript') === 0;
+
   return (
     <Fragment>
-      <TextBlock>
-        {lazyLoader
-          ? tct('In this quick guide you’ll use our [loaderScript] to set up:', {
-              loaderScript: <strong>Loader Script</strong>,
-            })
-          : tct('In this quick guide you’ll use [npm] or [yarn] to set up:', {
-              npm: <strong>npm</strong>,
-              yarn: <strong>yarn</strong>,
-            })}
-      </TextBlock>
+      {showPackageManagerInfo && (
+        <TextBlock>
+          {lazyLoader
+            ? tct('In this quick guide you’ll use our [loaderScript] to set up:', {
+                loaderScript: <strong>Loader Script</strong>,
+              })
+            : tct('In this quick guide you’ll use [npm] or [yarn] to set up:', {
+                npm: <strong>npm</strong>,
+                yarn: <strong>yarn</strong>,
+              })}
+        </TextBlock>
+      )}
       <Products>
         <Product
           label={t('Error Monitoring')}
@@ -316,7 +323,7 @@ export function ProductSelection({
           />
         )}
       </Products>
-      {lazyLoader && (
+      {showPackageManagerInfo && lazyLoader && (
         <AlternativeInstallationAlert type="info" showIcon>
           {tct('Prefer to set up Sentry using [npm:npm] or [yarn:yarn]? [goHere].', {
             npm: <strong />,
