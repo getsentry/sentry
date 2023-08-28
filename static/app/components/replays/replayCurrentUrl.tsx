@@ -33,12 +33,10 @@ function ReplayCurrentUrl() {
     return (
       <Tooltip
         title={t(
-          'Copy is disabled because the URL contains filtered content, which can cause it to be invalid.'
+          'Warning! This URL contains content scrubbed by our PII filters and may no longer be valid.'
         )}
       >
-        <TextCopyInput size="sm" disabled>
-          {url}
-        </TextCopyInput>
+        <TextCopyInput size="sm">{url}</TextCopyInput>
       </Tooltip>
     );
   }
