@@ -1621,6 +1621,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-issue-emails": False,
     # Enable optimized serach feature.
     "organizations:session-replay-optimized-search": False,
+    # Enable replay event linking in event processing
+    "organizations:session-replay-event-linking": False,
     # Enable linking from 'weekly email' summaries to the issue replay list
     "organizations:session-replay-weekly-email": False,
     # Enable the Replay Details > Performance tab
