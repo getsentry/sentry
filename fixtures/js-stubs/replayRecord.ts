@@ -53,6 +53,7 @@ export function ReplayRecord(replayRecord: Partial<TReplayRecord> = {}): TReplay
       ...replayRecord.tags,
       'browser.name': [replayRecord.browser?.name ?? 'Other'],
       'device.family': [replayRecord.device?.family ?? 'Other'],
+      environment: ['demo'],
       'os.name': [replayRecord.os?.name ?? 'Other'],
       platform: [replayRecord.platform ?? 'javascript'],
       releases: replayRecord.releases ?? ['1.0.0', '2.0.0'],
