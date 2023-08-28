@@ -19,7 +19,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.issues.grouptype import PerformanceP95TransactionDurationRegressionGroupType
-from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import produce_occurrence_to_kafka
 from sentry.net.http import connection_from_url
 from sentry.search.events.constants import METRICS_GRANULARITIES
@@ -375,6 +375,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 if (
                     request.GET.get("statsPeriod", None) == "14d"
                     and trend.get("change", None) == "regression"
+                    # trends >50%
                     and (trend.get("trend_percentage", None) - 1) >= 0.5
                     and trend_function == "p95(transaction.duration)"
                 ):
@@ -382,8 +383,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
             current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
             for qualifying_trend in qualifying_trends:
-                old_baseline = round(float(qualifying_trend["aggregate_range_1"]), 2)
-                new_baseline = round(float(qualifying_trend["aggregate_range_2"]), 2)
+                displayed_old_baseline = round(float(qualifying_trend["aggregate_range_1"]), 2)
+                displayed_new_baseline = round(float(qualifying_trend["aggregate_range_2"]), 2)
 
                 project_id = next(
                     transaction["project_id"]
@@ -400,10 +401,21 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     fingerprint=[fingerprint_regression(qualifying_trend)],
                     type=PerformanceP95TransactionDurationRegressionGroupType,
                     issue_title=PerformanceP95TransactionDurationRegressionGroupType.description,
-                    subtitle=f"Transaction duration changed from {old_baseline} ms to {new_baseline} ms",
+                    subtitle=f"Transaction duration changed from {displayed_old_baseline} ms to {displayed_new_baseline} ms",
                     culprit=qualifying_trend["transaction"],
                     evidence_data=qualifying_trend,
-                    evidence_display={},
+                    evidence_display={
+                        IssueEvidence(
+                            name="Transaction",
+                            value=qualifying_trend["transaction"],
+                            important=True,
+                        ),
+                        IssueEvidence(
+                            name="Regression",
+                            value=f"Transaction duration changed from {displayed_old_baseline} ms to {displayed_new_baseline} ms",
+                            important=True,
+                        ),
+                    },
                     detection_time=current_timestamp,
                     level="info",
                 )
