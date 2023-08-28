@@ -180,7 +180,7 @@ def test_detect_transaction_trends_options(
     project,
 ):
     with override_options({"statistical_detectors.enable": enabled}):
-        detect_transaction_trends([project.id])
+        detect_transaction_trends([project.id], timestamp)
     assert query_transactions.called == enabled
 
 

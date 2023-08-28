@@ -74,7 +74,7 @@ def run_detection() -> None:
     queue="performance.statistical_detector",
     max_retries=0,
 )
-def detect_transaction_trends(project_ids: List[int], **kwargs) -> None:
+def detect_transaction_trends(project_ids: List[int], start: datetime, **kwargs) -> None:
     if not options.get("statistical_detectors.enable"):
         return
 
