@@ -325,7 +325,6 @@ class PerformanceP95TransactionDurationRegressionGroupType(PerformanceGroupTypeD
     description = "P95 Transaction Duration Regression"
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
-    # released = True
 
 
 # 2000 was ProfileBlockingFunctionMainThreadType

@@ -484,7 +484,6 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
     @with_feature(
         {"organizations:issue-platform": True, "organizations:performance-trends-issues": True}
     )
-    # @mock.patch("sentry.api.endpoints.organization_events_trends_v2.datetime")
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.produce_occurrence_to_kafka")
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.get_trends")
     def test_issue_creation_simple(self, mock_get_trends, mock_produce_occurrence_to_kafka):
