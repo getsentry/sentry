@@ -213,6 +213,7 @@ class FunctionsQueryTest(ProfilesSnubaTestCase):
         assert results == {
             self.project.id: [
                 TrendPayload(
+                    project_id=self.project.id,
                     group=self.function_fingerprint({"package": "foo", "function": "bar"}),
                     count=100,
                     value=pytest.approx(100),  # type: ignore[arg-type]
