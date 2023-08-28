@@ -30,7 +30,7 @@ export function Block({title, description, children}: Props) {
 export const BlockContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(2)};
+  gap: ${space(4)};
 `;
 
 const BlockWrapper = styled('div')`
