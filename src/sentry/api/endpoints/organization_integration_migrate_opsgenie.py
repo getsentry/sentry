@@ -31,5 +31,5 @@ class OrganizationIntegrationMigrateOpsgenieEndpoint(RegionOrganizationIntegrati
         installation = integration.get_installation(organization_id=organization.id)
         if isinstance(installation, OpsgenieIntegration):
             installation.schedule_migrate_opsgenie_plugin()
-            return Response(status=204)
+            return Response(status=202)
         return Response(status=400)

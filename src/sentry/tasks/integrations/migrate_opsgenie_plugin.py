@@ -32,7 +32,12 @@ def migrate_opsgenie_plugin(integration_id: int, organization_id: int) -> None:
     if not organization_integration:
         raise OrganizationIntegration.DoesNotExist
 
-    seen_keys = {team["integration_key"] for team in organization_integration.config["team_table"]}
+    config = organization_integration.config
+    team_table = config["team_table"]
+
+    seen_keys = {}
+    for i in range(len(config["team_table"])):
+        seen_keys[team_table[i]["integration_key"]] = i
 
     all_projects = Project.objects.filter(organization_id=organization_id)
     plugin = OpsGeniePlugin()
@@ -40,13 +45,11 @@ def migrate_opsgenie_plugin(integration_id: int, organization_id: int) -> None:
         p for p in all_projects if plugin.is_enabled(project=p) and plugin.is_configured(project=p)
     ]
 
+    # migrate keys
     for project in opsgenie_projects:
-        # migrate key
-        config = organization_integration.config
-        team_table = config["team_table"]
         api_key = plugin.get_option("api_key", project)
-        if api_key not in seen_keys:
-            seen_keys.add(api_key)
+        if seen_keys.get(api_key) is None:
+            seen_keys[api_key] = len(team_table)
             team = {
                 "team": f"{project.name} [MIGRATED]",
                 "id": f"{str(organization_id)}-{project.name}",
@@ -54,35 +57,28 @@ def migrate_opsgenie_plugin(integration_id: int, organization_id: int) -> None:
             }
             team_table.append(team)
             config.update({"team_table": team_table})
-            oi = integration_service.update_organization_integration(
-                org_integration_id=organization_integration.id, config=config
-            )
-            if not oi:  # the call to update_organization_integration failed
-                raise Exception("Failed to update team table.")
-            logger.info(
-                "api_key.migrated",
-                extra={
-                    "integration_id": integration_id,
-                    "organization_id": organization_id,
-                    "project_id": project.id,
-                    "team_name": team["team"],
-                    "plugin": plugin.slug,
-                },
-            )
-        else:
-            team = [team for team in team_table if team["integration_key"] == api_key][0]
-            logger.info(
-                "api_key.key_already_exists",
-                extra={
-                    "integration_id": integration_id,
-                    "organization_id": organization_id,
-                    "project_id": project.id,
-                    "team_name": team["team"],
-                    "plugin": plugin.slug,
-                },
-            )
 
-        # migrate alert rules
+    oi = integration_service.update_organization_integration(
+        org_integration_id=organization_integration.id, config=config
+    )
+    if not oi:  # the call to update_organization_integration failed
+        raise Exception("Failed to update team table.")
+    logger.info(
+        "api_keys.migrated",
+        extra={
+            "integration_id": integration_id,
+            "organization_id": organization_id,
+            "project_id": project.id,
+            "plugin": plugin.slug,
+        },
+    )
+
+    # config = organization_integration.config
+    # team_table = config["team_table"]
+    # migrate alert rules
+    for project in opsgenie_projects:
+        api_key = plugin.get_option("api_key", project)
+        team = team_table[seen_keys[api_key]]
         rules_to_migrate = [
             rule
             for rule in Rule.objects.filter(project_id=project.id)

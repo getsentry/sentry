@@ -8,6 +8,7 @@ from sentry.integrations.opsgenie.integration import OpsgenieIntegrationProvider
 from sentry.models import Rule
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.tasks.integrations.migrate_opsgenie_plugin import ALERT_LEGACY_INTEGRATIONS
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
@@ -124,12 +125,6 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         assert installation.get_config_data() == {
             "team_table": [{"id": team_id, "team": "cool-team", "integration_key": "1234"}]
         }
-
-
-ALERT_LEGACY_INTEGRATIONS = {
-    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-    "name": "Send a notification (for all legacy integrations)",
-}
 
 
 class OpsgenieMigrationIntegrationTest(APITestCase):
