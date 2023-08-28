@@ -4311,9 +4311,9 @@ caniuse-api@^3.0.0:
     lodash.uniq "^4.5.0"
 
 caniuse-lite@^1.0.0, caniuse-lite@^1.0.30001283, caniuse-lite@^1.0.30001449:
-  version "1.0.30001473"
-  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001473.tgz#3859898b3cab65fc8905bb923df36ad35058153c"
-  integrity sha512-ewDad7+D2vlyy+E4UJuVfiBsU69IL+8oVmTuZnH5Q6CIUbxNfI50uVpRHbUPDD6SUaN2o0Lh4DhTrvLG/Tn1yg==
+  version "1.0.30001523"
+  resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001523.tgz"
+  integrity sha512-I5q5cisATTPZ1mc588Z//pj/Ox80ERYDfR71YnvY7raS/NOk8xXlZcB0sF7JdqaV//kOaa6aus7lRfpdnt1eBA==
 
 cbor-web@^8.1.0:
   version "8.1.0"
@@ -9265,11 +9265,6 @@ pure-rand@^6.0.0:
   version "6.0.2"
   resolved "https://registry.yarnpkg.com/pure-rand/-/pure-rand-6.0.2.tgz#a9c2ddcae9b68d736a8163036f088a2781c8b306"
   integrity sha512-6Yg0ekpKICSjPswYOuC5sku/TSWaRYlA0qsXqJgM/d/4pLPHPuTxK7Nbf7jFKzAeedUhR8C7K9Uv63FBsSo8xQ==
-
-pyright@1.1.255:
-  version "1.1.255"
-  resolved "https://registry.yarnpkg.com/pyright/-/pyright-1.1.255.tgz#a0a5e99c9c84bfc93f3f3ac63a1265c8ed85c47d"
-  integrity sha512-pAec1Mqyq0l0+C6JH7o7Va0oWyZVACEFgP2cWD9DU/C1epoqZAt/PCRbae/7fFfn7ZGew5tiTMdtO/2RZO/cRg==
 
 qrcode.react@^3.1.0:
   version "3.1.0"

@@ -11,7 +11,6 @@ from sentry.testutils.cases import TestCase
 
 class AvailableOnTest(TestCase):
     class TestModel(Model):
-        __include_in_export__ = False
         __relocation_scope__ = RelocationScope.Excluded
 
         class Meta:

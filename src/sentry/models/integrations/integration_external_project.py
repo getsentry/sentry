@@ -7,7 +7,6 @@ from sentry.db.models import BoundedPositiveIntegerField, Model, control_silo_on
 
 @control_silo_only_model
 class IntegrationExternalProject(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_integration_id = BoundedPositiveIntegerField(db_index=True)

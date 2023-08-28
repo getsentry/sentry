@@ -7,7 +7,6 @@ from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
 
 @region_silo_only_model
 class ProjectRedirect(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     redirect_slug = models.SlugField(db_index=True)

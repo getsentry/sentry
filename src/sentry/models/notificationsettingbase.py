@@ -8,7 +8,6 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 
 
 class NotificationSettingBase(DefaultFieldsModel):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     scope_type = models.CharField(max_length=32, null=False)

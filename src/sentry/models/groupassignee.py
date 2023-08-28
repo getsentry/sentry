@@ -151,7 +151,6 @@ class GroupAssignee(Model):
     aggregated event (Group).
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     objects = GroupAssigneeManager()

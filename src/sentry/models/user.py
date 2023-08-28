@@ -69,7 +69,6 @@ class UserManager(BaseManager, DjangoUserManager):
 
 @control_silo_only_model
 class User(BaseModel, AbstractBaseUser):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.User
 
     id = BoundedBigAutoField(primary_key=True)

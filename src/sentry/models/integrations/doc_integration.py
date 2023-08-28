@@ -11,7 +11,6 @@ class DocIntegration(Model):
     Document based integrations can be found in Sentry, but are installed via code change.
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     name = models.CharField(max_length=64)

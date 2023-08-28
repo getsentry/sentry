@@ -70,7 +70,6 @@ class ExternalIssueManager(BaseManager):
 
 @region_silo_only_model
 class ExternalIssue(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     # The foreign key here is an `int`, not `bigint`.

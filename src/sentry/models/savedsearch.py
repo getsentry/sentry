@@ -55,7 +55,6 @@ class SavedSearch(Model):
     A saved search query.
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
     organization = FlexibleForeignKey("sentry.Organization", null=True)
     type = models.PositiveSmallIntegerField(default=SearchType.ISSUE.value, null=True)

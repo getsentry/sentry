@@ -100,7 +100,6 @@ const organizationNavigation: NavigationSection[] = [
         title: t('Auth Tokens'),
         description: t('Manage organization auth tokens'),
         id: 'auth-tokens',
-        show: ({features}) => features!.has('org-auth-tokens'),
       },
       {
         path: `${pathPrefix}/developer-settings/`,

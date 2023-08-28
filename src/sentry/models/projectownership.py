@@ -33,7 +33,6 @@ _Everyone = enum.Enum("_Everyone", "EVERYONE")
 
 @region_silo_only_model
 class ProjectOwnership(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project", unique=True)

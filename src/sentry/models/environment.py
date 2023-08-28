@@ -22,7 +22,6 @@ OK_NAME_PATTERN = re.compile(ENVIRONMENT_NAME_PATTERN)
 
 @region_silo_only_model
 class EnvironmentProject(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project")
@@ -37,7 +36,6 @@ class EnvironmentProject(Model):
 
 @region_silo_only_model
 class Environment(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     organization_id = BoundedBigIntegerField()

@@ -11,7 +11,6 @@ class GroupRedirect(Model):
     deleted) to the group that superseded it.
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(null=True)

@@ -39,7 +39,6 @@ class ProjectTeamManager(BaseManager):
 
 @region_silo_only_model
 class ProjectTeam(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project")
