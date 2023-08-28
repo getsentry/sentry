@@ -29,7 +29,7 @@ describe('InviteMissingMembersModal', function () {
   const team = TestStubs.Team();
   const org = TestStubs.Organization({access: ['member:write'], teams: [team]});
   TeamStore.loadInitialData([team]);
-  const missingMembers = TestStubs.MissingMembers();
+  const missingMembers = {integration: 'github', users: TestStubs.MissingMembers()};
 
   const styledWrapper = styled(c => c.children);
   const modalProps: InviteMissingMembersModalProps = {
@@ -39,8 +39,8 @@ describe('InviteMissingMembersModal', function () {
     closeModal: () => {},
     CloseButton: makeCloseButton(() => {}),
     organization: TestStubs.Organization(),
-    missingMembers: [],
-    invitableRoles: [],
+    missingMembers: {integration: 'github', users: []},
+    allowedRoles: [],
   };
 
   beforeEach(function () {
@@ -125,7 +125,7 @@ describe('InviteMissingMembersModal', function () {
         {...modalProps}
         organization={TestStubs.Organization({defaultRole: 'member'})}
         missingMembers={missingMembers}
-        invitableRoles={roles}
+        allowedRoles={roles}
       />
     );
 
@@ -145,7 +145,7 @@ describe('InviteMissingMembersModal', function () {
     // Verify data sent to the backend
     expect(createMemberMock).toHaveBeenCalledTimes(5);
 
-    missingMembers.forEach((member, i) => {
+    missingMembers.users.forEach((member, i) => {
       expect(createMemberMock).toHaveBeenNthCalledWith(
         i + 1,
         `/organizations/${org.slug}/members/`,
@@ -162,7 +162,7 @@ describe('InviteMissingMembersModal', function () {
         {...modalProps}
         organization={TestStubs.Organization({defaultRole: 'member', teams: [team]})}
         missingMembers={missingMembers}
-        invitableRoles={roles}
+        allowedRoles={roles}
       />
     );
 
