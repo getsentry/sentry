@@ -118,6 +118,7 @@ SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
 SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER = "default"
 SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_MONITORS_REDIS_CLUSTER = "default"
+SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
