@@ -1,4 +1,3 @@
-import time
 from queue import Queue
 from threading import Thread
 
@@ -31,7 +30,7 @@ class RpcMetricsTest(TestCase):
                 name = str(n)
                 with RpcMetricSpan() as span:
                     with RpcMetricRecord.measure(name, name):
-                        time.sleep(0.01)
+                        pass
 
                     # Verify that the record was captured through the correct tracker
                     assert len(span.records) == 1
