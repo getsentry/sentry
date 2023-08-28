@@ -2036,30 +2036,30 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         assert result["data"][:5] == [
             {
                 "time": self.start.isoformat(),
-                "count": 0.0,
+                "p75_measurements_fp": 0.0,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-                "count": 100.0,
+                "p75_measurements_fp": 100.0,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
-                "count": 200.0,
+                "p75_measurements_fp": 200.0,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
-                "count": 300.0,
+                "p75_measurements_fp": 300.0,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
-                "count": 400.0,
+                "p75_measurements_fp": 400.0,
             },
         ]
         self.assertCountEqual(
             result["meta"],
             [
                 {"name": "time", "type": "DateTime('Universal')"},
-                {"name": "count", "type": "Float64"},
+                {"name": "p75_measurements_fp", "type": "Float64"},
             ],
         )
 
@@ -2099,30 +2099,30 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         assert result["data"][:5] == [
             {
                 "time": self.start.isoformat(),
-                "count": 0.75,
+                "apdex_10": 0.75,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-                "count": 0.75,
+                "apdex_10": 0.75,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
-                "count": 0.75,
+                "apdex_10": 0.75,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
-                "count": 0.75,
+                "apdex_10": 0.75,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
-                "count": 0.75,
+                "apdex_10": 0.75,
             },
         ]
         self.assertCountEqual(
             result["meta"],
             [
                 {"name": "time", "type": "DateTime('Universal')"},
-                {"name": "count", "type": "Float64"},
+                {"name": "apdex_10", "type": "Float64"},
             ],
         )
 

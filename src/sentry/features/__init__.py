@@ -56,6 +56,7 @@ default_manager = FeatureManager()  # NOQA
 # fmt: off
 
 # Features that don't use resource scoping
+default_manager.add("app:enterprise-prevent-numeric-slugs", SystemFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 
@@ -111,7 +112,6 @@ default_manager.add("organizations:on-demand-metrics-extraction-experimental", O
 default_manager.add("organizations:minute-resolution-sessions", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:mobile-vitals", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:mobile-cpu-memory-in-transactions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:org-auth-tokens", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:view-hierarchies-options-dev", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:anr-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:anr-analyze-frames", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -267,6 +267,7 @@ default_manager.add("organizations:ds-org-recalibration", OrganizationFeature, F
 default_manager.add("organizations:github-disable-on-broken", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:slack-fatal-disable-on-broken", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:sourcemaps-bundle-flat-file-indexing", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:sourcemaps-upload-release-as-artifact-bundle", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:recap-server", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:detailed-alert-logging", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:notification-settings-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
