@@ -53,7 +53,7 @@ def imports(src, old_config: OldImportConfig, printer=click.echo):
                         label = o._meta.label_lower
                         model_name = normalize_model_name(o)
                         for field, model_relation in deps[model_name].foreign_keys.items():
-                            field_id = f"{field}_id"
+                            field_id = field if field.endswith("_id") else f"{field}_id"
                             fk = getattr(o, field_id, None)
                             if fk is not None:
                                 new_pk = pk_map.get(normalize_model_name(model_relation.model), fk)

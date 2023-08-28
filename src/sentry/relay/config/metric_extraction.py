@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, TypedDic
 
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
-from sentry.constants import DataCategory
 from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models import (
     DashboardWidgetQuery,
@@ -16,7 +15,6 @@ from sentry.models import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
-    QUERY_HASH_KEY,
     MetricSpec,
     OnDemandMetricSpec,
     RuleCondition,
@@ -86,7 +84,7 @@ def _get_alert_metric_specs(project: Project) -> List[HashedMetricSpec]:
     specs = []
     for alert in alert_rules:
         alert_snuba_query = alert.snuba_query
-        if result := _convert_snuba_query_to_metric(alert.snuba_query):
+        if result := _convert_snuba_query_to_metric(project, alert.snuba_query):
             _log_on_demand_metric_spec(
                 project_id=project.id,
                 spec_for="alert",
@@ -155,12 +153,15 @@ def _merge_metric_specs(
     return [metric for metric in metrics.values()]
 
 
-def _convert_snuba_query_to_metric(snuba_query: SnubaQuery) -> Optional[HashedMetricSpec]:
+def _convert_snuba_query_to_metric(
+    project: Project, snuba_query: SnubaQuery
+) -> Optional[HashedMetricSpec]:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
     returns a tuple of (hash, MetricSpec) for the query. Otherwise, returns None.
     """
     return _convert_aggregate_and_query_to_metric(
+        project,
         snuba_query.dataset,
         snuba_query.aggregate,
         snuba_query.query,
@@ -182,6 +183,7 @@ def _convert_widget_query_to_metric(
 
     for aggregate in widget_query.aggregates:
         if result := _convert_aggregate_and_query_to_metric(
+            project,
             # there is an internal check to make sure we extract metrics oly for performance dataset
             # however widgets do not have a dataset field, so we need to pass it explicitly
             Dataset.PerformanceMetrics.value,
@@ -202,22 +204,21 @@ def _convert_widget_query_to_metric(
 
 
 def _convert_aggregate_and_query_to_metric(
-    dataset: str, aggregate: str, query: str
+    project: Project, dataset: str, aggregate: str, query: str
 ) -> Optional[HashedMetricSpec]:
+    """
+    Converts an aggregate and a query to a metric spec with its hash value.
+    """
     try:
         if not should_use_on_demand_metrics(dataset, aggregate, query):
             return None
 
-        spec = OnDemandMetricSpec(aggregate, query)
-        query_hash = spec.query_hash()
+        on_demand_spec = OnDemandMetricSpec(
+            field=aggregate,
+            query=query,
+        )
 
-        return query_hash, {
-            "category": DataCategory.TRANSACTION.api_name(),
-            "mri": spec.mri,
-            "field": spec.field,
-            "condition": spec.condition(),
-            "tags": [{"key": QUERY_HASH_KEY, "value": query_hash}],
-        }
+        return on_demand_spec.query_hash, on_demand_spec.to_metric_spec(project)
     except Exception as e:
         logger.error(e, exc_info=True)
         return None

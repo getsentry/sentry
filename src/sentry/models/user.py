@@ -15,6 +15,7 @@ from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry.auth.authenticators import available_authenticators
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BaseModel,
@@ -68,7 +69,7 @@ class UserManager(BaseManager, DjangoUserManager):
 
 @control_silo_only_model
 class User(BaseModel, AbstractBaseUser):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.User
 
     id = BoundedBigAutoField(primary_key=True)
     username = models.CharField(_("username"), max_length=128, unique=True)

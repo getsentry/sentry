@@ -18,11 +18,12 @@ import {
   VirtualScrollbar,
   VirtualScrollbarGrip,
 } from 'sentry/components/performance/waterfall/miniHeader';
-import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
+import toPercent from 'sentry/utils/number/toPercent';
 import {
   TraceError,
   TraceFullDetailed,
@@ -146,7 +147,6 @@ export default function TraceView({
     description: 'trace-view-content',
   });
   const hasOrphanErrors = orphanErrors && orphanErrors.length > 0;
-  const traceHasSingleOrphanError = orphanErrors?.length === 1 && traces.length <= 0;
 
   useEffect(() => {
     trackAnalytics('performance_views.trace_view.view', {
@@ -440,7 +440,6 @@ export default function TraceView({
                     hasGuideAnchor={false}
                     renderedChildren={transactionGroups}
                     barColor={pickBarColor('')}
-                    traceHasSingleOrphanError={traceHasSingleOrphanError}
                     numOfOrphanErrors={orphanErrors?.length}
                   />
                   <TraceHiddenMessage

@@ -95,6 +95,9 @@ MetricOperationType = Literal[
     "uniq_if_column",
     "min_timestamp",
     "max_timestamp",
+    # Custom operations used for on demand derived metrics.
+    "on_demand_failure_rate",
+    "on_demand_apdex",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -282,6 +285,9 @@ DERIVED_OPERATIONS = (
     "uniq_if_column",
     "min_timestamp",
     "max_timestamp",
+    # Custom operations used for on demand derived metrics.
+    "on_demand_failure_rate",
+    "on_demand_apdex",
 )
 OPERATIONS = (
     (

@@ -24,7 +24,7 @@ from sentry.incidents.models import (
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
 )
-from sentry.models.actor import ACTOR_TYPES, Actor
+from sentry.models.actor import Actor
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apikey import ApiKey
@@ -51,7 +51,6 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.orgauthtoken import OrgAuthToken
@@ -98,7 +97,7 @@ def mark(*marking: Type | Literal["__all__"]):
     """A function that runs at module load time (which is why this logic can't be folded into the
     `targets` decorator) and marks all models that appear in at least one test. This is then used by
     test_coverage.py to ensure that all final derivations of django's "Model" that set
-    `__include_in_export__ = True` are exercised by at least one test here.
+    `__relocation_scope__ != RelocationScope.Excluded` are exercised by at least one test here.
 
     Use the sentinel string "__all__" to indicate that all models are expected."""
 
@@ -115,11 +114,13 @@ def mark(*marking: Type | Literal["__all__"]):
 
 @run_backup_tests_only_on_single_db
 class ModelBackupTests(TransactionTestCase):
-    """Test the JSON-ification of models marked `__include_in_export__ = True`. Each test here
-    creates a fresh database, performs some writes to it, then exports that data into a temporary
-    file (called the "expected" JSON). It then imports the "expected" JSON and re-exports it into
-    the "actual" JSON file, and diffs the two to ensure that they match per the specified
-    comparators."""
+    """
+    Test the JSON-ification of models marked `__relocation_scope__ != RelocationScope.Excluded`.
+    Each test here creates a fresh database, performs some writes to it, then exports that data into
+    a temporary file (called the "expected" JSON). It then imports the "expected" JSON and
+    re-exports it into the "actual" JSON file, and diffs the two to ensure that they match per the
+    specified comparators.
+    """
 
     def import_export_then_validate(self) -> JSONData:
         return import_export_then_validate(self._testMethodName, reset_pks=False)
@@ -210,6 +211,7 @@ class ModelBackupTests(TransactionTestCase):
     @targets(mark(AuthIdentity, AuthProvider))
     def test_auth_identity_provider(self):
         user = self.create_user()
+        org = self.create_organization(owner=user)
         test_data = {
             "key1": "value1",
             "key2": 42,
@@ -218,7 +220,7 @@ class ModelBackupTests(TransactionTestCase):
         }
         AuthIdentity.objects.create(
             user=user,
-            auth_provider=AuthProvider.objects.create(organization_id=1, provider="sentry"),
+            auth_provider=AuthProvider.objects.create(organization_id=org.id, provider="sentry"),
             ident="123456789",
             data=test_data,
         )
@@ -370,7 +372,7 @@ class ModelBackupTests(TransactionTestCase):
         )
         return self.import_export_then_validate()
 
-    @targets(mark(Organization, OrganizationMapping))
+    @targets(mark(Organization))
     def test_organization(self):
         user = self.create_user()
         self.create_organization(owner=user)
@@ -440,7 +442,8 @@ class ModelBackupTests(TransactionTestCase):
         Repository.objects.create(
             name="test_repo",
             organization_id=self.organization.id,
-            integration_id=self.integration.id,
+            # TODO(getsentry/issue#187): Re-activate once we add `Integration` model to exports.
+            # integration_id=self.integration.id,
         )
         return self.import_export_then_validate()
 
@@ -470,9 +473,7 @@ class ModelBackupTests(TransactionTestCase):
     @targets(mark(SentryApp, SentryAppComponent, SentryAppInstallation))
     def test_sentry_app(self):
         app = self.create_sentry_app(name="test_app", organization=self.organization)
-        self.create_sentry_app_installation(
-            slug=app.slug, organization=self.organization, user=self.user
-        )
+        self.create_sentry_app_installation(slug=app.slug, organization=self.organization)
         updater = SentryAppUpdater(sentry_app=app)
         updater.schema = {"elements": [self.create_alert_rule_action_schema()]}
         updater.run(self.user)
@@ -489,16 +490,13 @@ class ModelBackupTests(TransactionTestCase):
     @targets(mark(ServiceHook))
     def test_service_hook(self):
         app = self.create_sentry_app()
-        actor = Actor.objects.create(type=ACTOR_TYPES["team"])
         install = self.create_sentry_app_installation(organization=self.organization, slug=app.slug)
-        ServiceHook.objects.create(
-            application_id=app.id,
-            actor_id=actor.id,
-            project_id=self.project.id,
-            organization_id=self.organization.id,
-            events=[],
+        self.create_service_hook(
+            application_id=app.application.id,
+            actor_id=app.proxy_user.id,
             installation_id=install.id,
-            url="https://example.com",
+            project=self.project,
+            org=self.project.organization,
         )
         return self.import_export_then_validate()
 

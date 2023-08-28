@@ -155,6 +155,7 @@ SHARED_TAG_STRINGS = {
     # More Transactions
     "has_profile": PREFIX + 260,
     "query_hash": PREFIX + 261,
+    "failure": PREFIX + 262,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
