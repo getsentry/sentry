@@ -7,6 +7,7 @@ import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {FieldObject} from 'sentry/components/forms/types';
+import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -68,12 +69,17 @@ function NotificationSettings({organizations}: Props) {
   );
 
   // use 0 as stale time because we change the values elsewhere
-  const {data: initialLegacyData, isLoading} = useApiQuery<{[key: string]: string}>(
-    ['/users/me/notifications/'],
-    {
-      staleTime: 0,
-    }
-  );
+  const {
+    data: initialLegacyData,
+    isLoading,
+    isError,
+  } = useApiQuery<{[key: string]: string}>(['/users/me/notificationsddd/'], {
+    staleTime: 0,
+  });
+
+  if (isError) {
+    return <LoadingError />;
+  }
 
   return (
     <Fragment>
