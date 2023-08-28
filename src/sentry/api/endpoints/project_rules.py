@@ -31,7 +31,7 @@ def clean_rule_data(data):
 @receiver(pre_save, sender=Rule)
 def pre_save_rule(instance, sender, *args, **kwargs):
     clean_rule_data(instance.data.get("conditions", []))
-    clean_rule_data(instance.data.get("conditions", []))
+    clean_rule_data(instance.data.get("actions", []))
 
 
 @region_silo_endpoint
