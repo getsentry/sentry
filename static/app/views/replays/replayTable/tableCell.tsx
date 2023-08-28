@@ -435,14 +435,16 @@ export function TransactionCell({
   const hasTxEvent = 'txEvent' in replay;
   const txDuration = hasTxEvent ? replay.txEvent?.['transaction.duration'] : undefined;
   return hasTxEvent ? (
-    <SpanOperationBreakdown>
-      {txDuration ? <div>{txDuration}ms</div> : null}
-      {spanOperationRelativeBreakdownRenderer(
-        replay.txEvent,
-        {organization, location},
-        {enableOnClick: false}
-      )}
-    </SpanOperationBreakdown>
+    <Item>
+      <SpanOperationBreakdown>
+        {txDuration ? <div>{txDuration}ms</div> : null}
+        {spanOperationRelativeBreakdownRenderer(
+          replay.txEvent,
+          {organization, location},
+          {enableOnClick: false}
+        )}
+      </SpanOperationBreakdown>
+    </Item>
   ) : null;
 }
 
