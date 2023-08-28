@@ -13,7 +13,7 @@ interface Props {
 
 export default function FilterLoadingIndicator({children, isLoading}: Props) {
   return (
-    <Wrapper style={{}}>
+    <Wrapper>
       {children}
       {isLoading ? (
         <Tooltip title={t('Data is still loading')}>
