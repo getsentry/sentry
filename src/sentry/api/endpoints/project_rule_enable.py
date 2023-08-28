@@ -19,7 +19,7 @@ class ProjectRuleEnableEndpoint(ProjectEndpoint):
 
     def put(self, request: Request, project, rule_id) -> Response:
         try:
-            rule = Rule.objects.get(id=rule_id)
+            rule = Rule.objects.get(id=rule_id, project=project)
         except Rule.DoesNotExist:
             raise ResourceDoesNotExist
 
