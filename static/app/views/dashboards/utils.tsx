@@ -23,10 +23,12 @@ import {
 } from 'sentry/components/charts/utils';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
-import {Organization, PageFilters} from 'sentry/types';
+import {Level, Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
   getAggregateAlias,
   getAggregateArg,
@@ -47,6 +49,8 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+
+import {IndicatorThresholds} from './widgetBuilder/widgetBuilder';
 
 export type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
@@ -134,6 +138,42 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
     }
   }
   return undefined;
+}
+
+export function getWidgetIndicatorColor(
+  thresholds: IndicatorThresholds,
+  tableData: TableDataWithTitle[]
+): Level {
+  const tableMeta = {...tableData[0].meta};
+
+  const fields = Object.keys(tableMeta);
+
+  const field = fields[0];
+
+  let data = Number(tableData[0].data[0][field]);
+  const unit = tableMeta.units?.[field];
+
+  if (unit) {
+    data = data * DURATION_UNITS[unit];
+  }
+
+  let extreme = thresholds.extreme && thresholds.extreme,
+    intermediate = thresholds.intermediate && thresholds.intermediate;
+  if (thresholds.unit) {
+    extreme = thresholds.extreme && thresholds.extreme * DURATION_UNITS[thresholds.unit];
+    intermediate =
+      thresholds.intermediate &&
+      thresholds.intermediate * DURATION_UNITS[thresholds.unit];
+  }
+
+  if (extreme && extreme < data) {
+    return 'fatal';
+  }
+  if (intermediate && intermediate < data) {
+    return 'warning';
+  }
+
+  return 'healthy';
 }
 
 export function miniWidget(displayType: DisplayType): string {

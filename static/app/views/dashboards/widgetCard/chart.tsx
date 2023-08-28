@@ -180,7 +180,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     loading,
     errorMessage,
     tableResults,
-  }: TableResultProps): React.ReactNode {
+    theme,
+  }: TableResultProps & {theme: Theme}): React.ReactNode {
     if (errorMessage) {
       return (
         <StyledErrorPanel>
@@ -198,6 +199,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
     return tableResults.map(result => {
       const tableMeta = {...result.meta};
+
       const fields = Object.keys(tableMeta);
 
       const field = fields[0];
@@ -223,7 +225,21 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
       const isModalWidget = !(widget.id || widget.tempId);
       if (isModalWidget || isMobile) {
-        return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
+        return (
+          <BigNumber key={`big_number:${result.title}`}>
+            {rendered}
+            <p
+              style={{
+                color: 'red',
+                fontSize: theme.fontSizeExtraSmall,
+                alignSelf: 'center',
+                margin: 0,
+              }}
+            >
+              +2.35%
+            </p>
+          </BigNumber>
+        );
       }
 
       // The font size is the container height, minus the top and bottom padding
@@ -242,6 +258,16 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           <Tooltip title={rendered} showOnlyOnOverflow>
             {rendered}
           </Tooltip>
+          <p
+            style={{
+              color: 'red',
+              fontSize: theme.fontSizeMedium,
+              alignSelf: 'center',
+              margin: 0,
+            }}
+          >
+            +2.35%
+          </p>
         </BigNumber>
       );
     });
@@ -306,7 +332,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
               }
             }}
           >
-            {this.bigNumberComponent({tableResults, loading, errorMessage})}
+            {this.bigNumberComponent({tableResults, loading, errorMessage, theme})}
           </BigNumberResizeWrapper>
         </TransitionChart>
       );
@@ -520,10 +546,9 @@ const BigNumberResizeWrapper = styled('div')`
 `;
 
 const BigNumber = styled('div')`
-  line-height: 1;
+  line-height: 1.2;
   display: inline-flex;
   flex: 1;
-  width: 100%;
   min-height: 0;
   font-size: 32px;
   color: ${p => p.theme.headingColor};

@@ -67,6 +67,7 @@ import {
   getFieldsFromEquations,
   getNumEquations,
   getWidgetDiscoverUrl,
+  getWidgetIndicatorColor,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
 } from 'sentry/views/dashboards/utils';
@@ -91,6 +92,8 @@ import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
+
+import {ColoredCircle} from '../events/errorLevel';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
@@ -1006,7 +1009,21 @@ function WidgetViewerModal(props: Props) {
                 >
                   <Header closeButton>
                     <WidgetTitle>
-                      <h3>{widget.title}</h3>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <h3>{widget.title}</h3>
+                        {widget.thresholds && tableData && (
+                          <ColoredCircle
+                            level={getWidgetIndicatorColor(widget.thresholds, tableData)}
+                            size="15px"
+                          />
+                        )}
+                      </div>
                       {widget.description && (
                         <WidgetDescription>{widget.description}</WidgetDescription>
                       )}

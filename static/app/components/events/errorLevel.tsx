@@ -9,6 +9,7 @@ const DEFAULT_SIZE = '13px';
 
 type Props = {
   className?: string;
+  color?: string;
   level?: Level;
   size?: string;
 };
@@ -25,7 +26,7 @@ function ErrorLevel({className, level = 'unknown', size = '11px'}: Props) {
   );
 }
 
-const ColoredCircle = styled('span')<Props>`
+export const ColoredCircle = styled('span')<Props>`
   padding: 0;
   position: relative;
   width: ${p => p.size || DEFAULT_SIZE};

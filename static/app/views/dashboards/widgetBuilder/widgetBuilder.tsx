@@ -10,8 +10,11 @@ import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import SelectField from 'sentry/components/deprecatedforms/selectField';
+import {ColoredCircle} from 'sentry/components/events/errorLevel';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import InputField from 'sentry/components/forms/fields/inputField';
+import NumberField from 'sentry/components/forms/fields/numberField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
@@ -25,7 +28,7 @@ import {DateString, Organization, PageFilters, TagCollection} from 'sentry/types
 import {defined, objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
-import EventView from 'sentry/utils/discover/eventView';
+import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {
   explodeField,
   generateFieldAsString,
@@ -33,6 +36,7 @@ import {
   getColumnsAndAggregatesAsStrings,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {FieldValueType} from 'sentry/utils/fields';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
@@ -103,6 +107,12 @@ interface RouteParams {
   widgetIndex?: string;
 }
 
+export interface IndicatorThresholds {
+  extreme?: number;
+  intermediate?: number;
+  unit?: string;
+}
+
 interface QueryData {
   queryConditions: string[];
   queryFields: string[];
@@ -133,9 +143,13 @@ interface State {
   queryConditionsValid: boolean;
   title: string;
   userHasModified: boolean;
+  dataType?: string;
+  dataUnit?: string;
   description?: string;
   errors?: Record<string, any>;
+  meta?: MetaType;
   selectedDashboard?: DashboardDetails['id'];
+  thresholds?: IndicatorThresholds | null;
   widgetToBeUpdated?: Widget;
 }
 
@@ -212,6 +226,7 @@ function WidgetBuilder({
         DisplayType.TABLE,
       interval: '5m',
       queries: [],
+      thresholds: {},
       limit: limit ? Number(limit) : undefined,
       errors: undefined,
       description: undefined,
@@ -318,6 +333,7 @@ function WidgetBuilder({
         limit: newLimit,
         prebuiltWidgetId: null,
         queryConditionsValid: true,
+        thresholds: widgetFromDashboard.thresholds,
       });
       setDataSetConfig(getDatasetConfig(widgetFromDashboard.widgetType));
       setWidgetToBeUpdated(widgetFromDashboard);
@@ -356,6 +372,7 @@ function WidgetBuilder({
     queries: state.queries,
     limit: state.limit,
     widgetType,
+    thresholds: state.thresholds,
   };
 
   const currentDashboardId = state.selectedDashboard ?? dashboardId;
@@ -507,6 +524,20 @@ function WidgetBuilder({
     if (field === 'displayType' && value !== state.displayType) {
       updateFieldsAccordingToDisplayType(value as DisplayType);
     }
+  }
+
+  function handleThresholdChange(
+    thresholdType: 'intermediate' | 'extreme',
+    value: number
+  ) {
+    setState(prevState => {
+      const newState = cloneDeep(prevState);
+      if (!newState.thresholds) {
+        newState.thresholds = {};
+      }
+      newState.thresholds[thresholdType] = value;
+      return newState;
+    });
   }
 
   function handleDataSetChange(newDataSet: string) {
@@ -1032,6 +1063,25 @@ function WidgetBuilder({
                                 pageFilters={pageFilters}
                                 displayType={state.displayType}
                                 error={state.errors?.displayType}
+                                onDataFetched={tableData => {
+                                  const tableMeta = {...tableData[0].meta};
+
+                                  const keys = Object.keys(tableMeta);
+
+                                  const field = keys[0];
+                                  const dataType = tableMeta[field];
+                                  const unit = tableMeta.units?.[field];
+
+                                  setState({
+                                    ...state,
+                                    dataType,
+                                    dataUnit: unit,
+                                    thresholds: {
+                                      ...state.thresholds,
+                                      unit: state.thresholds?.unit ?? unit,
+                                    },
+                                  });
+                                }}
                                 onChange={newDisplayType => {
                                   handleDisplayTypeOrAnnotationChange(
                                     'displayType',
@@ -1041,6 +1091,90 @@ function WidgetBuilder({
                                 noDashboardsMEPProvider
                                 isWidgetInvalid={!state.queryConditionsValid}
                               />
+                              {state.displayType === 'big_number' &&
+                                state.dataType !== FieldValueType.DATE && (
+                                  <BuildStep
+                                    title={t(`Add indicator thresholds`)}
+                                    description={t(
+                                      'Set thresholds to indicate base, intermediate and extreme statuses.'
+                                    )}
+                                  >
+                                    <IndicatorThresholdsContainer>
+                                      <StyledInputField
+                                        inline={false}
+                                        name="base-threshold"
+                                        disabled
+                                        label={
+                                          <FlexBox>
+                                            <span>Base</span>
+                                            <ColoredCircle level="healthy" />
+                                          </FlexBox>
+                                        }
+                                      />
+                                      <StyledInputField
+                                        inline={false}
+                                        name="intermediate-threshold"
+                                        label={
+                                          <FlexBox>
+                                            <span>Intermediate</span>
+                                            <ColoredCircle level="warning" />
+                                          </FlexBox>
+                                        }
+                                        onChange={val =>
+                                          handleThresholdChange(
+                                            'intermediate',
+                                            Number(val)
+                                          )
+                                        }
+                                        value={state.thresholds?.intermediate}
+                                      />
+                                      <StyledInputField
+                                        inline={false}
+                                        name="extreme-threshold"
+                                        label={
+                                          <FlexBox>
+                                            <span>Extreme</span>
+                                            <ColoredCircle level="fatal" />
+                                          </FlexBox>
+                                        }
+                                        onChange={val =>
+                                          handleThresholdChange('extreme', Number(val))
+                                        }
+                                        value={state.thresholds?.extreme}
+                                      />
+                                      {(state.dataType === FieldValueType.DURATION ||
+                                        state.dataType === FieldValueType.RATE) && (
+                                        <SelectField
+                                          style={{
+                                            padding: 0,
+                                            flex: 1,
+                                          }}
+                                          label={t('Unit')}
+                                          name="select-unit"
+                                          options={[
+                                            {label: 'millisecond', value: 'millisecond'},
+                                            {label: 'second', value: 'second'},
+                                            {label: 'minute', value: 'minute'},
+                                            {label: 'hour', value: 'hour'},
+                                            {label: 'day', value: 'day'},
+                                            {label: 'week', value: 'week'},
+                                          ]}
+                                          value={state.thresholds?.unit ?? state.dataUnit}
+                                          onChange={val => {
+                                            setState(prevState => {
+                                              const newState = cloneDeep(prevState);
+                                              if (!newState.thresholds) {
+                                                newState.thresholds = {};
+                                              }
+                                              newState.thresholds.unit = val.toString();
+                                              return newState;
+                                            });
+                                          }}
+                                        />
+                                      )}
+                                    </IndicatorThresholdsContainer>
+                                  </BuildStep>
+                                )}
                               <DataSetStep
                                 dataSet={state.dataSet}
                                 displayType={state.displayType}
@@ -1177,6 +1311,29 @@ export default withPageFilters(withTags(WidgetBuilder));
 
 const TitleInput = styled(InputField)`
   padding: 0 ${space(2)} 0 0;
+`;
+
+const StyledInputField = styled(NumberField)`
+  padding: 0;
+  flex: 1;
+`;
+
+const FlexBox = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
+
+const IndicatorThresholdsContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1.5)};
+  padding-right: ${space(2)};
+
+  ${FieldWrapper} {
+    padding: 0;
+    border-bottom: none;
+  }
 `;
 
 const BuildSteps = styled(List)`

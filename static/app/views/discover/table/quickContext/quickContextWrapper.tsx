@@ -34,9 +34,5 @@ export const HoverWrapper = styled('div')`
 export function QuickContextHoverWrapper(
   props: ComponentProps<typeof QuickContextHovercard>
 ) {
-  return (
-    <HoverWrapper>
-      <QuickContextHovercard {...props} />
-    </HoverWrapper>
-  );
+  return <QuickContextHovercard {...props} />;
 }

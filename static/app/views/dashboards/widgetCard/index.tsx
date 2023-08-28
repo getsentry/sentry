@@ -11,6 +11,8 @@ import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ColoredCircle} from 'sentry/components/events/errorLevel';
+import {Hovercard} from 'sentry/components/hovercard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -35,9 +37,11 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {ContextTitle} from 'sentry/views/discover/table/quickContext/styles';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {DashboardFilters, DisplayType, Widget, WidgetType} from '../types';
+import {getWidgetIndicatorColor} from '../utils';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
@@ -73,6 +77,7 @@ type Props = WithRouterProps & {
   isWidgetInvalid?: boolean;
   noDashboardsMEPProvider?: boolean;
   noLazyLoad?: boolean;
+  onDataFetched?: (results: TableDataWithTitle[]) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
@@ -220,6 +225,12 @@ class WidgetCard extends Component<Props, State> {
     timeseriesResultsTypes?: Record<string, AggregationOutputType>;
     totalIssuesCount?: string;
   }) => {
+    const {onDataFetched} = this.props;
+
+    if (onDataFetched && tableResults) {
+      onDataFetched(tableResults);
+    }
+
     this.setState({
       seriesData: timeseriesResults,
       tableData: tableResults,
@@ -299,13 +310,87 @@ class WidgetCard extends Component<Props, State> {
               <WidgetCardPanel isDragging={false}>
                 <WidgetHeader>
                   <WidgetHeaderDescription>
-                    <Tooltip
-                      title={widget.title}
-                      containerDisplayMode="grid"
-                      showOnlyOnOverflow
+                    <span
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
                     >
-                      <WidgetTitle>{widget.title}</WidgetTitle>
-                    </Tooltip>
+                      <Tooltip
+                        title={widget.title}
+                        containerDisplayMode="grid"
+                        showOnlyOnOverflow
+                      >
+                        <WidgetTitle>{widget.title}</WidgetTitle>
+                      </Tooltip>
+                      {widget.displayType === 'big_number' &&
+                        widget.thresholds &&
+                        this.state.tableData && (
+                          <StyledHoverCard
+                            skipWrapper
+                            body={
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '10px',
+                                }}
+                              >
+                                <ContextTitle>Thresholds in seconds</ContextTitle>
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                    }}
+                                  >
+                                    <span>Intermediate</span>
+                                    <ColoredCircle level="warning" size="10px" />
+                                  </span>
+                                  <span>
+                                    {widget.thresholds.intermediate ?? 'Not set'}
+                                  </span>
+                                </div>
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                    }}
+                                  >
+                                    <span>Extreme</span>
+                                    <ColoredCircle level="fatal" size="10px" />
+                                  </span>
+                                  <span>{widget.thresholds.extreme ?? 'Not set'}</span>
+                                </div>
+                              </div>
+                            }
+                          >
+                            <ColoredCircle
+                              level={getWidgetIndicatorColor(
+                                widget.thresholds,
+                                this.state.tableData
+                              )}
+                              size="15px"
+                            />
+                          </StyledHoverCard>
+                        )}
+                    </span>
                     {widget.description && (
                       <Tooltip
                         title={widget.description}
@@ -502,6 +587,10 @@ const StoredDataAlert = styled(Alert)`
 
 const StyledErrorPanel = styled(ErrorPanel)`
   padding: ${space(2)};
+`;
+
+const StyledHoverCard = styled(Hovercard)`
+  width: '100px';
 `;
 
 const WidgetHeaderDescription = styled('div')`

@@ -559,6 +559,7 @@ const generateLevelTheme = (colors: BaseColors) => ({
   // else in the app (except for the chart palette). This needs to be harcoded
   // here because existing users may still associate orange with the "error" level.
   error: '#FF7738',
+  healthy: colors.green300,
   fatal: colors.red300,
   default: colors.gray300,
   unknown: colors.gray200,

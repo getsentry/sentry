@@ -13,6 +13,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import usePrevious from 'sentry/utils/usePrevious';
 import {DashboardFilters, DisplayType, Widget} from 'sentry/views/dashboards/types';
 
@@ -33,6 +34,7 @@ interface Props {
   dashboardFilters?: DashboardFilters;
   error?: string;
   noDashboardsMEPProvider?: boolean;
+  onDataFetched?: (results: TableDataWithTitle[]) => void;
 }
 
 export function VisualizationStep({
@@ -41,6 +43,7 @@ export function VisualizationStep({
   displayType,
   error,
   onChange,
+  onDataFetched,
   widget,
   noDashboardsMEPProvider,
   dashboardFilters,
@@ -118,6 +121,7 @@ export function VisualizationStep({
               <PanelAlert type="error">{errorMessage}</PanelAlert>
             )
           }
+          onDataFetched={onDataFetched}
           noLazyLoad
           showStoredAlert
           noDashboardsMEPProvider={noDashboardsMEPProvider}
