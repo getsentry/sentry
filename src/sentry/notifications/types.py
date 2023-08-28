@@ -259,6 +259,10 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },
+}
+
+VALID_VALUES_FOR_KEY_V2 = {
+    **VALID_VALUES_FOR_KEY,
     NotificationSettingTypes.REPORTS: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,

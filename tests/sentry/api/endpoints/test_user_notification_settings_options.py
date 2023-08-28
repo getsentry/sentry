@@ -134,9 +134,9 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
             user_id=self.user.id,
             scope_type="organization",
             scope_identifier=self.organization.id,
-            type="alerts",
+            type="reports",
             status_code=status.HTTP_201_CREATED,
-            value="reports",
+            value="always",
         )
         row = NotificationSettingOption.objects.filter(
             user_id=self.user.id,
