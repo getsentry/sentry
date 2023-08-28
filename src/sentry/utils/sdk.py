@@ -397,7 +397,7 @@ def configure_sdk():
                     return
 
             # Sentry4Sentry (upstream) should get the event first because
-            # it is most isolated from the this sentry installation.
+            # it is most isolated from the sentry installation.
             if sentry4sentry_transport:
                 metrics.incr("internal.captured.events.upstream")
                 # TODO(mattrobenolt): Bring this back safely.
@@ -408,7 +408,7 @@ def configure_sdk():
                 getattr(sentry4sentry_transport, method_name)(*args, **kwargs)
 
             if sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
-                # If this is an envelope ensure envelope and it's items are distinct references
+                # If this is an envelope ensure envelope and its items are distinct references
                 if method_name == "capture_envelope":
                     args_list = list(args)
                     envelope = args_list[0]
@@ -442,6 +442,19 @@ def configure_sdk():
                 if not sentry_saas_transport.is_healthy():
                     return False
             return True
+
+        def flush(
+            self,
+            timeout,
+            callback=None,
+        ):
+            # flush transports in case we received a kill signal
+            if experimental_transport:
+                getattr(experimental_transport, "flush")(timeout, callback)
+            if sentry4sentry_transport:
+                getattr(sentry4sentry_transport, "flush")(timeout, callback)
+            if sentry_saas_transport:
+                getattr(sentry_saas_transport, "flush")(timeout, callback)
 
     from sentry_sdk.integrations.celery import CeleryIntegration
     from sentry_sdk.integrations.django import DjangoIntegration

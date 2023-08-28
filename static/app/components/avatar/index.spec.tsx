@@ -132,7 +132,10 @@ describe('Avatar', function () {
     });
 
     it('can display an organization Avatar', function () {
-      const organization = TestStubs.Organization({slug: 'test-organization'});
+      const organization = TestStubs.Organization({
+        slug: 'test-organization',
+        avatar: {avatarType: 'letter_avatar'},
+      });
 
       render(<AvatarComponent organization={organization} />);
 

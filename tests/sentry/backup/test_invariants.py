@@ -11,7 +11,7 @@ from sentry.db.models import BaseModel
 def test_all_final_derivations_of_django_model_set_included_in_export():
     missing = set(
         filter(
-            lambda c: not hasattr(c, "__include_in_export__"),
+            lambda c: not hasattr(c, "__relocation_scope__"),
             get_final_derivations_of(BaseModel),
         )
     )

@@ -1,4 +1,4 @@
-import React, {Component, Fragment, useContext, useEffect} from 'react';
+import {Component, Fragment, useContext, useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
