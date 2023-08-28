@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import subprocess
-from time import sleep
+import time
 
 
 def run_cmd(
@@ -15,7 +15,7 @@ def run_cmd(
         returncode = subprocess.call(args)
 
         if returncode != 0:
-            sleep(timeout)
+            time.sleep(timeout)
         else:
             return
 

@@ -578,6 +578,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Percentage of events that generate a random `worker_id` for symbolicator load balancing
+register(
+    "symbolicator.worker-id-randomization-sample-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
 register(
@@ -1426,7 +1433,7 @@ register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFI
 # Sets the timeout for webhooks
 register(
     "sentry-apps.webhook.timeout.sec",
-    default=3.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
