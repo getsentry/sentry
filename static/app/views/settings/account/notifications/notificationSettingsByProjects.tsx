@@ -40,7 +40,7 @@ export type NotificationSettingsByProjectsBaseProps = {
   onSubmitSuccess: () => void;
 };
 
-export type Props = {
+type Props = {
   organizations: Organization[];
 } & NotificationSettingsByProjectsBaseProps &
   DeprecatedAsyncComponent['props'] &

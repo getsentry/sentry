@@ -21,13 +21,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.models import (
-    RegionScheduledDeletion,
-    Rule,
-    RuleActivity,
-    RuleActivityType,
-    ScheduledDeletion,
-)
+from sentry.models import RegionScheduledDeletion, Rule, RuleActivity, RuleActivityType
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.utils import create_alert_rule, update_alert_rule
@@ -243,7 +237,9 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                 if type(monitor_object) == Monitor:
                     monitor_object.update(slug=get_random_string(length=24))
 
-                schedule = ScheduledDeletion.schedule(monitor_object, days=0, actor=request.user)
+                schedule = RegionScheduledDeletion.schedule(
+                    monitor_object, days=0, actor=request.user
+                )
                 self.create_audit_entry(
                     request=request,
                     organization=project.organization,

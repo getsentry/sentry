@@ -107,7 +107,7 @@ describe('SourceMapDebug', () => {
     expect(screen.getByText('Event missing Release tag')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
       'href',
-      'https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps-to-sentry'
+      'https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps'
     );
   });
 
@@ -141,7 +141,7 @@ describe('SourceMapDebug', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
       'href',
-      'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames'
+      'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/legacy-uploading-methods/#verify-artifact-names-match-stack-trace-frames'
     );
   });
 
@@ -177,7 +177,7 @@ describe('SourceMapDebug', () => {
     expect(screen.getByText(textWithMarkupMatcher(expandedMessage))).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
       'href',
-      'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames'
+      'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/legacy-uploading-methods/#verify-artifact-names-match-stack-trace-frames'
     );
   });
 
@@ -197,12 +197,12 @@ describe('SourceMapDebug', () => {
     });
 
     expect(
-      await screen.findByText("Sentry isn't Sentry without source maps")
+      await screen.findByText("You're not a computer, so why parse minified code?")
     ).toBeInTheDocument();
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          'Automatically upload your source maps to enable readable stack traces and better error grouping using the Sentry Wizard. Learn more'
+          'Upload source maps with the Sentry Wizard to unlock readable stack traces and better error grouping. Learn more'
         )
       )
     ).toBeInTheDocument();

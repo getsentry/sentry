@@ -14,8 +14,8 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import {extrapolatedAreaStyle} from 'sentry/utils/onDemandMetrics';
 import theme from 'sentry/utils/theme';
-import {extrapolatedAreaStyle} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
   alertAxisFormatter,

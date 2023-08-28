@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -20,6 +21,8 @@ from sentry.utils.locking import UnableToAcquireLock
 
 
 class BaseDeriveCodeMappings(TestCase):
+    platform: str
+
     def setUp(self):
         self.organization = self.create_organization(
             status=OrganizationStatus.ACTIVE,
@@ -325,7 +328,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
 class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
     def setUp(self):
         super().setUp()
-        self.test_data = {
+        self.test_data: dict[str, Any] = {
             "platform": "python",
             "stacktrace": {
                 "frames": [

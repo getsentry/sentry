@@ -1,3 +1,4 @@
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {
   makeColorMapByApplicationFrame,
   makeColorMapByFrequency,
@@ -11,6 +12,7 @@ import {
 import {FlamegraphColorCodings} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
+import {hexToColorChannels} from 'sentry/utils/profiling/gl/utils';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
 
 import {makeColorBucketTheme} from '../speedscope';
@@ -44,8 +46,11 @@ export interface FlamegraphTheme {
   // They should instead be defined as arrays of numbers so we can use them with glsl and avoid unnecessary parsing
   COLORS: {
     BAR_LABEL_FONT_COLOR: string;
+    CHART_CURSOR_INDICATOR: string;
     COLOR_BUCKET: (t: number) => ColorChannels;
     COLOR_MAPS: Record<FlamegraphColorCodings[number], ColorMapFn>;
+    CPU_CHART_COLORS: ColorChannels[];
+    CPU_CHART_LABEL_COLOR: string;
     CURSOR_CROSSHAIR: string;
     DIFFERENTIAL_DECREASE: ColorChannels;
     DIFFERENTIAL_INCREASE: ColorChannels;
@@ -58,6 +63,7 @@ export interface FlamegraphTheme {
     HIGHLIGHTED_LABEL_COLOR: ColorChannels;
     HOVERED_FRAME_BORDER_COLOR: string;
     LABEL_FONT_COLOR: string;
+    MEMORY_CHART_COLORS: ColorChannels[];
     MINIMAP_POSITION_OVERLAY_BORDER_COLOR: string;
     MINIMAP_POSITION_OVERLAY_COLOR: string;
     // Nice color picker for GLSL colors - https://keiwando.com/color-picker/
@@ -90,6 +96,7 @@ export interface FlamegraphTheme {
     BAR_FONT_SIZE: number;
     BAR_HEIGHT: number;
     BAR_PADDING: number;
+    CHART_PX_PADDING: number;
     CPU_CHART_HEIGHT: number;
     FLAMEGRAPH_DEPTH_OFFSET: number;
     GRID_LINE_WIDTH: number;
@@ -99,6 +106,7 @@ export interface FlamegraphTheme {
     LABEL_FONT_PADDING: number;
     LABEL_FONT_SIZE: number;
     MAX_SPANS_HEIGHT: number;
+    MEMORY_CHART_HEIGHT: number;
     MINIMAP_HEIGHT: number;
     MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: number;
     SPANS_BAR_HEIGHT: number;
@@ -154,6 +162,7 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   LABEL_FONT_SIZE: 10,
   MINIMAP_HEIGHT: 100,
   CPU_CHART_HEIGHT: 80,
+  MEMORY_CHART_HEIGHT: 80,
   MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: 2,
   SPANS_BAR_HEIGHT: 20,
   SPANS_DEPTH_OFFSET: 3,
@@ -163,6 +172,7 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   TOOLTIP_FONT_SIZE: 12,
   TIMELINE_LABEL_HEIGHT: 20,
   UI_FRAMES_HEIGHT: 60,
+  CHART_PX_PADDING: 30,
 };
 
 const FONTS: FlamegraphTheme['FONTS'] = {
@@ -185,6 +195,13 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
       'by frequency': makeColorMapByFrequency,
       'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
     },
+    CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
+    MEMORY_CHART_COLORS: [
+      hexToColorChannels(CHART_PALETTE[4][2], 0.8),
+      hexToColorChannels(CHART_PALETTE[4][3], 0.8),
+    ],
+    CHART_CURSOR_INDICATOR: 'rgba(31,35,58,.75)',
+    CPU_CHART_LABEL_COLOR: 'rgba(31,35,58,.75)',
     CURSOR_CROSSHAIR: '#bbbbbb',
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
     DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
@@ -231,6 +248,13 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
       'by frequency': makeColorMapByFrequency,
       'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
     },
+    CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
+    MEMORY_CHART_COLORS: [
+      hexToColorChannels(CHART_PALETTE[4][2], 0.8),
+      hexToColorChannels(CHART_PALETTE[4][3], 0.8),
+    ],
+    CHART_CURSOR_INDICATOR: 'rgba(255, 255, 255, 0.5)',
+    CPU_CHART_LABEL_COLOR: 'rgba(255, 255, 255, 0.5)',
     CURSOR_CROSSHAIR: '#828285',
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
     DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],

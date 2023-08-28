@@ -446,7 +446,8 @@ class ReleaseSerializer(Serializer):
         owners = {
             d["id"]: d
             for d in user_service.serialize_many(
-                filter={"user_ids": [i.owner_id for i in item_list if i.owner_id]}, as_user=user
+                filter={"user_ids": [i.owner_id for i in item_list if i.owner_id]},
+                as_user=serialize_generic_user(user),
             )
         }
 

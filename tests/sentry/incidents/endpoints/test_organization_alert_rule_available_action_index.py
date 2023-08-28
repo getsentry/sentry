@@ -3,7 +3,7 @@ from sentry.incidents.endpoints.organization_alert_rule_available_action_index i
     build_action_response,
 )
 from sentry.incidents.models import AlertRuleTriggerAction
-from sentry.models import Integration, OrganizationIntegration, PagerDutyService
+from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -87,12 +87,9 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
             metadata={"services": SERVICES},
         )
         integration.add_organization(self.organization, self.user)
-        service = PagerDutyService.objects.create(
+        service = integration.organizationintegration_set.first().add_pagerduty_service(
             service_name=service_name,
             integration_key=SERVICES[0]["integration_key"],
-            organization_integration_id=integration.organizationintegration_set.first().id,
-            organization_id=self.organization.id,
-            integration_id=integration.id,
         )
 
         data = build_action_response(
@@ -101,7 +98,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
 
         assert data["type"] == "pagerduty"
         assert data["allowedTargetTypes"] == ["specific"]
-        assert data["options"] == [{"value": service.id, "label": service_name}]
+        assert data["options"] == [{"value": service["id"], "label": service_name}]
 
     def test_build_action_response_sentry_app(self):
         installation = self.install_new_sentry_app("foo")

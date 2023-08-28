@@ -4,13 +4,18 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
 
-@instrumented_task(name="sentry.tasks.reprocess_events", queue="events.reprocess_events")
+@instrumented_task(
+    name="sentry.tasks.reprocess_events",
+    queue="events.reprocess_events",
+    silo_mode=SiloMode.REGION,
+)
 def reprocess_events(project_id, **kwargs):
     from sentry.coreapi import insert_data_to_database_legacy
     from sentry.locks import locks
@@ -45,7 +50,12 @@ def create_reprocessing_report(project_id, event_id):
     return ReprocessingReport.objects.create(project_id=project_id, event_id=event_id)
 
 
-@instrumented_task(name="sentry.tasks.clear_expired_raw_events", time_limit=15, soft_time_limit=10)
+@instrumented_task(
+    name="sentry.tasks.clear_expired_raw_events",
+    time_limit=15,
+    soft_time_limit=10,
+    silo_mode=SiloMode.REGION,
+)
 def clear_expired_raw_events():
     from sentry.models import ProcessingIssue, RawEvent, ReprocessingReport
 

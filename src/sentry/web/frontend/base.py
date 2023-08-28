@@ -3,8 +3,10 @@ from __future__ import annotations
 import abc
 import inspect
 import logging
-from typing import Any, Mapping, Protocol
+from typing import Any, Callable, Iterable, Mapping, Protocol, Type
 
+from django.conf import settings
+from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.http import (
     HttpRequest,
     HttpResponse,
@@ -18,6 +20,7 @@ from django.template.context_processors import csrf
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
+from rest_framework.request import Request
 
 from sentry import options
 from sentry.api.utils import generate_organization_url, is_member_disabled_from_limit
@@ -36,9 +39,10 @@ from sentry.services.hybrid_cloud.organization import (
 )
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloLimit
+from sentry.silo.base import SiloMode
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.auth import is_valid_redirect, make_login_link_with_redirect
+from sentry.utils.auth import construct_link_with_query, is_valid_redirect
 from sentry.utils.http import absolute_uri, is_using_customer_domain
 from sentry.web.frontend.generic import FOREVER_CACHE
 from sentry.web.helpers import render_to_response
@@ -46,6 +50,70 @@ from sudo.views import redirect_to_sudo
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.ui")
+
+
+class ViewSiloLimit(SiloLimit):
+    def modify_endpoint_class(self, decorated_class: Type[View]) -> type:
+        dispatch_override = self.create_override(decorated_class.dispatch)
+        new_class = type(
+            decorated_class.__name__,
+            (decorated_class,),
+            {
+                "dispatch": dispatch_override,
+                "silo_limit": self,
+            },
+        )
+        new_class.__module__ = decorated_class.__module__
+        return new_class
+
+    def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
+        return self.create_override(decorated_method)
+
+    def handle_when_unavailable(
+        self,
+        original_method: Callable[..., Any],
+        current_mode: SiloMode,
+        available_modes: Iterable[SiloMode],
+    ) -> Callable[..., Any]:
+        def handle(obj: Any, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+            mode_str = ", ".join(str(m) for m in available_modes)
+            message = (
+                f"Received {request.method} request at {request.path!r} to server in "
+                f"{current_mode} mode. This endpoint is available only in: {mode_str}"
+            )
+            if settings.FAIL_ON_UNAVAILABLE_API_CALL:
+                raise self.AvailabilityError(message)
+            else:
+                logger.warning(message)
+                return HttpResponseNotFound()
+
+        return handle
+
+    def __call__(self, decorated_obj: Any) -> Any:
+        if isinstance(decorated_obj, type):
+            if not issubclass(decorated_obj, View):
+                raise ValueError("`@ViewSiloLimit` can decorate only View subclasses")
+            return self.modify_endpoint_class(decorated_obj)
+
+        if callable(decorated_obj):
+            return self.modify_endpoint_method(decorated_obj)
+
+        raise TypeError("`@ViewSiloLimit` must decorate a class or method")
+
+
+control_silo_view = ViewSiloLimit(SiloMode.CONTROL)
+"""
+Apply to frontend views that exist in CONTROL Silo
+If a request is received and the application is not in CONTROL/MONOLITH
+mode a 404 will be returned.
+"""
+
+region_silo_view = ViewSiloLimit(SiloMode.REGION)
+"""
+Apply to frontend views that exist in REGION Silo
+If a request is received and the application is not in REGION/MONOLITH
+mode a 404 will be returned.
+"""
 
 
 class _HasRespond(Protocol):
@@ -308,7 +376,7 @@ class BaseView(View, OrganizationMixin):
         if self.is_auth_required(request, *args, **kwargs):
             return self.handle_auth_required(request, *args, **kwargs)
 
-        if self.is_sudo_required(request, *args, **kwargs):
+        if self.is_sudo_required(request):
             return self.handle_sudo_required(request, *args, **kwargs)
 
         if (
@@ -340,7 +408,7 @@ class BaseView(View, OrganizationMixin):
 
     def test_csrf(self, request: HttpRequest) -> HttpResponse:
         middleware = CsrfViewMiddleware(placeholder_get_response)
-        return middleware.process_view(request, self.dispatch, [request], {})
+        return middleware.process_view(request, self.dispatch, (request,), {})
 
     def get_access(self, request: HttpRequest, *args: Any, **kwargs: Any) -> access.Access:
         return access.DEFAULT
@@ -350,7 +418,7 @@ class BaseView(View, OrganizationMixin):
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         return (args, kwargs)
 
-    def handle(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+    def handle(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
         return super().dispatch(request, *args, **kwargs)
 
     def is_auth_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> bool:
@@ -362,9 +430,14 @@ class BaseView(View, OrganizationMixin):
             redirect_to = reverse("sentry-auth-organization", args=[kwargs["organization_slug"]])
         else:
             redirect_to = auth.get_login_url()
-        return self.redirect(redirect_to, headers={"X-Robots-Tag": "noindex, nofollow"})
+        query_params = {
+            "referrer": request.GET.get("referrer"),
+            REDIRECT_FIELD_NAME: request.GET.get(REDIRECT_FIELD_NAME),
+        }
+        redirect_uri = construct_link_with_query(path=redirect_to, query_params=query_params)
+        return self.redirect(redirect_uri, headers={"X-Robots-Tag": "noindex, nofollow"})
 
-    def is_sudo_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> bool:
+    def is_sudo_required(self, request: HttpRequest) -> bool:
         return self.sudo_required and not request.is_sudo()
 
     def handle_sudo_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
@@ -376,7 +449,13 @@ class BaseView(View, OrganizationMixin):
     def handle_permission_required(
         self, request: HttpRequest, *args: Any, **kwargs: Any
     ) -> HttpResponse:
-        redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
+        path = reverse("sentry-login")
+        query_params = {
+            "referrer": request.GET.get("referrer"),
+            REDIRECT_FIELD_NAME: request.GET.get(REDIRECT_FIELD_NAME),
+        }
+
+        redirect_uri = construct_link_with_query(path=path, query_params=query_params)
         return self.redirect(redirect_uri)
 
     def handle_not_2fa_compliant(
@@ -384,9 +463,6 @@ class BaseView(View, OrganizationMixin):
     ) -> HttpResponse:
         redirect_uri = self.get_not_2fa_compliant_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
-
-    def get_no_permission_url(self, request: HttpRequest, *args: Any, **kwargs: Any) -> str:
-        return reverse("sentry-login")
 
     def get_not_2fa_compliant_url(self, request: HttpRequest, *args: Any, **kwargs: Any) -> str:
         return reverse("sentry-account-settings-security")
@@ -493,6 +569,9 @@ class AbstractOrganizationView(BaseView, abc.ABC):
         return False
 
     def handle_permission_required(self, request: HttpRequest, organization: Organization | RpcOrganization | None, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[override]
+        query_params = {
+            "referrer": request.GET.get("referrer"),
+        }
         if organization and self.needs_sso(request, organization):
             logger.info(
                 "access.must-sso",
@@ -508,9 +587,11 @@ class AbstractOrganizationView(BaseView, abc.ABC):
                 if is_valid_redirect(request_path, allowed_hosts=(request.get_host(),))
                 else None
             )
-            redirect_uri = make_login_link_with_redirect(path, after_login_redirect)
+            query_params[REDIRECT_FIELD_NAME] = after_login_redirect
+            redirect_uri = construct_link_with_query(path=path, query_params=query_params)
 
         else:
+            path = None
             if is_using_customer_domain(request):
                 # In the customer domain world, if an organziation is pending deletion, we redirect the user to the
                 # organization restoration page.
@@ -521,12 +602,14 @@ class AbstractOrganizationView(BaseView, abc.ABC):
                     if org_context.organization.status == OrganizationStatus.PENDING_DELETION:
                         url_base = generate_organization_url(org_context.organization.slug)
                         restore_org_path = reverse("sentry-customer-domain-restore-organization")
-                        return self.redirect(f"{url_base}{restore_org_path}")
+                        path = f"{url_base}{restore_org_path}"
                     elif org_context.organization.status == OrganizationStatus.DELETION_IN_PROGRESS:
                         url_base = options.get("system.url-prefix")
                         create_org_path = reverse("sentry-organization-create")
-                        return self.redirect(f"{url_base}{create_org_path}")
-            redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
+                        path = f"{url_base}{create_org_path}"
+            if not path:
+                path = reverse("sentry-login")
+            redirect_uri = construct_link_with_query(path=path, query_params=query_params)
         return self.redirect(redirect_uri)
 
     def needs_sso(self, request: HttpRequest, organization: Organization | RpcOrganization) -> bool:
@@ -660,11 +743,11 @@ class AvatarPhotoView(View):
         if not photo:
             return HttpResponseNotFound()
 
-        size = request.GET.get("s")
+        size_s = request.GET.get("s")
         photo_file = photo.getfile()
-        if size:
+        if size_s:
             try:
-                size = int(size)
+                size = int(size_s)
             except ValueError:
                 return HttpResponseBadRequest()
             else:

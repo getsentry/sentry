@@ -4,7 +4,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import GuideStore from 'sentry/stores/guideStore';
-import {Group, ResolutionStatus} from 'sentry/types';
+import {GroupStatus, GroupStatusResolution, MarkReviewed} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/utils/analytics');
@@ -61,7 +61,7 @@ describe('StreamGroup', function () {
     );
 
     expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'false');
-    const data: Partial<Group> = {inbox: false};
+    const data: MarkReviewed = {inbox: false};
     act(() => GroupStore.onUpdate('1337', undefined, data));
     act(() => GroupStore.onUpdateSuccess('1337', undefined, data));
 
@@ -77,7 +77,10 @@ describe('StreamGroup', function () {
     });
 
     expect(screen.queryByTestId('resolved-issue')).not.toBeInTheDocument();
-    const data: Partial<Group> = {status: ResolutionStatus.RESOLVED, statusDetails: {}};
+    const data: GroupStatusResolution = {
+      status: GroupStatus.RESOLVED,
+      statusDetails: {},
+    };
     act(() => GroupStore.onUpdate('1337', undefined, data));
     act(() => GroupStore.onUpdateSuccess('1337', undefined, data));
     expect(screen.getByTestId('resolved-issue')).toBeInTheDocument();

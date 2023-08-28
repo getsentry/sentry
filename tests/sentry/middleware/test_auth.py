@@ -99,7 +99,10 @@ class AuthenticationMiddlewareTestCase(TestCase):
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token.token}"
         self.middleware.process_request(request)
         self.assert_user_equals(request)
-        assert AuthenticatedToken.from_token(request.auth) == AuthenticatedToken.from_token(token)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuthenticatedToken.from_token(request.auth) == AuthenticatedToken.from_token(
+                token
+            )
 
     def test_process_request_invalid_authtoken(self):
         request = self.make_request(method="GET")
@@ -128,6 +131,17 @@ class AuthenticationMiddlewareTestCase(TestCase):
 
         self.middleware.process_request(request)
         # Should swallow errors and pass on
+        assert request.user.is_anonymous
+        assert request.auth is None
+
+    def test_process_request_rpc_path_ignored(self):
+        request = self.make_request(
+            method="GET", path="/api/0/internal/rpc/organization/get_organization_by_id"
+        )
+        request.META["HTTP_AUTHORIZATION"] = b"Rpcsignature not-a-checksum"
+
+        self.middleware.process_request(request)
+        # No errors, and no user identified.
         assert request.user.is_anonymous
         assert request.auth is None
 

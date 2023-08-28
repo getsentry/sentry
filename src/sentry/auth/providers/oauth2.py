@@ -141,7 +141,7 @@ class OAuth2Provider(Provider, abc.ABC):
 
     @abc.abstractmethod
     def get_refresh_token_url(self) -> str:
-        pass
+        raise NotImplementedError
 
     def get_refresh_token_params(self, refresh_token):
         return {
@@ -171,7 +171,7 @@ class OAuth2Provider(Provider, abc.ABC):
             'data': self.get_oauth_data(data),
         }
         """
-        pass
+        raise NotImplementedError
 
     def update_identity(self, new_data, current_data):
         # we want to maintain things like refresh_token that might not

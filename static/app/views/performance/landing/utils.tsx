@@ -197,7 +197,7 @@ export const vitalCardDetails = (
     'tpm()': {
       title: t('Throughput'),
       tooltip: getTermHelp(organization, PerformanceTerm.THROUGHPUT),
-      formatter: formatAbbreviatedNumber,
+      formatter: (value: number | string) => formatAbbreviatedNumber(value),
     },
     'failure_rate()': {
       title: t('Failure Rate'),

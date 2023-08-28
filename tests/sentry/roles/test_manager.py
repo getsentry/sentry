@@ -1,6 +1,7 @@
 from unittest import mock
 
-from sentry.roles import RoleManager, default_manager
+from sentry.roles import default_manager
+from sentry.roles.manager import RoleManager
 from sentry.testutils.cases import TestCase
 
 

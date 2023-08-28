@@ -260,22 +260,22 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         self._filter(team_ids=[team.id], provider=provider, type=type).delete()
 
     def remove_for_project(
-        self, project: Project, type: NotificationSettingTypes | None = None
+        self, project_id: int, type: NotificationSettingTypes | None = None
     ) -> None:
         """Bulk delete all Notification Settings for a PROJECT, optionally by type."""
         self._filter(
             scope_type=NotificationScopeType.PROJECT,
-            scope_identifier=project.id,
+            scope_identifier=project_id,
             type=type,
         ).delete()
 
     def remove_for_organization(
-        self, organization: Organization, type: NotificationSettingTypes | None = None
+        self, organization_id: int, type: NotificationSettingTypes | None = None
     ) -> None:
         """Bulk delete all Notification Settings for an ENTIRE ORGANIZATION, optionally by type."""
         self._filter(
             scope_type=NotificationScopeType.ORGANIZATION,
-            scope_identifier=organization.id,
+            scope_identifier=organization_id,
             type=type,
         ).delete()
 

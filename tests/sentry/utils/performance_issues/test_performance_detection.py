@@ -109,13 +109,13 @@ class PerformanceDetectionTest(TestCase):
 
     @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_disabled(self, mock):
-        detect_performance_problems({}, self.project)
-        assert mock.call_count == 0
+        with override_options({"performance.issues.all.problem-detection": 0.0}):
+            detect_performance_problems({}, self.project)
+            assert mock.call_count == 0
 
     @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_enabled(self, mock):
-        with override_options({"performance.issues.all.problem-detection": 1.0}):
-            detect_performance_problems({}, self.project)
+        detect_performance_problems({}, self.project)
         assert mock.call_count == 1
 
     @override_options(BASE_DETECTOR_OPTIONS)

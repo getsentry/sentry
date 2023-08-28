@@ -13,7 +13,7 @@ RELAXED_CONFIG = {
 }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ForOrganizationMemberTestCase(TestCase):
     def test_by_email(self):
         organization = Organization(id=1)

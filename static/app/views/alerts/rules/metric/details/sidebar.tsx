@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import capitalize from 'lodash/capitalize';
 
 import AlertBadge from 'sentry/components/alertBadge';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
@@ -68,12 +69,15 @@ function TriggerDescription({
     ? t('lower')
     : t('below');
   const timeWindow = <Duration seconds={rule.timeWindow * 60} />;
+  const metricName = capitalize(
+    AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]
+  );
 
   const thresholdText = rule.comparisonDelta
     ? tct(
-        '[metric] is [threshold]% [comparisonType] in [timeWindow] compared to [comparisonDelta]',
+        '[metric] is [threshold]% [comparisonType] in [timeWindow] compared to the [comparisonDelta]',
         {
-          metric: AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)],
+          metric: metricName,
           threshold,
           comparisonType: thresholdTypeText,
           timeWindow,
@@ -84,7 +88,7 @@ function TriggerDescription({
         }
       )
     : tct('[metric] is [condition] in [timeWindow]', {
-        metric: AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)],
+        metric: metricName,
         condition: `${thresholdTypeText} ${threshold}`,
         timeWindow,
       });

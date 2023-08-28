@@ -4,7 +4,7 @@ import copy
 import inspect
 import logging
 import random
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, List, Mapping, Sequence
 
 import sentry_sdk
 from django.conf import settings
@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 UNSAFE_FILES = (
     "sentry/event_manager.py",
     "sentry/tasks/process_buffer.py",
-    "sentry/ingest/ingest_consumer.py",
+    "sentry/ingest/consumer/processors.py",
     # This consumer lives outside of sentry but is just as unsafe.
     "outcomes_consumer.py",
 )
@@ -106,11 +106,8 @@ if settings.ADDITIONAL_SAMPLED_URLS:
 # tasks will not be sampled
 SAMPLED_TASKS = {
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.tasks.store.symbolicate_event": settings.SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING,
-    "sentry.tasks.store.symbolicate_event_from_reprocessing": settings.SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
-    "sentry.tasks.assemble.assemble_dif": 0.1,
     "sentry.tasks.app_store_connect.dsym_download": settings.SENTRY_APPCONNECT_APM_SAMPLING,
     "sentry.tasks.app_store_connect.refresh_all_builds": settings.SENTRY_APPCONNECT_APM_SAMPLING,
     "sentry.tasks.process_suspect_commits": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
@@ -132,7 +129,14 @@ SAMPLED_TASKS = {
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.monitors.tasks.check_missing": 1.0,
     "sentry.monitors.tasks.check_timeout": 1.0,
+    "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2,
+    "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2,
+    "sentry.dynamic_sampling.tasks.sliding_window": 0.2,
+    "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,
+    "sentry.dynamic_sampling.tasks.collect_orgs": 0.2,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
@@ -393,7 +397,7 @@ def configure_sdk():
                     return
 
             # Sentry4Sentry (upstream) should get the event first because
-            # it is most isolated from the this sentry installation.
+            # it is most isolated from the sentry installation.
             if sentry4sentry_transport:
                 metrics.incr("internal.captured.events.upstream")
                 # TODO(mattrobenolt): Bring this back safely.
@@ -404,7 +408,7 @@ def configure_sdk():
                 getattr(sentry4sentry_transport, method_name)(*args, **kwargs)
 
             if sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
-                # If this is an envelope ensure envelope and it's items are distinct references
+                # If this is an envelope ensure envelope and its items are distinct references
                 if method_name == "capture_envelope":
                     args_list = list(args)
                     envelope = args_list[0]
@@ -438,6 +442,19 @@ def configure_sdk():
                 if not sentry_saas_transport.is_healthy():
                     return False
             return True
+
+        def flush(
+            self,
+            timeout,
+            callback=None,
+        ):
+            # flush transports in case we received a kill signal
+            if experimental_transport:
+                getattr(experimental_transport, "flush")(timeout, callback)
+            if sentry4sentry_transport:
+                getattr(sentry4sentry_transport, "flush")(timeout, callback)
+            if sentry_saas_transport:
+                getattr(sentry_saas_transport, "flush")(timeout, callback)
 
     from sentry_sdk.integrations.celery import CeleryIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
@@ -654,7 +671,7 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
 
 
 def bind_ambiguous_org_context(
-    orgs: Sequence[Organization | RpcOrganization], source: str | None = None
+    orgs: Sequence[Organization] | Sequence[RpcOrganization] | List[str], source: str | None = None
 ) -> None:
     """
     Add org context information to the scope in the case where the current org might be one of a
@@ -664,7 +681,12 @@ def bind_ambiguous_org_context(
 
     MULTIPLE_ORGS_TAG = "[multiple orgs]"
 
-    org_slugs = [org.slug for org in orgs]
+    def parse_org_slug(x: Organization | RpcOrganization | str) -> str:
+        if isinstance(x, str):
+            return x
+        return x.slug
+
+    org_slugs = [parse_org_slug(org) for org in orgs]
 
     # Right now there is exactly one Integration instance shared by more than 30 orgs (the generic
     # GitLab integration, at the moment shared by ~500 orgs), so 50 should be plenty for all but

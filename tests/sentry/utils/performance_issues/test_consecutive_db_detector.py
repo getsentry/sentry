@@ -26,7 +26,7 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 SECOND = 1000
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @pytest.mark.django_db
 class ConsecutiveDbDetectorTest(TestCase):
     def setUp(self):

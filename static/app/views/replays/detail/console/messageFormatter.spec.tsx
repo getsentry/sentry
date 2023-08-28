@@ -23,6 +23,26 @@ describe('MessageFormatter', () => {
     expect(screen.getByText('This is a test')).toBeInTheDocument();
   });
 
+  it('Should print console message without data', () => {
+    const [frame] = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
+      TestStubs.Replay.ConsoleFrame({
+        level: BreadcrumbLevelType.LOG,
+        message: 'This is only a test',
+        timestamp: new Date('2022-06-22T20:00:39.959Z'),
+      }),
+    ]);
+
+    // Manually delete `data` from the mock.
+    // This is reasonable because the type, at this point, `frame` is of type
+    // `BreadcrumbFrame` and not `ConsoleFrame`.
+    // When the type is narrowed to `ConsoleFrame` the `data` field is forced to exist.
+    delete frame.data;
+
+    render(<MessageFormatter frame={frame} />);
+
+    expect(screen.getByText('This is only a test')).toBeInTheDocument();
+  });
+
   it('Should print console message with objects correctly', () => {
     const [frame] = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
       TestStubs.Replay.ConsoleFrame({

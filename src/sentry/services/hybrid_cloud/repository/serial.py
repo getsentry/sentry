@@ -14,4 +14,5 @@ def serialize_repository(repository: Repository) -> RpcRepository:
         integration_id=repository.integration_id,
         provider=repository.provider,
         status=repository.status,
+        url=repository.url,
     )

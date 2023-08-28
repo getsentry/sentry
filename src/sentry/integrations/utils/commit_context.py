@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import logging
 from typing import Any, List, Mapping, Sequence, Tuple
 
 import sentry_sdk
 
 from sentry import analytics
+from sentry.integrations.base import IntegrationInstallation
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.ownership.grammar import get_source_code_path_from_stacktrace_path
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -17,7 +20,7 @@ def find_commit_context_for_event(
     code_mappings: Sequence[RepositoryProjectPathConfig],
     frame: Mapping[str, Any],
     extra: Mapping[str, Any],
-) -> List[Tuple[Mapping[str, Any], RepositoryProjectPathConfig]]:
+) -> tuple[List[Tuple[Mapping[str, Any], RepositoryProjectPathConfig]], IntegrationInstallation]:
     """
 
     Get all the Commit Context for an event frame using a source code integration for all the matching code mappings

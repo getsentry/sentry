@@ -137,6 +137,8 @@ class TestMediator(TestCase):
 
     def test_automatic_transaction(self):
         class TransactionMediator(Mediator):
+            using = router.db_for_write(User)
+
             def call(self):
                 User.objects.create(username="beep")
                 raise RuntimeError()

@@ -36,6 +36,7 @@ def test_reverse_resolve_shared_org_existing_entry() -> None:
     indexer = StaticStringIndexer(MockIndexer())
 
     release_idx = indexer.resolve_shared_org("release")
+    assert release_idx is not None
     actual = indexer.reverse_shared_org_resolve(release_idx)
 
     assert actual == "release"

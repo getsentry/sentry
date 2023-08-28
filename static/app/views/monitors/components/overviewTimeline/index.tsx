@@ -2,6 +2,7 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
+import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -17,7 +18,7 @@ import {Monitor} from '../../types';
 import {ResolutionSelector} from './resolutionSelector';
 import {TimelineTableRow} from './timelineTableRow';
 import {MonitorBucketData, TimeWindow} from './types';
-import {getStartFromTimeWindow, timeWindowConfig} from './utils';
+import {getConfigFromTimeRange, getStartFromTimeWindow} from './utils';
 
 interface Props {
   monitorList: Monitor[];
@@ -30,11 +31,11 @@ export function OverviewTimeline({monitorList}: Props) {
   const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
   const nowRef = useRef<Date>(new Date());
   const start = getStartFromTimeWindow(nowRef.current, timeWindow);
-  const {elementRef, width: timelineWidth} = useDimensions<HTMLDivElement>();
+  const elementRef = useRef<HTMLDivElement>(null);
+  const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
-  const rollup = Math.floor(
-    (timeWindowConfig[timeWindow].elapsedMinutes * 60) / timelineWidth
-  );
+  const timeWindowConfig = getConfigFromTimeRange(start, nowRef.current, timelineWidth);
+  const rollup = Math.floor((timeWindowConfig.elapsedMinutes * 60) / timelineWidth);
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
     [
@@ -57,16 +58,23 @@ export function OverviewTimeline({monitorList}: Props) {
 
   return (
     <MonitorListPanel>
-      <StyledResolutionSelector />
       <TimelineWidthTracker ref={elementRef} />
-      <GridLineTimeLabels
-        timeWindow={timeWindow}
-        end={nowRef.current}
-        width={timelineWidth}
-      />
+      <StickyResolutionSelector>
+        <ResolutionSelector />
+      </StickyResolutionSelector>
+      <StickyGridLineTimeLabels>
+        <BorderlessGridLineTimeLabels
+          timeWindowConfig={timeWindowConfig}
+          start={start}
+          end={nowRef.current}
+          width={timelineWidth}
+        />
+      </StickyGridLineTimeLabels>
       <GridLineOverlay
+        stickyCursor
         showCursor={!isLoading}
-        timeWindow={timeWindow}
+        timeWindowConfig={timeWindowConfig}
+        start={start}
         end={nowRef.current}
         width={timelineWidth}
       />
@@ -75,10 +83,10 @@ export function OverviewTimeline({monitorList}: Props) {
         <TimelineTableRow
           key={monitor.id}
           monitor={monitor}
-          timeWindow={timeWindow}
+          timeWindowConfig={timeWindowConfig}
+          start={start}
           bucketedData={monitorStats?.[monitor.slug]}
           end={nowRef.current}
-          start={start}
           width={timelineWidth}
         />
       ))}
@@ -91,10 +99,40 @@ const MonitorListPanel = styled(Panel)`
   grid-template-columns: 350px 135px 1fr;
 `;
 
-const StyledResolutionSelector = styled(ResolutionSelector)`
+const StickyResolutionSelector = styled(Sticky)`
+  z-index: 1;
   padding: ${space(1.5)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
   grid-column: 1/3;
+  background: ${p => p.theme.background};
+  border-top-left-radius: ${p => p.theme.panelBorderRadius};
+  box-shadow: 0 1px ${p => p.theme.translucentBorder};
+
+  &[data-stuck] {
+    border-radius: 0;
+    border-left: 1px solid ${p => p.theme.border};
+    margin-left: -1px;
+  }
+`;
+
+// We don't need border here because it is already accomplished via box-shadow below
+const BorderlessGridLineTimeLabels = styled(GridLineTimeLabels)`
+  border: none;
+`;
+
+const StickyGridLineTimeLabels = styled(Sticky)`
+  > * {
+    height: 100%;
+  }
+  z-index: 1;
+  background: ${p => p.theme.background};
+  border-top-right-radius: ${p => p.theme.panelBorderRadius};
+  box-shadow: 0 1px ${p => p.theme.translucentBorder};
+
+  &[data-stuck] {
+    border-radius: 0;
+    border-right: 1px solid ${p => p.theme.border};
+    margin-right: -1px;
+  }
 `;
 
 const TimelineWidthTracker = styled('div')`

@@ -4,8 +4,8 @@ from typing import Callable
 
 from django.core.exceptions import DisallowedHost
 from django.http import HttpResponseRedirect
-from rest_framework.request import Request
-from rest_framework.response import Response
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 
 from sentry import options
 
@@ -18,7 +18,7 @@ class SubdomainMiddleware:
     If no subdomain is extracted, then request.subdomain is None.
     """
 
-    def __init__(self, get_response: Callable[[Request], Response]):
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponseBase]):
         self.base_hostname = options.get("system.base-hostname")
 
         if self.base_hostname:
@@ -26,7 +26,7 @@ class SubdomainMiddleware:
 
         self.get_response = get_response
 
-    def __call__(self, request: Request) -> Response:
+    def __call__(self, request: HttpRequest) -> HttpResponseBase:
         request.subdomain = None
 
         if not self.base_hostname:

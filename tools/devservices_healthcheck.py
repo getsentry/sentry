@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import subprocess
-from time import sleep
+import time
 
 
 def run_cmd(
@@ -15,7 +15,7 @@ def run_cmd(
         returncode = subprocess.call(args)
 
         if returncode != 0:
-            sleep(timeout)
+            time.sleep(timeout)
         else:
             return
 
@@ -31,6 +31,7 @@ def main() -> None:
         "sentry_kafka",
         "kafka-topics",
         "--zookeeper",
+        # TODO: sentry_zookeeper:2181 doesn't work in CI, but 127.0.0.1 doesn't work locally
         "127.0.0.1:2181",
         "--list",
     ]

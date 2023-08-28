@@ -104,7 +104,7 @@ export function LandingWidgetSelector({
 
 const WIDGET_OPTIONS: SelectOption<WidgetOption>[] = [
   {
-    label: t('Suspect Functions'),
+    label: t('Slowest Functions'),
     value: 'slowest functions' as const,
   },
   {

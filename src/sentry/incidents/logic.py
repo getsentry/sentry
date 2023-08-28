@@ -35,14 +35,14 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import Actor, Integration, PagerDutyService, Project
+from sentry.models import Actor, Integration, OrganizationIntegration, Project
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
-from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
+from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -237,7 +237,7 @@ def create_incident_activity(
     comment=None,
     mentioned_user_ids=None,
     date_added=None,
-):
+) -> IncidentActivity:
     if activity_type == IncidentActivityType.COMMENT and user:
         subscribe_to_incident(incident, user.id)
     value = str(value) if value is not None else value
@@ -1339,7 +1339,8 @@ def get_alert_rule_trigger_action_opsgenie_team(
     use_async_lookup=False,
     input_channel_id=None,
     integrations=None,
-):
+) -> tuple[str, str]:
+    from sentry.integrations.opsgenie.client import OpsgenieClient
     from sentry.integrations.opsgenie.utils import get_team
 
     oi = integration_service.get_organization_integration(
@@ -1348,6 +1349,20 @@ def get_alert_rule_trigger_action_opsgenie_team(
     team = get_team(target_value, oi)
     if not team:
         raise InvalidTriggerActionError("No Opsgenie team found.")
+
+    integration_key = team["integration_key"]
+    integration = integration_service.get_integration(integration_id=integration_id)
+    if integration is None:
+        raise InvalidTriggerActionError("Opsgenie integration not found.")
+    client = OpsgenieClient(
+        integration=integration,
+        integration_key=integration_key,
+        org_integration_id=oi.id,
+    )
+    try:
+        client.authorize_integration(type="sentry")
+    except ApiError:
+        raise InvalidTriggerActionError("Invalid integration key.")
     return team["id"], team["team"]
 
 
@@ -1400,7 +1415,7 @@ def get_pagerduty_services(organization_id, integration_id) -> List[Tuple[int, s
     )
     if org_int is None:
         return []
-    services = PagerDutyService.services_in(org_int.config)
+    services = OrganizationIntegration.services_in(org_int.config)
     return [(s["id"], s["service_name"]) for s in services]
 
 

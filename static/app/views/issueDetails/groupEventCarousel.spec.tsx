@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import * as useMedia from 'sentry/utils/useMedia';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
 
@@ -17,11 +18,15 @@ describe('GroupEventCarousel', () => {
     nextEventID: 'next-event-id',
   });
 
+  const singleTestEvent = {...testEvent, previousEventID: null, nextEventID: null};
+
   const defaultProps = {
     event: testEvent,
     group: TestStubs.Group({id: 'group-id'}),
     projectSlug: 'project-slug',
   };
+
+  const singleEventProps = {...defaultProps, event: singleTestEvent};
 
   beforeEach(() => {
     jest.restoreAllMocks();
@@ -33,41 +38,121 @@ describe('GroupEventCarousel', () => {
     window.open = jest.fn();
   });
 
-  it('can use event dropdown to navigate events', async () => {
-    // Because it isn't rendered on smaller screens
-    jest.spyOn(useMedia, 'default').mockReturnValue(true);
-
-    render(<GroupEventCarousel {...defaultProps} />, {
-      organization: TestStubs.Organization({
-        features: [
-          'issue-details-most-helpful-event',
-          'issue-details-most-helpful-event-ui',
-        ],
-      }),
+  describe('recommended event ui', () => {
+    const orgWithRecommendedEvent = TestStubs.Organization({
+      features: [
+        'issue-details-most-helpful-event',
+        'issue-details-most-helpful-event-ui',
+      ],
+    });
+    const recommendedUser = TestStubs.User({
+      options: {
+        defaultIssueEvent: 'recommended',
+      },
+    });
+    const latestUser = TestStubs.User({
+      options: {
+        defaultIssueEvent: 'latest',
+      },
+    });
+    const oldestUser = TestStubs.User({
+      options: {
+        defaultIssueEvent: 'oldest',
+      },
     });
 
-    await userEvent.click(screen.getByRole('button', {name: /recommended event/i}));
-    await userEvent.click(screen.getByRole('option', {name: /oldest event/i}));
+    it('can navigate to the oldest event', async () => {
+      jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/issues/group-id/events/oldest/',
-      query: {referrer: 'oldest-event'},
+      render(<GroupEventCarousel {...defaultProps} />, {
+        organization: orgWithRecommendedEvent,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: /recommended/i}));
+      await userEvent.click(screen.getByRole('option', {name: /oldest/i}));
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/group-id/events/oldest/',
+        query: {referrer: 'oldest-event'},
+      });
     });
 
-    await userEvent.click(screen.getByRole('button', {name: /oldest event/i}));
-    await userEvent.click(screen.getByRole('option', {name: /latest event/i}));
+    it('can navigate to the latest event', async () => {
+      jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/issues/group-id/events/oldest/',
-      query: {referrer: 'oldest-event'},
+      render(<GroupEventCarousel {...defaultProps} />, {
+        organization: orgWithRecommendedEvent,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: /recommended/i}));
+      await userEvent.click(screen.getByRole('option', {name: /latest/i}));
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/group-id/events/latest/',
+        query: {referrer: 'latest-event'},
+      });
     });
 
-    await userEvent.click(screen.getByRole('button', {name: /latest event/i}));
-    await userEvent.click(screen.getByRole('option', {name: /recommended event/i}));
+    it('can navigate to the recommended event', async () => {
+      jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/issues/group-id/events/recommended/',
-      query: {referrer: 'recommended-event'},
+      render(<GroupEventCarousel {...defaultProps} />, {
+        organization: orgWithRecommendedEvent,
+        router: {
+          params: {eventId: 'latest'},
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: /latest/i}));
+      await userEvent.click(screen.getByRole('option', {name: /recommended/i}));
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/group-id/events/recommended/',
+        query: {referrer: 'recommended-event'},
+      });
+    });
+
+    it('will disable the dropdown if there is only one event', async () => {
+      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+
+      render(<GroupEventCarousel {...singleEventProps} />, {
+        organization: orgWithRecommendedEvent,
+      });
+
+      expect(await screen.getByRole('button', {name: 'Recommended'})).toBeDisabled();
+    });
+
+    it('if user default is recommended, it will show it as default', async () => {
+      ConfigStore.loadInitialData(TestStubs.Config({user: recommendedUser}));
+      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+
+      render(<GroupEventCarousel {...singleEventProps} />, {
+        organization: orgWithRecommendedEvent,
+      });
+
+      expect(await screen.getByText('Recommended')).toBeInTheDocument();
+    });
+
+    it('if user default is latest, it will show it as default', async () => {
+      ConfigStore.loadInitialData(TestStubs.Config({user: latestUser}));
+      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+
+      render(<GroupEventCarousel {...singleEventProps} />, {
+        organization: orgWithRecommendedEvent,
+      });
+
+      expect(await screen.getByText('Latest')).toBeInTheDocument();
+    });
+
+    it('if user default is oldest, it will show it as default', async () => {
+      ConfigStore.loadInitialData(TestStubs.Config({user: oldestUser}));
+      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+
+      render(<GroupEventCarousel {...singleEventProps} />, {
+        organization: orgWithRecommendedEvent,
+      });
+
+      expect(await screen.getByText('Oldest')).toBeInTheDocument();
     });
   });
 

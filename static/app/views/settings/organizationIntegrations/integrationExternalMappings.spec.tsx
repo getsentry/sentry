@@ -114,7 +114,7 @@ describe('IntegrationExternalMappings', function () {
     for (const user of MOCK_USER_SUGGESTIONS) {
       expect(screen.getByText(user)).toBeInTheDocument();
     }
-    expect(screen.getAllByTestId('suggestion-option')).toHaveLength(3);
+    expect(screen.getAllByTestId('more-information')).toHaveLength(3);
   });
 
   it('renders suggestions along with the provided mappings', async function () {
@@ -147,7 +147,7 @@ describe('IntegrationExternalMappings', function () {
       expect(screen.getByText(team.externalName)).toBeInTheDocument();
       expect(screen.getByText(team.sentryName)).toBeInTheDocument();
     }
-    expect(screen.getAllByTestId('suggestion-option')).toHaveLength(3);
+    expect(screen.getAllByTestId('more-information')).toHaveLength(3);
   });
 
   it('uses the methods passed down from props appropriately', async function () {

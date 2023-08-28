@@ -102,7 +102,7 @@ class GroupUserFeedback extends Component<Props, State> {
               <StyledEventUserFeedback
                 key={idx}
                 report={item}
-                orgId={organization.slug}
+                orgSlug={organization.slug}
                 issueId={group.id}
               />
             ))}

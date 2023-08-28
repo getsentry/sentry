@@ -15,6 +15,7 @@ import pytest
 from django.conf import settings
 from sentry_sdk import Hub
 
+from sentry.runner.importer import install_plugin_apps
 from sentry.utils.warnings import UnsupportedBackend
 
 K = TypeVar("K")
@@ -44,6 +45,10 @@ def pytest_configure(config):
         # the temproot. We'd like to keep invocations to just "pytest".
         # See source code for pytest's TempPathFactory.
         os.environ.setdefault("PYTEST_DEBUG_TEMPROOT", "/private/tmp/colima")
+        try:
+            os.mkdir("/private/tmp/colima")
+        except FileExistsError:
+            pass
 
     # HACK: Only needed for testing!
     os.environ.setdefault("_SENTRY_SKIP_CONFIGURATION", "1")
@@ -87,6 +92,7 @@ def pytest_configure(config):
     settings.STATIC_BUNDLES = {}
 
     # override a few things with our test specifics
+    install_plugin_apps("sentry.apps", settings)
     settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + ("fixtures",)
     # Need a predictable key for tests that involve checking signatures
     settings.SENTRY_PUBLIC = False
@@ -183,6 +189,7 @@ def pytest_configure(config):
             "aws-lambda.python.layer-version": "34",
         }
     )
+    settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
 
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
     settings.SENTRY_USE_BIG_INTS = True
@@ -216,6 +223,9 @@ def pytest_configure(config):
 
     # For now, multiprocessing does not work in tests.
     settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = True
+
+    # Assume this is always configured (not the real secret)
+    settings.RPC_SHARED_SECRET = ("215b1f0d",)
 
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
@@ -353,42 +363,21 @@ def _shuffle(items: list[pytest.Item]) -> None:
 
 
 def pytest_collection_modifyitems(config, items):
-    """
-    After collection, we need to:
-
-    - Filter tests that subclass SnubaTestCase as tests in `tests/acceptance` are not being marked as `snuba`
-    - Select tests based on group and group strategy
-
-    """
+    """After collection, we need to select tests based on group and group strategy"""
 
     total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
     current_group = int(os.environ.get("TEST_GROUP", 0))
     grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "file")
 
-    accepted, keep, discard = [], [], []
+    keep, discard = [], []
 
     for index, item in enumerate(items):
-        # XXX: For some reason tests in `tests/acceptance` are not being
-        # marked as snuba, so deselect test cases not a subclass of SnubaTestCase
-        if os.environ.get("RUN_SNUBA_TESTS_ONLY"):
-            import inspect
-
-            from sentry.testutils.cases import SnubaTestCase
-
-            if inspect.isclass(item.cls) and not issubclass(item.cls, SnubaTestCase):
-                # No need to group if we are deselecting this
-                discard.append(item)
-                continue
-            accepted.append(item)
-        else:
-            accepted.append(item)
-
         # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
         # we want to only include items in `accepted` list
         item_to_group = (
             int(md5(str(item.location[0]).encode("utf-8")).hexdigest(), 16)
             if grouping_strategy == "file"
-            else len(accepted) - 1
+            else index
         )
 
         # Split tests in different groups

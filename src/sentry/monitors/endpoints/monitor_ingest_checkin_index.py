@@ -12,16 +12,12 @@ from rest_framework.response import Response
 from sentry import ratelimits
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.apidocs.constants import (
-    RESPONSE_BAD_REQUEST,
-    RESPONSE_FORBIDDEN,
-    RESPONSE_NOT_FOUND,
-    RESPONSE_UNAUTHORIZED,
-)
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models import Project, ProjectKey
+from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -80,7 +76,6 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
     )
@@ -170,7 +165,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                     if created:
                         signal_first_monitor_created(project, request.user, True)
             except MonitorLimitsExceeded as e:
-                return self.respond({type(e).__name__: str(e)}, status=403)
+                return self.respond({type(e).__name__: str(e)}, status=400)
 
             # Monitor does not exist and we have not created one
             if not monitor:
@@ -187,7 +182,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                     project, monitor, result.get("environment")
                 )
             except (MonitorEnvironmentLimitsExceeded, MonitorEnvironmentValidationFailed) as e:
-                return self.respond({type(e).__name__: str(e)}, status=403)
+                return self.respond({type(e).__name__: str(e)}, status=400)
 
             # Infer the original start time of the check-in from the duration.
             duration = result.get("duration")
@@ -197,7 +192,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
             expected_time = None
             if monitor_environment.last_checkin:
-                expected_time = monitor.get_next_scheduled_checkin(monitor_environment.last_checkin)
+                expected_time = monitor.get_next_expected_checkin(monitor_environment.last_checkin)
 
             status = getattr(CheckInStatus, result["status"].upper())
             monitor_config = monitor.get_validated_config()
@@ -219,7 +214,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             signal_first_checkin(project, monitor)
 
             if checkin.status == CheckInStatus.ERROR:
-                monitor_failed = monitor_environment.mark_failed(last_checkin=checkin.date_added)
+                monitor_failed = mark_failed(monitor_environment, last_checkin=checkin.date_added)
                 if not monitor_failed:
                     if isinstance(request.auth, ProjectKey):
                         return self.respond(status=200)

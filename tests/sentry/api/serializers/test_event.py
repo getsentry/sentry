@@ -17,7 +17,7 @@ from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EventSerializerTest(TestCase, OccurrenceTestMixin):
     def test_simple(self):
         event_id = "a" * 32
@@ -240,7 +240,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SharedEventSerializerTest(TestCase):
     def test_simple(self):
         event = self.store_event(
@@ -261,7 +261,7 @@ class SharedEventSerializerTest(TestCase):
             assert entry["type"] != "breadcrumbs"
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SimpleEventSerializerTest(TestCase):
     def test_user(self):
         """
@@ -317,7 +317,7 @@ class SimpleEventSerializerTest(TestCase):
         assert result["groupID"] is None
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class IssueEventSerializerTest(TestCase):
     @mock.patch(
         "sentry.sdk_updates.SdkIndexState",
@@ -399,7 +399,7 @@ class IssueEventSerializerTest(TestCase):
         assert result["sdkUpdates"] == []
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SqlFormatEventSerializerTest(TestCase):
     def test_event_breadcrumb_formatting(self):
         event = self.store_event(

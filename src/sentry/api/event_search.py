@@ -320,7 +320,14 @@ class SearchBoolean(namedtuple("SearchBoolean", "left_term operator right_term")
 
 
 class ParenExpression(namedtuple("ParenExpression", "children")):
-    pass
+    def to_query_string(self):
+        children = ""
+        for child in self.children:
+            if isinstance(child, str):
+                children += f" {child}"
+            else:
+                children += f" {child.to_query_string()}"
+        return f"({children})"
 
 
 class SearchKey(NamedTuple):
@@ -388,6 +395,9 @@ class SearchFilter(NamedTuple):
 
     def __str__(self):
         return f"{self.key.name}{self.operator}{self.value.raw_value}"
+
+    def to_query_string(self):
+        return f"{self.key.name}:{self.operator}{self.value.value}"
 
     @property
     def is_negation(self) -> bool:

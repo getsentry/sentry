@@ -10,6 +10,7 @@ from sentry.constants import ObjectStatus
 from sentry.models import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils.cases import MonitorTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -183,6 +184,8 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "schedule": "0 0 * * *",
             "checkin_margin": None,
             "max_runtime": None,
+            "failure_issue_threshold": None,
+            "recovery_threshold": None,
         }
 
         self.project.refresh_from_db()
@@ -205,8 +208,19 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
         }
         response = self.get_success_response(self.organization.slug, **data)
-
         assert response.data["slug"] == "my-monitor"
+
+    @with_feature("app:enterprise-prevent-numeric-slugs")
+    def test_generated_slug_not_entirely_numeric(self):
+        data = {
+            "project": self.project.slug,
+            "name": "1234",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        response = self.get_success_response(self.organization.slug, **data, status_code=201)
+
+        assert response.data["slug"].startswith("1234" + "-")
 
     @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_organization_limit(self):

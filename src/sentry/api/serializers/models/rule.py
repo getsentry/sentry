@@ -118,7 +118,7 @@ class RuleSerializer(Serializer):
 
             for action in rule.data.get("actions", []):
                 install = sentry_app_installations_by_uuid.get(
-                    action.get("sentryAppInstallationUuid")
+                    str(action.get("sentryAppInstallationUuid"))
                 )
                 if install:
                     action["_sentry_app_component"] = install.get("sentry_app_component")

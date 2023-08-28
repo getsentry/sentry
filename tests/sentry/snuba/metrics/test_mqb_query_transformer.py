@@ -17,12 +17,12 @@ from sentry.snuba.metrics import (
     MetricGroupByField,
     MetricOrderByField,
     MetricsQuery,
-    TransactionMRI,
 )
 from sentry.snuba.metrics.mqb_query_transformer import (
     MQBQueryTransformationException,
     transform_mqb_query_to_metrics_query,
 )
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 
 """
 Notes:

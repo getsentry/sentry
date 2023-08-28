@@ -1,7 +1,6 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
@@ -16,7 +15,6 @@ type StepProps = {
 
 export const steps = ({
   sentryInitContent,
-  ...props
 }: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
@@ -84,29 +82,15 @@ npm install --save @sentry/node
       },
     ],
   },
-  getUploadSourceMapsStep({
-    guideLink: 'https://docs.sentry.io/platforms/node/guides/connect/sourcemaps/',
-    ...props,
-  }),
 ];
 
-export function GettingStartedWithConnect({
-  dsn,
-  organization,
-  newOrg,
-  platformKey,
-  projectId,
-}: ModuleProps) {
+export function GettingStartedWithConnect({dsn, newOrg, platformKey}: ModuleProps) {
   const sentryInitContent: string[] = [`dsn: "${dsn}"`];
 
   return (
     <Layout
       steps={steps({
         sentryInitContent: sentryInitContent.join('\n'),
-        organization,
-        newOrg,
-        platformKey,
-        projectId,
       })}
       newOrg={newOrg}
       platformKey={platformKey}

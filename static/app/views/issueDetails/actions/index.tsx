@@ -33,12 +33,13 @@ import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import {
   Group,
+  GroupStatus,
   GroupStatusResolution,
   GroupSubstatus,
   IssueCategory,
+  MarkReviewed,
   Organization,
   Project,
-  ResolutionStatus,
   SavedQueryVersions,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -60,7 +61,7 @@ import SubscribeAction from './subscribeAction';
 type UpdateData =
   | {isBookmarked: boolean}
   | {isSubscribed: boolean}
-  | {inbox: boolean}
+  | MarkReviewed
   | GroupStatusResolution;
 
 const isResolutionStatus = (data: UpdateData): data is GroupStatusResolution => {
@@ -134,7 +135,7 @@ export function Actions(props: Props) {
       | 'mark_reviewed'
       | 'discarded'
       | 'open_in_discover'
-      | ResolutionStatus,
+      | GroupStatus,
     substatus?: GroupSubstatus | null,
     statusDetailsKey?: string
   ) => {
@@ -501,7 +502,7 @@ export function Actions(props: Props) {
           disabled={disabled || isAutoResolved}
           onClick={() =>
             onUpdate({
-              status: ResolutionStatus.UNRESOLVED,
+              status: GroupStatus.UNRESOLVED,
               statusDetails: {},
               substatus: GroupSubstatus.ONGOING,
             })

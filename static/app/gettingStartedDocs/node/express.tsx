@@ -1,7 +1,6 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
@@ -26,7 +25,6 @@ tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production
 
 export const steps = ({
   sentryInitContent,
-  ...props
 }: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
@@ -96,10 +94,6 @@ npm install --save @sentry/node
       },
     ],
   },
-  getUploadSourceMapsStep({
-    guideLink: 'https://docs.sentry.io/platforms/node/guides/express/sourcemaps/',
-    ...props,
-  }),
   {
     type: StepType.VERIFY,
     description: t(
@@ -118,13 +112,7 @@ npm install --save @sentry/node
   },
 ];
 
-export function GettingStartedWithExpress({
-  dsn,
-  organization,
-  newOrg,
-  platformKey,
-  projectId,
-}: ModuleProps) {
+export function GettingStartedWithExpress({dsn, newOrg, platformKey}: ModuleProps) {
   let sentryInitContent: string[] = [`dsn: "${dsn}",`];
 
   const integrations = [...performanceIntegrations];
@@ -142,10 +130,6 @@ export function GettingStartedWithExpress({
     <Layout
       steps={steps({
         sentryInitContent: sentryInitContent.join('\n'),
-        organization,
-        newOrg,
-        platformKey,
-        projectId,
       })}
       newOrg={newOrg}
       platformKey={platformKey}

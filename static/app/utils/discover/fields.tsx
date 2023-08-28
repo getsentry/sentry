@@ -127,7 +127,7 @@ export enum RateUnits {
 export const RATE_UNIT_LABELS = {
   [RateUnits.PER_SECOND]: '/s',
   [RateUnits.PER_MINUTE]: '/min',
-  [RateUnits.PER_HOUR]: '/h',
+  [RateUnits.PER_HOUR]: '/hr',
 };
 
 const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [

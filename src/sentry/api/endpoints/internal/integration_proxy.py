@@ -13,6 +13,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_PATH,
+    PROXY_BASE_URL_HEADER,
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
     clean_outbound_headers,
@@ -51,13 +52,15 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         """
         signature = request.headers.get(PROXY_SIGNATURE_HEADER)
         identifier = request.headers.get(PROXY_OI_HEADER)
-        if signature is None or identifier is None:
+        base_url = request.headers.get(PROXY_BASE_URL_HEADER)
+        if signature is None or identifier is None or base_url is None:
             logger.error("invalid_sender_headers", extra=self.log_extra)
             return False
         is_valid = verify_subnet_signature(
-            request_body=request.body,
+            base_url=base_url,
             path=self.proxy_path,
             identifier=identifier,
+            request_body=request.body,
             provided_signature=signature,
         )
         if not is_valid:
@@ -102,9 +105,9 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             organization_id=self.org_integration.organization_id
         )
         self.client: IntegrationProxyClient = installation.get_client()
-        client_type = type(self.client)
-        self.log_extra["client_type"] = client_type.__name__
-        if not issubclass(client_type, IntegrationProxyClient):
+        client_class = self.client.__class__
+        self.log_extra["client_type"] = client_class.__name__
+        if not issubclass(client_class, IntegrationProxyClient):
             logger.error("invalid_client", extra=self.log_extra)
             return False
 
@@ -166,7 +169,10 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         if not self._should_operate(request):
             raise Http404
 
-        full_url = urljoin(self.client.base_url, self.proxy_path)
+        base_url = request.headers.get(PROXY_BASE_URL_HEADER)
+        base_url = base_url.rstrip("/")
+
+        full_url = urljoin(f"{base_url}/", self.proxy_path)
         self.log_extra["full_url"] = full_url
         headers = clean_outbound_headers(request.headers)
 

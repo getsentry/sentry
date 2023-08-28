@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping, MutableMapping, Sequence
 
-from sentry_relay import parse_release
+from sentry_relay.processing import parse_release
 
 from sentry.models import Activity, Commit, OrganizationMember, Project
 from sentry.models.commitfilechange import CommitFileChange

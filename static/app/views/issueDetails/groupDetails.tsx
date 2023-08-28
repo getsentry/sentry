@@ -23,7 +23,7 @@ import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import {Group, IssueCategory, Organization, Project} from 'sentry/types';
+import {Group, GroupStatus, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -49,6 +49,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -63,6 +64,7 @@ import {
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
+  useDefaultIssueEvent,
   useEnvironmentsFromUrl,
   useFetchIssueTagsForDetailsPage,
 } from './utils';
@@ -248,7 +250,9 @@ function useEventApiQuery({
   const hasMostHelpfulEventFeature = organization.features.includes(
     'issue-details-most-helpful-event'
   );
-  const eventIdUrl = eventId ?? (hasMostHelpfulEventFeature ? 'recommended' : 'latest');
+  const defaultIssueEvent = useDefaultIssueEvent();
+  const eventIdUrl =
+    eventId ?? (hasMostHelpfulEventFeature ? defaultIssueEvent : 'latest');
   const helpfulEventQuery =
     hasMostHelpfulEventFeature && typeof location.query.query === 'string'
       ? location.query.query
@@ -502,11 +506,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   }, [isGroupError, groupError, handleError]);
 
   const refetchGroup = useCallback(() => {
-    if (
-      group?.status !== ReprocessingStatus.REPROCESSING ||
-      loadingGroup ||
-      loadingEvent
-    ) {
+    if (group?.status !== GroupStatus.REPROCESSING || loadingGroup || loadingEvent) {
       return;
     }
 
@@ -553,6 +553,25 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   };
 }
 
+function useLoadedEventType() {
+  const organization = useOrganization();
+  const params = useParams<{eventId?: string}>();
+  const defaultIssueEvent = useDefaultIssueEvent();
+  const hasMostHelpfulEventFeature = organization.features.includes(
+    'issue-details-most-helpful-event'
+  );
+
+  switch (params.eventId) {
+    case undefined:
+      return hasMostHelpfulEventFeature ? defaultIssueEvent : 'latest';
+    case 'latest':
+    case 'oldest':
+      return params.eventId;
+    default:
+      return 'event_id';
+  }
+}
+
 function useTrackView({
   group,
   event,
@@ -567,6 +586,7 @@ function useTrackView({
   const location = useLocation();
   const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
     location.query;
+  const groupEventType = useLoadedEventType();
 
   useRouteAnalyticsEventNames('issue_details.viewed', 'Issue Details: Viewed');
   useRouteAnalyticsParams({
@@ -582,6 +602,7 @@ function useTrackView({
     alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
     alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     ref_fallback,
+    group_event_type: groupEventType,
     // Will be updated by StacktraceLink if there is a stacktrace link
     stacktrace_link_viewed: false,
     // Will be updated by IssueQuickTrace if there is a trace
@@ -684,21 +705,6 @@ function GroupDetailsContent({
   const environments = useEnvironmentsFromUrl();
 
   useTrackView({group, event, project, tab: currentTab});
-
-  useEffect(() => {
-    if (
-      currentTab === Tab.DETAILS &&
-      group &&
-      event &&
-      group.id !== event?.groupID &&
-      !eventError
-    ) {
-      // if user pastes only the event id into the url, but it's from another group, redirect to correct group/event
-      const redirectUrl = `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.id}/`;
-
-      router.push(normalizeUrl(redirectUrl));
-    }
-  }, [currentTab, event, eventError, group, organization.slug, router]);
 
   const childProps = {
     environments,

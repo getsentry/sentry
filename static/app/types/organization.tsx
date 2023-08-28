@@ -17,6 +17,7 @@ export interface OrganizationSummary {
   codecovAccess: boolean;
   dateCreated: string;
   features: string[];
+  githubOpenPRBot: boolean;
   githubPRBot: boolean;
   id: string;
   isEarlyAdopter: boolean;
@@ -170,6 +171,17 @@ export interface Member {
 export interface TeamMember extends Member {
   teamRole?: string | null;
   teamSlug?: string;
+}
+
+/**
+ * Users that exist in CommitAuthors but are not members of the organization.
+ * These users commit to repos installed for the organization.
+ */
+export interface MissingMember {
+  commitCount: number;
+  email: string;
+  // The user's ID in the repository provider (e.g. Github username)
+  externalId: string;
 }
 
 /**

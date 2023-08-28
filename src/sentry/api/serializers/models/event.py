@@ -7,7 +7,7 @@ from typing import Any, Dict, Sequence
 
 import sentry_sdk
 import sqlparse
-from sentry_relay import meta_with_chunks
+from sentry_relay.processing import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer

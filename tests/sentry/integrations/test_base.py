@@ -29,10 +29,6 @@ class IntegrationTestCase(TestCase):
             organization_id=self.organization.id,
         )
 
-    def test_no_context(self):
-        integration = IntegrationInstallation(self.model, self.organization.id)
-        integration.name = "Base"
-
     def test_with_context(self):
         integration = IntegrationInstallation(self.model, self.organization.id)
 

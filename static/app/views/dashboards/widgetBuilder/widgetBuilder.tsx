@@ -572,6 +572,7 @@ function WidgetBuilder({
       return {...newState, errors: undefined};
     });
   }
+
   function getHandleColumnFieldChange(isMetricsData?: boolean) {
     function handleColumnFieldChange(newFields: QueryFieldValue[]) {
       const fieldStrings = newFields.map(generateFieldAsString);

@@ -1,6 +1,6 @@
 import responses
 
-from sentry.models import Integration, OrganizationIntegration, Rule
+from sentry.models import Integration, Rule
 from sentry.testutils.cases import APITestCase
 from sentry.utils import json
 
@@ -32,28 +32,27 @@ class OpsgenieClientTest(APITestCase):
         assert client.integration_key == METADATA["api_key"]
 
     @responses.activate
-    def test_get_team_id(self):
+    def test_authorize_integration(self):
         client = self.installation.get_client(integration_key="1234-5678")
 
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=self.integration.id
-        )
-        org_integration.config = {
-            "team_table": [{"id": "", "team": "cool-team", "integration_key": "1234-5678"}]
+        resp_data = {
+            "result": "Integration [sentry] is valid",
+            "took": 1,
+            "requestId": "hello-world",
         }
-        org_integration.save()
-        resp_data = {"data": {"id": "123-id", "name": "cool-team"}}
-        responses.add(responses.GET, url=f"{client.base_url}/teams/cool-team", json=resp_data)
+        responses.add(
+            responses.POST, url=f"{client.base_url}/integrations/authenticate", json=resp_data
+        )
 
-        resp = client.get_team_id(team_name="cool-team")
+        resp = client.authorize_integration(type="sentry")
         assert resp == resp_data
 
     @responses.activate
     def test_send_notification(self):
         resp_data = {
             "result": "Request will be processed",
-            "took": 0.302,
-            "requestId": "43a29c5c-3dbf-4fa4-9c26-f4f71023e120",
+            "took": 1,
+            "requestId": "hello-world",
         }
         responses.add(responses.POST, url="https://api.opsgenie.com/v2/alerts", json=resp_data)
 

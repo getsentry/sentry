@@ -2,11 +2,14 @@ from django.core.signing import BadSignature, SignatureExpired
 from django.db import IntegrityError
 from django.http import Http404, HttpResponse
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 
+from sentry import analytics
 from sentry.integrations.utils.identities import get_identity_or_404
 from sentry.models.identity import Identity
+from sentry.services.hybrid_cloud.actor import ActorType
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
@@ -33,7 +36,7 @@ class DiscordUnlinkIdentityView(BaseView):
     """
 
     @transaction_start("DiscordUnlinkIdentityView")
-    @never_cache
+    @method_decorator(never_cache)
     def handle(self, request: Request, signed_params: str) -> HttpResponse:
         try:
             params = unsign(signed_params)
@@ -59,6 +62,12 @@ class DiscordUnlinkIdentityView(BaseView):
             logger.exception("discord.unlink.integrity-error")
             raise Http404
 
+        analytics.record(
+            "integrations.discord.identity_unlinked",
+            provider="discord",
+            actor_id=request.user.id,
+            actor_type=ActorType.USER,
+        )
         return render_to_response(
             "sentry/integrations/discord/unlinked.html",
             request=request,

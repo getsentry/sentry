@@ -49,6 +49,7 @@ export {IconInfo} from './iconInfo';
 export {IconInput} from './iconInput';
 export {IconIssues} from './iconIssues';
 export {IconJira} from './iconJira';
+export {IconJson} from './iconJson';
 export {IconLab} from './iconLab';
 export {IconLaptop} from './iconLaptop';
 export {IconLightning} from './iconLightning';

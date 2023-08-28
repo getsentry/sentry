@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from functools import cached_property
 
-import pytz
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
@@ -735,7 +734,7 @@ class ReleaseSerializerTest(TestCase):
         assert result["owner"].username == self.user.username
         assert result["ref"] == self.ref
         assert result["url"] == self.url
-        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=pytz.UTC)
+        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=timezone.utc)
         assert result["commits"] == self.commits
 
     def test_fields_not_required(self):

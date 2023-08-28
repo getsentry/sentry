@@ -17,7 +17,7 @@ class DiscordMessageBuilder(AbstractMessageBuilder):
 
     def __init__(
         self,
-        content: str | None = None,
+        content: str = "",
         embeds: list[DiscordMessageEmbed] | None = None,
         components: list[DiscordMessageComponent] | None = None,
         flags: DiscordMessageFlags | None = None,
@@ -37,7 +37,7 @@ class DiscordMessageBuilder(AbstractMessageBuilder):
 
     def _build(
         self,
-        content: str | None = None,
+        content: str = "",
         embeds: list[DiscordMessageEmbed] | None = None,
         components: list[DiscordMessageComponent] | None = None,
         flags: DiscordMessageFlags | None = None,
@@ -46,17 +46,11 @@ class DiscordMessageBuilder(AbstractMessageBuilder):
         Helper method for building arbitrary Discord messages.
         """
         message: dict[str, object] = {}
-
-        if content is not None:
-            message["content"] = content
-
-        if embeds is not None:
-            message["embeds"] = [embed.build() for embed in embeds]
-
-        if components is not None:
-            message["components"] = [component.build() for component in components]
-
+        message["content"] = content
+        message["embeds"] = [] if embeds is None else [embed.build() for embed in embeds]
+        message["components"] = (
+            [] if components is None else [component.build() for component in components]
+        )
         if flags is not None:
             message["flags"] = flags.value
-
         return message

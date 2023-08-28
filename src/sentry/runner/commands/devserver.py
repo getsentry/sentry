@@ -259,7 +259,7 @@ def devserver(
 
     if workers and not crons:
         click.secho(
-            "If you want to run crons (celerybeat workers), you need to also pass --crons.",
+            "If you want to run celery crons (celerybeat workers), you need to also pass --crons.",
             fg="yellow",
         )
 
@@ -294,7 +294,7 @@ def devserver(
             kafka_consumers.add("billing-metrics-consumer")
 
         if settings.SENTRY_USE_RELAY:
-            daemons += [("relay", ["sentry", "devservices", "attach", "--fast", "relay"])]
+            daemons += [("relay", ["sentry", "devservices", "attach", "relay"])]
 
             kafka_consumers.add("ingest-events")
             kafka_consumers.add("ingest-attachments")

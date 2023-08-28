@@ -3,32 +3,12 @@ from __future__ import annotations
 from urllib.parse import quote
 
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.integrations.client import ApiClient
 from sentry.models import Group, Integration
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 
 OPSGENIE_API_VERSION = "v2"
-
-
-class OpsgenieSetupClient(ApiClient):
-    """
-    API Client that doesn't require an installation.
-    This client is used during integration setup to fetch data
-    needed to build installation metadata
-    """
-
-    integration_name = "opsgenie_setup"
-
-    def __init__(self, base_url: str, api_key: str) -> None:
-        super().__init__()
-        self.base_url = f"{base_url}{OPSGENIE_API_VERSION}"
-        self.api_key = api_key
-
-    def get_account(self):
-        headers = {"Authorization": "GenieKey " + self.api_key}
-        return self.get(path="/account", headers=headers)
 
 
 class OpsgenieClient(IntegrationProxyClient):
@@ -57,6 +37,12 @@ class OpsgenieClient(IntegrationProxyClient):
         path = f"/teams/{quoted_name}"
         headers = {"Authorization": "GenieKey " + self.integration_key}
         return self.get(path=path, headers=headers, params=params)
+
+    def authorize_integration(self, type: str) -> BaseApiResponseX:
+        body = {"type": type}
+        path = "/integrations/authenticate"
+        headers = {"Authorization": "GenieKey " + self.integration_key}
+        return self.post(path=path, headers=headers, data=body)
 
     def _get_rule_urls(self, group, rules):
         organization = group.project.organization

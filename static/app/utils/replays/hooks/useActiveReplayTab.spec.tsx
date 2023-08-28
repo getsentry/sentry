@@ -73,17 +73,32 @@ describe('useActiveReplayTab', () => {
     });
   });
 
-  it('should allow ERRORS', () => {
+  it('should disallow PERF by default', () => {
     mockOrganization({
-      features: ['session-replay-errors-tab'],
+      features: [],
+    });
+
+    const {result} = reactHooks.renderHook(useActiveReplayTab);
+    expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
+
+    result.current.setActiveTab(TabKey.PERF);
+    expect(mockPush).toHaveBeenLastCalledWith({
+      pathname: '',
+      query: {t_main: TabKey.CONSOLE},
+    });
+  });
+
+  it('should allow PERF when the feature is enabled', () => {
+    mockOrganization({
+      features: ['session-replay-trace-table'],
     });
     const {result} = reactHooks.renderHook(useActiveReplayTab);
     expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
 
-    result.current.setActiveTab(TabKey.ERRORS);
+    result.current.setActiveTab(TabKey.PERF);
     expect(mockPush).toHaveBeenLastCalledWith({
       pathname: '',
-      query: {t_main: TabKey.ERRORS},
+      query: {t_main: TabKey.PERF},
     });
   });
 });
