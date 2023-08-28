@@ -506,7 +506,7 @@ export function DurationCell({replay}: Props) {
   );
 }
 
-export function RageClickCountCell({replay}: Props) {
+export function RageClickCountWithDropdownCell({replay}: Props) {
   if (replay.is_archived) {
     return <Item isArchived />;
   }
@@ -527,7 +527,24 @@ export function RageClickCountCell({replay}: Props) {
   );
 }
 
-export function DeadClickCountCell({replay}: Props) {
+export function RageClickCountCell({replay}: Props) {
+  if (replay.is_archived) {
+    return <Item isArchived />;
+  }
+  return (
+    <Item data-test-id="replay-table-count-rage-clicks">
+      <Container>
+        {replay.count_rage_clicks ? (
+          <DeadRageCount>{replay.count_rage_clicks}</DeadRageCount>
+        ) : (
+          <Count>0</Count>
+        )}
+      </Container>
+    </Item>
+  );
+}
+
+export function DeadClickCountWithDropdownCell({replay}: Props) {
   if (replay.is_archived) {
     return <Item isArchived />;
   }
@@ -543,6 +560,23 @@ export function DeadClickCountCell({replay}: Props) {
           type="count_dead_clicks"
           val={replay.count_dead_clicks ?? 0}
         />
+      </Container>
+    </Item>
+  );
+}
+
+export function DeadClickCountCell({replay}: Props) {
+  if (replay.is_archived) {
+    return <Item isArchived />;
+  }
+  return (
+    <Item data-test-id="replay-table-count-dead-clicks">
+      <Container>
+        {replay.count_dead_clicks ? (
+          <DeadRageCount>{replay.count_dead_clicks}</DeadRageCount>
+        ) : (
+          <Count>0</Count>
+        )}
       </Container>
     </Item>
   );

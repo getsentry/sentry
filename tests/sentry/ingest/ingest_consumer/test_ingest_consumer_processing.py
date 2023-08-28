@@ -8,7 +8,7 @@ from unittest.mock import Mock
 import pytest
 
 from sentry.event_manager import EventManager
-from sentry.ingest.ingest_consumer import (
+from sentry.ingest.consumer.processors import (
     process_attachment_chunk,
     process_event,
     process_individual_attachment,
@@ -37,7 +37,7 @@ def get_normalized_event(data, project):
 @pytest.fixture
 def save_event_transaction(monkeypatch):
     mock = Mock()
-    monkeypatch.setattr("sentry.ingest.ingest_consumer.save_event_transaction", mock)
+    monkeypatch.setattr("sentry.ingest.consumer.processors.save_event_transaction", mock)
     return mock
 
 
@@ -48,7 +48,7 @@ def preprocess_event(monkeypatch):
     def inner(**kwargs):
         calls.append(kwargs)
 
-    monkeypatch.setattr("sentry.ingest.ingest_consumer.preprocess_event", inner)
+    monkeypatch.setattr("sentry.ingest.consumer.processors.preprocess_event", inner)
     return calls
 
 

@@ -94,6 +94,7 @@ class GitHubAppsClientTest(TestCase):
             assert gh_rate_limit.used == 7
             assert gh_rate_limit.next_window() == "17:39:49"
 
+    @responses.activate
     def test_get_rate_limit_non_existant_resouce(self):
         with pytest.raises(AssertionError):
             self.github_client.get_rate_limit("foo")
@@ -415,11 +416,13 @@ class GithubProxyClientTest(TestCase):
 
     def setUp(self):
         self.integration = self.create_integration(
+            id=1,
             organization=self.organization,
             provider="github",
             name="github-test",
             external_id="github:1",
             metadata={"access_token": None, "expires_at": None},
+            status=ObjectStatus.ACTIVE,
         )
         self.installation = self.integration.get_installation(organization_id=self.organization.id)
         self.gh_client = self.installation.get_client()

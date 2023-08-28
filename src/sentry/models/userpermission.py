@@ -2,6 +2,7 @@ from typing import FrozenSet
 
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
 
 
@@ -13,7 +14,7 @@ class UserPermission(Model):
     Generally speaking, they should only apply to active superuser sessions.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.User
 
     user = FlexibleForeignKey("sentry.User")
     # permissions should be in the form of 'service-name.permission-name'
