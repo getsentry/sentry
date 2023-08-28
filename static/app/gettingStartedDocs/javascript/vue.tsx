@@ -68,7 +68,7 @@ npm install --save @sentry/vue
     ),
     configurations: [
       {
-        description: <h5>V2</h5>,
+        description: <h5>Vue 3</h5>,
         language: 'javascript',
         code: `
         import { createApp } from "vue";
@@ -92,7 +92,7 @@ npm install --save @sentry/vue
         `,
       },
       {
-        description: <h5>V3</h5>,
+        description: <h5>Vue 2</h5>,
         language: 'javascript',
         code: `
         import Vue from "vue";
