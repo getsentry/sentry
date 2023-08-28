@@ -19,7 +19,6 @@ import {
   Dataset,
   MetricRule,
 } from 'sentry/views/alerts/rules/metric/types';
-import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {Incident, IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
@@ -162,6 +161,7 @@ export function getMetricAlertChartOption({
   incidents,
   selectedIncident,
   handleIncidentClick,
+  isOnDemandMetricAlert,
 }: MetricChartData): MetricChartOption {
   const criticalTrigger = rule.triggers.find(
     ({label}) => label === AlertRuleTriggerType.CRITICAL
@@ -207,7 +207,7 @@ export function getMetricAlertChartOption({
     createStatusAreaSeries(theme.green300, firstPoint, lastPoint, minChartValue)
   );
 
-  if (isOnDemandMetricAlert(rule.dataset, rule.query)) {
+  if (isOnDemandMetricAlert) {
     const {startIndex, endIndex} = getWaitingForDataRange(dataArr);
     const startTime = new Date(dataArr[startIndex]?.name).getTime();
     const endTime = new Date(dataArr[endIndex]?.name).getTime();

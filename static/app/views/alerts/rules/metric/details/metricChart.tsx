@@ -232,7 +232,6 @@ class MetricChart extends PureComponent<Props, State> {
     return (
       <StyledChartControls>
         <StyledInlineContainer>
-          <SectionHeading>{t('Summary')}</SectionHeading>
           {isOnDemandAlertWihtoutData ? (
             <Fragment>
               <GuideAnchor
@@ -240,42 +239,45 @@ class MetricChart extends PureComponent<Props, State> {
                 target="empty_on_demand_chart"
                 position="right"
               >
-                <StyledSectionValue>
+                <OnDemandNoDataWrapper>
                   {t(
                     "This alert uses specific filters that we don't routinely collect metrics from so we don't have any historical data to show currently"
                   )}
-                </StyledSectionValue>
+                </OnDemandNoDataWrapper>
               </GuideAnchor>
             </Fragment>
           ) : (
-            <StyledSectionValue>
-              <ValueItem>
-                <IconCheckmark color="successText" isCircled />
-                {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
-              </ValueItem>
-              <ValueItem>
-                <IconWarning color="warningText" />
-                {warningPercent ? warningPercent.toFixed(2) : 0}%
-              </ValueItem>
-              <ValueItem>
-                <IconFire color="errorText" />
-                {criticalPercent ? criticalPercent.toFixed(2) : 0}%
-              </ValueItem>
-              {waitingForDataPercent > 0 && (
-                <StyledTooltip
-                  underlineColor="gray200"
-                  showUnderline
-                  title={t(
-                    'The time spent waiting for metrics matching the filters used.'
-                  )}
-                >
-                  <ValueItem>
-                    <IconClock />
-                    {waitingForDataPercent.toFixed(2)}%
-                  </ValueItem>
-                </StyledTooltip>
-              )}
-            </StyledSectionValue>
+            <Fragment>
+              <SectionHeading>{t('Summary')}</SectionHeading>
+              <StyledSectionValue>
+                <ValueItem>
+                  <IconCheckmark color="successText" isCircled />
+                  {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
+                </ValueItem>
+                <ValueItem>
+                  <IconWarning color="warningText" />
+                  {warningPercent ? warningPercent.toFixed(2) : 0}%
+                </ValueItem>
+                <ValueItem>
+                  <IconFire color="errorText" />
+                  {criticalPercent ? criticalPercent.toFixed(2) : 0}%
+                </ValueItem>
+                {waitingForDataPercent > 0 && (
+                  <StyledTooltip
+                    underlineColor="gray200"
+                    showUnderline
+                    title={t(
+                      'The time spent waiting for metrics matching the filters used.'
+                    )}
+                  >
+                    <ValueItem>
+                      <IconClock />
+                      {waitingForDataPercent.toFixed(2)}%
+                    </ValueItem>
+                  </StyledTooltip>
+                )}
+              </StyledSectionValue>
+            </Fragment>
           )}
         </StyledInlineContainer>
         {!isSessionAggregate(rule.aggregate) && (
@@ -664,6 +666,10 @@ const StyledSectionValue = styled(SectionValue)`
   grid-template-columns: repeat(4, auto);
   gap: ${space(1.5)};
   margin: 0 0 0 ${space(1.5)};
+`;
+
+const OnDemandNoDataWrapper = styled(SectionValue)`
+  margin: 0;
 `;
 
 const ValueItem = styled('div')`
