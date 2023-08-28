@@ -56,6 +56,7 @@ function GroupReplays({group}: Props) {
           replays={[]}
           sort={undefined}
           visibleColumns={VISIBLE_COLUMNS}
+          showDropdownFilters={false}
         />
       </StyledLayoutPage>
     );
@@ -97,6 +98,7 @@ function GroupReplaysTable({
         replays={replays}
         sort={undefined}
         visibleColumns={visibleColumns}
+        showDropdownFilters={false}
       />
     </StyledLayoutPage>
   );
