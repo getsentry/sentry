@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from sentry.models import (
@@ -280,12 +282,14 @@ class TestGenerateDeterministicOrganizationSlug(TestCase):
     def test_slug_with_0_length(self):
         unicoded_str = "😅"
 
-        with pytest.raises(AssertionError):
-            generate_deterministic_organization_slug(
-                desired_slug_base=unicoded_str, desired_org_name=unicoded_str, owning_user_id=42
-            )
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base=unicoded_str, desired_org_name=unicoded_str, owning_user_id=42
+        )
 
-        with pytest.raises(AssertionError):
-            generate_deterministic_organization_slug(
-                desired_slug_base="", desired_org_name=unicoded_str, owning_user_id=42
-            )
+        random_slug_regex = re.compile(r"^[a-f0-9]{10}-[a-f0-9]{9}")
+        assert random_slug_regex.match(slug)
+
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base="", desired_org_name=unicoded_str, owning_user_id=42
+        )
+        assert random_slug_regex.match(slug)
