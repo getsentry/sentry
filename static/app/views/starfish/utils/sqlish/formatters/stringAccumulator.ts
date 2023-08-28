@@ -1,8 +1,16 @@
 export class StringAccumulator {
-  tokens: string[];
+  lines: Line[];
 
   constructor() {
-    this.tokens = [];
+    this.lines = [new Line()];
+  }
+
+  get lastLine(): Line {
+    return this.lines.at(-1) as Line;
+  }
+
+  get lastToken(): string | undefined {
+    return this.lastLine.lastToken;
   }
 
   add(token: string) {
@@ -10,38 +18,79 @@ export class StringAccumulator {
       return;
     }
 
-    this.tokens.push(token);
+    this.lastLine.push(token);
   }
 
   space() {
-    this.rtrim();
-    this.tokens.push(SPACE);
+    this.lastLine.push(SPACE);
   }
 
   break() {
-    this.rtrim();
-
-    this.tokens.push(NEWLINE);
-  }
-
-  indent(count: number = 1) {
-    this.tokens.push(INDENTATION.repeat(count));
-  }
-
-  rtrim() {
-    while (this.tokens.at(-1)?.trim() === '') {
-      this.tokens.pop();
+    if (this.lastLine.isEmpty) {
+      this.lines.pop();
     }
+
+    this.lines.push(new Line());
+  }
+
+  indent(level: number = 1) {
+    this.lastLine.indentTo(level);
   }
 
   endsWith(token: string) {
-    return this.tokens.at(-1) === token;
+    if (token === NEWLINE) {
+      return this.lastLine.isEmpty;
+    }
+
+    return this.lastLine.lastToken === token;
   }
 
   toString() {
-    return this.tokens.join('').trim();
+    return this.lines
+      .map(line => line.toString())
+      .join(NEWLINE)
+      .trim();
   }
 }
+
+class Line {
+  tokens: string[];
+  indentation: number;
+
+  constructor() {
+    this.tokens = [];
+    this.indentation = 0;
+  }
+
+  get lastToken() {
+    return this.tokens.at(-1);
+  }
+
+  get isEmpty() {
+    return this.toString().trim() === '';
+  }
+
+  push(token: string) {
+    this.tokens.push(token);
+  }
+
+  indent() {
+    this.indentation += 1;
+  }
+
+  indentTo(level: number) {
+    this.indentation = level;
+  }
+
+  unindent() {
+    this.indentation -= 1;
+  }
+
+  toString() {
+    return `${INDENTATION.repeat(this.indentation)}${this.tokens.join('').trimEnd()}`;
+  }
+}
+
 const SPACE = ' ';
 const INDENTATION = '  ';
 const NEWLINE = '\n';
