@@ -16,7 +16,7 @@ from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAu
 from sentry.api.serializers import serialize
 from sentry.api.utils import generate_region_url
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
 from sentry.models.user import User
 from sentry.security.utils import capture_security_activity
 from sentry.services.hybrid_cloud.organization.model import (
@@ -66,7 +66,7 @@ class OrgAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
         if not name:
             return Response({"detail": ["The name cannot be blank."]}, status=400)
 
-        if len(name) > 255:
+        if len(name) > MAX_NAME_LENGTH:
             return Response(
                 {"detail": ["The name cannot be longer than 255 characters."]}, status=400
             )
