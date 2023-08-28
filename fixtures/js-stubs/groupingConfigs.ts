@@ -1,4 +1,4 @@
-import {EventGroupingConfig} from 'sentry/types';
+import type {EventGroupingConfig} from 'sentry/types';
 
 export function GroupingConfigs(): EventGroupingConfig[] {
   return [
