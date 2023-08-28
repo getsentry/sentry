@@ -5,7 +5,6 @@ from typing import List
 from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
-from sentry.models import Project
 from sentry.statistical_detectors.detector import TrendPayload, TrendState
 from sentry.utils import redis
 
@@ -17,7 +16,6 @@ def get_redis_client() -> RedisCluster | StrictRedis:
 
 
 def fetch_states(
-    project: Project,
     payloads: List[TrendPayload],
     client: RedisCluster | StrictRedis | None = None,
 ) -> List[TrendState]:
@@ -26,7 +24,7 @@ def fetch_states(
 
     with client.pipeline() as pipeline:
         for payload in payloads:
-            key = make_key(project.id, payload)
+            key = make_key(payload)
             pipeline.hgetall(key)
         results = pipeline.execute()
 
@@ -37,7 +35,6 @@ def fetch_states(
 
 
 def update_states(
-    project: Project,
     states: List[TrendState | None],
     payloads: List[TrendPayload],
     client: RedisCluster | StrictRedis | None = None,
@@ -53,13 +50,13 @@ def update_states(
         for state, payload in zip(states, payloads):
             if state is None:
                 continue
-            key = make_key(project.id, payload)
+            key = make_key(payload)
             pipeline.hmset(key, state.as_dict())
             pipeline.expire(key, ttl)
 
         pipeline.execute()
 
 
-def make_key(project_id: int, payload: TrendPayload):
+def make_key(payload: TrendPayload):
     # sdf = statistical detector functions
-    return f"sdf:p:{project_id}:f:{payload.group}"
+    return f"sdf:p:{payload.project_id}:f:{payload.group}"

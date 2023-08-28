@@ -114,7 +114,7 @@ def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) ->
             if not functions:
                 continue
 
-            regressed, improved = process_trend_payloads(project, functions, client=client)
+            regressed, improved = process_trend_payloads(functions, client=client)
             regressed_functions.extend(regressed)
             improved_functions.extend(improved)
 
@@ -151,6 +151,7 @@ def query_functions(projects: List[Project], start: datetime) -> Dict[int, List[
     function_results = defaultdict(list)
     for row in query_results["data"]:
         payload = TrendPayload(
+            project_id=row["project.id"],
             group=row["fingerprint"],
             count=row["count()"],
             value=row["p95()"],

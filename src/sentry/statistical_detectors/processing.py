@@ -5,7 +5,6 @@ from typing import List, Optional, Tuple
 
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
-from sentry.models import Project
 from sentry.statistical_detectors import redis
 from sentry.statistical_detectors.detector import TrendPayload, TrendState, TrendType
 from sentry.utils.math import ExponentialMovingAverage
@@ -89,14 +88,13 @@ def detect_trend(state: TrendState, payload: TrendPayload) -> Tuple[TrendType, T
 
 
 def process_trend_payloads(
-    project: Project,
     payloads: List[TrendPayload],
     client: RedisCluster | StrictRedis | None = None,
 ) -> Tuple[List[TrendPayload], List[TrendPayload]]:
     regressed: List[TrendPayload] = []
     improved: List[TrendPayload] = []
 
-    old_states = redis.fetch_states(project, payloads, client=client)
+    old_states = redis.fetch_states(payloads, client=client)
 
     new_states: List[TrendState | None] = []
 
@@ -114,6 +112,6 @@ def process_trend_payloads(
         elif trend == TrendType.Improved:
             improved.append(payload)
 
-    redis.update_states(project, new_states, payloads)
+    redis.update_states(new_states, payloads)
 
     return regressed, improved

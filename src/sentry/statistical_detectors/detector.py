@@ -75,6 +75,7 @@ class TrendState:
 
 @dataclass
 class TrendPayload:
+    project_id: int
     group: str | int
     count: float
     value: float
