@@ -2,7 +2,9 @@ import {Organization} from 'fixtures/js-stubs/organization';
 
 import {Organization as OrganizationType} from 'sentry/types';
 
-export function Organizations(params = {}): OrganizationType[] {
+export function Organizations(
+  params: Partial<OrganizationType> = {}
+): OrganizationType[] {
   return [
     Organization({
       id: '1',
