@@ -60,6 +60,9 @@ def mark_failed(
     if not affected:
         return False
 
+    # refresh the object from the database so we have the updated values
+    monitor_env.refresh_from_db()
+
     # Do not create event if monitor is disabled
     if monitor_env.monitor.status == ObjectStatus.DISABLED:
         return True

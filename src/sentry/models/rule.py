@@ -4,6 +4,7 @@ from typing import Sequence, Tuple
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -32,7 +33,7 @@ class RuleSource(IntEnum):
 
 @region_silo_only_model
 class Rule(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     DEFAULT_CONDITION_MATCH = "all"  # any, all
     DEFAULT_FILTER_MATCH = "all"  # match to apply on filters
@@ -119,7 +120,7 @@ class RuleActivityType(Enum):
 
 @region_silo_only_model
 class RuleActivity(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     rule = FlexibleForeignKey("sentry.Rule")
     user_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True)

@@ -1,21 +1,26 @@
-export function ServiceIncident(params = {}) {
+import {SentryServiceIncident} from 'sentry/types';
+
+export function ServiceIncident(
+  params: Partial<SentryServiceIncident> = {}
+): SentryServiceIncident {
   return {
     id: '1',
-    title: 'Test Incident',
+    status: '',
+    name: 'Test Incident',
     createdAt: '2022-05-23T13:33:38.737-07:00',
     updates: [
       {
-        name: 'First Update',
+        status: '',
         updatedAt: '2022-05-23T13:33:38.737-07:00',
         body: 'Things look bad',
       },
       {
-        name: 'Second Update',
+        status: '',
         updatedAt: '2022-05-23T13:45:38.737-07:00',
         body: 'Investigating',
       },
     ],
-    components: [
+    affectedComponents: [
       {
         name: '',
         status: 'major_outage',

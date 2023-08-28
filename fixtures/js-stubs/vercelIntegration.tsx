@@ -1,4 +1,6 @@
-export function VercelProvider() {
+import {IntegrationProvider} from 'sentry/types';
+
+export function VercelProvider(): IntegrationProvider {
   return {
     setupDialog: {
       url: '/organizations/sentry/integrations/vercel/setup/',
@@ -17,6 +19,7 @@ export function VercelProvider() {
         {
           featureGate: 'integrations-deployment',
           description: 'DEPLOYMENT DESCRIPTION',
+          featureId: 2,
         },
       ],
       author: 'The Sentry Team',

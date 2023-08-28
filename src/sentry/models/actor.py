@@ -9,6 +9,7 @@ from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_save
 from rest_framework import serializers
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_only_model
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -101,7 +102,7 @@ def actor_type_to_string(type: int) -> str | None:
 
 @region_silo_only_model
 class Actor(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     type = models.PositiveSmallIntegerField(
         choices=(

@@ -14,6 +14,7 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
@@ -207,7 +208,7 @@ class ScheduleType:
 
 @region_silo_only_model
 class Monitor(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     guid = UUIDField(unique=True, auto_add=True)
     slug = models.SlugField()
@@ -356,7 +357,7 @@ def check_organization_monitor_limits(sender, instance, **kwargs):
 
 @region_silo_only_model
 class MonitorCheckIn(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     guid = UUIDField(unique=True, auto_add=True)
     project_id = BoundedBigIntegerField(db_index=True)
@@ -451,7 +452,7 @@ class MonitorCheckIn(Model):
 
 @region_silo_only_model
 class MonitorLocation(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     guid = UUIDField(unique=True, auto_add=True)
     name = models.CharField(max_length=128)
@@ -489,7 +490,7 @@ class MonitorEnvironmentManager(BaseManager):
 
 @region_silo_only_model
 class MonitorEnvironment(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     monitor = FlexibleForeignKey("sentry.Monitor")
     environment = FlexibleForeignKey("sentry.Environment")

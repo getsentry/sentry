@@ -56,6 +56,7 @@ default_manager = FeatureManager()  # NOQA
 # fmt: off
 
 # Features that don't use resource scoping
+default_manager.add("app:enterprise-prevent-numeric-slugs", SystemFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 
@@ -189,6 +190,7 @@ default_manager.add("organizations:session-replay-slack-new-issue", Organization
 default_manager.add("organizations:session-replay-weekly-email", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:session-replay-issue-emails", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:session-replay-trace-table", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:session-replay-trial-ended-banner", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-optimized-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:slack-overage-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
