@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Generator, Sequence
+from typing import Any, Generator, Optional, Sequence
 
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
@@ -38,7 +38,9 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "tags": {"type": "string", "placeholder": "e.g., environment,user,my_tag"},
         }
 
-    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None
+    ) -> Generator[CallbackFuture, None, None]:
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
 

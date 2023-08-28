@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Optional, Sequence
 
 from sentry.utils.services import Service
 
@@ -32,7 +32,13 @@ class RuleHistoryBackend(Service):
 
     __all__ = ("record", "fetch_rule_groups_paginated", "fetch_rule_hourly_stats")
 
-    def record(self, rule: Rule, group: Group, event_id: str | None = None) -> None:
+    def record(
+        self,
+        rule: Rule,
+        group: Group,
+        event_id: Optional[str] = None,
+        notification_uuid: Optional[str] = None,
+    ) -> None:
         """
         Records an instance of an issue alert being fired for a given group.
         """

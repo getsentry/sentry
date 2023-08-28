@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Generator, Mapping, Sequence
+from typing import Any, Generator, Mapping, Optional, Sequence
 
 from rest_framework import serializers
 
@@ -140,7 +140,9 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
                 f"Unexpected setting(s) '{extra_keys_string}' configured for {sentry_app.name}"
             )
 
-    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None
+    ) -> Generator[CallbackFuture, None, None]:
         sentry_app = self._get_sentry_app(event)
         yield self.future(
             notify_sentry_app,
