@@ -24,6 +24,7 @@ from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models import Environment, Organization
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
@@ -193,9 +194,11 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
             params=params,
             offset=None,
             limit=None,
-            skip_time_conditions=True,
-            parser_config_overrides={"blocked_keys": ALERT_BLOCKED_FIELDS},
-            skip_issue_validation=skip_issue_validation,
+            config=QueryBuilderConfig(
+                skip_time_conditions=True,
+                parser_config_overrides={"blocked_keys": ALERT_BLOCKED_FIELDS},
+                skip_issue_validation=skip_issue_validation,
+            ),
         )
 
     def get_entity_extra_params(self) -> Mapping[str, Any]:
@@ -287,10 +290,12 @@ class SessionsEntitySubscription(BaseEntitySubscription):
             params=params,
             offset=None,
             limit=None,
-            functions_acl=["identity"],
-            skip_time_conditions=True,
-            parser_config_overrides={"blocked_keys": ALERT_BLOCKED_FIELDS},
-            skip_issue_validation=skip_issue_validation,
+            config=QueryBuilderConfig(
+                functions_acl=["identity"],
+                skip_time_conditions=True,
+                parser_config_overrides={"blocked_keys": ALERT_BLOCKED_FIELDS},
+                skip_issue_validation=skip_issue_validation,
+            ),
         )
 
 
@@ -385,11 +390,13 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             selected_columns=self.get_snql_aggregations(),
             params=params,
             offset=None,
-            skip_time_conditions=True,
             granularity=self.get_granularity(),
-            use_metrics_layer=self.use_metrics_layer,
-            on_demand_metrics_enabled=self.on_demand_metrics_enabled,
-            skip_issue_validation=skip_issue_validation,
+            config=QueryBuilderConfig(
+                skip_time_conditions=True,
+                use_metrics_layer=self.use_metrics_layer,
+                on_demand_metrics_enabled=self.on_demand_metrics_enabled,
+                skip_issue_validation=skip_issue_validation,
+            ),
         )
         extra_conditions = self.get_snql_extra_conditions()
 

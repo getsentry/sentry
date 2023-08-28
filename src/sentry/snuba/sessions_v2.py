@@ -9,6 +9,7 @@ from snuba_sdk import Column, Condition, Function, Limit, Op
 from sentry.api.utils import get_date_range_from_params
 from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
 from sentry.search.events.builder import SessionsV2QueryBuilder, TimeseriesSessionsV2QueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
 
@@ -325,8 +326,8 @@ class QueryDefinition:
             "query": self.query,
             "orderby": orderby,
             "limit": max_groups,
-            "auto_aggregations": True,
             "granularity": self.rollup,
+            "config": QueryBuilderConfig(auto_aggregations=True),
         }
         if self._query_config.allow_session_status_query:
             query_builder_dict.update({"extra_filter_allowlist_fields": ["session.status"]})

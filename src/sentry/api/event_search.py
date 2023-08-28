@@ -24,6 +24,7 @@ from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.search.utils import (
     InvalidQuery,
     parse_datetime_range,
@@ -501,7 +502,9 @@ class SearchVisitor(NodeVisitor):
 
             # TODO: read dataset from config
             self.builder = UnresolvedQuery(
-                dataset=Dataset.Discover, params=self.params, functions_acl=FUNCTIONS.keys()
+                dataset=Dataset.Discover,
+                params=self.params,
+                config=QueryBuilderConfig(functions_acl=FUNCTIONS.keys()),
             )
         else:
             self.builder = builder

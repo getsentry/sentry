@@ -8,6 +8,7 @@ from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder import IssuePlatformTimeseriesQueryBuilder, QueryBuilder
 from sentry.search.events.fields import get_json_meta_type
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import EventsResponse, transform_tips, zerofill
 from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
@@ -79,17 +80,19 @@ def query(
         selected_columns=selected_columns,
         equations=equations,
         orderby=orderby,
-        auto_fields=auto_fields,
-        auto_aggregations=auto_aggregations,
-        use_aggregate_conditions=use_aggregate_conditions,
-        functions_acl=functions_acl,
         limit=limit,
         offset=offset,
-        equation_config={"auto_add": include_equation_fields},
         sample_rate=sample,
-        has_metrics=has_metrics,
-        transform_alias_to_input_format=transform_alias_to_input_format,
-        skip_tag_resolution=skip_tag_resolution,
+        config=QueryBuilderConfig(
+            auto_fields=auto_fields,
+            auto_aggregations=auto_aggregations,
+            use_aggregate_conditions=use_aggregate_conditions,
+            functions_acl=functions_acl,
+            equation_config={"auto_add": include_equation_fields},
+            has_metrics=has_metrics,
+            transform_alias_to_input_format=transform_alias_to_input_format,
+            skip_tag_resolution=skip_tag_resolution,
+        ),
     )
     if conditions is not None:
         builder.add_conditions(conditions)
@@ -144,8 +147,10 @@ def timeseries_query(
             query=query,
             selected_columns=columns,
             equations=equations,
-            functions_acl=functions_acl,
-            has_metrics=has_metrics,
+            config=QueryBuilderConfig(
+                functions_acl=functions_acl,
+                has_metrics=has_metrics,
+            ),
         )
         query_list = [base_builder]
         if comparison_delta:

@@ -13,6 +13,7 @@ from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Environment
 from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.utils import metrics
 from sentry.utils.snuba import MAX_FIELDS
@@ -97,8 +98,10 @@ class DataExportQuerySerializer(serializers.Serializer):
                     query=query_info["query"],
                     selected_columns=fields.copy(),
                     equations=equations,
-                    auto_fields=True,
-                    auto_aggregations=True,
+                    config=QueryBuilderConfig(
+                        auto_fields=True,
+                        auto_aggregations=True,
+                    ),
                 )
                 builder.get_snql_query()
             except InvalidSearchQuery as err:

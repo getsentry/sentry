@@ -32,7 +32,7 @@ from sentry.eventstore.models import Event
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models import Group, Organization
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import to_timestamp_from_iso_format
@@ -387,7 +387,9 @@ def query_trace_data(
         query=f"trace:{trace_id}",
         selected_columns=["event_id"],
         groupby_columns=["event_id"],
-        functions_acl=["groupArray"],
+        config=QueryBuilderConfig(
+            functions_acl=["groupArray"],
+        ),
     )
     occurrence_query.columns.append(
         Function("groupArray", parameters=[Column("group_id")], alias="issue.ids")
@@ -411,8 +413,10 @@ def query_trace_data(
         ],
         # Don't add timestamp to this orderby as snuba will have to split the time range up and make multiple queries
         orderby=["id"],
-        auto_fields=False,
         limit=MAX_TRACE_SIZE,
+        config=QueryBuilderConfig(
+            auto_fields=False,
+        ),
     )
     results = bulk_snql_query(
         [
