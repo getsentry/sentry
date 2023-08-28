@@ -4,6 +4,7 @@ from typing import Any, List, Mapping, TypedDict
 
 from django.db import models, router, transaction
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -19,7 +20,7 @@ from sentry.types.region import find_regions_for_orgs
 
 @control_silo_only_model
 class OrganizationIntegration(DefaultFieldsModel):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
     integration = FlexibleForeignKey("sentry.Integration")

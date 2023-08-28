@@ -8,21 +8,19 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   JobTickData,
-  TimeWindow,
+  TimeWindowOptions,
 } from 'sentry/views/monitors/components/overviewTimeline/types';
 import {CheckInStatus} from 'sentry/views/monitors/types';
 import {getColorsFromStatus, statusToText} from 'sentry/views/monitors/utils';
 
-import {timeWindowConfig} from './utils';
-
 interface Props extends Omit<TooltipProps, 'title'> {
   jobTick: JobTickData;
-  timeWindow: TimeWindow;
+  timeWindowConfig: TimeWindowOptions;
 }
 
-export function JobTickTooltip({jobTick, timeWindow, children, ...props}: Props) {
+export function JobTickTooltip({jobTick, timeWindowConfig, children, ...props}: Props) {
   const {startTs, endTs, envMapping} = jobTick;
-  const {dateTimeProps} = timeWindowConfig[timeWindow];
+  const {dateLabelFormat} = timeWindowConfig;
   const capturedEnvs = Object.keys(envMapping);
   const representsSingleJob =
     capturedEnvs.length === 1 &&
@@ -32,11 +30,11 @@ export function JobTickTooltip({jobTick, timeWindow, children, ...props}: Props)
   const tooltipTitle = (
     <Fragment>
       <TooltipTimeLabel>
-        <DateTime date={startTs * 1000} {...dateTimeProps} />
+        <DateTime date={startTs * 1000} format={dateLabelFormat} />
         {!representsSingleJob && (
           <Fragment>
             <Text>{'\u2014'}</Text>
-            <DateTime date={endTs * 1000} {...dateTimeProps} />
+            <DateTime date={endTs * 1000} format={dateLabelFormat} />
           </Fragment>
         )}
       </TooltipTimeLabel>

@@ -49,8 +49,10 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
 
     snuba_span: MutableMapping[str, Any] = {}
     snuba_span["description"] = relay_span.get("description")
+    snuba_span["event_id"] = relay_span["event_id"]
     snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
-    snuba_span["is_segment"] = not relay_span.get("parent_span_id")
+    snuba_span["group_raw"] = "0"
+    snuba_span["is_segment"] = relay_span.get("is_segment", False)
     snuba_span["organization_id"] = organization.id
     snuba_span["parent_span_id"] = relay_span.get("parent_span_id", "0")
     snuba_span["project_id"] = relay_span["project_id"]
@@ -69,15 +71,19 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         0,
     )
 
-    trace_context = relay_span.get("data", {}).get("trace")
-    if trace_context:
-        snuba_span["group_raw"] = trace_context.get("hash")
-
     sentry_tags: MutableMapping[str, Any] = {}
+
     if tags := relay_span.get("data"):
         for relay_tag, snuba_tag in TAG_MAPPING.items():
             if relay_tag in tags:
                 sentry_tags[snuba_tag] = tags.get(relay_tag)
+
+    if "op" not in sentry_tags:
+        sentry_tags["op"] = relay_span.get("op", "")
+
+    if "status" not in sentry_tags:
+        sentry_tags["status"] = relay_span.get("status", "")
+
     snuba_span["sentry_tags"] = sentry_tags
 
     return snuba_span
@@ -85,9 +91,9 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
 
 def _format_event_id(payload: Mapping[str, Any]) -> str:
     event_id = payload.get("event_id")
-    if not event_id:
-        return ""
-    return uuid.UUID(event_id).hex
+    if event_id:
+        return uuid.UUID(event_id).hex
+    return ""
 
 
 def _process_message(message: Message[KafkaPayload]) -> KafkaPayload:

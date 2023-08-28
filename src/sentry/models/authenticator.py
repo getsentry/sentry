@@ -17,6 +17,7 @@ from sentry.auth.authenticators import (
     available_authenticators,
 )
 from sentry.auth.authenticators.base import EnrollmentStatus
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BaseModel,
@@ -139,7 +140,7 @@ class AuthenticatorConfig(PickledObjectField):
 
 @control_silo_only_model
 class Authenticator(BaseModel):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.User
 
     id = BoundedAutoField(primary_key=True)
     user = FlexibleForeignKey("sentry.User", db_index=True)

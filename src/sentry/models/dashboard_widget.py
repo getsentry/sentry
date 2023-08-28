@@ -6,6 +6,7 @@ from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     ArrayField,
     BoundedPositiveIntegerField,
@@ -79,7 +80,7 @@ class DashboardWidgetQuery(Model):
     A query in a dashboard widget.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     widget = FlexibleForeignKey("sentry.DashboardWidget")
     name = models.CharField(max_length=255)
@@ -114,7 +115,7 @@ class DashboardWidget(Model):
     A dashboard widget.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     dashboard = FlexibleForeignKey("sentry.Dashboard")
     order = BoundedPositiveIntegerField()
