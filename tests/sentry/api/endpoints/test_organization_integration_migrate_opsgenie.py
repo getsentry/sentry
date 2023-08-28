@@ -36,5 +36,5 @@ class OrganizationIntegrationAlertRulesTest(APITestCase):
         )
         path = self.get_path(integration_id=integration.id)
         response = self.client.put(path, format="json")
-        assert response.status_code == 204
+        assert response.status_code == 202
         assert mock_migrate_opsgenie_plugin.called
