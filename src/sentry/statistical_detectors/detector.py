@@ -29,15 +29,15 @@ class TrendState:
     FIELD_SHORT_TERM = "S"
     FIELD_LONG_TERM = "L"
 
-    def as_dict(self) -> Mapping[str | bytes, str | float | int]:
-        d: MutableMapping[str | bytes, str | float | int] = {
+    def as_dict(self) -> Mapping[str | bytes, float | int]:
+        d: MutableMapping[str | bytes, float | int] = {
             TrendState.FIELD_VERSION: self.VERSION,
             TrendState.FIELD_COUNT: self.count,
             TrendState.FIELD_SHORT_TERM: self.short_ma,
             TrendState.FIELD_LONG_TERM: self.long_ma,
         }
         if self.timestamp is not None:
-            d[TrendState.FIELD_TIMESTAMP] = self.timestamp.isoformat()
+            d[TrendState.FIELD_TIMESTAMP] = int(self.timestamp.timestamp())
         return d
 
     @classmethod
@@ -66,8 +66,9 @@ class TrendState:
             long_ma = 0
 
         try:
-            timestamp = datetime.fromisoformat(d.get(TrendState.FIELD_TIMESTAMP, ""))
-        except ValueError:
+            ts = int(d.get(TrendState.FIELD_TIMESTAMP))
+            timestamp = datetime.fromtimestamp(ts)
+        except (TypeError, ValueError):
             timestamp = None
 
         return TrendState(timestamp, count, short_ma, long_ma)
