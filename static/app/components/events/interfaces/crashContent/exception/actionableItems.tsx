@@ -456,7 +456,6 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
           <strong>
             {title} ({numErrors})
           </strong>
-          (
           <ToggleButton
             priority="link"
             size="zero"
@@ -467,7 +466,6 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
           >
             {expandTitle}
           </ToggleButton>
-          )
         </ErrorTitleFlex>
         {expanded && (
           <div>
