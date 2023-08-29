@@ -39,7 +39,7 @@ import {sourceMapSdkDocsMap} from './utils';
 const shortPathPlatforms = ['javascript', 'node', 'react-native'];
 const sentryInit = <code>Sentry.init</code>;
 
-interface ErrorMessageType {
+interface ErrorMessage {
   desc: React.ReactNode;
   expandTitle: string;
   title: string;
@@ -68,7 +68,7 @@ function getErrorMessage(
   event: Event,
   organization: Organization,
   sdkName?: string
-): Array<ErrorMessageType> {
+): Array<ErrorMessage> {
   const docPlatform = (sdkName && sourceMapSdkDocsMap[sdkName]) ?? 'javascript';
   const useShortPath = shortPathPlatforms.includes(docPlatform);
 
@@ -391,8 +391,8 @@ function getErrorMessage(
 }
 
 interface ExpandableErrorListProps {
-  errorList: any;
-  handleExpandClick: any;
+  errorList: ErrorMessageType[];
+  handleExpandClick: (type: ActionableItemTypes) => void;
 }
 
 function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorListProps) {
@@ -485,6 +485,10 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
       </StyledListItem>
     </List>
   );
+}
+
+interface ErrorMessageType extends ErrorMessage {
+  type: ActionableItemTypes;
 }
 
 function groupedErrors(
