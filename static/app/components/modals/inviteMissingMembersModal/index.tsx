@@ -64,8 +64,8 @@ export function InviteMissingMembersModal({
   }
 
   const setRole = (role: string, index: number) => {
-    setMemberInvites(
-      memberInvites.map((member, i) => {
+    setMemberInvites(currentMemberInvites =>
+      currentMemberInvites.map((member, i) => {
         if (i === index) {
           member.role = role;
         }
@@ -75,8 +75,8 @@ export function InviteMissingMembersModal({
   };
 
   const setTeams = (teamSlugs: string[], index: number) => {
-    setMemberInvites(
-      memberInvites.map((member, i) => {
+    setMemberInvites(currentMemberInvites =>
+      currentMemberInvites.map((member, i) => {
         if (i === index) {
           member.teamSlugs = new Set(teamSlugs);
         }
@@ -86,14 +86,11 @@ export function InviteMissingMembersModal({
   };
 
   const selectAll = (checked: boolean) => {
-    const selectedMembers = memberInvites.map(m => {
-      m.selected = checked;
-      return m;
-    });
+    const selectedMembers = memberInvites.map(m => ({...m, selected: checked}));
     setMemberInvites(selectedMembers);
   };
 
-  const checkboxToggle = (checked: boolean, index: number) => {
+  const toggleCheckbox = (checked: boolean, index: number) => {
     const selectedMembers = [...memberInvites];
     selectedMembers[index].selected = checked;
     setMemberInvites(selectedMembers);
@@ -232,14 +229,14 @@ export function InviteMissingMembersModal({
                 <Checkbox
                   aria-label={t('Select %s', member.email)}
                   checked={checked}
-                  onChange={() => checkboxToggle(!checked, i)}
+                  onChange={() => toggleCheckbox(!checked, i)}
                 />
               </div>
               <StyledPanelItem>
                 <ContentRow>
                   <IconGithub size="sm" />
-                  <StyledExternalLink href={`http://github.com/${member.externalId}`}>
-                    {member.externalId}
+                  <StyledExternalLink href={`https://github.com/${member.externalId}`}>
+                    @{member.externalId}
                   </StyledExternalLink>
                 </ContentRow>
                 <Subtitle>{member.email}</Subtitle>

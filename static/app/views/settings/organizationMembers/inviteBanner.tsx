@@ -103,8 +103,8 @@ export function InviteBanner({
         <MemberCardContentRow>
           <IconGithub size="sm" />
           {/* TODO(cathy): create mapping from integration to lambda external link function */}
-          <StyledExternalLink href={`http://github.com/${member.externalId}`}>
-            {tct('@[externalId]', {externalId: member.externalId})}
+          <StyledExternalLink href={`https://github.com/${member.externalId}`}>
+            @{member.externalId}
           </StyledExternalLink>
         </MemberCardContentRow>
         <MemberCardContentRow>
@@ -197,7 +197,7 @@ function SeeMoreCard({
   onModalClose,
   organization,
 }: SeeMoreCardProps) {
-  const users = missingMembers.users;
+  const {users} = missingMembers;
 
   return (
     <MemberCard data-test-id="see-more-card">
