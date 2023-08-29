@@ -1741,6 +1741,8 @@ SENTRY_FEATURES = {
     "projects:discard-groups": False,
     # Extract spans from transactions in Relay, and forward them via Kafka.
     "projects:extract-standalone-spans": False,
+    # Enable considering group severity when creating and evaluating alert rules
+    "projects:first-event-severity-alerting": False,
     # Enable calculating a severity score for events which create a new group
     "projects:first-event-severity-calculation": False,
     # Enable functionality for attaching  minidumps to events and displaying
