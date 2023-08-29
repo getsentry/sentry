@@ -174,7 +174,7 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
       } = this.props;
 
       await this.api.requestPromise(
-        `/organizations/${organization.slug}/integrations/${integrationId}/alert-rules/`,
+        `/organizations/${organization.slug}/integrations/${integrationId}/migrate-opsgenie/`,
         {
           method: 'PUT',
           data: {},
