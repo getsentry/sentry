@@ -19,6 +19,7 @@ metric that is queryable by the API.
 __all__ = (
     "SessionMRI",
     "TransactionMRI",
+    "SpanMRI",
     "MRI_SCHEMA_REGEX",
     "MRI_EXPRESSION_REGEX",
     "parse_mri",
