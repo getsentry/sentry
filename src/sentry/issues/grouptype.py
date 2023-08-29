@@ -322,7 +322,7 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
 class PerformanceP95TransactionDurationRegressionGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1017
     slug = "performance_p95_transaction_duration_regression"
-    description = "P95 Transaction Duration Regression"
+    description = "Duration Regression"
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
 
