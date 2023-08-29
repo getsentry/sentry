@@ -4,8 +4,9 @@ import {
   TOGGLE_BORDER_BOX,
   TOGGLE_BUTTON_MAX_WIDTH,
 } from 'sentry/components/performance/waterfall/treeConnector';
-import {clamp, rectOfContent} from 'sentry/components/performance/waterfall/utils';
+import {rectOfContent} from 'sentry/components/performance/waterfall/utils';
 import getDisplayName from 'sentry/utils/getDisplayName';
+import clamp from 'sentry/utils/number/clamp';
 import toPercent from 'sentry/utils/number/toPercent';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 

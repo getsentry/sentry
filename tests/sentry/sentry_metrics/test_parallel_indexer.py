@@ -32,6 +32,7 @@ def reset_global_metrics_state():
         yield
 
 
+@pytest.mark.django_db
 @pytest.mark.parametrize("force_disable_multiprocessing", [True, False])
 def test_basic(request, settings, force_disable_multiprocessing):
     """

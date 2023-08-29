@@ -14,6 +14,7 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
@@ -207,7 +208,7 @@ class ScheduleType:
 
 @region_silo_only_model
 class Monitor(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     guid = UUIDField(unique=True, auto_add=True)
     slug = models.SlugField()
@@ -265,7 +266,7 @@ class Monitor(Model):
     def get_next_expected_checkin_latest(self, last_checkin: datetime) -> datetime:
         """
         Computes the latest time we will expect the next checkin at given the
-        most recent checkin time. This is determined by the user-conigured
+        most recent checkin time. This is determined by the user-configured
         margin.
         """
         next_checkin = self.get_next_expected_checkin(last_checkin)
@@ -356,7 +357,7 @@ def check_organization_monitor_limits(sender, instance, **kwargs):
 
 @region_silo_only_model
 class MonitorCheckIn(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     guid = UUIDField(unique=True, auto_add=True)
     project_id = BoundedBigIntegerField(db_index=True)
@@ -404,7 +405,7 @@ class MonitorCheckIn(Model):
     timeout_at = models.DateTimeField(null=True)
     """
     Holds the exact time when a check-in would be considered to have timed out.
-    This is computed as the sume of date_updated and the user configured
+    This is computed as the sum of date_updated and the user configured
     max_runtime.
     """
 
@@ -416,7 +417,7 @@ class MonitorCheckIn(Model):
     trace_id = UUIDField(null=True)
     """
     Trace ID associated during this check-in. Useful to find associated events
-    that occured during the check-in.
+    that occurred during the check-in.
     """
 
     attachment_id = BoundedBigIntegerField(null=True)
@@ -451,7 +452,7 @@ class MonitorCheckIn(Model):
 
 @region_silo_only_model
 class MonitorLocation(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     guid = UUIDField(unique=True, auto_add=True)
     name = models.CharField(max_length=128)
@@ -489,7 +490,7 @@ class MonitorEnvironmentManager(BaseManager):
 
 @region_silo_only_model
 class MonitorEnvironment(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     monitor = FlexibleForeignKey("sentry.Monitor")
     environment = FlexibleForeignKey("sentry.Environment")

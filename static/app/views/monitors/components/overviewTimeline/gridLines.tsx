@@ -4,31 +4,31 @@ import moment from 'moment';
 
 import DateTime from 'sentry/components/dateTime';
 import {space} from 'sentry/styles/space';
-import {TimeWindow} from 'sentry/views/monitors/components/overviewTimeline/types';
-import {
-  getStartFromTimeWindow,
-  timeWindowConfig,
-} from 'sentry/views/monitors/components/overviewTimeline/utils';
+import {TimeWindowOptions} from 'sentry/views/monitors/components/overviewTimeline/types';
 
 import {useTimelineCursor} from './timelineCursor';
 
 interface Props {
   end: Date;
-  timeWindow: TimeWindow;
+  start: Date;
+  timeWindowConfig: TimeWindowOptions;
   width: number;
   className?: string;
   showCursor?: boolean;
   stickyCursor?: boolean;
 }
 
-function clampTimeBasedOnResolution(date: moment.Moment, resolution: string) {
-  date.startOf('minute');
-  if (resolution === '1h') {
-    date.minute(date.minutes() - (date.minutes() % 10));
-  } else if (resolution === '30d') {
-    date.startOf('day');
-  } else {
+/**
+ * Aligns a date to a clean offset such as start of minute, hour, day
+ * based on the interval of how far each time label is placed.
+ */
+function alignTimeMarkersToStartOf(date: moment.Moment, timeMarkerInterval: number) {
+  if (timeMarkerInterval < 60) {
+    date.minute(date.minutes() - (date.minutes() % timeMarkerInterval));
+  } else if (timeMarkerInterval < 60 * 24) {
     date.startOf('hour');
+  } else {
+    date.startOf('day');
   }
 }
 
@@ -37,18 +37,22 @@ interface TimeMarker {
   position: number;
 }
 
-function getTimeMarkers(end: Date, timeWindow: TimeWindow, width: number): TimeMarker[] {
-  const {elapsedMinutes, timeMarkerInterval} = timeWindowConfig[timeWindow];
+function getTimeMarkersFromConfig(
+  start: Date,
+  end: Date,
+  config: TimeWindowOptions,
+  width: number
+) {
+  const {elapsedMinutes, timeMarkerInterval} = config;
   const msPerPixel = (elapsedMinutes * 60 * 1000) / width;
 
   const times: TimeMarker[] = [];
-  const start = getStartFromTimeWindow(end, timeWindow);
 
-  const firstTimeMark = moment(start);
-  clampTimeBasedOnResolution(firstTimeMark, timeWindow);
+  const lastTimeMark = moment(end);
+  alignTimeMarkersToStartOf(lastTimeMark, timeMarkerInterval);
   // Generate time markers which represent location of grid lines/time labels
   for (let i = 1; i < elapsedMinutes / timeMarkerInterval; i++) {
-    const timeMark = moment(firstTimeMark).add(i * timeMarkerInterval, 'minute');
+    const timeMark = moment(lastTimeMark).subtract(i * timeMarkerInterval, 'minute');
     const position = (timeMark.valueOf() - start.valueOf()) / msPerPixel;
     times.push({date: timeMark.toDate(), position});
   }
@@ -56,36 +60,44 @@ function getTimeMarkers(end: Date, timeWindow: TimeWindow, width: number): TimeM
   return times;
 }
 
-export function GridLineTimeLabels({end, timeWindow, width, className}: Props) {
+export function GridLineTimeLabels({
+  width,
+  timeWindowConfig,
+  start,
+  end,
+  className,
+}: Props) {
   return (
     <LabelsContainer className={className}>
-      {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
-        <TimeLabelContainer key={date.getTime()} left={position}>
-          <TimeLabel date={date} {...timeWindowConfig[timeWindow].dateTimeProps} />
-        </TimeLabelContainer>
-      ))}
+      {getTimeMarkersFromConfig(start, end, timeWindowConfig, width).map(
+        ({date, position}) => (
+          <TimeLabelContainer key={date.getTime()} left={position}>
+            <TimeLabel date={date} {...timeWindowConfig.dateTimeProps} />
+          </TimeLabelContainer>
+        )
+      )}
     </LabelsContainer>
   );
 }
 
 export function GridLineOverlay({
   end,
-  timeWindow,
   width,
+  timeWindowConfig,
+  start,
   showCursor,
   stickyCursor,
   className,
 }: Props) {
-  const {cursorLabelFormat} = timeWindowConfig[timeWindow];
+  const {dateLabelFormat} = timeWindowConfig;
 
   const makeCursorText = useCallback(
     (percentPosition: number) => {
-      const start = getStartFromTimeWindow(end, timeWindow);
       const timeOffset = (end.getTime() - start.getTime()) * percentPosition;
 
-      return moment(start.getTime() + timeOffset).format(cursorLabelFormat);
+      return moment(start.getTime() + timeOffset).format(dateLabelFormat);
     },
-    [cursorLabelFormat, end, timeWindow]
+    [dateLabelFormat, end, start]
   );
 
   const {cursorContainerRef, timelineCursor} = useTimelineCursor<HTMLDivElement>({
@@ -98,9 +110,11 @@ export function GridLineOverlay({
     <Overlay ref={cursorContainerRef} className={className}>
       {timelineCursor}
       <GridLineContainer>
-        {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
-          <Gridline key={date.getTime()} left={position} />
-        ))}
+        {getTimeMarkersFromConfig(start, end, timeWindowConfig, width).map(
+          ({date, position}) => (
+            <Gridline key={date.getTime()} left={position} />
+          )
+        )}
       </GridLineContainer>
     </Overlay>
   );

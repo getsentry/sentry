@@ -2,12 +2,13 @@ from django.db.models import DateTimeField, Index
 from django.db.models.fields import UUIDField
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import CharField, FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 
 
 @region_silo_only_model
 class RuleFireHistory(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     rule = FlexibleForeignKey("sentry.Rule")

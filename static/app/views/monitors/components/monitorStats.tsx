@@ -1,4 +1,4 @@
-import React, {useRef} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
@@ -116,10 +116,10 @@ function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Panel>
         <PanelBody withPadding>
-          <StyledHeaderTitle>{t('Check-Ins')}</StyledHeaderTitle>
+          <StyledHeaderTitle>{t('Status')}</StyledHeaderTitle>
           {isLoading ? (
             <Placeholder height={`${height}px`} />
           ) : (
@@ -173,7 +173,7 @@ function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
           )}
         </PanelBody>
       </Panel>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

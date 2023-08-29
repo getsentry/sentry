@@ -1,9 +1,21 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import timedelta
 from random import randrange
-from typing import Any, Callable, Collection, List, Mapping, MutableMapping, Sequence, Set, Tuple
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+)
 
 from django.core.cache import cache
 from django.utils import timezone
@@ -255,7 +267,7 @@ class RuleProcessor:
                 if not predicate_func(predicate_iter):
                     if should_log_extra_info:
                         self.logger.info(
-                            "apply_rule invalid predicate_func",
+                            f"apply_rule predicate_func is False name={name}",
                             extra={**logging_details},
                         )
                     return
@@ -291,10 +303,13 @@ class RuleProcessor:
                 rule_id=rule.id,
             )
 
-        history.record(rule, self.group, self.event.event_id)
-        self.activate_downstream_actions(rule)
+        notification_uuid = uuid.uuid4()
+        history.record(rule, self.group, self.event.event_id, notification_uuid)
+        self.activate_downstream_actions(rule, notification_uuid)
 
-    def activate_downstream_actions(self, rule: Rule) -> None:
+    def activate_downstream_actions(
+        self, rule: Rule, notification_uuid: Optional[str] = None
+    ) -> None:
         state = self.get_state()
         for action in rule.data.get("actions", ()):
             action_cls = rules.get(action["id"])
@@ -303,8 +318,13 @@ class RuleProcessor:
                 continue
 
             action_inst = action_cls(self.project, data=action, rule=rule)
+
             results = safe_execute(
-                action_inst.after, event=self.event, state=state, _with_transaction=False
+                action_inst.after,
+                event=self.event,
+                state=state,
+                _with_transaction=False,
+                notification_uuid=notification_uuid,
             )
             if results is None:
                 self.logger.warning("Action %s did not return any futures", action["id"])
@@ -322,8 +342,28 @@ class RuleProcessor:
     def apply(
         self,
     ) -> Collection[Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]]:
+        should_log_extra_info = features.has(
+            "organizations:detailed-alert-logging", self.project.organization
+        )
+        logging_details = {
+            "group_id": self.event.group.id,
+            "event_id": self.event.event_id,
+            "project_id": self.project.id,
+            "is_regression": self.is_regression,
+        }
+        if should_log_extra_info:
+            self.logger.info(
+                "apply",
+                extra={**logging_details},
+            )
+
         # we should only apply rules on unresolved issues
         if not self.event.group.is_unresolved():
+            if should_log_extra_info:
+                self.logger.info(
+                    "apply: group is not unresolved",
+                    extra={**logging_details},
+                )
             return {}.values()
 
         self.grouped_futures.clear()

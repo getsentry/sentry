@@ -7,7 +7,7 @@ from typing import Any
 from sentry.api.event_search import parse_search_query
 from sentry.replays.query import query_replays_count
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 
 MAX_REPLAY_COUNT = 51
@@ -58,7 +58,9 @@ def _get_replay_id_mappings(query, snuba_params) -> dict[str, list[str]]:
         query=query,
         limit=25,
         offset=0,
-        functions_acl=["group_uniq_array"],
+        config=QueryBuilderConfig(
+            functions_acl=["group_uniq_array"],
+        ),
     )
 
     discover_results = builder.run_query(

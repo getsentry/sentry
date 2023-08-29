@@ -806,7 +806,7 @@ def on_demand_failure_rate_snql_factory(aggregate_filter, org_id, use_case_id, a
         "divide",
         [
             Function(
-                "countIf",
+                "sumIf",
                 [
                     Column("value"),
                     Function(
@@ -824,7 +824,7 @@ def on_demand_failure_rate_snql_factory(aggregate_filter, org_id, use_case_id, a
                     ),
                 ],
             ),
-            Function("countIf", [Column("value"), aggregate_filter]),
+            Function("sumIf", [Column("value"), aggregate_filter]),
         ],
         alias=alias,
     )
@@ -834,7 +834,7 @@ def on_demand_apdex_snql_factory(aggregate_filter, org_id, use_case_id, alias=No
     # For more information about the formula, check https://docs.sentry.io/product/performance/metrics/#apdex.
 
     satisfactory = Function(
-        "countIf",
+        "sumIf",
         [
             Column("value"),
             Function(
@@ -856,7 +856,7 @@ def on_demand_apdex_snql_factory(aggregate_filter, org_id, use_case_id, alias=No
         "divide",
         [
             Function(
-                "countIf",
+                "sumIf",
                 [
                     Column("value"),
                     Function(
@@ -877,7 +877,7 @@ def on_demand_apdex_snql_factory(aggregate_filter, org_id, use_case_id, alias=No
             2,
         ],
     )
-    total = Function("countIf", [Column("value"), aggregate_filter])
+    total = Function("sumIf", [Column("value"), aggregate_filter])
 
     return Function(
         "divide",
