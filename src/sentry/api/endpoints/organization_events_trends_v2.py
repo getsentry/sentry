@@ -403,13 +403,13 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     fingerprint=[fingerprint_regression(qualifying_trend)],
                     type=PerformanceP95TransactionDurationRegressionGroupType,
                     issue_title=PerformanceP95TransactionDurationRegressionGroupType.description,
-                    subtitle=f"Transaction duration changed from {displayed_old_baseline} ms to {displayed_new_baseline} ms",
+                    subtitle=f"Increased from {displayed_old_baseline}ms to {displayed_new_baseline}ms (P95)",
                     culprit=qualifying_trend["transaction"],
                     evidence_data=qualifying_trend,
                     evidence_display=[
                         IssueEvidence(
                             name="Regression",
-                            value=f"Transaction duration changed from {displayed_old_baseline} ms to {displayed_new_baseline} ms",
+                            value=f"Increased from {displayed_old_baseline}ms to {displayed_new_baseline}ms (P95)",
                             important=True,
                         ),
                         IssueEvidence(
