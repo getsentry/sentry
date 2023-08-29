@@ -1534,8 +1534,6 @@ SENTRY_FEATURES = {
     "organizations:issue-details-most-helpful-event": False,
     # Enable Issue details UI improvements related to highlighting the 'most helpful' event
     "organizations:issue-details-most-helpful-event-ui": False,
-    # Enables the creation of issue alerts based on severity
-    "organizations:issue-severity-alerts": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -1743,8 +1741,6 @@ SENTRY_FEATURES = {
     "projects:discard-groups": False,
     # Extract spans from transactions in Relay, and forward them via Kafka.
     "projects:extract-standalone-spans": False,
-    # Enable considering group severity when creating and evaluating alert rules
-    "projects:first-event-severity-alerting": False,
     # Enable calculating a severity score for events which create a new group
     "projects:first-event-severity-calculation": False,
     # Enable functionality for attaching  minidumps to events and displaying

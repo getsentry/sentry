@@ -172,14 +172,14 @@ class ProjectRuleConfigurationTest(APITestCase):
 
     def test_issue_severity_filter_feature(self):
         # Hide the issue severity filter when issue-severity-alerts is off
-        with self.feature({"organizations:issue-severity-alerts": False}):
+        with self.feature({"projects:first-event-severity-alerting": False}):
             response = self.get_success_response(self.organization.slug, self.project.slug)
             assert "sentry.rules.filters.issue_severity.IssueSeverityFilter" not in [
                 filter["id"] for filter in response.data["filters"]
             ]
 
         # Show the issue severity filter when issue-severity-alerts is on
-        with self.feature({"organizations:issue-severity-alerts": True}):
+        with self.feature({"projects:first-event-severity-alerting": True}):
             response = self.get_success_response(self.organization.slug, self.project.slug)
             assert "sentry.rules.filters.issue_severity.IssueSeverityFilter" in [
                 filter["id"] for filter in response.data["filters"]

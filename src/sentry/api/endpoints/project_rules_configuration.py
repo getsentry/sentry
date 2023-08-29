@@ -23,9 +23,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         can_create_tickets = features.has(
             "organizations:integrations-ticket-rules", project.organization
         )
-        has_issue_severity_alerts = features.has(
-            "organizations:issue-severity-alerts", project.organization
-        )
+        has_issue_severity_alerts = features.has("projects:first-event-severity-alerting", project)
 
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
