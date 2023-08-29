@@ -42,6 +42,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         monitor_slugs: List[str] = request.GET.getlist("monitor")
 
         tracked_statuses = [
+            CheckInStatus.IN_PROGRESS,
             CheckInStatus.OK,
             CheckInStatus.ERROR,
             CheckInStatus.MISSED,
