@@ -1,4 +1,6 @@
 from django.conf import settings
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,6 +20,37 @@ from sentry.rules.processor import is_condition_slow
 from sentry.signals import alert_rule_created
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.web.decorators import transaction_start
+
+
+def clean_rule_data(data):
+    for datum in data:
+        if datum.get("name"):
+            del datum["name"]
+
+
+@receiver(pre_save, sender=Rule)
+def pre_save_rule(instance, sender, *args, **kwargs):
+    clean_rule_data(instance.data.get("conditions", []))
+    clean_rule_data(instance.data.get("actions", []))
+
+
+def find_duplicate_rule(rule_data, project, rule_id=None):
+    matchers = [key for key in list(rule_data.keys()) if key not in ("name", "user_id")]
+    existing_rules = Rule.objects.exclude(id=rule_id).filter(
+        project=project, status=ObjectStatus.ACTIVE
+    )
+    for existing_rule in existing_rules:
+        keys = 0
+        matches = 0
+        for matcher in matchers:
+            if existing_rule.data.get(matcher) and rule_data.get(matcher):
+                keys += 1
+                if existing_rule.data[matcher] == rule_data[matcher]:
+                    matches += 1
+
+        if keys == matches:
+            return existing_rule
+    return None
 
 
 @region_silo_endpoint
@@ -74,6 +107,16 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
+
+        if not data.get("actions", []):
+            return Response(
+                {
+                    "actions": [
+                        "You must add an action for this alert to fire.",
+                    ]
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         # combine filters and conditions into one conditions criteria for the rule object
         conditions = data.get("conditions", [])
         if "filters" in data:
@@ -130,6 +173,17 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             "frequency": data.get("frequency"),
             "user_id": request.user.id,
         }
+        duplicate_rule = find_duplicate_rule(kwargs, project)
+        if duplicate_rule:
+            return Response(
+                {
+                    "name": [
+                        f"This rule is an exact duplicate of '{duplicate_rule.label}' in this project and may not be created.",
+                    ]
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         owner = data.get("owner")
         if owner:
             try:
@@ -151,6 +205,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             kwargs.get("actions")
         )
         rule = project_rules.Creator.run(request=request, **kwargs)
+
         RuleActivity.objects.create(
             rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
         )

@@ -6,6 +6,7 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -138,6 +139,8 @@ def test_having(params, search, condition):
         params,
         query=search,
         selected_columns=["count()"],
-        use_aggregate_conditions=True,
+        config=QueryBuilderConfig(
+            use_aggregate_conditions=True,
+        ),
     )
     assert condition in builder.having

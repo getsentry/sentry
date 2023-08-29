@@ -6,6 +6,7 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.notifications.defaults import (
     NOTIFICATION_SETTING_DEFAULTS,
     NOTIFICATION_SETTINGS_ALL_SOMETIMES,
+    NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2,
 )
 from sentry.notifications.types import (
     NOTIFICATION_SETTING_OPTION_VALUES,
@@ -29,7 +30,7 @@ def get_provider_defaults():
 def get_type_defaults():
     # this tells us what the default value is for each notification type
     type_defaults = {}
-    for key, value in NOTIFICATION_SETTINGS_ALL_SOMETIMES.items():
+    for key, value in NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2.items():
         # for the given notification type, figure out what the default value is
         notification_type = NOTIFICATION_SETTING_TYPES[key]
         default = NOTIFICATION_SETTING_OPTION_VALUES[value]

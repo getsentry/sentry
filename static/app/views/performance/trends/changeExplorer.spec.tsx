@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import moment from 'moment';
 
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
@@ -527,7 +527,7 @@ describe('Performance > Trends > Performance Change Explorer', function () {
 
   it('returns correct null formatting for change column', () => {
     render(
-      <React.Fragment>
+      <Fragment>
         {renderBodyCell(COLUMNS.change, {
           metric: null,
           before: null,
@@ -546,7 +546,7 @@ describe('Performance > Trends > Performance Change Explorer', function () {
           after: null,
           change: '-',
         })}
-      </React.Fragment>
+      </Fragment>
     );
 
     expect(screen.getAllByTestId('pce-metrics-text-change')[0]).toHaveTextContent('-');
