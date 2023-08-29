@@ -6,10 +6,13 @@ from django.test.utils import override_settings
 from django.utils import timezone
 
 from sentry.monitors.models import (
+    CheckInStatus,
     Monitor,
+    MonitorCheckIn,
     MonitorEnvironment,
     MonitorEnvironmentLimitsExceeded,
     MonitorLimitsExceeded,
+    MonitorStatus,
     MonitorType,
     ScheduleType,
 )
@@ -149,6 +152,66 @@ class MonitorTestCase(TestCase):
 
 @region_silo_test(stable=True)
 class MonitorEnvironmentTestCase(TestCase):
+    def test_mark_ok_recovery_threshold(self):
+        recovery_threshold = 8
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "recovery_threshold": recovery_threshold,
+            },
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=self.environment,
+            status=MonitorStatus.ERROR,
+        )
+
+        MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.ERROR,
+        )
+
+        for i in range(0, recovery_threshold - 1):
+            checkin = MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                status=CheckInStatus.OK,
+            )
+            monitor_environment.mark_ok(checkin, checkin.date_added)
+
+        # failure has not hit threshold, monitor should be in an OK status
+        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        assert monitor_environment.status != MonitorStatus.OK
+
+        # create another failed check-in to break the chain
+        MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.ERROR,
+        )
+
+        for i in range(0, recovery_threshold):
+            checkin = MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                status=CheckInStatus.OK,
+            )
+            monitor_environment.mark_ok(checkin, checkin.date_added)
+
+        # recovery has hit threshold, monitor should be in an ok state
+        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+
     @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=2)
     def test_monitor_environment_limits(self):
         monitor = Monitor.objects.create(
