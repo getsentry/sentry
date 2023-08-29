@@ -35,6 +35,8 @@ describe('IncidentsList', () => {
   };
 
   beforeEach(() => {
+    const team = TestStubs.Team({slug: 'team-slug', isMember: true});
+    TeamStore.loadInitialData([{...team, access: ['team:read']}]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
