@@ -35,7 +35,9 @@ def pre_save_rule(instance, sender, *args, **kwargs):
 
 
 def find_duplicate_rule(rule_data, project, rule_id=None):
-    matchers = [key for key in list(rule_data.keys()) if key not in ("name", "user_id")]
+    matchers = {key for key in list(rule_data.keys()) if key not in ("name", "user_id")}
+    extra_fields = ["actions", "environment"]
+    matchers.update(extra_fields)
     existing_rules = Rule.objects.exclude(id=rule_id).filter(
         project=project, status=ObjectStatus.ACTIVE
     )
@@ -45,8 +47,17 @@ def find_duplicate_rule(rule_data, project, rule_id=None):
         for matcher in matchers:
             if existing_rule.data.get(matcher) and rule_data.get(matcher):
                 keys += 1
+
                 if existing_rule.data[matcher] == rule_data[matcher]:
                     matches += 1
+
+            elif matcher in extra_fields:
+                if not existing_rule.data.get(matcher) and not rule_data.get(matcher):
+                    # neither rule has the matcher
+                    continue
+                else:
+                    # one rule has the matcher and the other one doesn't
+                    keys += 1
 
         if keys == matches:
             return existing_rule
