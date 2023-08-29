@@ -131,7 +131,7 @@ function QueryDescriptionOverlay({
 
   return description ? (
     <PositionWrapper zIndex={theme.zIndex.tooltip} {...hoverOverlayProps.overlayProps}>
-      <OverlayContent
+      <Overlay
         animated
         originPoint={hoverOverlayProps.arrowData}
         arrowProps={{
@@ -147,15 +147,19 @@ function QueryDescriptionOverlay({
             <LoadingIndicator mini hideMessage relative />
           </PaddedSpinner>
         ) : (
-          <CodeSnippet language="sql">{formatter.toString(description)}</CodeSnippet>
+          <OverlayContent>
+            <CodeSnippet language="sql">{formatter.toString(description)}</CodeSnippet>
+          </OverlayContent>
         )}
-      </OverlayContent>
+      </Overlay>
     </PositionWrapper>
   ) : null;
 }
 
-const OverlayContent = styled(Overlay)`
+const OverlayContent = styled('div')`
   max-width: 500px;
+  overflow: hidden;
+  border-radius: inherit;
   background: ${p => p.theme.backgroundSecondary};
 `;
 
