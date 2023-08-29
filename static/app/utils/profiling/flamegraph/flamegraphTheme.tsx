@@ -243,7 +243,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
   SIZES,
   COLORS: {
     BAR_LABEL_FONT_COLOR: 'rgb(255 255 255 / 80%)',
-    BATTERY_CHART_COLORS: [hexToColorChannels(CHART_PALETTE[4][4], 0.8)],
+    BATTERY_CHART_COLORS: [[0.4, 0.56, 0.9, 0.5]],
     COLOR_BUCKET: makeColorBucketTheme(LCH_DARK),
     SPAN_COLOR_BUCKET: makeColorBucketTheme(SPANS_LCH_DARK, 140, 220),
     COLOR_MAPS: {
@@ -257,8 +257,8 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     },
     CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
     MEMORY_CHART_COLORS: [
-      hexToColorChannels(CHART_PALETTE[4][2], 0.8),
-      hexToColorChannels(CHART_PALETTE[4][3], 0.8),
+      hexToColorChannels(CHART_PALETTE[4][2], 0.5),
+      hexToColorChannels(CHART_PALETTE[4][3], 0.5),
     ],
     CHART_CURSOR_INDICATOR: 'rgba(255, 255, 255, 0.5)',
     CHART_LABEL_COLOR: 'rgba(255, 255, 255, 0.5)',
@@ -267,8 +267,8 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
     FOCUSED_FRAME_BORDER_COLOR: darkTheme.focus,
     FRAME_GRAYSCALE_COLOR: [0.5, 0.5, 0.5, 0.4],
-    FRAME_APPLICATION_COLOR: [0.1, 0.1, 0.8, 0.4],
-    FRAME_SYSTEM_COLOR: [0.7, 0.1, 0.1, 0.5],
+    FRAME_APPLICATION_COLOR: [0.1, 0.1, 0.5, 0.4],
+    FRAME_SYSTEM_COLOR: [0.6, 0.15, 0.25, 0.3],
     SPAN_FALLBACK_COLOR: [1, 1, 1, 0.3],
     GRID_FRAME_BACKGROUND_COLOR: 'rgb(26, 20, 31,1)',
     GRID_LINE_COLOR: '#222227',
