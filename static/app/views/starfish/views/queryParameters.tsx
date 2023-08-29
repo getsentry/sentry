@@ -1,4 +1,4 @@
 export enum QueryParameterNames {
-  CURSOR = 'spansCursor',
+  SPANS_CURSOR = 'spansCursor',
   SORT = 'spansSort',
 }

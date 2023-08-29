@@ -62,7 +62,7 @@ export default function SpansTable({
   const location = useLocation();
   const organization = useOrganization();
 
-  const spansCursor = decodeScalar(location.query?.[QueryParameterNames.CURSOR]);
+  const spansCursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
   const {isLoading, data, meta, pageLinks} = useSpanList(
     moduleName ?? ModuleName.ALL,
@@ -78,7 +78,7 @@ export default function SpansTable({
   const handleCursor: CursorHandler = (cursor, pathname, query) => {
     browserHistory.push({
       pathname,
-      query: {...query, [QueryParameterNames.CURSOR]: cursor},
+      query: {...query, [QueryParameterNames.SPANS_CURSOR]: cursor},
     });
   };
 
