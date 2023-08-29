@@ -1423,6 +1423,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-cpu-chart": False,
     # Enable profiling Memory chart
     "organizations:profiling-memory-chart": False,
+    # Enable profiling battery usage chart
+    "organizations:profiling-battery-usage-chart": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
