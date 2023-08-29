@@ -17,7 +17,7 @@ class JiraRequestParserTest(TestCase):
     get_response = MagicMock()
     factory = RequestFactory()
     path_base = f"{IntegrationClassification.integration_prefix}jira"
-    region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
+    region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
 
     def setUp(self):
         super().setUp()
@@ -105,7 +105,7 @@ class JiraRequestParserTest(TestCase):
             parser,
             "get_regions_from_organizations",
             return_value=[
-                Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT),
+                Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT),
                 Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT),
             ],
         ) as mock_get_regions:

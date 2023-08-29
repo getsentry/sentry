@@ -19,7 +19,7 @@ from sentry.types.region import Region, RegionCategory
 class PluginRequestParserTest(TestCase):
     get_response = MagicMock()
     factory = RequestFactory()
-    region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
+    region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
 
     @override_regions(regions=(region,))
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -49,7 +49,7 @@ class PluginRequestParserTest(TestCase):
             reverse("sentry-plugins-bitbucket-webhook", args=[self.organization.id]),
         ]
         organization_mapping_service.update(
-            organization_id=self.organization.id, update={"region_name": "na"}
+            organization_id=self.organization.id, update={"region_name": "us"}
         )
         for route in routes:
             request = self.factory.post(route)

@@ -43,7 +43,7 @@ from sentry.utils.snowflake import SnowflakeIdMixin
 TestMethod = Callable[..., None]
 
 _DEFAULT_TEST_REGIONS = (
-    Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT),
+    Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
     Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
     Region("acme-single-tenant", 3, "acme.my.sentry.io", RegionCategory.SINGLE_TENANT),
 )
