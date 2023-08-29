@@ -104,7 +104,7 @@ def test_return_full_config_if_in_cache(
 
 
 @patch(
-    "sentry.relay.globalconfig.get_global_config",
+    "sentry.api.endpoints.relay.project_configs.get_global_config",
     lambda *args, **kargs: {"global_mock_config": True},
 )
 @django_db_all
