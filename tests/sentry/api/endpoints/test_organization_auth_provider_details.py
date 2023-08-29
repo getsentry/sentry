@@ -4,7 +4,7 @@ from sentry.testutils.cases import APITestCase, PermissionTestCase, SCIMTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationAuthProviderPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
@@ -17,7 +17,7 @@ class OrganizationAuthProviderPermissionTest(PermissionTestCase):
             self.assert_member_can_access(self.path)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationAuthProviderTest(SCIMTestCase, APITestCase):
     def setUp(self):
         super().setUp()
