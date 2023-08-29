@@ -24,6 +24,7 @@ import {
 } from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
+import {t} from 'sentry/locale';
 import {EntryType, EventTransaction} from 'sentry/types';
 import {EntrySpans} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
