@@ -340,6 +340,8 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
         <InviteBanner
           missingMembers={githubMissingMembers}
           onSendInvite={this.handleInviteMissingMember}
+          onModalClose={this.fetchMembersList}
+          allowedRoles={currentMember ? currentMember.roles : ORG_ROLES}
         />
         <ClassNames>
           {({css}) =>

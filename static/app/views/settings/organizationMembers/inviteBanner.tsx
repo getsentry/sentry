@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
@@ -12,18 +13,26 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MissingMember, Organization} from 'sentry/types';
+import {MissingMember, Organization, OrgRole} from 'sentry/types';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
+  allowedRoles: OrgRole[];
   missingMembers: {integration: string; users: MissingMember[]};
+  onModalClose: () => void;
   onSendInvite: (email: string) => void;
   organization: Organization;
 };
 
-export function InviteBanner({missingMembers, onSendInvite, organization}: Props) {
+export function InviteBanner({
+  missingMembers,
+  onSendInvite,
+  organization,
+  allowedRoles,
+  onModalClose,
+}: Props) {
   // NOTE: this is currently used for Github only
 
   const hideBanner =
@@ -88,34 +97,48 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
 
   const users = missingMembers.users;
 
-  const cards = users.slice(0, 5).map(member => (
-    <MemberCard key={member.externalId} data-test-id={`member-card-${member.externalId}`}>
-      <MemberCardContent>
-        <MemberCardContentRow>
-          <IconGithub size="sm" />
-          {/* TODO: create mapping from integration to lambda external link function */}
-          <StyledExternalLink href={`http://github.com/${member.externalId}`}>
-            {tct('@[externalId]', {externalId: member.externalId})}
-          </StyledExternalLink>
-        </MemberCardContentRow>
-        <MemberCardContentRow>
-          <IconCommit size="xs" />
-          {tct('[commitCount] Recent Commits', {commitCount: member.commitCount})}
-        </MemberCardContentRow>
-        <Subtitle>{member.email}</Subtitle>
-      </MemberCardContent>
-      <Button
-        size="sm"
-        onClick={() => handleSendInvite(member.email)}
-        data-test-id="invite-missing-member"
-        icon={<IconMail />}
+  const cards = users.slice(0, 5).map(member => {
+    const username = member.externalId.split(':').pop();
+    return (
+      <MemberCard
+        key={member.externalId}
+        data-test-id={`member-card-${member.externalId}`}
       >
-        {t('Invite')}
-      </Button>
-    </MemberCard>
-  ));
+        <MemberCardContent>
+          <MemberCardContentRow>
+            <IconGithub size="sm" />
+            {/* TODO(cathy): create mapping from integration to lambda external link function */}
+            <StyledExternalLink href={`https://github.com/${username}`}>
+              @{username}
+            </StyledExternalLink>
+          </MemberCardContentRow>
+          <MemberCardContentRow>
+            <IconCommit size="xs" />
+            {tct('[commitCount] Recent Commits', {commitCount: member.commitCount})}
+          </MemberCardContentRow>
+          <Subtitle>{member.email}</Subtitle>
+        </MemberCardContent>
+        <Button
+          size="sm"
+          onClick={() => handleSendInvite(member.email)}
+          data-test-id="invite-missing-member"
+          icon={<IconMail />}
+        >
+          {t('Invite')}
+        </Button>
+      </MemberCard>
+    );
+  });
 
-  cards.push(<SeeMoreCard key="see-more" missingUsers={users} />);
+  cards.push(
+    <SeeMoreCard
+      key="see-more"
+      missingMembers={missingMembers}
+      allowedRoles={allowedRoles}
+      onModalClose={onModalClose}
+      organization={organization}
+    />
+  );
 
   return (
     <StyledCard>
@@ -138,7 +161,14 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
           <Button
             priority="primary"
             size="xs"
-            // TODO(cathy): open up invite modal
+            onClick={() =>
+              openInviteMissingMembersModal({
+                allowedRoles,
+                missingMembers,
+                onClose: onModalClose,
+                organization,
+              })
+            }
           >
             {t('View All')}
           </Button>
@@ -161,30 +191,47 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
 export default withOrganization(InviteBanner);
 
 type SeeMoreCardProps = {
-  missingUsers: MissingMember[];
+  allowedRoles: OrgRole[];
+  missingMembers: {integration: string; users: MissingMember[]};
+  onModalClose: () => void;
+  organization: Organization;
 };
 
-function SeeMoreCard({missingUsers}: SeeMoreCardProps) {
+function SeeMoreCard({
+  missingMembers,
+  allowedRoles,
+  onModalClose,
+  organization,
+}: SeeMoreCardProps) {
+  const {users} = missingMembers;
+
   return (
     <MemberCard data-test-id="see-more-card">
       <MemberCardContent>
         <MemberCardContentRow>
           <SeeMore>
             {tct('See all [missingMembersCount] missing members', {
-              missingMembersCount: missingUsers.length,
+              missingMembersCount: users.length,
             })}
           </SeeMore>
         </MemberCardContentRow>
         <Subtitle>
           {tct('Accounting for [totalCommits] recent commits', {
-            totalCommits: missingUsers.reduce((acc, curr) => acc + curr.commitCount, 0),
+            totalCommits: users.reduce((acc, curr) => acc + curr.commitCount, 0),
           })}
         </Subtitle>
       </MemberCardContent>
       <Button
         size="sm"
         priority="primary"
-        // TODO(cathy): open up invite modal
+        onClick={() =>
+          openInviteMissingMembersModal({
+            allowedRoles,
+            missingMembers,
+            organization,
+            onClose: onModalClose,
+          })
+        }
       >
         {t('View All')}
       </Button>
@@ -202,7 +249,6 @@ const StyledCard = styled(Card)`
 const CardTitleContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
 `;
 
 const CardTitleContent = styled('div')`
@@ -217,7 +263,7 @@ const CardTitle = styled('h6')`
   color: ${p => p.theme.gray400};
 `;
 
-const Subtitle = styled('div')`
+export const Subtitle = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
@@ -264,7 +310,7 @@ const MemberCardContentRow = styled('div')`
   }
 `;
 
-const StyledExternalLink = styled(ExternalLink)`
+export const StyledExternalLink = styled(ExternalLink)`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
