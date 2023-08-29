@@ -154,6 +154,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             producer=self.__producer,
             topic=self.__output_topic,
             next_step=CommitOffsets(commit),
+            max_buffer_size=100000,
         )
         return RunTaskWithMultiprocessing(
             num_processes=self.__num_processes,
