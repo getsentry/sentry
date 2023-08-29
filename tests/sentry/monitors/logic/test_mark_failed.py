@@ -476,7 +476,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 project_id=self.project.id,
                 status=status,
             )
-            monitor_environment.mark_failed(reason=status)
+            mark_failed(monitor_environment, reason=status)
 
         # failure has not hit threshold, monitor should be in an OK status
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
@@ -498,7 +498,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 project_id=self.project.id,
                 status=status,
             )
-            monitor_environment.mark_failed(reason=status)
+            mark_failed(monitor_environment, reason=status)
 
         # failure has hit threshold, monitor should be in a failed state
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
