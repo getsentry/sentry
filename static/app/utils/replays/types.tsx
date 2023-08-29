@@ -29,9 +29,6 @@ type ExtraBreadcrumbTypes = {
   type: string; // For compatibility reasons
 };
 
-// TODO: slowClick breadcrumbs should have is_rage and is_dead added by the backend
-// https://github.com/getsentry/sentry/pull/53140/files
-
 export type RawBreadcrumbFrame = TRawBreadcrumbFrame | ExtraBreadcrumbTypes;
 export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
 export type RecordingFrame = TEventWithTime;
