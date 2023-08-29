@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from sentry.models import OrganizationMemberTeam, Team, TeamStatus
 from sentry.testutils.cases import SCIMTestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 
 
@@ -134,7 +134,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
             "sentry.scim.team.update", tags={"organization": self.organization}
         )
 
-    @with_feature("app:enterprise-prevent-numeric-slugs")
+    @override_options({"api.prevent-numeric-slugs": True})
     def test_scim_team_details_patch_rename_team_invalid_slug(self):
         self.base_data["Operations"] = [
             {
