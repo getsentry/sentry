@@ -63,12 +63,11 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         # User-Agent: sentry-cli/1.70.1
         user_agent = request.headers.get("User-Agent", "")
         sentrycli_version = SENTRYCLI_SEMVER_RE.search(user_agent)
-        supports_relative_url = (
-            (sentrycli_version is not None)
-            and (int(sentrycli_version.group("major")) >= 1)
-            and (int(sentrycli_version.group("minor")) >= 70)
-            and (int(sentrycli_version.group("patch")) >= 1)
-        )
+        supports_relative_url = (sentrycli_version is not None) and (
+            int(sentrycli_version.group("major")),
+            int(sentrycli_version.group("minor")),
+            int(sentrycli_version.group("patch")),
+        ) >= (1, 70, 1)
 
         # If user do not overwritten upload url prefix
         if len(endpoint) == 0:
