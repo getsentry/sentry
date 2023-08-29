@@ -62,7 +62,7 @@ export default function SpansTable({
   const location = useLocation();
   const organization = useOrganization();
 
-  const spansCursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
   const {isLoading, data, meta, pageLinks} = useSpanList(
     moduleName ?? ModuleName.ALL,
@@ -72,13 +72,13 @@ export default function SpansTable({
     [sort],
     limit,
     'api.starfish.use-span-list',
-    spansCursor
+    cursor
   );
 
-  const handleCursor: CursorHandler = (cursor, pathname, query) => {
+  const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     browserHistory.push({
       pathname,
-      query: {...query, [QueryParameterNames.SPANS_CURSOR]: cursor},
+      query: {...query, [QueryParameterNames.SPANS_CURSOR]: newCursor},
     });
   };
 
