@@ -223,6 +223,7 @@ export function InviteMissingMembersModal({
       >
         {memberInvites?.map((member, i) => {
           const checked = memberInvites[i].selected;
+          const username = member.externalId.split(':').pop();
           return (
             <Fragment key={i}>
               <div>
@@ -235,8 +236,8 @@ export function InviteMissingMembersModal({
               <StyledPanelItem>
                 <ContentRow>
                   <IconGithub size="sm" />
-                  <StyledExternalLink href={`https://github.com/${member.externalId}`}>
-                    @{member.externalId}
+                  <StyledExternalLink href={`https://github.com/${username}`}>
+                    @{username}
                   </StyledExternalLink>
                 </ContentRow>
                 <Subtitle>{member.email}</Subtitle>

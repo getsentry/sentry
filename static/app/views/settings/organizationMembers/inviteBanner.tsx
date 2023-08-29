@@ -97,32 +97,38 @@ export function InviteBanner({
 
   const users = missingMembers.users;
 
-  const cards = users.slice(0, 5).map(member => (
-    <MemberCard key={member.externalId} data-test-id={`member-card-${member.externalId}`}>
-      <MemberCardContent>
-        <MemberCardContentRow>
-          <IconGithub size="sm" />
-          {/* TODO(cathy): create mapping from integration to lambda external link function */}
-          <StyledExternalLink href={`https://github.com/${member.externalId}`}>
-            @{member.externalId}
-          </StyledExternalLink>
-        </MemberCardContentRow>
-        <MemberCardContentRow>
-          <IconCommit size="xs" />
-          {tct('[commitCount] Recent Commits', {commitCount: member.commitCount})}
-        </MemberCardContentRow>
-        <Subtitle>{member.email}</Subtitle>
-      </MemberCardContent>
-      <Button
-        size="sm"
-        onClick={() => handleSendInvite(member.email)}
-        data-test-id="invite-missing-member"
-        icon={<IconMail />}
+  const cards = users.slice(0, 5).map(member => {
+    const username = member.externalId.split(':').pop();
+    return (
+      <MemberCard
+        key={member.externalId}
+        data-test-id={`member-card-${member.externalId}`}
       >
-        {t('Invite')}
-      </Button>
-    </MemberCard>
-  ));
+        <MemberCardContent>
+          <MemberCardContentRow>
+            <IconGithub size="sm" />
+            {/* TODO(cathy): create mapping from integration to lambda external link function */}
+            <StyledExternalLink href={`https://github.com/${username}`}>
+              @{username}
+            </StyledExternalLink>
+          </MemberCardContentRow>
+          <MemberCardContentRow>
+            <IconCommit size="xs" />
+            {tct('[commitCount] Recent Commits', {commitCount: member.commitCount})}
+          </MemberCardContentRow>
+          <Subtitle>{member.email}</Subtitle>
+        </MemberCardContent>
+        <Button
+          size="sm"
+          onClick={() => handleSendInvite(member.email)}
+          data-test-id="invite-missing-member"
+          icon={<IconMail />}
+        >
+          {t('Invite')}
+        </Button>
+      </MemberCard>
+    );
+  });
 
   cards.push(
     <SeeMoreCard
