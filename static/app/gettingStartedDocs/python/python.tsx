@@ -87,10 +87,7 @@ export function GettingStartedWithPython({
 }: ModuleProps) {
   const otherConfigs: string[] = [];
 
-  let sentryInitContent: string[] = [
-    `  dsn="${dsn}",`,
-    `  integrations=[DjangoIntegration()],`,
-  ];
+  let sentryInitContent: string[] = [`  dsn="${dsn}",`];
 
   if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
     otherConfigs.push(performanceConfiguration);
