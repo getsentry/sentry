@@ -141,7 +141,7 @@ function QueryDescriptionOverlay({
         check the fetching status explicitly. */}
         {isLoading && isFetching ? (
           <PaddedSpinner>
-            <LoadingIndicator mini />
+            <LoadingIndicator mini hideMessage relative />
           </PaddedSpinner>
         ) : (
           <CodeSnippet language="sql">{formatter.toString(description)}</CodeSnippet>
@@ -156,5 +156,5 @@ const OverlayContent = styled(Overlay)`
 `;
 
 const PaddedSpinner = styled('div')`
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(1.5)};
 `;
