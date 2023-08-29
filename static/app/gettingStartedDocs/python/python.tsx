@@ -100,9 +100,7 @@ export function GettingStartedWithPython({
     otherConfigs.push(profilingConfiguration);
   }
 
-  if (otherConfigs.length > 0) {
-    sentryInitContent = sentryInitContent.concat(otherConfigs);
-  }
+  sentryInitContent = sentryInitContent.concat(otherConfigs);
 
   return (
     <Layout
