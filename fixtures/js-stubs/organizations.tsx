@@ -1,6 +1,6 @@
-import {Organization} from 'fixtures/js-stubs/organization';
-
 import {Organization as OrganizationType} from 'sentry/types';
+
+import {Organization} from './organization';
 
 export function Organizations(
   params: Partial<OrganizationType> = {}
