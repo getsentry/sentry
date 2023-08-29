@@ -21,7 +21,6 @@ const replayRecord = TestStubs.ReplayRecord();
 const CRUMB_1_NAV: ReplayTraceRow = {
   durationMs: 100,
   flattenedTraces: [],
-  frameOpOrCategory: 'navigation.navigate',
   lcpFrames: hydrateSpans(replayRecord, [
     TestStubs.Replay.LargestContentfulPaintFrame({
       startTimestamp: new Date(1663691559961),
@@ -48,7 +47,6 @@ const CRUMB_1_NAV: ReplayTraceRow = {
 const CRUMB_2_CLICK: ReplayTraceRow = {
   durationMs: 100,
   flattenedTraces: [],
-  frameOpOrCategory: 'ui.click',
   lcpFrames: [],
   offsetMs: 100,
   paintFrames: [],

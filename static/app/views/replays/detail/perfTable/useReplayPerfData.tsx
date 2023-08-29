@@ -7,7 +7,6 @@ import type {
   PaintFrame,
   ReplayFrame,
 } from 'sentry/utils/replays/types';
-import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
 import {
   useFetchTransactions,
   useTransactionData,
@@ -23,7 +22,6 @@ export type FlattenedTrace = IndentedTraceDetailed[];
 export interface ReplayTraceRow {
   durationMs: number;
   flattenedTraces: FlattenedTrace[];
-  frameOpOrCategory: string | undefined;
   lcpFrames: LargestContentfulPaintFrame[];
   offsetMs: number;
   paintFrames: PaintFrame[];
@@ -89,7 +87,6 @@ export default function useReplayPerfData({replay}: Props) {
 
       return {
         durationMs: nextFrame ? nextFrame.timestampMs - thisFrame.timestampMs : 0,
-        frameOpOrCategory: getFrameOpOrCategory(thisFrame),
         lcpFrames,
         offsetMs: thisFrame.offsetMs,
         paintFrames,

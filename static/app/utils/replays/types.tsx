@@ -76,8 +76,7 @@ export function isErrorFrame(frame: ReplayFrame | undefined): frame is ErrorFram
 }
 
 export function getFrameOpOrCategory(frame: ReplayFrame) {
-  const val =
-    (frame && 'op' in frame && frame.op) || ('category' in frame && frame.category);
+  const val = ('op' in frame && frame.op) || ('category' in frame && frame.category);
   invariant(val, 'Frame has no category or op');
   return val;
 }
