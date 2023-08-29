@@ -1,8 +1,11 @@
 import GroupStore from 'sentry/stores/groupStore';
 import {Group, GroupStats, TimeseriesValue} from 'sentry/types';
 
-const g = (id: string, params?: Partial<Group>): Group =>
-  TestStubs.Group({id, ...params});
+const MOCK_PROJECT = TestStubs.Project();
+
+const g = (id: string, params?: Partial<Group>): Group => {
+  return TestStubs.Group({id, project: MOCK_PROJECT, ...params});
+};
 
 describe('GroupStore', function () {
   beforeEach(function () {
