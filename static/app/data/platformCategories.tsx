@@ -133,6 +133,7 @@ export const serverless = [
   'python-awslambda',
   'python-azurefunctions',
   'python-gcpfunctions',
+  'python-serverless', // TODO(aknaus): Add to profiling / performance?
   'node-awslambda',
   'node-azurefunctions',
   'node-gcpfunctions',

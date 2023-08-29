@@ -80,6 +80,10 @@ export const platformProductAvailability = {
   'python-quart': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-rq': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-sanic': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-serverless': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+  ],
 } as Record<PlatformKey, ProductSolution[]>;
 
 export type DisabledProduct = {
