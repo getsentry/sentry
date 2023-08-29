@@ -57,6 +57,7 @@ class OutboxScope(IntEnum):
     APP_SCOPE = 6
     TEAM_SCOPE = 7
     PROVISION_SCOPE = 8
+    SUBSCRIPTION_SCOPE = 9
 
     def __str__(self):
         return self.name
