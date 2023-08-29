@@ -547,6 +547,15 @@ class MonitorEnvironment(Model):
         )
 
     def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
+        recovery_threshold = self.monitor.config.get("recovery_threshold", 0)
+        if recovery_threshold:
+            previous_checkins = MonitorCheckIn.objects.filter(monitor_environment=self).order_by(
+                "-date_added"
+            )[:recovery_threshold]
+            # check for successive OK previous check-ins
+            if not all(checkin.status == CheckInStatus.OK for checkin in previous_checkins):
+                return
+
         next_checkin = self.monitor.get_next_expected_checkin(ts)
         next_checkin_latest = self.monitor.get_next_expected_checkin_latest(ts)
 

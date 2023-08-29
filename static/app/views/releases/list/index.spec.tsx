@@ -10,7 +10,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
 import ReleasesList from 'sentry/views/releases/list/';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
 import {ReleasesSortOption} from 'sentry/views/releases/list/releasesSortOptions';
@@ -58,8 +57,6 @@ describe('ReleasesList', () => {
   let endpointMock, sessionApiMock;
 
   beforeEach(() => {
-    const team = TestStubs.Team({slug: 'team-slug', isMember: true});
-    TeamStore.loadInitialData([{...team, access: ['team:read']}]);
     act(() => ProjectsStore.loadInitialData(organization.projects));
     endpointMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
