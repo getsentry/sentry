@@ -454,6 +454,43 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             == f"This rule is an exact duplicate of '{rule.label}' in this project and may not be created."
         )
 
+    def test_edit_rule(self):
+        """Test that you can edit an alert rule w/o it comparing it to itself as a dupe"""
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+            }
+        ]
+        actions = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+            }
+        ]
+        self.create_project_rule(
+            project=self.project, action_match=actions, condition_match=conditions
+        )
+        conditions.append(
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
+                "interval": "1h",
+                "value": "100",
+                "comparisonType": "count",
+            }
+        )
+        payload = {
+            "name": "hello world",
+            "environment": self.environment.name,
+            "actionMatch": "all",
+            "actions": actions,
+            "conditions": conditions,
+        }
+        self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
+        )
+
     def test_with_environment(self):
         payload = {
             "name": "hello world",
