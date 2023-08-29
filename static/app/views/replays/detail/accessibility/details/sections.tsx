@@ -23,13 +23,23 @@ function DisplayString(props) {
   const {text} = props;
 
   return (
-    <div>
-      {text.split('\n').map((line, index) => (
-        <React.Fragment key={index}>
-          {line}
-          <br />
-        </React.Fragment>
-      ))}
+    <div
+      style={{
+        textAlign: 'left',
+        marginTop: '30px',
+        fontSize: '1.2em',
+        paddingLeft: '20px',
+      }}
+    >
+      <b>{text.split('\n')[0]}</b>
+      <ul style={{marginTop: '10px'}}>
+        {text
+          .split('\n')
+          .slice(1)
+          .map((line, index) => (
+            <li key={index}>{line}</li>
+          ))}
+      </ul>
     </div>
   );
 }
@@ -57,7 +67,7 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
         timestampMs={item.timestampMs}
       />
     ),
-    [t('Extended Summary')]: <DisplayString text={item.failureSummary} />,
+    // [t('Extended Summary')]: <DisplayStringStyled text={item.failureSummary} />,
   };
 
   return (
@@ -70,10 +80,16 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
       <SectionItem title={t('General')}>
         {keyValueTableOrNotFound(data, t('Missing request details'))}
       </SectionItem>
+      <DisplayStringStyled text={item.failureSummary} />
     </Fragment>
   );
 }
 
 const OverflowFluidHeight = styled(FluidHeight)`
   overflow: auto;
+`;
+
+const DisplayStringStyled = styled(DisplayString)`
+  text-align: left;
+  margin-top: 30px;
 `;

@@ -8,7 +8,7 @@ import {
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCircleFill, IconFatal, IconFire, IconWarning} from 'sentry/icons';
+import {IconCircleFill} from 'sentry/icons';
 import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {
   getFrameImpact,
@@ -24,10 +24,10 @@ import {operationName} from 'sentry/views/replays/detail/utils';
 const EMPTY_CELL = '--';
 
 const IMPACT_COLOR_MAPPINGS = {
-  minor: <IconWarning color="yellow400" />,
-  moderate: <IconWarning color="yellow400" />,
-  serious: <IconFire color="pink400" />,
-  critical: <IconFatal color="red400" />,
+  minor: 'blue400',
+  moderate: 'blue400',
+  serious: 'yellow400',
+  critical: 'red400',
 };
 
 interface Props extends ReturnType<typeof useCrumbHandlers> {
@@ -116,7 +116,7 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
         <Cell {...columnProps}>
           <Text>
             <Tooltip title={impact ? impact : 'unknown'}>
-              {IMPACT_COLOR_MAPPINGS[impact]}
+              <IconCircleFill color={IMPACT_COLOR_MAPPINGS[impact]} />
             </Tooltip>
           </Text>
         </Cell>
