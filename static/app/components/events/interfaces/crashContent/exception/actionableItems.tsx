@@ -29,6 +29,7 @@ import {
   ActionableItems,
   ActionableItemsResponse,
   ActionableItemTypes,
+  ActionableItemWarning,
   SourceMapProcessingIssueType,
   useActionableItems,
 } from './useActionableItems';
@@ -51,7 +52,18 @@ function getErrorMessage(
   desc: React.ReactNode;
   expandTitle: string;
   title: string;
-  data?: any;
+  data?: {
+    absPath?: string;
+    image_path?: string;
+    mage_name?: string;
+    message?: string;
+    name?: string;
+    partialMatchPath?: string;
+    sdk_time?: string;
+    server_time?: string;
+    url?: string;
+    urlPrefix?: string;
+  } & Record<string, any>;
   docsLink?: string;
 }> {
   const docPlatform = (sdkName && sourceMapSdkDocsMap[sdkName]) ?? 'javascript';
@@ -193,7 +205,6 @@ function getErrorMessage(
           title: 'Debug Id but no Sourcemaps',
           desc: 'Try using the Source Maps Wizard',
           expandTitle: sourcemapTitle,
-          data: {url: 'www.google.com'},
         },
       ];
     // Event Errors
@@ -462,7 +473,6 @@ function groupedErrors(data?: ActionableItemsResponse, sdkName?: string) {
     rv[error.type].push(error);
     return rv;
   }, Object.create(null));
-
   return grouped;
 }
 
@@ -512,11 +522,28 @@ export function ActionableItem({event, projectSlug}: ActionableItemsProps) {
     return <SourceMapsWizard analyticsParams={analyticsParams} />;
   }
 
+  const hasErrorAlert = Object.keys(errorMessages).some(error =>
+    ActionableItemWarning.includes(
+      error as ProguardProcessingErrors | NativeProcessingErrors | GenericSchemaErrors
+    )
+  );
+
+  for (const errorKey in Object.keys(errorMessages)) {
+    const isWarning = ActionableItemWarning.includes(
+      errorKey as ProguardProcessingErrors | NativeProcessingErrors | GenericSchemaErrors
+    );
+    const shouldDelete = hasErrorAlert ? isWarning : !isWarning;
+
+    if (shouldDelete) {
+      delete errorMessages[errorKey];
+    }
+  }
+
   return (
     <StyledAlert
       defaultExpanded
       showIcon
-      type="error"
+      type={hasErrorAlert ? 'error' : 'warning'}
       expand={
         <Fragment>
           {Object.keys(errorMessages).map((error, idx) => {

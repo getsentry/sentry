@@ -29,6 +29,15 @@ export type ActionableItemTypes =
   | ProguardProcessingErrors
   | NativeProcessingErrors;
 
+export const ActionableItemWarning = [
+  ProguardProcessingErrors.PROGUARD_MISSING_LINENO,
+  NativeProcessingErrors.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
+  GenericSchemaErrors.FUTURE_TIMESTAMP,
+  GenericSchemaErrors.CLOCK_DRIFT,
+  GenericSchemaErrors.PAST_TIMESTAMP,
+  GenericSchemaErrors.VALUE_TOO_LONG,
+];
+
 interface BaseActionableItem {
   data: any;
   message: string;
