@@ -12,6 +12,7 @@ from sentry.notifications.types import (
     NOTIFICATION_SETTING_TYPES,
     SUBSCRIPTION_REASON_MAP,
     VALID_VALUES_FOR_KEY,
+    VALID_VALUES_FOR_KEY_V2,
     GroupSubscriptionReason,
     NotificationScopeType,
     NotificationSettingOptionValues,
@@ -243,6 +244,11 @@ def transform_to_notification_settings_by_scope(
 def validate(type: NotificationSettingTypes, value: NotificationSettingOptionValues) -> bool:
     """:returns boolean. True if the "value" is valid for the "type"."""
     return value in VALID_VALUES_FOR_KEY.get(type, {})
+
+
+def validate_v2(type: NotificationSettingTypes, value: NotificationSettingOptionValues) -> bool:
+    """:returns boolean. True if the "value" is valid for the "type"."""
+    return value in VALID_VALUES_FOR_KEY_V2.get(type, {})
 
 
 def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
