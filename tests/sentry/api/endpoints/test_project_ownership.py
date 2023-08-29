@@ -164,7 +164,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             auditlog = AuditLogEntry.objects.filter(
                 organization_id=self.project.organization.id,
-                event=audit_log.get_event_id("PROJECT_EDIT"),
+                event=audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT"),
                 target_object=self.project.id,
             )
         assert len(auditlog) == 1
@@ -172,17 +172,20 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
 
     def test_audit_log_ownership_change(self):
         with outbox_runner():
-            resp = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
+            resp = self.client.put(
+                self.path, {"raw": "*.js admin@localhost #tiger-team", "updateType": "addition"}
+            )
         assert resp.status_code == 200
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             auditlog = AuditLogEntry.objects.filter(
                 organization_id=self.project.organization.id,
-                event=audit_log.get_event_id("PROJECT_EDIT"),
+                event=audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT"),
                 target_object=self.project.id,
             )
         assert len(auditlog) == 1
         assert "modified" in auditlog[0].data["ownership_rules"]
+        assert "addition" in auditlog[0].data["updateType"]
 
     @with_feature("organizations:streamline-targeting-context")
     def test_update_with_streamline_targeting(self):
