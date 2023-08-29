@@ -524,13 +524,13 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             **{
                 "project_id": self.project.id,
                 "issue_title": "Duration Regression",
-                "subtitle": "Increased from 14.0 ms to 28.0 ms (P95)",
+                "subtitle": "Increased from 14.0ms to 28.0ms (P95)",
                 "resource_id": None,
                 "evidence_data": mock_trends_result[0],
                 "evidence_display": [
                     {
                         "name": "Regression",
-                        "value": "Increased from 14.0 ms to 28.0 ms (P95)",
+                        "value": "Increased from 14.0ms to 28.0ms (P95)",
                         "important": True,
                     },
                     {"name": "Transaction", "value": "foo", "important": True},
