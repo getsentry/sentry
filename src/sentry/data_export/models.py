@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_str
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -30,7 +31,7 @@ class ExportedData(Model):
     Stores references to asynchronous data export jobs
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization")
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
@@ -152,7 +153,7 @@ class ExportedData(Model):
 
 @region_silo_only_model
 class ExportedDataBlob(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     data_export = FlexibleForeignKey("sentry.ExportedData")
     blob_id = BoundedBigIntegerField()

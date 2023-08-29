@@ -8,7 +8,8 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import get_auth_api_token_type
 from sentry.constants import ObjectStatus
-from sentry.models import FileBlobOwner, Project
+from sentry.debug_files.upload import find_missing_chunks
+from sentry.models import Project
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -19,25 +20,8 @@ from sentry.tasks.assemble import (
 from sentry.utils import json
 
 
-class OrganizationArtifactBundleAssembleMixin:
-    @classmethod
-    def find_missing_chunks(cls, organization, chunks):
-        """
-        Returns a list of chunks which are missing for an org.
-        """
-        owned = set(
-            FileBlobOwner.objects.filter(
-                blob__checksum__in=chunks, organization_id=organization.id
-            ).values_list("blob__checksum", flat=True)
-        )
-
-        return list(set(chunks) - owned)
-
-
 @region_silo_endpoint
-class OrganizationArtifactBundleAssembleEndpoint(
-    OrganizationReleasesBaseEndpoint, OrganizationArtifactBundleAssembleMixin
-):
+class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoint):
     def post(self, request: Request, organization) -> Response:
         """
         Assembles an artifact bundle and stores the debug ids in the database.
@@ -87,7 +71,7 @@ class OrganizationArtifactBundleAssembleEndpoint(
         # regressions for our users.
         if options.get("sourcemaps.artifact_bundles.assemble_with_missing_chunks") is True:
             # We check if all requested chunks have been uploaded.
-            missing_chunks = self.find_missing_chunks(organization, chunks)
+            missing_chunks = find_missing_chunks(organization.id, chunks)
             # In case there are some missing chunks, we will tell the client which chunks we require.
             if missing_chunks:
                 return Response(

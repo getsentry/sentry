@@ -10,6 +10,7 @@ from django.db import IntegrityError, models, router
 from django.utils import timezone
 from typing_extensions import Self
 
+from sentry.backup.scopes import RelocationScope
 from sentry.celery import SentryTask
 from sentry.db.models import BoundedPositiveIntegerField, Model
 from sentry.locks import locks
@@ -29,7 +30,7 @@ MULTI_BLOB_UPLOAD_CONCURRENCY = 8
 
 
 class AbstractFileBlob(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     path = models.TextField(null=True)
     size = BoundedPositiveIntegerField(null=True)
@@ -142,6 +143,7 @@ class AbstractFileBlob(Model):
                     lock = locked_blob(cls, checksum, logger=logger)
                     existing = lock.__enter__()
                     if existing is not None:
+                        existing.update(timestamp=timezone.now())
                         lock.__exit__(None, None, None)
                         blobs_created.append(existing)
                         _ensure_blob_owned(existing)
@@ -183,6 +185,7 @@ class AbstractFileBlob(Model):
         # and duplicate files are uploaded then we need to prune one
         with locked_blob(cls, checksum, logger=logger) as existing:
             if existing is not None:
+                existing.update(timestamp=timezone.now())
                 return existing
 
             blob = cls(size=size, checksum=checksum)
@@ -205,7 +208,13 @@ class AbstractFileBlob(Model):
 
     def delete(self, *args, **kwargs):
         if self.path:
-            self.deletefile(commit=False)
+            # Defer this by 1 minute just to make sure
+            # we avoid any transaction isolation where the
+            # FileBlob row might still be visible by the
+            # task before transaction is committed.
+            self.DELETE_FILE_TASK.apply_async(
+                kwargs={"path": self.path, "checksum": self.checksum}, countdown=60
+            )
         lock = locks.get(
             f"fileblob:upload:{self.checksum}",
             duration=UPLOAD_RETRY_TIME,
@@ -215,22 +224,6 @@ class AbstractFileBlob(Model):
             lock.acquire
         ):
             super().delete(*args, **kwargs)
-
-    def deletefile(self, commit=False):
-        assert self.path
-
-        # Defer this by 1 minute just to make sure
-        # we avoid any transaction isolation where the
-        # FileBlob row might still be visible by the
-        # task before transaction is committed.
-        self.DELETE_FILE_TASK.apply_async(
-            kwargs={"path": self.path, "checksum": self.checksum}, countdown=60
-        )
-
-        self.path = None
-
-        if commit:
-            self.save()
 
     def getfile(self):
         """

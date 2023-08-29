@@ -22,6 +22,7 @@ from django.utils.translation import gettext_lazy as _
 from snuba_sdk import Column, Condition, Op
 
 from sentry import eventstore, eventtypes, tagstore
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BaseManager,
@@ -474,7 +475,7 @@ class Group(Model):
     Aggregated message which summarizes a set of Events.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
     logger = models.CharField(

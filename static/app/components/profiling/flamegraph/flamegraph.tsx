@@ -24,6 +24,7 @@ import {
 } from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
+import {t} from 'sentry/locale';
 import {EntryType, EventTransaction} from 'sentry/types';
 import {EntrySpans} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -211,7 +212,7 @@ function Flamegraph(): ReactElement {
   const hasCPUChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
     return (
-      (platform === 'cocoa' || platform === 'android') &&
+      (platform === 'cocoa' || platform === 'android' || platform === 'node') &&
       organization.features.includes('profiling-cpu-chart')
     );
   }, [profileGroup.metadata.platform, organization.features]);
@@ -219,7 +220,7 @@ function Flamegraph(): ReactElement {
   const hasMemoryChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
     return (
-      (platform === 'cocoa' || platform === 'android') &&
+      (platform === 'cocoa' || platform === 'android' || platform === 'node') &&
       organization.features.includes('profiling-memory-chart')
     );
   }, [profileGroup.metadata.platform, organization.features]);
@@ -570,6 +571,7 @@ function Flamegraph(): ReactElement {
           barHeight: 0,
           depthOffset: 0,
           maxHeight: CPUChart.configSpace.height,
+          minHeight: CPUChart.configSpace.height,
         },
       });
 
@@ -611,6 +613,7 @@ function Flamegraph(): ReactElement {
           barHeight: 0,
           depthOffset: 0,
           maxHeight: memoryChart.configSpace.height,
+          minHeight: memoryChart.configSpace.height,
         },
       });
 
@@ -1156,6 +1159,17 @@ function Flamegraph(): ReactElement {
               chartView={memoryChartView}
               canvasPoolManager={canvasPoolManager}
               chart={memoryChart}
+              noMeasurementMessage={
+                profileGroup.metadata.platform === 'cocoa'
+                  ? t(
+                      'Upgrade to version 8.9.6 of sentry-cocoa SDK to enable memory usage collection'
+                    )
+                  : profileGroup.metadata.platform === 'node'
+                  ? t(
+                      'Upgrade to version 1.2.0 of @sentry/profiling-node to enable memory usage collection'
+                    )
+                  : ''
+              }
             />
           ) : null
         }
@@ -1169,6 +1183,17 @@ function Flamegraph(): ReactElement {
               chartView={cpuChartView}
               canvasPoolManager={canvasPoolManager}
               chart={CPUChart}
+              noMeasurementMessage={
+                profileGroup.metadata.platform === 'cocoa'
+                  ? t(
+                      'Upgrade to version 8.9.6 of sentry-cocoa SDK to enable CPU usage collection'
+                    )
+                  : profileGroup.metadata.platform === 'node'
+                  ? t(
+                      'Upgrade to version 1.2.0 of @sentry/profiling-node to enable CPU usage collection'
+                    )
+                  : ''
+              }
             />
           ) : null
         }
