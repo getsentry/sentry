@@ -1617,8 +1617,6 @@ SENTRY_FEATURES = {
     "organizations:session-replay-weekly-email": False,
     "organizations:session-replay-trial-ended-banner": False,
     "organizations:session-replay-trace-table": False,
-    # Enable optimized serach feature.
-    "organizations:session-replay-optimized-search": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
