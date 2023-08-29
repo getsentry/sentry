@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
@@ -55,6 +56,10 @@ def find_duplicate_rule(rule_data, project, rule_id=None):
 
 @region_silo_endpoint
 class ProjectRulesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.ISSUES
     permission_classes = (ProjectAlertRulePermission,)
 

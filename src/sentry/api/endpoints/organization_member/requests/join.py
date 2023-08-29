@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import ratelimits as ratelimiter
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.validators import AllowedEmailField
@@ -49,6 +50,9 @@ def create_organization_join_request(organization, email, ip_address=None):
 
 @region_silo_endpoint
 class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     # Disable authentication and permission requirements.
     permission_classes = []
 

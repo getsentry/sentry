@@ -1,8 +1,6 @@
 import inspect
 from typing import Any, Dict, List, Literal, Mapping, Set, Tuple, TypedDict
 
-from more_itertools import take
-
 from sentry.api.api_owners import ApiOwner
 from sentry.apidocs.api_ownership_allowlist_dont_modify import API_OWNERSHIP_ALLOWLIST_DONT_MODIFY
 from sentry.apidocs.build import OPENAPI_TAGS
@@ -79,13 +77,16 @@ def codemod_publish_status(endpoints):
         if view_class not in class_methods:
             if view_class.publish_status == {}:
                 class_methods[view_class] = set()
-            # else:
-            # print("****Already implemented in :", view_class)
+            else:
+                # print("****Already implemented in :", view_class)
+                continue
         if method not in class_methods[view_class]:
             class_methods[view_class].add(method)
 
+    # print("all methods", len(class_methods))
     # Not doing a full loop to just generate a few examples
-    for (key, value) in take(5, class_methods.items()):
+    for key in class_methods:
+        value = class_methods[key]
         if len(value) > 0:
             # Read file and find the location you want to add the param to
             class_name = key.__name__
