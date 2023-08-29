@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from django.urls import reverse
 
@@ -25,14 +27,6 @@ def call_endpoint(client, relay, private_key):
         return json.loads(resp.content), resp.status_code
 
     return inner
-
-
-@pytest.fixture
-def globalconfig_get_mock_config(monkeypatch):
-    monkeypatch.setattr(
-        "sentry.relay.globalconfig.get_global_config",
-        lambda *args, **kargs: {"global_mock_config": True},
-    )
 
 
 def test_global_config():
@@ -66,6 +60,10 @@ def test_global_config():
     }
 
 
+@patch(
+    "sentry.api.endpoints.relay.project_configs.get_global_config",
+    lambda *args, **kargs: {"global_mock_config": True},
+)
 @pytest.mark.parametrize(
     ("version, request_global_config, expect_global_config"),
     [
@@ -77,7 +75,6 @@ def test_global_config():
 )
 @django_db_all
 def test_return_global_config_on_right_version(
-    globalconfig_get_mock_config,
     call_endpoint,
     version,
     request_global_config,
