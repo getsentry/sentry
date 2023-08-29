@@ -23,7 +23,8 @@ from sentry.api.serializers import serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.constants import DEBUG_FILES_ROLE_DEFAULT, KNOWN_DIF_FORMATS
-from sentry.debug_files.upload import find_missing_chunks, maybe_renew_debug_files
+from sentry.debug_files.debug_files import maybe_renew_debug_files
+from sentry.debug_files.upload import find_missing_chunks
 from sentry.models import (
     File,
     OrganizationMember,
