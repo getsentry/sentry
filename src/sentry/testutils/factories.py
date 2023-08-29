@@ -423,7 +423,14 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_project_rule(project, action_data=None, condition_data=None):
+    def create_project_rule(
+        project,
+        action_data=None,
+        condition_data=None,
+        name="",
+        action_match="all",
+        filter_match="all",
+    ):
         action_data = action_data or [
             {
                 "id": "sentry.rules.actions.notify_event.NotifyEventAction",
@@ -446,8 +453,15 @@ class Factories:
             },
         ]
         return Rule.objects.create(
+            label=name,
             project=project,
-            data={"conditions": condition_data, "actions": action_data, "action_match": "all"},
+            data={
+                "conditions": condition_data,
+                "actions": action_data,
+                "action_match": action_match,
+                "filter_match": filter_match,
+            },
+            # environment_id=e
         )
 
     @staticmethod
