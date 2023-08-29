@@ -2,11 +2,14 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
 
 
 @region_silo_only_model
 class ReleaseThreshold(Model):
+    __relocation_scope__ = RelocationScope.Excluded
+
     class ReleaseThresholdType(models.TextChoices):
         TOTAL_ERROR_COUNT = "TEC", _("Total Error Count")
         NEW_ISSUE_COUNT = "NIC", _("New Issue Count")
@@ -22,8 +25,8 @@ class ReleaseThreshold(Model):
         ABSOLUTE_OVER = "AO", _("Absolute Over")
         ABSOLUTE_UNDER = "AU", _("Absolute Under")
 
-    threshold_type = models.CharField(choices=ReleaseThresholdType.choices)
-    value_type = models.CharField(choices=ValueType.choices)
+    threshold_type = models.CharField(choices=ReleaseThresholdType.choices, max_length=120)
+    value_type = models.CharField(choices=ValueType.choices, max_length=120)
     value = models.IntegerField()
     window = models.IntegerField()  # in seconds
 
