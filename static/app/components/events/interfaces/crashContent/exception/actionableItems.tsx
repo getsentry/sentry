@@ -7,6 +7,7 @@ import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import SourceMapsWizard from 'sentry/components/events/interfaces/crashContent/exception/sourcemapsWizard';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {
@@ -18,7 +19,7 @@ import {
 } from 'sentry/constants/eventErrors';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event} from 'sentry/types';
+import {Event, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
@@ -38,17 +39,7 @@ import {sourceMapSdkDocsMap} from './utils';
 const shortPathPlatforms = ['javascript', 'node', 'react-native'];
 const sentryInit = <code>Sentry.init</code>;
 
-const keyMapping = {
-  image_uuid: 'Debug ID',
-  image_name: 'File Name',
-  image_path: 'File Path',
-};
-
-function getErrorMessage(
-  error: ActionableItems,
-  sdkName?: string
-): Array<{
-  // Description in expansion
+interface ErrorMessageType {
   desc: React.ReactNode;
   expandTitle: string;
   title: string;
@@ -64,10 +55,29 @@ function getErrorMessage(
     url?: string;
     urlPrefix?: string;
   } & Record<string, any>;
-  docsLink?: string;
-}> {
+}
+
+const keyMapping = {
+  image_uuid: 'Debug ID',
+  image_name: 'File Name',
+  image_path: 'File Path',
+};
+
+function getErrorMessage(
+  error: ActionableItems,
+  event: Event,
+  organization: Organization,
+  sdkName?: string
+): Array<ErrorMessageType> {
   const docPlatform = (sdkName && sourceMapSdkDocsMap[sdkName]) ?? 'javascript';
   const useShortPath = shortPathPlatforms.includes(docPlatform);
+
+  const analyticsParams = {
+    organization,
+    project_id: event.projectID,
+    group_id: event.groupID,
+    ...getAnalyticsDataForEvent(event),
+  };
 
   const baseSourceMapDocsLink = useShortPath
     ? `https://docs.sentry.io/platforms/${docPlatform}/sourcemaps/`
@@ -83,7 +93,24 @@ function getErrorMessage(
       (section ? `#${section}` : '')
     );
   }
+
   const defaultDocsLink = `${baseSourceMapDocsLink}#uploading-source-maps`;
+  const docsLink = (type: ActionableItemTypes, link: string) => {
+    return (
+      <ExternalLink
+        onClick={() => {
+          trackAnalytics('actionable_items.docs_link_clicked', {
+            ...analyticsParams,
+            type,
+          });
+        }}
+        openInNewTab
+        href={link}
+      />
+    );
+  };
+
+  `${baseSourceMapDocsLink}#uploading-source-maps`;
   const sourcemapTitle = t('Fix Source Maps');
   const errorData = error.data ?? {};
 
@@ -92,10 +119,12 @@ function getErrorMessage(
       return [
         {
           title: t('Event missing Release tag'),
-          desc: t(
-            'Integrate Sentry into your release pipeline using a tool like Webpack or the CLI.'
+          desc: tct(
+            'Integrate Sentry into your release pipeline using a tool like the Sentry Webpack plugin or Sentry CLI. Read our docs for [link:more information].',
+            {
+              link: docsLink(error.type, defaultDocsLink),
+            }
           ),
-          docsLink: defaultDocsLink,
           expandTitle: sourcemapTitle,
           data: errorData,
         },
@@ -105,15 +134,13 @@ function getErrorMessage(
         {
           title: t('Partial Absolute Path Match'),
           desc: tct(
-            'The abs_path of the stack frame is a partial match. The stack frame has the path [absPath] which is a partial match to [partialMatchPath]. You need to update the value for the URL prefix argument or `includes` in your config options to include [urlPrefix]',
+            'The stack frame has an absolute path which is a partial match. You need to update the value for the URL prefix argument or `includes` in your config options to include the URL prefix. Read our docs for [link:more information].',
             {
-              absPath: <code>{error.data.absPath}</code>,
-              partialMatchPath: <code>{error.data.partialMatchPath}</code>,
-              urlPrefix: <code>{error.data.urlPrefix}</code>,
+              link: docsLink(
+                error.type,
+                getTroubleshootingLink('verify-artifact-names-match-stack-trace-frames')
+              ),
             }
-          ),
-          docsLink: getTroubleshootingLink(
-            'verify-artifact-names-match-stack-trace-frames'
           ),
           expandTitle: sourcemapTitle,
           data: errorData,
@@ -123,10 +150,10 @@ function getErrorMessage(
       return [
         {
           title: t('Source Maps not uploaded'),
-          desc: t(
-            "It looks like you're creating, but not uploading your source maps. Read our docs for troubleshooting help."
+          desc: tct(
+            "It looks like you're creating, but not uploading your source maps. Read our docs for [link:troubleshooting help].",
+            {link: docsLink(error.type, defaultDocsLink)}
           ),
-          docsLink: defaultDocsLink,
           expandTitle: sourcemapTitle,
           data: errorData,
         },
@@ -136,14 +163,14 @@ function getErrorMessage(
         {
           title: t('Invalid Absolute Path URL'),
           desc: tct(
-            'The [literalAbsPath] of the stack frame is [absPath] which is not a valid URL. Read our docs for troubleshooting help.',
+            'The [literalAbsPath] of the stack frame is not a valid URL. Read our docs for [link:troubleshooting help].',
             {
-              absPath: <code>{error.data.absPath}</code>,
               literalAbsPath: <code>abs_path</code>,
+              link: docsLink(
+                error.type,
+                getTroubleshootingLink('verify-artifact-names-match-stack-trace-frames')
+              ),
             }
-          ),
-          docsLink: getTroubleshootingLink(
-            'verify-artifact-names-match-stack-trace-frames'
           ),
           expandTitle: sourcemapTitle,
           data: errorData,
@@ -154,14 +181,14 @@ function getErrorMessage(
         {
           title: t('Absolute Path Mismatch'),
           desc: tct(
-            "The given [literalAbsPath] of the stack frame is [absPath] which doesn't match any release artifact. Read our docs for troubleshooting help.",
+            "The given [literalAbsPath] of the stack frame doesn't match any uploaded source maps. Read our docs for [link: troubleshooting help].",
             {
-              absPath: <code>{error.data.absPath}</code>,
               literalAbsPath: <code>abs_path</code>,
+              link: docsLink(
+                error.type,
+                getTroubleshootingLink('verify-artifact-names-match-stack-trace-frames')
+              ),
             }
-          ),
-          docsLink: getTroubleshootingLink(
-            'verify-artifact-names-match-stack-trace-frames'
           ),
           expandTitle: sourcemapTitle,
           data: errorData,
@@ -172,15 +199,17 @@ function getErrorMessage(
         {
           title: t('Dist Mismatch'),
           desc: tct(
-            "The distribution identifier you're providing doesn't match. The [literalDist] value of [dist] configured in your [init] must be the same as the one used during source map upload. Read our docs for troubleshooting help.",
+            'The [literalDist] value configured in your [init] must be the same as the one used during source map upload. Read our docs for [link: troubleshooting help].',
             {
               init: sentryInit,
-              dist: <code>dist</code>,
               literalDist: <code>dist</code>,
+              link: docsLink(
+                error.type,
+                getTroubleshootingLink(
+                  'verify-artifact-distribution-value-matches-value-configured-in-your-sdk'
+                )
+              ),
             }
-          ),
-          docsLink: getTroubleshootingLink(
-            'verify-artifact-distribution-value-matches-value-configured-in-your-sdk'
           ),
           expandTitle: sourcemapTitle,
           data: errorData,
@@ -190,10 +219,10 @@ function getErrorMessage(
       return [
         {
           title: t("Source Map File doesn't exist"),
-          desc: t(
-            "Sentry couldn't fetch the source map file for this event. Read our docs for troubleshooting help."
+          desc: tct(
+            "Sentry couldn't fetch the source map file for this event. Read our docs for [link: troubleshooting help].",
+            {link: docsLink(error.type, getTroubleshootingLink())}
           ),
-          docsLink: getTroubleshootingLink(),
           expandTitle: sourcemapTitle,
           data: errorData,
         },
@@ -212,7 +241,7 @@ function getErrorMessage(
       return [
         {
           title: t('A proguard mapping file does not contain line info'),
-          desc: t('TBD'),
+          desc: null,
           expandTitle: t('Fix Proguard Processing Error'),
           data: errorData,
         },
@@ -221,7 +250,7 @@ function getErrorMessage(
       return [
         {
           title: t('A proguard mapping file was missing'),
-          desc: t('TBD'),
+          desc: null,
           expandTitle: t('Fix Proguard Processing Error'),
           data: errorData,
         },
@@ -230,7 +259,7 @@ function getErrorMessage(
       return [
         {
           title: t('An optional debug information file was missing'),
-          desc: t('TBD'),
+          desc: null,
           expandTitle: t('Fix Native Processing Error'),
           data: errorData,
         },
@@ -240,7 +269,7 @@ function getErrorMessage(
       return [
         {
           title: t('A required debug information file was missing'),
-          desc: t('TBD'),
+          desc: null,
           expandTitle: t('Fix Native Processing Error'),
           data: errorData,
         },
@@ -249,7 +278,7 @@ function getErrorMessage(
       return [
         {
           title: t('The debug information file used was broken'),
-          desc: t('TBD'),
+          desc: null,
           expandTitle: t('Fix Native Processing Error'),
           data: errorData,
         },
@@ -257,8 +286,8 @@ function getErrorMessage(
     case JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTEXT:
       return [
         {
-          title: t('TBD'),
-          desc: t('TBD'),
+          title: t('Missing Sources Context'),
+          desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
         },
@@ -267,7 +296,7 @@ function getErrorMessage(
       return [
         {
           title: t('Unable to fetch HTTP resource'),
-          desc: t('TBD'),
+          desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
         },
@@ -276,7 +305,7 @@ function getErrorMessage(
       return [
         {
           title: t('Cannot fetch resource due to restricted IP address'),
-          desc: t('TBD'),
+          desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
         },
@@ -285,7 +314,7 @@ function getErrorMessage(
       return [
         {
           title: t('Cannot fetch resource due to security violation'),
-          desc: t('TBD'),
+          desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
         },
@@ -294,7 +323,7 @@ function getErrorMessage(
       return [
         {
           title: t('Invalid timestamp (in future)'),
-          desc: t('TBD'),
+          desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
         },
@@ -304,7 +333,7 @@ function getErrorMessage(
       return [
         {
           title: t('Clock drift detected in SDK'),
-          desc: t('TBD'),
+          desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
         },
@@ -313,7 +342,7 @@ function getErrorMessage(
       return [
         {
           title: t('Invalid timestamp (too old)'),
-          desc: t('TBD'),
+          desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
         },
@@ -322,7 +351,7 @@ function getErrorMessage(
       return [
         {
           title: t('Discarded value due to exceeding maximum length'),
-          desc: t('TBD'),
+          desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
         },
@@ -332,7 +361,7 @@ function getErrorMessage(
       return [
         {
           title: t('Discarded invalid value'),
-          desc: t('TBD'),
+          desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
         },
@@ -341,7 +370,7 @@ function getErrorMessage(
       return [
         {
           title: t('Environment cannot contain "/" or newlines'),
-          desc: t('TBD'),
+          desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
         },
@@ -350,7 +379,7 @@ function getErrorMessage(
       return [
         {
           title: t('Discarded unknown attribute'),
-          desc: t('TBD'),
+          desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
         },
@@ -427,22 +456,22 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
           <strong>
             {title} ({numErrors})
           </strong>
-          {desc && (
-            <ToggleButton
-              priority="link"
-              size="zero"
-              onClick={() => {
-                setExpanded(!expanded);
-                handleExpandClick(type);
-              }}
-            >
-              {expandTitle}
-            </ToggleButton>
-          )}
+          (
+          <ToggleButton
+            priority="link"
+            size="zero"
+            onClick={() => {
+              setExpanded(!expanded);
+              handleExpandClick(type);
+            }}
+          >
+            {expandTitle}
+          </ToggleButton>
+          )
         </ErrorTitleFlex>
         {expanded && (
           <div>
-            <Description>{desc}</Description>
+            {desc && <Description>{desc}</Description>}
             {cleanedData.map((data, idx) => {
               return (
                 <div key={idx}>
@@ -458,13 +487,21 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
   );
 }
 
-function groupedErrors(data?: ActionableItemsResponse, sdkName?: string) {
+function groupedErrors(
+  event: Event,
+  organization: Organization,
+  data?: ActionableItemsResponse,
+  sdkName?: string
+): Record<ActionableItemTypes, ErrorMessageType[]> | {} {
   if (!data) {
     return {};
   }
   const errors = data.errors
     .map(error =>
-      getErrorMessage(error, sdkName).map(message => ({...message, type: error.type}))
+      getErrorMessage(error, event, organization, sdkName).map(message => ({
+        ...message,
+        type: error.type,
+      }))
     )
     .flat();
 
@@ -490,7 +527,7 @@ export function ActionableItem({event, projectSlug}: ActionableItemsProps) {
     projectSlug,
   });
 
-  const errorMessages = groupedErrors(data, sdkName);
+  const errorMessages = groupedErrors(event, organization, data, sdkName);
 
   useRouteAnalyticsParams({
     show_actionable_items_cta: data ? data.errors.length > 0 : false,
