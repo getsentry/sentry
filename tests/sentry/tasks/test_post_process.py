@@ -1663,6 +1663,23 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
             incr.assert_any_call("post_process.process_replay_link.id_sampled")
             incr.assert_any_call("post_process.process_replay_link.id_exists")
 
+    def test_replay_linkage_with_tag(self, incr):
+        replay_id = uuid.uuid4().hex
+        event = self.create_event(
+            data={"message": "testing", "tags": {"replayId": replay_id}},
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:session-replay-event-linking": True}):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+            incr.assert_any_call("post_process.process_replay_link.id_sampled")
+            incr.assert_any_call("post_process.process_replay_link.id_exists")
+
     def test_no_replay(self, incr):
         event = self.create_event(
             data={"message": "testing"},
