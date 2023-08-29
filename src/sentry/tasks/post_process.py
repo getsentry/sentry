@@ -16,12 +16,13 @@ from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
+from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.sentry_metrics.client import generic_metrics_backend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
@@ -872,6 +873,28 @@ def process_replay_link(job: PostProcessJob) -> None:
         return
 
     metrics.incr("post_process.process_replay_link.id_exists")
+
+    replay_id = group_event.data["contexts"]["replay"]["replay_id"]
+
+    publisher = initialize_replays_publisher(is_async=True)
+    publisher.publish(
+        "ingest-replay-events",
+        json.dumps(
+            {
+                "type": "replay_event",
+                "timestamp": group_event.timestamp,
+                # start_time
+                "replay_id": replay_id,
+                "project_id": group_event.project_id,
+                "segment_id": None,
+                "retention_days": 90,  # TODO
+                "payload": {
+                    "replay_id": replay_id,
+                    "event_id": group_event.data["event_id"],
+                },
+            }
+        ),
+    )
 
 
 def process_rules(job: PostProcessJob) -> None:
