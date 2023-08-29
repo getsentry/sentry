@@ -783,6 +783,7 @@ CELERY_QUEUES_CONTROL = [
         exchange=control_exchange,
     ),
     Queue("options.control", routing_key="options.control", exchange=control_exchange),
+    Queue("outbox.control", routing_key="outbox.control", exchange=control_exchange),
 ]
 
 CELERY_ISSUE_STATES_QUEUE = Queue(
@@ -898,39 +899,40 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "task": "sentry.tasks.check_auth",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
-        "options": {"expires": 60, "queue": "auth"},
+        "options": {"expires": 60, "queue": "auth.control"},
     },
-    "sync-options": {
-        "task": "sentry.tasks.options.sync_options",
+    "sync-options-control": {
+        "task": "sentry.tasks.options.sync_options_control",
         "schedule": timedelta(seconds=10),
-        "options": {"expires": 10, "queue": "options"},
+        "options": {"expires": 10, "queue": "options.control"},
     },
-    "deliver-from-outbox": {
-        "task": "sentry.tasks.enqueue_outbox_jobs",
+    "deliver-from-outbox-control": {
+        "task": "sentry.tasks.enqueue_outbox_jobs_control",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
-        "options": {"expires": 30},
+        "options": {"expires": 30, "queue": "outbox.control"},
     },
-    "schedule-deletions": {
-        "task": "sentry.tasks.deletion.run_scheduled_deletions",
+    "schedule-deletions-control": {
+        "task": "sentry.tasks.deletion.run_scheduled_deletions_control",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
-        "options": {"expires": 60 * 25},
+        "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
-    "reattempt-deletions": {
-        "task": "sentry.tasks.deletion.reattempt_deletions",
+    "reattempt-deletions-control": {
+        "task": "sentry.tasks.deletion.reattempt_deletions_control",
         "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
-        "options": {"expires": 60 * 25},
+        "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
-    "schedule-hybrid-cloud-foreign-key-jobs": {
-        "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
+    "schedule-hybrid-cloud-foreign-key-jobs-control": {
+        "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
+        "options": {"queue": "cleanup.control"},
     },
     "schedule-vsts-integration-subscription-check": {
         "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
         "schedule": crontab_with_minute_jitter(hour="*/6"),
-        "options": {"expires": 60 * 25},
+        "options": {"expires": 60 * 25, "queue": "integrations.control"},
     },
     "hybrid-cloud-repair-mappings": {
         "task": "sentry.tasks.organization_mapping.repair_mappings",
@@ -1191,6 +1193,7 @@ PROCESSING_QUEUES = [
 TIMEDELTA_ALLOW_LIST = {
     "flush-buffers",
     "sync-options",
+    "sync-options-control",
     "schedule-digests",
 }
 
