@@ -75,6 +75,8 @@ def test_reverse_resolve_reindexed():
     """
     indexer = StaticStringIndexer(MockIndexer())
     id = indexer.record(use_case_id, 2, "release")
+    # for mypy
+    assert id
 
     assert indexer.reverse_resolve(UseCaseID.SESSIONS, 1, id) == "release"
     assert indexer.reverse_resolve(UseCaseID.SESSIONS, 1, 12345678) == "release"

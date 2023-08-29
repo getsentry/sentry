@@ -239,13 +239,15 @@ class StaticStringIndexer(StringIndexer):
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
 
-        # HACK: if a string gets re-indexed we need to have some way to look
-        # up the old id and we do it this way because the table has a unique
-        # constraint on the org_id and the string.
-        reindexed_ints = settings.SENTRY_METRICS_INDEXER_REINDEXED_INTS
-        if id in reindexed_ints:
-            return reindexed_ints[id]
-        return self.indexer.reverse_resolve(use_case_id, org_id, id)
+        resolved_id = self.indexer.reverse_resolve(use_case_id, org_id, id)
+        if resolved_id is None:
+            # HACK: if a string gets re-indexed we need to have some way to look
+            # up the old id and we do it this way because the table has a unique
+            # constraint on the org_id and the string.
+            reindexed_ints = settings.SENTRY_METRICS_INDEXER_REINDEXED_INTS
+            if id in reindexed_ints:
+                return reindexed_ints[id]
+        return resolved_id
 
     def bulk_reverse_resolve(
         self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
