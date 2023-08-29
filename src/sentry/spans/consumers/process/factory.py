@@ -17,7 +17,6 @@ from sentry import quotas
 from sentry.models import Project
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.spans.grouping.strategy.base import Span
-from sentry.spans.grouping.strategy.config import DEFAULT_CONFIG_ID
 from sentry.utils import json, metrics
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -90,8 +89,7 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
 
     snuba_span["sentry_tags"] = sentry_tags
 
-    grouping_config_id = {"id": DEFAULT_CONFIG_ID}
-    grouping_config = load_span_grouping_config(grouping_config_id)
+    grouping_config = load_span_grouping_config()
 
     if snuba_span["is_segment"]:
         group = grouping_config.strategy.get_transaction_span_group(
@@ -115,7 +113,7 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         group = grouping_config.strategy.get_span_group(span)
 
     snuba_span["group_raw"] = group or "0"
-    snuba_span["span_grouping_config"] = grouping_config_id
+    snuba_span["span_grouping_config"] = {"id": grouping_config.id}
 
     return snuba_span
 
