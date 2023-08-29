@@ -24,6 +24,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
     fallthrough = serializers.BooleanField()
     autoAssignment = serializers.CharField(allow_blank=False)
     codeownersAutoSync = serializers.BooleanField(default=True)
+    updateType = serializers.CharField(allow_blank=True)
 
     @staticmethod
     def _validate_no_codeowners(rules):
@@ -108,6 +109,12 @@ class ProjectOwnershipSerializer(serializers.Serializer):
             codeowners_auto_sync = self.validated_data["codeownersAutoSync"]
             if ownership.codeowners_auto_sync != codeowners_auto_sync:
                 ownership.codeowners_auto_sync = codeowners_auto_sync
+                changed = True
+
+        if "updateType" in self.validated_data:
+            update_type = self.validated_data["updateType"]
+            if ownership.update_type != update_type:
+                ownership.update_type = update_type
                 changed = True
 
         changed = self.__modify_auto_assignment(ownership) or changed
@@ -262,7 +269,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
                 actor=request.user,
                 organization=project.organization,
                 target_object=project.id,
-                event=audit_log.get_event_id("PROJECT_EDIT"),
+                event=audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT"),
                 data={**change_data, **project.get_audit_log_data()},
             )
             ownership_rule_created.send_robust(project=project, sender=self.__class__)
