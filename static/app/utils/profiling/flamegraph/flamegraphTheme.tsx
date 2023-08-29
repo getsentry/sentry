@@ -46,6 +46,7 @@ export interface FlamegraphTheme {
   // They should instead be defined as arrays of numbers so we can use them with glsl and avoid unnecessary parsing
   COLORS: {
     BAR_LABEL_FONT_COLOR: string;
+    BATTERY_CHART_COLORS: ColorChannels[];
     CHART_CURSOR_INDICATOR: string;
     CHART_LABEL_COLOR: string;
     COLOR_BUCKET: (t: number) => ColorChannels;
@@ -96,6 +97,7 @@ export interface FlamegraphTheme {
     BAR_FONT_SIZE: number;
     BAR_HEIGHT: number;
     BAR_PADDING: number;
+    BATTERY_CHART_HEIGHT: number;
     CHART_PX_PADDING: number;
     CPU_CHART_HEIGHT: number;
     FLAMEGRAPH_DEPTH_OFFSET: number;
@@ -154,6 +156,7 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   BAR_FONT_SIZE: 11,
   BAR_HEIGHT: 20,
   BAR_PADDING: 4,
+  BATTERY_CHART_HEIGHT: 80,
   FLAMEGRAPH_DEPTH_OFFSET: 12,
   HOVERED_FRAME_BORDER_WIDTH: 2,
   HIGHLIGHTED_FRAME_BORDER_WIDTH: 3,
@@ -186,6 +189,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
   SIZES,
   COLORS: {
     BAR_LABEL_FONT_COLOR: '#000',
+    BATTERY_CHART_COLORS: [[0.4, 0.56, 0.9, 0.65]],
     COLOR_BUCKET: makeColorBucketTheme(LCH_LIGHT),
     SPAN_COLOR_BUCKET: makeColorBucketTheme(SPAN_LCH_LIGHT, 140, 220),
     COLOR_MAPS: {
@@ -239,6 +243,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
   SIZES,
   COLORS: {
     BAR_LABEL_FONT_COLOR: 'rgb(255 255 255 / 80%)',
+    BATTERY_CHART_COLORS: [hexToColorChannels(CHART_PALETTE[4][4], 0.8)],
     COLOR_BUCKET: makeColorBucketTheme(LCH_DARK),
     SPAN_COLOR_BUCKET: makeColorBucketTheme(SPANS_LCH_DARK, 140, 220),
     COLOR_MAPS: {
