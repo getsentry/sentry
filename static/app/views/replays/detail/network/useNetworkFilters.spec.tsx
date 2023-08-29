@@ -114,16 +114,16 @@ describe('useNetworkFilters', () => {
   });
 
   it('should update the url when setters are called', () => {
-    const TYPE_OPTION = {
+    const TYPE_OPTION: NetworkSelectOption = {
       value: 'resource.fetch',
       label: 'resource.fetch',
       qs: 'f_n_type' as const,
-    } as NetworkSelectOption;
-    const STATUS_OPTION = {
+    };
+    const STATUS_OPTION: NetworkSelectOption = {
       value: '200',
       label: '200',
       qs: 'f_n_status' as const,
-    } as NetworkSelectOption;
+    };
     const SEARCH_FILTER = 'pikachu';
 
     mockUseLocation
@@ -180,16 +180,16 @@ describe('useNetworkFilters', () => {
   });
 
   it('should clear details params when setters are called', () => {
-    const TYPE_OPTION = {
+    const TYPE_OPTION: NetworkSelectOption = {
       value: 'resource.fetch',
       label: 'resource.fetch',
       qs: 'f_n_type',
-    } as NetworkSelectOption;
-    const STATUS_OPTION = {
+    };
+    const STATUS_OPTION: NetworkSelectOption = {
       value: '200',
       label: '200',
       qs: 'f_n_status',
-    } as NetworkSelectOption;
+    };
     const SEARCH_FILTER = 'pikachu';
 
     mockUseLocation
