@@ -159,9 +159,7 @@ export function InviteBanner({
               openInviteMissingMembersModal({
                 allowedRoles,
                 missingMembers,
-                onClose: () => {
-                  onModalClose();
-                },
+                onClose: onModalClose,
                 organization,
               })
             }
@@ -225,9 +223,7 @@ function SeeMoreCard({
             allowedRoles,
             missingMembers,
             organization,
-            onClose: () => {
-              onModalClose();
-            },
+            onClose: onModalClose,
           })
         }
       >

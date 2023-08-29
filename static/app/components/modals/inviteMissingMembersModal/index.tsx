@@ -32,9 +32,9 @@ import {
 } from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 export interface InviteMissingMembersModalProps extends ModalRenderProps {
-  allowedRoles?: OrgRole[];
-  missingMembers?: {integration: string; users: MissingMember[]};
-  organization?: Organization;
+  allowedRoles: OrgRole[];
+  missingMembers: {integration: string; users: MissingMember[]};
+  organization: Organization;
 }
 
 export function InviteMissingMembersModal({
@@ -43,10 +43,10 @@ export function InviteMissingMembersModal({
   allowedRoles,
   closeModal,
 }: InviteMissingMembersModalProps) {
-  const initialMemberInvites = (missingMembers?.users || []).map(member => ({
+  const initialMemberInvites = (missingMembers.users || []).map(member => ({
     email: member.email,
     commitCount: member.commitCount,
-    role: organization?.defaultRole ?? 'member',
+    role: organization.defaultRole,
     teamSlugs: new Set<string>(),
     externalId: member.externalId,
     selected: false,
@@ -59,7 +59,7 @@ export function InviteMissingMembersModal({
 
   const api = useApi();
 
-  if (!memberInvites || !organization?.access.includes('org:write')) {
+  if (!memberInvites || !organization.access.includes('org:write')) {
     return null;
   }
 
@@ -215,7 +215,7 @@ export function InviteMissingMembersModal({
           />,
           t('User Information'),
           <StyledHeader key={1}>
-            {t('Recent Commits')}{' '}
+            {t('Recent Commits')}
             <Tooltip title={t('Based on the last 30 days of commit data')}>
               <IconInfo size="xs" />
             </Tooltip>
@@ -252,7 +252,7 @@ export function InviteMissingMembersModal({
                 aria-label={t('Role')}
                 data-test-id="select-role"
                 disabled={false}
-                roles={allowedRoles ?? []}
+                roles={allowedRoles}
                 disableUnallowed
                 onChange={value => setRole(value?.value, i)}
               />
@@ -315,9 +315,7 @@ const StyledPanelTable = styled(PanelTable)`
 
 const StyledHeader = styled('div')`
   display: flex;
-  & > *:first-child {
-    margin-left: ${space(0.5)};
-  }
+  gap: ${space(0.5)};
 `;
 
 const StyledPanelItem = styled(PanelItem)`
