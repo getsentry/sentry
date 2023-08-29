@@ -101,6 +101,7 @@ def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) ->
 
     client = redis.get_redis_client()
 
+    function_counts = 0
     regressed_functions: List[TrendPayload] = []
     improved_functions: List[TrendPayload] = []
 
@@ -116,16 +117,26 @@ def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) ->
             if not functions:
                 continue
 
+            function_counts += len(functions)
             regressed, improved = process_trend_payloads(functions, client=client)
             regressed_functions.extend(regressed)
             improved_functions.extend(improved)
 
+    # This is the total number of functions examined in this iteration
+    metrics.incr(
+        "statistical_detectors.total.functions",
+        amount=len(regressed_functions),
+        sample_rate=1.0,
+    )
+
+    # This is the number of regressed functions found in this iteration
     metrics.incr(
         "statistical_detectors.regressed.functions",
         amount=len(regressed_functions),
         sample_rate=1.0,
     )
 
+    # This is the number of improved functions found in this iteration
     metrics.incr(
         "statistical_detectors.improved.functions",
         amount=len(improved_functions),
