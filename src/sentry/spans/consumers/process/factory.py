@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import random
 import uuid
-from copy import deepcopy
 from datetime import datetime
 from typing import Any, Mapping, MutableMapping, Optional
 
@@ -17,6 +16,7 @@ from django.conf import settings
 from sentry import quotas
 from sentry.models import Project
 from sentry.spans.grouping.api import load_span_grouping_config
+from sentry.spans.grouping.strategy.base import Span
 from sentry.spans.grouping.strategy.config import DEFAULT_CONFIG_ID
 from sentry.utils import json, metrics
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
@@ -90,15 +90,11 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
 
     snuba_span["sentry_tags"] = sentry_tags
 
-    event_data = {}
-    event_data["transaction"] = sentry_tags.get("transaction", "")
-    event_data["contexts"] = {"trace": {"span_id": snuba_span["span_id"]}}
-    event_data["spans"] = [deepcopy(snuba_span)]
-
-    group_config = load_span_grouping_config({"id": DEFAULT_CONFIG_ID})
-    group = group_config.execute_strategy(event_data)
-    snuba_span["group_raw"] = group.results.get(snuba_span["span_id"]) or "0"
-    snuba_span["span_grouping_config"] = {"id": group.id}
+    grouping_config_id = {"id": DEFAULT_CONFIG_ID}
+    grouping_config = load_span_grouping_config(grouping_config_id)
+    group = grouping_config.strategy.get_span_group(Span(**snuba_span))
+    snuba_span["group_raw"] = group or "0"
+    snuba_span["span_grouping_config"] = grouping_config_id
 
     return snuba_span
 
