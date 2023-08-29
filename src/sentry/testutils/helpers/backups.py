@@ -18,6 +18,7 @@ from sentry.backup.exports import OldExportConfig, exports
 from sentry.backup.findings import ComparatorFindings
 from sentry.backup.imports import OldImportConfig, imports
 from sentry.backup.validate import validate
+from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.incidents.models import (
     IncidentActivity,
     IncidentSnapshot,
@@ -234,6 +235,7 @@ class BackupTestCase(TransactionTestCase):
     def create_exhaustive_organization(self, slug: str, owner: User, invitee: User) -> Organization:
         org = self.create_organization(name=f"test_org_for_{slug}", owner=owner)
         membership = self.create_member(organization=org, user=invitee, role="member")
+        owner_id: BoundedBigAutoField = owner.id
 
         OrganizationOption.objects.create(
             organization=org, key="sentry:account-rate-limit", value=0
@@ -281,7 +283,7 @@ class BackupTestCase(TransactionTestCase):
         # Rule*
         rule = self.create_project_rule(project=project)
         RuleActivity.objects.create(rule=rule, type=RuleActivityType.CREATED.value)
-        self.snooze_rule(user_id=owner.id, owner_id=owner.id, rule=rule)
+        self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
 
         # Environment*
         env = self.create_environment()
@@ -330,7 +332,7 @@ class BackupTestCase(TransactionTestCase):
             unique_users=1,
             total_events=1,
         )
-        IncidentSubscription.objects.create(incident=incident, user_id=owner.id)
+        IncidentSubscription.objects.create(incident=incident, user_id=owner_id)
         IncidentTrigger.objects.create(
             incident=incident,
             alert_rule_trigger=trigger,
@@ -344,7 +346,7 @@ class BackupTestCase(TransactionTestCase):
 
         # Dashboard
         dashboard = Dashboard.objects.create(
-            title=f"Dashboard 1 for {slug}", created_by_id=owner.id, organization=org
+            title=f"Dashboard 1 for {slug}", created_by_id=owner_id, organization=org
         )
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
@@ -359,7 +361,7 @@ class BackupTestCase(TransactionTestCase):
         # *Search
         RecentSearch.objects.create(
             organization=org,
-            user_id=owner.id,
+            user_id=owner_id,
             type=SearchType.ISSUE.value,
             query=f"some query for {slug}",
         )
