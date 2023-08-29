@@ -402,9 +402,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
         group = Group.objects.select_related("project__organization").filter(id=group_id).first()
         if group:
-            integration = integration_service.get_organization_integration(
-                integration_id=integration.id, organization_id=group.project.organization_id
-            )
+            integration = integration_service.get_integration(integration_id=integration.id)
             if integration is None:
                 group = None
 

@@ -151,6 +151,14 @@ class StatusActionTest(APITestCase):
         )
 
         resp = self.post_webhook(user_id="s4ur0n", tenant_id="7h3_gr347")
+        # assert sign is called with the right arguments
+        assert sign.call_args.kwargs == {
+            "integration_id": self.integration.id,
+            "organization_id": self.org.id,
+            "teams_user_id": "s4ur0n",
+            "team_id": "f3ll0wsh1p",
+            "tenant_id": "7h3_gr347",
+        }
 
         linking_url = build_linking_url(
             self.integration, self.org, "s4ur0n", "f3ll0wsh1p", "7h3_gr347"
