@@ -2,15 +2,11 @@ import {createContext, useCallback, useContext, useEffect, useRef, useState} fro
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 
+import useReplayHighlighting from 'sentry/components/replays/useReplayHighlighting';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
-import {
-  clearAllHighlights,
-  highlightNode,
-  removeHighlightedNode,
-} from 'sentry/utils/replays/highlightNode';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useRAF from 'sentry/utils/replays/hooks/useRAF';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -28,22 +24,12 @@ type ReplayConfig = {
 type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
 
-// See also: Highlight in static/app/views/replays/types.tsx
-type HighlightParams = {
-  nodeId: number;
-  annotation?: string;
-  spotlight?: boolean;
-};
+type HighlightCallbacks = ReturnType<typeof useReplayHighlighting>;
 
 // Important: Don't allow context Consumers to access `Replayer` directly.
 // It has state that, when changed, will not trigger a react render.
 // Instead only expose methods that wrap `Replayer` and manage state.
-type ReplayPlayerContextProps = {
-  /**
-   * Clear all existing highlights in replay
-   */
-  clearAllHighlights: () => void;
-
+interface ReplayPlayerContextProps extends HighlightCallbacks {
   /**
    * The time, in milliseconds, where the user focus is.
    * The user focus can be reported by any collaborating object, usually on
@@ -68,11 +54,6 @@ type ReplayPlayerContextProps = {
    * The speed is automatically determined by the length of each idle period
    */
   fastForwardSpeed: number;
-
-  /**
-   * Highlight a node in the replay
-   */
-  highlight: (args: HighlightParams) => void;
 
   /**
    * Required to be called with a <div> Ref
@@ -106,11 +87,6 @@ type ReplayPlayerContextProps = {
    * Whether fast-forward mode is enabled if RRWeb detects idle moments in the video
    */
   isSkippingInactive: boolean;
-
-  /**
-   * Removes a highlighted node from the replay
-   */
-  removeHighlight: ({nodeId}: {nodeId: number}) => void;
 
   /**
    * The core replay data
@@ -156,7 +132,7 @@ type ReplayPlayerContextProps = {
    * @param skip
    */
   toggleSkipInactive: (skip: boolean) => void;
-};
+}
 
 const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   clearAllHighlights: () => {},
@@ -164,7 +140,7 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   currentTime: 0,
   dimensions: {height: 0, width: 0},
   fastForwardSpeed: 0,
-  highlight: () => {},
+  addHighlight: () => {},
   initRoot: () => {},
   isBuffering: false,
   isFetching: false,
@@ -257,32 +233,9 @@ export function Provider({
     setFFSpeed(0);
   };
 
-  const highlight = useCallback(({nodeId, annotation, spotlight}: HighlightParams) => {
-    const replayer = replayerRef.current;
-    if (!replayer) {
-      return;
-    }
-
-    highlightNode({replayer, nodeId, annotation, spotlight});
-  }, []);
-
-  const clearAllHighlightsCallback = useCallback(() => {
-    const replayer = replayerRef.current;
-    if (!replayer) {
-      return;
-    }
-
-    clearAllHighlights({replayer});
-  }, []);
-
-  const removeHighlight = useCallback(({nodeId}: {nodeId: number}) => {
-    const replayer = replayerRef.current;
-    if (!replayer) {
-      return;
-    }
-
-    removeHighlightedNode({replayer, nodeId});
-  }, []);
+  const {addHighlight, clearAllHighlights, removeHighlight} = useReplayHighlighting({
+    replayerRef,
+  });
 
   const setReplayFinished = useCallback(() => {
     setFinishedAtMS(replayerRef.current?.getCurrentTime() ?? -1);
@@ -337,9 +290,9 @@ export function Provider({
   const setCurrentTime = useCallback(
     (requestedTimeMs: number) => {
       privateSetCurrentTime(requestedTimeMs);
-      clearAllHighlightsCallback();
+      clearAllHighlights();
     },
-    [privateSetCurrentTime, clearAllHighlightsCallback]
+    [privateSetCurrentTime, clearAllHighlights]
   );
 
   const applyInitialOffset = useCallback(() => {
@@ -354,23 +307,23 @@ export function Provider({
         privateSetCurrentTime(offsetMs);
       }
       if (highlightArgs) {
-        highlight(highlightArgs);
+        addHighlight(highlightArgs);
         setTimeout(() => {
-          clearAllHighlightsCallback();
-          highlight(highlightArgs);
+          clearAllHighlights();
+          addHighlight(highlightArgs);
         });
       }
       didApplyInitialOffset.current = true;
     }
   }, [
-    clearAllHighlightsCallback,
+    clearAllHighlights,
     events,
-    highlight,
+    addHighlight,
     initialTimeOffsetMs,
     privateSetCurrentTime,
   ]);
 
-  useEffect(clearAllHighlightsCallback, [clearAllHighlightsCallback, isPlaying]);
+  useEffect(clearAllHighlights, [clearAllHighlights, isPlaying]);
 
   const initRoot = useCallback(
     (root: RootElem) => {
@@ -554,12 +507,12 @@ export function Provider({
   return (
     <ReplayPlayerContext.Provider
       value={{
-        clearAllHighlights: clearAllHighlightsCallback,
+        clearAllHighlights,
         currentHoverTime,
         currentTime,
         dimensions,
         fastForwardSpeed,
-        highlight,
+        addHighlight,
         initRoot,
         isBuffering,
         isFetching,

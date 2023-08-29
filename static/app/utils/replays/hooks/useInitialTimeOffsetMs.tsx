@@ -3,6 +3,7 @@ import first from 'lodash/first';
 
 import isValidDate from 'sentry/utils/date/isValidDate';
 import fetchReplayClicks from 'sentry/utils/replays/fetchReplayClicks';
+import type {highlightNode} from 'sentry/utils/replays/highlightNode';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -53,11 +54,7 @@ type Result =
   | undefined
   | {
       offsetMs: number;
-      highlight?: {
-        nodeId: number;
-        annotation?: string;
-        spotlight?: boolean;
-      };
+      highlight?: Parameters<typeof highlightNode>[1];
     };
 
 const ZERO_OFFSET = {offsetMs: 0};
