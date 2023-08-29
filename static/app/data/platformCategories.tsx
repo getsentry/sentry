@@ -116,6 +116,7 @@ export const backend = [
   'python-chalice', // TODO(aknaus): Add to profiling / performance?
   'python-falcon', // TODO(aknaus): Add to profiling / performance?
   'python-quart', // TODO(aknaus): Add to profiling / performance?
+  'python-tryton', // TODO(aknaus): Add to profiling / performance?
   'python-bottle',
   'python-pylons',
   'python-pyramid',
