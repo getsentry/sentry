@@ -35,38 +35,36 @@ export default function TraceGrid({flattenedTrace, onDimensionChange}: Props) {
   const hasSize = width > 0;
 
   return (
-    <TwoColumns>
-      <Relative ref={measureRef}>
-        {hasSize ? (
-          <ResizeableContainer
-            containerWidth={width}
-            min={100}
-            max={width - 100}
-            onResize={() => {
-              adjustScrollPosition();
-              onDimensionChange();
-            }}
-          >
-            <OverflowHidden ref={scrollableWindowRef}>
-              <TxnList
-                ref={scrollableContentRef}
-                style={{
-                  transform: `translate(${toPixels(offsetX)}, 0)`,
-                  minWidth: 'max-content',
-                }}
-              >
-                <SpanNameList flattenedTrace={flattenedTrace} />
-              </TxnList>
-            </OverflowHidden>
-            <OverflowHidden>
-              <TxnList>
-                <SpanDurations flattenedTrace={flattenedTrace} />
-              </TxnList>
-            </OverflowHidden>
-          </ResizeableContainer>
-        ) : null}
-      </Relative>
-    </TwoColumns>
+    <Relative ref={measureRef}>
+      {hasSize ? (
+        <ResizeableContainer
+          containerWidth={width}
+          min={100}
+          max={width - 100}
+          onResize={() => {
+            adjustScrollPosition();
+            onDimensionChange();
+          }}
+        >
+          <OverflowHidden ref={scrollableWindowRef}>
+            <TxnList
+              ref={scrollableContentRef}
+              style={{
+                transform: `translate(${toPixels(offsetX)}, 0)`,
+                minWidth: 'max-content',
+              }}
+            >
+              <SpanNameList flattenedTrace={flattenedTrace} />
+            </TxnList>
+          </OverflowHidden>
+          <OverflowHidden>
+            <TxnList>
+              <SpanDurations flattenedTrace={flattenedTrace} />
+            </TxnList>
+          </OverflowHidden>
+        </ResizeableContainer>
+      ) : null}
+    </Relative>
   );
 }
 
