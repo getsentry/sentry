@@ -329,9 +329,7 @@ const ContentRow = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  & > *:first-child {
-    margin-right: ${space(0.75)};
-  }
+  gap: ${space(0.75)};
 `;
 
 export const modalCss = css`
