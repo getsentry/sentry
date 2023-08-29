@@ -22,7 +22,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from sentry_sdk import Scope
 
-from sentry import analytics, features, options, tsdb
+from sentry import analytics, options, tsdb
 from sentry.api.api_owners import ApiOwner
 from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
@@ -603,7 +603,7 @@ class PreventNumericSlugMixin:
         Validates that the slug is not entirely numeric. Requires a feature flag
         to be turned on.
         """
-        if features.has("app:enterprise-prevent-numeric-slugs") and slug.isnumeric():
+        if options.get("api.prevent-numeric-slugs") > 0 and slug.isnumeric():
             raise serializers.ValidationError(DEFAULT_SLUG_ERROR_MESSAGE)
         return slug
 
