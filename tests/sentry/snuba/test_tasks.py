@@ -1062,6 +1062,15 @@ class BuildSnqlQueryTest(TestCase):
                 ),
                 Condition(
                     Column(
+                        resolve_tag_key(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "environment"
+                        )
+                    ),
+                    Op.EQ,
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
+                ),
+                Condition(
+                    Column(
                         name=resolve_tag_key(
                             UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
                         )
@@ -1073,15 +1082,6 @@ class BuildSnqlQueryTest(TestCase):
                         ),
                         resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
                     ],
-                ),
-                Condition(
-                    Column(
-                        resolve_tag_key(
-                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "environment"
-                        )
-                    ),
-                    Op.EQ,
-                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
                 ),
                 Condition(
                     Column(name="metric_id"),
