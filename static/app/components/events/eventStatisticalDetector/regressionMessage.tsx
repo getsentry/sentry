@@ -25,8 +25,7 @@ function EventStatisticalDetectorMessage({event}: EventStatisticalDetectorMessag
     projectID: event.projectID,
     display: DisplayModes.TREND,
   });
-  const detectionTime = new Date(0);
-  detectionTime.setUTCSeconds(event?.occurrence?.evidenceData?.breakpoint);
+  const detectionTime = new Date(event?.occurrence?.evidenceData?.breakpoint);
 
   // TODO: This messaging should respect selected locale in user settings
   return (
