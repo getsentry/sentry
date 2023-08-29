@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import time
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest import mock
@@ -1643,6 +1644,57 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
 
 
+@mock.patch("sentry.utils.metrics.incr")
+class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
+    def test_replay_linkage(self, incr):
+        replay_id = uuid.uuid4().hex
+        event = self.create_event(
+            data={"message": "testing", "contexts": {"replay": {"replay_id": replay_id}}},
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:session-replay-event-linking": True}):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+            incr.assert_any_call("post_process.process_replay_link.id_sampled")
+            incr.assert_any_call("post_process.process_replay_link.id_exists")
+
+    def test_no_replay(self, incr):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:session-replay-event-linking": True}):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+            incr.assert_called_with("post_process.process_replay_link.id_sampled")
+
+    def test_0_sample_rate_replays(self, incr):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:session-replay-event-linking": False}):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+            for args, _ in incr.call_args_list:
+                self.assertNotEqual(args, ("post_process.process_replay_link.id_sampled"))
+
+
 @region_silo_test
 class PostProcessGroupErrorTest(
     TestCase,
@@ -1656,6 +1708,7 @@ class PostProcessGroupErrorTest(
     ServiceHooksTestMixin,
     SnoozeTestMixin,
     SDKCrashMonitoringTestMixin,
+    ReplayLinkageTestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)

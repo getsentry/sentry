@@ -843,6 +843,25 @@ def process_snoozes(job: PostProcessJob) -> None:
         return
 
 
+def process_replay_link(job: PostProcessJob) -> None:
+    if job["is_reprocessed"]:
+        return
+
+    if not features.has(
+        "organizations:session-replay-event-linking", job["event"].project.organization
+    ):
+        metrics.incr("post_process.process_replay_link.feature_not_enabled")
+        return
+
+    metrics.incr("post_process.process_replay_link.id_sampled")
+
+    group_event = job["event"]
+    if not group_event.data.get("contexts", {}).get("replay", {}).get("replay_id"):
+        return
+
+    metrics.incr("post_process.process_replay_link.id_exists")
+
+
 def process_rules(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
@@ -1154,6 +1173,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         update_existing_attachments,
         fire_error_processed,
         sdk_crash_monitoring,
+        process_replay_link,
     ],
 }
 
