@@ -211,7 +211,7 @@ function Flamegraph(): ReactElement {
   const hasCPUChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
     return (
-      (platform === 'cocoa' || platform === 'android') &&
+      (platform === 'cocoa' || platform === 'android' || platform === 'node') &&
       organization.features.includes('profiling-cpu-chart')
     );
   }, [profileGroup.metadata.platform, organization.features]);
@@ -219,7 +219,7 @@ function Flamegraph(): ReactElement {
   const hasMemoryChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
     return (
-      (platform === 'cocoa' || platform === 'android') &&
+      (platform === 'cocoa' || platform === 'android' || platform === 'node') &&
       organization.features.includes('profiling-memory-chart')
     );
   }, [profileGroup.metadata.platform, organization.features]);
@@ -1158,6 +1158,13 @@ function Flamegraph(): ReactElement {
               chartView={memoryChartView}
               canvasPoolManager={canvasPoolManager}
               chart={memoryChart}
+              noMeasurementMessage={
+                profileGroup.metadata.platform === 'cocoa'
+                  ? 'Upgrade to version 8.9.6 of sentry-cocoa SDK to enable memory usage collection'
+                  : profileGroup.metadata.platform === 'node'
+                  ? 'Upgrade to version 1.2.0 of @sentry/profiling-node to enable memory usage collection'
+                  : ''
+              }
             />
           ) : null
         }
@@ -1171,6 +1178,13 @@ function Flamegraph(): ReactElement {
               chartView={cpuChartView}
               canvasPoolManager={canvasPoolManager}
               chart={CPUChart}
+              noMeasurementMessage={
+                profileGroup.metadata.platform === 'cocoa'
+                  ? 'Upgrade to version 8.9.6 of sentry-cocoa SDK to enable CPU usage collection'
+                  : profileGroup.metadata.platform === 'node'
+                  ? 'Upgrade to version 1.2.0 of @sentry/profiling-node to enable CPU usage collection'
+                  : ''
+              }
             />
           ) : null
         }
