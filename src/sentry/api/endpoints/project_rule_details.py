@@ -142,7 +142,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 "actions": data["actions"],
                 "frequency": data.get("frequency"),
             }
-            duplicate_rule = find_duplicate_rule(kwargs, project)
+            duplicate_rule = find_duplicate_rule(kwargs, project, rule.id)
             if duplicate_rule:
                 return Response(
                     {
