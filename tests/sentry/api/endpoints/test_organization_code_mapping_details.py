@@ -38,9 +38,11 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
             name="example", organization_id=self.org.id, integration_id=self.integration.id
         )
         self.config = RepositoryProjectPathConfig.objects.create(
-            repository_id=str(self.repo.id),
-            project_id=str(self.project.id),
-            organization_integration_id=str(self.org_integration.id),
+            repository_id=self.repo.id,
+            project_id=self.project.id,
+            organization_integration_id=self.org_integration.id,
+            integration_id=self.org_integration.integration_id,
+            organization_id=self.org_integration.organization_id,
             stack_root="/stack/root",
             source_root="/source/root",
             default_branch="master",

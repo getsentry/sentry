@@ -150,6 +150,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             default_branch="master",
             repository=self.repo,
             organization_integration_id=self.organization_integration.id,
+            organization_id=self.organization_integration.organization_id,
+            integration_id=self.organization_integration.integration_id,
         )
 
         config_data = {

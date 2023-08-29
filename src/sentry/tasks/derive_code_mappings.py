@@ -219,6 +219,8 @@ def set_project_codemappings(
             defaults={
                 "repository": repository,
                 "organization_integration_id": organization_integration.id,
+                "integration_id": organization_integration.integration_id,
+                "organization_id": organization_integration.organization_id,
                 "source_root": code_mapping.source_path,
                 "default_branch": code_mapping.repo.branch,
                 "automatically_generated": True,

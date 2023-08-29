@@ -562,7 +562,6 @@ module = [
     "sentry.models.artifactbundle",
     "sentry.models.auditlogentry",
     "sentry.models.integrations.external_issue",
-    "sentry.models.integrations.organization_integrity_backfill_mixin",
     "sentry.models.integrations.sentry_app",
     "sentry.models.integrations.sentry_app_installation",
     "sentry.models.notificationsetting",
