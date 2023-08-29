@@ -18,6 +18,8 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.services.hybrid_cloud.orgauthtoken import orgauthtoken_service
 
+MAX_NAME_LENGTH = 255
+
 
 def validate_scope_list(value):
     for choice in value:
@@ -34,7 +36,7 @@ class OrgAuthToken(Model):
     token_hashed = models.TextField(unique=True, null=False)
     # An optional representation of the last characters of the original token, to be shown to the user
     token_last_characters = models.CharField(max_length=4, null=True)
-    name = models.CharField(max_length=255, null=False, blank=False)
+    name = models.CharField(max_length=MAX_NAME_LENGTH, null=False, blank=False)
     scope_list = ArrayField(
         models.TextField(),
         validators=[validate_scope_list],

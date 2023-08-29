@@ -8,7 +8,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAuthTokenPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
 from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -54,6 +54,11 @@ class OrgAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
 
         if not name:
             return Response({"detail": ["The name cannot be blank."]}, status=400)
+
+        if len(name) > MAX_NAME_LENGTH:
+            return Response(
+                {"detail": ["The name cannot be longer than 255 characters."]}, status=400
+            )
 
         instance.update(name=name)
 
