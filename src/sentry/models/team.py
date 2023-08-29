@@ -5,11 +5,13 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Literal, Optional, Sequence, Tuple, Union, overload
 
 from django.conf import settings
+from django.core.serializers.base import DeserializedObject
 from django.db import IntegrityError, connections, models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
+from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
@@ -364,3 +366,28 @@ class Team(Model, SnowflakeIdMixin):
         ).values_list("id", flat=True)
 
         return owner_ids
+
+    # TODO(hybrid-cloud): actor refactor. Remove this method when done.
+    def write_relocation_import(
+        self, pk_map: PrimaryKeyMap, obj: DeserializedObject
+    ) -> Optional[Tuple[int, int]]:
+        written = super().write_relocation_import(pk_map, obj)
+        if written is not None:
+            (_, new_pk) = written
+
+            # `Actor` and `Team` have a direct circular dependency between them for the time being
+            # due to an ongoing refactor (that is, `Actor` foreign keys directly into `Team`, and
+            # `Team` foreign keys directly into `Actor`). If we use `INSERT` database calls naively,
+            # they will always fail, because one half of the cycle will always be missing.
+            #
+            # Because `Actor` ends up first in the dependency sorting (see:
+            # fixtures/backup/model_dependencies/sorted.json), a viable solution here is to always
+            # null out the `team_id` field of the `Actor` when we import it, and then make sure to
+            # circle back and update the relevant `Actor` after we create the `Team` models, which
+            # is exactly what this method override does.
+            if self.actor_id is not None:
+                actor = Actor.objects.get(pk=self.actor_id)
+                actor.team_id = new_pk
+                actor.save()
+
+        return written

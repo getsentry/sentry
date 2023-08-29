@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime
+from datetime import timezone
 from typing import Any, Collection, Dict, Mapping, Sequence
 
 from django.http import HttpResponse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
+from isodate import parse_datetime
 from rest_framework.request import Request
 
 from sentry import features, options
@@ -248,10 +249,9 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
                     blame
                     for blame in blame_range
                     if blame.get("startingLine", 0) <= lineno <= blame.get("endingLine", 0)
+                    and blame.get("commit", {}).get("committedDate")
                 ),
-                key=lambda blame: datetime.strptime(
-                    blame.get("commit", {}).get("committedDate"), "%Y-%m-%dT%H:%M:%SZ"
-                ),
+                key=lambda blame: parse_datetime(blame.get("commit", {}).get("committedDate")),
                 default={},
             )
             if not commit:
@@ -263,9 +263,13 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         if not commitInfo:
             return None
         else:
+            committed_date = parse_datetime(commitInfo.get("committedDate")).astimezone(
+                timezone.utc
+            )
+
             return {
                 "commitId": commitInfo.get("oid"),
-                "committedDate": commitInfo.get("committedDate"),
+                "committedDate": committed_date,
                 "commitMessage": commitInfo.get("message"),
                 "commitAuthorName": commitInfo.get("author", {}).get("name"),
                 "commitAuthorEmail": commitInfo.get("author", {}).get("email"),

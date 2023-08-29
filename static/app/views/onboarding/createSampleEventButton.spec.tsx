@@ -112,7 +112,7 @@ describe('CreateSampleEventButton', function () {
     expect(trackAnalytics).toHaveBeenCalledWith(
       'sample_event.created',
       expect.objectContaining({
-        organization: org,
+        organization: expect.objectContaining(org),
         project_id: project.id,
         interval: 1000,
         retries: 1,
