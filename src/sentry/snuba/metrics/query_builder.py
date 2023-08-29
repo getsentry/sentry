@@ -426,6 +426,29 @@ def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Cond
     return where
 
 
+def parse_query_params(query_params, projects: Sequence[Project]) -> Sequence[Condition]:
+    try:
+        query_builder = ReleaseHealthQueryBuilder(
+            Dataset.Sessions,
+            params={
+                **query_params,
+                "organization_id": org_id_from_projects(projects) if projects else None,
+            },
+            config=QueryBuilderConfig(use_aggregate_conditions=True),
+        )
+
+        param_conditions = list(
+            filter(
+                lambda condition: condition.lhs.name != "project_id", query_builder.resolve_params()
+            )
+        )
+
+    except InvalidSearchQuery as e:
+        raise InvalidParams(f"Failed to parse params: {e}")
+
+    return param_conditions
+
+
 class ReleaseHealthQueryBuilder(UnresolvedQuery):
     def _contains_wildcard_in_query(self, query: Optional[str]) -> bool:
         parsed_terms = self.parse_query(query)
@@ -469,7 +492,8 @@ class QueryDefinition:
         paginator_kwargs = paginator_kwargs or {}
 
         self.query = query_params.get("query", "")
-        self.parsed_query = parse_query(self.query, projects) if self.query else None
+        self.parsed_query = parse_query(self.query, projects) if self.query else []
+        self.param_conditions = parse_query_params(query_params, projects) if query_params else []
         self.groupby = [
             MetricGroupByField(groupby_col) for groupby_col in query_params.getlist("groupBy", [])
         ]
@@ -502,7 +526,7 @@ class QueryDefinition:
             select=self.fields,
             start=self.start,
             end=self.end,
-            where=self.parsed_query,
+            where=self.parsed_query + self.param_conditions,
             having=self.having,
             groupby=self.groupby,
             orderby=self.orderby,

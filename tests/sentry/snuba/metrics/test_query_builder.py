@@ -1513,6 +1513,49 @@ class QueryDefinitionTestCase(TestCase):
             )
         ]
 
+    def test_single_environment_is_passed_through_to_metrics_query(self):
+        self.create_environment(name="alpha", project=self.project)
+        query_params = MultiValueDict(
+            {
+                "environment": ["alpha"],
+                "query": [""],
+                "field": [
+                    "sum(sentry.sessions.session)",
+                ],
+            }
+        )
+        query = QueryDefinition([self.project], query_params)
+        actual_result = query.to_metrics_query()
+        assert actual_result.where == [
+            Condition(
+                Column(name="environment"),
+                Op.EQ,
+                rhs="alpha",
+            )
+        ]
+
+    def test_multiple_environments_are_passed_through_to_metrics_query(self):
+        self.create_environment(name="alpha", project=self.project)
+        self.create_environment(name="beta", project=self.project)
+        query_params = MultiValueDict(
+            {
+                "environment": ["alpha", "beta"],
+                "query": [""],
+                "field": [
+                    "sum(sentry.sessions.session)",
+                ],
+            }
+        )
+        query = QueryDefinition([self.project], query_params)
+        actual_result = query.to_metrics_query()
+        assert actual_result.where == [
+            Condition(
+                Column(name="environment"),
+                Op.IN,
+                rhs=["alpha", "beta"],
+            )
+        ]
+
 
 class ResolveTagsTestCase(TestCase):
     def setUp(self):
