@@ -18,9 +18,10 @@ const EMDASH = '\u2013';
 
 interface Props {
   flattenedTrace: FlattenedTrace;
+  onDimensionChange: () => void;
 }
 
-export default function TraceGrid({flattenedTrace}: Props) {
+export default function TraceGrid({flattenedTrace, onDimensionChange}: Props) {
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions<HTMLDivElement>({elementRef: measureRef});
 
@@ -41,7 +42,10 @@ export default function TraceGrid({flattenedTrace}: Props) {
             containerWidth={width}
             min={100}
             max={width - 100}
-            onResize={adjustScrollPosition}
+            onResize={() => {
+              adjustScrollPosition();
+              onDimensionChange();
+            }}
           >
             <OverflowHidden ref={scrollableWindowRef}>
               <TxnList

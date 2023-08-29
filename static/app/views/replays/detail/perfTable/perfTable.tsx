@@ -18,6 +18,7 @@ import usePerfFilters from 'sentry/views/replays/detail/perfTable/usePerfFilters
 import type useReplayPerfData from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
+import useVirtualListDimentionChange from 'sentry/views/replays/detail/useVirtualListDimentionChange';
 
 interface Props {
   perfData: ReturnType<typeof useReplayPerfData>;
@@ -46,6 +47,8 @@ export default function PerfTable({perfData}: Props) {
     deps,
   });
 
+  const {handleDimensionChange} = useVirtualListDimentionChange({cache, listRef});
+
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const traceRow = items[index];
 
@@ -60,6 +63,8 @@ export default function PerfTable({perfData}: Props) {
         <PerfRow
           currentHoverTime={currentHoverTime}
           currentTime={currentTime}
+          index={index}
+          onDimensionChange={handleDimensionChange}
           startTimestampMs={startTimestampMs}
           style={style}
           traceRow={traceRow}

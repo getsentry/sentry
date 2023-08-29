@@ -18,15 +18,18 @@ import {OnDimensionChange} from 'sentry/views/replays/detail/useVirtualListDimen
 interface Props {
   currentHoverTime: number | undefined;
   currentTime: number;
+  index: number;
+  onDimensionChange: OnDimensionChange;
   startTimestampMs: number;
   style: CSSProperties;
   traceRow: ReplayTraceRow;
-  onDimensionChange?: OnDimensionChange;
 }
 
 export default function PerfRow({
   currentHoverTime,
   currentTime,
+  index,
+  onDimensionChange,
   startTimestampMs,
   style,
   traceRow,
@@ -34,6 +37,11 @@ export default function PerfRow({
   const {lcpFrames, replayFrame: frame, paintFrames, flattenedTraces} = traceRow;
   const {color, description, title, type} = getFrameDetails(frame);
   const lcp = lcpFrames.length ? getFrameDetails(lcpFrames[0]) : null;
+
+  const handleDimensionChange = useCallback(
+    () => onDimensionChange(index),
+    [onDimensionChange, index]
+  );
 
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
@@ -95,7 +103,11 @@ export default function PerfRow({
           />
         </Horizontal>
         {flattenedTraces.map((flatTrace, i) => (
-          <TraceGrid key={i} flattenedTrace={flatTrace} />
+          <TraceGrid
+            key={i}
+            flattenedTrace={flatTrace}
+            onDimensionChange={handleDimensionChange}
+          />
         ))}
       </Vertical>
     </PerfListItem>
