@@ -281,6 +281,8 @@ default_manager.add("projects:alert-filters", ProjectFeature, FeatureHandlerStra
 default_manager.add("projects:custom-inbound-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:data-forwarding", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:discard-groups", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("projects:first-event-severity-alerting", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("projects:first-event-severity-calculation", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:minidump", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:race-free-group-creation", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:rate-limits", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
