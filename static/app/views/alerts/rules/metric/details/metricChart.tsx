@@ -241,7 +241,7 @@ class MetricChart extends PureComponent<Props, State> {
               >
                 <OnDemandNoDataWrapper>
                   {t(
-                    "This alert uses specific filters that we don't routinely collect metrics from so we don't have any historical data to show currently"
+                    'This alert lacks historical data due to filters for which we don’t routinely extract metrics.'
                   )}
                 </OnDemandNoDataWrapper>
               </GuideAnchor>
