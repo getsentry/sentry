@@ -134,7 +134,10 @@ function QueryDescriptionOverlay({
       <OverlayContent
         animated
         originPoint={hoverOverlayProps.arrowData}
-        arrowProps={hoverOverlayProps.arrowProps}
+        arrowProps={{
+          ...hoverOverlayProps.arrowProps,
+          background: 'backgroundSecondary',
+        }}
         placement={hoverOverlayProps.placement}
       >
         {/* N.B. A `disabled` query still returns `isLoading: true`, so we also
@@ -153,6 +156,7 @@ function QueryDescriptionOverlay({
 
 const OverlayContent = styled(Overlay)`
   max-width: 500px;
+  background: ${p => p.theme.backgroundSecondary};
 `;
 
 const PaddedSpinner = styled('div')`
