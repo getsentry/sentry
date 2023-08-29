@@ -539,6 +539,10 @@ class MonitorEnvironment(Model):
     auto-generated missed check-ins.
     """
 
+    last_state_change = models.DateTimeField(null=True)
+    """
+    The last time that the monitor changed state. Used for issue fingerprinting.
+    """
     objects = MonitorEnvironmentManager()
 
     class Meta:
