@@ -35,6 +35,39 @@ describe('SQLishParser', function () {
 
   describe('SQLishParser.parse', () => {
     const parser = new SQLishParser();
+
+    it('Distinguishes between real keywords and interpolated words', () => {
+      expect(parser.parse('SELECT country')).toEqual([
+        {
+          type: 'Keyword',
+          content: 'SELECT',
+        },
+        {
+          type: 'Whitespace',
+          content: ' ',
+        },
+        {
+          type: 'GenericToken',
+          content: 'country',
+        },
+      ]);
+
+      expect(parser.parse('SELECT discount')).toEqual([
+        {
+          type: 'Keyword',
+          content: 'SELECT',
+        },
+        {
+          type: 'Whitespace',
+          content: ' ',
+        },
+        {
+          type: 'GenericToken',
+          content: 'discount',
+        },
+      ]);
+    });
+
     it('Detects collapsed columns', () => {
       expect(parser.parse('select ..')).toEqual([
         {
