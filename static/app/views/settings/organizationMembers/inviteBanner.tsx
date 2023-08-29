@@ -16,6 +16,7 @@ import {space} from 'sentry/styles/space';
 import {MissingMember, Organization, OrgRole} from 'sentry/types';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
@@ -46,6 +47,7 @@ export function InviteBanner({
   const api = useApi();
   const integrationName = missingMembers?.integration;
   const promptsFeature = `${integrationName}_missing_members`;
+  const location = useLocation();
 
   const snoozePrompt = useCallback(async () => {
     setShowBanner(false);
@@ -67,6 +69,20 @@ export function InviteBanner({
       setShowBanner(!promptIsDismissed(prompt));
     });
   }, [api, organization, promptsFeature, hideBanner]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const showModal = params.get('showModal');
+
+    if (!hideBanner && showModal) {
+      openInviteMissingMembersModal({
+        allowedRoles,
+        missingMembers,
+        organization,
+        onClose: onModalClose,
+      });
+    }
+  }, [allowedRoles, missingMembers, organization, onModalClose, location, hideBanner]);
 
   if (hideBanner || !showBanner) {
     return null;
@@ -263,11 +279,6 @@ export const Subtitle = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 400;
   color: ${p => p.theme.gray300};
-  & > *:first-child {
-    margin-left: ${space(0.5)};
-    display: flex;
-    align-items: center;
-  }
 `;
 
 const ButtonContainer = styled('div')`
@@ -299,9 +310,7 @@ const MemberCardContentRow = styled('div')`
   align-items: center;
   margin-bottom: ${space(0.25)};
   font-size: ${p => p.theme.fontSizeSmall};
-  & > *:first-child {
-    margin-right: ${space(0.75)};
-  }
+  gap: ${space(0.75)};
 `;
 
 export const StyledExternalLink = styled(ExternalLink)`
