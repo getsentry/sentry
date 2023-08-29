@@ -772,11 +772,14 @@ class ResetOrganizationMember2faTest(APITestCase):
         assert resp.status_code == 403
         assert Authenticator.objects.filter(user=self.member).exists()
 
-    def test_org_owner_can_reset_member_2fa(self):
+    @patch("sentry.security.utils.generate_security_email")
+    def test_org_owner_can_reset_member_2fa(self, mock_generate_security_email):
         self.login_as(self.owner)
 
         self.assert_can_get_authenticators()
         self.assert_can_remove_authenticators()
+
+        mock_generate_security_email.assert_called_once()
 
     def test_owner_must_have_org_membership(self):
         owner = self.create_user()
@@ -791,13 +794,16 @@ class ResetOrganizationMember2faTest(APITestCase):
 
         self.assert_cannot_remove_authenticators()
 
-    def test_org_manager_can_reset_member_2fa(self):
+    @patch("sentry.security.utils.generate_security_email")
+    def test_org_manager_can_reset_member_2fa(self, mock_generate_security_email):
         manager = self.create_user()
         self.create_member(organization=self.org, user=manager, role="manager", teams=[])
         self.login_as(manager)
 
         self.assert_can_get_authenticators()
         self.assert_can_remove_authenticators()
+
+        mock_generate_security_email.assert_called_once()
 
     def test_org_admin_cannot_reset_member_2fa(self):
         admin = self.create_user()
