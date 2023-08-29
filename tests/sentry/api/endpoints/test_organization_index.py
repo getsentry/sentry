@@ -149,7 +149,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         org = Organization.objects.get(id=organization_id)
         assert org.slug == "hello-world"
 
-    @override_options({"api.prevent-numeric-slugs": 1})
+    @override_options({"api.prevent-numeric-slugs": True})
     def test_generated_slug_not_entirely_numeric(self):
         response = self.get_success_response(name="1234")
 

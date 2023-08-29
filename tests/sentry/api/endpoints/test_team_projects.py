@@ -63,7 +63,7 @@ class TeamProjectsCreateTest(APITestCase):
         assert project.platform == "python"
         assert project.teams.first() == self.team
 
-    @override_options({"api.prevent-numeric-slugs": 1})
+    @override_options({"api.prevent-numeric-slugs": True})
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(
             self.organization.slug,
