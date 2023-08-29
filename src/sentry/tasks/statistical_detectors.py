@@ -17,6 +17,7 @@ from sentry.statistical_detectors import redis
 from sentry.statistical_detectors.detector import TrendPayload
 from sentry.statistical_detectors.processing import process_trend_payloads
 from sentry.tasks.base import instrumented_task
+from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -119,8 +120,17 @@ def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) ->
             regressed_functions.extend(regressed)
             improved_functions.extend(improved)
 
-    # TODO
-    # do something with the regressed and improved functions
+    metrics.incr(
+        "statistical_detectors.regressed.functions",
+        amount=len(regressed_functions),
+        sample_rate=1.0,
+    )
+
+    metrics.incr(
+        "statistical_detectors.improved.functions",
+        amount=len(improved_functions),
+        sample_rate=1.0,
+    )
 
 
 def query_transactions(project_id: int) -> None:
