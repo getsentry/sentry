@@ -939,18 +939,20 @@ class SnubaQueryBuilder:
 
         for condition in self._metrics_query.having:
             lhs_expression = condition.lhs
-            assert isinstance(lhs_expression, Function)
-            metric = lhs_expression.parameters[0]
-            assert isinstance(metric, Column)
-            metrics_field_obj = metric_object_factory(lhs_expression.function, metric.name)
+            if isinstance(lhs_expression, Function):
+                metric = lhs_expression.parameters[0]
+                assert isinstance(metric, Column)
+                metrics_field_obj = metric_object_factory(lhs_expression.function, metric.name)
 
-            resolved_lhs = metrics_field_obj.generate_select_statements(
-                projects=self._projects,
-                use_case_id=self._use_case_id,
-                alias=lhs_expression.alias,
-                params=None,
-            )
-            resolved_having.append(Condition(resolved_lhs[0], condition.op, condition.rhs))
+                resolved_lhs = metrics_field_obj.generate_select_statements(
+                    projects=self._projects,
+                    use_case_id=self._use_case_id,
+                    alias=lhs_expression.alias,
+                    params=None,
+                )
+                resolved_having.append(Condition(resolved_lhs[0], condition.op, condition.rhs))
+            else:
+                resolved_having.append(condition)
 
         return resolved_having
 
