@@ -76,8 +76,6 @@ describe('ProjectAlertsCreate', function () {
   const createWrapper = (props = {}, location = {}) => {
     const {organization, project, router, routerContext} = initializeOrg(props);
     ProjectsStore.loadInitialData([project]);
-    const team = TestStubs.Team({slug: 'team-slug', isMember: true});
-    TeamStore.loadInitialData([{...team, access: ['team:read']}]);
     const params = {orgId: organization.slug, projectId: project.slug};
     const wrapper = render(
       <AlertsContainer>
