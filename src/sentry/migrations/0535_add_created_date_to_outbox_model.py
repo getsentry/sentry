@@ -33,7 +33,7 @@ class Migration(CheckedMigration):
                     reverse_sql="""
                     ALTER TABLE "sentry_controloutbox" DROP COLUMN "date_added"
                     """,
-                    hints={"tables": ["sentry_region_outbox"]},
+                    hints={"tables": ["sentry_controloutbox"]},
                 ),
                 migrations.RunSQL(
                     sql="""

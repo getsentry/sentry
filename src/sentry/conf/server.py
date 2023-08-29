@@ -118,6 +118,7 @@ SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
 SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER = "default"
 SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_MONITORS_REDIS_CLUSTER = "default"
+SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -782,6 +783,7 @@ CELERY_QUEUES_CONTROL = [
         exchange=control_exchange,
     ),
     Queue("options.control", routing_key="options.control", exchange=control_exchange),
+    Queue("outbox.control", routing_key="outbox.control", exchange=control_exchange),
 ]
 
 CELERY_ISSUE_STATES_QUEUE = Queue(
@@ -897,39 +899,40 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "task": "sentry.tasks.check_auth",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
-        "options": {"expires": 60, "queue": "auth"},
+        "options": {"expires": 60, "queue": "auth.control"},
     },
-    "sync-options": {
-        "task": "sentry.tasks.options.sync_options",
+    "sync-options-control": {
+        "task": "sentry.tasks.options.sync_options_control",
         "schedule": timedelta(seconds=10),
-        "options": {"expires": 10, "queue": "options"},
+        "options": {"expires": 10, "queue": "options.control"},
     },
-    "deliver-from-outbox": {
-        "task": "sentry.tasks.enqueue_outbox_jobs",
+    "deliver-from-outbox-control": {
+        "task": "sentry.tasks.enqueue_outbox_jobs_control",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
-        "options": {"expires": 30},
+        "options": {"expires": 30, "queue": "outbox.control"},
     },
-    "schedule-deletions": {
-        "task": "sentry.tasks.deletion.run_scheduled_deletions",
+    "schedule-deletions-control": {
+        "task": "sentry.tasks.deletion.run_scheduled_deletions_control",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
-        "options": {"expires": 60 * 25},
+        "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
-    "reattempt-deletions": {
-        "task": "sentry.tasks.deletion.reattempt_deletions",
+    "reattempt-deletions-control": {
+        "task": "sentry.tasks.deletion.reattempt_deletions_control",
         "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
-        "options": {"expires": 60 * 25},
+        "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
-    "schedule-hybrid-cloud-foreign-key-jobs": {
-        "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
+    "schedule-hybrid-cloud-foreign-key-jobs-control": {
+        "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
+        "options": {"queue": "cleanup.control"},
     },
     "schedule-vsts-integration-subscription-check": {
         "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
         "schedule": crontab_with_minute_jitter(hour="*/6"),
-        "options": {"expires": 60 * 25},
+        "options": {"expires": 60 * 25, "queue": "integrations.control"},
     },
     "hybrid-cloud-repair-mappings": {
         "task": "sentry.tasks.organization_mapping.repair_mappings",
@@ -1190,6 +1193,7 @@ PROCESSING_QUEUES = [
 TIMEDELTA_ALLOW_LIST = {
     "flush-buffers",
     "sync-options",
+    "sync-options-control",
     "schedule-digests",
 }
 
@@ -1312,7 +1316,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "CONTACT": {"email": "partners@sentry.io"},
         "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
         "VERSION": "v0",
-        "SERVERS": [{"url": "https://sentry.io/"}],
+        "SERVERS": [{"url": "https://sentry.io"}],
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
         "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
@@ -1417,6 +1421,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-cpu-chart": False,
     # Enable profiling Memory chart
     "organizations:profiling-memory-chart": False,
+    # Enable profiling battery usage chart
+    "organizations:profiling-battery-usage-chart": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1600,22 +1606,32 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enable Sentry Functions
     "organizations:sentry-functions": False,
-    # Enable experimental session replay backend APIs
+    # Enable core Session Replay backend APIs
     "organizations:session-replay": False,
-    # Enable Session Replay showing in the sidebar
+    # Enable core Session Replay link in the sidebar
     "organizations:session-replay-ui": True,
-    # Enable experimental session replay SDK for recording on Sentry
+    # Enable core Session Replay SDK for recording on sentry.io
     "organizations:session-replay-sdk": False,
+    # Enable core Session Replay SDK for recording onError events on sentry.io
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
+    # Enable the Replay Details > Accessibility tab
+    "organizations:session-replay-a11y-tab": False,
     # Enable linking from 'new issue' slack notifs to the issue replay list
     "organizations:session-replay-slack-new-issue": False,
+    # Enable linking from 'new issue' email notifs to the issue replay list
     "organizations:session-replay-issue-emails": False,
-    "organizations:session-replay-weekly-email": False,
-    "organizations:session-replay-trace-table": False,
     # Enable optimized serach feature.
     "organizations:session-replay-optimized-search": False,
+    # Enable replay event linking in event processing
+    "organizations:session-replay-event-linking": False,
+    # Enable linking from 'weekly email' summaries to the issue replay list
+    "organizations:session-replay-weekly-email": False,
+    # Enable the Replay Details > Performance tab
+    "organizations:session-replay-trace-table": False,
+    # Enable the AM1 trial ended banner on sentry.io
+    "organizations:session-replay-trial-ended-banner": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -1697,8 +1713,6 @@ SENTRY_FEATURES = {
     "organizations:org-roles-for-teams": False,
     # Enable new JS SDK Dynamic Loader
     "organizations:js-sdk-dynamic-loader": False,
-    # If true, allow to create/use org auth tokens
-    "organizations:org-auth-tokens": False,
     # Enable detecting SDK crashes during event processing
     "organizations:sdk-crash-detection": False,
     # Enable functionality for recap server polling.
@@ -1713,6 +1727,8 @@ SENTRY_FEATURES = {
     "projects:custom-inbound-filters": False,
     # Enable the new flat file indexing system for sourcemaps.
     "organizations:sourcemaps-bundle-flat-file-indexing": False,
+    # Upload release bundles as artifact bundles.
+    "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
     # Signals that the organization can start prefilling on demand metrics.
@@ -1723,6 +1739,10 @@ SENTRY_FEATURES = {
     "projects:discard-groups": False,
     # Extract spans from transactions in Relay, and forward them via Kafka.
     "projects:extract-standalone-spans": False,
+    # Enable considering group severity when creating and evaluating alert rules
+    "projects:first-event-severity-alerting": False,
+    # Enable calculating a severity score for events which create a new group
+    "projects:first-event-severity-calculation": False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
@@ -2052,6 +2072,8 @@ SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE = 0.1
 
 SENTRY_METRICS_INDEXER_SPANNER_OPTIONS: dict[str, Any] = {}
+
+SENTRY_METRICS_INDEXER_REINDEXED_INTS: dict[int, str] = {}
 
 # Rate limits during string indexing for our metrics product.
 # Which cluster to use. Example: {"cluster": "default"}
