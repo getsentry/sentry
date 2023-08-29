@@ -3,6 +3,7 @@ from typing import AbstractSet, Any, Dict, Iterable, List, Mapping, Optional, Se
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.validators.integrations import validate_provider
 from sentry.notifications.helpers import validate as helper_validate
+from sentry.notifications.helpers import validate_v2 as helper_validate_v2
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
     NOTIFICATION_SETTING_OPTION_VALUES,
@@ -68,6 +69,19 @@ def validate_value(
         raise ParameterValidationError(f"Unknown value: {value_param}", context)
 
     if value != NotificationSettingOptionValues.DEFAULT and not helper_validate(type, value):
+        raise ParameterValidationError(f"Invalid value for type {type}: {value}", context)
+    return value
+
+
+def validate_value_v2(
+    type: NotificationSettingTypes, value_param: str, context: Optional[List[str]] = None
+) -> NotificationSettingOptionValues:
+    try:
+        value = {v: k for k, v in NOTIFICATION_SETTING_OPTION_VALUES.items()}[value_param]
+    except KeyError:
+        raise ParameterValidationError(f"Unknown value: {value_param}", context)
+
+    if value != NotificationSettingOptionValues.DEFAULT and not helper_validate_v2(type, value):
         raise ParameterValidationError(f"Invalid value for type {type}: {value}", context)
     return value
 
