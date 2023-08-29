@@ -81,7 +81,7 @@ def schedule_build_project_config(public_key, version: int):
         "relay.projectconfig_cache.scheduled",
         tags={"task": "build"},
     )
-    build_project_config.delay(public_key=public_key, version=version, tmp_scheduled=tmp_scheduled)
+    build_project_config.delay(version=version, public_key=public_key, tmp_scheduled=tmp_scheduled)
 
     # Checking if the project is debounced and debouncing it are two separate
     # actions that aren't atomic. If the process marks a project as debounced
