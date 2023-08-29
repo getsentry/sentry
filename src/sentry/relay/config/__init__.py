@@ -175,7 +175,12 @@ def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) ->
 
 
 def get_project_config(
-    project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
+    project: Project,
+    full_config: bool = True,
+    project_keys: Optional[Sequence[ProjectKey]] = None,
+    *,
+    # TODO(iker): default to an up-to-date version once we've moved to v4.
+    version: int = 3,
 ) -> "ProjectConfig":
     """Constructs the ProjectConfig information.
     :param project: The project to load configuration for. Ensure that
@@ -188,12 +193,16 @@ def get_project_config(
         no project keys are provided it is assumed that the config does not
         need to contain auth information (this is the case when used in
         python's StoreView)
+    :param version: version of the project config to build.
     :return: a ProjectConfig object for the given project
     """
     with sentry_sdk.push_scope() as scope:
         scope.set_tag("project", project.id)
+        scope.set_tag("version", version)
         with metrics.timer("relay.config.get_project_config.duration"):
-            return _get_project_config(project, full_config=full_config, project_keys=project_keys)
+            return _get_project_config(
+                project, full_config=full_config, project_keys=project_keys, version=version
+            )
 
 
 def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]:
@@ -312,7 +321,11 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
 
 
 def _get_project_config(
-    project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
+    project: Project,
+    full_config: bool = True,
+    project_keys: Optional[Sequence[ProjectKey]] = None,
+    *,
+    version: int,
 ) -> "ProjectConfig":
     if project.status != ObjectStatus.ACTIVE:
         return ProjectConfig(project, disabled=True)
