@@ -1,6 +1,14 @@
+import type {MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 
-const Grabber = styled('div')`
+interface Props {
+  'data-is-held': boolean;
+  'data-slide-direction': 'leftright' | 'updown';
+  onDoubleClick: MouseEventHandler<HTMLElement>;
+  onMouseDown: MouseEventHandler<HTMLElement>;
+}
+
+const Grabber = styled('div')<Props>`
   position: absolute;
   top: 0;
   left: 0;
@@ -9,8 +17,17 @@ const Grabber = styled('div')`
   transform: translate(-3px, 0);
   z-index: ${p => p.theme.zIndex.initial};
 
-  cursor: grab;
-  cursor: col-resize;
+  user-select: inherit;
+  &[data-is-held='true'] {
+    user-select: none;
+  }
+
+  &[data-slide-direction='leftright'] {
+    cursor: ew-resize;
+  }
+  &[data-slide-direction='updown'] {
+    cursor: ns-resize;
+  }
 
   &:after {
     content: '';
