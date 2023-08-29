@@ -64,6 +64,7 @@ export const platformProductAvailability = {
     ProductSolution.SESSION_REPLAY,
   ],
   'python-aiohttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-bottle': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-celery': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-chalice': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
