@@ -180,6 +180,7 @@ describe('ReplayReader', () => {
           expect.objectContaining({category: 'replay.init'}),
           expect.objectContaining({category: 'ui.slowClickDetected'}),
           expect.objectContaining({category: 'navigation'}),
+          expect.objectContaining({op: 'navigation.navigate'}),
           expect.objectContaining({category: 'ui.click'}),
           expect.objectContaining({category: 'ui.click'}),
         ],
