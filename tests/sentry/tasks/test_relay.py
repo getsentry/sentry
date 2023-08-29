@@ -135,6 +135,7 @@ def invalidation_debounce_cache(monkeypatch):
     return debounce_cache
 
 
+@pytest.mark.parametrize("projectconfig_version", (3, 4))
 @django_db_all
 def test_debounce(
     monkeypatch,
@@ -142,6 +143,7 @@ def test_debounce(
     default_organization,
     debounce_cache,
     django_cache,
+    projectconfig_version,
 ):
     tasks = []
 
@@ -151,8 +153,12 @@ def test_debounce(
 
     monkeypatch.setattr("sentry.tasks.relay.build_project_config.apply_async", apply_async)
 
-    schedule_build_project_config(public_key=default_projectkey.public_key)
-    schedule_build_project_config(public_key=default_projectkey.public_key)
+    schedule_build_project_config(
+        version=projectconfig_version, public_key=default_projectkey.public_key
+    )
+    schedule_build_project_config(
+        version=projectconfig_version, public_key=default_projectkey.public_key
+    )
 
     assert len(tasks) == 1
     assert tasks[0]["public_key"] == default_projectkey.public_key
