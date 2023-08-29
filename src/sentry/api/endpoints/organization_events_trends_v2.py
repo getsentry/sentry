@@ -28,7 +28,7 @@ from sentry.snuba.discover import create_result_key, zerofill
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
@@ -432,6 +432,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     "tags": {},
                 }
 
+                metrics.incr("performance.trends.sent_occurrence")
                 produce_occurrence_to_kafka(occurrence, event_data)
 
         with self.handle_query_errors():
