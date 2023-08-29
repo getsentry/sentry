@@ -3,9 +3,9 @@ import type {Location} from 'history';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-// import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
-// import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
-// import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
+import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
+import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
+import {LargestContentfulPaintFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 
@@ -16,24 +16,53 @@ jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
 
-// const ACTION_1_DEBUG = {
-//   frame: hydrateSpans(TestStubs.ReplayRecord(), [
-//     TestStubs.Replay.LargestContentfulPaintFrame({
-//       startTimestamp: new Date(1663691559961),
-//       endTimestamp: new Date(1663691559962),
-//       data: {
-//         nodeId: 1126,
-//         size: 17782,
-//         value: 0,
-//       },
-//     }),
-//   ])[0],
-//   html: '<div class="css-vruter e1weinmj3">HTTP 400 (invalid_grant): The provided authorization grant is invalid, expired, revoked, does not match the redirection URI used in the authorization request, or was issued to another client.</div>',
-//   timestamp: 1663691559961,
-// };
+const replayRecord = TestStubs.ReplayRecord();
+
+const CRUMB_1_NAV: ReplayTraceRow = {
+  durationMs: 100,
+  flattenedTraces: [],
+  frameOpOrCategory: 'navigation.navigate',
+  lcpFrames: hydrateSpans(replayRecord, [
+    TestStubs.Replay.LargestContentfulPaintFrame({
+      startTimestamp: new Date(1663691559961),
+      endTimestamp: new Date(1663691559962),
+      data: {
+        nodeId: 1126,
+        size: 17782,
+        value: 0,
+      },
+    }),
+  ]) as LargestContentfulPaintFrame[],
+  offsetMs: 100,
+  paintFrames: [],
+  replayFrame: hydrateSpans(replayRecord, [
+    TestStubs.Replay.NavigationFrame({
+      startTimestamp: new Date(1663691559961),
+      endTimestamp: new Date(1663691559962),
+    }),
+  ])[0],
+  timestampMs: 1663691559961,
+  traces: [],
+};
+
+const CRUMB_2_CLICK: ReplayTraceRow = {
+  durationMs: 100,
+  flattenedTraces: [],
+  frameOpOrCategory: 'ui.click',
+  lcpFrames: [],
+  offsetMs: 100,
+  paintFrames: [],
+  replayFrame: hydrateBreadcrumbs(replayRecord, [
+    TestStubs.Replay.ClickFrame({
+      timestamp: new Date(1663691559961),
+    }),
+  ])[0],
+  timestampMs: 1663691560061,
+  traces: [],
+};
 
 describe('usePerfFilters', () => {
-  const traceRows: ReplayTraceRow[] = []; // TODO
+  const traceRows: ReplayTraceRow[] = [CRUMB_1_NAV, CRUMB_2_CLICK];
 
   beforeEach(() => {
     jest.mocked(browserHistory.push).mockReset();
@@ -41,11 +70,10 @@ describe('usePerfFilters', () => {
 
   it('should update the url when setters are called', () => {
     const TYPE_OPTION = {
-      value: 'ui',
-      label: 'ui',
+      value: 'ui.click',
+      label: 'User Click',
       qs: 'f_p_type' as const,
-    }; // TODO
-    const SEARCH_FILTER = 'aria'; // TODO
+    };
 
     mockUseLocation
       .mockReturnValueOnce({
@@ -57,7 +85,7 @@ describe('usePerfFilters', () => {
         query: {f_p_type: [TYPE_OPTION.value]},
       } as Location<FilterFields>);
 
-    const {result, rerender} = reactHooks.renderHook(usePerfFilters, {
+    const {result} = reactHooks.renderHook(usePerfFilters, {
       initialProps: {traceRows},
     });
 
@@ -66,17 +94,6 @@ describe('usePerfFilters', () => {
       pathname: '/',
       query: {
         f_p_type: [TYPE_OPTION.value],
-      },
-    });
-
-    rerender();
-
-    result.current.setSearchTerm(SEARCH_FILTER);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
-      pathname: '/',
-      query: {
-        f_p_type: [TYPE_OPTION.value],
-        f_d_search: SEARCH_FILTER,
       },
     });
   });
@@ -88,38 +105,13 @@ describe('usePerfFilters', () => {
     } as Location<FilterFields>);
 
     const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {traceRows}});
-    expect(result.current.items.length).toEqual(3);
-  });
-
-  it('should filter by logLevel', () => {
-    mockUseLocation.mockReturnValue({
-      pathname: '/',
-      query: {
-        f_p_type: ['ui.click'],
-      },
-    } as Location<FilterFields>);
-
-    const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {traceRows}});
-    expect(result.current.items.length).toEqual(2);
-  });
-
-  it('should filter by searchTerm', () => {
-    mockUseLocation.mockReturnValue({
-      pathname: '/',
-      query: {
-        f_p_search: 'aria',
-      },
-    } as Location<FilterFields>);
-
-    const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {traceRows}});
     expect(result.current.items.length).toEqual(1);
   });
 
-  it('should filter by searchTerm and logLevel', () => {
+  it('should filter by crumb type', () => {
     mockUseLocation.mockReturnValue({
       pathname: '/',
       query: {
-        f_p_search: 'aria',
         f_p_type: ['ui.click'],
       },
     } as Location<FilterFields>);
@@ -129,24 +121,24 @@ describe('usePerfFilters', () => {
   });
 });
 
-describe('getMutationsTypes', () => {
-  it('should return a sorted list of BreadcrumbType', () => {
-    const traceRows = []; // ACTION_1_DEBUG, ACTION_2_CLICK];
+describe('getCrumbTypes', () => {
+  it('should return a sorted list of crumb types', () => {
+    const traceRows = [CRUMB_1_NAV, CRUMB_2_CLICK]; // ACTION_1_DEBUG, ACTION_2_CLICK];
 
     const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {traceRows}});
     expect(result.current.getCrumbTypes()).toStrictEqual([
-      {label: 'LCP', value: 'largest-contentful-paint'},
-      {label: 'User Click', value: 'ui.click'},
+      {label: 'Page Load', qs: 'f_p_type', value: 'navigation.navigate'},
+      {label: 'User Click', qs: 'f_p_type', value: 'ui.click'},
     ]);
   });
 
-  it('should deduplicate BreadcrumbType', () => {
-    const traceRows = []; // ACTION_1_DEBUG, ACTION_2_CLICK, ACTION_3_CLICK];
+  it('should deduplicate crumb types', () => {
+    const traceRows = [CRUMB_1_NAV, CRUMB_2_CLICK, CRUMB_2_CLICK];
 
     const {result} = reactHooks.renderHook(usePerfFilters, {initialProps: {traceRows}});
     expect(result.current.getCrumbTypes()).toStrictEqual([
-      {label: 'LCP', value: 'largest-contentful-paint'},
-      {label: 'User Click', value: 'ui.click'},
+      {label: 'Page Load', qs: 'f_p_type', value: 'navigation.navigate'},
+      {label: 'User Click', qs: 'f_p_type', value: 'ui.click'},
     ]);
   });
 });
