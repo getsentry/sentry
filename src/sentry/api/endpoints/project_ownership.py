@@ -24,7 +24,6 @@ class ProjectOwnershipSerializer(serializers.Serializer):
     fallthrough = serializers.BooleanField()
     autoAssignment = serializers.CharField(allow_blank=False)
     codeownersAutoSync = serializers.BooleanField(default=True)
-    updateType = serializers.CharField(allow_blank=True)
 
     @staticmethod
     def _validate_no_codeowners(rules):

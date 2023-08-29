@@ -175,16 +175,7 @@ class ProjectOwnershipRuleEditAuditLogEvent(AuditLogEvent):
         )
 
     def render(self, audit_log_entry: AuditLogEntry):
-        try:
-            update_type = audit_log_entry.data["updateType"]
-        except Exception:
-            update_type = None
-        if update_type == "addition":
-            return "added ownership rules"
-        elif update_type == "deletion":
-            return "deleted ownership rules"
-        else:
-            return "modified ownership rules"
+        return "modified ownership rules"
 
 
 class SSOEditAuditLogEvent(AuditLogEvent):

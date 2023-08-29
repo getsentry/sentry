@@ -301,52 +301,7 @@ class CreateAuditEntryTest(TestCase):
             == "edited project performance issue detector settings to enable detection of File IO on Main Thread issue"
         )
 
-    def test_audit_entry_project_ownership_rule_edit_addition(self):
-        entry = create_audit_entry(
-            request=self.req,
-            organization=self.org,
-            target_object=self.project.id,
-            event=audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT"),
-            data={"updateType": "addition"},
-        )
-        audit_log_event = audit_log.get(entry.event)
-
-        assert entry.actor == self.user
-        assert entry.target_object == self.project.id
-        assert entry.event == audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT")
-        assert audit_log_event.render(entry) == "added ownership rules"
-
-    def test_audit_entry_project_ownership_rule_edit_deletion(self):
-        entry = create_audit_entry(
-            request=self.req,
-            organization=self.org,
-            target_object=self.project.id,
-            event=audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT"),
-            data={"updateType": "deletion"},
-        )
-        audit_log_event = audit_log.get(entry.event)
-
-        assert entry.actor == self.user
-        assert entry.target_object == self.project.id
-        assert entry.event == audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT")
-        assert audit_log_event.render(entry) == "deleted ownership rules"
-
-    def test_audit_entry_project_ownership_rule_edit_modification(self):
-        entry = create_audit_entry(
-            request=self.req,
-            organization=self.org,
-            target_object=self.project.id,
-            event=audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT"),
-            data={"updateType": "modification"},
-        )
-        audit_log_event = audit_log.get(entry.event)
-
-        assert entry.actor == self.user
-        assert entry.target_object == self.project.id
-        assert entry.event == audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT")
-        assert audit_log_event.render(entry) == "modified ownership rules"
-
-    def test_audit_entry_project_ownership_rule_edit_no_update_type(self):
+    def test_audit_entry_project_ownership_rule_edit(self):
         entry = create_audit_entry(
             request=self.req,
             organization=self.org,
