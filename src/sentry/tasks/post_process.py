@@ -852,9 +852,8 @@ def process_replay_link(job: PostProcessJob) -> None:
         # TODO: normalize this upstream in relay and javascript SDK. and eventually remove the tag
         # logic.
         context_replay_id = event.data.get("contexts", {}).get("replay", {}).get("replay_id")
-        tag_replay_id = event.get_tag("replayId")
 
-        return context_replay_id or tag_replay_id
+        return context_replay_id or event.get_tag("replayId")
 
     if job["is_reprocessed"]:
         return
