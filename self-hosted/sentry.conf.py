@@ -262,3 +262,9 @@ if "SENTRY_RUNNING_UWSGI" not in os.environ and len(secret_key) < 32:
     print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
 SENTRY_OPTIONS["system.secret-key"] = secret_key
+
+##################
+# Sentry Metrics #
+##################
+
+SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.kafka.KafkaMetricsBackend"
