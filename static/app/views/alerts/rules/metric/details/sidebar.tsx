@@ -29,7 +29,7 @@ import {
   getSearchFilters,
   isOnDemandSearchKey,
   OnDemandWarningIcon,
-} from '../../../../../utils/onDemandMetrics/index';
+} from 'sentry/utils/onDemandMetrics/index';
 
 interface MetricDetailsSidebarProps {
   isOnDemandMetricAlert: boolean;
