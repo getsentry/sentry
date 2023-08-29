@@ -105,10 +105,10 @@ def test_return_full_config_if_in_cache(
 
 @django_db_all
 def test_return_project_and_global_config(
+    globalconfig_get_mock_config,
     call_endpoint,
     default_projectkey,
     projectconfig_cache_get_mock_config,
-    globalconfig_get_mock_config,
 ):
     result, status_code = call_endpoint(full_config=True, global_=True)
     assert status_code == 200

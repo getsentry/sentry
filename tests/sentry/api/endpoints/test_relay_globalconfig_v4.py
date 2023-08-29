@@ -77,8 +77,8 @@ def test_global_config():
 )
 @django_db_all
 def test_return_global_config_on_right_version(
-    call_endpoint,
     globalconfig_get_mock_config,
+    call_endpoint,
     version,
     request_global_config,
     expect_global_config,
