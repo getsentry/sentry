@@ -73,13 +73,23 @@ class OwnerInput extends Component<Props, State> {
     const {organization, project, onSave, page, initialText} = this.props;
     const {text} = this.state;
     this.setState({error: null});
+    let updateType = 'modification';
+
+    const originalRules = initialText.split('\n');
+    const newRules = text?.split('\n') || [];
+
+    if (originalRules.length > newRules.length) {
+      updateType = 'deletion';
+    } else if (originalRules.length < newRules.length) {
+      updateType = 'addition';
+    }
 
     const api = new Client();
     const request = api.requestPromise(
       `/projects/${organization.slug}/${project.slug}/ownership/`,
       {
         method: 'PUT',
-        data: {raw: text || ''},
+        data: {raw: text || '', updateType},
       }
     );
 

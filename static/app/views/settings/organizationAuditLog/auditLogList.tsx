@@ -212,6 +212,28 @@ function AuditNote({
     );
   }
 
+  if (entry.event === 'project.ownership-rule.edit') {
+    let keyword = 'Modified';
+    if (entry.data.updateType === 'addition') {
+      keyword = 'Added';
+    } else if (entry.data.updateType === 'deletion') {
+      keyword = 'Deleted';
+    }
+
+    return (
+      <Note>
+        {tct('[keyword] ownership rules in project [projectSettingsLink]', {
+          keyword,
+          projectSettingsLink: (
+            <Link to={`/settings/${orgSlug}/projects/${project.slug}/`}>
+              {entry.data.slug}
+            </Link>
+          ),
+        })}
+      </Note>
+    );
+  }
+
   return <Note>{entry.note}</Note>;
 }
 
