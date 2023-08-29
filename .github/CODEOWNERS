@@ -260,6 +260,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/snuba/api/endpoints/test_organization_events_facets_stats_performance.py     @getsentry/team-starfish
 
 /static/app/views/starfish/                                                         @getsentry/team-starfish
+/static/app/views/performance/database                                              @getsentry/team-starfish
 ## Endof Starfish
 
 
@@ -361,19 +362,17 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## Enterprise
-/static/app/views/organizationStats                   @getsentry/enterprise
-/src/sentry/api/endpoints/organization_stats*.py      @getsentry/enterprise
-
-/src/sentry/api/endpoints/organization_auditlogs.py   @getsentry/enterprise
-
-/static/app/views/settings/organizationAuth/          @getsentry/enterprise
-/tests/sentry/api/endpoints/test_auth*.py             @getsentry/enterprise
-
-/tests/sentry/api/test_data_secrecy.py                @getsentry/enterprise
-
-/src/sentry/scim/                                     @getsentry/enterprise
-/tests/sentry/api/test_scim*.py                       @getsentry/enterprise
-/src/sentry/tasks/integrations/github/pr_comment.py   @getsentry/enterprise
+/static/app/views/organizationStats                                     @getsentry/enterprise
+/src/sentry/api/endpoints/organization_stats*.py                        @getsentry/enterprise
+/src/sentry/api/endpoints/organization_auditlogs.py                     @getsentry/enterprise
+/static/app/views/settings/organizationAuth/                            @getsentry/enterprise
+/tests/sentry/api/endpoints/test_auth*.py                               @getsentry/enterprise
+/tests/sentry/api/test_data_secrecy.py                                  @getsentry/enterprise
+/src/sentry/scim/                                                       @getsentry/enterprise
+/tests/sentry/api/test_scim*.py                                         @getsentry/enterprise
+/src/sentry/tasks/integrations/github/pr_comment.py                     @getsentry/enterprise
+/src/sentry/api/endpoints/organization_projects_experiment.py           @getsentry/enterprise
+/tests/sentry/api/endpoints/test_organization_projects_experiment.py    @getsentry/enterprise
 ## End of Enterprise
 
 
@@ -414,7 +413,6 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_metrics.py                                @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
 /src/sentry/api/endpoints/project_dynamic_sampling.py                            @getsentry/telemetry-experience
-/src/sentry/api/endpoints/organization_dynamic_sampling_sdk_versions.py          @getsentry/telemetry-experience
 /src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
 /src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric_data.py                     @getsentry/telemetry-experience
@@ -438,8 +436,6 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## Growth
-/src/sentry/api/endpoints/client_state.py                       @getsentry/growth
-/src/sentry/api/endpoints/organization_web_vitals_overview.py   @getsentry/growth
 /src/sentry/api/endpoints/organization_onboarding*              @getsentry/growth
 /src/sentry/web/frontend/auth_login.py                          @getsentry/growth
 /static/app/utils/analytics.tsx                                 @getsentry/growth

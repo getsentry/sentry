@@ -9,7 +9,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';
 import useApi from 'sentry/utils/useApi';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
-import {getReplayListFields} from 'sentry/views/replays/types';
+import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
 type Options = {
   location: Location;
@@ -87,12 +87,12 @@ function useReplaysFromTransaction({
       id: '',
       name: '',
       version: 2,
-      fields: getReplayListFields(organization),
+      fields: REPLAY_LIST_FIELDS,
       projects: [],
       query: `id:[${String(response.replayIds)}]`,
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     });
-  }, [location.query.sort, response.replayIds, organization]);
+  }, [location.query.sort, response.replayIds]);
 
   useEffect(() => {
     fetchReplayIds();

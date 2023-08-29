@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Callable, Dict, List
+from functools import lru_cache
+from typing import Callable, Dict, List, Type
 
 from dateutil import parser
 from django.db import models
@@ -11,6 +12,8 @@ from sentry.backup.dependencies import PrimaryKeyMap, dependencies
 from sentry.backup.findings import ComparatorFinding, ComparatorFindingKind, InstanceID
 from sentry.backup.helpers import Side, get_exportable_final_derivations_of
 from sentry.db.models import BaseModel
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.utils.json import JSONData
 
 
@@ -209,7 +212,7 @@ class ForeignKeyComparator(JSONScrubbingComparator):
     left_pk_map: PrimaryKeyMap | None = None
     right_pk_map: PrimaryKeyMap | None = None
 
-    def __init__(self, foreign_fields: dict[str, models.base.ModelBase]):
+    def __init__(self, foreign_fields: dict[str, Type[models.base.Model]]):
         super().__init__(*(foreign_fields.keys()))
         self.foreign_fields = foreign_fields
 
@@ -223,7 +226,8 @@ class ForeignKeyComparator(JSONScrubbingComparator):
         findings = []
         fields = sorted(self.fields)
         for f in fields:
-            field_model_name = "sentry." + self.foreign_fields[f].__name__.lower()
+            obj_name = self.foreign_fields[f]._meta.object_name.lower()  # type: ignore[union-attr]
+            field_model_name = "sentry." + obj_name
             if left["fields"].get(f) is None and right["fields"].get(f) is None:
                 continue
 
@@ -420,15 +424,19 @@ ComparatorList = List[JSONScrubbingComparator]
 ComparatorMap = Dict[str, ComparatorList]
 
 
-def build_default_comparators():
-    """Helper function executed at startup time which builds the `DEFAULT_COMPARATORS` global."""
+# No arguments, so we lazily cache the result after the first calculation.
+@lru_cache(maxsize=1)
+def get_default_comparators():
+    """Helper function executed at startup time which builds the static default comparators map."""
 
     # Some comparators (like `DateAddedComparator`) we can automatically assign by inspecting the
     # `Field` type on the Django `Model` definition. Others, like the ones in this map, we must assign
     # manually, since there is no clever way to derive them automatically.
-    comparators: ComparatorMap = defaultdict(
+    default_comparators: ComparatorMap = defaultdict(
         list,
         {
+            # TODO(hybrid-cloud): actor refactor. Remove this entry when done.
+            "sentry.actor": [ForeignKeyComparator({"team": Team, "user_id": User})],
             "sentry.apitoken": [HashObfuscatingComparator("refresh_token", "token")],
             "sentry.apiapplication": [HashObfuscatingComparator("client_id", "client_secret")],
             "sentry.authidentity": [HashObfuscatingComparator("ident", "token")],
@@ -454,14 +462,10 @@ def build_default_comparators():
         },
     )
 
-    # Where possible, we automatically deduce fields that should have special comparators and add them
-    # to the `DEFAULT_COMPARATORS` map.
-    auto_assign_datetime_equality_comparators(comparators)
-    auto_assign_email_obfuscating_comparators(comparators)
-    auto_assign_foreign_key_comparators(comparators)
+    # Where possible, we automatically deduce fields that should have special comparators and add
+    # them to the `default_comparators` map.
+    auto_assign_datetime_equality_comparators(default_comparators)
+    auto_assign_email_obfuscating_comparators(default_comparators)
+    auto_assign_foreign_key_comparators(default_comparators)
 
-    return comparators
-
-
-# A global list mapping special comparator operations for various model field names.
-DEFAULT_COMPARATORS = build_default_comparators()
+    return default_comparators

@@ -262,6 +262,7 @@ const Filters = styled('div')`
 const Label = styled('label')`
   font-weight: normal;
   display: flex;
+  align-items: center;
   margin-bottom: 0;
   white-space: nowrap;
   gap: ${space(1)};

@@ -9,12 +9,16 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconAdd, IconDelete, IconWarning} from 'sentry/icons';
+import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
-import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
+import {
+  createOnDemandFilterWarning,
+  hasOnDemandMetricWidgetFeature,
+  isOnDemandQueryString,
+  OnDemandWarningIcon,
+} from 'sentry/utils/onDemandMetrics';
 import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
@@ -101,6 +105,15 @@ export function FilterResultsStep({
 
   const datasetConfig = getDatasetConfig(widgetType);
 
+  const getOnDemandFilterWarning = createOnDemandFilterWarning(
+    tct(
+      'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
+      {
+        strong: <strong />,
+      }
+    )
+  );
+
   return (
     <BuildStep
       title={t('Filter your results')}
@@ -146,13 +159,26 @@ export function FilterResultsStep({
             >
               <SearchConditionsWrapper>
                 <datasetConfig.SearchBar
+                  getFilterWarning={
+                    hasOnDemandMetricWidgetFeature(organization)
+                      ? getOnDemandFilterWarning
+                      : undefined
+                  }
                   organization={organization}
                   pageFilters={selection}
                   onClose={handleClose(queryIndex)}
                   onSearch={handleSearch(queryIndex)}
                   widgetQuery={query}
                 />
-                {isOnDemandQueryString(query.conditions) && <OnDemandWarningIcon />}
+                {hasOnDemandMetricWidgetFeature(organization) &&
+                  isOnDemandQueryString(query.conditions) && (
+                    <OnDemandWarningIcon
+                      msg={tct(
+                        'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
+                        {strong: <strong />}
+                      )}
+                    />
+                  )}
                 {!hideLegendAlias && (
                   <LegendAliasInput
                     type="text"
@@ -189,19 +215,6 @@ export function FilterResultsStep({
         )}
       </div>
     </BuildStep>
-  );
-}
-
-function OnDemandWarningIcon() {
-  return (
-    <Tooltip
-      title={tct(
-        'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
-        {strong: <strong />}
-      )}
-    >
-      <IconWarning size="sm" />
-    </Tooltip>
   );
 }
 

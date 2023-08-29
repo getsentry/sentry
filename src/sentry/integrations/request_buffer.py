@@ -39,6 +39,25 @@ class IntegrationRequestBuffer:
     def record_timeout(self):
         self._add("timeout")
 
+    def is_integration_fatal_broken(self):
+        """
+        Integration is broken if we have a fatal error
+        Temporary fix to release disabling slack integrations with fatal errors
+
+        """
+        broken_range_days_counts = self._get_broken_range_from_buffer()
+
+        days_fatal = []
+
+        for day_count in broken_range_days_counts:
+            if int(day_count.get("fatal_count", 0)) > 0:
+                days_fatal.append(day_count)
+
+        if len(days_fatal) > 0:
+            return True
+
+        return False
+
     def is_integration_broken(self):
         """
         Integration is broken if we have 7 consecutive days of errors and no successes OR have a fatal error OR have > 1000 timeouts in a day
@@ -53,14 +72,13 @@ class IntegrationRequestBuffer:
         for day_count in broken_range_days_counts:
             if int(day_count.get("fatal_count", 0)) > 0:
                 days_fatal.append(day_count)
+            elif int(day_count.get("timeout_count", 0)) >= settings.BROKEN_TIMEOUT_THRESHOLD:
+                days_timeout.append(day_count)
             elif (
                 int(day_count.get("error_count", 0)) > 0
                 and int(day_count.get("success_count", 0)) == 0
             ):
                 days_error.append(day_count)
-            elif int(day_count.get("timeout_count", 0)) >= settings.BROKEN_TIMEOUT_THRESHOLD:
-                days_timeout.append(day_count)
-
         if len(days_fatal) > 0:
             return True
 

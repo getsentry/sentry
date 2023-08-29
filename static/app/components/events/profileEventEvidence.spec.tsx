@@ -43,7 +43,7 @@ describe('ProfileEventEvidence', function () {
 
     expect(screen.getByRole('button', {name: 'View Profile'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/profiling/profile/project-slug/profile-id/flamechart/?frameName=some_func&framePackage=something.dll&referrer=issue'
+      '/organizations/org-slug/profiling/profile/project-slug/profile-id/flamegraph/?frameName=some_func&framePackage=something.dll&referrer=issue'
     );
   });
 

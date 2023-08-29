@@ -390,17 +390,19 @@ export type GroupTagsResponse = GroupTagResponseItem[];
 type FetchIssueTagsParameters = {
   environment: string[];
   limit: number;
+  organizationSlug: string;
   readable: boolean;
   groupId?: string;
 };
 
 export const makeFetchIssueTagsQueryKey = ({
   groupId,
+  organizationSlug,
   environment,
   readable,
   limit,
 }: FetchIssueTagsParameters): ApiQueryKey => [
-  `/issues/${groupId}/tags/`,
+  `/organizations/${organizationSlug}/issues/${groupId}/tags/`,
   {query: {environment, readable, limit}},
 ];
 

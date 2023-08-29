@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -45,6 +45,13 @@ describe('SQLishFormatter', function () {
       `);
     });
 
+    it('Capitalizes lowercase keywords', () => {
+      expect(formatter.toString('select * from users;')).toMatchInlineSnapshot(`
+        "SELECT *
+        FROM users;"
+      `);
+    });
+
     it('Adds indentation for SELECTS in conditions', () => {
       expect(
         formatter.toString(
@@ -72,7 +79,7 @@ describe('SQLishFormatter', function () {
   describe('SQLishFormatter.toSimpleMarkup()', () => {
     const formatter = new SQLishFormatter();
     const getMarkup = (markup: any): string => {
-      const {container} = render(<React.Fragment>{markup}</React.Fragment>);
+      const {container} = render(<Fragment>{markup}</Fragment>);
 
       return container.innerHTML;
     };

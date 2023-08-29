@@ -8,6 +8,7 @@ from django.apps import apps
 from django.core import management, serializers
 from django.db import IntegrityError, connection, transaction
 
+from sentry.backup.dependencies import PrimaryKeyMap, normalize_model_name
 from sentry.backup.helpers import EXCLUDED_APPS
 
 
@@ -27,16 +28,29 @@ class OldImportConfig(NamedTuple):
 
 
 def imports(src, old_config: OldImportConfig, printer=click.echo):
-    """CLI command wrapping the `exec_import` functionality."""
+    """Imports core data for the Sentry installation."""
 
     try:
         # Import / export only works in monolith mode with a consolidated db.
         with transaction.atomic("default"):
+            pk_map = PrimaryKeyMap()
             for obj in serializers.deserialize(
                 "json", src, stream=True, use_natural_keys=old_config.use_natural_foreign_keys
             ):
-                if obj.object._meta.app_label not in EXCLUDED_APPS:
-                    obj.save()
+                o = obj.object
+                if o._meta.app_label not in EXCLUDED_APPS or o:
+                    # TODO(getsentry/team-ospo#183): This conditional should be removed once we want
+                    # to roll out the new API to self-hosted.
+                    if old_config.use_update_instead_of_create:
+                        obj.save()
+                    else:
+                        o = obj.object
+                        written = o.write_relocation_import(pk_map, obj)
+                        if written is not None:
+                            old_pk, new_pk = written
+                            model_name = normalize_model_name(o)
+                            pk_map.insert(model_name, old_pk, new_pk)
+
     # For all database integrity errors, let's warn users to follow our
     # recommended backup/restore workflow before reraising exception. Most of
     # these errors come from restoring on a different version of Sentry or not restoring

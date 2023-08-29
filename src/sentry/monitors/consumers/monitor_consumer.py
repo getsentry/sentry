@@ -20,6 +20,7 @@ from sentry import ratelimits
 from sentry.constants import ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models import Project
+from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.models import (
     MAX_SLUG_LENGTH,
     CheckInStatus,
@@ -215,7 +216,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                 logger.info(
                     "monitors.consumer.guid_exists",
                     extra={
-                        "guid": existing_check_in.guid,
+                        "guid": existing_check_in.guid.hex,
                         "slug": existing_check_in.monitor.slug,
                         "payload_slug": monitor.slug,
                     },
@@ -231,7 +232,8 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                 logger.info(
                     "monitors.consumer.check_in_closed",
                     extra={
-                        "guid": existing_check_in.guid,
+                        "guid": existing_check_in.guid.hex,
+                        "slug": existing_check_in.monitor.slug,
                         "status": existing_check_in.status,
                         "updated_status": updated_status,
                     },
@@ -251,7 +253,11 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                 txn.set_tag("result", "failed_duration_check")
                 logger.info(
                     "monitors.consumer.invalid_implicit_duration",
-                    extra={"guid": existing_check_in.guid, "duration": updated_duration},
+                    extra={
+                        "guid": existing_check_in.guid.hex,
+                        "slug": existing_check_in.monitor.slug,
+                        "duration": updated_duration,
+                    },
                 )
                 return
 
@@ -297,7 +303,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
         else:
             guid = check_in_id
 
-        lock = locks.get(f"checkin-creation:{guid}", duration=2, name="checkin_creation")
+        lock = locks.get(f"checkin-creation:{guid.hex}", duration=2, name="checkin_creation")
         try:
             with lock.acquire(), transaction.atomic(router.db_for_write(Monitor)):
                 try:
@@ -327,7 +333,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                         txn.set_tag("result", "failed_checkin_validation")
                         logger.info(
                             "monitors.consumer.checkin_validation_failed",
-                            extra={"guid": guid, **params},
+                            extra={"guid": guid.hex, **params},
                         )
                         return
 
@@ -348,7 +354,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                         txn.set_tag("result", "failed_validation")
                         logger.info(
                             "monitors.consumer.monitor_validation_failed",
-                            extra={"guid": guid, **params},
+                            extra={"guid": guid.hex, **params},
                         )
                         return
                 except MonitorLimitsExceeded:
@@ -359,7 +365,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                     txn.set_tag("result", "failed_monitor_limits")
                     logger.info(
                         "monitors.consumer.monitor_limit_exceeded",
-                        extra={"guid": guid, "project": project.id, "slug": monitor_slug},
+                        extra={"guid": guid.hex, "project": project.id, "slug": monitor_slug},
                     )
                     return
 
@@ -376,7 +382,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                     logger.info(
                         "monitors.consumer.monitor_environment_limit_exceeded",
                         extra={
-                            "guid": guid,
+                            "guid": guid.hex,
                             "project": project.id,
                             "slug": monitor_slug,
                             "environment": environment,
@@ -392,7 +398,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                     logger.info(
                         "monitors.consumer.monitor_environment_validation_failed",
                         extra={
-                            "guid": guid,
+                            "guid": guid.hex,
                             "project": project.id,
                             "slug": monitor_slug,
                             "environment": environment,
@@ -429,7 +435,8 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                             logger.info(
                                 "monitors.consumer.monitor_environment_mismatch",
                                 extra={
-                                    "guid": check_in_id,
+                                    "guid": check_in_id.hex,
+                                    "slug": monitor_slug,
                                     "organization_id": project.organization_id,
                                     "environment": monitor_environment.id,
                                     "payload_environment": check_in.monitor_environment_id,
@@ -452,7 +459,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
 
                     expected_time = None
                     if monitor_environment.last_checkin:
-                        expected_time = monitor.get_next_scheduled_checkin(
+                        expected_time = monitor.get_next_expected_checkin(
                             monitor_environment.last_checkin
                         )
 
@@ -483,8 +490,10 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                         signal_first_checkin(project, monitor)
 
                 if check_in.status == CheckInStatus.ERROR:
-                    monitor_environment.mark_failed(
-                        start_time, occurrence_context={"trace_id": trace_id}
+                    mark_failed(
+                        monitor_environment,
+                        start_time,
+                        occurrence_context={"trace_id": trace_id},
                     )
                 else:
                     monitor_environment.mark_ok(check_in, start_time)
@@ -501,7 +510,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
             txn.set_tag("result", "failed_checkin_creation_lock")
             logger.info(
                 "monitors.consumer.lock_failed",
-                extra={"guid": guid},
+                extra={"guid": guid.hex, "slug": monitor_slug},
             )
         except Exception:
             # Skip this message and continue processing in the consumer.

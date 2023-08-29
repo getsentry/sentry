@@ -20,6 +20,7 @@ from structlog import get_logger
 
 from bitfield.models import typed_dict_bitfield
 from sentry import features, roles
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -196,7 +197,7 @@ class OrganizationMember(Model):
     be set to ownership.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     objects = OrganizationMemberManager()
 
