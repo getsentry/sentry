@@ -23,6 +23,7 @@ def send_incident_alert_notification(
     incident: Incident,
     metric_value: int,
     new_status: IncidentStatus,
+    notification_uuid: str | None = None,
 ) -> None:
     # Make sure organization integration is still active:
     integration, org_integration = integration_service.get_organization_context(
@@ -45,7 +46,7 @@ def send_incident_alert_notification(
 
     channel = action.target_identifier
     attachment: Any = SlackIncidentsMessageBuilder(
-        incident, new_status, metric_value, chart_url
+        incident, new_status, metric_value, chart_url, notification_uuid
     ).build()
     text = attachment["text"]
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}

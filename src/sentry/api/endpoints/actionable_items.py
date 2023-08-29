@@ -1,6 +1,5 @@
 from typing import List, Union
 
-from django.utils import timezone
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,7 +14,6 @@ from sentry.api.helpers.actionable_items_helper import (
     deprecated_event_errors,
     errors_to_hide,
     find_debug_frames,
-    find_prompts_activity,
     priority_ranking,
     sourcemap_sdks,
 )
@@ -84,23 +82,6 @@ class ActionableItemsEndpoint(ProjectEndpoint):
             response = EventError(event_error).get_api_context()
 
             actions.append(response)
-
-        # Use prompts activity to check if prompt has been dismissed
-        features = [x["type"] for x in actions]
-        prompts_activity = find_prompts_activity(
-            organization.id, project.id, request.user.id, features
-        )
-        prompts_activity = {prompt.feature: prompt.data for prompt in prompts_activity}
-
-        prompt_features = prompts_activity.keys()
-
-        for action in actions:
-            action["dismissed"] = False
-            if action["type"] in prompt_features:
-                dismissed = prompts_activity[action["type"]]["dismissed_ts"]
-                # Check if dismissed within the last week
-                if dismissed and timezone.now().timestamp() < int(dismissed) + 60 * 60 * 24 * 7:
-                    action["dismissed"] = True
 
         priority_get = lambda x: priority_ranking.get(x["type"], ActionPriority.UNKNOWN)
         sorted_errors = sorted(actions, key=priority_get)

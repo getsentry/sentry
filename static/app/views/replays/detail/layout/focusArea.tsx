@@ -1,11 +1,13 @@
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
+import A11y from 'sentry/views/replays/detail/accessibility/index';
 import Console from 'sentry/views/replays/detail/console';
 import DomMutations from 'sentry/views/replays/detail/domMutations';
 import ErrorList from 'sentry/views/replays/detail/errorList/index';
 import MemoryChart from 'sentry/views/replays/detail/memoryChart';
 import NetworkList from 'sentry/views/replays/detail/network';
+import PerfTable from 'sentry/views/replays/detail/perfTable/index';
 import Trace from 'sentry/views/replays/detail/trace/index';
 
 type Props = {};
@@ -17,6 +19,8 @@ function FocusArea({}: Props) {
   const organization = useOrganization();
 
   switch (getActiveTab()) {
+    case TabKey.A11Y:
+      return <A11y />;
     case TabKey.NETWORK:
       return (
         <NetworkList
@@ -28,6 +32,8 @@ function FocusArea({}: Props) {
       );
     case TabKey.TRACE:
       return <Trace organization={organization} replayRecord={replay?.getReplay()} />;
+    case TabKey.PERF:
+      return <PerfTable />;
     case TabKey.ERRORS:
       return (
         <ErrorList

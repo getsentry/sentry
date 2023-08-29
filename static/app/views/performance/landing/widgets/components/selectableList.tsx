@@ -89,7 +89,7 @@ export function WidgetEmptyStateWarning() {
   );
 }
 
-export function WidgetAddInstrumentationWarning() {
+export function WidgetAddInstrumentationWarning({type}: {type: 'db' | 'http'}) {
   const pageFilters = usePageFilters();
   const fullProjects = useProjects();
 
@@ -113,8 +113,9 @@ export function WidgetAddInstrumentationWarning() {
       <PrimaryMessage>{t('No results found')}</PrimaryMessage>
       <SecondaryMessage>
         {tct(
-          'No transactions with Database or HTTP spans found, you may need to [added].',
+          'No transactions with [spanCategory] spans found, you may need to [added].',
           {
+            spanCategory: type === 'db' ? t('Database') : t('HTTP'),
             added: <ExternalLink href={url}>{t('add integrations')}</ExternalLink>,
           }
         )}

@@ -24,12 +24,13 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.silo.base import SiloMode
 from sentry.snuba.models import SnubaQuery
-from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
@@ -548,13 +549,15 @@ class FilterToSubscribedUsersTest(TestCase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectDeletionTest(TestCase):
     def test_hybrid_cloud_deletion(self):
         proj = self.create_project()
         user = self.create_user()
-        UserOption.objects.set_value(user, "cool_key", "Hello!", project_id=proj.id)
         proj_id = proj.id
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            UserOption.objects.set_value(user, "cool_key", "Hello!", project_id=proj.id)
 
         with outbox_runner():
             proj.delete()
@@ -562,9 +565,11 @@ class ProjectDeletionTest(TestCase):
         assert not Project.objects.filter(id=proj_id).exists()
 
         # cascade is asynchronous, ensure there is still related search,
-        assert UserOption.objects.filter(project_id=proj_id).exists()
-        with self.tasks():
-            schedule_hybrid_cloud_foreign_key_jobs()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert UserOption.objects.filter(project_id=proj_id).exists()
 
-        # Ensure they are all now gone.
-        assert not UserOption.objects.filter(project_id=proj_id).exists()
+            with self.tasks():
+                schedule_hybrid_cloud_foreign_key_jobs_control()
+
+            # Ensure they are all now gone.
+            assert not UserOption.objects.filter(project_id=proj_id).exists()

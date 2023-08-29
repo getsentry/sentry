@@ -3,6 +3,7 @@ from typing import Any, Iterable
 from django.db import models, router, transaction
 from django.db.models.signals import post_save
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedBigIntegerField,
@@ -22,7 +23,7 @@ class CommitFileChangeManager(BaseManager):
 
 @region_silo_only_model
 class CommitFileChange(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     commit = FlexibleForeignKey("sentry.Commit")
