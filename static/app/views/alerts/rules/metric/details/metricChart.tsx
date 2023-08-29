@@ -1,4 +1,4 @@
-import {PureComponent} from 'react';
+import {Fragment, PureComponent} from 'react';
 import {browserHistory, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
@@ -9,6 +9,7 @@ import momentTimezone from 'moment-timezone';
 
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -32,8 +33,9 @@ import {
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
+import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
-import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
+import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -194,7 +196,9 @@ class MetricChart extends PureComponent<Props, State> {
   renderChartActions(
     totalDuration: number,
     criticalDuration: number,
-    warningDuration: number
+    warningDuration: number,
+    waitingForDataDuration: number,
+    isOnDemandMetricAlert?: boolean
   ) {
     const {rule, organization, project, timePeriod, query} = this.props;
 
@@ -207,29 +211,74 @@ class MetricChart extends PureComponent<Props, State> {
     });
 
     const resolvedPercent =
-      (100 * Math.max(totalDuration - criticalDuration - warningDuration, 0)) /
+      (100 *
+        Math.max(
+          totalDuration - waitingForDataDuration - criticalDuration - warningDuration,
+          0
+        )) /
       totalDuration;
     const criticalPercent = 100 * Math.min(criticalDuration / totalDuration, 1);
     const warningPercent = 100 * Math.min(warningDuration / totalDuration, 1);
+    const waitingForDataPercent =
+      100 *
+      Math.min(
+        (waitingForDataDuration - criticalDuration - warningDuration) / totalDuration,
+        1
+      );
+
+    const isOnDemandAlertWihtoutData =
+      isOnDemandMetricAlert && waitingForDataDuration === totalDuration;
 
     return (
       <StyledChartControls>
         <StyledInlineContainer>
-          <SectionHeading>{t('Summary')}</SectionHeading>
-          <StyledSectionValue>
-            <ValueItem>
-              <IconCheckmark color="successText" isCircled />
-              {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
-            </ValueItem>
-            <ValueItem>
-              <IconWarning color="warningText" />
-              {warningPercent ? warningPercent.toFixed(2) : 0}%
-            </ValueItem>
-            <ValueItem>
-              <IconFire color="errorText" />
-              {criticalPercent ? criticalPercent.toFixed(2) : 0}%
-            </ValueItem>
-          </StyledSectionValue>
+          {isOnDemandAlertWihtoutData ? (
+            <Fragment>
+              <GuideAnchor
+                disabled={false}
+                target="empty_on_demand_chart"
+                position="right"
+              >
+                <OnDemandNoDataWrapper>
+                  {t(
+                    'This alert lacks historical data due to filters for which we don’t routinely extract metrics.'
+                  )}
+                </OnDemandNoDataWrapper>
+              </GuideAnchor>
+            </Fragment>
+          ) : (
+            <Fragment>
+              <SectionHeading>{t('Summary')}</SectionHeading>
+              <StyledSectionValue>
+                <ValueItem>
+                  <IconCheckmark color="successText" isCircled />
+                  {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
+                </ValueItem>
+                <ValueItem>
+                  <IconWarning color="warningText" />
+                  {warningPercent ? warningPercent.toFixed(2) : 0}%
+                </ValueItem>
+                <ValueItem>
+                  <IconFire color="errorText" />
+                  {criticalPercent ? criticalPercent.toFixed(2) : 0}%
+                </ValueItem>
+                {waitingForDataPercent > 0 && (
+                  <StyledTooltip
+                    underlineColor="gray200"
+                    showUnderline
+                    title={t(
+                      'The time spent waiting for metrics matching the filters used.'
+                    )}
+                  >
+                    <ValueItem>
+                      <IconClock />
+                      {waitingForDataPercent.toFixed(2)}%
+                    </ValueItem>
+                  </StyledTooltip>
+                )}
+              </StyledSectionValue>
+            </Fragment>
+          )}
         </StyledInlineContainer>
         {!isSessionAggregate(rule.aggregate) && (
           <Feature features={['discover-basic']}>
@@ -274,14 +323,20 @@ class MetricChart extends PureComponent<Props, State> {
       );
     };
 
-    const {criticalDuration, warningDuration, totalDuration, chartOption} =
-      getMetricAlertChartOption({
-        timeseriesData,
-        rule,
-        incidents,
-        selectedIncident,
-        handleIncidentClick,
-      });
+    const {
+      criticalDuration,
+      warningDuration,
+      totalDuration,
+      waitingForDataDuration,
+      chartOption,
+    } = getMetricAlertChartOption({
+      timeseriesData,
+      rule,
+      incidents,
+      selectedIncident,
+      isOnDemandMetricAlert: this.props.isOnDemandMetricAlert,
+      handleIncidentClick,
+    });
 
     const comparisonSeriesName = capitalize(
       COMPARISON_DELTA_OPTIONS.find(({value}) => value === rule.comparisonDelta)?.label ||
@@ -450,7 +505,13 @@ class MetricChart extends PureComponent<Props, State> {
             fixed: <Placeholder height="200px" testId="skeleton-ui" />,
           })}
         </StyledPanelBody>
-        {this.renderChartActions(totalDuration, criticalDuration, warningDuration)}
+        {this.renderChartActions(
+          totalDuration,
+          criticalDuration,
+          warningDuration,
+          waitingForDataDuration,
+          this.props.isOnDemandMetricAlert
+        )}
       </ChartPanel>
     );
   }
@@ -602,9 +663,13 @@ const Filters = styled('span')`
 
 const StyledSectionValue = styled(SectionValue)`
   display: grid;
-  grid-template-columns: repeat(3, auto);
+  grid-template-columns: repeat(4, auto);
   gap: ${space(1.5)};
   margin: 0 0 0 ${space(1.5)};
+`;
+
+const OnDemandNoDataWrapper = styled(SectionValue)`
+  margin: 0;
 `;
 
 const ValueItem = styled('div')`
@@ -613,6 +678,7 @@ const ValueItem = styled('div')`
   gap: ${space(0.5)};
   align-items: center;
   font-variant-numeric: tabular-nums;
+  text-underline-offset: ${space(4)};
 `;
 
 /* Override padding to make chart appear centered */
@@ -624,4 +690,8 @@ const TriggerChartPlaceholder = styled(Placeholder)`
   height: 200px;
   text-align: center;
   padding: ${space(3)};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  text-underline-offset: ${space(0.5)} !important;
 `;
