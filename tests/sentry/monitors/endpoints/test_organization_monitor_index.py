@@ -212,7 +212,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
 
         assert response.data["slug"] == "my-monitor"
 
-    @override_options({"api.prevent-numeric-slugs": 1})
+    @override_options({"api.prevent-numeric-slugs": True})
     def test_invalid_numeric_slug(self):
         data = {
             "project": self.project.slug,
@@ -224,7 +224,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
         assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
-    @override_options({"api.prevent-numeric-slugs": 1})
+    @override_options({"api.prevent-numeric-slugs": True})
     def test_generated_slug_not_entirely_numeric(self):
         data = {
             "project": self.project.slug,

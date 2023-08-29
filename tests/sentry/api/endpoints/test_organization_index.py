@@ -139,7 +139,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
             self.get_error_response(name="name", slug="canada-", status_code=400)
             self.get_error_response(name="name", slug="-canada", status_code=400)
             self.get_error_response(name="name", slug="----", status_code=400)
-            with override_options({"api.prevent-numeric-slugs": 1}):
+            with override_options({"api.prevent-numeric-slugs": True}):
                 self.get_error_response(name="name", slug="1234", status_code=400)
 
     def test_without_slug(self):

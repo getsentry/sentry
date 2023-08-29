@@ -27,7 +27,7 @@ class SlugifyInstanceTest(TestCase):
         slugify_instance(org, org.name, max_length=2)
         assert org.slug == "ma"
 
-    @override_options({"api.prevent-numeric-slugs": 1})
+    @override_options({"api.prevent-numeric-slugs": True})
     def test_appends_to_entirely_numeric(self):
         org = Organization(name="1234")
         slugify_instance(org, org.name)

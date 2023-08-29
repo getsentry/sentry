@@ -271,7 +271,9 @@ register(
 
 register(
     "api.prevent-numeric-slugs",
-    default=0,
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Beacon

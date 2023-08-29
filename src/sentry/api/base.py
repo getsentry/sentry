@@ -603,7 +603,7 @@ class PreventNumericSlugMixin:
         Validates that the slug is not entirely numeric. Requires a feature flag
         to be turned on.
         """
-        if options.get("api.prevent-numeric-slugs") > 0 and slug.isnumeric():
+        if options.get("api.prevent-numeric-slugs") and slug.isnumeric():
             raise serializers.ValidationError(DEFAULT_SLUG_ERROR_MESSAGE)
         return slug
 

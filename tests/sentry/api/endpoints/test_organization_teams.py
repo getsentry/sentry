@@ -251,14 +251,14 @@ class OrganizationTeamsCreateTest(APITestCase):
             self.organization.slug, name="x" * 65, slug="xxxxxxx", status_code=400
         )
 
-    @override_options({"api.prevent-numeric-slugs": 1})
+    @override_options({"api.prevent-numeric-slugs": True})
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(
             self.organization.slug, name="hello word", slug="1234", status_code=400
         )
         assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
-    @override_options({"api.prevent-numeric-slugs": 1})
+    @override_options({"api.prevent-numeric-slugs": True})
     def test_generated_slug_not_entirely_numeric(self):
         response = self.get_success_response(self.organization.slug, name="1234", status_code=201)
         team = Team.objects.get(id=response.data["id"])

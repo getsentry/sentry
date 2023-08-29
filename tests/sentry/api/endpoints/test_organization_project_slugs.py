@@ -30,7 +30,7 @@ class OrganizationIndexDocs(APIDocsTestCase):
             str(project_two.id): "new-two",
         }
 
-    @override_options({"api.prevent-numeric-slugs": 1})
+    @override_options({"api.prevent-numeric-slugs": True})
     def test_invalid_numeric_slug(self):
         invalid_slugs = {**self.slugs, self.project_two.id: "1234"}
         response = self.get_error_response(

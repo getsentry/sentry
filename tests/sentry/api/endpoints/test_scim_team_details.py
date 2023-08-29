@@ -134,7 +134,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
             "sentry.scim.team.update", tags={"organization": self.organization}
         )
 
-    @override_options({"api.prevent-numeric-slugs": 1})
+    @override_options({"api.prevent-numeric-slugs": True})
     def test_scim_team_details_patch_rename_team_invalid_slug(self):
         self.base_data["Operations"] = [
             {

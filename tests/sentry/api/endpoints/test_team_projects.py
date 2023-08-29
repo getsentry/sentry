@@ -75,7 +75,7 @@ class TeamProjectsCreateTest(APITestCase):
 
         assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
-    @override_options({"api.prevent-numeric-slugs": 1})
+    @override_options({"api.prevent-numeric-slugs": True})
     def test_generated_slug_not_entirely_numeric(self):
         response = self.get_success_response(
             self.organization.slug,

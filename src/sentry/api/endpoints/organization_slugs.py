@@ -31,7 +31,7 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
         for project_id, slug in slugs.items():
             slug = slug.lower()
             try:
-                if options.get("api.prevent-numeric-slugs") > 0:
+                if options.get("api.prevent-numeric-slugs"):
                     validate_sentry_slug(slug)
                 else:
                     validate_slug(slug)

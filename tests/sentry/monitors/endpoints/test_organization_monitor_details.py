@@ -98,7 +98,7 @@ class UpdateMonitorTest(MonitorTestCase):
             self.organization.slug, monitor.slug, method="PUT", status_code=400, **{"slug": None}
         )
 
-    @override_options({"api.prevent-numeric-slugs": 1})
+    @override_options({"api.prevent-numeric-slugs": True})
     def test_invalid_numeric_slug(self):
         monitor = self._create_monitor()
         resp = self.get_error_response(

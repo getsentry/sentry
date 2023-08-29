@@ -353,7 +353,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug="canada-", status_code=400)
         self.get_error_response(self.organization.slug, slug="-canada", status_code=400)
         self.get_error_response(self.organization.slug, slug="----", status_code=400)
-        with override_options({"api.prevent-numeric-slugs": 1}):
+        with override_options({"api.prevent-numeric-slugs": True}):
             self.get_error_response(self.organization.slug, slug="1234", status_code=400)
 
     def test_upload_avatar(self):
