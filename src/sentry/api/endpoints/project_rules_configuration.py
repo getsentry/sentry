@@ -66,10 +66,11 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 condition_list.append(context)
             elif rule_type.startswith("filter/"):
                 if (
-                    has_issue_severity_alerts
-                    or context["id"] != "sentry.rules.filters.issue_severity.IssueSeverityFilter"
+                    context["id"] == "sentry.rules.filters.issue_severity.IssueSeverityFilter"
+                    and not has_issue_severity_alerts
                 ):
-                    filter_list.append(context)
+                    continue
+                filter_list.append(context)
             elif rule_type.startswith("action/"):
                 action_list.append(context)
 
