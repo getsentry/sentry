@@ -248,21 +248,9 @@ export default class ReplayReader {
 
   getChapterFrames = memoize(() =>
     [
-      ...removeDuplicateClicks(
-        this._sortedBreadcrumbFrames.filter(
-          frame =>
-            ['navigation', 'replay.init', 'replay.mutations', 'ui.click'].includes(
-              frame.category
-            ) ||
-            (frame.category === 'ui.slowClickDetected' &&
-              (isDeadClick(frame as SlowClickFrame) ||
-                isDeadRageClick(frame as SlowClickFrame)))
-        )
-      ),
-      ...this._sortedSpanFrames.filter(frame =>
-        ['navigation.navigate', 'navigation.reload', 'navigation.back_forward'].includes(
-          frame.op
-        )
+      ...this.getPerfFrames(),
+      ...this._sortedBreadcrumbFrames.filter(frame =>
+        ['replay.init', 'replay.mutations'].includes(frame.category)
       ),
       ...this._errors,
     ].sort(sortFrames)
