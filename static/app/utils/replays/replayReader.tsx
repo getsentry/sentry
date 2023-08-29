@@ -273,7 +273,7 @@ export default class ReplayReader {
       ...removeDuplicateClicks(
         this._sortedBreadcrumbFrames.filter(
           frame =>
-            frame.category === 'ui.click' ||
+            ['navigation', 'ui.click'].includes(frame.category) ||
             (frame.category === 'ui.slowClickDetected' &&
               (isDeadClick(frame as SlowClickFrame) ||
                 isDeadRageClick(frame as SlowClickFrame)))
