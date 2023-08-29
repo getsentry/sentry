@@ -59,7 +59,7 @@ export interface AssigneeSelectorDropdownProps {
   children: (props: RenderProps) => React.ReactNode;
   id: string;
   organization: Organization;
-  assignedTo?: Actor;
+  assignedTo?: Actor | null;
   disabled?: boolean;
   memberList?: User[];
   onAssign?: OnAssignCallback;
