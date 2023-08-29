@@ -69,6 +69,7 @@ export const platformProductAvailability = {
   'python-django': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-falcon': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-fastapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-flask': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
 } as Record<PlatformKey, ProductSolution[]>;
 
 export type DisabledProduct = {
