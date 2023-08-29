@@ -55,6 +55,14 @@ def projectconfig_cache_get_mock_config(monkeypatch):
 
 
 @pytest.fixture
+def globalconfig_get_mock_config(monkeypatch):
+    monkeypatch.setattr(
+        "sentry.relay.globalconfig.get_global_config",
+        lambda *args, **kargs: {"global_mock_config": True},
+    )
+
+
+@pytest.fixture
 def single_mock_proj_cached(monkeypatch):
     def cache_get(*args, **kwargs):
         if args[0] == "must_exist":
@@ -82,7 +90,10 @@ def project_config_get_mock(monkeypatch):
 
 @django_db_all
 def test_return_full_config_if_in_cache(
-    call_endpoint, default_projectkey, projectconfig_cache_get_mock_config
+    call_endpoint,
+    default_projectkey,
+    projectconfig_cache_get_mock_config,
+    globalconfig_get_mock_config,
 ):
     result, status_code = call_endpoint(full_config=True)
     assert status_code == 200
@@ -94,20 +105,23 @@ def test_return_full_config_if_in_cache(
 
 @django_db_all
 def test_return_project_and_global_config(
-    call_endpoint, default_projectkey, projectconfig_cache_get_mock_config
+    call_endpoint,
+    default_projectkey,
+    projectconfig_cache_get_mock_config,
+    globalconfig_get_mock_config,
 ):
     result, status_code = call_endpoint(full_config=True, global_=True)
     assert status_code == 200
     assert result == {
         "configs": {default_projectkey.public_key: {"is_mock_config": True}},
         "pending": [],
-        "global": {},
+        "global": {"global_mock_config": True},
     }
 
 
 @django_db_all
 def test_proj_in_cache_and_another_pending(
-    call_endpoint, default_projectkey, single_mock_proj_cached
+    call_endpoint, default_projectkey, single_mock_proj_cached, globalconfig_get_mock_config
 ):
     result, status_code = call_endpoint(
         full_config=True, public_keys=["must_exist", default_projectkey.public_key]
@@ -122,9 +136,7 @@ def test_proj_in_cache_and_another_pending(
 @patch("sentry.tasks.relay.build_project_config.delay")
 @django_db_all
 def test_enqueue_task_if_config_not_cached_not_queued(
-    schedule_mock,
-    call_endpoint,
-    default_projectkey,
+    schedule_mock, call_endpoint, default_projectkey, globalconfig_get_mock_config
 ):
     result, status_code = call_endpoint(full_config=True)
     assert status_code == 200
@@ -139,6 +151,7 @@ def test_debounce_task_if_proj_config_not_cached_already_enqueued(
     call_endpoint,
     default_projectkey,
     projectconfig_debounced_cache,
+    globalconfig_get_mock_config,
 ):
     result, status_code = call_endpoint(full_config=True)
     assert status_code == 200
@@ -149,9 +162,7 @@ def test_debounce_task_if_proj_config_not_cached_already_enqueued(
 @patch("sentry.relay.projectconfig_cache.backend.set_many")
 @django_db_all
 def test_task_writes_config_into_cache(
-    cache_set_many_mock,
-    default_projectkey,
-    project_config_get_mock,
+    cache_set_many_mock, default_projectkey, project_config_get_mock, globalconfig_get_mock_config
 ):
     build_project_config(
         public_key=default_projectkey.public_key,
