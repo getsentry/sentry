@@ -478,6 +478,7 @@ def test_build_snuba_query(mock_now, mock_now2):
     }
 
 
+@django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 @mock.patch(
@@ -560,6 +561,7 @@ def test_build_snuba_query_mri(mock_now, mock_now2):
         )
 
 
+@django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 @mock.patch(
@@ -946,6 +948,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
     )
 
 
+@django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_translate_results_derived_metrics(_1, _2):
@@ -1067,6 +1070,7 @@ def test_translate_results_derived_metrics(_1, _2):
     ]
 
 
+@django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_translate_results_missing_slots(_1, _2):
