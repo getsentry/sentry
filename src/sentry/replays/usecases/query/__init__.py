@@ -360,7 +360,7 @@ def _make_tenant_id(organization: Organization | None) -> dict[str, int]:
         return {"organization_id": organization.id}
 
 
-def _make_ordered(replay_ids: list[str], results: list[dict]) -> list[dict]:
+def _make_ordered(replay_ids: list[str], results: Any) -> list[Any]:
     if not replay_ids:
         return []
     elif not results:
