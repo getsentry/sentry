@@ -3,6 +3,7 @@ from typing import Any, Dict
 
 from django import forms
 
+from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group
@@ -33,16 +34,20 @@ class IssueSeverityFilter(EventFilter):
     prompt = "The issue's serverity is ..."
 
     def _passes(self, group: Group):
-        if not group:
+        has_issue_severity_alerts = features.has(
+            "projects:first-event-severity-alerting", self.project
+        )
+
+        if not has_issue_severity_alerts or not group:
+            return False
+
+        try:
+            severity = float(group.get_event_metadata().get("severity", ""))
+            value = float(self.get_option("value"))
+        except (KeyError, TypeError, ValueError):
             return False
 
         match = self.get_option("match")
-
-        try:
-            severity = float(group.get_event_metadata()["severity"])
-            value = float(self.get_option("value"))
-        except (TypeError, ValueError):
-            return False
 
         if match == MatchType.GREATER_OR_EQUAL:
             return severity >= value

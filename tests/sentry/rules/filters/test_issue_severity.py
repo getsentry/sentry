@@ -2,11 +2,13 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.rules import MatchType
 from sentry.rules.filters.issue_severity import IssueSeverityFilter
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class IssueSeverityFilterTest(RuleTestCase):
     rule_cls = IssueSeverityFilter
 
+    @with_feature("projects:first-event-severity-alerting")
     def test_valid_input_values(self):
         event = self.get_event()
         event.group.data["metadata"] = {"severity": "0.7"}
@@ -24,6 +26,7 @@ class IssueSeverityFilterTest(RuleTestCase):
             self.get_rule(data={"match": MatchType.LESS_OR_EQUAL, "value": 0.9}), event
         )
 
+    @with_feature("projects:first-event-severity-alerting")
     def test_no_group_does_not_pass(self):
         event = self.get_event()
         event.group_id = None
@@ -33,6 +36,15 @@ class IssueSeverityFilterTest(RuleTestCase):
             self.get_rule(data={"match": MatchType.GREATER_OR_EQUAL, "value": 0.5}), event
         )
 
+    @with_feature("projects:first-event-severity-alerting")
+    def test_fail_on_no_severity(self):
+        event = self.get_event()
+
+        self.assertDoesNotPass(
+            self.get_rule(data={"match": MatchType.GREATER_OR_EQUAL, "value": 0.5}), event
+        )
+
+    @with_feature("projects:first-event-severity-alerting")
     def test_fail_on_invalid_data(self):
         event = self.get_event()
         event.group.data["metadata"] = {"severity": "0.7"}
