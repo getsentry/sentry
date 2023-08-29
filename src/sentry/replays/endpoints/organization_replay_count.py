@@ -11,6 +11,7 @@ from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBas
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization
 from sentry.replays.usecases.replay_counts import get_replay_counts
+from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 MAX_REPLAY_COUNT = 51
@@ -49,10 +50,10 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
             )
         except NoProjects:
             return Response({})
-
+        data_source = Dataset.IssuePlatform if request.GET.get("data_source") else Dataset.Discover
         try:
             replay_counts = get_replay_counts(
-                snuba_params, request.GET.get("query"), request.GET.get("returnIds")
+                snuba_params, request.GET.get("query"), request.GET.get("returnIds"), data_source
             )
         except (InvalidSearchQuery, ValueError) as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)

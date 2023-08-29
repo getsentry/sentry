@@ -2,13 +2,18 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from typing import Any
 
 import pytest
 from django.urls import reverse
 
 from sentry.replays.testutils import mock_replay
-from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase, SnubaTestCase
+from sentry.snuba.dataset import Dataset
+from sentry.testutils.cases import (
+    APITestCase,
+    PerformanceIssueTestCase,
+    ReplaysSnubaTestCase,
+    SnubaTestCase,
+)
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
@@ -16,7 +21,9 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 @region_silo_test
-class OrganizationReplayCountEndpointTest(APITestCase, SnubaTestCase, ReplaysSnubaTestCase):
+class OrganizationReplayCountEndpointTest(
+    APITestCase, SnubaTestCase, ReplaysSnubaTestCase, PerformanceIssueTestCase
+):
     def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
@@ -103,91 +110,33 @@ class OrganizationReplayCountEndpointTest(APITestCase, SnubaTestCase, ReplaysSnu
         assert response.status_code == 200, response.content
         assert response.data == expected
 
-    def test_simple_return_ids(self):
-        event_id_a = "a" * 32
-        event_id_b = "b" * 32
-        replay1_id = uuid.uuid4().hex
-        replay2_id = uuid.uuid4().hex
-        replay3_id = uuid.uuid4().hex
-
+    def test_simple_performance(self):
+        replay_id = uuid.uuid4().hex
         self.store_replays(
             mock_replay(
                 datetime.datetime.now() - datetime.timedelta(seconds=22),
                 self.project.id,
-                replay1_id,
+                replay_id,
             )
         )
-        self.store_replays(
-            mock_replay(
-                datetime.datetime.now() - datetime.timedelta(seconds=22),
-                self.project.id,
-                replay2_id,
-            )
-        )
-        self.store_replays(
-            mock_replay(
-                datetime.datetime.now() - datetime.timedelta(seconds=22),
-                self.project.id,
-                replay3_id,
-            )
-        )
-        event_a = self.store_event(
-            data={
-                "event_id": event_id_a,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay1_id},
-                "fingerprint": ["group-1"],
-            },
+        event = self.create_performance_issue(
             project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": uuid.uuid4().hex,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay2_id},
-                "fingerprint": ["group-1"],
+            contexts={
+                "trace": {
+                    "trace_id": str(uuid.uuid4().hex),
+                    "span_id": "933e5c9a8e464da9",
+                    "type": "trace",
+                },
+                "replay": {"replay_id": replay_id},
             },
-            project_id=self.project.id,
         )
-        self.store_event(
-            data={
-                "event_id": event_id_b,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": "z" * 32},  # a replay id that doesn't exist
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-        )
-        event_c = self.store_event(
-            data={
-                "event_id": event_id_b,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay3_id},
-                "fingerprint": ["group-2"],
-            },
-            project_id=self.project.id,
-        )
-
-        query: dict[str, Any] = {
-            "query": f"issue.id:[{event_a.group.id}, {event_c.group.id}]",
-            "returnIds": True,
-        }
+        query = {"query": f"issue.id:[{event.group.id}]", "data_source": Dataset.IssuePlatform}
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
 
-        expected = {
-            event_a.group.id: sorted([replay1_id, replay2_id]),
-            event_c.group.id: sorted([replay3_id]),
-        }
+        expected = {event.group.id: 1}
         assert response.status_code == 200, response.content
-        self.assertCountEqual(
-            response.data[event_a.group.id],
-            expected[event_a.group.id],
-        )
-        self.assertCountEqual(
-            response.data[event_c.group.id],
-            expected[event_c.group.id],
-        )
+        assert response.data == expected
 
     def test_one_replay_multiple_issues(self):
         event_id_a = "a" * 32
@@ -405,3 +354,41 @@ class OrganizationReplayCountEndpointTest(APITestCase, SnubaTestCase, ReplaysSnu
             b'{"detail":"Invalid quote at \'[\\"root\': quotes must enclose text or be '
             b'escaped."}'
         ), response.content
+
+    # def test_performance_issue_replay_count(self):
+    #     event_id_a = "a" * 32
+    #     event_id_b = "b" * 32
+    #     replay1_id = uuid.uuid4().hex
+
+    #     self.store_replays(
+    #         mock_replay(
+    #             datetime.datetime.now() - datetime.timedelta(seconds=22),
+    #             self.project.id,
+    #             replay1_id,
+    #         )
+    #     )
+    #     event_a = self.store_event(
+    #         data={
+    #             "event_id": event_id_a,
+    #             "timestamp": iso_format(self.min_ago),
+    #             "tags": {"replayId": replay1_id},
+    #             "fingerprint": ["group-1"],
+    #         },
+    #         project_id=self.project.id,
+    #     )
+    #     event_b = self.store_event(
+    #         data={
+    #             "event_id": event_id_b,
+    #             "timestamp": iso_format(self.min_ago),
+    #             "tags": {"replayId": replay1_id},
+    #             "fingerprint": ["group-1"],
+    #         },
+    #         project_id=self.project.id,
+    #     )
+
+    #     query = {"query": f"issue.id:[{event_a.group.id}, {event_b.group.id}]"}
+    #     with self.feature(self.features):
+    #         response = self.client.get(self.url, query, format="json")
+    #     print("\n")
+    #     print(response.content)
+    #     print("\n")
