@@ -2174,14 +2174,15 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 timestamp=self.start + datetime.timedelta(hours=hour),
             )
 
-            self.store_transaction_metric(
-                value=1,
-                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
-                entity="metrics_counters",
-                tags={"query_hash": spec.query_hash, "satisfaction": "tolerable"},
-                timestamp=self.start + datetime.timedelta(hours=hour),
-            )
+            for j in range(0, 4):
+                self.store_transaction_metric(
+                    value=1,
+                    metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                    internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                    entity="metrics_counters",
+                    tags={"query_hash": spec.query_hash, "satisfaction": "tolerable"},
+                    timestamp=self.start + datetime.timedelta(hours=hour),
+                )
 
         query = TimeseriesMetricQueryBuilder(
             self.params,
@@ -2197,23 +2198,23 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         assert result["data"][:5] == [
             {
                 "time": self.start.isoformat(),
-                "apdex_10": 0.75,
+                "apdex_10": 0.6,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-                "apdex_10": 0.75,
+                "apdex_10": 0.6,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
-                "apdex_10": 0.75,
+                "apdex_10": 0.6,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
-                "apdex_10": 0.75,
+                "apdex_10": 0.6,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
-                "apdex_10": 0.75,
+                "apdex_10": 0.6,
             },
         ]
         self.assertCountEqual(
