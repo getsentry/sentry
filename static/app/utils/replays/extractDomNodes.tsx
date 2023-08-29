@@ -146,6 +146,12 @@ class BreadcrumbReferencesPlugin {
         html: truncated,
         timestamp: frame.timestampMs,
       });
+    } else {
+      this.activities.push({
+        frame,
+        html: '',
+        timestamp: frame.timestampMs,
+      });
     }
 
     this.nextExtract = null;
