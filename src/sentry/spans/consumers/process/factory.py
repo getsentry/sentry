@@ -90,9 +90,10 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
 
     snuba_span["sentry_tags"] = sentry_tags
 
-    event_data = deepcopy(snuba_span)
+    event_data = {}
     event_data["transaction"] = sentry_tags.get("transaction", "")
     event_data["contexts"] = {"trace": {"span_id": snuba_span["span_id"]}}
+    event_data["spans"] = [deepcopy(snuba_span)]
 
     group_config = load_span_grouping_config({"id": DEFAULT_CONFIG_ID})
     group = group_config.execute_strategy(event_data)
