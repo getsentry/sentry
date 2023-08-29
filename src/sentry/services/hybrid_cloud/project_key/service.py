@@ -4,8 +4,9 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Optional, cast
+from typing import List, Optional, Tuple, cast
 
+from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, RpcProjectKey
 from sentry.services.hybrid_cloud.region import ByOrganizationId, ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
@@ -27,6 +28,13 @@ class ProjectKeyService(RpcService):
     def get_project_key(
         self, *, organization_id: int, project_id: str, role: ProjectKeyRole
     ) -> Optional[RpcProjectKey]:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_all_projects_with_keys(
+        self, *, organization_id: int, role: ProjectKeyRole
+    ) -> List[Tuple[RpcProject, RpcProjectKey]]:
         pass
 
     @regional_rpc_method(resolve=ByRegionName())

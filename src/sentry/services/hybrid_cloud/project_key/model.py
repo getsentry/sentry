@@ -25,4 +25,8 @@ class ProjectKeyRole(Enum):
 
 
 class RpcProjectKey(RpcModel):
-    dsn_public: str = ""
+    label: str
+    public_key: str
+    secret_key: str
+    dsn_private: str
+    dsn_public: str
