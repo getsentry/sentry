@@ -77,8 +77,12 @@ export function replayTimestamps(
   const rawSpanDataFiltered = rawSpanData.filter(
     ({op}) => op !== 'largest-contentful-paint'
   );
-  const spanStartTimestamps = rawSpanDataFiltered.map(span => span.startTimestamp);
-  const spanEndTimestamps = rawSpanDataFiltered.map(span => span.endTimestamp);
+  const spanStartTimestamps = rawSpanDataFiltered
+    .map(span => span.startTimestamp)
+    .filter(Boolean);
+  const spanEndTimestamps = rawSpanDataFiltered
+    .map(span => span.endTimestamp)
+    .filter(Boolean);
 
   // Calculate min/max of each array individually, to prevent extra allocations.
   // Also using `getMinMax()` so we can handle any huge arrays.
