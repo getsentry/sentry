@@ -4,6 +4,7 @@ import selectEvent from 'react-select-event';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
 import ManageDashboards from 'sentry/views/dashboards/manage';
 
 const FEATURES = [
@@ -22,6 +23,8 @@ describe('Dashboards > Detail', function () {
     features: FEATURES,
   });
   beforeEach(function () {
+    const team = TestStubs.Team({slug: 'team-slug', isMember: true});
+    TeamStore.loadInitialData([{...team, access: ['team:read']}]);
     act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
 
     MockApiClient.addMockResponse({
