@@ -61,10 +61,10 @@ type InviteMembersModalOptions = {
 };
 
 type InviteMissingMembersModalOptions = {
-  allowedRoles?: OrgRole[];
-  missingMembers?: {integration: string; users: MissingMember[]};
-  onClose?: () => void;
-  organization?: Organization;
+  allowedRoles: OrgRole[];
+  missingMembers: {integration: string; users: MissingMember[]};
+  onClose: () => void;
+  organization: Organization;
 };
 
 export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
@@ -258,7 +258,7 @@ export async function openInviteMembersModal({
 export async function openInviteMissingMembersModal({
   onClose,
   ...args
-}: InviteMissingMembersModalOptions = {}) {
+}: InviteMissingMembersModalOptions) {
   const mod = await import('sentry/components/modals/inviteMissingMembersModal');
   const {default: Modal, modalCss} = mod;
 
