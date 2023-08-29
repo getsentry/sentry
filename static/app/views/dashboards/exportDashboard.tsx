@@ -20,7 +20,7 @@ async function exportDashboard() {
     };
 
     const params = getAPIParams(structure);
-    const apiUrl = `https://${params.base_url}/api/0/organizations/testorg-az/dashboards/${params.dashboard_id}/`;
+    const apiUrl = `https://${params.base_url}/api/0/organizations/demo/dashboards/${params.dashboard_id}/`;
     const response = await fetch(apiUrl);
     const jsonData = await response.json();
     const normalized = normalizeData(jsonData);
