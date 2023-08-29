@@ -251,6 +251,7 @@ def schedule_invalidate_project_config(
     project_id=None,
     public_key=None,
     countdown=5,
+    transaction_db="",
 ):
     """Schedules the :func:`invalidate_project_config` task.
 
@@ -272,8 +273,14 @@ def schedule_invalidate_project_config(
     :param countdown: The time to delay running this task in seconds.  Normally there is a
         slight delay to increase the likelihood of deduplicating invalidations but you can
         tweak this, like e.g. the :func:`invalidate_all` task does.
+    :param transaction_db: The Database the current active transaction is running against. If none
+        is provided, we default to using the Project model's backing DB.
     """
+
     from sentry.models import Project
+
+    if len(transaction_db) == 0:
+        transaction_db = router.db_for_write(Project)
 
     with sentry_sdk.start_span(
         op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
@@ -289,7 +296,7 @@ def schedule_invalidate_project_config(
                 public_key=public_key,
                 countdown=countdown,
             ),
-            router.db_for_write(Project),
+            using=transaction_db,
         )
 
 
