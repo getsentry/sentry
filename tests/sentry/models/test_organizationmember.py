@@ -1,5 +1,4 @@
 from datetime import timedelta
-from unittest.mock import patch
 
 import pytest
 from django.core import mail
@@ -8,7 +7,6 @@ from django.utils import timezone
 from rest_framework.serializers import ValidationError
 
 from sentry import roles
-from sentry.auth import manager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models import (
     INVITE_DAYS_VALID,
@@ -19,7 +17,6 @@ from sentry.models import (
 )
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -82,28 +79,6 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         msg = mail.outbox[0]
 
         assert msg.to == ["foo@example.com"]
-
-    @patch("sentry.utils.email.MessageBuilder")
-    def test_send_sso_unlink_email(self, builder):
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            user = self.create_user(email="foo@example.com")
-            user.password = ""
-            user.save()
-
-        member = self.create_member(user=user, organization=self.organization)
-        provider = manager.get("dummy")
-
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            rpc_user = user_service.get_user(user_id=user.id)
-            member.send_sso_unlink_email(rpc_user, provider)
-
-        context = builder.call_args[1]["context"]
-
-        assert context["organization"] == self.organization
-        assert context["provider"] == provider
-
-        assert not context["has_password"]
-        assert "set_password_url" in context
 
     def test_token_expires_at_set_on_save(self):
         with outbox_runner():

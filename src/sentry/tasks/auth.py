@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
+from urllib.parse import urlencode
 
 from django.db.models import F
 from django.urls import reverse
@@ -10,7 +11,10 @@ from sentry import audit_log, features, options
 from sentry.auth import manager
 from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.models import Organization, OrganizationMember, User, UserEmail
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
@@ -23,6 +27,9 @@ logger = logging.getLogger("sentry.auth")
 
 
 # TODO(hybrid-cloud): Remove cross-silo DB accesses, or review control silo usages
+# This task is triggered from both control silo (AuthHelper, OrganizationAuthSettingsView)
+# and region silo endpoints. Any request to the region endpoint will trap errors.
+# My hope is that this task can become control silo only.
 @instrumented_task(name="sentry.tasks.send_sso_link_emails", queue="auth")
 def email_missing_links(org_id: int, actor_id: int, provider_key: str, **kwargs):
     try:
@@ -46,13 +53,18 @@ def email_missing_links(org_id: int, actor_id: int, provider_key: str, **kwargs)
         member.send_sso_link_email(user.id, provider)
 
 
-# TODO(hybrid-cloud): Remove cross-silo DB accesses, or review control silo usages
-@instrumented_task(name="sentry.tasks.email_unlink_notifications", queue="auth")
+@instrumented_task(
+    name="sentry.tasks.email_unlink_notifications", queue="auth.control", silo_mode=SiloMode.CONTROL
+)
 def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
+    org = organization_service.get(id=org_id)
+    if not org:
+        logger.warning("Could not send SSO unlink emails: organization could not be found")
+        return
+
     try:
-        org = Organization.objects.get(id=org_id)
         provider = manager.get(provider_key)
-    except (Organization.DoesNotExist, ProviderNotRegistered) as e:
+    except ProviderNotRegistered as e:
         logger.warning("Could not send SSO unlink emails: %s", e)
         return
 
@@ -64,12 +76,53 @@ def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
     # Email all organization users, even if they never linked their accounts.
     # This provides a better experience in the case where SSO is enabled and
     # disabled in the timespan of users checking their email.
-    member_list = OrganizationMember.objects.filter(organization=org)
-
-    # TODO(mark) Membermapping records don't have this method.
-    # This entire method could be moved to an RPC call that is invoked from control silo.
+    member_list = OrganizationMemberMapping.objects.filter(
+        organization_id=org_id,
+        user_id__isnull=False,
+    ).select_related("user")
     for member in member_list:
-        member.send_sso_unlink_email(user, provider)
+        _send_sso_unlink_email(member, user, org, provider)
+
+
+def _send_sso_unlink_email(
+    member: OrganizationMemberMapping,
+    disabling_user: RpcUser,
+    organization: RpcOrganization,
+    provider,
+):
+    # Nothing to send if this member isn't associated to a user
+    if not member.user_id:
+        return
+
+    user = member.user
+    if not user:
+        return
+
+    recover_uri = "{path}?{query}".format(
+        path=reverse("sentry-account-recover"), query=urlencode({"email": user.email})
+    )
+    has_password = user.has_usable_password()
+
+    context = {
+        "email": user.email,
+        "recover_url": absolute_uri(recover_uri),
+        "has_password": has_password,
+        "organization": organization,
+        "disabled_by_email": disabling_user.email,
+        "provider": provider,
+    }
+    if not has_password:
+        password_hash = lost_password_hash_service.get_or_create(user_id=user.id)
+        context["set_password_url"] = password_hash.get_absolute_url(mode="set_password")
+
+    msg = MessageBuilder(
+        subject=f"Action Required for {organization.name}",
+        template="sentry/emails/auth-sso-disabled.txt",
+        html_template="sentry/emails/auth-sso-disabled.html",
+        type="organization.auth_sso_disabled",
+        context=context,
+    )
+    msg.send_async([user.email])
 
 
 class OrganizationComplianceTask(abc.ABC):

@@ -7,7 +7,6 @@ from datetime import timedelta
 from enum import Enum
 from hashlib import md5
 from typing import TYPE_CHECKING, FrozenSet, List, Mapping, MutableMapping, Set, TypedDict
-from urllib.parse import urlencode
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -416,48 +415,6 @@ class OrganizationMember(Model):
             context=context,
         )
         msg.send_async([self.get_email()])
-
-    def send_sso_unlink_email(self, disabling_user: RpcUser, provider):
-        from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
-        from sentry.utils.email import MessageBuilder
-
-        email = self.get_email()
-
-        recover_uri = "{path}?{query}".format(
-            path=reverse("sentry-account-recover"), query=urlencode({"email": email})
-        )
-
-        # Nothing to send if this member isn't associated to a user
-        if not self.user_id:
-            return
-
-        user = user_service.get_user(user_id=self.user_id)
-        if not user:
-            return
-
-        has_password = user.has_usable_password()
-
-        context = {
-            "email": email,
-            "recover_url": absolute_uri(recover_uri),
-            "has_password": has_password,
-            "organization": self.organization,
-            "disabled_by_email": disabling_user.email,
-            "provider": provider,
-        }
-
-        if not has_password:
-            password_hash = lost_password_hash_service.get_or_create(user_id=self.user_id)
-            context["set_password_url"] = password_hash.get_absolute_url(mode="set_password")
-
-        msg = MessageBuilder(
-            subject=f"Action Required for {self.organization.name}",
-            template="sentry/emails/auth-sso-disabled.txt",
-            html_template="sentry/emails/auth-sso-disabled.html",
-            type="organization.auth_sso_disabled",
-            context=context,
-        )
-        msg.send_async([email])
 
     def get_display_name(self):
         if self.user_id:
