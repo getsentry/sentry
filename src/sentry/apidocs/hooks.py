@@ -5,9 +5,10 @@ from sentry.apidocs.api_ownership_allowlist_dont_modify import API_OWNERSHIP_ALL
 from sentry.apidocs.build import OPENAPI_TAGS
 from sentry.apidocs.utils import SentryApiBuildError
 
-HTTP_METHODS_SET = Set[
-    Literal["GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH"]
+HTTP_METHOD_NAME = Literal[
+    "GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH"
 ]
+HTTP_METHODS_SET = Set[HTTP_METHOD_NAME]
 
 
 class EndpointRegistryType(TypedDict):
