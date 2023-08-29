@@ -230,7 +230,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
                     "incident_id": incident.identifier,
                 },
             ),
-            query="referrer=alert_email",
+            query="referrer=metric_alert_email",
         )
         expected = {
             "link": alert_link,
