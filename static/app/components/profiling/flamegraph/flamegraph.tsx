@@ -1180,9 +1180,9 @@ function Flamegraph(): ReactElement {
               chart={CPUChart}
               noMeasurementMessage={
                 profileGroup.metadata.platform === 'cocoa'
-                  ? 'Upgrade to version 8.9.6 of sentry-cocoa SDK to enable CPU usage collection'
+                  ? t('Upgrade to version 8.9.6 of sentry-cocoa SDK to enable CPU usage collection')
                   : profileGroup.metadata.platform === 'node'
-                  ? 'Upgrade to version 1.2.0 of @sentry/profiling-node to enable CPU usage collection'
+                  ? t('Upgrade to version 1.2.0 of @sentry/profiling-node to enable CPU usage collection')
                   : ''
               }
             />
