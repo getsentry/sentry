@@ -24,8 +24,9 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
   const organization = useOrganization();
   const location = useLocation();
 
+  console.log(event);
   const eventView = EventView.fromLocation(location);
-  eventView.query = `event.type:transaction transaction:${event?.occurrence?.evidenceData?.transaction}`;
+  eventView.query = `event.type:transaction transaction:${event.title}`;
   eventView.fields = [
     {field: 'p95(transaction.duration)'},
     {field: 'transaction'},
@@ -35,13 +36,17 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
   // Set the start and end time to 7 days before and after the breakpoint
   // TODO: This should be removed when the endpoint begins returning the start and end
   // explicitly
-  eventView.statsPeriod = undefined;
-  const detectionTime = new Date(event?.occurrence?.evidenceData?.breakpoint);
-  const start = new Date(detectionTime).setDate(detectionTime.getDate() - 7);
-  const end = new Date(detectionTime).setDate(detectionTime.getDate() + 7);
+  if (event?.occurrence) {
+    eventView.statsPeriod = undefined;
+    const detectionTime = new Date(event?.occurrence?.evidenceData?.breakpoint);
+    const start = new Date(detectionTime).setDate(detectionTime.getDate() - 7);
+    const end = new Date(detectionTime).setDate(detectionTime.getDate() + 7);
 
-  eventView.start = new Date(start).toISOString();
-  eventView.end = new Date(Math.min(end, Date.now())).toISOString();
+    eventView.start = new Date(start).toISOString();
+    eventView.end = new Date(Math.min(end, Date.now())).toISOString();
+  } else {
+    eventView.statsPeriod = '14d';
+  }
 
   const normalizedOccurrenceEvent = Object.keys(
     event?.occurrence?.evidenceData ?? []
@@ -58,11 +63,13 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
         location={location}
         trendChangeType={TrendChangeType.REGRESSION}
         trendFunctionField={TrendFunctionField.P95}
-        limit={1}
+        limit={5}
+        cursor="0:0:1"
         noPagination
         withBreakpoint
       >
         {({trendsData, isLoading}) => {
+          console.log(trendsData);
           return (
             <TrendsChart
               organization={organization}
