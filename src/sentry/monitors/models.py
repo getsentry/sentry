@@ -543,6 +543,7 @@ class MonitorEnvironment(Model):
     """
     The last time that the monitor changed state. Used for issue fingerprinting.
     """
+
     objects = MonitorEnvironmentManager()
 
     class Meta:
