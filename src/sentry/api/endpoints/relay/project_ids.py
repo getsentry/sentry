@@ -11,9 +11,9 @@ from sentry.models import ProjectKey
 
 @region_silo_endpoint
 class RelayProjectIdsEndpoint(Endpoint):
-    publish_status = [
-        {"POST": ApiPublishStatus.UNKNOWN},
-    ]
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
     owner = ApiOwner.OWNERS_INGEST

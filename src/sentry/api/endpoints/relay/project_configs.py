@@ -32,9 +32,9 @@ def _sample_apm():
 
 @region_silo_endpoint
 class RelayProjectConfigsEndpoint(Endpoint):
-    publish_status = [
-        {"POST": ApiPublishStatus.UNKNOWN},
-    ]
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.OWNERS_INGEST
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)

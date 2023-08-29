@@ -25,9 +25,9 @@ class RelayRegisterResponseSerializer(RelayIdSerializer):
 
 @region_silo_endpoint
 class RelayRegisterResponseEndpoint(Endpoint):
-    publish_status = [
-        {"POST": ApiPublishStatus.UNKNOWN},
-    ]
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.OWNERS_INGEST
     authentication_classes = ()
     permission_classes = ()

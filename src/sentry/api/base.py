@@ -156,7 +156,7 @@ class Endpoint(APIView):
 
     public: Optional[HTTP_METHODS_SET] = None
     owner: ApiOwner = ApiOwner.UNOWNED
-    publish_status: [{HTTP_METHODS_SET: ApiPublishStatus}] = []
+    publish_status: {HTTP_METHODS_SET: ApiPublishStatus} = {}
 
     rate_limits: RateLimitConfig | dict[
         str, dict[RateLimitCategory, RateLimit]

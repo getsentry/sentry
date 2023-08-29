@@ -76,9 +76,13 @@ def codemod_publish_status(endpoints):
     class_methods = {}
     for (path, path_regex, method, callback) in endpoints:
         view_class = callback.view_class
-        if view_class not in class_methods and view_class.publish_status == []:
-            class_methods[view_class] = []
-        class_methods[view_class].append(method)
+        if view_class not in class_methods:
+            if view_class.publish_status == {}:
+                class_methods[view_class] = set()
+            # else:
+            # print("****Already implemented in :", view_class)
+        if method not in class_methods[view_class]:
+            class_methods[view_class].add(method)
 
     # Not doing a full loop to just generate a few examples
     for (key, value) in take(5, class_methods.items()):
@@ -98,22 +102,16 @@ def codemod_publish_status(endpoints):
             file_to_read.close()
 
             # Prepare what you want to write
-            content = "    publish_status = [\n"
+            content = "    publish_status = {\n"
 
             for method in value:
                 if key.public and method in key.public:
-                    content = (
-                        content + '        {"' + method + '"' + ": ApiPublishStatus.PUBLIC},\n"
-                    )
+                    content = content + '        "' + method + '"' + ": ApiPublishStatus.PUBLIC,\n"
                 elif hasattr(key, "private") and key.private:
-                    content = (
-                        content + '        {"' + method + '"' + ": ApiPublishStatus.PRIVATE},\n"
-                    )
+                    content = content + '        "' + method + '"' + ": ApiPublishStatus.PRIVATE,\n"
                 else:
-                    content = (
-                        content + '        {"' + method + '"' + ": ApiPublishStatus.UNKNOWN},\n"
-                    )
-            content = content + "    ]\n"
+                    content = content + '        "' + method + '"' + ": ApiPublishStatus.UNKNOWN,\n"
+            content = content + "    }\n"
 
             # Write new content to file
             file_to_write = open(file_path, "w")
