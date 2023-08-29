@@ -2356,10 +2356,14 @@ def _calculate_event_grouping(
     Main entrypoint for modifying/enhancing and grouping an event, writes
     hashes back into event payload.
     """
+    load_stacktrace_from_cache = event.org_can_load_stacktrace_from_cache
     metric_tags = {
         "grouping_config": grouping_config["id"],
         "platform": event.platform or "unknown",
+        "loading_from_cache": event.org_can_load_stacktrace_from_cache,
     }
+    # This will help us differentiate when a transaction uses caching vs not
+    sentry_sdk.set_tag("stacktrace.loaded_from_cache", load_stacktrace_from_cache)
 
     with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
         with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):

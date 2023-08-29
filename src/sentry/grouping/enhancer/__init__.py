@@ -164,8 +164,6 @@ class Enhancements:
                 platform,
                 load_from_cache=load_stacktrace_from_cache,
             )
-            # This will help us differentiate when a transaction uses caching vs not
-            sentry_sdk.set_tag("stacktrace.loaded_from_cache", frames_changed)
             if frames_changed:
                 logger.info("The frames have been loaded from the cache. Skipping some work.")
                 return
@@ -513,11 +511,7 @@ def _update_frames_from_cached_values(
     Returns if the merged has correctly happened.
     """
     frames_changed = False
-    # XXX: Test the fallback value
-    with metrics.timer(
-        f"{DATADOG_KEY}.cache.get.timer",
-    ):
-        changed_frames_values = cache.get(cache_key, {})
+    changed_frames_values = cache.get(cache_key, {})
 
     # This helps tracking changes in the hit/miss ratio of the cache
     metrics.incr(
