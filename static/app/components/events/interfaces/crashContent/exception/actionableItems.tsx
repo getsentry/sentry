@@ -43,20 +43,6 @@ const keyMapping = {
   image_path: 'File Path',
 };
 
-/**
- *
- * TODOs:
- * Add to docs link button :
- *  const handleDocsClick = (type: SourceMapProcessingIssueType) => {
-    trackAnalytics('source_map_debug.docs_link_clicked', {
-      ...analyticsParams,
-      type,
-    });
-  };
-  * Fill in TBDs
-  * Add in warning mode
- */
-
 function getErrorMessage(
   error: ActionableItems,
   sdkName?: string

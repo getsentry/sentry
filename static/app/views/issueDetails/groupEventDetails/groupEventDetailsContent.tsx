@@ -96,7 +96,6 @@ function GroupEventDetailsContent({
     <Fragment>
       <EventErrors event={event} project={project} isShare={false} />
       {hasActionableItems && <ActionableItem event={event} projectSlug={projectSlug} />}
-
       <EventCause
         project={project}
         eventId={event.id}
