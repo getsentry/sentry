@@ -2,13 +2,16 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import TYPE_CHECKING, Iterable, Mapping
+from typing import TYPE_CHECKING, Iterable, Mapping, Optional, Tuple
 
 from django.conf import settings
+from django.core.serializers.base import DeserializedObject
 from django.db import models
+from django.forms import model_to_dict
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
@@ -80,3 +83,15 @@ class UserEmail(Model):
     def get_primary_email(cls, user: User) -> UserEmail:
         """@deprecated"""
         return cls.objects.get_primary_email(user)
+
+    # TODO(getsentry/team-ospo#181): what's up with email/useremail here? Seems like both get added
+    # with `sentry.user` simultaneously? Will need to make more robust user handling logic, and to
+    # test what happens when a UserEmail already exists.
+    def write_relocation_import(
+        self, pk_map: PrimaryKeyMap, _: DeserializedObject
+    ) -> Optional[Tuple[int, int]]:
+        old_pk = super()._normalize_before_relocation_import(pk_map)
+        (useremail, _) = self.__class__.objects.get_or_create(
+            user=self.user, email=self.email, defaults=model_to_dict(self)
+        )
+        return (old_pk, useremail.pk)

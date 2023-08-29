@@ -28,6 +28,7 @@ class IntegrationRepositoryTestCase(TestCase):
             "identifier": self.repo_name,
             "external_id": "654321",
             "integration_id": self.integration.id,
+            "url": "https://github.com/getsentry/sentry",
         }
 
         responses.add(
@@ -88,7 +89,10 @@ class IntegrationRepositoryTestCase(TestCase):
             integration_id=integration.id,
         )
 
-        self.provider.create_repository(self.config, self.organization)
+        _, repo = self.provider.create_repository(self.config, self.organization)
+
+        assert repo.name == self.config["identifier"]
+        assert repo.url == self.config["url"]
 
     def test_create_repository__repo_exists_update_name(self, get_jwt):
         repo = self._create_repo(external_id=self.config["external_id"], name="getsentry/santry")

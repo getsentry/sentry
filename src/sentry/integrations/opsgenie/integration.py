@@ -19,6 +19,7 @@ from sentry.integrations.base import (
 from sentry.models import Integration, OrganizationIntegration
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.tasks.integrations import migrate_opsgenie_plugin
 from sentry.web.helpers import render_to_response
 
 from .client import OpsgenieClient
@@ -39,13 +40,13 @@ FEATURES = [
         """
         Manage incidents and outages by sending Sentry notifications to Opsgenie.
         """,
-        IntegrationFeatures.INCIDENT_MANAGEMENT,
+        IntegrationFeatures.ENTERPRISE_INCIDENT_MANAGEMENT,
     ),
     FeatureDescription(
         """
         Configure rule based Opsgenie alerts that automatically trigger and notify specific teams.
         """,
-        IntegrationFeatures.ALERT_RULE,
+        IntegrationFeatures.ENTERPRISE_ALERT_RULE,
     ),
 ]
 
@@ -148,6 +149,14 @@ class OpsgenieIntegration(IntegrationInstallation):
                 raise ValidationError({"duplicate_name": ["Duplicate team name."]})
             team["id"] = str(self.org_integration.id) + "-" + team["team"]
         return super().update_organization_config(data)
+
+    def schedule_migrate_opsgenie_plugin(self):
+        migrate_opsgenie_plugin.apply_async(
+            kwargs={
+                "integration_id": self.model.id,
+                "organization_id": self.organization_id,
+            }
+        )
 
 
 class OpsgenieIntegrationProvider(IntegrationProvider):
