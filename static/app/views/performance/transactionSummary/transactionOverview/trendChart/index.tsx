@@ -43,7 +43,6 @@ type Props = ViewProps & {
   trendFunction: TrendFunctionField;
   trendParameter: string;
   withoutZerofill: boolean;
-  showHeader?: boolean;
   withBreakpoint?: boolean;
 };
 
@@ -62,7 +61,6 @@ function TrendChart({
   start: propsStart,
   end: propsEnd,
   projects,
-  showHeader = true,
 }: Props) {
   const router = useRouter();
   const location = useLocation();
@@ -176,7 +174,7 @@ function TrendChart({
 
   return (
     <Fragment>
-      {showHeader && header}
+      {header}
       {shouldGetBreakpoint ? (
         // queries events-trends-statsv2 for breakpoint data (feature flag only)
         <TrendsDiscoverQuery

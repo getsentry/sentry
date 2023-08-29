@@ -117,7 +117,6 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
 
   const getChart = provided =>
     function () {
-      debugger;
       return (
         <TrendsChart
           {...provided}

@@ -234,7 +234,7 @@ function getDocumentTitle(transactionName: string): string {
   return [t('Summary'), t('Performance')].join(' - ');
 }
 
-export function generateEventView({
+function generateEventView({
   location,
   transactionName,
 }: {

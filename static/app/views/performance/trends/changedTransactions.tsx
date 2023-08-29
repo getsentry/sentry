@@ -324,7 +324,7 @@ function ChangedTransactions(props: Props) {
                           transactions={transactionsList}
                           location={location}
                           projects={projects}
-                          statsData={[] as unknown as TrendsStats}
+                          statsData={statsData}
                           handleSelectTransaction={handleChangeSelected(
                             location,
                             organization,
