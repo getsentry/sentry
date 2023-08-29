@@ -167,17 +167,15 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
   };
 
   handleOpsgenieMigration = async () => {
+    const {
+      organization,
+      params: {integrationId},
+    } = this.props;
     try {
-      const {
-        organization,
-        params: {integrationId},
-      } = this.props;
-
       await this.api.requestPromise(
         `/organizations/${organization.slug}/integrations/${integrationId}/migrate-opsgenie/`,
         {
           method: 'PUT',
-          data: {},
         }
       );
       this.setState(
