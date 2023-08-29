@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, Optional, Tuple, Type, TypeVar
+from collections import defaultdict
+from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, Tuple, Type, TypeVar
 
 from django.apps.config import AppConfig
 from django.db import models
 from django.db.models import signals
+from django.forms import model_to_dict
 from django.utils import timezone
+from rest_framework import serializers
 
 from sentry.backup.dependencies import PrimaryKeyMap, dependencies, normalize_model_name
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -24,6 +27,11 @@ __all__ = (
     "get_model_if_available",
     "control_silo_only_model",
     "region_silo_only_model",
+)
+
+
+import_guards: MutableMapping[Type[BaseModel], list[Type[serializers.Serializer]]] = defaultdict(
+    list
 )
 
 
@@ -128,9 +136,21 @@ class BaseModel(models.Model):
             if fk is not None:
                 new_fk = pk_map.get(normalize_model_name(model_relation.model), fk)
                 if new_fk is None:
-                    return
+                    return None
 
                 setattr(self, field_id, new_fk)
+
+        if self.__class__ in import_guards:
+            for guard_cls in import_guards[self.__class__]:
+                foo = model_to_dict(self)
+                guard = guard_cls(data=foo)
+                guard.is_valid(raise_exception=True)
+                # try:
+                #     if not guard.is_valid(raise_exception=True):
+                #         # TODO(getsentry/team-ospo#181): Need to add this to a list of findings,
+                #         # rather than silently failing.
+                #         return None
+                # except serializers.ValidationError as e:
 
         old_pk = self.pk
         self.pk = None

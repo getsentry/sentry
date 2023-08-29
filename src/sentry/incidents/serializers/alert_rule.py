@@ -47,7 +47,7 @@ from .alert_rule_trigger import AlertRuleTriggerSerializer
 logger = logging.getLogger(__name__)
 
 
-@import_guard(AlertRule)
+# @import_guard(AlertRule)
 class AlertRuleSerializer(CamelSnakeModelSerializer):
     """
     Serializer for creating/updating an alert rule. Required context:
