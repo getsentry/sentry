@@ -2075,6 +2075,8 @@ SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE = 0.1
 
 SENTRY_METRICS_INDEXER_SPANNER_OPTIONS: dict[str, Any] = {}
 
+SENTRY_METRICS_INDEXER_REINDEXED_INTS: dict[int, str] = {}
+
 # Rate limits during string indexing for our metrics product.
 # Which cluster to use. Example: {"cluster": "default"}
 SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS: dict[str, str] = {}
