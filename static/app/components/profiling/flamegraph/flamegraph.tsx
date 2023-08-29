@@ -1160,9 +1160,9 @@ function Flamegraph(): ReactElement {
               chart={memoryChart}
               noMeasurementMessage={
                 profileGroup.metadata.platform === 'cocoa'
-                  ? 'Upgrade to version 8.9.6 of sentry-cocoa SDK to enable memory usage collection'
+                  ? t('Upgrade to version 8.9.6 of sentry-cocoa SDK to enable memory usage collection')
                   : profileGroup.metadata.platform === 'node'
-                  ? 'Upgrade to version 1.2.0 of @sentry/profiling-node to enable memory usage collection'
+                  ? t('Upgrade to version 1.2.0 of @sentry/profiling-node to enable memory usage collection')
                   : ''
               }
             />
