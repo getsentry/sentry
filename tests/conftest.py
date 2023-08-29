@@ -2,6 +2,7 @@ import os
 from typing import MutableMapping
 
 import pytest
+import responses
 from django.db import connections
 
 from sentry.silo import SiloMode
@@ -195,3 +196,17 @@ def audit_hybrid_cloud_writes_and_deletes(request):
             conn.force_debug_cursor = debug_cursor_state[conn.alias]
 
             validate_protected_queries(conn.queries)
+
+
+@pytest.fixture(autouse=True)
+def check_leaked_responses_mocks():
+    yield
+    leaked = responses.registered()
+    if leaked:
+        responses.reset()
+
+        leaked_s = "".join(f"- {item}\n" for item in leaked)
+        raise AssertionError(
+            f"`responses` were leaked outside of the test context:\n{leaked_s}"
+            f"(make sure to use `@responses.activate` or `with responses.mock:`)"
+        )

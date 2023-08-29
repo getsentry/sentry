@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple, Typ
 
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
-from sentry.constants import DataCategory
 from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models import (
     DashboardWidgetQuery,
@@ -17,7 +16,6 @@ from sentry.models import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
-    QUERY_HASH_KEY,
     MetricSpec,
     OnDemandMetricSpec,
     RuleCondition,
@@ -117,7 +115,7 @@ def _get_alert_metric_specs(
     specs = []
     for alert in alert_rules:
         alert_snuba_query = alert.snuba_query
-        if result := _convert_snuba_query_to_metric(alert.snuba_query, prefilling):
+        if result := _convert_snuba_query_to_metric(project, alert.snuba_query, prefilling):
             _log_on_demand_metric_spec(
                 project_id=project.id,
                 spec_for="alert",
@@ -195,14 +193,14 @@ def _merge_metric_specs(
 
 
 def _convert_snuba_query_to_metric(
-    snuba_query: SnubaQuery, prefilling: bool
+    project: Project, snuba_query: SnubaQuery, prefilling: bool
 ) -> Optional[HashedMetricSpec]:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
     returns a tuple of (hash, MetricSpec) for the query. Otherwise, returns None.
     """
     return _convert_aggregate_and_query_to_metric(
-        snuba_query.dataset, snuba_query.aggregate, snuba_query.query, prefilling
+        project, snuba_query.dataset, snuba_query.aggregate, snuba_query.query, prefilling
     )
 
 
@@ -220,6 +218,7 @@ def _convert_widget_query_to_metric(
 
     for aggregate in widget_query.aggregates:
         if result := _convert_aggregate_and_query_to_metric(
+            project,
             # there is an internal check to make sure we extract metrics oly for performance dataset
             # however widgets do not have a dataset field, so we need to pass it explicitly
             Dataset.PerformanceMetrics.value,
@@ -246,22 +245,21 @@ def _convert_widget_query_to_metric(
 
 
 def _convert_aggregate_and_query_to_metric(
-    dataset: str, aggregate: str, query: str, prefilling: bool
+    project: Project, dataset: str, aggregate: str, query: str, prefilling: bool
 ) -> Optional[HashedMetricSpec]:
+    """
+    Converts an aggregate and a query to a metric spec with its hash value.
+    """
     try:
         if not should_use_on_demand_metrics(dataset, aggregate, query, prefilling):
             return None
 
-        spec = OnDemandMetricSpec(aggregate, query)
-        query_hash = spec.query_hash()
+        on_demand_spec = OnDemandMetricSpec(
+            field=aggregate,
+            query=query,
+        )
 
-        return query_hash, {
-            "category": DataCategory.TRANSACTION.api_name(),
-            "mri": spec.mri,
-            "field": spec.field,
-            "condition": spec.condition(),
-            "tags": [{"key": QUERY_HASH_KEY, "value": query_hash}],
-        }
+        return on_demand_spec.query_hash, on_demand_spec.to_metric_spec(project)
     except Exception as e:
         # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
         # Sentry console.

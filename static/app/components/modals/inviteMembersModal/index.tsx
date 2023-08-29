@@ -16,6 +16,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ORG_ROLES} from 'sentry/constants';
 import {IconAdd, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
+import SentryTypes from 'sentry/sentryTypes';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -52,6 +53,10 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
   InviteMembersModalProps,
   State
 > {
+  static childContextTypes = {
+    organization: SentryTypes.Organization,
+  };
+
   get inviteTemplate(): InviteRow {
     return {
       emails: new Set(),
@@ -64,6 +69,14 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
    * Used for analytics tracking of the modals usage.
    */
   sessionId = '';
+
+  getChildContext() {
+    // Expose organization via context to descendants
+    // e.g. TeamSelector relies on it being present
+    return {
+      organization: this.props.organization,
+    };
+  }
 
   componentDidMount() {
     super.componentDidMount();
