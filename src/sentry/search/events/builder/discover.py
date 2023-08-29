@@ -282,6 +282,9 @@ class BaseQueryBuilder:
             orderby=orderby,
         )
 
+    def are_columns_resolved(self) -> bool:
+        return self.columns and isinstance(self.columns[0], Function)
+
     def resolve_time_conditions(self) -> None:
         if self.builder_config.skip_time_conditions:
             return
