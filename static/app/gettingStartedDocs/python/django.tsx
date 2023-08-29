@@ -117,9 +117,7 @@ export function GettingStartedWithDjango({
     otherConfigs.push(profilingConfiguration);
   }
 
-  if (otherConfigs.length > 0) {
-    sentryInitContent = sentryInitContent.concat(otherConfigs);
-  }
+  sentryInitContent = sentryInitContent.concat(otherConfigs);
 
   return (
     <Layout
