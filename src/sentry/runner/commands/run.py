@@ -731,9 +731,7 @@ def basic_consumer(consumer_name, consumer_args, topic, **options):
 
     log_level = options.pop("log_level", None)
     if log_level is not None:
-        import arroyo
-
-        logging.getLogger(arroyo.__name__).setLevel(log_level.upper())
+        logging.getLogger("arroyo").setLevel(log_level.upper())
 
     add_global_tags(kafka_topic=topic, consumer_group=options["group_id"])
     initialize_arroyo_main()
