@@ -530,7 +530,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 "evidence_display": [
                     {
                         "name": "Regression",
-                        "value": "Transaction duration changed from 14.0 ms to 28.0 ms",
+                        "value": "Increased from 14.0 ms to 28.0 ms (P95)",
                         "important": True,
                     },
                     {"name": "Transaction", "value": "foo", "important": True},
