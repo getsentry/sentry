@@ -174,7 +174,7 @@ class MonitorTaskCheckMissingTest(TestCase):
             == monitor_environment_updated.next_checkin + timedelta(minutes=5)
         )
 
-    def assert_state_does_not_change_for_state(self, state):
+    def assert_state_does_not_change_for_status(self, state):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -210,13 +210,13 @@ class MonitorTaskCheckMissingTest(TestCase):
         ).exists()
 
     def test_missing_checkin_but_disabled(self):
-        self.assert_state_does_not_change_for_state(ObjectStatus.DISABLED)
+        self.assert_state_does_not_change_for_status(ObjectStatus.DISABLED)
 
     def test_missing_checkin_but_pending_deletion(self):
-        self.assert_state_does_not_change_for_state(ObjectStatus.PENDING_DELETION)
+        self.assert_state_does_not_change_for_status(ObjectStatus.PENDING_DELETION)
 
     def test_missing_checkin_but_deletion_in_progress(self):
-        self.assert_state_does_not_change_for_state(ObjectStatus.DELETION_IN_PROGRESS)
+        self.assert_state_does_not_change_for_status(ObjectStatus.DELETION_IN_PROGRESS)
 
     def test_not_missing_checkin(self):
         """
