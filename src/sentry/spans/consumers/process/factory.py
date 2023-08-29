@@ -92,7 +92,28 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
 
     grouping_config_id = {"id": DEFAULT_CONFIG_ID}
     grouping_config = load_span_grouping_config(grouping_config_id)
-    group = grouping_config.strategy.get_span_group(Span(**snuba_span))
+
+    if snuba_span["is_segment"]:
+        group = grouping_config.strategy.get_transaction_span_group(
+            {"transaction": span_data.get("transaction", "")},
+        )
+    else:
+        # Build a span with only necessary values filled.
+        span = Span(
+            op=snuba_span.get("op", ""),
+            description=snuba_span.get("description", ""),
+            fingerprint=None,
+            trace_id="",
+            parent_span_id="",
+            span_id="",
+            start_timestamp=0,
+            timestamp=0,
+            tags=None,
+            data=None,
+            same_process_as_parent=True,
+        )
+        group = grouping_config.strategy.get_span_group(span)
+
     snuba_span["group_raw"] = group or "0"
     snuba_span["span_grouping_config"] = grouping_config_id
 
