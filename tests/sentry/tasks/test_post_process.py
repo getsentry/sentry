@@ -1660,7 +1660,8 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
                 is_new_group_environment=True,
                 event=event,
             )
-            incr.assert_called_with("post_process.process_replay_link.id_exists")
+            incr.assert_any_call("post_process.process_replay_link.id_sampled")
+            incr.assert_any_call("post_process.process_replay_link.id_exists")
 
     def test_no_replay(self, incr):
         event = self.create_event(
