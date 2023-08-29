@@ -1,6 +1,8 @@
+import {ShortIdResponse} from 'sentry/types';
+
 import {Group} from './group';
 
-export function ShortIdQueryResult(params = {}) {
+export function ShortIdQueryResult(params = {}): ShortIdResponse {
   const group = Group({
     metadata: {
       type: 'group type',
