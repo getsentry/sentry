@@ -1,6 +1,12 @@
-export function Organizations(params = {}) {
+import {Organization as OrganizationType} from 'sentry/types';
+
+import {Organization} from './organization';
+
+export function Organizations(
+  params: Partial<OrganizationType> = {}
+): OrganizationType[] {
   return [
-    {
+    Organization({
       id: '1',
       name: 'test 1',
       slug: 'test 1',
@@ -10,8 +16,8 @@ export function Organizations(params = {}) {
         name: 'active',
       },
       ...params,
-    },
-    {
+    }),
+    Organization({
       id: '2',
       name: 'test 2',
       slug: 'test 2',
@@ -21,6 +27,6 @@ export function Organizations(params = {}) {
         name: 'active',
       },
       ...params,
-    },
+    }),
   ];
 }
