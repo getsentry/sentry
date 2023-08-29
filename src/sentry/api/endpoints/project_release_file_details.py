@@ -191,7 +191,7 @@ class ReleaseFileDetailsMixin:
 
         file = releasefile.file
 
-        # TODO(dcramer): this doesnt handle a failure from file.deletefile() to
+        # TODO(dcramer): this doesnt handle a failure from file.delete() to
         # the actual deletion of the db row
         releasefile.delete()
         file.delete()

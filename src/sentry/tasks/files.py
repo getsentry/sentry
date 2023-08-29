@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 from django.apps import apps
 from django.db import DatabaseError, IntegrityError, router
+from django.utils import timezone
 
 from sentry.locks import locks
 from sentry.silo import SiloMode
@@ -80,10 +83,14 @@ def delete_unreferenced_blobs_control(blob_ids):
 def delete_unreferenced_blobs(blob_model, blob_index_model, blob_ids):
 
     for blob_id in blob_ids:
+        # If a blob is referenced, we do not want to delete it
         if blob_index_model.objects.filter(blob_id=blob_id).exists():
             continue
         try:
-            blob = blob_model.objects.get(id=blob_id)
+            # We also want to skip new blobs which are just in the process of
+            # being uploaded. See `cleanup.py::cleanup_unused_files` as well.
+            cutoff = timezone.now() - timedelta(days=1)
+            blob = blob_model.objects.get(id=blob_id, timestamp__lte=cutoff)
         except blob_model.DoesNotExist:
             pass
         else:
