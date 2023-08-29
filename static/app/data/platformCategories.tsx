@@ -112,6 +112,7 @@ export const backend = [
   'python-starlette',
   'python-sanic',
   'python-celery',
+  'python-chalice', // TODO(aknaus): Add to profiling / performance?
   'python-bottle',
   'python-pylons',
   'python-pyramid',
