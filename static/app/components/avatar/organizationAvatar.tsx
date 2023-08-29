@@ -19,6 +19,7 @@ function OrganizationAvatar({organization, ...props}: Props) {
       type={(organization.avatar && organization.avatar.avatarType) || 'letter_avatar'}
       uploadPath="organization-avatar"
       uploadId={organization.avatar && organization.avatar.avatarUuid}
+      uploadDomain={organization.links?.regionUrl}
       letterId={slug}
       tooltip={slug}
       title={title}

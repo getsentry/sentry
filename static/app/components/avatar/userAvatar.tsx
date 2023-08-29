@@ -66,6 +66,7 @@ function UserAvatar({
         letterId: user.email || user.username || user.id || user.ip_address,
         title: user.name || user.email || user.username || '',
       };
+  const {sentryUrl} = window.__initialData?.links ?? {};
 
   return (
     <BaseAvatar
@@ -74,6 +75,7 @@ function UserAvatar({
       type={type}
       uploadPath="avatar"
       uploadId={avatarData.uploadId}
+      uploadDomain={sentryUrl}
       gravatarId={avatarData.gravatarId}
       letterId={avatarData.letterId}
       title={avatarData.title}
