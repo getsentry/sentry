@@ -2,7 +2,7 @@ import {useCallback, useMemo} from 'react';
 import uniq from 'lodash/uniq';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {decodeList} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
 import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
@@ -17,7 +17,6 @@ const DEFAULT_FILTERS = {
 } as Record<PerfSelectOption['qs'], string[]>;
 
 export type FilterFields = {
-  f_p_search: string;
   f_p_type: string[];
 };
 
@@ -28,10 +27,8 @@ type Options = {
 type Return = {
   getCrumbTypes: () => {label: string; value: string}[];
   items: ReplayTraceRow[];
-  searchTerm: string;
   selectValue: string[];
   setFilters: (val: PerfSelectOption[]) => void;
-  setSearchTerm: (searchTerm: string) => void;
 };
 
 const TYPE_TO_LABEL: Record<string, string> = {
@@ -50,25 +47,21 @@ function typeToLabel(val: string): string {
 const FILTERS = {
   type: (item: ReplayTraceRow, type: string[]) =>
     type.length === 0 || type.includes(getFrameOpOrCategory(item.replayFrame)),
-  searchTerm: (item: ReplayTraceRow, searchTerm: string) =>
-    // TOOD: this should not only look at replayFrame, there's lots of stuff to see
-    JSON.stringify(item.replayFrame).toLowerCase().includes(searchTerm),
 };
 
 function usePerfFilters({traceRows}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
   const type = useMemo(() => decodeList(query.f_p_type), [query.f_p_type]);
-  const searchTerm = decodeScalar(query.f_p_search, '').toLowerCase();
 
   const items = useMemo(
     () =>
       filterItems({
         items: traceRows,
         filterFns: FILTERS,
-        filterVals: {type, searchTerm},
+        filterVals: {type},
       }),
-    [traceRows, type, searchTerm]
+    [traceRows, type]
   );
 
   const getCrumbTypes = useCallback(
@@ -83,11 +76,6 @@ function usePerfFilters({traceRows}: Options): Return {
           qs: 'f_p_type',
         })),
     [traceRows, type]
-  );
-
-  const setSearchTerm = useCallback(
-    (f_p_search: string) => setFilter({f_p_search: f_p_search || undefined}),
-    [setFilter]
   );
 
   const setFilters = useCallback(
@@ -106,8 +94,6 @@ function usePerfFilters({traceRows}: Options): Return {
   return {
     getCrumbTypes,
     items,
-    searchTerm,
-    setSearchTerm,
     setFilters,
     selectValue: [...type],
   };
