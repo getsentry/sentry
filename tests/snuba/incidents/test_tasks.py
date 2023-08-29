@@ -23,6 +23,7 @@ from sentry.incidents.logic import (
 from sentry.incidents.models import (
     AlertRuleTriggerAction,
     Incident,
+    IncidentActivity,
     IncidentStatus,
     IncidentType,
     TriggerStatus,
@@ -161,6 +162,9 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
         assert len(mail.outbox) == 1
         handler = EmailActionHandler(self.action, active_incident().get(), self.project)
+        incident_activity = (
+            IncidentActivity.objects.filter(incident=handler.incident).order_by("-id").first()
+        )
         message_builder = handler.build_message(
             generate_incident_trigger_email_context(
                 handler.project,
@@ -168,6 +172,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
                 handler.action.alert_rule_trigger,
                 TriggerStatus.ACTIVE,
                 IncidentStatus.CRITICAL,
+                notification_uuid=str(incident_activity.notification_uuid),
             ),
             TriggerStatus.ACTIVE,
             self.user.id,

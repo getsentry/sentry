@@ -347,6 +347,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         new_status: int,
         incident_attachment_json: str,
         metric_value: Optional[str] = None,
+        notification_uuid: str | None = None,
     ) -> None:
         sentry_app = SentryApp.objects.get(id=sentry_app_id)
 
