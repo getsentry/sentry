@@ -34,11 +34,7 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
-import {
-  AlertType,
-  datasetOmittedTags,
-  datasetSupportedTags,
-} from 'sentry/views/alerts/wizard/options';
+import {AlertType, getSupportedAndOmmitedTags} from 'sentry/views/alerts/wizard/options';
 
 import {getProjectOptions} from '../utils';
 
@@ -479,8 +475,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     }
                     searchSource="alert_builder"
                     defaultQuery={initialData?.query ?? ''}
-                    omitTags={datasetOmittedTags(dataset, organization)}
-                    supportedTags={datasetSupportedTags(dataset, organization)}
+                    {...getSupportedAndOmmitedTags(dataset, organization)}
                     includeSessionTagsValues={dataset === Dataset.SESSIONS}
                     disabled={disabled}
                     useFormWrapper={false}

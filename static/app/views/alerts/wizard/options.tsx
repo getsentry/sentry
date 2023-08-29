@@ -11,7 +11,6 @@ import {
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
-import {ON_DEMAND_METRICS_SUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {
   Dataset,
   EventTypes,
@@ -260,7 +259,8 @@ export function datasetSupportedTags(
 
 function transactionSupportedTags(org: Organization) {
   if (org.features.includes('on-demand-metrics-extraction')) {
-    return [...ON_DEMAND_METRICS_SUPPORTED_TAGS];
+    // on-demand metrics support all tags
+    return undefined;
   }
   return TRANSACTION_SUPPORTED_TAGS;
 }
@@ -304,6 +304,21 @@ export function datasetOmittedTags(
       : undefined,
     [Dataset.SESSIONS]: undefined,
   }[dataset];
+}
+
+export function getSupportedAndOmmitedTags(dataset: Dataset, organization: Organization) {
+  const omitTags = datasetOmittedTags(dataset, organization);
+  const supportedTags = datasetSupportedTags(dataset, organization);
+
+  const result = {omitTags, supportedTags};
+
+  // remove undefined values, since passing explicit undefined to the SeachBar overrides its defaults
+  return Object.keys({omitTags, supportedTags}).reduce((acc, key) => {
+    if (result[key] !== undefined) {
+      acc[key] = result[key];
+    }
+    return acc;
+  }, {});
 }
 
 export function getMEPAlertsDataset(
