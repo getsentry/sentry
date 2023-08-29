@@ -148,9 +148,11 @@ export function getGroupReprocessingStatus(
 export const useFetchIssueTagsForDetailsPage = (
   {
     groupId,
+    organizationSlug,
     environment = [],
   }: {
     environment: string[];
+    organizationSlug: string;
     groupId?: string;
   },
   {enabled = true}: {enabled?: boolean} = {}
@@ -158,6 +160,7 @@ export const useFetchIssueTagsForDetailsPage = (
   return useFetchIssueTags(
     {
       groupId,
+      organizationSlug,
       environment,
       readable: true,
       limit: 4,

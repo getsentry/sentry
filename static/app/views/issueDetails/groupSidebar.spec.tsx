@@ -27,22 +27,22 @@ describe('GroupSidebar', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/groups/1/integrations/',
+      url: `/organizations/${organization.slug}/issues/1/integrations/`,
       body: [],
     });
 
     MockApiClient.addMockResponse({
-      url: '/issues/1/',
+      url: `/organizations/${organization.slug}/issues/1/`,
       body: group,
     });
 
     MockApiClient.addMockResponse({
-      url: '/issues/1/current-release/',
+      url: `/organizations/${organization.slug}/issues/1/current-release/`,
       body: {},
     });
 
     MockApiClient.addMockResponse({
-      url: '/groups/1/external-issues/',
+      url: `/organizations/${organization.slug}/issues/1/external-issues/`,
       body: [],
     });
 
@@ -60,7 +60,7 @@ describe('GroupSidebar', function () {
       body: [],
     });
     tagsMock = MockApiClient.addMockResponse({
-      url: '/issues/1/tags/',
+      url: `/organizations/${organization.slug}/issues/1/tags/`,
       body: TestStubs.Tags(),
     });
     MockApiClient.addMockResponse({
@@ -68,7 +68,7 @@ describe('GroupSidebar', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/first-last-release/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
       method: 'GET',
     });
   });
@@ -139,7 +139,7 @@ describe('GroupSidebar', function () {
       expect(await screen.findByText('browser')).toBeInTheDocument();
       expect(tagsMock).toHaveBeenCalledTimes(2);
       expect(tagsMock).toHaveBeenCalledWith(
-        '/issues/1/tags/',
+        '/organizations/org-slug/issues/1/tags/',
         expect.objectContaining({
           query: expect.objectContaining({
             environment: ['staging'],
@@ -154,11 +154,11 @@ describe('GroupSidebar', function () {
       group = TestStubs.Group();
 
       MockApiClient.addMockResponse({
-        url: '/issues/1/',
+        url: '/organization/org-slug/issues/1/',
         body: group,
       });
       MockApiClient.addMockResponse({
-        url: '/issues/1/tags/',
+        url: '/organizations/org-slug/issues/1/tags/',
         body: [],
       });
     });

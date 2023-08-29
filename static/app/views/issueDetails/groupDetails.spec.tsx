@@ -97,11 +97,11 @@ describe('groupDetails', () => {
     act(() => ProjectsStore.loadInitialData(defaultInit.organization.projects));
 
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       body: {...group},
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/events/latest/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/latest/`,
       statusCode: 200,
       body: {
         ...event,
@@ -119,7 +119,7 @@ describe('groupDetails', () => {
       body: [project],
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/first-last-release/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/first-last-release/`,
       method: 'GET',
     });
     MockApiClient.addMockResponse({
@@ -138,7 +138,7 @@ describe('groupDetails', () => {
       body: TestStubs.Environments(),
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/tags/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/tags/`,
       body: [],
     });
   });
@@ -166,11 +166,11 @@ describe('groupDetails', () => {
 
   it('renders error when issue is not found', async function () {
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       statusCode: 404,
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/events/latest/`,
+      url: `/organization/${defaultInit.organization.slug}/issues/${group.id}/events/latest/`,
       statusCode: 404,
     });
 
@@ -187,11 +187,11 @@ describe('groupDetails', () => {
 
   it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async function () {
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       statusCode: 403,
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/events/latest/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/latest/`,
       statusCode: 403,
     });
 
@@ -229,7 +229,7 @@ describe('groupDetails', () => {
 
   it('renders issue event error', async function () {
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/events/latest/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/latest/`,
       statusCode: 404,
     });
     createWrapper();
@@ -238,7 +238,7 @@ describe('groupDetails', () => {
 
   it('renders for review reason', async function () {
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       body: {
         ...group,
         inbox: {
@@ -254,7 +254,7 @@ describe('groupDetails', () => {
 
   it('renders substatus badge', async function () {
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       body: {
         ...group,
         inbox: null,
@@ -271,7 +271,7 @@ describe('groupDetails', () => {
 
   it('renders alert for sample event', async function () {
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/tags/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/tags/`,
       body: [{key: 'sample_event'}],
     });
 
@@ -286,7 +286,7 @@ describe('groupDetails', () => {
       method: 'PUT',
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       body: {...group, project: {slug: 'other-project-slug'}},
     });
 
@@ -299,7 +299,7 @@ describe('groupDetails', () => {
 
   it('uses /helpful endpoint when feature flag is on and no event is provided', async function () {
     const helpfulMock = MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/events/helpful/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/helpful/`,
       statusCode: 200,
       body: event,
     });
@@ -318,7 +318,7 @@ describe('groupDetails', () => {
   it('uses /latest endpoint when default is set to latest', async function () {
     ConfigStore.loadInitialData(TestStubs.Config({user: latestUser}));
     const latestMock = MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/events/latest/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/latest/`,
       statusCode: 200,
       body: event,
     });
@@ -337,7 +337,7 @@ describe('groupDetails', () => {
   it('uses /oldest endpoint when default is set to oldest', async function () {
     ConfigStore.loadInitialData(TestStubs.Config({user: oldestUser}));
     const oldestMock = MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/events/oldest/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/oldest/`,
       statusCode: 200,
       body: event,
     });
@@ -356,7 +356,7 @@ describe('groupDetails', () => {
   it('uses /helpful endpoint when default is set to recommended', async function () {
     ConfigStore.loadInitialData(TestStubs.Config({user: recommendedUser}));
     const recommendedMock = MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/events/helpful/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/helpful/`,
       statusCode: 200,
       body: event,
     });

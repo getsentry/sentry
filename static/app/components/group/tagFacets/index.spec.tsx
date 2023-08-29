@@ -16,6 +16,7 @@ const {router, organization, routerContext} = initializeOrg({
     },
   },
 });
+
 describe('Tag Facets', function () {
   const project = TestStubs.Project();
   project.platform = 'android';
@@ -23,7 +24,7 @@ describe('Tag Facets', function () {
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
-      url: '/issues/1/tags/',
+      url: `/organizations/${organization.slug}/issues/1/tags/`,
       body: {
         release: {
           key: 'release',
@@ -99,7 +100,7 @@ describe('Tag Facets', function () {
   describe('Tag Distributions', function () {
     it('does not display anything if no tag values recieved', async function () {
       MockApiClient.addMockResponse({
-        url: '/issues/1/tags/',
+        url: `/organizations/${organization.slug}/issues/1/tags/`,
         body: {},
       });
       render(
