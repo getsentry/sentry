@@ -42,7 +42,12 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
-    from sentry.models import NotificationSetting, Organization, Project  # noqa: F401
+    from sentry.models import (  # noqa: F401
+        NotificationSetting,
+        NotificationSettingProvider,
+        Organization,
+        Project,
+    )
 
 REMOVE_SETTING_BATCH_SIZE = 1000
 
@@ -547,3 +552,18 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                 value=NOTIFICATION_SETTINGS_ALL_SOMETIMES[type_],
                 user_id=recipient.id,
             )
+
+
+class NotificationSettingProviderManager(BaseManager["NotificationSettingProvider"]):
+    def has_any_provider_settings(
+        self, recipient: RpcActor | Team | User, provider: ExternalProviders
+    ) -> bool:
+        return self.filter(
+            user_id=recipient.id,
+            provider=provider.value,
+            value__in={
+                NotificationSettingOptionValues.ALWAYS.value,
+                NotificationSettingOptionValues.COMMITTED_ONLY.value,
+                NotificationSettingOptionValues.SUBSCRIBE_ONLY.value,
+            },
+        ).exists()
