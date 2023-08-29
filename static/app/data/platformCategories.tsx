@@ -115,6 +115,7 @@ export const backend = [
   'python-aiohttp', // TODO(aknaus): Add to profiling / performance?
   'python-chalice', // TODO(aknaus): Add to profiling / performance?
   'python-falcon', // TODO(aknaus): Add to profiling / performance?
+  'python-quart', // TODO(aknaus): Add to profiling / performance?
   'python-bottle',
   'python-pylons',
   'python-pyramid',

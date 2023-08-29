@@ -77,6 +77,7 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
   ],
   'python-pyramid': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-quart': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
 } as Record<PlatformKey, ProductSolution[]>;
 
 export type DisabledProduct = {
