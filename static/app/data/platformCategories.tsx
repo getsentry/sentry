@@ -112,12 +112,12 @@ export const backend = [
   'python-starlette',
   'python-sanic',
   'python-celery',
-  'python-aiohttp', // TODO(aknaus): Add to profiling / performance?
-  'python-chalice', // TODO(aknaus): Add to profiling / performance?
-  'python-falcon', // TODO(aknaus): Add to profiling / performance?
-  'python-quart', // TODO(aknaus): Add to profiling / performance?
-  'python-tryton', // TODO(aknaus): Add to profiling / performance?
-  'python-wsgi', // TODO(aknaus): Add to profiling / performance?
+  'python-aiohttp',
+  'python-chalice',
+  'python-falcon',
+  'python-quart',
+  'python-tryton',
+  'python-wsgi',
   'python-bottle',
   'python-pylons',
   'python-pyramid',
@@ -135,7 +135,7 @@ export const serverless = [
   'python-awslambda',
   'python-azurefunctions',
   'python-gcpfunctions',
-  'python-serverless', // TODO(aknaus): Add to profiling / performance?
+  'python-serverless',
   'node-awslambda',
   'node-azurefunctions',
   'node-gcpfunctions',
