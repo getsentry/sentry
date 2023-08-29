@@ -365,8 +365,9 @@ def _get_project_config(
     # anything.
     add_experimental_config(config, "dynamicSampling", get_dynamic_sampling_config, project)
 
-    # Limit the number of custom measurements
-    add_experimental_config(config, "measurements", get_measurements_config)
+    if version <= 3:
+        # Limit the number of custom measurements
+        add_experimental_config(config, "measurements", get_measurements_config)
 
     # Rules to replace high cardinality transaction names
     add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
