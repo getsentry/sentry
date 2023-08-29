@@ -68,8 +68,8 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
 
         # users can already join organizations with SSO enabled without an invite
         # so they should join that way and not through a request to the admins
-        providers = auth_service.get_auth_providers(organization_id=organization.id)
-        if len(providers) != 0:
+        provider = auth_service.get_auth_provider(organization_id=organization.id)
+        if provider is not None:
             return Response(status=403)
 
         ip_address = request.META["REMOTE_ADDR"]
