@@ -111,12 +111,6 @@ class ProjectOwnershipSerializer(serializers.Serializer):
                 ownership.codeowners_auto_sync = codeowners_auto_sync
                 changed = True
 
-        if "updateType" in self.validated_data:
-            update_type = self.validated_data["updateType"]
-            if ownership.update_type != update_type:
-                ownership.update_type = update_type
-                changed = True
-
         changed = self.__modify_auto_assignment(ownership) or changed
 
         if changed:
