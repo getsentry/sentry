@@ -30,19 +30,30 @@ class ProjectKeyService(RpcService):
     ) -> Optional[RpcProjectKey]:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
-    @abstractmethod
-    def get_all_projects_with_keys(
-        self, *, organization_id: int, role: ProjectKeyRole
-    ) -> List[Tuple[RpcProject, RpcProjectKey]]:
-        pass
-
     @regional_rpc_method(resolve=ByRegionName())
     @abstractmethod
     def get_project_key_by_region(
         self, *, region_name: str, project_id: str, role: ProjectKeyRole
     ) -> Optional[RpcProjectKey]:
         pass
+
+    @regional_rpc_method(resolve=ByRegionName())
+    @abstractmethod
+    def get_docsupport_data(
+        self, *, region_name: str, organization_ids: List[int], role: ProjectKeyRole
+    ) -> List[Tuple[int, RpcProject, RpcProjectKey]]:
+        """Find all active project keys for an arbitrary set of organizations.
+
+        This is bespoke logic for the getsentry docsupport module. The organization
+        IDs generally are the set of all orgs for which the user viewing the docs
+        page has "project:read" permissions.
+
+        The return value is an unordered collection of
+            (organization_id, project, project_key)
+        tuples. The first value is always a member of the `organization_ids` argument
+        and represents the organization that the project belongs to. There is one
+        entry for each project key; projects with no keys will not appear.
+        """
 
 
 project_key_service: ProjectKeyService = cast(
