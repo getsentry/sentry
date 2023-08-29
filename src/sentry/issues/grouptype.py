@@ -389,6 +389,16 @@ class ProfileFrameDropExperimentalType(GroupType):
 
 
 @dataclass(frozen=True)
+class ProfileFrameDropType(GroupType):
+    type_id = 2009
+    slug = "profile_frame_drop"
+    description = "A Frame Drop Occurred"
+    category = GroupCategory.PERFORMANCE.value
+    noise_config = NoiseConfig(ignore_limit=25)
+    released = True
+
+
+@dataclass(frozen=True)
 class MonitorCheckInFailure(GroupType):
     type_id = 4001
     slug = "monitor_check_in_failure"
