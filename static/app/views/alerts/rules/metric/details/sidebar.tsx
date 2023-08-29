@@ -14,6 +14,11 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {
+  getSearchFilters,
+  isOnDemandSearchKey,
+  OnDemandWarningIcon,
+} from 'sentry/utils/onDemandMetrics/index';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {
   Action,
@@ -24,12 +29,6 @@ import {
 import {IncidentStatus} from 'sentry/views/alerts/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
-
-import {
-  getSearchFilters,
-  isOnDemandSearchKey,
-  OnDemandWarningIcon,
-} from 'sentry/utils/onDemandMetrics/index';
 
 interface MetricDetailsSidebarProps {
   isOnDemandMetricAlert: boolean;
