@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from functools import lru_cache
 from typing import Type
 
 from sentry.backup.scopes import RelocationScope
@@ -24,14 +25,18 @@ def get_final_derivations_of(model: Type) -> set[Type]:
     return out
 
 
-def get_exportable_final_derivations_of(model: Type) -> set[Type]:
+# No arguments, so we lazily cache the result after the first calculation.
+@lru_cache(maxsize=1)
+def get_exportable_sentry_models() -> set[Type]:
     """Like `get_final_derivations_of`, except that it further filters the results to include only
     `__relocation_scope__ != RelocationScope.Excluded`."""
+
+    from sentry.db.models import BaseModel
 
     return set(
         filter(
             lambda c: getattr(c, "__relocation_scope__") is not RelocationScope.Excluded,
-            get_final_derivations_of(model),
+            get_final_derivations_of(BaseModel),
         )
     )
 

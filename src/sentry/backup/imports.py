@@ -45,7 +45,7 @@ def _import(src, scope: ImportScope, old_config: OldImportConfig, printer=click.
 
     try:
         # Import / export only works in monolith mode with a consolidated db.
-        # TODO(getsentry/team-ospo#185): the `unguarded_write` is temporary until we get and RPC
+        # TODO(getsentry/team-ospo#185): the `unguarded_write` is temporary until we get an RPC
         # service up for writing to control silo models.
         with unguarded_write(using="default"), transaction.atomic("default"):
             allowed_relocation_scopes = scope.value

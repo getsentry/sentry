@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import NamedTuple
 
 import click
 from django.core.serializers import serialize
@@ -32,21 +31,32 @@ class DatetimeSafeDjangoJSONEncoder(DjangoJSONEncoder):
         return super().default(obj)
 
 
-class OldExportConfig(NamedTuple):
+class OldExportConfig:
     """While we are migrating to the new backup system, we need to take care not to break the old
     and relatively untested workflows. This model allows us to stub in the old configs."""
 
-    # Do we include models that aren't in `sentry.*` databases, like the native Django ones (sites,
-    # sessions, etc)?
-    include_non_sentry_models: bool = False
-
     # A list of models to exclude from the export - eventually we want to deprecate and remove this
     # option.
-    excluded_models: set[str] = set()
+    excluded_models: set[str]
+
+    # Do we include models that aren't in `sentry.*` databases, like the native Django ones (sites,
+    # sessions, etc)?
+    include_non_sentry_models: bool
 
     # Old exports use "natural" foreign keys, which in practice only changes how foreign keys into
     # `sentry.User` are represented.
-    use_natural_foreign_keys: bool = False
+    use_natural_foreign_keys: bool
+
+    def __init__(
+        self,
+        *,
+        excluded_models: set[str] | None = None,
+        include_non_sentry_models: bool = False,
+        use_natural_foreign_keys: bool = False,
+    ):
+        self.excluded_models = excluded_models if excluded_models is not None else set()
+        self.include_non_sentry_models = include_non_sentry_models
+        self.use_natural_foreign_keys = use_natural_foreign_keys
 
 
 def _export(dest, scope: ExportScope, old_config: OldExportConfig, indent: int, printer=click.echo):

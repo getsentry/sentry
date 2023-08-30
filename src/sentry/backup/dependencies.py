@@ -134,7 +134,8 @@ def dependencies() -> dict[str, ModelRelations]:
 
     # Process the list of models, and get the list of dependencies
     model_dependencies_list: dict[str, ModelRelations] = {}
-    for app_config in apps.get_app_configs():
+    app_configs = apps.get_app_configs()
+    for app_config in app_configs:
         if app_config.label in EXCLUDED_APPS:
             continue
 
@@ -147,13 +148,12 @@ def dependencies() -> dict[str, ModelRelations]:
         for model in model_iterator:
             foreign_keys: dict[str, ForeignField] = dict()
 
-            # Now add a dependency for any FK relation with a model that defines a natural key.
+            # Now add a dependency for any FK relation visible to Django.
             for field in model._meta.get_fields():
                 rel_model = getattr(field.remote_field, "model", None)
                 if rel_model is not None and rel_model != model:
-                    # TODO(hybrid-cloud): actor refactor.
-                    # Add cludgy conditional preventing walking actor.team_id, actor.user_id
-                    # Which avoids circular imports
+                    # TODO(hybrid-cloud): actor refactor. Add kludgy conditional preventing walking
+                    # actor.team_id, which avoids circular imports
                     if model == Actor and rel_model == Team:
                         continue
 
