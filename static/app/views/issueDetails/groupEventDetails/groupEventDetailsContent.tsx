@@ -86,10 +86,13 @@ function GroupEventDetailsContent({
 
   const eventEntryProps = {group, event, project};
 
-  if (group.issueType === ('performance_duration_regression' as IssueType)) {
+  if (group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION) {
     return (
-      // TODO: Swap this feature flag with the statistical detector flag
-      <Feature features={['performance-trends-issues']}>
+      <Feature
+        features={['performance-duration-regression']}
+        organization={organization}
+        renderDisabled
+      >
         <Fragment>
           <RegressionMessage event={event} />
           <EventBreakpointChart event={event} />
