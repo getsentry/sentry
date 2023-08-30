@@ -12,13 +12,13 @@ import {
 
 import {DataSection} from '../styles';
 
+function camelToUnderscore(key: string) {
+  return key.replace(/([A-Z\d])/g, '_$1').toLowerCase();
+}
+
 type EventBreakpointChartProps = {
   event: Event;
 };
-
-function camelToUnderscore(key) {
-  return key.replace(/([A-Z\d])/g, '_$1').toLowerCase();
-}
 
 function EventBreakpointChart({event}: EventBreakpointChartProps) {
   const organization = useOrganization();
