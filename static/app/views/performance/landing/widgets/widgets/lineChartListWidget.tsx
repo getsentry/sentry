@@ -28,7 +28,7 @@ import {
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 
@@ -107,7 +107,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       fields: field,
       component: provided => {
         const eventView = provided.eventView.clone();
-        const extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
+        let extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
         eventView.sorts = [{kind: 'desc', field}];
         if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
           eventView.fields = [
@@ -134,20 +134,21 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
         ) {
           // Set fields
           eventView.fields = [
-            {field: SpanMetricsFields.SPAN_OP},
-            {field: SpanMetricsFields.SPAN_GROUP},
+            {field: SpanMetricsField.SPAN_OP},
+            {field: SpanMetricsField.SPAN_GROUP},
             {field: 'project.id'},
-            {field: SpanMetricsFields.SPAN_DESCRIPTION},
-            {field: `sum(${SpanMetricsFields.SPAN_SELF_TIME})`},
-            {field: `avg(${SpanMetricsFields.SPAN_SELF_TIME})`},
+            {field: SpanMetricsField.SPAN_DESCRIPTION},
+            {field: `sum(${SpanMetricsField.SPAN_SELF_TIME})`},
+            {field: `avg(${SpanMetricsField.SPAN_SELF_TIME})`},
             {field},
           ];
 
           // Change data set to spansMetrics
           eventView.dataset = DiscoverDatasets.SPANS_METRICS;
-          if (extraQueryParams && extraQueryParams.dataset) {
-            extraQueryParams.dataset = DiscoverDatasets.SPANS_METRICS;
-          }
+          extraQueryParams = {
+            ...extraQueryParams,
+            dataset: DiscoverDatasets.SPANS_METRICS,
+          };
 
           // Update query
           const mutableSearch = new MutableSearch(eventView.query);
@@ -219,7 +220,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           if (
             !provided.widgetData.list.data[selectedListIndex]?.transaction &&
             !provided.widgetData.list.data[selectedListIndex][
-              SpanMetricsFields.SPAN_DESCRIPTION
+              SpanMetricsField.SPAN_DESCRIPTION
             ]
           ) {
             return null;
@@ -259,6 +260,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             // Update request params
             eventView.dataset = DiscoverDatasets.SPANS_METRICS;
             extraQueryParams = {
+              ...extraQueryParams,
               dataset: DiscoverDatasets.SPANS_METRICS,
               excludeOther: false,
               per_page: 50,
@@ -267,10 +269,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
             // Update chart options
             partialDataParam = false;
-            yAxis = `avg(${SpanMetricsFields.SPAN_SELF_TIME})`;
+            yAxis = `avg(${SpanMetricsField.SPAN_SELF_TIME})`;
             interval = getInterval(pageFilterDatetime, STARFISH_CHART_INTERVAL_FIDELITY);
             includePreviousParam = false;
-            currentSeriesNames = [`avg(${SpanMetricsFields.SPAN_SELF_TIME})`];
+            currentSeriesNames = [`avg(${SpanMetricsField.SPAN_SELF_TIME})`];
 
             // Update search query
             eventView.additionalConditions.removeFilter('event.type');
@@ -280,9 +282,9 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               'http.server'
             );
             eventView.additionalConditions.addFilterValue(
-              SpanMetricsFields.SPAN_GROUP,
+              SpanMetricsField.SPAN_GROUP,
               provided.widgetData.list.data[selectedListIndex][
-                SpanMetricsFields.SPAN_GROUP
+                SpanMetricsField.SPAN_GROUP
               ].toString()
             );
             const mutableSearch = new MutableSearch(eventView.query);
@@ -438,17 +440,17 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 </Fragment>
               );
             case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
-              const description: string = listItem[SpanMetricsFields.SPAN_DESCRIPTION];
-              const group: string = listItem[SpanMetricsFields.SPAN_GROUP];
+              const description: string = listItem[SpanMetricsField.SPAN_DESCRIPTION];
+              const group: string = listItem[SpanMetricsField.SPAN_GROUP];
               const timeSpentPercentage: number = listItem[fieldString];
               const totalTime: number =
-                listItem[`sum(${SpanMetricsFields.SPAN_SELF_TIME})`];
+                listItem[`sum(${SpanMetricsField.SPAN_SELF_TIME})`];
               return (
                 <Fragment>
                   <GrowLink
-                    to={`/performance/database/
-                      ${extractRoute(location) ?? 'spans'}
-                      /span/${group}?${qs.stringify({...location.query})}`}
+                    to={`/performance/database/${
+                      extractRoute(location) ?? 'spans'
+                    }/span/${group}?${qs.stringify({...location.query})}`}
                   >
                     <Truncate value={description} maxLength={40} />
                   </GrowLink>
