@@ -477,6 +477,11 @@ class BaseApiClient(TrackResponseMixin):
             == ObjectStatus.DISABLED
         ):
             return
+        if self.integration_type == "plugin" and plugins.exists(self.plugin_name):
+            plugin = plugins.get(self.plugin_name)
+            if not plugin.is_enabled():
+                return
+
         oi = OrganizationIntegration.objects.filter(integration_id=self.integration_id)[0]
         org = Organization.objects.get(id=oi.organization_id)
 
@@ -518,8 +523,9 @@ class BaseApiClient(TrackResponseMixin):
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )
             if self.integration_type == "plugin":
-                plugin = plugins.get(self.integration_id)
-                plugin.disable()
+                if plugins.exists(self.plugin_name):
+                    plugin = plugins.get(self.plugin_name)
+                    plugin.disable()
             notify_disable(org, rpc_integration.provider, self._get_redis_key())
             buffer.clear()
             create_system_audit_entry(
