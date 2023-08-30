@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import click
 
-from sentry.backup.exports import OldExportConfig, exports
+from sentry.backup.exports import OldExportConfig, _export
 from sentry.backup.imports import OldImportConfig, _import
-from sentry.backup.scopes import ImportScope
+from sentry.backup.scopes import ExportScope, ImportScope
 from sentry.runner.decorators import configuration
 
 
@@ -42,8 +42,9 @@ def export(dest, silent, indent, exclude):
     else:
         exclude = exclude.lower().split(",")
 
-    exports(
+    _export(
         dest,
+        ExportScope.Global,
         OldExportConfig(
             include_non_sentry_models=True,
             excluded_models=set(exclude),
