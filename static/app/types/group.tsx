@@ -72,6 +72,7 @@ export enum IssueType {
   PERFORMANCE_UNCOMPRESSED_ASSET = 'performance_uncompressed_assets',
   PERFORMANCE_LARGE_HTTP_PAYLOAD = 'performance_large_http_payload',
   PERFORMANCE_HTTP_OVERHEAD = 'performance_http_overhead',
+  PERFORMANCE_DURATION_REGRESSION = 'performance_duration_regression',
 
   // Profile
   PROFILE_FILE_IO_MAIN_THREAD = 'profile_file_io_main_thread',
@@ -575,7 +576,7 @@ export const enum GroupSubstatus {
 export interface BaseGroup {
   activity: GroupActivity[];
   annotations: string[];
-  assignedTo: Actor;
+  assignedTo: Actor | null;
   culprit: string;
   firstSeen: string;
   hasSeen: boolean;
@@ -587,9 +588,8 @@ export interface BaseGroup {
   issueCategory: IssueCategory;
   issueType: IssueType;
   lastSeen: string;
-  latestEvent: Event;
   level: Level;
-  logger: string;
+  logger: string | null;
   metadata: EventMetadata;
   numComments: number;
   participants: User[];
@@ -609,6 +609,7 @@ export interface BaseGroup {
   type: EventOrGroupType;
   userReportCount: number;
   inbox?: InboxDetails | null | false;
+  latestEvent?: Event;
   owners?: SuggestedOwner[] | null;
   substatus?: GroupSubstatus | null;
 }

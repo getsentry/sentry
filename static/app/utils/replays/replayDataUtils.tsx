@@ -24,6 +24,7 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
       ? {'device.model_id': [apiResponse.device.model_id]}
       : {}),
     ...(apiResponse.device?.name ? {'device.name': [apiResponse.device.name]} : {}),
+    ...(apiResponse.environment ? {environment: [apiResponse.environment]} : {}),
     ...(apiResponse.platform ? {platform: [apiResponse.platform]} : {}),
     ...(apiResponse.releases ? {releases: [...apiResponse.releases]} : {}),
     ...(apiResponse.replay_type ? {replayType: [apiResponse.replay_type]} : {}),
@@ -76,8 +77,12 @@ export function replayTimestamps(
   const rawSpanDataFiltered = rawSpanData.filter(
     ({op}) => op !== 'largest-contentful-paint'
   );
-  const spanStartTimestamps = rawSpanDataFiltered.map(span => span.startTimestamp);
-  const spanEndTimestamps = rawSpanDataFiltered.map(span => span.endTimestamp);
+  const spanStartTimestamps = rawSpanDataFiltered
+    .map(span => span.startTimestamp)
+    .filter(Boolean);
+  const spanEndTimestamps = rawSpanDataFiltered
+    .map(span => span.endTimestamp)
+    .filter(Boolean);
 
   // Calculate min/max of each array individually, to prevent extra allocations.
   // Also using `getMinMax()` so we can handle any huge arrays.

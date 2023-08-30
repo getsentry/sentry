@@ -16,8 +16,10 @@ from sentry.backup.comparators import ComparatorMap
 from sentry.backup.dependencies import sorted_dependencies
 from sentry.backup.exports import OldExportConfig, exports
 from sentry.backup.findings import ComparatorFindings
-from sentry.backup.imports import OldImportConfig, imports
+from sentry.backup.imports import OldImportConfig, _import
+from sentry.backup.scopes import ImportScope
 from sentry.backup.validate import validate
+from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.incidents.models import (
     IncidentActivity,
     IncidentSnapshot,
@@ -152,7 +154,7 @@ def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> 
                 clear_database_but_keep_sequences()
 
             with open(tmp_expect) as tmp_file:
-                imports(tmp_file, OldImportConfig(), NOOP_PRINTER)
+                _import(tmp_file, ImportScope.Global, OldImportConfig(), NOOP_PRINTER)
 
         # Validate that the "expected" and "actual" JSON matches.
         actual = export_to_file(tmp_actual)
@@ -196,7 +198,7 @@ def import_export_from_fixture_then_validate(
 
     # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
     with unguarded_write(using="default"), open(fixture_file_path) as fixture_file:
-        imports(fixture_file, OldImportConfig(), NOOP_PRINTER)
+        _import(fixture_file, ImportScope.Global, OldImportConfig(), NOOP_PRINTER)
 
     res = validate(expect, export_to_file(tmp_path.joinpath("tmp_test_file.json")), map)
     if res.findings:
@@ -234,6 +236,7 @@ class BackupTestCase(TransactionTestCase):
     def create_exhaustive_organization(self, slug: str, owner: User, invitee: User) -> Organization:
         org = self.create_organization(name=f"test_org_for_{slug}", owner=owner)
         membership = self.create_member(organization=org, user=invitee, role="member")
+        owner_id: BoundedBigAutoField = owner.id
 
         OrganizationOption.objects.create(
             organization=org, key="sentry:account-rate-limit", value=0
@@ -281,7 +284,7 @@ class BackupTestCase(TransactionTestCase):
         # Rule*
         rule = self.create_project_rule(project=project)
         RuleActivity.objects.create(rule=rule, type=RuleActivityType.CREATED.value)
-        self.snooze_rule(user_id=owner.id, owner_id=owner.id, rule=rule)
+        self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
 
         # Environment*
         env = self.create_environment()
@@ -330,7 +333,7 @@ class BackupTestCase(TransactionTestCase):
             unique_users=1,
             total_events=1,
         )
-        IncidentSubscription.objects.create(incident=incident, user_id=owner.id)
+        IncidentSubscription.objects.create(incident=incident, user_id=owner_id)
         IncidentTrigger.objects.create(
             incident=incident,
             alert_rule_trigger=trigger,
@@ -344,7 +347,7 @@ class BackupTestCase(TransactionTestCase):
 
         # Dashboard
         dashboard = Dashboard.objects.create(
-            title=f"Dashboard 1 for {slug}", created_by_id=owner.id, organization=org
+            title=f"Dashboard 1 for {slug}", created_by_id=owner_id, organization=org
         )
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
@@ -359,7 +362,7 @@ class BackupTestCase(TransactionTestCase):
         # *Search
         RecentSearch.objects.create(
             organization=org,
-            user_id=owner.id,
+            user_id=owner_id,
             type=SearchType.ISSUE.value,
             query=f"some query for {slug}",
         )

@@ -19,6 +19,10 @@ describe('Avatar', function () {
     avatar,
   };
 
+  window.__initialData = {
+    links: {sentryUrl: 'https://sentry.io'},
+  } as any;
+
   const userNameInitials = user.name
     .split(' ')
     .map(n => n[0])
@@ -55,14 +59,17 @@ describe('Avatar', function () {
 
       expect(screen.getByTestId(`${avatar.avatarType}-avatar`)).toBeInTheDocument();
       const avatarImage = await screen.findByRole('img');
-      expect(avatarImage).toHaveAttribute('src', `/avatar/${avatar.avatarUuid}/?s=120`);
+      expect(avatarImage).toHaveAttribute(
+        'src',
+        `https://sentry.io/avatar/${avatar.avatarUuid}/?s=120`
+      );
     });
 
     it('should show an upload with the correct size (static 120 size)', async function () {
       const avatar1 = render(<AvatarComponent user={user} size={76} />);
       expect(await screen.findByRole('img')).toHaveAttribute(
         'src',
-        `/avatar/${avatar.avatarUuid}/?s=120`
+        `https://sentry.io/avatar/${avatar.avatarUuid}/?s=120`
       );
 
       avatar1.unmount();
@@ -70,7 +77,7 @@ describe('Avatar', function () {
       const avatar2 = render(<AvatarComponent user={user} size={121} />);
       expect(await screen.findByRole('img')).toHaveAttribute(
         'src',
-        `/avatar/${avatar.avatarUuid}/?s=120`
+        `https://sentry.io/avatar/${avatar.avatarUuid}/?s=120`
       );
 
       avatar2.unmount();
@@ -78,7 +85,7 @@ describe('Avatar', function () {
       const avatar3 = render(<AvatarComponent user={user} size={32} />);
       expect(await screen.findByRole('img')).toHaveAttribute(
         'src',
-        `/avatar/${avatar.avatarUuid}/?s=120`
+        `https://sentry.io/avatar/${avatar.avatarUuid}/?s=120`
       );
 
       avatar3.unmount();
@@ -86,7 +93,7 @@ describe('Avatar', function () {
       render(<AvatarComponent user={user} size={1} />);
       expect(await screen.findByRole('img')).toHaveAttribute(
         'src',
-        `/avatar/${avatar.avatarUuid}/?s=120`
+        `https://sentry.io/avatar/${avatar.avatarUuid}/?s=120`
       );
     });
 
@@ -132,12 +139,32 @@ describe('Avatar', function () {
     });
 
     it('can display an organization Avatar', function () {
-      const organization = TestStubs.Organization({slug: 'test-organization'});
+      const organization = TestStubs.Organization({
+        slug: 'test-organization',
+        avatar: {avatarType: 'letter_avatar'},
+      });
 
       render(<AvatarComponent organization={organization} />);
 
       expect(screen.getByTestId(`letter_avatar-avatar`)).toBeInTheDocument();
       expect(screen.getByText('TO')).toBeInTheDocument();
+    });
+
+    it('can display an organization Avatar upload', function () {
+      const organization = TestStubs.Organization({
+        slug: 'test-organization',
+        avatar: {
+          avatarType: 'upload',
+          avatarUuid: 'abc123def',
+        },
+      });
+
+      render(<AvatarComponent organization={organization} />);
+
+      expect(screen.getByRole('img')).toHaveAttribute(
+        'src',
+        'https://us.sentry.io/organization-avatar/abc123def/?s=120'
+      );
     });
 
     it('displays platform list icons for project Avatar', function () {
@@ -193,14 +220,14 @@ describe('Avatar', function () {
       const avatar1 = render(<AvatarComponent sentryApp={sentryApp} isColor />);
       expect(await screen.findByRole('img')).toHaveAttribute(
         'src',
-        `/sentry-app-avatar/${colorAvatar.avatarUuid}/?s=120`
+        `https://sentry.io/sentry-app-avatar/${colorAvatar.avatarUuid}/?s=120`
       );
       avatar1.unmount();
 
       const avatar2 = render(<AvatarComponent sentryApp={sentryApp} isColor={false} />);
       expect(await screen.findByRole('img')).toHaveAttribute(
         'src',
-        `/sentry-app-avatar/${simpleAvatar.avatarUuid}/?s=120`
+        `https://sentry.io/sentry-app-avatar/${simpleAvatar.avatarUuid}/?s=120`
       );
       avatar2.unmount();
 
@@ -222,7 +249,7 @@ describe('Avatar', function () {
       const avatar2 = render(<AvatarComponent sentryApp={sentryApp} />);
       expect(await screen.findByRole('img')).toHaveAttribute(
         'src',
-        `/sentry-app-avatar/${colorAvatar.avatarUuid}/?s=120`
+        `https://sentry.io/sentry-app-avatar/${colorAvatar.avatarUuid}/?s=120`
       );
       avatar2.unmount();
 

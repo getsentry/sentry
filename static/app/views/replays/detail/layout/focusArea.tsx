@@ -1,7 +1,7 @@
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
-import AccessibilityList from 'sentry/views/replays/detail/accessibility';
+import A11y from 'sentry/views/replays/detail/accessibility/index';
 import Console from 'sentry/views/replays/detail/console';
 import DomMutations from 'sentry/views/replays/detail/domMutations';
 import ErrorList from 'sentry/views/replays/detail/errorList/index';
@@ -17,8 +17,10 @@ function FocusArea({}: Props) {
   const {currentTime, currentHoverTime, replay, setCurrentTime, setCurrentHoverTime} =
     useReplayContext();
   const organization = useOrganization();
-  console.log(replay?.getAccessibilityFrames());
+
   switch (getActiveTab()) {
+    case TabKey.A11Y:
+      return <A11y />;
     case TabKey.NETWORK:
       return (
         <NetworkList
@@ -44,41 +46,6 @@ function FocusArea({}: Props) {
         <DomMutations
           replay={replay}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
-        />
-      );
-    case TabKey.A11Y:
-      return (
-        <AccessibilityList
-          accessibilityFrames={
-            replay?.getAccessibilityFrames()
-            //   [
-            //   {
-            //     element:
-            //       '<img class="app-v0c8og empfevw2" style="width: 16px; height: 16px;">',
-            //     id: 'image-alt',
-            //     impact: 'critical',
-            //     description:
-            //       'Ensures <img> elements have alternate text or a role of none or presentation',
-            //   },
-            // ]
-          }
-          accessibilityIssues={
-            replay?.getAccessibilityFrames()
-            //   [
-            //   {
-            //     element:
-            //       '<img class="app-v0c8og empfevw2" style="width: 16px; height: 16px;">',
-            //     id: 'image-alt',
-            //     impact: 'critical',
-            //     description:
-            //       'Ensures <img> elements have alternate text or a role of none or presentation',
-            //   },
-            // ]
-          }
-          projectId={replay?.getReplay()?.project_id}
-          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
-
-          // startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
       );
     case TabKey.MEMORY:

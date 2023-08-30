@@ -7,7 +7,7 @@ function useCrumbHandlers() {
   const {
     replay,
     clearAllHighlights,
-    highlight,
+    addHighlight,
     removeHighlight,
     setCurrentTime,
     setCurrentHoverTime,
@@ -35,8 +35,6 @@ function useCrumbHandlers() {
             selector.push(`[${attr.name}="${attr.value}"]`);
           }
 
-          console.log('highlighing', {frame, element, selector});
-
           clearAllHighlights();
           highlight({
             selector: selector.join(''),
@@ -44,7 +42,7 @@ function useCrumbHandlers() {
             // spotlight: true,
           });
         } catch (error) {
-          console.error(error);
+          // console.error(error);
         }
         return;
       }
@@ -63,19 +61,17 @@ function useCrumbHandlers() {
           // crumb to a tooltip
           clearAllHighlights();
           // @ts-expect-error: Property 'label' does not exist on type
-          highlight({nodeId: frame.data.nodeId, annotation: frame.data.label});
+          addHighlight({nodeId: frame.data.nodeId, annotation: frame.data.label});
         }
         mouseEnterCallback.current.id = null;
         mouseEnterCallback.current.timeoutId = null;
       }, 250);
     },
-    [setCurrentHoverTime, startTimestampMs, highlight, clearAllHighlights]
+    [setCurrentHoverTime, startTimestampMs, addHighlight, clearAllHighlights]
   );
 
   const onMouseLeave = useCallback(
     (frame: ReplayFrame) => {
-      console.log('leaving', {frame});
-
       // if there is a mouseEnter callback queued and we're leaving it we can just cancel the timeout
       if (mouseEnterCallback.current.id === frame) {
         if (mouseEnterCallback.current.timeoutId) {
