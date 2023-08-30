@@ -7,11 +7,11 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanSummaryQueryFilters} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {SPAN_GROUP} = SpanMetricsFields;
+const {SPAN_GROUP} = SpanMetricsField;
 
 export type SpanMetrics = {
   interval: number;

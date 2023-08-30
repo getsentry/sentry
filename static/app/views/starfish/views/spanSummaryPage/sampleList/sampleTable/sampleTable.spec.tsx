@@ -5,7 +5,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFilters} from 'sentry/types';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 import SampleTable from './sampleTable';
 
@@ -94,8 +94,8 @@ const initializeMockRequests = () => {
     body: {
       data: [
         {
-          [SpanMetricsFields.SPAN_OP]: 'db',
-          [`avg(${SpanMetricsFields.SPAN_SELF_TIME})`]: 0.52,
+          [SpanMetricsField.SPAN_OP]: 'db',
+          [`avg(${SpanMetricsField.SPAN_SELF_TIME})`]: 0.52,
         },
       ],
     },

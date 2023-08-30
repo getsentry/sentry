@@ -9,11 +9,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {SpanIndexedFields, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import {DATE_FORMAT} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedFields;
+const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedField;
 
 type Options = {
   groupId: string;
@@ -23,11 +23,11 @@ type Options = {
 
 export type SpanSample = Pick<
   SpanIndexedFieldTypes,
-  | SpanIndexedFields.SPAN_SELF_TIME
-  | SpanIndexedFields.TRANSACTION_ID
-  | SpanIndexedFields.PROJECT
-  | SpanIndexedFields.TIMESTAMP
-  | SpanIndexedFields.ID
+  | SpanIndexedField.SPAN_SELF_TIME
+  | SpanIndexedField.TRANSACTION_ID
+  | SpanIndexedField.PROJECT
+  | SpanIndexedField.TIMESTAMP
+  | SpanIndexedField.ID
 >;
 
 export const useSpanSamples = (options: Options) => {

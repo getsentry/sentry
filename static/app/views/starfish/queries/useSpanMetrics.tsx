@@ -3,10 +3,10 @@ import {Location} from 'history';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {SPAN_GROUP} = SpanMetricsFields;
+const {SPAN_GROUP} = SpanMetricsField;
 
 export type SpanMetrics = {
   [metric: string]: number | string;
