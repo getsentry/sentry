@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from sentry.models import AuthProvider
-from sentry.services.hybrid_cloud.auth import RpcAuthProvider, RpcAuthProviderFlags
+from sentry.models import ApiKey, AuthProvider
+from sentry.services.hybrid_cloud.auth import RpcApiKey, RpcAuthProvider, RpcAuthProviderFlags
 
 
 def _serialize_auth_provider_flags(ap: AuthProvider) -> RpcAuthProviderFlags:
@@ -15,4 +15,15 @@ def serialize_auth_provider(ap: AuthProvider) -> RpcAuthProvider:
         provider=ap.provider,
         flags=_serialize_auth_provider_flags(ap),
         config=ap.config,
+    )
+
+
+def serialize_api_key(ak: ApiKey) -> RpcApiKey:
+    return RpcApiKey(
+        id=ak.id,
+        organization_id=ak.organization_id,
+        key=ak.key,
+        status=ak.status,
+        allowed_origins=ak.get_allowed_origins(),
+        label=ak.label,
     )

@@ -33,6 +33,15 @@ if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
 
 
+class RpcApiKey(RpcModel):
+    id: int
+    organization_id: int
+    key: str
+    status: int
+    allowed_origins: List[str]
+    label: str
+
+
 class RpcAuthenticatorType(IntEnum):
     API_KEY_AUTHENTICATION = 0
     TOKEN_AUTHENTICATION = 1
