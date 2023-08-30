@@ -29,6 +29,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Actor, Project} from 'sentry/types';
+import {IssueAlertStatus} from 'sentry/types/alerts';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import {
@@ -116,20 +117,20 @@ function RuleListRow({
 
   function renderAlertRuleStatus(): React.ReactNode {
     if (isIssueAlert(rule)) {
-      if (rule.status === 1) {
+      if (rule.status === IssueAlertStatus.DISABLED) {
         return (
-          <IssueAlertStatus>
+          <IssueAlertStatusWrapper>
             <IconFlag size="sm" color="red300" />
             {t('Disabled')}
-          </IssueAlertStatus>
+          </IssueAlertStatusWrapper>
         );
       }
       if (rule.snooze) {
         return (
-          <IssueAlertStatus>
+          <IssueAlertStatusWrapper>
             <IconMute size="sm" color="subText" />
             {t('Muted')}
-          </IssueAlertStatus>
+          </IssueAlertStatusWrapper>
         );
       }
       return null;
@@ -427,7 +428,7 @@ const FlexCenter = styled('div')`
   align-items: center;
 `;
 
-const IssueAlertStatus = styled('div')`
+const IssueAlertStatusWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
