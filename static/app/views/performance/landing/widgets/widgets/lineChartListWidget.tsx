@@ -107,7 +107,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       fields: field,
       component: provided => {
         const eventView = provided.eventView.clone();
-        let extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
+        const extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
         eventView.sorts = [{kind: 'desc', field}];
         if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
           eventView.fields = [
@@ -132,20 +132,24 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
         } else if (
           props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES
         ) {
+          // Set fields
           eventView.fields = [
-            {field: 'span.op'},
-            {field: 'span.group'},
+            {field: SpanMetricsFields.SPAN_OP},
+            {field: SpanMetricsFields.SPAN_GROUP},
             {field: 'project.id'},
-            {field: 'span.description'},
-            {field: 'span.domain'},
-            {field: 'spm()'},
-            {field: 'sum(span.self_time)'},
-            {field: 'avg(span.self_time)'},
-            {field: 'http_error_count()'},
+            {field: SpanMetricsFields.SPAN_DESCRIPTION},
+            {field: `sum(${SpanMetricsFields.SPAN_SELF_TIME})`},
+            {field: `avg(${SpanMetricsFields.SPAN_SELF_TIME})`},
             {field},
           ];
+
+          // Change data set to spansMetrics
           eventView.dataset = DiscoverDatasets.SPANS_METRICS;
-          extraQueryParams = {};
+          if (extraQueryParams && extraQueryParams.dataset) {
+            extraQueryParams.dataset = DiscoverDatasets.SPANS_METRICS;
+          }
+
+          // Update query
           const mutableSearch = new MutableSearch(eventView.query);
           mutableSearch.removeFilter('event.type');
           eventView.additionalConditions.removeFilter('event.type');
@@ -199,22 +203,24 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
         fields: field,
         component: provided => {
           const eventView = props.eventView.clone();
-          let queryExtras = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
+          let extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
+          const pageFilterDatetime = {
+            start: provided.start,
+            end: provided.end,
+            period: provided.period,
+          };
+
+          // Chart options
           let currentSeriesNames = [field];
-          let includePrevious = true;
+          let includePreviousParam = true;
           let yAxis = provided.yAxis;
-          let interval = getInterval(
-            {
-              start: provided.start,
-              end: provided.end,
-              period: provided.period,
-            },
-            'medium'
-          );
-          let partial = true;
+          let interval = getInterval(pageFilterDatetime, 'medium');
+          let partialDataParam = true;
           if (
             !provided.widgetData.list.data[selectedListIndex]?.transaction &&
-            !provided.widgetData.list.data[selectedListIndex]['span.description']
+            !provided.widgetData.list.data[selectedListIndex][
+              SpanMetricsFields.SPAN_DESCRIPTION
+            ]
           ) {
             return null;
           }
@@ -250,32 +256,35 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           } else if (
             props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES
           ) {
+            // Update request params
             eventView.dataset = DiscoverDatasets.SPANS_METRICS;
-            partial = false;
-            queryExtras = {
+            extraQueryParams = {
               dataset: DiscoverDatasets.SPANS_METRICS,
               excludeOther: false,
               per_page: 50,
             };
             eventView.fields = [];
+
+            // Update chart options
+            partialDataParam = false;
             yAxis = `avg(${SpanMetricsFields.SPAN_SELF_TIME})`;
+            interval = getInterval(pageFilterDatetime, STARFISH_CHART_INTERVAL_FIDELITY);
+            includePreviousParam = false;
+            currentSeriesNames = [`avg(${SpanMetricsFields.SPAN_SELF_TIME})`];
+
+            // Update search query
             eventView.additionalConditions.removeFilter('event.type');
             eventView.additionalConditions.removeFilter('transaction');
             eventView.additionalConditions.addFilterValue(
-              'span.group',
-              provided.widgetData.list.data[selectedListIndex]['span.group'].toString()
+              'transaction.op',
+              'http.server'
             );
-            interval = getInterval(
-              {
-                start: provided.start,
-                end: provided.end,
-                period: provided.period,
-              },
-              STARFISH_CHART_INTERVAL_FIDELITY
+            eventView.additionalConditions.addFilterValue(
+              SpanMetricsFields.SPAN_GROUP,
+              provided.widgetData.list.data[selectedListIndex][
+                SpanMetricsFields.SPAN_GROUP
+              ].toString()
             );
-            includePrevious = false;
-            currentSeriesNames = [`avg(${SpanMetricsFields.SPAN_SELF_TIME})`];
-            eventView.yAxis = `avg(${SpanMetricsFields.SPAN_SELF_TIME})`;
             const mutableSearch = new MutableSearch(eventView.query);
             mutableSearch.removeFilter('transaction');
             eventView.query = mutableSearch.formatString();
@@ -287,15 +296,15 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               {...pick(provided, eventsRequestQueryProps)}
               yAxis={yAxis}
               limit={1}
-              includePrevious={includePrevious}
+              includePrevious={includePreviousParam}
               includeTransformedData
-              partial={partial}
+              partial={partialDataParam}
               currentSeriesNames={currentSeriesNames}
               query={eventView.getQueryWithAdditionalConditions()}
               interval={interval}
               hideError
               onError={pageError.setPageError}
-              queryExtras={queryExtras}
+              queryExtras={extraQueryParams}
             />
           );
         },
@@ -429,22 +438,22 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 </Fragment>
               );
             case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
-              const description =
-                (listItem['span.description'] as string | undefined) ?? '';
-              const group = (listItem['span.group'] as string | undefined) ?? '';
-              const percentage = listItem[fieldString];
-              const total = listItem[`sum(${SpanMetricsFields.SPAN_SELF_TIME})`];
+              const description: string = listItem[SpanMetricsFields.SPAN_DESCRIPTION];
+              const group: string = listItem[SpanMetricsFields.SPAN_GROUP];
+              const timeSpentPercentage: number = listItem[fieldString];
+              const totalTime: number =
+                listItem[`sum(${SpanMetricsFields.SPAN_SELF_TIME})`];
               return (
                 <Fragment>
                   <GrowLink
-                    to={`performance/database/${
-                      extractRoute(location) ?? 'spans'
-                    }/span/${group}?${qs.stringify({...location.query})}`}
+                    to={`/performance/database/
+                      ${extractRoute(location) ?? 'spans'}
+                      /span/${group}?${qs.stringify({...location.query})}`}
                   >
                     <Truncate value={description} maxLength={40} />
                   </GrowLink>
                   <RightAlignedCell>
-                    <TimeSpentCell percentage={percentage} total={total} />
+                    <TimeSpentCell percentage={timeSpentPercentage} total={totalTime} />
                   </RightAlignedCell>
                   {!props.withStaticFilters && (
                     <ListClose

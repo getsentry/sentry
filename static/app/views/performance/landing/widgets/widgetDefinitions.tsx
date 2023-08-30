@@ -264,7 +264,6 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES]: {
     title: t('Most Time Spent in DB Queries'),
     subTitle: t('Suggested Queries'),
-    ContainerActions: <p> </p>,
     titleTooltip: getTermHelp(organization, PerformanceTerm.MOST_TIME_SPENT_DB_QUERIES),
     fields: [`time_spent_percentage()`],
     dataType: GenericPerformanceWidgetDataType.LINE_LIST,
