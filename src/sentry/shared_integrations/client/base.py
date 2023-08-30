@@ -17,6 +17,7 @@ from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models import Organization, OrganizationIntegration
 from sentry.models.integrations.utils import is_response_error, is_response_success
+from sentry.plugins.base import plugins
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils import json, metrics
 from sentry.utils.audit import create_system_audit_entry
@@ -98,7 +99,7 @@ class BaseApiClient(TrackResponseMixin):
             return ""
         if not self.integration_id:
             return ""
-        if hasattr(self, "plugin_name"):
+        if self.integration_type == "plugin":
             return f"sentry-plugin-error:{self.plugin_name}-{self.integration_id}"
         return f"sentry-integration-error:{self.integration_id}"
 
@@ -516,6 +517,9 @@ class BaseApiClient(TrackResponseMixin):
             integration_service.update_integration(
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )
+            if self.integration_type == "plugin":
+                plugin = plugins.get(self.integration_id)
+                plugin.disable()
             notify_disable(org, rpc_integration.provider, self._get_redis_key())
             buffer.clear()
             create_system_audit_entry(
