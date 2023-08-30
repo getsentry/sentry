@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Hovercard} from 'sentry/components/hovercard';
-import {FullQueryDescription} from 'sentry/views/starfish/components/tableCells/fullQueryDescription';
-import {SpanDescriptionLink} from 'sentry/views/starfish/components/tableCells/spanDescriptionLink';
+import {FullQueryDescription} from 'sentry/views/starfish/components/fullQueryDescription';
+import {SpanDescriptionLink} from 'sentry/views/starfish/components/spanDescriptionLink';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
