@@ -762,6 +762,7 @@ CELERY_IMPORTS = (
     "sentry.dynamic_sampling.tasks.collect_orgs",
     "sentry.tasks.statistical_detectors",
     "sentry.debug_files.tasks",
+    "sentry.dynamic_sampling.tasks.debug_task",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -1141,6 +1142,10 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
     },
+    "sentry.dynamic_sampling.tasks.debug_task": {
+        "task": "sentry.dynamic_sampling.tasks.debug_task",
+        "schedule": timedelta(seconds=60),
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -1214,6 +1219,11 @@ LOGGING = {
     "default_level": "INFO",
     "version": 1,
     "disable_existing_loggers": True,
+    "formatters": {
+        "simple": {
+            "format": "------------------------\n%(asctime)s\n------------------------ \n%(message)s\n\n",
+        }
+    },
     "handlers": {
         "null": {"class": "logging.NullHandler"},
         "console": {"class": "sentry.logging.handlers.StructLogHandler"},
@@ -1230,6 +1240,12 @@ LOGGING = {
             "level": "WARNING",
             "filters": ["important_django_request"],
             "class": "sentry_sdk.integrations.logging.EventHandler",
+        },
+        "trace_handler": {
+            "level": "INFO",
+            "class": "logging.FileHandler",
+            "filename": "trace_sampler.log",
+            "formatter": "simple",
         },
     },
     "filters": {
@@ -1276,6 +1292,11 @@ LOGGING = {
         "urllib3.connectionpool": {"level": "ERROR", "handlers": ["console"], "propagate": False},
         "boto3": {"level": "WARNING", "handlers": ["console"], "propagate": False},
         "botocore": {"level": "WARNING", "handlers": ["console"], "propagate": False},
+        "trace_sampler": {
+            "level": "INFO",
+            "handlers": ["trace_handler", "console"],
+            "propagate": False,
+        },
     },
 }
 

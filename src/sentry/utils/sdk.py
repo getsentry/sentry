@@ -137,6 +137,7 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.sliding_window": 0.2,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,
     "sentry.dynamic_sampling.tasks.collect_orgs": 0.2,
+    "sentry.dynamic_sampling.tasks.debug_task": 0.5,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
@@ -252,13 +253,38 @@ def get_project_key():
     return key
 
 
+trace_logger = logging.getLogger("trace_sampler")
+
+
 def traces_sampler(sampling_context):
     # If there's already a sampling decision, just use that
     if sampling_context["parent_sampled"] is not None:
+        if (
+            "transaction_context" in sampling_context
+            and sampling_context["transaction_context"].get("name")
+            == "sentry.dynamic_sampling.tasks.child_task"
+        ):
+            trace_logger.info(
+                f"Using parent sampling decision for:\n {format_context(sampling_context)}\n\n"
+            )
         return sampling_context["parent_sampled"]
 
     if "celery_job" in sampling_context:
+        # trace_logger.info("celery job")
         task_name = sampling_context["celery_job"].get("task")
+
+        if "debug_task" in task_name or "child_task" in task_name:
+            # make the decision here so that we can see it in the log
+            if random.random() < SAMPLED_TASKS[task_name]:
+                sampling = 1.0
+                decision = "sampled"
+            else:
+                sampling = 0.0
+                decision = "dropped"
+            trace_logger.info(
+                f"sampling {task_name} at {SAMPLED_TASKS[task_name]}, decision:{decision} for: \n {format_context(sampling_context)}\n\n"
+            )
+            return sampling
 
         if task_name in SAMPLED_TASKS:
             return SAMPLED_TASKS[task_name]
@@ -282,6 +308,13 @@ def traces_sampler(sampling_context):
         rate = min(1, rate * settings.SENTRY_MULTIPLIER_APM_SAMPLING)
 
     return rate
+
+
+import pprint
+
+
+def format_context(sampling_context):
+    return pprint.pformat(sampling_context, indent=2)
 
 
 def before_send_transaction(event, _):

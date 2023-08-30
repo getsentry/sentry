@@ -478,6 +478,7 @@ class Quota(Service):
         :param project: The project model.
         :param organization_id: The organization id.
         """
+        # return 0.5
 
     def get_transaction_sampling_tier_for_volume(
         self, organization_id: int, volume: int
