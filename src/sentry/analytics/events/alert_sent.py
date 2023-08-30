@@ -6,7 +6,7 @@ class AlertSentEvent(analytics.Event):
 
     attributes = (
         analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id", required=False),
+        analytics.Attribute("project_id"),
         # The id of the Alert or AlertRule
         analytics.Attribute("alert_id"),
         # "issue_alert" or "metric_alert"
