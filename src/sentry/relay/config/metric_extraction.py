@@ -124,7 +124,7 @@ def _get_alert_metric_specs(
             "on_demand_metrics.before_alert_spec_generation",
             tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
         )
-        if result := _convert_snuba_query_to_metric(project, alert.snuba_query, prefilling):
+        if result := _convert_snuba_query_to_metric(project, alert_snuba_query, prefilling):
             _log_on_demand_metric_spec(
                 project_id=project.id,
                 spec_for="alert",
