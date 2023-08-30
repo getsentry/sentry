@@ -263,6 +263,7 @@ def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
         NotificationSettingTypes.QUOTA_REPLAYS,
         NotificationSettingTypes.QUOTA_WARNINGS,
         NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS,
+        NotificationSettingTypes.MISSING_MEMBERS,
     ]:
         return NotificationScopeType.ORGANIZATION
 
