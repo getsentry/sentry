@@ -15,7 +15,7 @@ class TwilioApiClient(ApiClient):
         self.auth_token = auth_token
         self.sms_from = sms_from
         self.sms_to = sms_to
-        self.integration_id = project_id if project_id else None
+        self.integration_id = project_id
         super().__init__()
 
     def basic_auth(self, user, password):
