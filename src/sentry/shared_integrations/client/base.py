@@ -523,9 +523,7 @@ class BaseApiClient(TrackResponseMixin):
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )
             if self.integration_type == "plugin":
-                if plugins.exists(self.plugin_name):
-                    plugin = plugins.get(self.plugin_name)
-                    plugin.disable()
+                plugin.disable()
             notify_disable(org, rpc_integration.provider, self._get_redis_key())
             buffer.clear()
             create_system_audit_entry(
