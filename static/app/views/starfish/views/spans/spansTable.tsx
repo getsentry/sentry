@@ -57,7 +57,7 @@ export default function SpansTable({
   spanCategory,
   endpoint,
   method,
-  limit = 2,
+  limit = 25,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
