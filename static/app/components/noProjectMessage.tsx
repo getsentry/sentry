@@ -40,7 +40,10 @@ function NoProjectMessage({
       ? !!projects?.some(p => p.hasAccess)
       : !!projects?.some(p => p.isMember && p.hasAccess);
 
-  if (isTeamMember && (hasProjectAccess || !projectsLoaded || !teamsLoaded)) {
+  if (
+    (isTeamMember || isSuperuser) &&
+    (hasProjectAccess || !projectsLoaded || !teamsLoaded)
+  ) {
     return <Fragment>{children}</Fragment>;
   }
 

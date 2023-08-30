@@ -132,4 +132,22 @@ describe('NoProjectMessage', function () {
       screen.getByText('You need at least one project to use this view')
     ).toBeInTheDocument();
   });
+
+  it('shows projects to superusers if membership is not required', function () {
+    ProjectsStore.loadInitialData([
+      TestStubs.Project({hasAccess: true, isMember: false}),
+    ]);
+
+    ConfigStore.set('user', {...ConfigStore.get('user'), isSuperuser: true});
+
+    render(
+      <NoProjectMessage organization={org}>
+        <Label data-test-id="project-row" isDisabled>
+          Some Project
+        </Label>
+      </NoProjectMessage>
+    );
+
+    expect(screen.getByTestId('project-row')).toBeInTheDocument();
+  });
 });
