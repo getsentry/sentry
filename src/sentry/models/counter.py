@@ -19,7 +19,6 @@ from sentry.silo import SiloMode, unguarded_write
 
 @region_silo_only_model
 class Counter(Model):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project", unique=True)

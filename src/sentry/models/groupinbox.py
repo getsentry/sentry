@@ -53,7 +53,6 @@ class GroupInbox(Model):
     A Group that is in the inbox.
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group", unique=True, db_constraint=False)

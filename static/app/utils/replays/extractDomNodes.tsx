@@ -12,7 +12,7 @@ import requestIdleCallback from 'sentry/utils/window/requestIdleCallback';
 
 export type Extraction = {
   frame: BreadcrumbFrame | SpanFrame;
-  html: string;
+  html: string | null;
   timestamp: number;
 };
 
@@ -144,6 +144,12 @@ class BreadcrumbReferencesPlugin {
       this.activities.push({
         frame,
         html: truncated,
+        timestamp: frame.timestampMs,
+      });
+    } else {
+      this.activities.push({
+        frame,
+        html: null,
         timestamp: frame.timestampMs,
       });
     }

@@ -98,7 +98,6 @@ class ReleaseProjectModelManager(BaseManager):
 
 @region_silo_only_model
 class ReleaseProject(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
@@ -460,7 +459,6 @@ class Release(Model):
     A commit is generally a git commit. See also releasecommit.py
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization")

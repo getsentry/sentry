@@ -33,7 +33,6 @@ def event_attachment_screenshot_filter(queryset):
 
 @region_silo_only_model
 class EventAttachment(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     project_id = BoundedBigIntegerField()

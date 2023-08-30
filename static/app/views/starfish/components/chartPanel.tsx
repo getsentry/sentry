@@ -1,17 +1,18 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {space} from 'sentry/styles/space';
+import {Subtitle} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
 
 type Props = {
   children: React.ReactNode;
   button?: JSX.Element;
+  subtitle?: React.ReactNode;
   title?: React.ReactNode;
 };
 
-export default function ChartPanel({title, children, button}: Props) {
+export default function ChartPanel({title, children, button, subtitle}: Props) {
   return (
     <Panel>
       <PanelBody withPadding>
@@ -21,19 +22,27 @@ export default function ChartPanel({title, children, button}: Props) {
             {button}
           </Header>
         )}
+        {subtitle && (
+          <SubtitleContainer>
+            <Subtitle>{subtitle}</Subtitle>
+          </SubtitleContainer>
+        )}
         {children}
       </PanelBody>
     </Panel>
   );
 }
 
-const ChartLabel = styled('p')`
+const SubtitleContainer = styled('div')`
+  padding-top: ${space(0.5)};
+`;
+
+const ChartLabel = styled('div')`
   ${p => p.theme.text.cardTitle}
 `;
 
 const Header = styled('div')`
   padding: 0 ${space(1)} 0 0;
-  min-height: 36px;
   width: 100%;
   display: flex;
   align-items: center;

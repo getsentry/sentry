@@ -10,7 +10,6 @@ from sentry.db.models.fields.bounded import BoundedIntegerField, BoundedPositive
 # Based heavily on EventAttachment
 @region_silo_only_model
 class ReplayRecordingSegment(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     project_id = BoundedBigIntegerField()
