@@ -65,7 +65,6 @@ def run_scheduled_deletions_control() -> None:
     _run_scheduled_deletions(
         model_class=ScheduledDeletion,
         process_task=run_deletion_control,
-        silo_mode=SiloMode.CONTROL,
     )
 
 
@@ -76,13 +75,10 @@ def run_scheduled_deletions() -> None:
     _run_scheduled_deletions(
         model_class=RegionScheduledDeletion,
         process_task=run_deletion,
-        silo_mode=SiloMode.REGION,
     )
 
 
-def _run_scheduled_deletions(
-    model_class: Type[BaseScheduledDeletion], process_task: Task, silo_mode: SiloMode
-) -> None:
+def _run_scheduled_deletions(model_class: Type[BaseScheduledDeletion], process_task: Task) -> None:
     queryset = model_class.objects.filter(in_progress=False, date_scheduled__lte=timezone.now())
     for item in queryset:
         with transaction.atomic(router.db_for_write(model_class)):
@@ -93,7 +89,7 @@ def _run_scheduled_deletions(
             if not affected:
                 continue
 
-        process_task.delay(deletion_id=item.id, silo_mode=silo_mode.name)
+        process_task.delay(deletion_id=item.id)
 
 
 @instrumented_task(
@@ -111,7 +107,6 @@ def run_deletion_control(deletion_id, first_pass=True, **kwargs: Any):
         first_pass=first_pass,
         model_class=ScheduledDeletion,
         process_task=run_deletion_control,
-        silo_mode=SiloMode.CONTROL,
     )
 
 
@@ -130,7 +125,6 @@ def run_deletion(deletion_id, first_pass=True, **kwargs: Any):
         first_pass=first_pass,
         model_class=RegionScheduledDeletion,
         process_task=run_deletion,
-        silo_mode=SiloMode.REGION,
     )
 
 
@@ -139,7 +133,6 @@ def _run_deletion(
     first_pass: bool,
     model_class: Type[BaseScheduledDeletion],
     process_task: Task,
-    silo_mode: SiloMode,
 ) -> None:
     from sentry import deletions
 
@@ -198,13 +191,10 @@ def _run_deletion(
     try:
         has_more = task.chunk()
         if has_more:
-            # TODO(mark) Remove silo_mode parameter as it is deprecated and only passed for compat
-            # with existing workers.
             process_task.apply_async(
                 kwargs={
                     "deletion_id": deletion_id,
                     "first_pass": False,
-                    "silo_mode": silo_mode.name,
                 },
                 countdown=15,
             )
