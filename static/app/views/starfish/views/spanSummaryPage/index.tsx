@@ -138,7 +138,6 @@ function SpanSummaryPage({params, location}: Props) {
 
                 <SampleList
                   groupId={span[SpanMetricsField.SPAN_GROUP]}
-                  projectId={spanMetrics[SpanMetricsField.PROJECT_ID]}
                   transactionName={transaction}
                   transactionMethod={transactionMethod}
                 />

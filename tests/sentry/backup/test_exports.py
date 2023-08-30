@@ -3,9 +3,8 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from sentry.backup.helpers import get_exportable_final_derivations_of
+from sentry.backup.helpers import get_exportable_sentry_models
 from sentry.backup.scopes import ExportScope
-from sentry.db.models.base import BaseModel
 from sentry.testutils.helpers.backups import BackupTestCase, export_to_file
 from tests.sentry.backup import run_backup_tests_only_on_single_db
 
@@ -19,7 +18,7 @@ class ScopingTests(BackupTestCase):
     @staticmethod
     def get_models_for_scope(scope: ExportScope) -> set[str]:
         matching_models = set()
-        for model in get_exportable_final_derivations_of(BaseModel):
+        for model in get_exportable_sentry_models():
             if model.__relocation_scope__ in scope.value:
                 obj_name = model._meta.object_name
                 if obj_name is not None:

@@ -8,23 +8,18 @@ from pathlib import Path
 import pytest
 from django.db import IntegrityError
 
-from sentry.backup.helpers import get_exportable_final_derivations_of
+from sentry.backup.helpers import get_exportable_sentry_models
 from sentry.backup.imports import (
     import_in_global_scope,
     import_in_organization_scope,
     import_in_user_scope,
 )
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models.base import BaseModel
 from sentry.models.user import User
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.testutils.factories import get_fixture_path
-from sentry.testutils.helpers.backups import (
-    NOOP_PRINTER,
-    BackupTestCase,
-    clear_database_but_keep_sequences,
-)
+from sentry.testutils.helpers.backups import NOOP_PRINTER, BackupTestCase, clear_database
 from sentry.utils import json
 from tests.sentry.backup import run_backup_tests_only_on_single_db
 
@@ -87,7 +82,7 @@ class SanitizationTests(BackupTestCase):
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_json_file(tmp_path)
             with open(tmp_path) as tmp_file:
-                import_in_user_scope(tmp_file, NOOP_PRINTER)
+                import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert User.objects.count() == 4
         assert User.objects.filter(is_staff=False, is_superuser=False).count() == 4
@@ -103,7 +98,7 @@ class SanitizationTests(BackupTestCase):
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_json_file(tmp_path)
             with open(tmp_path) as tmp_file:
-                import_in_organization_scope(tmp_file, NOOP_PRINTER)
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert User.objects.count() == 4
         assert User.objects.filter(is_staff=False, is_superuser=False).count() == 4
@@ -119,7 +114,7 @@ class SanitizationTests(BackupTestCase):
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_json_file(tmp_path)
             with open(tmp_path) as tmp_file:
-                import_in_global_scope(tmp_file, NOOP_PRINTER)
+                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert User.objects.count() == 4
         assert User.objects.filter(is_staff=True).count() == 2
@@ -143,7 +138,7 @@ class SanitizationTests(BackupTestCase):
 
             with open(tmp_path) as tmp_file:
                 with pytest.raises(IntegrityError):
-                    import_in_user_scope(tmp_file, NOOP_PRINTER)
+                    import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
 
 @run_backup_tests_only_on_single_db
@@ -160,10 +155,11 @@ class ScopingTests(BackupTestCase):
             with open(tmp_path, "w+") as tmp_file:
                 json.dump(data, tmp_file)
 
-            clear_database_but_keep_sequences()
+            clear_database()
             with open(tmp_path) as tmp_file:
-                import_in_user_scope(tmp_file, NOOP_PRINTER)
-                for model in get_exportable_final_derivations_of(BaseModel):
+                import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
+                exportable = get_exportable_sentry_models()
+                for model in exportable:
                     if model.__relocation_scope__ != RelocationScope.User:
                         assert model.objects.count() == 0
 
@@ -175,10 +171,11 @@ class ScopingTests(BackupTestCase):
             with open(tmp_path, "w+") as tmp_file:
                 json.dump(data, tmp_file)
 
-            clear_database_but_keep_sequences()
+            clear_database()
             with open(tmp_path) as tmp_file:
-                import_in_organization_scope(tmp_file, NOOP_PRINTER)
-                for model in get_exportable_final_derivations_of(BaseModel):
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+                exportable = get_exportable_sentry_models()
+                for model in exportable:
                     if model.__relocation_scope__ not in {
                         RelocationScope.User,
                         RelocationScope.Organization,
