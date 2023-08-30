@@ -6,7 +6,7 @@ from sentry.models import Organization
 from .mail import MailPreview
 
 
-class DebugMissingMemberNudgeView(View):
+class DebugMissingMembersNudgeView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         self.organization = Organization(id=1, slug="organization", name="My Company")
         commit_authors = [
