@@ -16,7 +16,7 @@ export enum ModuleName {
   OTHER = 'other',
 }
 
-export enum SpanMetricsFields {
+export enum SpanMetricsField {
   SPAN_OP = 'span.op',
   SPAN_DESCRIPTION = 'span.description',
   SPAN_MODULE = 'span.module',
@@ -29,14 +29,14 @@ export enum SpanMetricsFields {
 }
 
 export type SpanMetricsFieldTypes = {
-  [SpanMetricsFields.SPAN_OP]: string;
-  [SpanMetricsFields.SPAN_DESCRIPTION]: string;
-  [SpanMetricsFields.SPAN_MODULE]: string;
-  [SpanMetricsFields.SPAN_ACTION]: string;
-  [SpanMetricsFields.SPAN_DOMAIN]: string;
-  [SpanMetricsFields.SPAN_GROUP]: string;
-  [SpanMetricsFields.SPAN_SELF_TIME]: number;
-  [SpanMetricsFields.SPAN_DURATION]: number;
+  [SpanMetricsField.SPAN_OP]: string;
+  [SpanMetricsField.SPAN_DESCRIPTION]: string;
+  [SpanMetricsField.SPAN_MODULE]: string;
+  [SpanMetricsField.SPAN_ACTION]: string;
+  [SpanMetricsField.SPAN_DOMAIN]: string;
+  [SpanMetricsField.SPAN_GROUP]: string;
+  [SpanMetricsField.SPAN_SELF_TIME]: number;
+  [SpanMetricsField.SPAN_DURATION]: number;
 };
 
 export enum SpanIndexedFields {

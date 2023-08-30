@@ -1,7 +1,7 @@
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanMetricsFields, StarfishFunctions} from 'sentry/views/starfish/types';
+import {SpanMetricsField, StarfishFunctions} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Query = {
@@ -9,7 +9,7 @@ type Query = {
 };
 
 const SORTABLE_FIELDS = [
-  `avg(${SpanMetricsFields.SPAN_SELF_TIME})`,
+  `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
   `${StarfishFunctions.HTTP_ERROR_COUNT}()`,
   `${StarfishFunctions.SPM}()`,
   `${StarfishFunctions.TIME_SPENT_PERCENTAGE}()`,

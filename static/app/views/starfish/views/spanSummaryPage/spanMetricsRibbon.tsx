@@ -4,22 +4,22 @@ import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {SpanMetricsFields, StarfishFunctions} from 'sentry/views/starfish/types';
+import {SpanMetricsField, StarfishFunctions} from 'sentry/views/starfish/types';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
 interface Props {
   spanMetrics: {
-    [SpanMetricsFields.SPAN_OP]?: string;
-    [SpanMetricsFields.SPAN_DESCRIPTION]?: string;
-    [SpanMetricsFields.SPAN_ACTION]?: string;
-    [SpanMetricsFields.SPAN_DOMAIN]?: string;
-    [SpanMetricsFields.SPAN_GROUP]?: string;
+    [SpanMetricsField.SPAN_OP]?: string;
+    [SpanMetricsField.SPAN_DESCRIPTION]?: string;
+    [SpanMetricsField.SPAN_ACTION]?: string;
+    [SpanMetricsField.SPAN_DOMAIN]?: string;
+    [SpanMetricsField.SPAN_GROUP]?: string;
   };
 }
 
 export function SpanMetricsRibbon({spanMetrics}: Props) {
-  const op = spanMetrics?.[SpanMetricsFields.SPAN_OP] ?? '';
+  const op = spanMetrics?.[SpanMetricsField.SPAN_OP] ?? '';
 
   return (
     <BlockContainer>
@@ -32,7 +32,7 @@ export function SpanMetricsRibbon({spanMetrics}: Props) {
 
       <Block title={DataTitles.avg}>
         <DurationCell
-          milliseconds={spanMetrics?.[`avg(${SpanMetricsFields.SPAN_SELF_TIME})`]}
+          milliseconds={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
         />
       </Block>
 
@@ -45,7 +45,7 @@ export function SpanMetricsRibbon({spanMetrics}: Props) {
       <Block title={t('Time Spent')}>
         <TimeSpentCell
           percentage={spanMetrics?.[`${StarfishFunctions.TIME_SPENT_PERCENTAGE}()`]}
-          total={spanMetrics?.[`sum(${SpanMetricsFields.SPAN_SELF_TIME})`]}
+          total={spanMetrics?.[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
         />
       </Block>
     </BlockContainer>
