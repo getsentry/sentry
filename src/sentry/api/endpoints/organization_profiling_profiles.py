@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 
 # from sentry.api.bases.organization import OrganizationEndpoint
@@ -37,6 +38,10 @@ class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
 
 @region_silo_endpoint
 class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
@@ -53,6 +58,10 @@ class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
 
 @region_silo_endpoint
 class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)

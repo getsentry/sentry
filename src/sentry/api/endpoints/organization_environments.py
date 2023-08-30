@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.helpers.environments import environment_visibility_filter_options
@@ -10,6 +11,10 @@ from sentry.models import Environment, EnvironmentProject
 
 @region_silo_endpoint
 class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         visibility = request.GET.get("visibility", "visible")
         if visibility not in environment_visibility_filter_options:

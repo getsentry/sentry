@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import IssueEventSerializer, serialize
@@ -50,6 +51,10 @@ def wrap_event_response(
 
 @region_silo_endpoint
 class ProjectEventDetailsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project, event_id) -> Response:
         """
         Retrieve an Event for a Project
@@ -93,6 +98,10 @@ from rest_framework.response import Response
 
 @region_silo_endpoint
 class EventJsonEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project, event_id) -> Response:
         event = eventstore.backend.get_event_by_id(project.id, event_id)
 

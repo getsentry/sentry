@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features, roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import (
     DEFAULT_SLUG_ERROR_MESSAGE,
     DEFAULT_SLUG_PATTERN,
@@ -51,6 +52,12 @@ class TeamSerializer(CamelSnakeModelSerializer, PreventNumericSlugMixin):
 
 @region_silo_endpoint
 class TeamDetailsEndpoint(TeamEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, team) -> Response:
         """
         Retrieve a Team

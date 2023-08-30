@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore, features, roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers import serialize
@@ -45,6 +46,10 @@ class EventAttachmentDetailsPermission(ProjectPermission):
 
 @region_silo_endpoint
 class EventAttachmentDetailsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (EventAttachmentDetailsPermission,)
 
     def download(self, attachment):

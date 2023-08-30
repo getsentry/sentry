@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from sentry import analytics, audit_log
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAuthTokenPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -17,6 +18,11 @@ from sentry.services.hybrid_cloud.organization.model import (
 
 @control_silo_endpoint
 class OrgAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.ENTERPRISE
     permission_classes = (OrgAuthTokenPermission,)
 

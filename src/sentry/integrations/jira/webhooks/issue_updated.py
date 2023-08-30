@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.integrations.utils import get_integration_from_jwt
 from sentry.integrations.utils.scope import bind_org_context_from_integration
@@ -22,6 +23,9 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class JiraIssueUpdatedWebhook(JiraWebhookBase):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """
     Webhook hit by Jira whenever an issue is updated in Jira's database.
     """

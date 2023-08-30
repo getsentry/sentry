@@ -25,6 +25,7 @@ from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Function
 
 from sentry import constants, eventstore, features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
@@ -443,6 +444,10 @@ def query_trace_data(
 
 
 class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def has_feature(self, organization: Organization, request: HttpRequest) -> bool:
         return bool(
             features.has("organizations:performance-view", organization, actor=request.user)
@@ -570,6 +575,10 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
 @region_silo_endpoint
 class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     @staticmethod
     def get_current_transaction(
         transactions: Sequence[SnubaTransaction],
@@ -952,6 +961,10 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
 @region_silo_endpoint
 class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: HttpRequest, organization: Organization, trace_id: str) -> HttpResponse:
         if not self.has_feature(organization, request):
             return Response(status=404)

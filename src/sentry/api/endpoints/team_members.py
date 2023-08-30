@@ -2,6 +2,7 @@ from django.db.models import Q, prefetch_related_objects
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.paginator import OffsetPaginator
@@ -43,6 +44,10 @@ class DetailedOrganizationMemberTeamSerializer(Serializer):
 
 @region_silo_endpoint
 class TeamMembersEndpoint(TeamEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, team) -> Response:
         queryset = OrganizationMemberTeam.objects.filter(
             Q(organizationmember__user_is_active=True, organizationmember__user_id__isnull=False)

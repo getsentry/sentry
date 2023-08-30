@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -10,6 +11,10 @@ from sentry.models import Release, ReleaseCommit
 
 @region_silo_endpoint
 class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization, version) -> Response:
         """
         List an Organization Release's Commits

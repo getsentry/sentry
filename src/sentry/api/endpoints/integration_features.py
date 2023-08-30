@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.bases.integration import PARANOID_GET
 from sentry.api.permissions import SentryPermission
@@ -21,6 +22,9 @@ class IntegrationFeaturesPermissions(SentryPermission):
 
 @control_silo_endpoint
 class IntegrationFeaturesEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (IntegrationFeaturesPermissions,)
 
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:

@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from urllib3 import Retry
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
@@ -75,6 +76,10 @@ class FunctionTrendsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def has_feature(self, organization, request):
         return features.has(
             "organizations:profiling-global-suspect-functions", organization, actor=request.user

@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.integrations.bitbucket.integration import scopes
 from sentry.utils.http import absolute_uri
@@ -10,6 +11,9 @@ from .client import BITBUCKET_KEY
 
 @control_silo_endpoint
 class BitbucketDescriptorEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ()
     permission_classes = ()
 

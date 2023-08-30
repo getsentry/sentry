@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers.rest_framework import RuleActionSerializer
@@ -15,6 +16,9 @@ from sentry.web.decorators import transaction_start
 
 @region_silo_endpoint
 class ProjectRuleActionsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.ISSUES
 
     permission_classes = (ProjectAlertRulePermission,)

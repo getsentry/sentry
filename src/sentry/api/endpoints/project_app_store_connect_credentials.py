@@ -1,4 +1,5 @@
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 
 """Sentry API to manage the App Store Connect credentials for a project.
@@ -82,6 +83,9 @@ class AppStoreConnectCredentialsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class AppStoreConnectAppsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """Retrieves available applications with provided credentials.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/apps/``
@@ -198,6 +202,9 @@ class AppStoreCreateCredentialsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """Returns all the App Store Connect symbol source settings ready to be saved.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/``
@@ -273,6 +280,9 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """Updates a subset of the existing credentials.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/``
@@ -336,6 +346,9 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """Triggers an immediate check for new App Store Connect builds.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/refresh/``
@@ -387,6 +400,9 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class AppStoreConnectStatusEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """Returns a summary of the project's App Store Connect configuration
     and builds.
 

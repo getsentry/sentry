@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.models import Organization, Project, PromptsActivity
 from sentry.utils.prompts import prompt_config
@@ -33,6 +34,10 @@ class PromptsActivitySerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class PromptsActivityEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request) -> Response:

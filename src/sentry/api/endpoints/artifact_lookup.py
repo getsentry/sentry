@@ -8,6 +8,7 @@ from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
 from sentry import ratelimits
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
@@ -32,6 +33,9 @@ MAX_RELEASEFILES_QUERY = 10
 
 @region_silo_endpoint
 class ProjectArtifactLookupEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def download_file(self, download_id, project: Project):

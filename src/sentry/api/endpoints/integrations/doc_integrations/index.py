@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.doc_integrations import DocIntegrationsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
@@ -17,6 +18,11 @@ logger = logging.getLogger(__name__)
 
 @control_silo_endpoint
 class DocIntegrationsEndpoint(DocIntegrationsBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request):
         if is_active_superuser(request):
             queryset = DocIntegration.objects.all()

@@ -3,6 +3,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.endpoints.organization_dashboards import OrganizationDashboardsPermission
@@ -11,6 +12,9 @@ from sentry.api.serializers.rest_framework import DashboardWidgetSerializer
 
 @region_silo_endpoint
 class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.DISCOVER_N_DASHBOARDS
     permission_classes = (OrganizationDashboardsPermission,)
 

@@ -10,6 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import ratelimits
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
@@ -43,6 +44,9 @@ CHECKIN_QUOTA_WINDOW = 60
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
 class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     public = {"POST"}
 
     rate_limits = RateLimitConfig(

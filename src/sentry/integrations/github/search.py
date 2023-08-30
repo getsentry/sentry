@@ -3,6 +3,7 @@ from typing import Any
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.integrations.github.integration import build_repository_query
@@ -13,6 +14,9 @@ from sentry.shared_integrations.exceptions import ApiError
 
 @control_silo_endpoint
 class GithubSharedSearchEndpoint(IntegrationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """NOTE: This endpoint is a shared search endpoint for Github and Github Enterprise integrations."""
 
     def get(

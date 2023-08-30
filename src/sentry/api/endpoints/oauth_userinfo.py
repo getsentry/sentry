@@ -3,6 +3,7 @@ from rest_framework.authentication import get_authorization_header
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist, SentryAPIException
 from sentry.models import ApiToken, UserEmail
@@ -16,6 +17,9 @@ class InsufficientScopesError(SentryAPIException):
 
 @control_silo_endpoint
 class OAuthUserInfoEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ()
     permission_classes = ()
 

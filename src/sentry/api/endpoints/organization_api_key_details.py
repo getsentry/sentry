@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import (
     ControlSiloOrganizationEndpoint,
@@ -21,6 +22,11 @@ class ApiKeySerializer(serializers.ModelSerializer):
 
 @control_silo_endpoint
 class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationAdminPermission,)
 
     def get(self, request: Request, organization_context, organization, api_key_id) -> Response:

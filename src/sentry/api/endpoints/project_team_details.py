@@ -2,6 +2,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -25,6 +26,10 @@ class ProjectTeamsPermission(ProjectPermission):
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectTeamDetailsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     public = {"POST", "DELETE"}
     permission_classes = (ProjectTeamsPermission,)
 

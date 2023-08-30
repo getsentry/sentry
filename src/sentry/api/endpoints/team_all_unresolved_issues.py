@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.helpers.environments import get_environments
@@ -107,6 +108,10 @@ def calculate_unresolved_counts(team, project_list, start, end, environment_id):
 
 @region_silo_endpoint
 class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, team: Team) -> Response:
         """
         Returns cumulative counts of unresolved groups per day within the stats period time range.

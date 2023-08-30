@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
@@ -20,6 +21,10 @@ from rest_framework.response import Response
 
 @control_silo_endpoint
 class BroadcastDetailsEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (IsAuthenticated,)
 
     def _get_broadcast(self, request: Request, broadcast_id):

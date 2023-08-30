@@ -6,6 +6,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
@@ -30,6 +31,9 @@ from .base import MonitorIngestEndpoint
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
 class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
+    publish_status = {
+        "PUT": ApiPublishStatus.PUBLIC,
+    }
     public = {"PUT"}
 
     @extend_schema(

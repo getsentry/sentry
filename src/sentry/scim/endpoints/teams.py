@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from typing_extensions import TypedDict
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.endpoints.organization_teams import CONFLICTING_SLUG_ERROR, TeamPostSerializer
 from sentry.api.endpoints.team_details import TeamDetailsEndpoint, TeamSerializer
@@ -97,6 +98,10 @@ class SCIMListResponseDict(TypedDict):
 @extend_schema(tags=["SCIM"])
 @region_silo_endpoint
 class OrganizationSCIMTeamIndex(SCIMEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (OrganizationSCIMTeamPermission,)
     public = {"GET", "POST"}
 
@@ -228,6 +233,12 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
 @extend_schema(tags=["SCIM"])
 @region_silo_endpoint
 class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.UNKNOWN,
+        "PATCH": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (OrganizationSCIMTeamPermission,)
     public = {"GET", "PATCH", "DELETE"}
 

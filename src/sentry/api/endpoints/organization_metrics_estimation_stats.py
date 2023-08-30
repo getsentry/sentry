@@ -7,6 +7,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.models import Organization
@@ -27,6 +28,9 @@ MetricVolumeRow = List[Union[int, List[CountResult]]]
 
 @region_silo_endpoint
 class OrganizationMetricsEstimationStatsEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """Gets the estimated volume of an organization's metric events."""
 
     def get(self, request: Request, organization: Organization) -> Response:

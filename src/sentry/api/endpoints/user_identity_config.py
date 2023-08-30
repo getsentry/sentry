@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
@@ -76,6 +77,10 @@ def get_identities(user: User) -> Iterable[UserIdentityConfig]:
 
 @control_silo_endpoint
 class UserIdentityConfigEndpoint(UserEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, user) -> Response:
         """
         Retrieve all of a user's SocialIdentity, Identity, and AuthIdentity values
@@ -91,6 +96,11 @@ class UserIdentityConfigEndpoint(UserEndpoint):
 
 @control_silo_endpoint
 class UserIdentityConfigDetailsEndpoint(UserEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     @staticmethod
     def _get_identity(user, category, identity_id) -> Optional[UserIdentityConfig]:
         identity_id = int(identity_id)

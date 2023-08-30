@@ -15,6 +15,7 @@ from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
 from sentry import ratelimits, roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -88,6 +89,10 @@ def has_download_permission(request, project):
 
 @region_silo_endpoint
 class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def post(self, request: Request, project) -> Response:
@@ -165,6 +170,11 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class DebugFilesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def download(self, debug_file_id, project):
@@ -340,6 +350,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class UnknownDebugFilesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:
@@ -350,6 +363,9 @@ class UnknownDebugFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class AssociateDSymFilesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     # Legacy endpoint, kept for backwards compatibility
@@ -359,6 +375,9 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class DifAssembleEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def post(self, request: Request, project) -> Response:
@@ -477,6 +496,10 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class SourceMapsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:

@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.models import Project
@@ -18,6 +19,9 @@ from sentry.utils.samples import load_data
 
 @region_silo_endpoint
 class IssueOccurrenceEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (SuperuserPermission,)
 
     def post(self, request: Request) -> Response:

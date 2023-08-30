@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from sentry import analytics, audit_log, roles
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAuthTokenPermission
 from sentry.api.serializers import serialize
@@ -28,6 +29,10 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 @control_silo_endpoint
 class OrgAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.ENTERPRISE
     permission_classes = (OrgAuthTokenPermission,)
 

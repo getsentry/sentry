@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
@@ -19,6 +20,9 @@ FEATURE = "organizations:starfish-test-endpoint"
 
 @region_silo_endpoint
 class OrganizationEventsStarfishEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """
     This is a test endpoint that's meant to only be used for starfish testing
     purposes.

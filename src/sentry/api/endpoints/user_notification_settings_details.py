@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
@@ -12,6 +13,10 @@ from sentry.models import NotificationSetting, User
 
 @control_silo_endpoint
 class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     """
     This Notification Settings endpoint is the generic way to interact with the
     NotificationSettings table via the API.

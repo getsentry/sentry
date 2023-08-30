@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint, add_integration_platform_metric_tag
 from sentry.api.paginator import OffsetPaginator
@@ -11,6 +12,10 @@ from sentry.models import SentryApp
 
 @region_silo_endpoint
 class OrganizationSentryAppsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     @add_integration_platform_metric_tag
     def get(self, request: Request, organization) -> Response:
         queryset = SentryApp.objects.filter(owner_id=organization.id, application__isnull=False)

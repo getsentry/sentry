@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.models import Integration
@@ -15,6 +16,9 @@ from .utils import build_user_choice
 
 @control_silo_endpoint
 class JiraServerSearchEndpoint(IntegrationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     provider = "jira_server"
 
     def _get_integration(self, organization, integration_id):

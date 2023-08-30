@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.invite_helper import (
     ApiInviteHelper,
@@ -66,6 +67,10 @@ def get_invite_state(
 
 @control_silo_endpoint
 class AcceptOrganizationInvite(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     # Disable authentication and permission requirements.
     permission_classes = []
 

@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.endpoints.notifications.notification_actions_index import (
@@ -23,6 +24,11 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     """
     Manages a single NotificationAction via the action_id passed in the path.
     GET: Returns the serialized NotificationAction

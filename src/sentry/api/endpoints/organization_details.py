@@ -11,6 +11,7 @@ from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
 from sentry import audit_log, roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
@@ -476,6 +477,12 @@ from rest_framework.response import Response
 
 @region_silo_endpoint
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         """
         Retrieve an Organization

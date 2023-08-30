@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import onboarding_tasks
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models import OnboardingTaskStatus
@@ -14,6 +15,9 @@ class OnboardingTaskPermission(OrganizationPermission):
 
 @region_silo_endpoint
 class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OnboardingTaskPermission,)
 
     def post(self, request: Request, organization) -> Response:

@@ -15,6 +15,7 @@ from rest_framework.response import Response
 from typing_extensions import TypedDict
 
 from sentry import audit_log, roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
@@ -141,6 +142,12 @@ def resolve_maybe_bool_value(value):
 
 @region_silo_endpoint
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.UNKNOWN,
+        "PATCH": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (OrganizationSCIMMemberPermission,)
     public = {"GET", "DELETE", "PATCH"}
 
@@ -367,6 +374,10 @@ class SCIMListResponseDict(TypedDict):
 
 @region_silo_endpoint
 class OrganizationSCIMMemberIndex(SCIMEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (OrganizationSCIMMemberPermission,)
     public = {"GET", "POST"}
 

@@ -10,6 +10,7 @@ from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 
 from sentry import analytics, audit_log, eventstore, features, options
 from sentry.api import client
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.models import ApiKey, Group, Rule
 from sentry.models.activity import ActivityIntegration
@@ -160,6 +161,9 @@ class MsTeamsWebhookMixin:
 
 @region_silo_endpoint
 class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ()
     permission_classes = ()
     provider = "msteams"

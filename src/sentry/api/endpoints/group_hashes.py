@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
@@ -16,6 +17,11 @@ from sentry.utils.snuba import raw_query
 
 @region_silo_endpoint
 class GroupHashesEndpoint(GroupEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, group) -> Response:
         """
         List an Issue's Hashes

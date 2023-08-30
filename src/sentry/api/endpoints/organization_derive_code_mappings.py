@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import (
     OrganizationEndpoint,
@@ -25,6 +26,10 @@ from sentry.tasks.derive_code_mappings import get_installation
 
 @region_silo_endpoint
 class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:

@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import integrations
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
@@ -94,6 +95,9 @@ class PathMappingSerializer(CamelSnakeSerializer):
 
 
 class ProjectRepoPathParsingEndpointLoosePermission(ProjectPermission):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """
     Similar to the code_mappings endpoint, loosen permissions to all users
     """

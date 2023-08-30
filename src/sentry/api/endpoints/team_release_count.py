@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.utils import get_date_range_from_params
@@ -16,6 +17,10 @@ from sentry.models import Project, Release
 
 @region_silo_endpoint
 class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, team) -> Response:
         """
         Returns a dict of team projects, and a time-series list of release counts for each.

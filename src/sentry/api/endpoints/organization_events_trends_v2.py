@@ -15,6 +15,7 @@ from snuba_sdk import Column
 from urllib3 import Retry
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
@@ -74,6 +75,9 @@ def get_trends(snuba_io):
 
 @region_silo_endpoint
 class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     enforce_rate_limit = True
     rate_limits = {
         "GET": {

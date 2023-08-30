@@ -3,6 +3,7 @@ from typing import Any
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.models import Integration
@@ -12,6 +13,10 @@ from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 @control_silo_endpoint
 class VstsSearchEndpoint(IntegrationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(
         self, request: Request, organization: RpcOrganization, integration_id: int, **kwds: Any
     ) -> Response:
