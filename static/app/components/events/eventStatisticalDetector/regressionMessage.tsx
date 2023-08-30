@@ -39,7 +39,7 @@ function EventStatisticalDetectorMessage({event}: EventStatisticalDetectorMessag
               <Link to={normalizeUrl(transactionSummaryLink)}>{transactionName}</Link>
             ),
             amount: formatPercentage(
-              event?.occurrence?.evidenceData?.trendPercentage / 100
+              event?.occurrence?.evidenceData?.trendPercentage - 1
             ),
             date: detectionTime.toLocaleDateString(undefined, {
               month: 'short',
