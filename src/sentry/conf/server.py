@@ -2045,7 +2045,8 @@ SENTRY_TSDB_OPTIONS: dict[str, Any] = {}
 SENTRY_NEWSLETTER = "sentry.newsletter.base.Newsletter"
 SENTRY_NEWSLETTER_OPTIONS: dict[str, Any] = {}
 
-SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
+# SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
+SENTRY_EVENTSTREAM = "sentry.eventstream.kafka.KafkaEventStream"
 SENTRY_EVENTSTREAM_OPTIONS: dict[str, Any] = {}
 
 # rollups must be ordered from highest granularity to lowest
@@ -2443,7 +2444,8 @@ SENTRY_WATCHERS = (
 # generate fake data for local testing. You can also manually enable relay with the `--ingest` flag to `devserver`.
 # XXX: This is disabled by default as typical development workflows do not require end-to-end services running
 # and disabling optional services reduces resource consumption and complexity
-SENTRY_USE_RELAY = False
+# SENTRY_USE_RELAY = False
+SENTRY_USE_RELAY = True
 SENTRY_RELAY_PORT = 7899
 
 # Controls whether we'll run the snuba subscription processor. If enabled, we'll run
