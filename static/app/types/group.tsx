@@ -72,7 +72,7 @@ export enum IssueType {
   PERFORMANCE_UNCOMPRESSED_ASSET = 'performance_uncompressed_assets',
   PERFORMANCE_LARGE_HTTP_PAYLOAD = 'performance_large_http_payload',
   PERFORMANCE_HTTP_OVERHEAD = 'performance_http_overhead',
-  PERFORMANCE_P95_TRANSACTION_DURATION_REGRESSION = 'performance_p95_transaction_duration_regression',
+  PERFORMANCE_DURATION_REGRESSION = 'performance_duration_regression',
 
   // Profile
   PROFILE_FILE_IO_MAIN_THREAD = 'profile_file_io_main_thread',
