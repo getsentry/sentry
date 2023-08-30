@@ -1,15 +1,15 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {SpanMetricsField, StarfishFunctions} from 'sentry/views/starfish/types';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {SpanMetricsRibbon} from 'sentry/views/starfish/views/spanSummaryPage/spanMetricsRibbon';
 
 describe('SpanMetricsRibbon', function () {
   const sampleMetrics = {
     [SpanMetricsField.SPAN_OP]: 'db',
-    [`${StarfishFunctions.SPM}()`]: 17.8,
+    [`${SpanFunction.SPM}()`]: 17.8,
     [`avg(${SpanMetricsField.SPAN_SELF_TIME})`]: 127.1,
     [`sum(${SpanMetricsField.SPAN_SELF_TIME})`]: 1172319,
-    [`${StarfishFunctions.TIME_SPENT_PERCENTAGE}()`]: 0.002,
+    [`${SpanFunction.TIME_SPENT_PERCENTAGE}()`]: 0.002,
   };
 
   it('renders basic metrics', function () {
