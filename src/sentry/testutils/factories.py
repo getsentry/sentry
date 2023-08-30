@@ -641,6 +641,8 @@ class Factories:
             project=project,
             repository=repo,
             organization_integration_id=organization_integration.id,
+            integration_id=organization_integration.integration_id,
+            organization_id=organization_integration.organization_id,
             **kwargs,
         )
 

@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
 from sentry.backup.dependencies import PrimaryKeyMap
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
@@ -369,9 +369,9 @@ class Team(Model, SnowflakeIdMixin):
 
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, obj: DeserializedObject
+        self, pk_map: PrimaryKeyMap, obj: DeserializedObject, scope: ImportScope
     ) -> Optional[Tuple[int, int]]:
-        written = super().write_relocation_import(pk_map, obj)
+        written = super().write_relocation_import(pk_map, obj, scope)
         if written is not None:
             (_, new_pk) = written
 

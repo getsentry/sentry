@@ -23,6 +23,7 @@ from snuba_sdk import Request as SnubaRequest
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.event_search import SearchConfig
@@ -36,6 +37,9 @@ from sentry.utils.snuba import raw_snql_query
 
 @region_silo_endpoint
 class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.REPLAY
 
     def get_replay_filter_params(self, request, organization):

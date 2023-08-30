@@ -88,6 +88,7 @@ class IntegrationRepositoryProvider:
         integration_id = result.get("integration_id")
         external_id = result.get("external_id")
         name = result.get("name")
+        url = result.get("url")
 
         # first check if there is an existing hidden repository for the organization and external id
         repositories = repository_service.get_repositories(
@@ -100,6 +101,7 @@ class IntegrationRepositoryProvider:
             existing_repo.status = ObjectStatus.ACTIVE
             existing_repo.name = name
             existing_repo.integration_id = integration_id
+            existing_repo.url = url
             repository_service.update_repository(
                 organization_id=organization.id, update=existing_repo
             )

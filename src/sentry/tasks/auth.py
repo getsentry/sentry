@@ -37,6 +37,8 @@ def email_missing_links(org_id: int, actor_id: int, provider_key: str, **kwargs)
         logger.warning("sso.link.email_failure.could_not_find_user", extra={"user_id": actor_id})
         return
 
+    # TODO(mark) We don't have member flags available in control silo.
+    # This entire method could be moved to an RPC call that is invoked from control silo.
     member_list = OrganizationMember.objects.filter(
         organization=org, flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"])
     )
@@ -64,6 +66,8 @@ def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
     # disabled in the timespan of users checking their email.
     member_list = OrganizationMember.objects.filter(organization=org)
 
+    # TODO(mark) Membermapping records don't have this method.
+    # This entire method could be moved to an RPC call that is invoked from control silo.
     for member in member_list:
         member.send_sso_unlink_email(user, provider)
 
