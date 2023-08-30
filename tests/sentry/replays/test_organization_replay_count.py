@@ -199,6 +199,15 @@ class OrganizationReplayCountEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data == expected
 
+    def test_invalid_data_source(self):
+        query = {
+            "query": "issue.id:[1234]",
+            "data_source": "Dataset.DoesNotExist",
+        }
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+            assert response.status_code == 200
+
     def test_one_replay_multiple_issues(self):
         event_id_a = "a" * 32
         event_id_b = "b" * 32

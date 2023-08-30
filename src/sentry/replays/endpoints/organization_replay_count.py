@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from rest_framework import status
+from rest_framework import serializers, status
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from snuba_sdk import Request
 
@@ -22,6 +23,12 @@ MAX_VALS_PROVIDED = {
 }
 
 FILTER_HAS_A_REPLAY = "AND !replayId:''"
+
+
+class ReplayDataSourceValidator(serializers.Serializer):
+    source = serializers.ChoiceField(
+        choices=((Dataset.Discover), (Dataset.IssuePlatform)), default=Dataset.Discover
+    )
 
 
 @region_silo_endpoint
@@ -50,7 +57,11 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
             )
         except NoProjects:
             return Response({})
-        data_source = Dataset.IssuePlatform if request.GET.get("data_source") else Dataset.Discover
+
+        result = ReplayDataSourceValidator(data=request.GET)
+        if not result.is_valid():
+            raise ParseError(result.errors)
+        data_source = Dataset.IssuePlatform if result.validated_data else Dataset.Discover
         try:
             replay_counts = get_replay_counts(
                 snuba_params, request.GET.get("query"), request.GET.get("returnIds"), data_source
