@@ -91,6 +91,7 @@ class NotificationSetting(Model):
             (NotificationSettingTypes.QUOTA_WARNINGS, "quotaWarnings"),
             (NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS, "quotaSpendAllocations"),
             (NotificationSettingTypes.SPIKE_PROTECTION, "spikeProtection"),
+            (NotificationSettingTypes.MISSING_MEMBERS, "missingMembers"),
         ),
         null=False,
     )
