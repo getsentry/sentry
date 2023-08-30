@@ -1327,8 +1327,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
 SENTRY_FEATURES = {
-    # Prevents entirely numeric resource slugs
-    "app:enterprise-prevent-numeric-slugs": False,
     # Enables user registration.
     "auth:register": True,
     # Enables actionable items alerts and endpoint
@@ -1369,10 +1367,6 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Allow disabling github integrations when broken is detected
     "organizations:github-disable-on-broken": False,
-    # Allow disabling integrations when broken is detected
-    "organizations:slack-fatal-disable-on-broken": False,
-    # Allow disabling sentryapps when broken is detected
-    "organizations:disable-sentryapps-on-broken": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit

@@ -9,7 +9,7 @@ from django.db.models import signals
 from django.utils import timezone
 
 from sentry.backup.dependencies import PrimaryKeyMap, dependencies, normalize_model_name
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.silo import SiloLimit, SiloMode
 
 from .fields.bounded import BoundedBigAutoField
@@ -108,7 +108,7 @@ class BaseModel(models.Model):
 
         return self.__relocation_scope__
 
-    def _normalize_before_relocation_import(self, pk_map: PrimaryKeyMap) -> int:
+    def _normalize_before_relocation_import(self, pk_map: PrimaryKeyMap, _: ImportScope) -> int:
         """
         A helper function that normalizes a deserialized model. Note that this modifies the model in place, so it should generally be done inside of the companion `write_relocation_import` method, to avoid data skew or corrupted local state.
 
@@ -136,13 +136,13 @@ class BaseModel(models.Model):
         return old_pk
 
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, obj: DeserializedObject
+        self, pk_map: PrimaryKeyMap, obj: DeserializedObject, scope: ImportScope
     ) -> Optional[Tuple[int, int]]:
         """
         Writes a deserialized model to the database. If this write is successful, this method will return a tuple of the old and new `pk`s.
         """
 
-        old_pk = self._normalize_before_relocation_import(pk_map)
+        old_pk = self._normalize_before_relocation_import(pk_map, scope)
         obj.save(force_insert=True)
         return (old_pk, self.pk)
 

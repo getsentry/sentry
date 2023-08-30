@@ -12,13 +12,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {StarfishProjectSelector} from 'sentry/views/starfish/components/starfishProjectSelector';
-import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {RoutingContextProvider} from 'sentry/views/starfish/utils/routingContext';
 
 import SpansView from './spansView';
 
-const {SPAN_MODULE} = SpanMetricsFields;
+const {SPAN_MODULE} = SpanMetricsField;
 
 type Query = {
   'span.category'?: string;

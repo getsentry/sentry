@@ -35,6 +35,7 @@ from sentry.notifications.types import NotificationSettingOptionValues, Notifica
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -549,7 +550,7 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         assert project.slug != new_project.slug
 
-    @with_feature("app:enterprise-prevent-numeric-slugs")
+    @override_options({"api.prevent-numeric-slugs": True})
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(
             self.org_slug,
