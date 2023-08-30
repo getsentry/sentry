@@ -9,7 +9,7 @@ describe('GettingStartedWithSanic', function () {
     const {container} = render(<GettingStartedWithSanic dsn="test-dsn" />);
 
     // Steps
-    for (const step of steps()) {
+    for (const step of steps({sentryInitContent: 'test-init-content'})) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
