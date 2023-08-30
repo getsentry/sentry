@@ -2,6 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
 import UserFeedback from 'sentry/views/userFeedback';
 
 describe('UserFeedback', function () {
@@ -22,6 +23,8 @@ describe('UserFeedback', function () {
 
   beforeEach(function () {
     ProjectsStore.loadInitialData([project]);
+    const team = TestStubs.Team({slug: 'team-slug', isMember: true});
+    TeamStore.loadInitialData([{...team, access: ['team:read']}]);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',

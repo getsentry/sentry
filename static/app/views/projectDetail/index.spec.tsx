@@ -4,6 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
 import ProjectDetails from 'sentry/views/projectDetail/projectDetail';
 
 describe('ProjectDetail', function () {
@@ -13,6 +14,8 @@ describe('ProjectDetail', function () {
   beforeEach(() => {
     PageFiltersStore.reset();
     ProjectsStore.reset();
+    const team = TestStubs.Team({slug: 'team-slug', isMember: true});
+    TeamStore.loadInitialData([{...team, access: ['team:read']}]);
     // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
