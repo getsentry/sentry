@@ -843,6 +843,37 @@ def process_snoozes(job: PostProcessJob) -> None:
         return
 
 
+def process_replay_link(job: PostProcessJob) -> None:
+    def _get_replay_id(event):
+        # replay ids can either come as a context, or a tag.
+        # right now they come as a context on non-js events,
+        # and javascript transaction (through DSC context)
+        # It comes as a tag on js errors.
+        # TODO: normalize this upstream in relay and javascript SDK. and eventually remove the tag
+        # logic.
+        context_replay_id = event.data.get("contexts", {}).get("replay", {}).get("replay_id")
+
+        return context_replay_id or event.get_tag("replayId")
+
+    if job["is_reprocessed"]:
+        return
+
+    if not features.has(
+        "organizations:session-replay-event-linking", job["event"].project.organization
+    ):
+        metrics.incr("post_process.process_replay_link.feature_not_enabled")
+        return
+
+    metrics.incr("post_process.process_replay_link.id_sampled")
+
+    group_event = job["event"]
+    replay_id = _get_replay_id(group_event)
+    if not replay_id:
+        return
+
+    metrics.incr("post_process.process_replay_link.id_exists")
+
+
 def process_rules(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
@@ -1154,6 +1185,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         update_existing_attachments,
         fire_error_processed,
         sdk_crash_monitoring,
+        process_replay_link,
     ],
 }
 

@@ -69,6 +69,8 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
             source_root="src/packages/store",
             default_branch="main",
             organization_integration_id=org_integration.id,
+            integration_id=org_integration.integration_id,
+            organization_id=org_integration.organization_id,
         )
         code_owner = ProjectCodeOwners.objects.create(
             project=project,
