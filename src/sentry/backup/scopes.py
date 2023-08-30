@@ -23,10 +23,23 @@ class RelocationScope(Enum):
 
 
 @unique
+class ExportScope(Enum):
+    """
+    When executing the `sentry export` command, these scopes specify which of the above
+    `RelocationScope`s should be included in the final export. The basic idea is that each of these
+    scopes is inclusive of its predecessor in terms of which `RelocationScope`s it accepts.
+    """
+
+    User = {RelocationScope.User}
+    Organization = {RelocationScope.User, RelocationScope.Organization}
+    Global = {RelocationScope.User, RelocationScope.Organization, RelocationScope.Global}
+
+
+@unique
 class ImportScope(Enum):
     """
     When executing the `sentry import` command, these scopes specify which of the above
-    `RelocationScope`s should be included in the final import. The basic idea is that each of these
+    `RelocationScope`s should be included in the final upload. The basic idea is that each of these
     scopes is inclusive of its predecessor in terms of which `RelocationScope`s it accepts.
     """
 
