@@ -15,10 +15,11 @@ from snuba_sdk import Column
 from urllib3 import Retry
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.issues.grouptype import PerformanceP95TransactionDurationRegressionGroupType
+from sentry.issues.grouptype import PerformanceDurationRegressionGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import produce_occurrence_to_kafka
 from sentry.net.http import connection_from_url
@@ -74,6 +75,9 @@ def get_trends(snuba_io):
 
 @region_silo_endpoint
 class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -401,15 +405,15 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     project_id=project_id,
                     event_id=uuid.uuid4().hex,
                     fingerprint=[fingerprint_regression(qualifying_trend)],
-                    type=PerformanceP95TransactionDurationRegressionGroupType,
-                    issue_title=PerformanceP95TransactionDurationRegressionGroupType.description,
-                    subtitle=f"Transaction duration changed from {displayed_old_baseline} ms to {displayed_new_baseline} ms",
+                    type=PerformanceDurationRegressionGroupType,
+                    issue_title=PerformanceDurationRegressionGroupType.description,
+                    subtitle=f"Increased from {displayed_old_baseline}ms to {displayed_new_baseline}ms (P95)",
                     culprit=qualifying_trend["transaction"],
                     evidence_data=qualifying_trend,
                     evidence_display=[
                         IssueEvidence(
                             name="Regression",
-                            value=f"Transaction duration changed from {displayed_old_baseline} ms to {displayed_new_baseline} ms",
+                            value=f"Increased from {displayed_old_baseline}ms to {displayed_new_baseline}ms (P95)",
                             important=True,
                         ),
                         IssueEvidence(

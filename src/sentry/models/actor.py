@@ -10,7 +10,7 @@ from django.db.models.signals import post_save
 from rest_framework import serializers
 
 from sentry.backup.dependencies import PrimaryKeyMap
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import Model, region_silo_only_model
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -143,8 +143,8 @@ class Actor(Model):
         return self.get_actor_tuple().get_actor_identifier()
 
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
-    def _normalize_before_relocation_import(self, pk_map: PrimaryKeyMap) -> int:
-        old_pk = super()._normalize_before_relocation_import(pk_map)
+    def _normalize_before_relocation_import(self, pk_map: PrimaryKeyMap, scope: ImportScope) -> int:
+        old_pk = super()._normalize_before_relocation_import(pk_map, scope)
 
         # `Actor` and `Team` have a direct circular dependency between them for the time being due
         # to an ongoing refactor (that is, `Actor` foreign keys directly into `Team`, and `Team`

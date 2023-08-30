@@ -11,6 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
@@ -30,6 +31,12 @@ class IntegrationSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
     def get(
