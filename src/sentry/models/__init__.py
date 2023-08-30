@@ -89,6 +89,8 @@ from .promptsactivity import *  # NOQA
 from .pullrequest import *  # NOQA
 from .rawevent import *  # NOQA
 from .recentsearch import *  # NOQA
+from .regionreplicatedauthidentity import *  # NOQA
+from .regionreplicatedauthprovider import *  # NOQA
 from .relay import *  # NOQA
 from .release import *  # NOQA
 from .releaseactivity import *  # NOQA
