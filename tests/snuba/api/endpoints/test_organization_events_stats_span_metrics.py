@@ -164,10 +164,13 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
     def test_top_events(self):
         # Each of these denotes how many events to create in each minute
-        for transaction in ["foo", "bar", "baz"]:
+        for transaction in ["foo", "bar"]:
             self.store_span_metric(
-                1, timestamp=self.day_ago + timedelta(minutes=1), tags={"transaction": transaction}
+                2, timestamp=self.day_ago + timedelta(minutes=1), tags={"transaction": transaction}
             )
+        self.store_span_metric(
+            1, timestamp=self.day_ago + timedelta(minutes=1), tags={"transaction": "baz"}
+        )
 
         response = self.do_request(
             data={
