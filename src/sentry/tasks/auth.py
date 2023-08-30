@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 import logging
-from urllib.parse import urlencode
 
 from django.db.models import F
 from django.urls import reverse
@@ -11,7 +10,6 @@ from sentry import audit_log, features, options
 from sentry.auth import manager
 from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.models import Organization, OrganizationMember, User, UserEmail
-from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
 from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -73,47 +71,6 @@ def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
     members = OrganizationMember.objects.filter(organization=org, user_id__isnull=False)
     for member in members:
         member.send_sso_unlink_email(user, provider)
-
-
-def _send_sso_unlink_email(
-    member: OrganizationMember,
-    disabling_user: RpcUser,
-    organization: Organization,
-    provider,
-):
-    # Nothing to send if this member isn't associated to a user
-    if not member.user_id:
-        return
-
-    user = user_service.get_user(user_id=member.user_id)
-    if not user:
-        return
-
-    recover_uri = "{path}?{query}".format(
-        path=reverse("sentry-account-recover"), query=urlencode({"email": user.email})
-    )
-    has_password = user.has_usable_password()
-
-    context = {
-        "email": user.email,
-        "recover_url": absolute_uri(recover_uri),
-        "has_password": has_password,
-        "organization": organization,
-        "disabled_by_email": disabling_user.email,
-        "provider": provider,
-    }
-    if not has_password:
-        password_hash = lost_password_hash_service.get_or_create(user_id=user.id)
-        context["set_password_url"] = password_hash.get_absolute_url(mode="set_password")
-
-    msg = MessageBuilder(
-        subject=f"Action Required for {organization.name}",
-        template="sentry/emails/auth-sso-disabled.txt",
-        html_template="sentry/emails/auth-sso-disabled.html",
-        type="organization.auth_sso_disabled",
-        context=context,
-    )
-    msg.send_async([user.email])
 
 
 class OrganizationComplianceTask(abc.ABC):
