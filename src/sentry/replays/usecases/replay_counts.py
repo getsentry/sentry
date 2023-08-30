@@ -21,7 +21,9 @@ MAX_VALS_PROVIDED = {
 FILTER_HAS_A_REPLAY = " AND !replayId:''"
 
 
-def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source) -> dict[str, Any]:
+def get_replay_counts(
+    snuba_params: SnubaParams, query, return_ids, data_source: Dataset
+) -> dict[str, Any]:
     if snuba_params.start is None or snuba_params.end is None or snuba_params.organization is None:
         raise ValueError("Must provide start and end")
 
