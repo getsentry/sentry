@@ -68,6 +68,7 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
         return VictorOpsClient(
             api_key=self.get_option("api_key", project),
             routing_key=self.get_option("routing_key", project),
+            project_id=project.id,
         )
 
     def build_description(self, event):

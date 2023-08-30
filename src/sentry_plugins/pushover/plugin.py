@@ -97,7 +97,9 @@ class PushoverPlugin(CorePluginMixin, NotifyPlugin):
 
     def get_client(self, project):
         return PushoverClient(
-            apikey=self.get_option("apikey", project), userkey=self.get_option("userkey", project)
+            apikey=self.get_option("apikey", project),
+            userkey=self.get_option("userkey", project),
+            project_id=project.id,
         )
 
     def error_message_from_json(self, data):

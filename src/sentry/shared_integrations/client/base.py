@@ -98,6 +98,8 @@ class BaseApiClient(TrackResponseMixin):
             return ""
         if not self.integration_id:
             return ""
+        if hasattr(self, "plugin_name"):
+            return f"sentry-plugin-error:{self.plugin_name}-{self.integration_id}"
         return f"sentry-integration-error:{self.integration_id}"
 
     def is_response_fatal(self, resp: Response) -> bool:

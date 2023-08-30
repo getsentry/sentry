@@ -195,7 +195,9 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
 
     def get_client(self, project):
         return TrelloApiClient(
-            self.get_option("key", project), token=self.get_option("token", project)
+            self.get_option("key", project),
+            token=self.get_option("token", project),
+            project_id=project.id,
         )
 
     def error_message_from_json(self, data):

@@ -195,4 +195,4 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
         sms_from = clean_phone(self.get_option("sms_from", project))
         sms_to = self.get_option("sms_to", project)
         sms_to = split_sms_to(sms_to)
-        return TwilioApiClient(account_sid, auth_token, sms_from, sms_to)
+        return TwilioApiClient(account_sid, auth_token, sms_from, sms_to, project.id)

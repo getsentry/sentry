@@ -7,11 +7,12 @@ class VictorOpsClient(ApiClient):
     plugin_name = "victorops"
     allow_redirects = False
 
-    def __init__(self, api_key, routing_key=None):
+    def __init__(self, api_key, routing_key=None, project_id=None):
         self.api_key = api_key
 
         if routing_key:
             self.routing_key = routing_key
+        self.integration_id = project_id if project_id else None
         super().__init__()
 
     def build_url(self, path):

@@ -6,9 +6,10 @@ class PushoverClient(ApiClient):
     allow_redirects = False
     plugin_name = "pushover"
 
-    def __init__(self, userkey=None, apikey=None):
+    def __init__(self, userkey=None, apikey=None, project_id=None):
         self.userkey = userkey
         self.apikey = apikey
+        self.integration_id = project_id
         super().__init__()
 
     def request(self, method, path, data):
