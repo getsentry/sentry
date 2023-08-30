@@ -82,6 +82,7 @@ export interface IssueAlertRule extends UnsavedIssueAlertRule {
   id: string;
   projects: string[];
   snooze: boolean;
+  status: 0 | 1;
   errors?: {detail: string}[];
   lastTriggered?: string;
   snoozeCreatedBy?: string;
