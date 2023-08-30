@@ -39,6 +39,38 @@ export type SpanMetricsFieldTypes = {
   [SpanMetricsField.SPAN_DURATION]: number;
 };
 
+export type SpanNumberFields = 'span.self_time' | 'span.duration';
+export type SpanStringFields =
+  | 'span.op'
+  | 'span.description'
+  | 'span.module'
+  | 'span.action'
+  | 'span.domain'
+  | 'span.group'
+  | 'project.id';
+export type SpanFunctions =
+  | 'sps'
+  | 'spm'
+  | 'count'
+  | 'time_spent_percentage'
+  | 'http_error_count';
+
+export type MetricsResponse = {
+  [Property in SpanNumberFields as `avg(${Property})`]: number;
+} & {
+  [Property in SpanNumberFields as `sum(${Property})`]: number;
+} & {
+  [Property in SpanFunctions as `${Property}()`]: number;
+} & {
+  [Property in SpanStringFields as `${Property}`]: string;
+} & {
+  'time_spent_percentage(local)': number;
+};
+
+export type MetricsProperty = keyof MetricsResponse;
+
+export type SmallResponse = Pick<MetricsResponse, 'sps()'>;
+
 export enum SpanIndexedField {
   SPAN_SELF_TIME = 'span.self_time',
   SPAN_GROUP = 'span.group', // Span group computed from the normalized description. Matches the group in the metrics data set
