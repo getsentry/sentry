@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import React, {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -15,7 +15,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import type {PlatformKey} from 'sentry/data/platformCategories';
-import {IconClose, IconWarning} from 'sentry/icons';
+import {IconClose, IconFile, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -351,6 +351,14 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
         >
           {t('Tell us where your source code is')}
         </FixMappingButton>
+        {frame.sourceLink && (
+          <React.Fragment>
+            <IconFile />
+            <OpenInLink onClick={onOpenLink} href={frame.sourceLink} openInNewTab>
+              {t('or open in source')}
+            </OpenInLink>
+          </React.Fragment>
+        )}
       </StacktraceLinkWrapper>
     );
   }
