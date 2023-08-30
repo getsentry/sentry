@@ -11,6 +11,7 @@ import {
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
+import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {
   Dataset,
   EventTypes,
@@ -295,18 +296,23 @@ export function datasetOmittedTags(
       FieldKey.TRANSACTION_OP,
       FieldKey.TRANSACTION_STATUS,
     ],
-    [Dataset.TRANSACTIONS]: org.features.includes('alert-allow-indexed')
-      ? INDEXED_PERFORMANCE_ALERTS_OMITTED_TAGS
-      : undefined,
+    [Dataset.TRANSACTIONS]: transactionOmittedTags(org),
     [Dataset.METRICS]: undefined,
-    [Dataset.GENERIC_METRICS]: org.features.includes('alert-allow-indexed')
-      ? INDEXED_PERFORMANCE_ALERTS_OMITTED_TAGS
-      : undefined,
+    [Dataset.GENERIC_METRICS]: transactionOmittedTags(org),
     [Dataset.SESSIONS]: undefined,
   }[dataset];
 }
 
-export function getSupportedAndOmmitedTags(dataset: Dataset, organization: Organization) {
+function transactionOmittedTags(org: Organization) {
+  if (org.features.includes('on-demand-metrics-extraction')) {
+    return [...ON_DEMAND_METRICS_UNSUPPORTED_TAGS];
+  }
+  return org.features.includes('alert-allow-indexed')
+    ? INDEXED_PERFORMANCE_ALERTS_OMITTED_TAGS
+    : undefined;
+}
+
+export function getSupportedAndOmittedTags(dataset: Dataset, organization: Organization) {
   const omitTags = datasetOmittedTags(dataset, organization);
   const supportedTags = datasetSupportedTags(dataset, organization);
 
