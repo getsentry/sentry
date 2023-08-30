@@ -9,7 +9,7 @@ from django.conf import settings
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
 
-from sentry import features
+from sentry import analytics, features
 from sentry.charts.types import ChartSize
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.charts import build_metric_alert_chart
@@ -33,6 +33,7 @@ from sentry.utils.email import MessageBuilder, get_email_addresses
 
 class ActionHandler(metaclass=abc.ABCMeta):
     status_display = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
+    provider: str
 
     def __init__(self, action, incident, project):
         self.action = action
@@ -56,6 +57,20 @@ class ActionHandler(metaclass=abc.ABCMeta):
         notification_uuid: str | None = None,
     ):
         pass
+
+    def record_sent_analytics(
+        self, external_id: int | str | None = None, notification_uuid: str | None = None
+    ):
+        analytics.record(
+            "alert.sent",
+            organization_id=self.incident.organization_id,
+            project_id=self.project.id,
+            provider=self.provider,
+            alert_id=self.incident.alert_rule_id,
+            alert_type="metric_alert",
+            external_id=str(external_id) if external_id is not None else "",
+            notification_uuid=notification_uuid or "",
+        )
 
 
 class DefaultActionHandler(ActionHandler):
@@ -93,6 +108,8 @@ class DefaultActionHandler(ActionHandler):
     [AlertRuleTriggerAction.TargetType.USER, AlertRuleTriggerAction.TargetType.TEAM],
 )
 class EmailActionHandler(ActionHandler):
+    provider = "email"
+
     def _get_targets(self) -> Set[int]:
         target = self.action.target
         if not target:
@@ -160,6 +177,7 @@ class EmailActionHandler(ActionHandler):
                 notification_uuid,
             )
             self.build_message(email_context, trigger_status, user_id).send_async(to=[email])
+            self.record_sent_analytics(user_id, notification_uuid)
 
     def build_message(self, context, status, user_id) -> MessageBuilder:
         display = self.status_display[status]
@@ -182,6 +200,8 @@ class EmailActionHandler(ActionHandler):
     integration_provider="slack",
 )
 class SlackActionHandler(DefaultActionHandler):
+    provider = "slack"
+
     def send_alert(
         self,
         metric_value: int | float,
@@ -190,9 +210,11 @@ class SlackActionHandler(DefaultActionHandler):
     ):
         from sentry.integrations.slack.utils import send_incident_alert_notification
 
-        send_incident_alert_notification(
+        success = send_incident_alert_notification(
             self.action, self.incident, metric_value, new_status, notification_uuid
         )
+        if success:
+            self.record_sent_analytics(self.action.target_identifier, notification_uuid)
 
 
 @AlertRuleTriggerAction.register_type(
@@ -202,6 +224,8 @@ class SlackActionHandler(DefaultActionHandler):
     integration_provider="msteams",
 )
 class MsTeamsActionHandler(DefaultActionHandler):
+    provider = "msteams"
+
     def send_alert(
         self,
         metric_value: int | float,
@@ -210,9 +234,11 @@ class MsTeamsActionHandler(DefaultActionHandler):
     ):
         from sentry.integrations.msteams.utils import send_incident_alert_notification
 
-        send_incident_alert_notification(
+        success = send_incident_alert_notification(
             self.action, self.incident, metric_value, new_status, notification_uuid
         )
+        if success:
+            self.record_sent_analytics(self.action.target_identifier, notification_uuid)
 
 
 @AlertRuleTriggerAction.register_type(
@@ -222,6 +248,8 @@ class MsTeamsActionHandler(DefaultActionHandler):
     integration_provider="pagerduty",
 )
 class PagerDutyActionHandler(DefaultActionHandler):
+    provider = "pagerduty"
+
     def send_alert(
         self,
         metric_value: int | float,
@@ -230,9 +258,11 @@ class PagerDutyActionHandler(DefaultActionHandler):
     ):
         from sentry.integrations.pagerduty.utils import send_incident_alert_notification
 
-        send_incident_alert_notification(
+        success = send_incident_alert_notification(
             self.action, self.incident, metric_value, new_status, notification_uuid
         )
+        if success:
+            self.record_sent_analytics(self.action.target_identifier, notification_uuid)
 
 
 @AlertRuleTriggerAction.register_type(
@@ -242,6 +272,8 @@ class PagerDutyActionHandler(DefaultActionHandler):
     integration_provider="opsgenie",
 )
 class OpsgenieActionHandler(DefaultActionHandler):
+    provider = "opsgenie"
+
     def send_alert(
         self,
         metric_value: int | float,
@@ -250,9 +282,11 @@ class OpsgenieActionHandler(DefaultActionHandler):
     ):
         from sentry.integrations.opsgenie.utils import send_incident_alert_notification
 
-        send_incident_alert_notification(
+        success = send_incident_alert_notification(
             self.action, self.incident, metric_value, new_status, notification_uuid
         )
+        if success:
+            self.record_sent_analytics(self.action.target_identifier, notification_uuid)
 
 
 @AlertRuleTriggerAction.register_type(
@@ -261,6 +295,8 @@ class OpsgenieActionHandler(DefaultActionHandler):
     [AlertRuleTriggerAction.TargetType.SENTRY_APP],
 )
 class SentryAppActionHandler(DefaultActionHandler):
+    provider = "sentry_app"
+
     def send_alert(
         self,
         metric_value: int | float,
@@ -269,9 +305,11 @@ class SentryAppActionHandler(DefaultActionHandler):
     ):
         from sentry.rules.actions.notify_event_service import send_incident_alert_notification
 
-        send_incident_alert_notification(
+        success = send_incident_alert_notification(
             self.action, self.incident, new_status, metric_value, notification_uuid
         )
+        if success:
+            self.record_sent_analytics(self.action.sentry_app_id, notification_uuid)
 
 
 def format_duration(minutes):
