@@ -28,17 +28,6 @@ export enum SpanMetricsField {
   PROJECT_ID = 'project.id',
 }
 
-export type SpanMetricsFieldTypes = {
-  [SpanMetricsField.SPAN_OP]: string;
-  [SpanMetricsField.SPAN_DESCRIPTION]: string;
-  [SpanMetricsField.SPAN_MODULE]: string;
-  [SpanMetricsField.SPAN_ACTION]: string;
-  [SpanMetricsField.SPAN_DOMAIN]: string;
-  [SpanMetricsField.SPAN_GROUP]: string;
-  [SpanMetricsField.SPAN_SELF_TIME]: number;
-  [SpanMetricsField.SPAN_DURATION]: number;
-};
-
 export type SpanNumberFields = 'span.self_time' | 'span.duration';
 
 export type SpanStringFields =
