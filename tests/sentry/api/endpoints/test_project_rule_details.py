@@ -583,6 +583,48 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
 
+    def test_reenable_disabled_rule(self):
+        """Test that when you edit and save a rule that was disabled, it's re-enabled as long as it passes the checks"""
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+            }
+        ]
+        actions = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+            }
+        ]
+        rule = Rule.objects.create(
+            label="hello world",
+            project=self.project,
+            data={
+                "conditions": conditions,
+                "actions": [],
+                "action_match": "all",
+                "filter_match": "all",
+            },
+        )
+        # disable the rule because it has no action(s)
+        rule.status = ObjectStatus.DISABLED
+        rule.save()
+
+        payload = {
+            "name": "hellooo world",
+            "actionMatch": "all",
+            "actions": actions,
+            "conditions": conditions,
+        }
+        self.get_success_response(
+            self.organization.slug, self.project.slug, rule.id, status_code=200, **payload
+        )
+        # re-fetch rule after update
+        rule = Rule.objects.get(id=rule.id)
+        assert rule.status == ObjectStatus.ACTIVE
+
     def test_with_environment(self):
         payload = {
             "name": "hello world",
