@@ -3,7 +3,11 @@
 
 {% block main %}
 {% for member in missing_members %}
-<p>{{member.email}} {{member.external_id}} {{member.commit_count}}</p>
+<p>
+{% for key, value in member.items %}
+<span>{{value}}</span>
+{% endfor %}
+</p>
 {% endfor %}
 
 {{members_list_url}}
