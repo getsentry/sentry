@@ -499,9 +499,16 @@ class BaseApiClient(TrackResponseMixin):
             extra=extra,
         )
 
-        if (rpc_integration.provider == "slack" and buffer.is_integration_fatal_broken()) or (
-            features.has("organizations:github-disable-on-broken", org)
-            and rpc_integration.provider == "github"
+        if (
+            (rpc_integration.provider == "slack" and buffer.is_integration_fatal_broken())
+            or (
+                features.has("organizations:github-disable-on-broken", org)
+                and rpc_integration.provider == "github"
+            )
+            or (
+                features.has("organizations:gitlab-disable-on-broken", org)
+                and rpc_integration.provider == "gitlab"
+            )
         ):
 
             integration_service.update_integration(

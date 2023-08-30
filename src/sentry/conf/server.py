@@ -1365,8 +1365,6 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
-    # Allow disabling github integrations when broken is detected
-    "organizations:github-disable-on-broken": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1419,6 +1417,10 @@ SENTRY_FEATURES = {
     "organizations:profiling-memory-chart": False,
     # Enable profiling battery usage chart
     "organizations:profiling-battery-usage-chart": False,
+    # Enable disabling github integrations when broken is detected
+    "organizations:github-disable-on-broken": False,
+    # Enable disabling gitlab integrations when broken is detected
+    "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
