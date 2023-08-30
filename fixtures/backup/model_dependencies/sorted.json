@@ -170,6 +170,7 @@
   "sentry.ReleaseFile",
   "sentry.ReleaseHeadCommit",
   "sentry.ReleaseProjectEnvironment",
+  "sentry.ReleaseThreshold",
   "sentry.Rule",
   "sentry.RuleActivity",
   "sentry.RuleFireHistory",
