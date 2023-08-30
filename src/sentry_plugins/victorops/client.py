@@ -12,7 +12,7 @@ class VictorOpsClient(ApiClient):
 
         if routing_key:
             self.routing_key = routing_key
-        self.integration_id = project_id
+        self.project_id = project_id
         super().__init__()
 
     def build_url(self, path):

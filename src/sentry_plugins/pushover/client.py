@@ -9,7 +9,7 @@ class PushoverClient(ApiClient):
     def __init__(self, userkey=None, apikey=None, project_id=None):
         self.userkey = userkey
         self.apikey = apikey
-        self.integration_id = project_id
+        self.project_id = project_id
         super().__init__()
 
     def request(self, method, path, data):

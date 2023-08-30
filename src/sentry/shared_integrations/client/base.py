@@ -61,7 +61,11 @@ class BaseApiClient(TrackResponseMixin):
     ) -> None:
         self.verify_ssl = verify_ssl
         self.logging_context = logging_context
-        self.integration_id = integration_id
+        self.integration_id = (
+            self.project_id
+            if self.integration_type == "plugin" and hasattr(self, "project_id")
+            else integration_id
+        )
 
     def __enter__(self) -> BaseApiClient:
         return self
