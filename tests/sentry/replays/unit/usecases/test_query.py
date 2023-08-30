@@ -39,3 +39,6 @@ def test_make_ordered():
     # Assert empty ordering keys returns empty results.
     ordering = _make_ordered([], [{"replay_id": "a"}])
     assert len(ordering) == 0
+
+    ordering = _make_ordered(["a", "a", "b"], [{"replay_id": "a"}, {"replay_id": "b"}])
+    assert len(ordering) == 2
