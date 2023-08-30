@@ -2,7 +2,6 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct, tn} from 'sentry/locale';
@@ -174,7 +173,6 @@ export function Content({
           newestFirst={newestFirst}
           onExceptionClick={expandException}
         />
-        <ErrorBoundary mini />
         <StackTrace
           data={
             type === StackType.ORIGINAL
