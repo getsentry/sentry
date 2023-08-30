@@ -25,14 +25,14 @@ import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {useFetchProguardMappingFiles} from './actionableItemsUtils';
 import {
-  ActionableItems,
-  ActionableItemsResponse,
+  ActionableItemErrors,
   ActionableItemTypes,
   ActionableItemWarning,
-  useActionableItems,
-} from './useActionableItems';
+  shouldErrorBeShown,
+  useFetchProguardMappingFiles,
+} from './actionableItemsUtils';
+import {ActionableItemsResponse, useActionableItems} from './useActionableItems';
 
 interface ErrorMessage {
   desc: React.ReactNode;
@@ -58,7 +58,9 @@ const keyMapping = {
   image_path: 'File Path',
 };
 
-function getErrorMessage(error: ActionableItems | EventErrorData): Array<ErrorMessage> {
+function getErrorMessage(
+  error: ActionableItemErrors | EventErrorData
+): Array<ErrorMessage> {
   const errorData = error.data ?? {};
 
   switch (error.type) {
@@ -316,13 +318,15 @@ interface ErrorMessageType extends ErrorMessage {
 }
 
 function groupedErrors(
+  event: Event,
   data?: ActionableItemsResponse,
   progaurdErrors?: EventErrorData[]
 ): Record<ActionableItemTypes, ErrorMessageType[]> | {} {
-  if (!data || !progaurdErrors) {
+  if (!data || !progaurdErrors || !event) {
     return {};
   }
   const errors = [...data.errors, ...progaurdErrors]
+    .filter(error => shouldErrorBeShown(error, event))
     .map(error =>
       getErrorMessage(error).map(message => ({
         ...message,
@@ -345,7 +349,7 @@ interface ActionableItemsProps {
   project: Project;
 }
 
-export function ActionableItem({event, project, isShare}: ActionableItemsProps) {
+export function ActionableItems({event, project, isShare}: ActionableItemsProps) {
   const organization = useOrganization();
   const {data, isLoading} = useActionableItems({
     eventId: event.id,
@@ -379,7 +383,7 @@ export function ActionableItem({event, project, isShare}: ActionableItemsProps) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const errorMessages = groupedErrors(data, proguardErrors);
+  const errorMessages = groupedErrors(event, data, proguardErrors);
 
   useRouteAnalyticsParams({
     show_actionable_items_cta: data ? data.errors.length > 0 : false,

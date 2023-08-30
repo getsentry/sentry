@@ -18,7 +18,7 @@ import RegressionMessage from 'sentry/components/events/eventStatisticalDetector
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
-import {ActionableItem} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
+import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
@@ -109,7 +109,7 @@ function GroupEventDetailsContent({
         <EventErrors event={event} project={project} isShare={false} />
       )}
       {hasActionableItems && (
-        <ActionableItem event={event} project={project} isShare={false} />
+        <ActionableItems event={event} project={project} isShare={false} />
       )}
       <EventCause
         project={project}

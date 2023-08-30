@@ -2,6 +2,14 @@ import {EventErrorData} from 'sentry/components/events/errorItem';
 import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {
+  CocoaProcessingErrors,
+  GenericSchemaErrors,
+  HttpProcessingErrors,
+  JavascriptProcessingErrors,
+  NativeProcessingErrors,
+  ProguardProcessingErrors,
+} from 'sentry/constants/eventErrors';
 import {tct} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import {DebugFile} from 'sentry/types/debugFiles';
@@ -11,10 +19,117 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {semverCompare} from 'sentry/utils/versions';
 import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
   /^(([\w\$]\.[\w\$]{1,2})|([\w\$]{2}\.[\w\$]\.[\w\$]))(\.|$)/g;
+
+export type ActionableItemTypes =
+  | JavascriptProcessingErrors
+  | HttpProcessingErrors
+  | GenericSchemaErrors
+  | ProguardProcessingErrors
+  | NativeProcessingErrors;
+
+export const ActionableItemWarning = [
+  ProguardProcessingErrors.PROGUARD_MISSING_LINENO,
+  NativeProcessingErrors.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
+  GenericSchemaErrors.FUTURE_TIMESTAMP,
+  GenericSchemaErrors.CLOCK_DRIFT,
+  GenericSchemaErrors.PAST_TIMESTAMP,
+  GenericSchemaErrors.VALUE_TOO_LONG,
+];
+
+interface BaseActionableItem {
+  data: any;
+  message: string;
+  type: ActionableItemTypes;
+}
+interface ProguardMissingLineNoError extends BaseActionableItem {
+  type: ProguardProcessingErrors.PROGUARD_MISSING_LINENO;
+}
+interface ProguardMissingMappingError extends BaseActionableItem {
+  type: ProguardProcessingErrors.PROGUARD_MISSING_MAPPING;
+}
+
+interface NativeMissingOptionalBundledDSYMError extends BaseActionableItem {
+  type: NativeProcessingErrors.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM;
+}
+interface NativeMissingDSYMError extends BaseActionableItem {
+  type: NativeProcessingErrors.NATIVE_MISSING_DSYM;
+}
+interface NativeBadDSYMError extends BaseActionableItem {
+  type: NativeProcessingErrors.NATIVE_BAD_DSYM;
+}
+
+interface JSMissingSourcesContentError extends BaseActionableItem {
+  type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTEXT;
+}
+
+interface FetchGenericError extends BaseActionableItem {
+  type: HttpProcessingErrors.FETCH_GENERIC_ERROR;
+}
+interface RestrictedIpError extends BaseActionableItem {
+  type: HttpProcessingErrors.RESTRICTED_IP;
+}
+interface SecurityViolationError extends BaseActionableItem {
+  type: HttpProcessingErrors.SECURITY_VIOLATION;
+}
+
+interface FutureTimestampError extends BaseActionableItem {
+  type: GenericSchemaErrors.FUTURE_TIMESTAMP;
+}
+interface ClockDriftError extends BaseActionableItem {
+  type: GenericSchemaErrors.CLOCK_DRIFT;
+}
+interface PastTimestampError extends BaseActionableItem {
+  type: GenericSchemaErrors.PAST_TIMESTAMP;
+}
+
+interface ValueTooLongError extends BaseActionableItem {
+  type: GenericSchemaErrors.VALUE_TOO_LONG;
+}
+interface InvalidDataError extends BaseActionableItem {
+  type: GenericSchemaErrors.INVALID_DATA;
+}
+interface InvalidEnvironmentError extends BaseActionableItem {
+  type: GenericSchemaErrors.INVALID_ENVIRONMENT;
+}
+interface InvalidAttributeError extends BaseActionableItem {
+  type: GenericSchemaErrors.INVALID_ATTRIBUTE;
+}
+
+export type ActionableItemErrors =
+  | ProguardMissingLineNoError
+  | ProguardMissingMappingError
+  | NativeMissingOptionalBundledDSYMError
+  | NativeMissingDSYMError
+  | NativeBadDSYMError
+  | JSMissingSourcesContentError
+  | FetchGenericError
+  | RestrictedIpError
+  | SecurityViolationError
+  | FutureTimestampError
+  | ClockDriftError
+  | PastTimestampError
+  | ValueTooLongError
+  | InvalidDataError
+  | InvalidEnvironmentError
+  | InvalidAttributeError;
+
+export function shouldErrorBeShown(error: EventErrorData, event: Event) {
+  if (
+    error.type === CocoaProcessingErrors.COCOA_INVALID_DATA &&
+    event.sdk?.name === 'sentry.cocoa' &&
+    error.data?.name === 'contexts.trace.sampled' &&
+    semverCompare(event.sdk?.version || '', '8.7.4') === -1
+  ) {
+    // The Cocoa SDK sends wrong values for contexts.trace.sampled before 8.7.4
+    return false;
+  }
+  return true;
+}
 
 function isDataMinified(str: string | null) {
   if (!str) {
