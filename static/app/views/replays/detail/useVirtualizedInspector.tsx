@@ -9,6 +9,13 @@ type Opts = {
   listRef: RefObject<List>;
 };
 
+export type OnDimensionChange = (
+  index: number,
+  path: string,
+  expandedState: Record<string, boolean>,
+  event: MouseEvent<HTMLDivElement>
+) => void;
+
 export default function useVirtualizedInspector({cache, listRef, expandPathsRef}: Opts) {
   const {handleDimensionChange} = useVirtualListDimentionChange({cache, listRef});
 
@@ -29,7 +36,8 @@ export default function useVirtualizedInspector({cache, listRef, expandPathsRef}
           rowState.delete(path);
         }
         expandPathsRef.current?.set(index, rowState);
-        handleDimensionChange(index, event);
+        handleDimensionChange(index);
+        event.stopPropagation();
       },
       [expandPathsRef, handleDimensionChange]
     ),
