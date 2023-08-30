@@ -10,6 +10,7 @@ from snuba_sdk.expressions import Limit, Offset
 from snuba_sdk.function import Function
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.event_search import AggregateFilter
@@ -76,6 +77,9 @@ class TrendQueryBuilder(QueryBuilder):
 
 
 class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     trend_columns = {
         "p50": "percentile_range({column}, 0.5, {condition}, {boundary}) as {query_alias}",
         "p75": "percentile_range({column}, 0.75, {condition}, {boundary}) as {query_alias}",
@@ -512,6 +516,10 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 
 @region_silo_endpoint
 class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def build_result_handler(
         self,
         request,

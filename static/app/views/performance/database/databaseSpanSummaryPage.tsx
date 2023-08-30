@@ -43,7 +43,7 @@ type Query = {
   endpointMethod: string;
   transaction: string;
   transactionMethod: string;
-  [QueryParameterNames.SORT]: string;
+  [QueryParameterNames.SPANS_SORT]: string;
 };
 
 type Props = {

@@ -393,3 +393,4 @@ default_manager.add(
         template="removed org auth token {name}",
     )
 )
+default_manager.add(events.ProjectOwnershipRuleEditAuditLogEvent())

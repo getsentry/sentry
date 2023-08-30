@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectOwnershipPermission
 from sentry.api.serializers import serialize
@@ -159,6 +160,10 @@ class ProjectOwnershipSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectOwnershipEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = [ProjectOwnershipPermission]
 
     def get_ownership(self, project):
@@ -262,7 +267,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
                 actor=request.user,
                 organization=project.organization,
                 target_object=project.id,
-                event=audit_log.get_event_id("PROJECT_EDIT"),
+                event=audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT"),
                 data={**change_data, **project.get_audit_log_data()},
             )
             ownership_rule_created.send_robust(project=project, sender=self.__class__)
