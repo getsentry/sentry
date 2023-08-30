@@ -1004,6 +1004,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "sentry-metrics.writes-limiter.limits.custom.per-org",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "sentry-metrics.writes-limiter.limits.generic-metrics.per-org",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1031,6 +1036,11 @@ register(
 )
 register(
     "sentry-metrics.writes-limiter.limits.releasehealth.global",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry-metrics.writes-limiter.limits.custom.global",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1081,6 +1091,11 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.spans.per-org",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry-metrics.cardinality-limiter.limits.custom.per-org",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
