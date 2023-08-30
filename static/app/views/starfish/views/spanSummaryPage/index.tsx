@@ -19,7 +19,7 @@ import {
   SpanSummaryQueryFilters,
   useSpanMetrics,
 } from 'sentry/views/starfish/queries/useSpanMetrics';
-import {SpanMetricsFields, StarfishFunctions} from 'sentry/views/starfish/types';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -36,7 +36,7 @@ type Query = {
   endpointMethod: string;
   transaction: string;
   transactionMethod: string;
-  [QueryParameterNames.SORT]: string;
+  [QueryParameterNames.SPANS_SORT]: string;
 };
 
 type Props = {
@@ -54,7 +54,7 @@ function SpanSummaryPage({params, location}: Props) {
     : {};
 
   const sort =
-    fromSorts(location.query[QueryParameterNames.SORT]).filter(isAValidSort)[0] ??
+    fromSorts(location.query[QueryParameterNames.SPANS_SORT]).filter(isAValidSort)[0] ??
     DEFAULT_SORT; // We only allow one sort on this table in this view
 
   if (endpointMethod && queryFilter) {
@@ -65,21 +65,21 @@ function SpanSummaryPage({params, location}: Props) {
     groupId,
     queryFilter,
     [
-      SpanMetricsFields.SPAN_OP,
-      SpanMetricsFields.SPAN_GROUP,
-      SpanMetricsFields.PROJECT_ID,
-      `${StarfishFunctions.SPS}()`,
+      SpanMetricsField.SPAN_OP,
+      SpanMetricsField.SPAN_GROUP,
+      SpanMetricsField.PROJECT_ID,
+      `${SpanFunction.SPS}()`,
     ],
     'api.starfish.span-summary-page-metrics'
   );
 
   const span = {
-    [SpanMetricsFields.SPAN_OP]: spanMetrics[SpanMetricsFields.SPAN_OP],
-    [SpanMetricsFields.SPAN_GROUP]: groupId,
+    [SpanMetricsField.SPAN_OP]: spanMetrics[SpanMetricsField.SPAN_OP],
+    [SpanMetricsField.SPAN_GROUP]: groupId,
   };
 
   const title = [
-    getSpanOperationDescription(span[SpanMetricsFields.SPAN_OP]),
+    getSpanOperationDescription(span[SpanMetricsField.SPAN_OP]),
     t('Summary'),
   ].join(' ');
 
@@ -137,8 +137,8 @@ function SpanSummaryPage({params, location}: Props) {
                 )}
 
                 <SampleList
-                  groupId={span[SpanMetricsFields.SPAN_GROUP]}
-                  projectId={spanMetrics[SpanMetricsFields.PROJECT_ID]}
+                  groupId={span[SpanMetricsField.SPAN_GROUP]}
+                  projectId={spanMetrics[SpanMetricsField.PROJECT_ID]}
                   transactionName={transaction}
                   transactionMethod={transactionMethod}
                 />

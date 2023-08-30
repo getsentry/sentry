@@ -3,6 +3,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -31,6 +32,10 @@ class RepositorySerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationIntegrationsPermission,)
 
     def put(self, request: Request, organization, repo_id) -> Response:

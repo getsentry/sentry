@@ -15,7 +15,7 @@ from sentry.issues.grouptype import (
     MonitorCheckInTimeout,
 )
 from sentry.models import Organization
-from sentry.monitors.models import MonitorEnvironment, MonitorStatus
+from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +33,20 @@ def mark_failed(
     occurrence_context=None,
 ):
     from sentry.signals import monitor_environment_failed
+
+    failure_issue_threshold = monitor_env.monitor.config.get("failure_issue_threshold", 0)
+    if failure_issue_threshold:
+        previous_checkins = MonitorCheckIn.objects.filter(monitor_environment=monitor_env).order_by(
+            "-date_added"
+        )[:failure_issue_threshold]
+        # check for successive failed previous check-ins
+        if not all(
+            [
+                checkin.status not in [CheckInStatus.IN_PROGRESS, CheckInStatus.OK]
+                for checkin in previous_checkins
+            ]
+        ):
+            return False
 
     if last_checkin is None:
         next_checkin_base = timezone.now()

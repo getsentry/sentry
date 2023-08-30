@@ -7,6 +7,7 @@ from sentry_sdk import Scope, configure_scope
 
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
@@ -186,6 +187,9 @@ def get_code_mapping_configs(project: Project) -> List[RepositoryProjectPathConf
 
 @region_silo_endpoint
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """
     Returns valid links for source code providers so that
     users can go from the file in the stack trace to the

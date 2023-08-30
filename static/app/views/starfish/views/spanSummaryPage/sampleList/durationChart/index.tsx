@@ -9,7 +9,7 @@ import {isNearAverage} from 'sentry/views/starfish/components/samplesTable/commo
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {
   crossIconPath,
@@ -17,7 +17,7 @@ import {
   upwardPlayIconPath,
 } from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/symbol';
 
-const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
 type Props = {
   groupId: string;
