@@ -1,9 +1,10 @@
-import {useEffect, useState} from 'react';
+import {ReactNode, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconEllipsis, IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -14,7 +15,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getQueryParams} from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
 
 import {DataSection} from '../styles';
 
@@ -27,17 +27,13 @@ type EventDisplayProps = {
   eventSelectLabel: string;
 };
 
-function EventDisplay({eventSelectLabel, eventIds, isLoading}) {
+function EventDisplay({eventSelectLabel, eventIds}: EventDisplayProps) {
   const theme = useTheme();
   const [selectedEventId, setSelectedEventId] = useState<string>('');
 
   useEffect(() => {
     setSelectedEventId(eventIds[0]);
   }, [eventIds]);
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <div style={{flex: 1, minWidth: 0}}>
@@ -171,26 +167,31 @@ function EventComparison({event, projectId}: EventComparisonProps) {
     project: parseInt(projectId, 10),
   });
 
-  if (errorLoadingBaselineEvents || errorLoadingRegressedEvents) {
-    return <div>Loading</div>;
+  let content: ReactNode;
+  if (loadingBaselineEvents || loadingRegressedEvents) {
+    content = <LoadingIndicator />;
+  } else if (errorLoadingBaselineEvents || errorLoadingRegressedEvents) {
+    content = <div>Oops, there was an error</div>;
+  } else {
+    content = (
+      <div style={{display: 'flex', justifyContent: 'space-between', gap: '16px'}}>
+        <EventDisplay
+          eventSelectLabel={t('Baseline Event ID')}
+          eventIds={baselineEventIds?.data.map(({id}) => id) ?? []}
+        />
+        <EventDisplay
+          eventSelectLabel={t('Regressed Event ID')}
+          eventIds={regressedEventIds?.data.map(({id}) => id) ?? []}
+        />
+      </div>
+    );
   }
 
   return (
     <DataSection>
       <strong>{t('Compare Events:')}</strong>
       <p>{COMPARISON_DESCRIPTION}</p>
-      <div style={{display: 'flex', justifyContent: 'space-between', gap: '16px'}}>
-        <EventDisplay
-          eventSelectLabel={t('Baseline Event ID')}
-          eventIds={baselineEventIds?.data.map(({id}) => id) ?? []}
-          isLoading={loadingBaselineEvents}
-        />
-        <EventDisplay
-          eventSelectLabel={t('Regressed Event ID')}
-          eventIds={regressedEventIds?.data.map(({id}) => id) ?? []}
-          isLoading={loadingRegressedEvents}
-        />
-      </div>
+      {content}
       <div>{JSON.stringify(baselineEventIds, null, 2)}</div>
       <div>{JSON.stringify(regressedEventIds, null, 2)}</div>
     </DataSection>
