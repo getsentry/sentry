@@ -19,7 +19,6 @@ import {
   SpanSummaryQueryFilters,
   useSpanMetrics,
 } from 'sentry/views/starfish/queries/useSpanMetrics';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -64,24 +63,16 @@ function SpanSummaryPage({params, location}: Props) {
   const {data: spanMetrics, isLoading: isSpanMetricsLoading} = useSpanMetrics(
     groupId,
     queryFilter,
-    [
-      SpanMetricsField.SPAN_OP,
-      SpanMetricsField.SPAN_GROUP,
-      SpanMetricsField.PROJECT_ID,
-      `${SpanFunction.SPS}()`,
-    ],
+    ['span.op', 'span.group', 'project.id', 'sps()'],
     'api.starfish.span-summary-page-metrics'
   );
 
   const span = {
-    [SpanMetricsField.SPAN_OP]: spanMetrics[SpanMetricsField.SPAN_OP],
-    [SpanMetricsField.SPAN_GROUP]: groupId,
+    ['span.op']: spanMetrics['span.op'],
+    ['span.group']: groupId,
   };
 
-  const title = [
-    getSpanOperationDescription(span[SpanMetricsField.SPAN_OP]),
-    t('Summary'),
-  ].join(' ');
+  const title = [getSpanOperationDescription(span['span.op']), t('Summary')].join(' ');
 
   const crumbs: Crumb[] = [];
   crumbs.push({
@@ -137,7 +128,7 @@ function SpanSummaryPage({params, location}: Props) {
                 )}
 
                 <SampleList
-                  groupId={span[SpanMetricsField.SPAN_GROUP]}
+                  groupId={span['span.group']}
                   transactionName={transaction}
                   transactionMethod={transactionMethod}
                 />
