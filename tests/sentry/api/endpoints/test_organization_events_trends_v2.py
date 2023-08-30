@@ -6,7 +6,7 @@ import pytest
 from django.urls import reverse
 from freezegun import freeze_time
 
-from sentry.issues.grouptype import PerformanceP95TransactionDurationRegressionGroupType
+from sentry.issues.grouptype import PerformanceDurationRegressionGroupType
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import iso_format
@@ -535,7 +535,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                     },
                     {"name": "Transaction", "value": "foo", "important": True},
                 ],
-                "type": PerformanceP95TransactionDurationRegressionGroupType.type_id,
+                "type": PerformanceDurationRegressionGroupType.type_id,
                 "level": "info",
                 "culprit": "foo",
             },

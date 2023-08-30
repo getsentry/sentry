@@ -18,7 +18,7 @@ from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.issues.grouptype import PerformanceP95TransactionDurationRegressionGroupType
+from sentry.issues.grouptype import PerformanceDurationRegressionGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import produce_occurrence_to_kafka
 from sentry.net.http import connection_from_url
@@ -401,8 +401,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     project_id=project_id,
                     event_id=uuid.uuid4().hex,
                     fingerprint=[fingerprint_regression(qualifying_trend)],
-                    type=PerformanceP95TransactionDurationRegressionGroupType,
-                    issue_title=PerformanceP95TransactionDurationRegressionGroupType.description,
+                    type=PerformanceDurationRegressionGroupType,
+                    issue_title=PerformanceDurationRegressionGroupType.description,
                     subtitle=f"Increased from {displayed_old_baseline}ms to {displayed_new_baseline}ms (P95)",
                     culprit=qualifying_trend["transaction"],
                     evidence_data=qualifying_trend,

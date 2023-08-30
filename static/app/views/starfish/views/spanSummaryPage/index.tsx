@@ -36,7 +36,7 @@ type Query = {
   endpointMethod: string;
   transaction: string;
   transactionMethod: string;
-  [QueryParameterNames.SORT]: string;
+  [QueryParameterNames.SPANS_SORT]: string;
 };
 
 type Props = {
@@ -54,7 +54,7 @@ function SpanSummaryPage({params, location}: Props) {
     : {};
 
   const sort =
-    fromSorts(location.query[QueryParameterNames.SORT]).filter(isAValidSort)[0] ??
+    fromSorts(location.query[QueryParameterNames.SPANS_SORT]).filter(isAValidSort)[0] ??
     DEFAULT_SORT; // We only allow one sort on this table in this view
 
   if (endpointMethod && queryFilter) {

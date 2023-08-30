@@ -64,7 +64,31 @@ export const platformProductAvailability = {
     ProductSolution.SESSION_REPLAY,
   ],
   python: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-aiohttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-bottle': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-celery': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-chalice': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-django': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-falcon': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-fastapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-flask': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-gcpfunctions': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+  ],
+  'python-pyramid': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-quart': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-rq': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-sanic': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-serverless': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+  ],
+  'python-tornado': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-starlette': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-tryton': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-wsgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
 } as Record<PlatformKey, ProductSolution[]>;
 
 export type DisabledProduct = {

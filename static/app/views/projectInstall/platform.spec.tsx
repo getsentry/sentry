@@ -126,7 +126,7 @@ describe('ProjectInstallPlatform', function () {
 
     expect(
       await screen.findByRole('heading', {
-        name: 'Configure JavaScript SDK',
+        name: 'Configure Browser JavaScript SDK',
       })
     ).toBeInTheDocument();
   });
