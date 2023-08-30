@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 import logging
 
-from django.db.models import F
 from django.urls import reverse
 
 from sentry import audit_log, features, options
@@ -22,31 +21,38 @@ from sentry.utils.http import absolute_uri
 logger = logging.getLogger("sentry.auth")
 
 
-# TODO(hybrid-cloud): Remove cross-silo DB accesses, or review control silo usages
-# This task is triggered from both control silo (AuthHelper, OrganizationAuthSettingsView)
-# and region silo endpoints. Any request to the region endpoint will trap errors.
-# My hope is that this task can become control silo only.
+@instrumented_task(
+    name="sentry.tasks.send_sso_link_emails_control",
+    queue="auth.control",
+    silo_mode=SiloMode.CONTROL,
+)
+def email_missing_links_control(org_id: int, actor_id: int, provider_key: str, **kwargs):
+    # This seems dumb as the region method is the same, but we need to keep
+    # queues separate so that the transition from monolith to siloed is clean
+    _email_missing_links(org_id=org_id, sending_user_id=actor_id, provider_key=provider_key)
+
+
 @instrumented_task(name="sentry.tasks.send_sso_link_emails", queue="auth")
 def email_missing_links(org_id: int, actor_id: int, provider_key: str, **kwargs):
-    try:
-        org = Organization.objects.get(id=org_id)
-        provider = manager.get(provider_key)
-    except (Organization.DoesNotExist, ProviderNotRegistered) as e:
-        logger.warning("Could not send SSO link emails: %s", e)
+    _email_missing_links(org_id=org_id, sending_user_id=actor_id, provider_key=provider_key)
+
+
+def _email_missing_links(org_id: int, sending_user_id: int, provider_key: str) -> None:
+    org = organization_service.get(id=org_id)
+    if not org:
+        logger.warning("Could not send SSO link emails: Missing organization")
         return
 
-    user = user_service.get_user(user_id=actor_id)
+    user = user_service.get_user(user_id=sending_user_id)
     if not user:
-        logger.warning("sso.link.email_failure.could_not_find_user", extra={"user_id": actor_id})
+        logger.warning(
+            "sso.link.email_failure.could_not_find_user", extra={"user_id": sending_user_id}
+        )
         return
 
-    # TODO(mark) We don't have member flags available in control silo.
-    # This entire method could be moved to an RPC call that is invoked from control silo.
-    member_list = OrganizationMember.objects.filter(
-        organization=org, flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"])
+    organization_service.send_sso_link_emails(
+        organization_id=org_id, sending_user_email=user.email, provider_key=provider_key
     )
-    for member in member_list:
-        member.send_sso_link_email(user.id, provider)
 
 
 @instrumented_task(

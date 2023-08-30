@@ -46,7 +46,7 @@ from sentry.services.hybrid_cloud.organization import (
     organization_service,
 )
 from sentry.signals import sso_enabled, user_signup
-from sentry.tasks.auth import email_missing_links
+from sentry.tasks.auth import email_missing_links_control
 from sentry.utils import auth, json, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.hashlib import md5_text
@@ -895,7 +895,7 @@ class AuthHelper(Pipeline):
             )
         )
 
-        email_missing_links.delay(self.organization.id, request.user.id, self.provider.key)
+        email_missing_links_control.delay(self.organization.id, request.user.id, self.provider.key)
 
         messages.add_message(self.request, messages.SUCCESS, OK_SETUP_SSO)
 

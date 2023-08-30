@@ -2,12 +2,48 @@ from django.core import mail
 
 from sentry.models import AuthProvider, OrganizationMember
 from sentry.silo import SiloMode
-from sentry.tasks.auth import email_missing_links, email_unlink_notifications
+from sentry.tasks.auth import (
+    email_missing_links,
+    email_missing_links_control,
+    email_unlink_notifications,
+)
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
 
 
-@region_silo_test
+@control_silo_test(stable=True)
+class EmailMissingLinksControlTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.user = self.create_user(email="bar@example.com")
+        self.organization = self.create_organization(name="Test")
+        self.provider = AuthProvider.objects.create(
+            organization_id=self.organization.id, provider="dummy"
+        )
+        om = self.create_member(
+            user_id=self.user.id,
+            organization=self.organization,
+            flags=OrganizationMember.flags["sso:linked"],
+        )
+
+        assert om.flags["sso:linked"]
+        self.user2 = self.create_user(email="baz@example.com")
+
+        om2 = self.create_member(user_id=self.user2.id, organization=self.organization, flags=0)
+        assert not om2.flags["sso:linked"]
+
+    def test_email_missing_links(self):
+        with self.tasks():
+            email_missing_links_control(self.organization.id, self.user.id, self.provider.provider)
+
+        assert len(mail.outbox) == 1
+        message = mail.outbox[0]
+        assert message.to == [self.user2.email]
+        assert "to enable signing on with your Dummy account" in message.body
+        assert "SSO link request invoked by bar@example.com" in message.body
+
+
+@region_silo_test(stable=True)
 class EmailMissingLinksTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -34,7 +70,10 @@ class EmailMissingLinksTest(TestCase):
             email_missing_links(self.organization.id, self.user.id, self.provider.provider)
 
         assert len(mail.outbox) == 1
-        assert mail.outbox[0].to == [self.user2.email]
+        message = mail.outbox[0]
+        assert message.to == [self.user2.email]
+        assert "to enable signing on with your Dummy account" in message.body
+        assert "SSO link request invoked by bar@example.com" in message.body
 
 
 @region_silo_test(stable=True)
