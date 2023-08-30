@@ -23,34 +23,34 @@ export default function extractDomNodes({
   rrwebEvents,
 }: Args): Promise<Extraction[]> {
   return new Promise(resolve => {
-    const extractions: Extraction[] = [];
+    const extractions = new Map<BreadcrumbFrame | SpanFrame, Extraction>();
     const player = createPlayer(rrwebEvents);
-
-    let lastFrameMatched = -1;
+    let lastEventTimestamp = 0;
 
     const callback = event => {
       if (event.type === 2 || event.type === 3) {
-        for (let i = lastFrameMatched + 1; i < frames.length; i++) {
+        const firstFrameAfterEvent = frames.findIndex(
+          f => f.timestampMs >= lastEventTimestamp
+        );
+
+        lastEventTimestamp = event.timestamp;
+
+        for (let i = firstFrameAfterEvent; i < frames.length; i++) {
           const frame = frames[i];
 
           if (frame.data && 'nodeId' in frame.data && frame.data.nodeId === -1) {
             continue;
           }
 
-          if (frame.timestampMs <= event.timestamp) {
-            extractions.push({
+          const found = extractNode(frame, player);
+          if (found) {
+            extractions.set(frame, found);
+          } else {
+            extractions.set(frame, {
               frame,
               html: null,
               timestamp: frame.timestampMs,
             });
-            continue;
-          }
-
-          const found = extractNode(frame, player);
-          if (found) {
-            extractions.push(found);
-            lastFrameMatched = i;
-          } else {
             return;
           }
         }
@@ -59,7 +59,7 @@ export default function extractDomNodes({
       const meta = player.getMetaData();
       const percent = player.getCurrentTime() / meta.totalTime;
       if (percent >= 1) {
-        resolve(extractions);
+        resolve([...extractions.values()]);
       }
     };
 
