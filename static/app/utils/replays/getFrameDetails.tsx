@@ -185,7 +185,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     color: 'green300',
     description: stripOrigin(frame.description),
     tabKey: TabKey.NETWORK,
-    title: 'Navigate Back',
+    title: 'Navigate Back/Forward',
     type: BreadcrumbType.NAVIGATION,
   }),
   'navigation.push': frame => ({

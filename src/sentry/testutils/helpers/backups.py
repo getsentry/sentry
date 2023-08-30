@@ -14,9 +14,14 @@ from sentry_relay.auth import generate_key_pair
 
 from sentry.backup.comparators import ComparatorMap
 from sentry.backup.dependencies import sorted_dependencies
-from sentry.backup.exports import OldExportConfig, exports
+from sentry.backup.exports import (
+    export_in_global_scope,
+    export_in_organization_scope,
+    export_in_user_scope,
+)
 from sentry.backup.findings import ComparatorFindings
-from sentry.backup.imports import OldImportConfig, imports
+from sentry.backup.imports import OldImportConfig, _import
+from sentry.backup.scopes import ExportScope, ImportScope
 from sentry.backup.validate import validate
 from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.incidents.models import (
@@ -92,12 +97,21 @@ class ValidationError(Exception):
         self.info = info
 
 
-def export_to_file(path: Path) -> JSONData:
+def export_to_file(path: Path, scope: ExportScope) -> JSONData:
     """Helper function that exports the current state of the database to the specified file."""
 
     json_file_path = str(path)
     with open(json_file_path, "w+") as tmp_file:
-        exports(tmp_file, OldExportConfig(), 2, NOOP_PRINTER)
+        # These functions are just thin wrappers, but its best to exercise them directly anyway in
+        # case that ever changes.
+        if scope == ExportScope.Global:
+            export_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+        elif scope == ExportScope.Organization:
+            export_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+        elif scope == ExportScope.User:
+            export_in_user_scope(tmp_file, printer=NOOP_PRINTER)
+        else:
+            raise AssertionError(f"Unknown `ExportScope`: `{scope.name}`")
 
     with open(json_file_path) as tmp_file:
         output = json.load(tmp_file)
@@ -112,24 +126,29 @@ def reversed_dependencies():
     return sorted
 
 
-def clear_database_but_keep_sequences():
+def clear_database(*, reset_pks: bool = False):
     """Deletes all models we care about from the database, in a sequence that ensures we get no
     foreign key errors."""
 
-    with unguarded_write(using="default"), transaction.atomic(using="default"):
-        reversed = reversed_dependencies()
-        for model in reversed:
-            # For some reason, the tables for `SentryApp*` models don't get deleted properly here
-            # when using `model.objects.all().delete()`, so we have to call out to Postgres
-            # manually.
-            connection = connections[router.db_for_write(SentryApp)]
-            with connection.cursor() as cursor:
-                table = model._meta.db_table
-                cursor.execute(f"DELETE FROM {table:s};")
+    with unguarded_write(using="default"):
+        if reset_pks:
+            call_command("flush", verbosity=0, interactive=False)
+            return
 
-        # Clear remaining tables that are not explicitly in Sentry's own model dependency graph.
-        for model in set(apps.get_models()) - set(reversed):
-            model.objects.all().delete()
+        with transaction.atomic(using="default"):
+            reversed = reversed_dependencies()
+            for model in reversed:
+                # For some reason, the tables for `SentryApp*` models don't get deleted properly here
+                # when using `model.objects.all().delete()`, so we have to call out to Postgres
+                # manually.
+                connection = connections[router.db_for_write(SentryApp)]
+                with connection.cursor() as cursor:
+                    table = model._meta.db_table
+                    cursor.execute(f"DELETE FROM {table:s};")
+
+            # Clear remaining tables that are not explicitly in Sentry's own model dependency graph.
+            for model in set(apps.get_models()) - set(reversed):
+                model.objects.all().delete()
 
 
 def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> JSONData:
@@ -142,21 +161,16 @@ def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> 
 
         # Export the current state of the database into the "expected" temporary file, then
         # parse it into a JSON object for comparison.
-        expect = export_to_file(tmp_expect)
+        expect = export_to_file(tmp_expect, ExportScope.Global)
+        clear_database(reset_pks=reset_pks)
 
         # Write the contents of the "expected" JSON file into the now clean database.
         # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
-        with unguarded_write(using="default"):
-            if reset_pks:
-                call_command("flush", verbosity=0, interactive=False)
-            else:
-                clear_database_but_keep_sequences()
-
-            with open(tmp_expect) as tmp_file:
-                imports(tmp_file, OldImportConfig(), NOOP_PRINTER)
+        with unguarded_write(using="default"), open(tmp_expect) as tmp_file:
+            _import(tmp_file, ImportScope.Global, OldImportConfig(), printer=NOOP_PRINTER)
 
         # Validate that the "expected" and "actual" JSON matches.
-        actual = export_to_file(tmp_actual)
+        actual = export_to_file(tmp_actual, ExportScope.Global)
         res = validate(expect, actual)
         if res.findings:
             raise ValidationError(res)
@@ -197,9 +211,11 @@ def import_export_from_fixture_then_validate(
 
     # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
     with unguarded_write(using="default"), open(fixture_file_path) as fixture_file:
-        imports(fixture_file, OldImportConfig(), NOOP_PRINTER)
+        _import(fixture_file, ImportScope.Global, OldImportConfig(), printer=NOOP_PRINTER)
 
-    res = validate(expect, export_to_file(tmp_path.joinpath("tmp_test_file.json")), map)
+    res = validate(
+        expect, export_to_file(tmp_path.joinpath("tmp_test_file.json"), ExportScope.Global), map
+    )
     if res.findings:
         raise ValidationError(res)
 

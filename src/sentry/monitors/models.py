@@ -78,16 +78,31 @@ class MonitorEnvironmentValidationFailed(Exception):
     pass
 
 
-def get_next_schedule(last_checkin, schedule_type, schedule):
+def get_next_schedule(reference_ts: datetime, schedule_type, schedule):
+    """
+    Given the schedule type and schedule, determine the next timestamp for a
+    schedule from the reference_ts
+
+    Examples:
+
+    >>> get_next_schedule('05:30', ScheduleType.CRONTAB, '0 * * * *')
+    >>> 06:00
+
+    >>> get_next_schedule('05:30', ScheduleType.CRONTAB, '30 * * * *')
+    >>> 06:30
+
+    >>> get_next_schedule('05:35', ScheduleType.INTERVAL, [2, 'hour'])
+    >>> 07:35
+    """
     if schedule_type == ScheduleType.CRONTAB:
-        itr = croniter(schedule, last_checkin)
+        itr = croniter(schedule, reference_ts)
         next_schedule = itr.get_next(datetime)
     elif schedule_type == ScheduleType.INTERVAL:
         interval, unit_name = schedule
         rule = rrule.rrule(
-            freq=SCHEDULE_INTERVAL_MAP[unit_name], interval=interval, dtstart=last_checkin, count=2
+            freq=SCHEDULE_INTERVAL_MAP[unit_name], interval=interval, dtstart=reference_ts, count=2
         )
-        if rule[0] > last_checkin:
+        if rule[0] > reference_ts:
             next_schedule = rule[0]
         else:
             next_schedule = rule[1]
@@ -524,6 +539,11 @@ class MonitorEnvironment(Model):
     auto-generated missed check-ins.
     """
 
+    last_state_change = models.DateTimeField(null=True)
+    """
+    The last time that the monitor changed state. Used for issue fingerprinting.
+    """
+
     objects = MonitorEnvironmentManager()
 
     class Meta:
@@ -547,6 +567,15 @@ class MonitorEnvironment(Model):
         )
 
     def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
+        recovery_threshold = self.monitor.config.get("recovery_threshold", 0)
+        if recovery_threshold:
+            previous_checkins = MonitorCheckIn.objects.filter(monitor_environment=self).order_by(
+                "-date_added"
+            )[:recovery_threshold]
+            # check for successive OK previous check-ins
+            if not all(checkin.status == CheckInStatus.OK for checkin in previous_checkins):
+                return
+
         next_checkin = self.monitor.get_next_expected_checkin(ts)
         next_checkin_latest = self.monitor.get_next_expected_checkin_latest(ts)
 

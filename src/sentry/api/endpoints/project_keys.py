@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
@@ -26,6 +27,10 @@ from sentry.models import ProjectKey, ProjectKeyStatus
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectKeysEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     public = {"GET", "POST"}
 
     @extend_schema(

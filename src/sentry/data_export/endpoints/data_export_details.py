@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import pending_silo_endpoint
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
@@ -16,6 +17,9 @@ from ..models import ExportedData
 
 @pending_silo_endpoint
 class DataExportDetailsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationDataExportPermission,)
 
     def get(self, request: Request, organization: Organization, data_export_id: str) -> Response:

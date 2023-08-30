@@ -6,7 +6,7 @@ import pytest
 from django.urls import reverse
 from freezegun import freeze_time
 
-from sentry.issues.grouptype import PerformanceP95TransactionDurationRegressionGroupType
+from sentry.issues.grouptype import PerformanceDurationRegressionGroupType
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import iso_format
@@ -523,19 +523,19 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             occurrence,
             **{
                 "project_id": self.project.id,
-                "issue_title": "P95 Transaction Duration Regression",
-                "subtitle": "Transaction duration changed from 14.0 ms to 28.0 ms",
+                "issue_title": "Duration Regression",
+                "subtitle": "Increased from 14.0ms to 28.0ms (P95)",
                 "resource_id": None,
                 "evidence_data": mock_trends_result[0],
                 "evidence_display": [
                     {
                         "name": "Regression",
-                        "value": "Transaction duration changed from 14.0 ms to 28.0 ms",
+                        "value": "Increased from 14.0ms to 28.0ms (P95)",
                         "important": True,
                     },
                     {"name": "Transaction", "value": "foo", "important": True},
                 ],
-                "type": PerformanceP95TransactionDurationRegressionGroupType.type_id,
+                "type": PerformanceDurationRegressionGroupType.type_id,
                 "level": "info",
                 "culprit": "foo",
             },

@@ -56,7 +56,6 @@ default_manager = FeatureManager()  # NOQA
 # fmt: off
 
 # Features that don't use resource scoping
-default_manager.add("app:enterprise-prevent-numeric-slugs", SystemFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 
@@ -74,7 +73,6 @@ default_manager.add("organizations:customer-domains", OrganizationFeature, Featu
 default_manager.add("organizations:dashboards-mep", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:dashboards-rh-widget", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:dashboards-import", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:disable-sentryapps-on-broken", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:discover", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:discover-events-rate-limit", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:enterprise-data-secrecy", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -168,6 +166,7 @@ default_manager.add("organizations:profiling-beta", OrganizationFeature, Feature
 default_manager.add("organizations:profiling-stacktrace-links", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:profiling-global-suspect-functions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:profiling-cpu-chart", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:profiling-battery-usage-chart", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:profiling-memory-chart", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:project-stats", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -267,11 +266,10 @@ default_manager.add("organizations:ds-sliding-window", OrganizationFeature, Feat
 default_manager.add("organizations:ds-sliding-window-org", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:ds-org-recalibration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:github-disable-on-broken", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:slack-fatal-disable-on-broken", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:gitlab-disable-on-broken", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:sourcemaps-bundle-flat-file-indexing", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:sourcemaps-upload-release-as-artifact-bundle", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:recap-server", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:detailed-alert-logging", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:notification-settings-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:on-demand-metrics-prefill", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:enable-on-demand-metrics-prefill", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -281,6 +279,8 @@ default_manager.add("projects:alert-filters", ProjectFeature, FeatureHandlerStra
 default_manager.add("projects:custom-inbound-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:data-forwarding", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:discard-groups", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("projects:first-event-severity-alerting", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("projects:first-event-severity-calculation", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:minidump", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:race-free-group-creation", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:rate-limits", ProjectFeature, FeatureHandlerStrategy.INTERNAL)

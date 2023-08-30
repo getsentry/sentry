@@ -2,6 +2,7 @@ from functools import cached_property
 from unittest import mock
 
 from django.conf import settings
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.auth import superuser
@@ -289,7 +290,7 @@ class ClientConfigViewTest(TestCase):
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
 
-        with self.options({"system.region": "eu"}):
+        with override_settings(SENTRY_REGION="eu"):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"

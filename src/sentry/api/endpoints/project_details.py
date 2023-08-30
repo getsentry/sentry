@@ -12,6 +12,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import (
     DEFAULT_SLUG_ERROR_MESSAGE,
     DEFAULT_SLUG_PATTERN,
@@ -382,6 +383,11 @@ class RelaxedProjectPermission(ProjectPermission):
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectDetailsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+    }
     public = {"GET", "PUT", "DELETE"}
     permission_classes = [RelaxedProjectPermission]
 

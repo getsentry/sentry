@@ -118,7 +118,7 @@ interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement>
    * When set the button acts as an anchor link. Use with `external` to have
    * the link open in a new tab.
    *
-   * @deprecated Use LnikButton instead
+   * @deprecated Use LinkButton instead
    */
   href?: string;
   /**

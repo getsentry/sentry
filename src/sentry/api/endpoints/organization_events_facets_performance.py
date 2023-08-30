@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Function, Op
 
 from sentry import features, tagstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
@@ -33,6 +34,10 @@ DEFAULT_TAG_KEY_LIMIT = 5
 
 
 class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def has_feature(self, organization, request):
         return features.has("organizations:performance-view", organization, actor=request.user)
 
@@ -130,6 +135,10 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
 class OrganizationEventsFacetsPerformanceHistogramEndpoint(
     OrganizationEventsFacetsPerformanceEndpointBase
 ):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         try:
             params, aggregate_column, filter_query = self._setup(request, organization)

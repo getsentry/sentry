@@ -263,6 +263,7 @@ class IntegrationService(RpcService):
         new_status: int,
         incident_attachment_json: str,
         metric_value: Optional[str] = None,
+        notification_uuid: Optional[str] = None,
     ) -> None:
         pass
 
