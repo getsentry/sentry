@@ -7,7 +7,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from typing import Dict, List, Literal, Optional, Sequence, Union
+from typing import Any, Dict, List, Literal, Optional, Sequence, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -93,6 +93,7 @@ from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, Sch
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.replays.models import ReplayRecordingSegment
+from sentry.rules.base import RuleBase
 from sentry.search.events.constants import (
     METRIC_FRUSTRATED_TAG_VALUE,
     METRIC_SATISFACTION_TAG_KEY,
@@ -113,6 +114,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
+from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
@@ -789,6 +791,24 @@ class RuleTestCase(TestCase):
         kwargs.setdefault("is_new_group_environment", True)
         kwargs.setdefault("has_reappeared", True)
         return EventState(**kwargs)
+
+    def get_condition_activity(self, **kwargs) -> ConditionActivity:
+        kwargs.setdefault("group_id", self.event.group.id)
+        kwargs.setdefault("type", ConditionActivityType.CREATE_ISSUE)
+        kwargs.setdefault("timestamp", self.event.datetime)
+        return ConditionActivity(**kwargs)
+
+    def passes_activity(
+        self,
+        rule: RuleBase,
+        condition_activity: Optional[ConditionActivity] = None,
+        event_map: Optional[Dict[str, Any]] = None,
+    ):
+        if condition_activity is None:
+            condition_activity = self.get_condition_activity()
+        if event_map is None:
+            event_map = {}
+        return rule.passes_activity(condition_activity, event_map)
 
     def assertPasses(self, rule, event=None, **kwargs):
         if event is None:
