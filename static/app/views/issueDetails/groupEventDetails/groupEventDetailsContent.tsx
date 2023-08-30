@@ -108,7 +108,9 @@ function GroupEventDetailsContent({
       {!hasActionableItems && (
         <EventErrors event={event} project={project} isShare={false} />
       )}
-      {hasActionableItems && <ActionableItem event={event} projectSlug={projectSlug} />}
+      {hasActionableItems && (
+        <ActionableItem event={event} project={project} isShare={false} />
+      )}
       <EventCause
         project={project}
         eventId={event.id}

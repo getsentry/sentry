@@ -1,10 +1,11 @@
-import React, {Fragment, useMemo, useState} from 'react';
+import React, {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {EventErrorData} from 'sentry/components/events/errorItem';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -17,13 +18,14 @@ import {
 } from 'sentry/constants/eventErrors';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event} from 'sentry/types';
+import {Event, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {useFetchProguardMappingFiles} from './actionableItemsUtils';
 import {
   ActionableItems,
   ActionableItemsResponse,
@@ -56,7 +58,7 @@ const keyMapping = {
   image_path: 'File Path',
 };
 
-function getErrorMessage(error: ActionableItems): Array<ErrorMessage> {
+function getErrorMessage(error: ActionableItems | EventErrorData): Array<ErrorMessage> {
   const errorData = error.data ?? {};
 
   switch (error.type) {
@@ -314,12 +316,13 @@ interface ErrorMessageType extends ErrorMessage {
 }
 
 function groupedErrors(
-  data?: ActionableItemsResponse
+  data?: ActionableItemsResponse,
+  progaurdErrors?: EventErrorData[]
 ): Record<ActionableItemTypes, ErrorMessageType[]> | {} {
-  if (!data) {
+  if (!data || !progaurdErrors) {
     return {};
   }
-  const errors = data.errors
+  const errors = [...data.errors, ...progaurdErrors]
     .map(error =>
       getErrorMessage(error).map(message => ({
         ...message,
@@ -338,18 +341,45 @@ function groupedErrors(
 
 interface ActionableItemsProps {
   event: Event;
-  projectSlug: string;
+  isShare: boolean;
+  project: Project;
 }
 
-export function ActionableItem({event, projectSlug}: ActionableItemsProps) {
+export function ActionableItem({event, project, isShare}: ActionableItemsProps) {
   const organization = useOrganization();
   const {data, isLoading} = useActionableItems({
     eventId: event.id,
     orgSlug: organization.slug,
-    projectSlug,
+    projectSlug: project.slug,
   });
 
-  const errorMessages = groupedErrors(data);
+  const {proguardErrorsLoading, proguardErrors} = useFetchProguardMappingFiles({
+    event,
+    project,
+    isShare,
+  });
+
+  useEffect(() => {
+    if (proguardErrors?.length) {
+      if (proguardErrors[0]?.type === 'proguard_potentially_misconfigured_plugin') {
+        trackAnalytics('issue_error_banner.proguard_misconfigured.displayed', {
+          organization,
+          group: event?.groupID,
+          platform: project.platform,
+        });
+      } else if (proguardErrors[0]?.type === 'proguard_missing_mapping') {
+        trackAnalytics('issue_error_banner.proguard_missing_mapping.displayed', {
+          organization,
+          group: event?.groupID,
+          platform: project.platform,
+        });
+      }
+    }
+    // Just for analytics, only track this once per visit
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const errorMessages = groupedErrors(data, proguardErrors);
 
   useRouteAnalyticsParams({
     show_actionable_items_cta: data ? data.errors.length > 0 : false,
@@ -358,6 +388,12 @@ export function ActionableItem({event, projectSlug}: ActionableItemsProps) {
 
   if (isLoading || !defined(data) || data.errors.length === 0) {
     return null;
+  }
+
+  if (proguardErrorsLoading) {
+    // XXX: This is necessary for acceptance tests to wait until removal since there is
+    // no visual loading state.
+    return <HiddenDiv data-test-id="event-errors-loading" />;
   }
 
   const analyticsParams = {
@@ -440,4 +476,8 @@ const ErrorTitleFlex = styled('div')`
   justify-content: space-between;
   align-items: center;
   gap: ${space(1)};
+`;
+
+const HiddenDiv = styled('div')`
+  display: none;
 `;
