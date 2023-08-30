@@ -1,7 +1,7 @@
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanMetricsField, StarfishFunctions} from 'sentry/views/starfish/types';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Query = {
@@ -10,10 +10,10 @@ type Query = {
 
 const SORTABLE_FIELDS = [
   `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-  `${StarfishFunctions.HTTP_ERROR_COUNT}()`,
-  `${StarfishFunctions.SPM}()`,
-  `${StarfishFunctions.TIME_SPENT_PERCENTAGE}()`,
-  `${StarfishFunctions.TIME_SPENT_PERCENTAGE}(local)`,
+  `${SpanFunction.HTTP_ERROR_COUNT}()`,
+  `${SpanFunction.SPM}()`,
+  `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
+  `${SpanFunction.TIME_SPENT_PERCENTAGE}(local)`,
 ] as const;
 
 export type ValidSort = Sort & {
@@ -35,7 +35,7 @@ export function useModuleSort(fallback: Sort = DEFAULT_SORT) {
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
-  field: `${StarfishFunctions.TIME_SPENT_PERCENTAGE}()`,
+  field: `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
 };
 
 function isAValidSort(sort: Sort): sort is ValidSort {

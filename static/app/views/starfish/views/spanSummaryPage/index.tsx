@@ -19,7 +19,7 @@ import {
   SpanSummaryQueryFilters,
   useSpanMetrics,
 } from 'sentry/views/starfish/queries/useSpanMetrics';
-import {SpanMetricsField, StarfishFunctions} from 'sentry/views/starfish/types';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -68,7 +68,7 @@ function SpanSummaryPage({params, location}: Props) {
       SpanMetricsField.SPAN_OP,
       SpanMetricsField.SPAN_GROUP,
       SpanMetricsField.PROJECT_ID,
-      `${StarfishFunctions.SPS}()`,
+      `${SpanFunction.SPS}()`,
     ],
     'api.starfish.span-summary-page-metrics'
   );

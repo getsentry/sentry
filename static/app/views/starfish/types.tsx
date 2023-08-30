@@ -75,7 +75,7 @@ export type SpanIndexedFieldTypes = {
 
 export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
 
-export enum StarfishFunctions {
+export enum SpanFunction {
   SPS = 'sps',
   SPM = 'spm',
   SPS_PERCENENT_CHANGE = 'sps_percent_change',
@@ -89,34 +89,34 @@ export const StarfishDatasetFields = {
 };
 
 export const STARFISH_AGGREGATION_FIELDS: Record<
-  StarfishFunctions,
+  SpanFunction,
   FieldDefinition & {defaultOutputType: AggregationOutputType}
 > = {
-  [StarfishFunctions.SPS]: {
+  [SpanFunction.SPS]: {
     desc: t('Spans per second'),
     kind: FieldKind.FUNCTION,
     defaultOutputType: 'number',
     valueType: FieldValueType.NUMBER,
   },
-  [StarfishFunctions.SPM]: {
+  [SpanFunction.SPM]: {
     desc: t('Spans per minute'),
     kind: FieldKind.FUNCTION,
     defaultOutputType: 'number',
     valueType: FieldValueType.NUMBER,
   },
-  [StarfishFunctions.TIME_SPENT_PERCENTAGE]: {
+  [SpanFunction.TIME_SPENT_PERCENTAGE]: {
     desc: t('Span time spent percentage'),
     defaultOutputType: 'percentage',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
-  [StarfishFunctions.HTTP_ERROR_COUNT]: {
+  [SpanFunction.HTTP_ERROR_COUNT]: {
     desc: t('Count of 5XX http errors'),
     defaultOutputType: 'integer',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
-  [StarfishFunctions.SPS_PERCENENT_CHANGE]: {
+  [SpanFunction.SPS_PERCENENT_CHANGE]: {
     desc: t('Spans per second percentage change'),
     defaultOutputType: 'percentage',
     kind: FieldKind.FUNCTION,
